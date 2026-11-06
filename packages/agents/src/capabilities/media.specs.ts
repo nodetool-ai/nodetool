@@ -958,6 +958,70 @@ export const ytDlpSpec: CapabilitySpec = {
   }
 };
 
+/** The media tools one `generate_batch` request may name. */
+export const BATCH_GENERATION_TOOLS = [
+  "generate_image",
+  "edit_image",
+  "generate_video",
+  "animate_image",
+  "generate_speech",
+  "generate_music"
+] as const;
+
+/** The most requests one `generate_batch` call accepts. */
+export const MAX_BATCH_REQUESTS = 32;
+
+export const GENERATE_BATCH_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    requests: {
+      type: "array" as const,
+      maxItems: MAX_BATCH_REQUESTS,
+      description:
+        "The generations to run. Each names a media tool and passes that tool's own arguments.",
+      items: {
+        type: "object" as const,
+        properties: {
+          tool: {
+            type: "string" as const,
+            enum: [...BATCH_GENERATION_TOOLS],
+            description: "The media tool this request runs."
+          },
+          label: {
+            type: "string" as const,
+            description: "A short name the user reads, such as \"Shot 3 still\"."
+          },
+          args: {
+            type: "object" as const,
+            description:
+              "The arguments of `tool`, exactly as a direct call takes them, including provider and model."
+          }
+        },
+        required: ["tool", "args"]
+      }
+    },
+    concurrency: {
+      type: "number" as const,
+      description: "How many requests run at once. Default 3, max 8."
+    }
+  },
+  required: ["requests"]
+};
+
+export const generateBatchSpec: CapabilitySpec = {
+  name: "generate_batch",
+  description:
+    "Run a list of media generations in one call: images, edits, videos, animations, speech or music. The user sees one progress bar with a time estimate, which unfolds into each request. Use it instead of many separate generation calls when the requests do not depend on each other. Returns every request's asset URI or error, in request order. A failed request does not stop the others.",
+  inputSchema: GENERATE_BATCH_SCHEMA,
+  // The progress message names the call's own id, so a client puts the bar on this call's row.
+  needsToolCallId: true,
+  category: "write",
+  userMessage: (params) => {
+    const count = Array.isArray(params["requests"]) ? params["requests"].length : 0;
+    return count === 1 ? "Generating 1 request" : `Generating ${count} requests`;
+  }
+};
+
 /** Every spec this module declares, in declaration order. */
 export const mediaSpecs: readonly CapabilitySpec[] = [
   generateTextSpec,
@@ -969,6 +1033,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   videoFromReferencesSpec,
   generateSpeechSpec,
   generateMusicSpec,
+  generateBatchSpec,
   transcribeAudioSpec,
   embedTextSpec,
   readMediaBytesSpec,

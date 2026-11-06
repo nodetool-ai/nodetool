@@ -19939,5 +19939,39 @@
     "showAssistant": "Mostrar assistente",
     "hideAssistant": "Ocultar assistente",
     "resizeAssistant": "Assistente de redimensionamento da linha do tempo"
+  },
+  "generationBatch": {
+    "summary": "{{done}} de {{total}} concluídas",
+    "remaining": "Faltam cerca de {{time}}",
+    "finishing": "Finalizando",
+    "failedCount": "Com falha: {{count}}",
+    "status": {
+      "queued": "Na fila",
+      "running": "Em andamento",
+      "completed": "Concluída",
+      "failed": "Falhou"
+    },
+    "showRequests": "Mostrar solicitações",
+    "hideRequests": "Ocultar solicitações",
+    "expected": "Previsto {{time}}",
+    "took": "Levou {{time}}",
+    "progressLabel": "Progresso da geração"
+  },
+  "workflowSteps": {
+    "stepOf": "Etapa {{current}} de {{total}}",
+    "allDone": "Todas as {{total}} etapas concluídas",
+    "waiting": "Aguardando",
+    "running": "Em execução",
+    "done": "Concluído",
+    "failed": "Falhou",
+    "progressLabel": "Progresso do fluxo",
+    "steps": "Etapas",
+    "addStep": "Adicionar etapa",
+    "removeStep": "Remover etapa",
+    "node": "Nó",
+    "title": "Título",
+    "description": "Descrição",
+    "autoHint": "Nenhuma etapa definida. O widget mostra cada nó generativo.",
+    "chooseNode": "Escolha um nó"
   }
 }

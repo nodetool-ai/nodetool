@@ -23,6 +23,7 @@ interface CondaRuntimePackageOptions {
   extraBinaries?: Record<string, string>;
   /** Windows subdirectory under conda env where the binary lives */
   windowsBinSubdir?: string;
+  windowsBinarySubdirs?: Readonly<Record<string, string>>;
   approxSizeMB?: number;
   homepage?: string;
   platforms?: NodeJS.Platform[];
@@ -49,6 +50,7 @@ export class CondaRuntimePackage implements RuntimePackage {
   readonly verifyBinary: string;
   readonly extraBinaries: Record<string, string>;
   readonly windowsBinSubdir?: string;
+  readonly windowsBinarySubdirs: Readonly<Record<string, string>>;
   readonly postInstall?: (ctx: RuntimeContext) => Promise<void>;
 
   constructor(opts: CondaRuntimePackageOptions) {
@@ -61,6 +63,7 @@ export class CondaRuntimePackage implements RuntimePackage {
     this.verifyBinary = opts.verifyBinary;
     this.extraBinaries = opts.extraBinaries ?? {};
     this.windowsBinSubdir = opts.windowsBinSubdir;
+    this.windowsBinarySubdirs = opts.windowsBinarySubdirs ?? {};
     this.approxSizeMB = opts.approxSizeMB;
     this.homepage = opts.homepage;
     this.platforms = opts.platforms;
@@ -68,15 +71,15 @@ export class CondaRuntimePackage implements RuntimePackage {
     this.postInstall = opts.postInstall;
   }
 
-  private binDir(ctx: RuntimeContext): string {
+  private binDir(ctx: RuntimeContext, binaryName: string): string {
     return ctx.platform === "win32"
-      ? path.join(ctx.condaEnvPath, this.windowsBinSubdir ?? ".")
+      ? path.join(ctx.condaEnvPath, this.windowsBinarySubdirs[binaryName] ?? this.windowsBinSubdir ?? ".")
       : path.join(ctx.condaEnvPath, "bin");
   }
 
   private binaryPath(ctx: RuntimeContext, binaryName: string): string {
     const exe = ctx.platform === "win32" ? `${binaryName}.exe` : binaryName;
-    return path.join(this.binDir(ctx), exe);
+    return path.join(this.binDir(ctx, binaryName), exe);
   }
 
   async status(ctx: RuntimeContext): Promise<RuntimeStatus> {
@@ -157,7 +160,7 @@ export class CondaRuntimePackage implements RuntimePackage {
       binaries[logical] = this.binaryPath(ctx, basename);
     }
     return {
-      binPaths: [this.binDir(ctx)],
+      binPaths: [...new Set(Object.values(binaries).map((binary) => path.dirname(binary)))],
       binaries,
     };
   }

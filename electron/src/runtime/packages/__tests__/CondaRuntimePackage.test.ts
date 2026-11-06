@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { CondaRuntimePackage } from '../CondaRuntimePackage';
 import type { RuntimeContext } from '../types';
 
@@ -106,7 +107,7 @@ describe('CondaRuntimePackage', () => {
       const ctx = makeCtx({ platform: 'linux' });
       await pkg.status(ctx);
       const verifyCall = fileExists.mock.calls[1][0] as string;
-      expect(verifyCall).toContain('/bin/testbin');
+      expect(verifyCall).toBe(path.join(ctx.condaEnvPath, 'bin', 'testbin'));
       expect(verifyCall).not.toContain('.exe');
     });
   });
@@ -128,7 +129,7 @@ describe('CondaRuntimePackage', () => {
       const resolution = await pkg.resolve(ctx);
       expect(resolution).not.toBeNull();
       expect(resolution!.binPaths).toHaveLength(1);
-      expect(resolution!.binPaths![0]).toContain('/bin');
+      expect(resolution!.binPaths![0]).toBe(path.join(ctx.condaEnvPath, 'bin'));
       expect(resolution!.binaries).toHaveProperty('testbin');
       expect(resolution!.binaries).toHaveProperty('helper');
     });

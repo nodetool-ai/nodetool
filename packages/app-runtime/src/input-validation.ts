@@ -26,3 +26,52 @@ export const isMissingRequiredMediaValue = (
   nodeType: string,
   value: unknown
 ): boolean => REQUIRED_MEDIA_NODE_TYPES.has(nodeType) && isEmptyValue(value);
+
+const REQUIRED_MODEL_NODE_TYPES = new Set([
+  "nodetool.input.LanguageModelInput",
+  "nodetool.input.ImageModelInput",
+  "nodetool.input.VideoModelInput",
+  "nodetool.input.TTSModelInput",
+  "nodetool.input.ASRModelInput",
+  "nodetool.input.MusicModelInput",
+  "nodetool.input.EmbeddingModelInput"
+]);
+
+const isUnsetModel = (value: unknown): boolean =>
+  !isRecord(value) ||
+  !isString(value.provider) ||
+  value.provider === "" ||
+  value.provider === "empty" ||
+  !isString(value.id) ||
+  value.id === "";
+
+/**
+ * True when a model input has no model to run with. A value the operation sends
+ * replaces the node's own model, so the node's model counts only without one.
+ */
+export const isMissingRequiredModelValue = (
+  nodeType: string,
+  value: unknown,
+  nodeValue: unknown
+): boolean =>
+  REQUIRED_MODEL_NODE_TYPES.has(nodeType) &&
+  isUnsetModel(value === undefined ? nodeValue : value);
+
+/** The label of the first widget in a UI tree that uses this binding. */
+export const findWidgetLabel = (
+  tree: unknown,
+  binding: string
+): string | undefined => {
+  if (Array.isArray(tree)) {
+    for (const item of tree) {
+      const label = findWidgetLabel(item, binding);
+      if (label !== undefined) return label;
+    }
+    return undefined;
+  }
+  if (!isRecord(tree)) return undefined;
+  if (tree.binding === binding && isString(tree.label) && tree.label !== "") {
+    return tree.label;
+  }
+  return findWidgetLabel(Object.values(tree), binding);
+};

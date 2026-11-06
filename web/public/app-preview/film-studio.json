@@ -2,13 +2,13 @@
   "slug": "film-studio",
   "name": "Film Studio",
   "emoji": "🎬",
-  "description": "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
+  "description": "The showcase run: one agent directs, storyboards, shoots and scores a short while you watch, then a rough cut you can keep editing and the poster that sells it.",
   "tagline": "Brief → direction → storyboard → cut → key art.",
   "note": "💸 This app generates video and music. Run it once, deliberately.",
   "featured": true,
   "image": "/app-preview/img/film-studio.jpg",
   "app": {
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "ui": {
       "root": {
         "props": {}
@@ -70,7 +70,7 @@
                   "id": "heading-shoot",
                   "text": "Shoot",
                   "level": "2",
-                  "subtitle": "Write the film in one line and pick a look. One run directs, storyboards, shoots and scores it."
+                  "subtitle": "Write the film in one line and pick a look. One agent directs, storyboards, shoots, narrates and scores it, and you watch each step."
                 }
               },
               {
@@ -100,103 +100,46 @@
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "NumberInput",
                       "props": {
-                        "id": "in-produce-shot-count",
-                        "binding": "op:produce/in:shot_count",
+                        "id": "in-produce-shots",
+                        "binding": "op:produce/in:shots",
                         "label": "Number of shots",
-                        "multiline": false,
+                        "min": 3,
+                        "max": 8,
                         "events": []
                       }
                     },
                     {
-                      "type": "Accordion",
+                      "type": "ModelSelect",
                       "props": {
-                        "id": "models-shoot",
-                        "title": "Models (8)",
-                        "defaultOpen": false,
-                        "content": [
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-director-model",
-                              "binding": "op:produce/prop:director#model",
-                              "label": "Director model",
-                              "modelKind": "language_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-production-data-model",
-                              "binding": "op:produce/prop:production_data#model",
-                              "label": "Extract production data model",
-                              "modelKind": "language_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-style-frame-model",
-                              "binding": "op:produce/prop:style_frame#model",
-                              "label": "Master style frame model",
-                              "modelKind": "image_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-shot-list-model",
-                              "binding": "op:produce/prop:shot_list#model",
-                              "label": "Stream the shots model",
-                              "modelKind": "language_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-keyframe-model",
-                              "binding": "op:produce/prop:keyframe#model",
-                              "label": "Storyboard keyframes model",
-                              "modelKind": "image_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-animate-model",
-                              "binding": "op:produce/prop:animate#model",
-                              "label": "Animate each shot model",
-                              "modelKind": "video_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-narration-tts-model",
-                              "binding": "op:produce/prop:narration_tts#model",
-                              "label": "Narration model",
-                              "modelKind": "tts_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-produce-music-model",
-                              "binding": "op:produce/prop:music#model",
-                              "label": "Score model",
-                              "modelKind": "music_model",
-                              "events": []
-                            }
-                          }
-                        ]
+                        "id": "model-agentmodel",
+                        "binding": "var:agentModel",
+                        "label": "Agent model",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-imagemodel",
+                        "binding": "var:imageModel",
+                        "label": "Image model",
+                        "modelKind": "image_model",
+                        "task": "text_to_image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-videomodel",
+                        "binding": "var:videoModel",
+                        "label": "Video model",
+                        "modelKind": "video_model",
+                        "task": "image_to_video",
+                        "events": []
                       }
                     },
                     {
@@ -224,11 +167,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "AgentActivity",
                       "props": {
-                        "id": "progress-produce",
-                        "binding": "op:produce/exec#progress",
-                        "label": "Directing, storyboarding & shooting…"
+                        "id": "transcript-produce",
+                        "binding": "op:produce/exec#transcript",
+                        "label": "What the director is doing",
+                        "placeholder": "Direction, keyframes, clips, narration and the cut appear here."
                       }
                     },
                     {
@@ -257,32 +201,14 @@
                       "type": "Markdown",
                       "props": {
                         "id": "out-produce-direction",
-                        "binding": "op:produce/out:direction_out",
+                        "binding": "op:produce/out:direction",
                         "text": ""
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-produce-storyboard",
-                        "text": "Storyboard keyframes",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-produce-storyboard",
-                        "binding": "op:produce/out:storyboard_out",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-produce-film",
+                        "id": "lbl-film",
                         "text": "Finished film",
                         "level": "3"
                       }
@@ -290,10 +216,26 @@
                     {
                       "type": "Video",
                       "props": {
-                        "id": "out-produce-film",
-                        "binding": "op:produce/out:film_out",
+                        "id": "out-film",
+                        "binding": "var:film",
                         "height": 320,
                         "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-produce-notes",
+                        "text": "The director's notes",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-produce-notes",
+                        "binding": "op:produce/out:notes",
+                        "text": ""
                       }
                     }
                   ]
@@ -428,11 +370,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-cut",
-                        "binding": "op:cut/exec#progress",
-                        "label": "Cutting the timeline…"
+                        "operationId": "cut",
+                        "label": "Cutting the timeline…",
+                        "steps": []
                       }
                     },
                     {
@@ -663,11 +606,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-poster",
-                        "binding": "op:poster/exec#progress",
-                        "label": "Designing your poster…"
+                        "operationId": "poster",
+                        "label": "Designing your poster…",
+                        "steps": []
                       }
                     },
                     {
@@ -748,7 +692,7 @@
       {
         "id": "produce",
         "name": "Produce",
-        "workflowId": "script",
+        "workflowId": "",
         "inputs": {
           "brief": {
             "from": "variable",
@@ -757,11 +701,33 @@
           "style": {
             "from": "variable",
             "variableId": "style"
+          },
+          "model": {
+            "from": "variable",
+            "variableId": "agentModel"
+          },
+          "image_model": {
+            "from": "variable",
+            "variableId": "imageModel"
+          },
+          "video_model": {
+            "from": "variable",
+            "variableId": "videoModel"
           }
         },
-        "outputs": {},
-        "policy": "queue",
-        "timeoutMs": 1800000
+        "outputs": {
+          "film": {
+            "to": "variable",
+            "variableId": "film"
+          }
+        },
+        "policy": "replace",
+        "timeoutMs": 1800000,
+        "target": {
+          "kind": "script",
+          "scriptId": "produce",
+          "scriptVersion": 1
+        }
       },
       {
         "id": "cut",
@@ -825,133 +791,50 @@
         "default": "Anamorphic, sodium amber against blue-black sea, fine grain",
         "scope": "instance",
         "persist": false
+      },
+      {
+        "id": "film",
+        "name": "Film",
+        "type": {
+          "type": "video",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "agentModel",
+        "name": "Agent model",
+        "type": {
+          "type": "language_model",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "imageModel",
+        "name": "Image model",
+        "type": {
+          "type": "image_model",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "videoModel",
+        "name": "Video model",
+        "type": {
+          "type": "video_model",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
       }
     ]
   },
   "workflows": [
-    {
-      "key": "script",
-      "name": "Script to Screen",
-      "graph": {
-        "nodes": [
-          {
-            "id": "brief",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "Brief",
-              "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 1365
-              },
-              "zIndex": 0,
-              "width": 280,
-              "title": "1️⃣ Brief",
-              "selectable": true,
-              "bypassed": false
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "style",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "Visual Style",
-              "value": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 1140
-              },
-              "zIndex": 0,
-              "width": 280,
-              "title": "2️⃣ Visual style",
-              "selectable": true,
-              "bypassed": false
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "shot_count",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "Shot Count",
-              "value": "5"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 1590
-              },
-              "zIndex": 0,
-              "width": 280,
-              "title": "3️⃣ Shot count",
-              "selectable": true,
-              "bypassed": false
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "direction_out",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "direction"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 1230,
-                "y": 1310
-              },
-              "title": "📋 Direction document",
-              "selectable": true
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "storyboard_out",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "storyboard"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 3320,
-                "y": 1012
-              },
-              "title": "🖼️ Storyboard — approve before video spend",
-              "selectable": true
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "film_out",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "film"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 4860,
-                "y": 1135
-              },
-              "title": "🎬 Final film",
-              "selectable": true
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          }
-        ],
-        "edges": []
-      }
-    },
     {
       "key": "timeline",
       "name": "Directed Film to Timeline",
@@ -1095,15 +978,68 @@
       }
     }
   ],
+  "scripts": [
+    {
+      "key": "produce",
+      "name": "Direct a Short Film",
+      "sourceId": "nodetool-base/Direct a Short Film",
+      "document": {
+        "schemaVersion": 1,
+        "description": "Runs one agent that directs, storyboards, shoots, narrates, scores and cuts a short film from a brief.",
+        "code": "\nimport { run_agent } from \"@nodetool-ai/sandbox-nodetool/agents\";\n\nconst brief = String(inputs.brief ?? \"\").trim();\nif (!brief) throw new Error(\"Write the film in one line before you shoot it.\");\nconst style = String(inputs.style ?? \"\").trim();\nconst shots = Math.max(3, Math.min(8, Number(inputs.shots) || 5));\nconst picked = inputs.model?.id ? inputs.model : await nodetool.models.pick(\"generate_message\");\nconst ref = async ([chosen, capability]) => {\n  const hit = chosen?.id ? chosen : await nodetool.models.pick(capability);\n  const { provider, id } = hit.ref || hit;\n  return \"provider \" + provider + \", model \" + id;\n};\nconst [imageModel, editModel, videoModel, voiceModel, musicModel] = await Promise.all(\n  [\n    [inputs.image_model, \"text_to_image\"],\n    [null, \"image_to_image\"],\n    [inputs.video_model, \"image_to_video\"],\n    [null, \"text_to_speech\"],\n    [null, \"text_to_music\"]\n  ].map(ref)\n);\n\nconst answer = await run_agent({\n  label: \"director\",\n  model: picked.ref || picked,\n  max_turns: 50,\n  tools: [\"generate_image\", \"generate_batch\", \"generate_speech\", \"generate_music\", \"media_probe\", \"media_edit\"],\n  system: \"You are a film director. Decide, say what you decided in one or two sentences, then act with your tools. Use only the asset URIs your tools return.\",\n  prompt: [\n    \"Direct a narrated, scored short film from start to finish.\",\n    \"Brief: \" + brief,\n    \"Visual style: \" + (style || \"choose one that fits the brief\"),\n    \"Number of shots: \" + shots,\n    \"\",\n    \"1. Write the direction document in Markdown: title, logline, characters, style bible, numbered shot list (subject, framing, motion, 4s each), narration script and music cue.\",\n    \"2. Make one style frame with generate_image at 16:9, with \" + imageModel + \". Every keyframe must match it.\",\n    \"3. Make every keyframe in one generate_batch call: one edit_image request per shot, with the style frame as input_file, at 16:9, with \" + editModel + \". Label each request with its shot.\",\n    \"4. Animate every keyframe in one more generate_batch call: one animate_image request per keyframe, with input_file set to the keyframe and \" + videoModel + \".\",\n    \"5. Call media_edit with operation concat, the clip asset URIs in shot order, and output_file cut.mp4. Check its length with media_probe.\",\n    \"6. Voice the narration with generate_speech, with \" + voiceModel + \". Keep it shorter than the cut.\",\n    \"7. Call generate_music for a bed as long as the cut, with \" + musicModel + \".\",\n    \"8. Mix the narration, then the music, onto the cut with media_edit operation add_audio. Name the final file film.mp4.\",\n    \"9. Submit the direction document, the asset URI of the final file, and your notes.\",\n    \"\",\n    \"Retry a failed call once, and fix its arguments first if the error names one. If a shot fails again, cut without it and say so. Do not regenerate a shot only to improve it.\",\n    \"If you cannot finish, still submit: leave film_uri empty and say in the notes which step failed and why.\"\n  ].join(\"\\n\"),\n  output_schema: {\n    type: \"object\",\n    properties: {\n      direction: { type: \"string\" },\n      film_uri: { type: \"string\" },\n      notes: { type: \"string\" }\n    },\n    required: [\"direction\", \"notes\"]\n  }\n});\nif (answer.error) throw new Error(answer.error);\nawait output(\"direction\", answer.result.direction);\nawait output(\"notes\", answer.result.notes);\nif (!answer.result.film_uri) throw new Error(\"The agent made no film. Its notes say why.\");\nawait output(\"film\", { type: \"video\", uri: answer.result.film_uri });\n",
+        "inputs": [
+          {
+            "name": "brief",
+            "type": "str"
+          },
+          {
+            "name": "style",
+            "type": "str"
+          },
+          {
+            "name": "shots",
+            "type": "int"
+          },
+          {
+            "name": "model",
+            "type": "language_model"
+          },
+          {
+            "name": "image_model",
+            "type": "image_model"
+          },
+          {
+            "name": "video_model",
+            "type": "video_model"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "direction",
+            "type": "str"
+          },
+          {
+            "name": "film",
+            "type": "video"
+          },
+          {
+            "name": "notes",
+            "type": "str"
+          }
+        ],
+        "secrets": [],
+        "timeoutSeconds": 1800,
+        "tests": []
+      },
+      "version": null
+    }
+  ],
   "values": {
-    "op:produce/in:shot_count": "5",
-    "op:produce/out:direction_out": "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at.",
-    "op:produce/out:storyboard_out": {
-      "$demo": "image"
-    },
-    "op:produce/out:film_out": {
+    "op:produce/out:direction": "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at.",
+    "var:film": {
       "$demo": "video"
     },
+    "op:produce/out:notes": "Five shots, 20 seconds. Shot 4 failed twice and was cut.",
     "op:poster/in:movie_title_input": "Singularity",
     "op:poster/in:genre_input": "Sci-Fi Thriller",
     "op:poster/out:poster_output": {

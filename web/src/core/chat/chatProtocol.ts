@@ -9,6 +9,7 @@
  * the store while message handling remains testable.
  */
 
+import { useGenerationBatchStore } from "../../stores/GenerationBatchStore";
 import { visibleToolArgs } from "./toolCallFields";
 import {
   appendSubAgentChunk,
@@ -1702,6 +1703,8 @@ export async function handleChatWebSocketMessage(
     if (tid) {
       set((state) => threadRuntimeUpdate(state, tid, { logUpdate: data }));
     }
+  } else if (data.type === "generation_batch_update") {
+    useGenerationBatchStore.getState().applyUpdate(data);
   } else if (data.type === "todo_update") {
     if (tid) {
       set((state) => ({

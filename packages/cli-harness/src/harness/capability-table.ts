@@ -3379,7 +3379,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "run_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "ff41dab56c40",
+    contract: "f1d500e1777a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",
@@ -3389,7 +3389,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "test_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "8db4b25f2583",
+    contract: "dd32f0edff38",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",

@@ -17,16 +17,19 @@
  * a `run` action naming an operation runs that operation — never operation 0
  * against the host workflow.
  */
+import { useGenerationBatchStore } from "../../../stores/GenerationBatchStore";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import {
   appendValue,
   decideRun,
+  findWidgetLabel,
   parseApplicationDocument,
   implicitOperation,
   initialVariableValues,
   isLiveInvocation,
   isMissingRequiredMediaValue,
+  isMissingRequiredModelValue,
   liveInvocations,
   mergeVariables,
   messageToEvents,
@@ -614,6 +617,9 @@ export const useAppRuntime = (
   const fold = useCallback(
     (message: MsgpackData) => {
       const transportId = "job_id" in message && typeof message.job_id === "string" ? message.job_id : undefined;
+      if (message.type === "generation_batch_update") {
+        useGenerationBatchStore.getState().applyUpdate(message);
+      }
       // A refused credential gets the dialog that fixes it, as in the editor.
       if (message.type === "node_update" && message.error_detail) {
         promptForErrorDetail(message.error_detail, transportId ?? message.node_id);
@@ -1248,6 +1254,29 @@ export const useAppRuntime = (
         );
         return;
       }
+      const missingModel =
+        binding.kind === "script"
+          ? undefined
+          : entry.io.inputs.find((input) =>
+              isMissingRequiredModelValue(
+                input.nodeType,
+                params[input.name],
+                input.defaultValue
+              )
+            );
+      if (missingModel) {
+        const mapping = entry.operation.inputs[missingModel.nodeId];
+        const widgetLabel =
+          mapping?.from === "variable"
+            ? findWidgetLabel(document?.ui, `var:${mapping.variableId}`)
+            : undefined;
+        failInvocation(
+          operationId,
+          `Choose a model in "${widgetLabel ?? missingModel.label}" before you run this operation.`,
+          reservationId
+        );
+        return;
+      }
       if (appRunId) {
         try {
           await updateAppRun(appRunId, { status: "running", inputs: params });
@@ -1406,6 +1435,7 @@ export const useAppRuntime = (
       cancelInvocations,
       claimInvocation,
       designMode,
+      document,
       failInvocation,
       mountedRef,
       rememberBrowserTrace,
@@ -1732,6 +1762,12 @@ export const useAppRuntime = (
     [findNode]
   );
 
+  const getOperationGraph = useCallback(
+    (operationId: string): Workflow["graph"] | undefined =>
+      operationRuntimesRef.current.get(operationId)?.workflow?.graph,
+    []
+  );
+
   const getNodeType = useCallback(
     (nodeId: string, operationId?: string): string | undefined =>
       findNode(nodeId, operationId)?.type,
@@ -1793,6 +1829,7 @@ export const useAppRuntime = (
       selectResource,
       getNodeProperty,
       getNodeType,
+      getOperationGraph,
       reportWidgetError
     }),
     [
@@ -1815,6 +1852,7 @@ export const useAppRuntime = (
       selectResource,
       getNodeProperty,
       getNodeType,
+      getOperationGraph,
       reportWidgetError
     ]
   );

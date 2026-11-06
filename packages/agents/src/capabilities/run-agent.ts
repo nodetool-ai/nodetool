@@ -117,7 +117,11 @@ export const runAgentImpl: CapabilityImpl = async (run, args) => {
       let result: unknown;
       let failed: boolean;
       try {
-        result = await run.invoke(name, toolArgs);
+        // A capability that reports progress under its call needs that call's id.
+        result = await run.invoke(
+          name,
+          spec!.needsToolCallId ? { ...toolArgs, _tool_call_id: call.id } : toolArgs
+        );
         failed = isRecord(result) && isNonEmptyString(result.error);
       } catch (error) {
         result = { error: error instanceof Error ? error.message : String(error) };

@@ -66,7 +66,7 @@ export const RUNTIME_PACKAGES = {
     condaPackages: ["python=3.11", `uv>=${MIN_UV_VERSION}`],
     verifyBinary: "python",
     extraBinaries: { uv: "uv" },
-    windowsBinSubdir: "Library\\bin",
+    windowsBinarySubdirs: { uv: path.join("Library", "bin") },
     postInstall: async () => {
       const { installRequiredPythonPackages } = await import("../../python");
       await installRequiredPythonPackages();
