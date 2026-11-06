@@ -9045,6 +9045,10 @@
           "button": "获取 API Route 密钥",
           "tooltip": "前往 API Route API 密钥页面"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "获取 Runcrate API 密钥",
+          "tooltip": "前往 Runcrate API 密钥页面"
+        },
         "HF_TOKEN": {
           "button": "获取 Hugging Face 令牌",
           "tooltip": "前往 Hugging Face 令牌页面"
