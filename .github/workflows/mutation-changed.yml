@@ -35,10 +35,12 @@ jobs:
       contents: read
       actions: read
     outputs:
-      head: ${{ steps.plan.outputs.head }}
       mutants: ${{ steps.plan.outputs.mutants }}
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      # Every job checks out the run's own commit (github.sha), which a later
+      # push to main does not move. The partition and aggregate steps verify
+      # that their tree matches the frozen plan.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -94,7 +96,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.plan.outputs.head }}
           fetch-depth: 0
           filter: blob:none
       - uses: ./.github/actions/setup-build
@@ -188,7 +189,6 @@ jobs:
         run: test "$PLAN" = success && test "$MUTATIONS" = success
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.plan.outputs.head }}
           fetch-depth: 0
           filter: blob:none
       - uses: ./.github/actions/setup-build

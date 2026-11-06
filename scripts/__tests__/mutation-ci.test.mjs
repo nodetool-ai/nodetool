@@ -351,9 +351,9 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
     expect(checkout.with.filter).toBe("blob:none");
-    if (job !== jobs.plan) {
-      expect(checkout.with.ref).toBe("${{ needs.plan.outputs.head }}");
-    }
+    // The default ref is the run's own commit. An explicit ref from a job
+    // output reads to CodeQL as a checkout of untrusted code.
+    expect(checkout.with.ref).toBeUndefined();
     for (const artifact of job.steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"))) {
       expect(artifact.with["include-hidden-files"]).toBe(true);
       expect(artifact.with["if-no-files-found"]).toBe("error");
