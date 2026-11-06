@@ -43,7 +43,21 @@ class TestFrameExportUi : public WiringFixture {
     void clickObject(const QString& name) {
         auto* target = qobject_cast<QQuickItem*>(object(name));
         QVERIFY2(target, qPrintable("Missing: " + name));
-        QTest::qWait(60);  // a dialog that has just opened lays out on its first frame
+        QTRY_VERIFY2(([&] {
+            for (auto* owner = target->parent(); owner; owner = owner->parent()) {
+                const auto opened = owner->property("opened");
+                if (opened.isValid() && !opened.toBool()) { return false; }
+            }
+            // A visible popup can still have a pending footer layout.
+            QList<QQuickItem*> ancestors;
+            for (auto* ancestor = target; ancestor; ancestor = ancestor->parentItem()) {
+                ancestors.prepend(ancestor);
+            }
+            for (auto* ancestor : ancestors) { ancestor->ensurePolished(); }
+            return target->isVisible() && target->isEnabled() && target->window() == view.get()
+                && target->width() > 0 && target->height() > 0
+                && QRect(QPoint(), view->size()).contains(center(target));
+        })(), qPrintable("Not ready for pointer input: " + name));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(target));
         QCoreApplication::processEvents();
     }
