@@ -511,6 +511,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "generate_batch",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "d705466cc8dd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generate-batch.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
+    ],
+  },
+  {
     name: "transcribe_audio",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",

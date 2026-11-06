@@ -52,6 +52,7 @@ import {
   WorkflowFormWidget,
   WorkflowInputWidget
 } from "./inputs";
+import { WorkflowStepsWidget } from "./workflowSteps";
 import { Placeholder, isRecord, numOr, str, type ComponentNode, type WidgetProps } from "./shared";
 
 function ButtonWidget(widget: WidgetProps): ReactNode {
@@ -180,6 +181,7 @@ const RENDERERS: Record<string, ComponentType<WidgetProps>> = {
   StoryboardPreview: (props) => <DocumentOnlyWidget {...props} title="Storyboard" />,
   Table: TableWidget,
   Progress: ProgressWidget,
+  WorkflowSteps: WorkflowStepsWidget,
   AgentActivity: AgentActivityWidget,
   Alert: AlertWidget,
   CodeBlock: CodeBlockWidget,

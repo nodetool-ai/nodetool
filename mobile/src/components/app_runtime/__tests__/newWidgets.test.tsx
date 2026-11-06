@@ -589,3 +589,25 @@ describe("added input widgets", () => {
     expect(await screen.findByText("No columns to edit")).toBeTruthy();
   });
 });
+
+describe("workflow steps", () => {
+  it("shows configured steps waiting before a run", () => {
+    renderApp("wf-steps", appDoc("WorkflowSteps", {
+      label: "Process", steps: [
+        { nodeId: "n1", title: "Generate", description: "Create the image" },
+        { nodeId: "n2", title: "" },
+      ],
+    }));
+    expect(screen.getByText("Process")).toBeTruthy();
+    expect(screen.getByText("Generate")).toBeTruthy();
+    expect(screen.getByText("Create the image")).toBeTruthy();
+    expect(screen.getByText("n2")).toBeTruthy();
+    expect(screen.getAllByText("Waiting")).toHaveLength(2);
+  });
+
+  it("hides unconfigured steps while idle", () => {
+    renderApp("wf-steps-empty", appDoc("WorkflowSteps", { label: "Process", steps: [] }));
+    expect(screen.queryByText("Process")).toBeNull();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+});
