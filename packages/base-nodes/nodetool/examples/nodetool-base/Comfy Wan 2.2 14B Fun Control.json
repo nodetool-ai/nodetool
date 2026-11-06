@@ -1,0 +1,525 @@
+{
+  "id": "f3dba0b6bad6100defa43071146d6602",
+  "name": "Comfy Wan 2.2 14B Fun Control",
+  "description": "Generate videos guided by pose, depth, and edge controls using Wan 2.2 Fun Control. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan 2.2 14B Fun Control\n\nGenerate videos guided by pose, depth, and edge controls using Wan 2.2 Fun Control. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_wan2_2_14B_fun_control.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "90",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "91",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "92",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_2.1_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "93",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 8.000000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "94",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 8.000000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "95",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "disable",
+          "noise_seed": 0,
+          "steps": 20,
+          "cfg": 3.5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 10,
+          "end_at_step": 10000,
+          "return_with_leftover_noise": "disable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "96",
+        "type": "comfy.KSamplerAdvanced",
+        "data": {
+          "add_noise": "enable",
+          "noise_seed": 909895218860439,
+          "steps": 20,
+          "cfg": 3.5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "start_at_step": 0,
+          "end_at_step": 10,
+          "return_with_leftover_noise": "enable"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "97",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "98",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/wan2.2_fun_control",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "99",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "On a sunny summer day, there are marshmallow - like clouds, and the sunlight is bright and warm. A girl with white curly double - ponytails is wearing unique sunglasses, distinctive clothes and shoes. Her posture is natural and full of dynamic tension. The background is the scene of the Leaning Tower of Pisa in Italy, emphasizing the realistic contrast of details in reality. The whole picture is in a realistic 3D style, rich in details and with a relaxed atmosphere. She is dancing slowly, waving her hands."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "100",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 16,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "101",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_fun_control_high_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.2_fun_control_low_noise_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "145",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "video_wan2_2_14B_fun_control_start_image.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "156",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "158",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "video_wan2_2_14B_fun_control_start_image_control_video.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "160",
+        "type": "comfy.Wan22FunControlToVideo",
+        "data": {
+          "width": 640,
+          "height": 640,
+          "length": 81,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Wan22FunControlToVideo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "90-0-91-clip",
+        "source": "90",
+        "sourceHandle": "CLIP",
+        "target": "91",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "101-0-93-model",
+        "source": "101",
+        "sourceHandle": "MODEL",
+        "target": "93",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "102-0-94-model",
+        "source": "102",
+        "sourceHandle": "MODEL",
+        "target": "94",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "94-0-95-model",
+        "source": "94",
+        "sourceHandle": "MODEL",
+        "target": "95",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "160-0-95-positive",
+        "source": "160",
+        "sourceHandle": "positive",
+        "target": "95",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "160-1-95-negative",
+        "source": "160",
+        "sourceHandle": "negative",
+        "target": "95",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "96-0-95-latent_image",
+        "source": "96",
+        "sourceHandle": "LATENT",
+        "target": "95",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "93-0-96-model",
+        "source": "93",
+        "sourceHandle": "MODEL",
+        "target": "96",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "160-0-96-positive",
+        "source": "160",
+        "sourceHandle": "positive",
+        "target": "96",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "160-1-96-negative",
+        "source": "160",
+        "sourceHandle": "negative",
+        "target": "96",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "160-2-96-latent_image",
+        "source": "160",
+        "sourceHandle": "latent",
+        "target": "96",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "95-0-97-samples",
+        "source": "95",
+        "sourceHandle": "LATENT",
+        "target": "97",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "92-0-97-vae",
+        "source": "92",
+        "sourceHandle": "VAE",
+        "target": "97",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "100-0-98-video",
+        "source": "100",
+        "sourceHandle": "VIDEO",
+        "target": "98",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "90-0-99-clip",
+        "source": "90",
+        "sourceHandle": "CLIP",
+        "target": "99",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "97-0-100-images",
+        "source": "97",
+        "sourceHandle": "IMAGE",
+        "target": "100",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "158-0-156-video",
+        "source": "158",
+        "sourceHandle": "VIDEO",
+        "target": "156",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "99-0-160-positive",
+        "source": "99",
+        "sourceHandle": "CONDITIONING",
+        "target": "160",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "91-0-160-negative",
+        "source": "91",
+        "sourceHandle": "CONDITIONING",
+        "target": "160",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "92-0-160-vae",
+        "source": "92",
+        "sourceHandle": "VAE",
+        "target": "160",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "145-0-160-ref_image",
+        "source": "145",
+        "sourceHandle": "IMAGE",
+        "target": "160",
+        "targetHandle": "ref_image",
+        "ui_properties": null
+      },
+      {
+        "id": "156-0-160-control_video",
+        "source": "156",
+        "sourceHandle": "images",
+        "target": "160",
+        "targetHandle": "control_video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

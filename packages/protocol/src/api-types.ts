@@ -917,6 +917,8 @@ export interface NodeMetadata {
   properties: Property[];
   outputs: OutputSlot[];
   primary_output?: string;
+  /** Outputs persist as assets under this node id, so its history reloads. */
+  auto_save_asset?: boolean;
 
   recommended_models: UnifiedModel[];
   inline_fields?: string[];
@@ -1187,7 +1189,9 @@ export const PROVIDER_IDS = {
   OPENROUTER: "openrouter",
   REQUESTY: "requesty",
   OPPER: "opper",
+  CHEAPER_INFERENCE: "cheaperinference",
   API_ROUTE: "api_route",
+  RUNCRATE: "runcrate",
   TOGETHER: "together",
   ALIBABA: "alibaba",
   CEREBRAS: "cerebras",

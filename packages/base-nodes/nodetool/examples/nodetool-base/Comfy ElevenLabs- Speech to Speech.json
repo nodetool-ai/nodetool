@@ -1,0 +1,137 @@
+{
+  "id": "fb9b2abe3f2f1bc72f43e285ba6f6ed7",
+  "name": "Comfy ElevenLabs- Speech to Speech",
+  "description": "Upload a source audio file to apply a new voice tone or clone a different voice, generating a modified audio output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy ElevenLabs- Speech to Speech\n\nUpload a source audio file to apply a new voice tone or clone a different voice, generating a modified audio output. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_elevenlabs_speech_to_speech.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "219",
+        "type": "comfy.ElevenLabsVoiceSelector",
+        "data": {
+          "voice": "Jessica (female, american)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Voice Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "220",
+        "type": "comfy.ElevenLabsSpeechToSpeech",
+        "data": {
+          "stability": 0.5,
+          "model": "eleven_multilingual_sts_v2",
+          "model.speed": 1,
+          "model.similarity_boost": 0.75,
+          "model.use_speaker_boost": false,
+          "model.style": 0,
+          "output_format": "mp3_44100_192",
+          "seed": 672717223,
+          "remove_background_noise": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Speech to Speech"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "221",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "api_elevenlabs_speech_to_speech.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "222",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ComfyUI",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "219-0-220-voice",
+        "source": "219",
+        "sourceHandle": "voice",
+        "target": "220",
+        "targetHandle": "voice",
+        "ui_properties": null
+      },
+      {
+        "id": "221-0-220-audio",
+        "source": "221",
+        "sourceHandle": "AUDIO",
+        "target": "220",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "220-0-222-audio",
+        "source": "220",
+        "sourceHandle": "AUDIO",
+        "target": "222",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

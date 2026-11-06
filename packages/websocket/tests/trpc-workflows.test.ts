@@ -777,7 +777,12 @@ describe("workflows router", () => {
         (
           result.workflows as Array<{ name: string; needs?: unknown }>
         ).find((workflow) => workflow.name === name)?.needs;
-      expect(needsOf("Blur an Image")).toEqual({
+      expect(result.workflows).toContainEqual(expect.objectContaining({
+        name: "Comfy Z-Image Turbo",
+        run_mode: "comfy",
+        needs: { modelKinds: [], requiredSettings: ["COMFY_API_KEY"] }
+      }));
+      expect(needsOf("Trim a Clip")).toEqual({
         modelKinds: [],
         requiredSettings: []
       });
@@ -1489,7 +1494,26 @@ describe("workflows.sharing router", () => {
 
     it("duplicatePublic copies the workflow into the caller's account", async () => {
       const graph = {
-        nodes: [{ id: "n1", type: "nodetool.input.StringInput", data: {} }],
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            data: {
+              workflow_json: {
+                graph: {
+                  nodes: [
+                    {
+                      id: "bot",
+                      type: "messaging.discord.DiscordBotTrigger",
+                      data: { token: "FAKE_TEST_SECRET", message: "hello" }
+                    }
+                  ],
+                  edges: []
+                }
+              }
+            }
+          }
+        ],
         edges: []
       };
       asMock(WorkflowShare.findByToken).mockResolvedValue(
@@ -1516,8 +1540,32 @@ describe("workflows.sharing router", () => {
           user_id: "user-1",
           name: "Shared",
           access: "private",
-          graph
+          graph: {
+            ...graph,
+            nodes: [
+              expect.objectContaining({
+                data: {
+                  workflow_json: {
+                    graph: {
+                      nodes: [
+                        {
+                          id: "bot",
+                          type: "messaging.discord.DiscordBotTrigger",
+                          data: { token: "", message: "hello" }
+                        }
+                      ],
+                      edges: []
+                    }
+                  }
+                }
+              })
+            ]
+          }
         })
+      );
+      expect(JSON.stringify(result)).not.toContain("FAKE_TEST_SECRET");
+      expect(graph.nodes[0].data.workflow_json.graph.nodes[0].data.token).toBe(
+        "FAKE_TEST_SECRET"
       );
       expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
     });

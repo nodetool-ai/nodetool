@@ -1,0 +1,109 @@
+{
+  "id": "8bc72e6b96c93f2fb6b7f3021a9ff052",
+  "name": "Comfy VEED Dubbing- Video Translation",
+  "description": "Translate the speech in a video into another language with VEED Dubbing: each speaker's voice is cloned and their lips are re-synced to the translation. Pick between the cheaper standard tier and pro, which adds regional accents and stereo audio. Built for footage with a visible face and a talk track. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy VEED Dubbing- Video Translation\n\nTranslate the speech in a video into another language with VEED Dubbing: each speaker's voice is cloned and their lips are re-synced to the translation. Pick between the cheaper standard tier and pro, which adds regional accents and stereo audio. Built for footage with a visible face and a talk track. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_veed_dubbing.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "api_veed_dubbing_input_video.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/veed_dubbing",
+          "format": "mp4",
+          "format.codec": "auto",
+          "codec": "h264",
+          "codec.encoding": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.VeedDubbingNode",
+        "data": {
+          "model": "standard",
+          "model.target_language": "auto",
+          "model.source_language": 42,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VEED Dubbing"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-3-video",
+        "source": "5",
+        "sourceHandle": "VIDEO",
+        "target": "3",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-5-model.video",
+        "source": "1",
+        "sourceHandle": "VIDEO",
+        "target": "5",
+        "targetHandle": "model.video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

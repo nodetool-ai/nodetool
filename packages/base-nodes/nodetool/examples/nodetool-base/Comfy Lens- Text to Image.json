@@ -1,0 +1,522 @@
+{
+  "id": "891fe7c297bbebe848d413b8d2bfe02b",
+  "name": "Comfy Lens- Text to Image",
+  "description": "Input a text prompt and select resolution and aspect ratio. Generate a high-quality image using the efficient Lens text-to-image model. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Lens- Text to Image\n\nInput a text prompt and select resolution and aspect ratio. Generate a high-quality image using the efficient Lens text-to-image model. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_lens_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "35",
+        "type": "comfy.ResolutionSelector",
+        "data": {
+          "aspect_ratio": "1:1 (Square)",
+          "megapixels": 2,
+          "multiple": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resolution Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "43",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Lens"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:9",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "flux2-vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:2",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "gpt_oss_20b_nvfp4.safetensors",
+          "type": "lens",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:3",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A cluster of wild cosmos flowers swaying in gentle wind, crinkled soft petals and slender green stems, warm golden hour sunlight, natural field scenery, detailed floral texture, lifelike outdoor atmosphere"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:8",
+        "type": "comfy.EmptyLatentImage",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Latent Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:16",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 20,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:18",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:23",
+        "type": "comfy.CFGNorm",
+        "data": {
+          "strength": 1,
+          "pre_cfg": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CFGNorm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:10",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "lens_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:14",
+        "type": "comfy.SamplerCustom",
+        "data": {
+          "add_noise": true,
+          "noise_seed": 199454112061500,
+          "cfg": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustom"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:5",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:21",
+        "type": "comfy.ModelSamplingFlux",
+        "data": {
+          "max_shift": 1.15,
+          "base_shift": 0.5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingFlux"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:32",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a & -8"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:33",
+        "type": "comfy.ComfyMathExpression",
+        "data": {
+          "expression": "a & -8"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Math Expression"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:31",
+        "type": "comfy.PrimitiveInt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Int (Height)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34:30",
+        "type": "comfy.PrimitiveInt",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Int (Width)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "34:5-0-43-images",
+        "source": "34:5",
+        "sourceHandle": "IMAGE",
+        "target": "43",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "34:2-0-34:3-clip",
+        "source": "34:2",
+        "sourceHandle": "CLIP",
+        "target": "34:3",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "34:2-0-34:7-clip",
+        "source": "34:2",
+        "sourceHandle": "CLIP",
+        "target": "34:7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "34:32-1-34:8-width",
+        "source": "34:32",
+        "sourceHandle": "INT",
+        "target": "34:8",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "34:33-1-34:8-height",
+        "source": "34:33",
+        "sourceHandle": "INT",
+        "target": "34:8",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "34:21-0-34:16-model",
+        "source": "34:21",
+        "sourceHandle": "MODEL",
+        "target": "34:16",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "34:21-0-34:23-model",
+        "source": "34:21",
+        "sourceHandle": "MODEL",
+        "target": "34:23",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "34:23-0-34:14-model",
+        "source": "34:23",
+        "sourceHandle": "patched_model",
+        "target": "34:14",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "34:3-0-34:14-positive",
+        "source": "34:3",
+        "sourceHandle": "CONDITIONING",
+        "target": "34:14",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "34:7-0-34:14-negative",
+        "source": "34:7",
+        "sourceHandle": "CONDITIONING",
+        "target": "34:14",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "34:18-0-34:14-sampler",
+        "source": "34:18",
+        "sourceHandle": "SAMPLER",
+        "target": "34:14",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "34:16-0-34:14-sigmas",
+        "source": "34:16",
+        "sourceHandle": "SIGMAS",
+        "target": "34:14",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "34:8-0-34:14-latent_image",
+        "source": "34:8",
+        "sourceHandle": "LATENT",
+        "target": "34:14",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "34:14-0-34:5-samples",
+        "source": "34:14",
+        "sourceHandle": "output",
+        "target": "34:5",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "34:9-0-34:5-vae",
+        "source": "34:9",
+        "sourceHandle": "VAE",
+        "target": "34:5",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "34:32-1-34:21-width",
+        "source": "34:32",
+        "sourceHandle": "INT",
+        "target": "34:21",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "34:33-1-34:21-height",
+        "source": "34:33",
+        "sourceHandle": "INT",
+        "target": "34:21",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "34:10-0-34:21-model",
+        "source": "34:10",
+        "sourceHandle": "MODEL",
+        "target": "34:21",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "34:30-0-34:32-values.a",
+        "source": "34:30",
+        "sourceHandle": "INT",
+        "target": "34:32",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "34:31-0-34:33-values.a",
+        "source": "34:31",
+        "sourceHandle": "INT",
+        "target": "34:33",
+        "targetHandle": "values.a",
+        "ui_properties": null
+      },
+      {
+        "id": "35-1-34:31-value",
+        "source": "35",
+        "sourceHandle": "height",
+        "target": "34:31",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "35-0-34:30-value",
+        "source": "35",
+        "sourceHandle": "width",
+        "target": "34:30",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  }
+}

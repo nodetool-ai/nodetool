@@ -11,10 +11,8 @@ test("overview links to every storyboard", async ({ page }) => {
   }
 });
 
-test("each storyboard page leads with its film, then every shot", async ({
-  page
-}) => {
-  for (const board of storyboards) {
+for (const board of storyboards) {
+  test(`${board.slug}: film precedes every storyboard shot`, async ({ page }) => {
     await page.goto(board.route);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       board.title
@@ -37,8 +35,8 @@ test("each storyboard page leads with its film, then every shot", async ({
         )
         .toBeGreaterThan(0);
     }
-  }
-});
+  });
+}
 
 test("a shot button moves the film to that shot", async ({ page }) => {
   const board = storyboards[0];

@@ -1,0 +1,451 @@
+{
+  "id": "90b78bca28f9f6ede5245019d1a9c456",
+  "name": "Comfy Wan2.1 Alpha T2V",
+  "description": "Generate text-to-video with alpha channel support for transparent backgrounds and semi-transparent objects. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Wan2.1 Alpha T2V\n\nGenerate text-to-video with alpha channel support for transparent backgrounds and semi-transparent objects. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/video_wan2.1_alpha_t2v_14B.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 558449140107503,
+          "steps": 20,
+          "cfg": 6,
+          "sampler_name": "uni_pc",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "\"Medium shot. A little girl holds a bubble wand and blows out colorful bubbles that float and pop in the air. The background of this video is transparent. Realistic style.\"\t"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt) Useless s"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "RGB VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "wan2.1_t2v_14B_fp8_scaled.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Wan 2.1 t2v 14B"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "38",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+          "type": "wan",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Text Encoder"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "39",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_alpha_2.1_vae_rgb_channel.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "40",
+        "type": "comfy.EmptyHunyuanLatentVideo",
+        "data": {
+          "width": 832,
+          "height": 480,
+          "length": 33,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Empty Hunyuan Video 1.0 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "51",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "wan_alpha_2.1_vae_alpha_channel.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "52",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Alpha VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "65",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "wan_alpha_2.1_rgba_lora.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "80",
+        "type": "comfy.SaveAnimatedWEBP",
+        "data": {
+          "filename_prefix": "ComfyUI",
+          "fps": 16,
+          "lossless": true,
+          "quality": 80,
+          "method": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Animated WEBP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "82",
+        "type": "comfy.ImageToMask",
+        "data": {
+          "channel": "red"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Convert Image to Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "84",
+        "type": "comfy.InvertMask",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Invert Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "86",
+        "type": "comfy.JoinImageWithAlpha",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Join Image with Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "48-0-3-model",
+        "source": "48",
+        "sourceHandle": "MODEL",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-3-positive",
+        "source": "6",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "7-0-3-negative",
+        "source": "7",
+        "sourceHandle": "CONDITIONING",
+        "target": "3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "40-0-3-latent_image",
+        "source": "40",
+        "sourceHandle": "LATENT",
+        "target": "3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-6-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "6",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "38-0-7-clip",
+        "source": "38",
+        "sourceHandle": "CLIP",
+        "target": "7",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-8-samples",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "39-0-8-vae",
+        "source": "39",
+        "sourceHandle": "VAE",
+        "target": "8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "65-0-48-model",
+        "source": "65",
+        "sourceHandle": "MODEL",
+        "target": "48",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-52-samples",
+        "source": "3",
+        "sourceHandle": "LATENT",
+        "target": "52",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "51-0-52-vae",
+        "source": "51",
+        "sourceHandle": "VAE",
+        "target": "52",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "37-0-65-model",
+        "source": "37",
+        "sourceHandle": "MODEL",
+        "target": "65",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "86-0-80-images",
+        "source": "86",
+        "sourceHandle": "IMAGE",
+        "target": "80",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "52-0-82-image",
+        "source": "52",
+        "sourceHandle": "IMAGE",
+        "target": "82",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "82-0-84-mask",
+        "source": "82",
+        "sourceHandle": "MASK",
+        "target": "84",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "8-0-86-image",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "86",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "84-0-86-alpha",
+        "source": "84",
+        "sourceHandle": "MASK",
+        "target": "86",
+        "targetHandle": "alpha",
+        "ui_properties": null
+      }
+    ]
+  }
+}

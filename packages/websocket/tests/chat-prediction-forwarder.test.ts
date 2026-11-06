@@ -84,3 +84,29 @@ describe("attachChatPredictionForwarder todo_update", () => {
     ]);
   });
 });
+
+describe("attachChatPredictionForwarder generation_batch_update", () => {
+  it("forwards batch progress so the chat can draw the bar", () => {
+    const sent: Record<string, unknown>[] = [];
+    let listener: ((msg: ProcessingMessage) => void) | null = null;
+    attachChatPredictionForwarder(
+      (fn) => {
+        listener = fn;
+        return () => {
+          listener = null;
+        };
+      },
+      (msg) => sent.push(msg),
+      { threadId: "t1" }
+    );
+    listener?.({
+      type: "generation_batch_update",
+      tool_call_id: "call-1",
+      concurrency: 2,
+      items: []
+    } as ProcessingMessage);
+    expect(sent).toEqual([
+      { type: "generation_batch_update", tool_call_id: "call-1", concurrency: 2, items: [], thread_id: "t1" }
+    ]);
+  });
+});

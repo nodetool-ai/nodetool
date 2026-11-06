@@ -33,7 +33,7 @@ const spawnCalls: SpawnCall[] = [];
 let spawnResponder: (cmd: string, args: string[]) => SpawnResult;
 
 /** A valid yt-dlp `--print-json` info line. */
-const VALID_INFO = JSON.stringify({ id: "abc123", title: "Test", ext: "mp4" });
+const VALID_INFO = JSON.stringify({ id: "abc123", title: "Test", ext: "mp4", requested_formats: [{ format_id: "137" }, { format_id: "140" }] });
 
 let fixtureDir: string;
 const fixtures = { video: "", audio: "" };
@@ -60,7 +60,7 @@ afterAll(async () => {
 function fakeDownload(args: string[]): string {
   const template = args[args.indexOf("-o") + 1];
   const selector = args[args.indexOf("-f") + 1];
-  const kind = selector.startsWith("bv") ? "video" : "audio";
+  const kind = (selector.startsWith("bv") || selector === '[format_id="137"]') ? "video" : "audio";
   const ext = kind === "video" ? "mp4" : "m4a";
   const out = template
     .replace("%(id)s", "abc123")
@@ -236,7 +236,7 @@ describe("YtDlpDownloadLibNode — video mode", () => {
     const node = makeNode({ mode: "video" });
     const result = await node.process();
 
-    expect(downloadSelectors()).toEqual(["bv*", "ba/b"]);
+    expect(downloadSelectors()).toEqual(['[format_id="137"]', '[format_id="140"]']);
     for (const args of downloadCalls()) {
       for (const flag of FFMPEG_FLAGS) expect(args).not.toContain(flag);
     }
@@ -252,7 +252,7 @@ describe("YtDlpDownloadLibNode — video mode", () => {
     });
     const result = await node.process();
 
-    expect(downloadSelectors()).toEqual(["bv[ext=mp4]/bv", "ba[ext=m4a]/ba"]);
+    expect(downloadSelectors()).toEqual(['[format_id="137"]', '[format_id="140"]']);
     expect(await refCodecs(result.video)).toEqual({ video: "h264", audio: "aac" });
   });
 
@@ -268,7 +268,7 @@ describe("YtDlpDownloadLibNode — video mode", () => {
   it("names both formats and the codecs when the container cannot hold them", async () => {
     const node = makeNode({ mode: "video", container: "webm" });
     await expect(node.process()).rejects.toThrow(
-      /Format "bv\*" \(abc123\.f137\.mp4\) and format "ba\/b" \(abc123\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
+      /Format "\[format_id="137"\]" \(abc123\.f137\.mp4\) and format "\[format_id="140"\]" \(abc123\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
     );
   });
 

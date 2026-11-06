@@ -1,0 +1,111 @@
+{
+  "id": "cbaadf6a9e89a261c24eb07c72f875bc",
+  "name": "Comfy Character Turnaround Sheet Generator",
+  "description": "Create orthographic multi-view character turnaround sheet from one reference image, keep consistent character features across front, side and back views, for sci-fi mech and armor character design. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Character Turnaround Sheet Generator\n\nCreate orthographic multi-view character turnaround sheet from one reference image, keep consistent character features across front, side and back views, for sci-fi mech and armor character design. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_google_nano_banana_create_turnaround_sheet.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Orthographic character sheet, full body turnaround views, showing the exact same robot from a front view, left side view, back view and right side view. Flat lighting, solid black background, evenly spaced, highly detailed, preserving identical appearance and features across all views",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 42,
+          "aspect_ratio": "21:9",
+          "resolution": "4K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "turnaround",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "white_mech_front_ortho.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-1-images",
+        "source": "3",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-2-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

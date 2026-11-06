@@ -48,6 +48,14 @@ export interface InvocationState {
 export type ActivityToolStatus = "running" | "done" | "error";
 
 /** One entry of an agent's account of a run. `source` names the agent loop. */
+/** One graph node's state within a run. */
+export interface NodeRunState {
+  status: string;
+  error?: string;
+  /** 0 to 1 while the node reports progress. */
+  progress?: number;
+}
+
 export type ActivityEntry =
   | { kind: "text"; text: string; source?: string }
   | {
@@ -102,6 +110,8 @@ export interface AppInstanceState {
   activity: Record<string, string>;
   /** Keyed by invocation id: the agent text and tool calls the run reported. */
   transcripts: Record<string, ReadonlyArray<ActivityEntry>>;
+  /** Keyed by invocation id, then node id: what each graph node last reported. */
+  nodeRuns: Record<string, Record<string, NodeRunState>>;
   /**
    * Keyed by variable id: the invocation whose stream last appended to it —
    * the variable's current owner. A later run starts a fresh value instead of
@@ -120,6 +130,7 @@ export const createInstanceState = (): AppInstanceState => ({
   invocationAliases: {},
   activity: {},
   transcripts: {},
+  nodeRuns: {},
   variableWriters: {}
 });
 
@@ -189,6 +200,15 @@ export type AppStateEvent =
    * updates that call.
    */
   | { type: "invocationTranscript"; invocationId: string; entry: ActivityEntry }
+  /** A graph node reported a status, an error, or progress. */
+  | {
+      type: "invocationNode";
+      invocationId: string;
+      nodeId: string;
+      status?: string;
+      error?: string;
+      progress?: number;
+    }
   | {
       type: "outputValue";
       key: string;
@@ -545,6 +565,33 @@ export const applyEvent = (
       };
     }
 
+    case "invocationNode": {
+      const canonicalId =
+        state.invocationAliases[event.invocationId] ?? event.invocationId;
+      if (!state.invocations[canonicalId]) return state;
+      const nodes = state.nodeRuns[canonicalId] ?? {};
+      const previous = nodes[event.nodeId];
+      // A new status ends the progress of the status before it.
+      const progress =
+        event.progress ??
+        (event.status && event.status !== previous?.status
+          ? undefined
+          : previous?.progress);
+      const run: NodeRunState = {
+        status: event.status ?? previous?.status ?? "running"
+      };
+      const error = event.error ?? previous?.error;
+      if (error) run.error = error;
+      if (progress !== undefined) run.progress = progress;
+      return {
+        ...state,
+        nodeRuns: {
+          ...state.nodeRuns,
+          [canonicalId]: { ...nodes, [event.nodeId]: run }
+        }
+      };
+    }
+
     case "invocationTranscript": {
       const canonicalId =
         state.invocationAliases[event.invocationId] ?? event.invocationId;
@@ -648,6 +695,17 @@ export const operationError = (
 const NO_TRANSCRIPT: ReadonlyArray<ActivityEntry> = [];
 
 /** The agent text and tool calls of the operation's active invocation. */
+const NO_NODE_RUNS: Record<string, NodeRunState> = {};
+
+/** What each graph node of the operation's active invocation last reported. */
+export const operationNodeRuns = (
+  state: AppInstanceState,
+  operationId: string
+): Record<string, NodeRunState> => {
+  const id = state.activeInvocation[operationId];
+  return (id ? state.nodeRuns[id] : undefined) ?? NO_NODE_RUNS;
+};
+
 export const operationTranscript = (
   state: AppInstanceState,
   operationId: string

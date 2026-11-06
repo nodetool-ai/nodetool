@@ -9037,9 +9037,17 @@
           "button": "Get Opper API key",
           "tooltip": "Go to Opper platform to get your API key"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Get Cheaper Inference API key",
+          "tooltip": "Go to Cheaper Inference to get your API key"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Get API Route key",
           "tooltip": "Go to API Route API keys page"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Get Runcrate API key",
+          "tooltip": "Go to Runcrate API keys page"
         },
         "HF_TOKEN": {
           "button": "Get Hugging Face token",
@@ -9465,6 +9473,16 @@
         "provisioningHint": "Renting the GPU. This can take a few minutes.",
         "bootingAutoAttachHint": "GPU is up. The worker is loading and attaches when it is ready.",
         "attachingHint": "Worker is ready. Attaching…"
+      },
+      "presets": {
+        "summary_one": "About {{min}}–{{max}} per hour. Ends after {{count}} hour and deletes its files.",
+        "summary_other": "About {{min}}–{{max}} per hour. Ends after {{count}} hours and deletes its files.",
+        "start": "Start",
+        "starting": "Starting…",
+        "startAria": "Start {{name}} on a rented GPU",
+        "bootingHint": "ComfyUI is loading. The first start can take several minutes.",
+        "readyHint": "Copy the URL into Run ComfyUI Workflow. Anyone with this URL can use the pod.",
+        "copyEndpoint": "Copy ComfyUI URL"
       },
       "provision": {
         "title": "Start a worker",
@@ -18178,7 +18196,7 @@
         "message": "Ask anything, or type @ to add an asset…"
       },
       "messagePrompt": "Message prompt",
-      "pickModel": "Pick a {{kind}} model to {{action}}.",
+      "pickModel": "Pick the {{kind}} model to {{action}} with.",
       "generate": "Generate",
       "send": "Send",
       "messageQueued": "Message queued - {{prompt}}",
@@ -19610,6 +19628,43 @@
     "simple": "Simple",
     "expert": "Expert",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} fps"
+    "frameRate": "{{fps}} fps",
+    "showAssistant": "Show assistant",
+    "hideAssistant": "Hide assistant",
+    "resizeAssistant": "Resize timeline assistant"
+  },
+  "generationBatch": {
+    "summary": "{{done}} of {{total}} done",
+    "remaining": "About {{time}} left",
+    "finishing": "Finishing",
+    "failedCount": "Failed: {{count}}",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "showRequests": "Show requests",
+    "hideRequests": "Hide requests",
+    "expected": "Expected {{time}}",
+    "took": "Took {{time}}",
+    "progressLabel": "Generation progress"
+  },
+  "workflowSteps": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "allDone": "All {{total}} steps done",
+    "waiting": "Waiting",
+    "running": "Running",
+    "done": "Done",
+    "failed": "Failed",
+    "progressLabel": "Workflow progress",
+    "steps": "Steps",
+    "addStep": "Add step",
+    "removeStep": "Remove step",
+    "node": "Node",
+    "title": "Title",
+    "description": "Description",
+    "autoHint": "No steps set. The widget shows every generative node.",
+    "chooseNode": "Choose a node"
   }
 }

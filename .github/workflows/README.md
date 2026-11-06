@@ -88,7 +88,7 @@ below.
 | `logic-simplifier.yaml` | Scheduled agent simplifies the logic in one branch-dense function | none/maintenance | Advisory (`continue-on-error`) |
 | `marketing-ci.yml` | Typecheck/lint/build/Playwright smoke for the marketing site; deploys to Cloudflare Workers on push to main | none/maintenance | Required for `marketing/**` |
 | `model-watch.yml` | Weekly scan for new/changed provider models, files issues | none/maintenance | n/a |
-| `mutation-changed.yml` | `nodetool-mutator` on the functions a PR adds or rewrites in the mutation-tested packages; lists survivors | none/maintenance | Advisory |
+| `mutation-changed.yml` | Daily `nodetool-mutator` on the functions that commits merged to `main` since the last successful scheduled run add or rewrite in the mutation-tested packages; lists survivors | none/maintenance | Advisory |
 | `mutation-testing.yaml` | Weekly, differential `nodetool-mutator` report over the mutation-tested packages | none/maintenance | Advisory |
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
 | `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |

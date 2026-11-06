@@ -14,6 +14,7 @@ import {
   commitInputValue,
   gizmoTransformPatch,
   inputValueAt,
+  rowKeyframeTimesMs,
   toggleRowKeyframeAt,
   toggleRowStopwatch
 } from "../keyframeRows";
@@ -82,6 +83,16 @@ describe("keyframeRows", () => {
     c = apply(c, toggleRowKeyframeAt(c, POSITION_ROW, 1000));
     expect(isPropertyKeyframed(c, "offsetX")).toBe(false);
     expect(c.transform?.position).toEqual({ x: 250, y: 50 });
+  });
+
+  it.each([30, 24])("edits fractional row times at %s fps without deleting a nearby key", (fps) => {
+    let c = clip({ durationMs: 1000 });
+    const first = 1000 / fps;
+    c = { ...c, animations: setKeyframes(c, [{ property: "opacity", value: 0.5 }], first) };
+    c = { ...c, animations: setKeyframes(c, [{ property: "opacity", value: 0.8 }], first + 0.3) };
+    const [at, nearby] = rowKeyframeTimesMs(c, OPACITY_ROW);
+    c = apply(c, toggleRowKeyframeAt(c, OPACITY_ROW, at));
+    expect(rowKeyframeTimesMs(c, OPACITY_ROW)).toEqual([nearby]);
   });
 
   it("turns a gizmo drag on a keyed position into a keyframe at the playhead", () => {

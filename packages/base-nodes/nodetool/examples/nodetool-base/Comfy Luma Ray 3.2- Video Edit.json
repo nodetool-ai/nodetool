@@ -1,0 +1,131 @@
+{
+  "id": "c89038180e07426a5dd1b2de7a228598",
+  "name": "Comfy Luma Ray 3.2- Video Edit",
+  "description": "Edit videos using natural language commands with Luma Ray 3.2, processing one input video and generating an edited output based on your textual instructions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Luma Ray 3.2- Video Edit\n\nEdit videos using natural language commands with Luma Ray 3.2, processing one input video and generating an edited output based on your textual instructions. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_luma_ray3_2_video_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.LumaRay32VideoEditNode",
+        "data": {
+          "prompt": "Keep the man playing acoustic guitar exactly the same, replace subway background with golden hour quiet park with trees and grass, natural soft light, realistic photo, consistent color ",
+          "resolution": "720p",
+          "strength": "auto",
+          "seed": 654221588069259
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Luma Ray 3.2 Video Edit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "subway_guitar_busker.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Luma_Ray3.2",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text (generation_id)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-2-video",
+        "source": "3",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-4-video",
+        "source": "2",
+        "sourceHandle": "VIDEO",
+        "target": "4",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "2-1-7-source",
+        "source": "2",
+        "sourceHandle": "generation_id",
+        "target": "7",
+        "targetHandle": "source",
+        "ui_properties": null
+      }
+    ]
+  }
+}

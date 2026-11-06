@@ -197,11 +197,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-concepts",
-                        "binding": "op:concepts/exec#progress",
-                        "label": "Rendering variations…"
+                        "operationId": "concepts",
+                        "label": "Rendering variations…",
+                        "steps": []
                       }
                     },
                     {
@@ -375,11 +376,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-creatures",
-                        "binding": "op:creatures/exec#progress",
-                        "label": "Designing your creatures…"
+                        "operationId": "creatures",
+                        "label": "Designing your creatures…",
+                        "steps": []
                       }
                     },
                     {
@@ -619,11 +621,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-polish",
-                        "binding": "op:polish/exec#progress",
-                        "label": "Polishing…"
+                        "operationId": "polish",
+                        "label": "Polishing…",
+                        "steps": []
                       }
                     },
                     {

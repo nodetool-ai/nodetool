@@ -57,6 +57,7 @@ export {
   runtimeBinPath,
   applyRuntimeEnv,
   isNodetoolHost,
+  nodetoolSettingsFile,
   type NodetoolHost,
   type RuntimeLocations,
   type RuntimeLocationOptions
@@ -97,6 +98,8 @@ export {
   runWan2GPHelper,
   setWan2GPCatalogStatus,
   wan2gpCatalogPath,
+  wan2gpCatalogKey,
+  wan2gpSourceIdentity,
   writeWan2GPCatalog,
   type Wan2GPCatalogRow,
   type Wan2GPFileStatus,

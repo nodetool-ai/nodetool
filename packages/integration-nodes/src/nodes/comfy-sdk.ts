@@ -451,37 +451,15 @@ export async function outputFrame(
 }
 
 /**
- * Submit `prompt` through `transport` and stream what it produces.
- *
- * Yields one frame per output file, keyed `"<comfyNodeId>:<kind>"`, as each
- * arrives, then a final `{ output }` frame describing the finished job.
- * Throws on a `failed` job (with the node-level detail), on cancellation, and
- * on the SDK errors an author can act on (queue full, insufficient credits,
- * UI-format workflow).
+ * Write run inputs into `graph`. A key `<comfyNodeId>:<field>` names the field,
+ * and a media value is uploaded through `transport`.
  */
-export async function* runComfyWorkflow(
-  transport: ComfyTransport,
-  prompt: ComfyPrompt,
+export async function applyComfyInputs(
+  graph: ComfyPrompt,
   dynamicProps: Iterable<[string, unknown]>,
-  options: ComfyRunOptions
-): AsyncGenerator<Record<string, unknown>> {
-  const { signal, context, nodeId, nodeName } = options;
-  const logLine = (
-    content: string,
-    severity: "info" | "warning" | "error" = "info"
-  ): void => {
-    context?.postMessage({
-      type: "log_update",
-      node_id: nodeId,
-      node_name: nodeName,
-      content,
-      severity
-    });
-  };
-
-  // Deep clone so injected inputs never mutate the stored workflow prop.
-  const graph = JSON.parse(JSON.stringify(prompt)) as ComfyPrompt;
-
+  transport: ComfyTransport,
+  context: ProcessingContext | undefined
+): Promise<void> {
   for (const [handle, value] of dynamicProps) {
     if (value === undefined || value === null) continue;
     const sep = handle.indexOf(":");
@@ -515,6 +493,41 @@ export async function* runComfyWorkflow(
       target.inputs[field] = value;
     }
   }
+}
+
+/**
+ * Submit `prompt` through `transport` and stream what it produces.
+ *
+ * Yields one frame per output file, keyed `"<comfyNodeId>:<kind>"`, as each
+ * arrives, then a final `{ output }` frame describing the finished job.
+ * Throws on a `failed` job (with the node-level detail), on cancellation, and
+ * on the SDK errors an author can act on (queue full, insufficient credits,
+ * UI-format workflow).
+ */
+export async function* runComfyWorkflow(
+  transport: ComfyTransport,
+  prompt: ComfyPrompt,
+  dynamicProps: Iterable<[string, unknown]>,
+  options: ComfyRunOptions
+): AsyncGenerator<Record<string, unknown>> {
+  const { signal, context, nodeId, nodeName } = options;
+  const logLine = (
+    content: string,
+    severity: "info" | "warning" | "error" = "info"
+  ): void => {
+    context?.postMessage({
+      type: "log_update",
+      node_id: nodeId,
+      node_name: nodeName,
+      content,
+      severity
+    });
+  };
+
+  // Deep clone so injected inputs never mutate the stored workflow prop.
+  const graph = JSON.parse(JSON.stringify(prompt)) as ComfyPrompt;
+
+  await applyComfyInputs(graph, dynamicProps, transport, context);
 
   logLine(`Submitting ComfyUI workflow (${Object.keys(graph).length} nodes)`);
 
@@ -653,4 +666,73 @@ export async function* runComfyWorkflow(
       }))
     }
   };
+}
+
+/** Sniff a media kind + mime from the leading bytes of a ComfyUI output blob. */
+export function sniffMedia(bytes: Uint8Array): { kind: string; mime: string } {
+  const b = bytes;
+  // PNG
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+    return { kind: "image", mime: "image/png" };
+  }
+  // JPEG
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) {
+    return { kind: "image", mime: "image/jpeg" };
+  }
+  // GIF
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) {
+    return { kind: "image", mime: "image/gif" };
+  }
+  // RIFF container — disambiguate by the form type in bytes 8-11. RIFF is
+  // generic (WEBP, WAVE, AVI, …), so only classify on an exact form match and
+  // fall through otherwise rather than assuming WebP.
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46) {
+    // "WEBP"
+    if (b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) {
+      return { kind: "image", mime: "image/webp" };
+    }
+    // "WAVE"
+    if (b[8] === 0x57 && b[9] === 0x41 && b[10] === 0x56 && b[11] === 0x45) {
+      return { kind: "audio", mime: "audio/wav" };
+    }
+    // "AVI "
+    if (b[8] === 0x41 && b[9] === 0x56 && b[10] === 0x49 && b[11] === 0x20) {
+      return { kind: "video", mime: "video/x-msvideo" };
+    }
+  }
+  // ftyp box → MP4/MOV
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    return { kind: "video", mime: "video/mp4" };
+  }
+  // OGG
+  if (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) {
+    return { kind: "audio", mime: "audio/ogg" };
+  }
+  // ID3 / MPEG audio
+  if (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) {
+    return { kind: "audio", mime: "audio/mpeg" };
+  }
+  return { kind: "image", mime: "image/png" };
+}
+
+/**
+ * Turn a worker WebSocket URL into the HTTP origin its API v2 routes live on:
+ * `ws:` becomes `http:`, `wss:` becomes `https:`, and path and query are
+ * dropped (`wss://abc-7777.proxy.runpod.net/ws` →
+ * `https://abc-7777.proxy.runpod.net`).
+ */
+export function workerHttpOrigin(workerUrl: string): string {
+  const address = workerUrl.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(address)
+    ? address
+    : `ws://${address}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new Error(`Worker URL is not a valid URL: ${workerUrl}`);
+  }
+  if (url.protocol === "ws:") url.protocol = "http:";
+  else if (url.protocol === "wss:") url.protocol = "https:";
+  return url.origin;
 }

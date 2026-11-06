@@ -193,11 +193,12 @@
                         "title": "Results",
                         "content": [
                           {
-                            "type": "Progress",
+                            "type": "WorkflowSteps",
                             "props": {
                               "id": "progress-enhance",
-                              "binding": "op:enhance/exec#progress",
-                              "label": "Running the filter chain…"
+                              "operationId": "enhance",
+                              "label": "Running the filter chain…",
+                              "steps": []
                             }
                           },
                           {
@@ -312,11 +313,12 @@
                         "title": "Results",
                         "content": [
                           {
-                            "type": "Progress",
+                            "type": "WorkflowSteps",
                             "props": {
                               "id": "progress-batch",
-                              "binding": "op:batch/exec#progress",
-                              "label": "Retouching each photo…"
+                              "operationId": "batch",
+                              "label": "Retouching each photo…",
+                              "steps": []
                             }
                           },
                           {

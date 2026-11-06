@@ -1,10 +1,11 @@
 # Runtime Install Design: One Model for Desktop, CLI and Server
 
-Status: proposed, revision 2. Scope: how NodeTool installs and finds optional
+Status: revision 2. Migration steps 1, 2 and 4 are implemented. Step 4
+lives in `@nodetool-ai/runtime-install`. Step 3 is open. Scope: how NodeTool installs and finds optional
 software on every host: npm runtime libraries, the conda environment, Python
 packages and uv tools. It extends the
-[Runtime Package Interface](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md), which is implemented
-for the desktop app only. TypeScript node packs stay under the
+[Runtime Package Interface](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md), which the
+desktop app and the CLI share. TypeScript node packs stay under the
 [CLI Pack System](cli-pack-system-design.md). This design does not change its
 D2.
 
@@ -96,7 +97,7 @@ Other hosts:
 - **F4. A library installed in the desktop app is invisible to the CLI.** D2
   keeps it that way on purpose.
 - **F5. The install rules for conda and uv live in Electron.**
-  `electron/src/runtime/packages/definitions.ts` holds them. Only the npm specs
+  `packages/runtime-install/src/packages/definitions.ts` holds them. Only the npm specs
   are shared (`packages/protocol/src/runtime-npm-packages.ts`).
   [runtime-package-interface.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/runtime-package-interface.md#server-cannot-resolve-runtimes-electron-only-for-v1)
   records this as "Electron-only for v1".

@@ -84,6 +84,10 @@ export class Dr1Device extends WorkletInstrumentDevice {
     return this.applied;
   }
 
+  protected get authoredParams(): Readonly<Record<string, number>> {
+    return this.applied;
+  }
+
   setInstrument(instrument: MidiInstrument): void {
     const drum = asDrum(instrument);
     if (drum === this.lastInstrument) return;

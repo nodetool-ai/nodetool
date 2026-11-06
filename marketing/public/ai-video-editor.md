@@ -63,6 +63,14 @@ NodeTool is built for short films, ads, trailers, and explainers made from gener
 
 Yes. In NodeTool the agent's storyboard, script, and timeline are the same documents you open and edit. Swap a take, trim a clip, change a line, or regenerate one shot, and the rest of the edit stays as it was.
 
+### Which desktop apps combine AI video generation with a full editing timeline?
+
+NodeTool Studio does, on macOS, Windows, and Linux. One project holds the storyboard, video generation through providers such as fal, Replicate, and KIE on your own keys, and a multi-track timeline where the generated clips land in shot order for trimming, audio, and export. It is free and open source under AGPL-3.0.
+
+### Can an AI agent go from storyboard to final cut?
+
+Yes. In NodeTool the agent writes the storyboard from a brief, renders each shot, assembles the clips on the timeline, and renders the cut. Every step leaves a document you can open and change, so you can take over at any point.
+
 ### Can Claude Code edit a video timeline?
 
 Yes. Run npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install to add NodeTool as an MCP server. Claude Code can then create storyboards, render shots, voice a script, edit the timeline with edit_timeline, look at frames with preview_timeline_frame, and render the cut with render_timeline. The timeline opens in Studio like any other.

@@ -7,6 +7,7 @@
  */
 import type { ScriptOperationDocument } from "@nodetool-ai/app-runtime";
 import { scriptPortIO } from "@nodetool-ai/app-runtime";
+import { exposeComfyInterface } from "@nodetool-ai/protocol";
 
 import { Node, Workflow } from "../../stores/ApiTypes";
 import {
@@ -112,8 +113,8 @@ const isOutputNode = (type: string): boolean =>
   type.includes(".output.") || type === "nodetool.workflows.base_node.Preview";
 
 export const extractWorkflowIO = (workflow?: Workflow | null): WorkflowIO => {
-  const nodes = workflow?.graph?.nodes;
-  if (!nodes) return EMPTY_IO;
+  if (!workflow?.graph?.nodes) return EMPTY_IO;
+  const { nodes } = exposeComfyInterface(workflow.graph);
 
   const inputs: WorkflowInputIO[] = [];
   const outputs: WorkflowOutputIO[] = [];

@@ -1,0 +1,86 @@
+{
+  "id": "9a9c99b56bce3b7b127969b945a85016",
+  "name": "Comfy LTX-2.5 (Pro)- Text to Video",
+  "description": "Generate video from text with LTX 2.5, a video model built for fast, high-quality production work. Type a prompt and get a cinematic clip with sharp detail, accurate motion, and support for native multishot scenes that hold character and style across cuts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy LTX-2.5 (Pro)- Text to Video\n\nGenerate video from text with LTX 2.5, a video model built for fast, high-quality production work. Type a prompt and get a cinematic clip with sharp detail, accurate motion, and support for native multishot scenes that hold character and style across cuts. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_ltx2_5_t2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/LTX-2.5_t2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.LtxApi25TextToVideo",
+        "data": {
+          "model": "LTX-2.5 (Pro)",
+          "model.duration": "5",
+          "model.resolution": "1280x720",
+          "model.fps": "25",
+          "model.generate_audio": true,
+          "prompt": "CLOSE-UP: A man in a rumpled shirt stands by an apartment window at night, phone pressed to his ear, the city lights blurring beyond the glass, his own reflection ghosting beside him. He listens for a long moment, then says quietly, \"I know I should have called.\" He pauses, rubs his forehead, and continues, \"I'm sorry. I just...\" Another pause, his voice dropping, \"I didn't know what to say.\" He listens again, a small tired smile forming, and finally says, \"Yeah. Yeah, I'd like that.\" The camera slowly pushes in on his face as he ends the call and lowers the phone, the city hum and a distant siren filling the silence, his reflection staring back at him from the glass. No text, no black frames.\n",
+          "seed": 42
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "LTX 2.5 Text To Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "3-0-2-video",
+        "source": "3",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

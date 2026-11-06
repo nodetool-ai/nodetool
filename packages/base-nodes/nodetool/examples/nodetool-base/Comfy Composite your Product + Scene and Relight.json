@@ -1,0 +1,302 @@
+{
+  "id": "43a753bd34bfded07876578f47eaad03",
+  "name": "Comfy Composite your Product + Scene and Relight",
+  "description": "Upload an image of your product and background. Composite them and seamlessly relight and fuse together using Seedream 4.5. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "product & ads",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Composite your Product + Scene and Relight\n\nUpload an image of your product and background. Composite them and seamlessly relight and fuse together using Seedream 4.5. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-product_scene_relight.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "comfy_shampoo.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Product Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "flower_sea.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Background Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "12",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Task: Realistic Product Compositing with Material Preservation Goal: Insert the product from Input 2 into Input 1, ensuring placement is logical and lighting interacts accurately with the product's specific material properties.\n\nInput Image(s):\n\nInput 1 (Scene)\nInput 2 (Product): {product_description}\n\nManual Material Breakdown (Critical): To ensure correct light interaction, treat the product as having the following physical properties:\n\nPrimary Material: [e.g., Matte Plastic / Brushed Aluminum / Clear Glass]\n\nReflectivity: [e.g., Low (dull reflections) / High (mirror-like)]\n\nTexture: [e.g., Smooth / Grainy / Porous]\n\nReaction to Light: [e.g., \"Should absorb light with soft highlights, no sharp glares\"]\n\nSecondary Material (if any): [e.g., Gold Foil Label / Glossy Cap]\n\nReaction to Light: [e.g., \"Should catch sharp, bright specular highlights from the environment\"]\n\nProcess:\nScene Analysis: Identify the logical ground plane/surface in Input 1.\n\nPlacement: Scale Input 2 uniformly (maintain aspect ratio) and place it on the surface.\n\nMaterial-Based Relighting:\n\nDo not simply overlay the scene colors onto the product.\nInstead, map the environment light from Input 1 onto the contours of Input 2 based on the material definitions above.\n\nExample: If the material is Matte, only the edge lighting and general ambient tone should change; do not add sharp reflections.\n\nExample: If the material is Glossy, reflect the scene's details on the surface.\n\nShadows: Generate contact shadows that match the hardness/softness of shadows in the rest of the scene.\n\nTechnical Requirements:\nAlbedo Preservation: The intrinsic color of the product (e.g., \"Brand Red\") must not be washed out by the scene's lighting color.\n\nTexture Fidelity: Do not smooth out surface details (grain, bumps) during the blending process.\n\nScaling: No non-uniform stretching.\n\nOutput: A composite where the lighting confirms the materiality of the product (e.g., makes the plastic look like plastic, not metal)."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Prompt Template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "regex_pattern": "{product_description}",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "A dispenser bottle filled with viscuous clear liquid, with a metallic top, \"C\" logo and a clear glass body"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Describe the Product"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.ByteDanceSeedreamNode",
+        "data": {
+          "model": "seedream-4-5-251128",
+          "size_preset": "2048x2048 (1:1)",
+          "width": 2048,
+          "height": 2048,
+          "sequential_image_generation": "disabled",
+          "max_images": 1,
+          "seed": 406946789,
+          "watermark": false,
+          "fail_on_partial": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15:15",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15:5",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15:6",
+        "type": "comfy.ResizeAndPadImage",
+        "data": {
+          "padding_color": "white",
+          "interpolation": "area"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Resize And Pad Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "12-0-13-string",
+        "source": "12",
+        "sourceHandle": "STRING",
+        "target": "13",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-13-replace",
+        "source": "14",
+        "sourceHandle": "STRING",
+        "target": "13",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "13-0-22-prompt",
+        "source": "13",
+        "sourceHandle": "STRING",
+        "target": "22",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "15:15-0-22-image",
+        "source": "15:15",
+        "sourceHandle": "IMAGE",
+        "target": "22",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "22-0-23-images",
+        "source": "22",
+        "sourceHandle": "IMAGE",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-15:15-images.image0",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "15:15",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "15:6-0-15:15-images.image1",
+        "source": "15:6",
+        "sourceHandle": "IMAGE",
+        "target": "15:15",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-15:5-image",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "15:5",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "15:5-0-15:6-target_width",
+        "source": "15:5",
+        "sourceHandle": "width",
+        "target": "15:6",
+        "targetHandle": "target_width",
+        "ui_properties": null
+      },
+      {
+        "id": "15:5-1-15:6-target_height",
+        "source": "15:5",
+        "sourceHandle": "height",
+        "target": "15:6",
+        "targetHandle": "target_height",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-15:6-image",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "15:6",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

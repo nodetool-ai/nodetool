@@ -121,3 +121,11 @@ it("does not read account history for visitors or a new invocation without a run
   expect(useRuns).toHaveBeenLastCalledWith(expect.anything(), false);
   expect(useRunLogs).toHaveBeenLastCalledWith(null, expect.anything());
 });
+
+it("gives live tool calls the chat's timeline styles", () => {
+  const runtime = makeTestRuntime({ invocations: { live: { id: "live", operationId: "main", status: "running", startedAt: 1 } },
+    activeInvocation: { main: "live" }, transcripts: { live: [{ kind: "tool", id: "call-a", name: "generate_image", label: "Generate Image", status: "running" }] } }, { instanceId: "instance-a" });
+  runtime.store.getState().setRunReference("main", { runId: RUN, traceId: "c".repeat(32), invocationId: "live" });
+  const { container } = renderWidget(runtime);
+  expect(container.querySelector(".tool-row")).toHaveStyle({ display: "grid" });
+});

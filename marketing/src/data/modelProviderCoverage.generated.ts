@@ -37,4 +37,8 @@ export const modelProviderCoverage: Record<string, string[]> = {
   "dreamina": ["fal_ai","replicate"],
   "bagel": ["fal_ai","replicate"],
   "retro-diffusion": ["replicate"],
+  "ernie-image": ["fal_ai"],
+  "mai-image": ["atlascloud","fal_ai"],
+  "uni-1": ["fal_ai"],
+  "muse-image": ["fal_ai"],
 };

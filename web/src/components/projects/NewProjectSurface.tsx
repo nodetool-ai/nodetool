@@ -106,6 +106,8 @@ import { useEntities } from "../../serverState/useEntities";
 import EntityPickerDialog from "../entities/EntityPickerDialog";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { openSubscriptionOnboarding } from "../../stores/SubscriptionOnboardingStore";
+import { isElectron, isLocalhost } from "../../lib/env";
 import {
   PROJECT_NEW_REF,
   LOOSE_PROJECT_ID,
@@ -673,6 +675,12 @@ const NewProjectSurface = ({
     setSubmenu(null);
     useOnboardingStore.getState().markStep("keep-creating");
   });
+  // "Create" opens the same picture and video view as the Create image and
+  // Create video cards above, so the blank row leaves it out.
+  const blankEntries = useMemo(
+    () => entries.filter((entry) => entry.key !== "create"),
+    [entries]
+  );
   const { entries: projectEntries } = useNewDocumentCatalog({}, () => {
     useOnboardingStore.getState().markStep("keep-creating");
   });
@@ -2159,7 +2167,14 @@ const NewProjectSurface = ({
     [handleMentionKeyDown, handleSkillKeyDown, handleStart]
   );
 
+  // The app no longer opens the plan sign-ins on launch (UX study 17: 9 of 9
+  // newcomers closed it unread). On a local install this pill is where they
+  // are offered, since their sign-ins finish on this machine's loopback.
   const handleConnectProvider = useCallback(() => {
+    if (isElectron || isLocalhost) {
+      openSubscriptionOnboarding();
+      return;
+    }
     openProviderOnboarding();
   }, []);
 
@@ -2772,7 +2787,7 @@ const NewProjectSurface = ({
               }
             }}
           >
-            {entries.map((entry) => (
+            {blankEntries.map((entry) => (
               <EditorButton
                 key={entry.key}
                 type="button"
@@ -2808,8 +2823,8 @@ const NewProjectSurface = ({
                 </Box>
                 <Label>
                 {entry.submenu
-                  ? `${t(`pass3_32.projects.home.blankEntries.${entry.key}`)} ▸`
-                  : t(`pass3_32.projects.home.blankEntries.${entry.key}`)}
+                  ? `${t(`pass3_32.projects.home.blankEntries.${entry.key}`, { defaultValue: entry.label })} ▸`
+                  : t(`pass3_32.projects.home.blankEntries.${entry.key}`, { defaultValue: entry.label })}
                 </Label>
               </EditorButton>
             ))}

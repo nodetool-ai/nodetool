@@ -1,0 +1,209 @@
+{
+  "id": "10e3e14591f966995f0db23d5049e539",
+  "name": "Comfy Patina- PBR Maps",
+  "description": "Turn one image into a set of PBR maps with Patina: basecolor, normal, roughness, metalness and height, all derived from exactly what the picture contains. No regeneration and no tiling - feed a flat, evenly lit surface photo or an existing basecolor map, pick the maps you need and drop them straight into a 3D material. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "3d model",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Patina- PBR Maps\n\nTurn one image into a set of PBR maps with Patina: basecolor, normal, roughness, metalness and height, all derived from exactly what the picture contains. No regeneration and no tiling - feed a flat, evenly lit surface photo or an existing basecolor map, pick the maps you need and drop them straight into a 3D material. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_patina_pbr_maps.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "21",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_normal"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "normal"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_roughness"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "roughness"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_basecolor"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "basecolor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_metalness"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "metalness"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "patina/%year%%month%%day%-%hour%%minute%_height"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "height"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "patina_pbr_webbing_basecolor.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "32",
+        "type": "comfy.PatinaPBRMapsNode",
+        "data": {
+          "basecolor": true,
+          "normal": true,
+          "roughness": true,
+          "metalness": true,
+          "height": true,
+          "seed": 42,
+          "safety_checker": false,
+          "auto_downscale": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Patina PBR Material Maps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "32-1-21-images",
+        "source": "32",
+        "sourceHandle": "normal",
+        "target": "21",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "32-2-22-images",
+        "source": "32",
+        "sourceHandle": "roughness",
+        "target": "22",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "32-0-23-images",
+        "source": "32",
+        "sourceHandle": "basecolor",
+        "target": "23",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "32-3-24-images",
+        "source": "32",
+        "sourceHandle": "metalness",
+        "target": "24",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "32-4-25-images",
+        "source": "32",
+        "sourceHandle": "height",
+        "target": "25",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-32-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "32",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

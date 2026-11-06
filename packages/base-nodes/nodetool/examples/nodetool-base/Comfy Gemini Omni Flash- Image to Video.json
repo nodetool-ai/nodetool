@@ -1,0 +1,337 @@
+{
+  "id": "69ad369c31451ddb1078cdcdd489bfbe",
+  "name": "Comfy Gemini Omni Flash- Image to Video",
+  "description": "Generate a video from two images using Gemini Omni Flash, which interprets natural language prompts to control duration and aspect ratio. The workflow accepts 2 input images and produces 1 video output. Ideal for creating short brand clips, dynamic social media content, and iterative video edits through conversational prompting. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Gemini Omni Flash- Image to Video\n\nGenerate a video from two images using Gemini Omni Flash, which interprets natural language prompts to control duration and aspect ratio. The workflow accepts 2 input images and produces 1 video output. Ideal for creating short brand clips, dynamic social media content, and iterative video edits through conversational prompting. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_google_gemini_omni_flash_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "clay_toy_shop_old_man.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "comic_toy_store_strips.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.GeminiVideoOmniV2",
+        "data": {
+          "model": "Omni Flash",
+          "model.aspect_ratio": "16:9",
+          "model.task_type": "auto",
+          "model.images": 1,
+          "model.videos": 0.95,
+          "model.temperature": 42,
+          "model.top_p": "randomize",
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini Omni (Video)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:9",
+        "type": "comfy.CustomCombo",
+        "data": {
+          "choice": "9:16"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Custom Combo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:10",
+        "type": "comfy.CustomCombo",
+        "data": {
+          "choice": "3s "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Custom Combo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:11",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_a": "Aspect Ratio: ",
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:12",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "string_a": "Duration: ",
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:13",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ";"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:15",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "\nFollow the story exactly in order starting top left. A lonely clay toy shop grandpa warmly gives a retro handheld game to a visiting child."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Input Text (User Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:16",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "20-0-2-video",
+        "source": "20",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "19:16-0-3-source",
+        "source": "19:16",
+        "sourceHandle": "STRING",
+        "target": "3",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-20-model.prompt",
+        "source": "3",
+        "sourceHandle": "STRING",
+        "target": "20",
+        "targetHandle": "model.prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-20-model.images.image_1",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "20",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-20-model.images.image_2",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "20",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      },
+      {
+        "id": "19:9-0-19:11-string_b",
+        "source": "19:9",
+        "sourceHandle": "STRING",
+        "target": "19:11",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "19:10-0-19:12-string_b",
+        "source": "19:10",
+        "sourceHandle": "STRING",
+        "target": "19:12",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "19:11-0-19:13-string_a",
+        "source": "19:11",
+        "sourceHandle": "STRING",
+        "target": "19:13",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "19:12-0-19:13-string_b",
+        "source": "19:12",
+        "sourceHandle": "STRING",
+        "target": "19:13",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "19:15-0-19:16-string_a",
+        "source": "19:15",
+        "sourceHandle": "STRING",
+        "target": "19:16",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "19:13-0-19:16-string_b",
+        "source": "19:13",
+        "sourceHandle": "STRING",
+        "target": "19:16",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -202,8 +202,7 @@ private:
                 AudioBuffer<float> buffer;
                 String error;
                 std::lock_guard<std::recursive_mutex> guard(inst->lock);
-                if (applyState && !inst->setState(state, error)) { fail(id, error); return; }
-                if (!inst->render(rate, frames, events, buffer, error)) { fail(id, error); return; }
+                if (!renderWithState(*inst, applyState, state, rate, frames, events, buffer, error)) { fail(id, error); return; }
                 if (!writePlanarF32(buffer, out)) { fail(id, "Cannot write " + out.getFullPathName()); return; }
                 auto body = object();
                 body.getDynamicObject()->setProperty("channels", 2);

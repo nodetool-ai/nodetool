@@ -1,0 +1,114 @@
+{
+  "id": "56fdcc5e4fec217ae20d4f382ee3f225",
+  "name": "Comfy ElevenLabs- Text to Speech",
+  "description": "Input text to generate speech with ultra-realistic voices, or upload a voice sample to clone it for synthesis. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "audio",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy ElevenLabs- Text to Speech\n\nInput text to generate speech with ultra-realistic voices, or upload a voice sample to clone it for synthesis. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_elevenlabs_text_to_speech.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "208",
+        "type": "comfy.ElevenLabsTextToSpeech",
+        "data": {
+          "text": "Now, you can generate voice using the ElevenLabs Text - to - Speech node. You can also use your own voice to create a clone.",
+          "stability": 0.5,
+          "apply_text_normalization": "auto",
+          "model": "eleven_multilingual_v2",
+          "model.speed": 1,
+          "model.similarity_boost": 0.75,
+          "model.use_speaker_boost": false,
+          "model.style": 0,
+          "language_code": "",
+          "seed": 1,
+          "output_format": "mp3_44100_192"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Text to Speech"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "211",
+        "type": "comfy.ElevenLabsVoiceSelector",
+        "data": {
+          "voice": "Roger (male, american)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ElevenLabs Voice Selector"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "218",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ComfyUI",
+          "format": "mp3",
+          "format.quality": "V0"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "211-0-208-voice",
+        "source": "211",
+        "sourceHandle": "voice",
+        "target": "208",
+        "targetHandle": "voice",
+        "ui_properties": null
+      },
+      {
+        "id": "208-0-218-audio",
+        "source": "208",
+        "sourceHandle": "AUDIO",
+        "target": "218",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

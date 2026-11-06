@@ -1,0 +1,143 @@
+{
+  "id": "7e9e1417423ccebe5330d1a713f3530e",
+  "name": "Comfy Seedance 2.0 Mini- Reference to Video",
+  "description": "Generate cinematic video from two reference images using Seedance 2.0 Mini, producing a single video output with AI-driven camera motion and consistent character generation. Ideal for storytelling, branded content, and short film creation where shot composition and visual continuity are essential. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedance 2.0 Mini- Reference to Video\n\nGenerate cinematic video from two reference images using Seedance 2.0 Mini, producing a single video output with AI-driven camera motion and consistent character generation. Ideal for storytelling, branded content, and short film creation where shot composition and visual continuity are essential. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_seedance2_0_mini_r2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "18",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "perfume_orange_shot.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Seedance2.0_mini_r2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "asian_model_white_top.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28",
+        "type": "comfy.ByteDance2ReferenceNodeV2",
+        "data": {
+          "model": "Seedance 2.0 Mini",
+          "model.prompt": "Shot 1: Medium close-up, three-quarter angle. The model holds the bottle from @Image 1 in her right hand, nozzle aimed at her left inner wrist. She presses the spray once; a fine mist blooms in slow motion, backlit into soft golden particles.\n\nShot 2: She lowers the bottle to waist height and gently presses her wrists together once, eyes half-closed as if sensing the scent. Camera holds steady in medium shot; white top and bottle remain sharp.",
+          "model.resolution": "480p",
+          "model.ratio": "adaptive",
+          "model.duration": 7,
+          "model.generate_audio": true,
+          "model.reference_images": true,
+          "model.reference_videos": false,
+          "model.reference_audios": 0,
+          "model.reference_assets": "randomize",
+          "model.auto_downscale": false,
+          "model.auto_upscale": false,
+          "seed": 0,
+          "watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedance 2.5 Reference to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "28-0-20-video",
+        "source": "28",
+        "sourceHandle": "VIDEO",
+        "target": "20",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-28-model.reference_images.image_1",
+        "source": "18",
+        "sourceHandle": "IMAGE",
+        "target": "28",
+        "targetHandle": "model.reference_images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "27-0-28-model.reference_images.image_2",
+        "source": "27",
+        "sourceHandle": "IMAGE",
+        "target": "28",
+        "targetHandle": "model.reference_images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

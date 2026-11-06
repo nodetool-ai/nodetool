@@ -1,0 +1,267 @@
+{
+  "id": "ce4c1c6aba985c1aabceeae57b7eaa6e",
+  "name": "Comfy Flux.1 Dev- Text to Image",
+  "description": "Generate high-quality images with Flux Dev full version. Requires larger VRAM and multiple model files, but provides the best prompt following capability and image quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 Dev- Text to Image\n\nGenerate high-quality images with Flux Dev full version. Requires larger VRAM and multiple model files, but provides the best prompt following capability and image quality. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/flux_dev_full_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:45",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:46",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "flux1-dev.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:47",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "clip_l.safetensors",
+          "clip_name2": "t5xxl_fp16.safetensors",
+          "type": "flux",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:48",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:49",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "A fairy tale scene of a young girl with silver curly hair wearing a delicate white dress, standing among crystal butterflies and glowing glass roses. The scene is filled with soft magical light, like a dream from a fantasy world."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:50",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 0,
+          "steps": 20,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:51",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "194:52",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "194:51-0-9-images",
+        "source": "194:51",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "194:47-0-194:49-clip",
+        "source": "194:47",
+        "sourceHandle": "CLIP",
+        "target": "194:49",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "194:46-0-194:50-model",
+        "source": "194:46",
+        "sourceHandle": "MODEL",
+        "target": "194:50",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "194:49-0-194:50-positive",
+        "source": "194:49",
+        "sourceHandle": "CONDITIONING",
+        "target": "194:50",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "194:52-0-194:50-negative",
+        "source": "194:52",
+        "sourceHandle": "CONDITIONING",
+        "target": "194:50",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "194:48-0-194:50-latent_image",
+        "source": "194:48",
+        "sourceHandle": "LATENT",
+        "target": "194:50",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "194:50-0-194:51-samples",
+        "source": "194:50",
+        "sourceHandle": "LATENT",
+        "target": "194:51",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "194:45-0-194:51-vae",
+        "source": "194:45",
+        "sourceHandle": "VAE",
+        "target": "194:51",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "194:49-0-194:52-conditioning",
+        "source": "194:49",
+        "sourceHandle": "CONDITIONING",
+        "target": "194:52",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      }
+    ]
+  }
+}

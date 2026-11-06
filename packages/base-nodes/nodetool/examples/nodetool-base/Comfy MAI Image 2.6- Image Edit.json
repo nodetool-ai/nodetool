@@ -1,0 +1,135 @@
+{
+  "id": "52652f3e80f7ce16ffc3f729fe8b35b6",
+  "name": "Comfy MAI Image 2.6- Image Edit",
+  "description": "Edit images with MAI Image 2.6, Microsoft's flagship model for image editing, combining two reference images into a single refined output. Ideal for multi-reference compositing, product visual restyling, and text-in-image design work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MAI Image 2.6- Image Edit\n\nEdit images with MAI Image 2.6, Microsoft's flagship model for image editing, combining two reference images into a single refined output. Ideal for multi-reference compositing, product visual restyling, and text-in-image design work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_openrouter_mai_image_26_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Mai_image_2.6",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.OpenRouterImageNode",
+        "data": {
+          "model": "microsoft/mai-image-2.6",
+          "model.prompt": "Refer to the lighting and scene of the product in Figure 2, and adjust the product in Figure 1 to the same shooting angle and shooting scene.",
+          "model.aspect_ratio": "auto",
+          "model.resolution": "1K",
+          "model.images": 2020960893,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "OpenRouter Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "product_bottle_black.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "ref_product_earbuds_blue.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-0-4-images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-5-model.images.image_1",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-5-model.images.image_2",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "model.images.image_2",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -9325,9 +9325,17 @@
           "button": "Получить API-ключ Opper",
           "tooltip": "Перейти на платформу Opper, чтобы получить API-ключ"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Получить API-ключ Cheaper Inference",
+          "tooltip": "Перейти на Cheaper Inference, чтобы получить API-ключ"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Получить ключ API Route",
           "tooltip": "Перейти на страницу API-ключей API Route"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Получить API-ключ Runcrate",
+          "tooltip": "Перейти на страницу API-ключей Runcrate"
         },
         "HF_TOKEN": {
           "button": "Получить токен Hugging Face",
@@ -9836,6 +9844,18 @@
         "title": "Запускайте графы на арендованном GPU",
         "description": "Подключите RunPod один раз и выберите GPU. NodeTool будет выполнять на нём ваши Python-узлы, а простаивающие воркеры приостанавливаются сами.",
         "action": "Настроить воркер"
+      },
+      "presets": {
+        "summary_one": "Примерно {{min}}–{{max}} в час. Завершится через {{count}} час и удалит свои файлы.",
+        "summary_few": "Примерно {{min}}–{{max}} в час. Завершится через {{count}} часа и удалит свои файлы.",
+        "summary_many": "Примерно {{min}}–{{max}} в час. Завершится через {{count}} часов и удалит свои файлы.",
+        "summary_other": "Примерно {{min}}–{{max}} в час. Завершится через {{count}} часа и удалит свои файлы.",
+        "start": "Запустить",
+        "starting": "Запуск…",
+        "startAria": "Запустить {{name}} на арендованном GPU",
+        "bootingHint": "ComfyUI загружается. Первый запуск может занять несколько минут.",
+        "readyHint": "Скопируйте URL в Run ComfyUI Workflow. Любой, у кого есть этот URL, может использовать под.",
+        "copyEndpoint": "Скопировать URL ComfyUI"
       }
     }
   },
@@ -20230,6 +20250,43 @@
     "simple": "Простой",
     "expert": "Эксперт",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} к/с"
+    "frameRate": "{{fps}} к/с",
+    "showAssistant": "Показать ассистента",
+    "hideAssistant": "Скрыть ассистента",
+    "resizeAssistant": "Изменить размер ассистента таймлайна"
+  },
+  "generationBatch": {
+    "summary": "Готово {{done}} из {{total}}",
+    "remaining": "Осталось около {{time}}",
+    "finishing": "Завершение",
+    "failedCount": "Ошибок: {{count}}",
+    "status": {
+      "queued": "В очереди",
+      "running": "Выполняется",
+      "completed": "Готово",
+      "failed": "Ошибка"
+    },
+    "showRequests": "Показать запросы",
+    "hideRequests": "Скрыть запросы",
+    "expected": "Ожидается {{time}}",
+    "took": "Заняло {{time}}",
+    "progressLabel": "Ход генерации"
+  },
+  "workflowSteps": {
+    "stepOf": "Шаг {{current}} из {{total}}",
+    "allDone": "Все шаги ({{total}}) готовы",
+    "waiting": "Ожидание",
+    "running": "Выполняется",
+    "done": "Готово",
+    "failed": "Ошибка",
+    "progressLabel": "Ход выполнения",
+    "steps": "Шаги",
+    "addStep": "Добавить шаг",
+    "removeStep": "Удалить шаг",
+    "node": "Узел",
+    "title": "Заголовок",
+    "description": "Описание",
+    "autoHint": "Шаги не заданы. Виджет показывает каждый генеративный узел.",
+    "chooseNode": "Выберите узел"
   }
 }

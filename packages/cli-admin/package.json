@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-admin",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Independent NodeTool admin command module",
   "type": "module",
   "engines": {
@@ -42,6 +42,7 @@
     "@nodetool-ai/pack-manager": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/runtime-install": "*",
     "@nodetool-ai/sandbox-compiler": "*",
     "@nodetool-ai/security": "*",
     "@nodetool-ai/storage": "*",

@@ -1,0 +1,294 @@
+{
+  "id": "7ac7ea85336700d05351687c928e6c1e",
+  "name": "Comfy Ovis-Image Text to Image",
+  "description": "Ovis-Image is a 7B text-to-image model specifically optimized for high-quality text rendering in generated images. Designed to operate efficiently under computational constraints, it excels at accurately generating images containing text content. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Ovis-Image Text to Image\n\nOvis-Image is a 7B text-to-image model specifically optimized for high-quality text rendering in generated images. Designed to operate efficiently under computational constraints, it excels at accurately generating images containing text content. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_ovis_text_to_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Ovis_2.5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:40",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:43",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:46",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "ovis_image_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:39",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "ovis_2.5.safetensors",
+          "type": "ovis",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:44",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 775709856082329,
+          "steps": 20,
+          "cfg": 5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:41",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:49",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:47",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:45",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Child lying on bed with balloons, streamers, and plush toys, surreal dreamlike scene. Close-up, centered on the child and surrounding objects. Soft, diffused lighting."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "57:43-0-9-images",
+        "source": "57:43",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "57:44-0-57:43-samples",
+        "source": "57:44",
+        "sourceHandle": "LATENT",
+        "target": "57:43",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "57:40-0-57:43-vae",
+        "source": "57:40",
+        "sourceHandle": "VAE",
+        "target": "57:43",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "57:47-0-57:44-model",
+        "source": "57:47",
+        "sourceHandle": "MODEL",
+        "target": "57:44",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "57:45-0-57:44-positive",
+        "source": "57:45",
+        "sourceHandle": "CONDITIONING",
+        "target": "57:44",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "57:49-0-57:44-negative",
+        "source": "57:49",
+        "sourceHandle": "CONDITIONING",
+        "target": "57:44",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "57:41-0-57:44-latent_image",
+        "source": "57:41",
+        "sourceHandle": "LATENT",
+        "target": "57:44",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "57:39-0-57:49-clip",
+        "source": "57:39",
+        "sourceHandle": "CLIP",
+        "target": "57:49",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "57:46-0-57:47-model",
+        "source": "57:46",
+        "sourceHandle": "MODEL",
+        "target": "57:47",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "57:39-0-57:45-clip",
+        "source": "57:39",
+        "sourceHandle": "CLIP",
+        "target": "57:45",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

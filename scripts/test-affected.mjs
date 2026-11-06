@@ -391,13 +391,17 @@ export function buildGateArgv(files) {
   return ["run", "dev:nodetool", "--", "harness", "gate", "--dry-run", ...files];
 }
 
-function run(command, args) {
-  const bin =
-    process.platform === "win32" && (command === "npm" || command === "npx")
-      ? `${command}.cmd`
-      : command;
+export function run(command, args, cwd = repoRoot) {
+  let bin = command;
+  let commandArgs = args;
+  if (process.platform === "win32" && (command === "npm" || command === "npx")) {
+    const npmCli = process.env.npm_execpath || join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
+    const cli = command === "npm" ? npmCli : join(dirname(npmCli), "npx-cli.js");
+    bin = process.execPath;
+    commandArgs = [cli, ...args];
+  }
   console.log(`\n$ ${command} ${args.join(" ")}`);
-  const result = spawnSync(bin, args, { cwd: repoRoot, stdio: "inherit" });
+  const result = spawnSync(bin, commandArgs, { cwd, stdio: "inherit" });
   if (result.error) throw result.error;
   return result.status ?? 1;
 }

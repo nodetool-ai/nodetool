@@ -150,6 +150,29 @@ describe("flattenWidgets", () => {
 });
 
 describe("specFromBundle", () => {
+  it.each(["film-studio", "trailer-room"])(
+    "carries every declared script port from %s into the spec",
+    async (slug) => {
+      const shipped = JSON.parse(await readFile(join(APPS, `${slug}.app.json`), "utf8"));
+      const operation = shipped.app.operations.find(
+        (operation: { target?: { kind: string } }) => operation.target?.kind === "script"
+      );
+      const script = shipped.scripts.find(
+        (script: { key: string }) => script.key === operation.target.scriptId
+      );
+      const { spec } = specFromBundle(shipped);
+      const derived = spec.operations.find(
+        (candidate: { id: string }) => candidate.id === operation.id
+      );
+      expect(derived.inputs).toEqual(script.document.inputs.map(
+        (port: { name: string; type: string }) => ({ ...port, example: "" })
+      ));
+      expect(derived.outputs).toEqual(script.document.outputs);
+      expect(derived.inputs).toContainEqual({ name: "shots", type: "int", example: "" });
+      expect(parseBuildSpec(spec).issues).toEqual([]);
+    }
+  );
+
   it("describes the shipped app in the spec's name vocabulary", () => {
     const { spec, dropped } = specFromBundle(bundle());
     expect(spec.title).toBe("Drafter");

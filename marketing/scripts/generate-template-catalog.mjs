@@ -111,6 +111,8 @@ function readTemplates() {
   const templates = [];
   for (const file of files) {
     const raw = JSON.parse(readFileSync(join(EXAMPLES_DIR, file), "utf8"));
+    // Comfy templates have no /templates page (see generate-template-entries).
+    if (raw.run_mode === "comfy") continue;
     const name = String(raw.name || "").trim();
     const description = String(raw.description || "").trim();
     const tags = Array.isArray(raw.tags)

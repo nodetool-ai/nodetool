@@ -17,6 +17,8 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import {
   Asset,
+  Application,
+  publishApplication,
   createAppInstance,
   reserveAppRun,
   deleteAppRun,
@@ -38,6 +40,7 @@ import {
 
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import jsScriptsRoutes from "../src/routes/js-scripts.js";
+import { createOwnedAppInstance } from "../src/lib/app-instances-service.js";
 import { cancelAppRun } from "../src/lib/app-run-cancellation.js";
 
 const USER_ID = "user-1";
@@ -85,6 +88,67 @@ describe("POST /api/js-scripts/:id/run", () => {
     await app?.close();
     app = null;
   });
+
+  it.each(["inline", "release", "qualified", "legacy"])(
+    "keeps operation script versions isolated in %s snapshots",
+    async (source) => {
+      const script = await seedScript({});
+      const scripts = [1, 2].map((v) => ({
+        ...emptyJsScriptDocument(),
+        code: `await output("v", ${v});`,
+        outputs: [{ name: "v", type: "int" }]
+      }));
+      for (const document of scripts) {
+        script.document = JSON.stringify(document);
+        await script.save();
+        await JsScriptVersion.snapshot(script, { saveType: "manual" });
+      }
+      const document = createEmptyDocument();
+      document.operations = [1, 2].map((version) => ({
+        id: `op${version}`, name: `Version ${version}`, workflowId: "",
+        target: { kind: "script", scriptId: script.id, scriptVersion: version },
+        policy: "parallel", inputs: {}, outputs: {}
+      }));
+      if (source === "legacy") {
+        document.operations = document.operations.slice(0, 1);
+      }
+      const application = new Application({
+        user_id: USER_ID, name: "Versioned app", document: JSON.stringify(document)
+      });
+      await application.save();
+      if (source === "release") {
+        await publishApplication(application);
+      }
+      const instance = await createOwnedAppInstance(USER_ID, {
+        source_id: "versions",
+        ...(source === "release" ? { application_id: application.id, version: 1 } : {}),
+        snapshot: {
+          document, workflow_graphs: {},
+          script_documents: source === "qualified"
+            ? Object.fromEntries(scripts.map((doc, i) => [`${script.id}@${i + 1}`, doc]))
+            : source === "legacy" ? { [script.id]: scripts[0]! } : {}
+        }
+      });
+      app = await buildServer(USER_ID);
+      for (const operation of document.operations) {
+        const version = operation.target?.kind === "script" ? operation.target.scriptVersion : 0;
+        expect(instance.snapshot.script_documents[`${script.id}@${version}`]).toEqual(scripts[version - 1]);
+        const reservation = await reserveAppRun({
+          userId: USER_ID, instanceId: instance.id, operationId: operation.id,
+          invocationId: `request-${version}`, origin: "ui"
+        });
+        if (!reservation.allowed) {
+          throw new Error(reservation.reason);
+        }
+        const response = await app.inject({
+          method: "POST", url: `/api/js-scripts/${script.id}/run`,
+          payload: { app_run_id: reservation.run.id, instance_id: instance.id }
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.json().outputs).toEqual({ v: version });
+      }
+    }
+  );
 
   it("executes the reserved snapshot and settles instance state before replying", async () => {
     const script = await seedScript({
@@ -452,6 +516,21 @@ describe("POST /api/js-scripts/:id/run", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  it("gives the run a workspace so host media tools can run", async () => {
+    const script = await seedScript({ code: "await output('x', 1);", outputs: [{ name: "x", type: "int" }] });
+    const contexts: ProcessingContext[] = [];
+    const set = ProcessingContext.prototype.set;
+    vi.spyOn(ProcessingContext.prototype, "set").mockImplementation(function (this: ProcessingContext, ...args) {
+      contexts.push(this);
+      return set.apply(this, args);
+    });
+    app = await buildServer(USER_ID);
+    const response = await app.inject({ method: "POST", url: `/api/js-scripts/${script.id}/run`, payload: {} });
+    expect(response.statusCode).toBe(200);
+    expect(contexts.length).toBeGreaterThan(0);
+    expect(contexts[0]!.workspace).not.toBeNull();
   });
 
   it("runs the stored body over the given inputs", async () => {

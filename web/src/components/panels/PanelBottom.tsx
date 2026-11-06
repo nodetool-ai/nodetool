@@ -73,9 +73,10 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 const HEADER_HEIGHT = CONTROL.height.md;
 
-// Worker label derived from BASE_URL. Empty = local dev (Vite proxy → :7777).
+// Worker label derived from BASE_URL. Empty means this machine, which needs no
+// label: 5 of 9 newcomers in UX study 17 could not say what "worker:local" was.
 const workerLabel = (() => {
-  if (!BASE_URL) return "worker:local";
+  if (!BASE_URL) return null;
   try {
     return `worker:${new URL(BASE_URL).hostname}`;
   } catch {
@@ -172,6 +173,33 @@ const PANEL_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) => g.views);
 
 const isPanelView = (value: string): value is BottomPanelView =>
   PANEL_VIEWS.some((view) => view === value);
+
+/** Views that only show something for an open workflow. */
+const WORKFLOW_VIEWS: readonly BottomPanelView[] = ["versions", "trace"];
+
+/**
+ * The status bar's tabs. Versions and Trace describe a workflow, so they show
+ * only while one is the active tab, or while their panel is the one open.
+ * Workers are remote runners the server provisions, which the cloud refuses.
+ */
+export const statusBarViews = ({
+  workflowActive,
+  openView,
+  cloud
+}: {
+  workflowActive: boolean;
+  openView: BottomPanelView | null;
+  cloud: boolean;
+}): BottomPanelView[] =>
+  PANEL_VIEWS.filter((view) => {
+    if (view === "workers" && cloud) {
+      return false;
+    }
+    if (WORKFLOW_VIEWS.includes(view)) {
+      return workflowActive || view === openView;
+    }
+    return true;
+  });
 
 /**
  * Width of the status bar below which the cpu/mem and node-count readout is
@@ -449,13 +477,19 @@ const PanelBottom: React.FC = () => {
     [handlePanelToggle]
   );
 
+  const workflowActive = useWorkspaceTabsStore((state) => {
+    const tab = state.tabs.find((item) => item.id === state.activeTabId);
+    return tab?.type === "workflow";
+  });
+  const openView = isVisible ? activeView : null;
+
   const visibleTabs = useMemo<TabItem[]>(
     () =>
-      PANEL_VIEWS.filter(
-        // Workers are remote runners the server provisions, which the
-        // cloud refuses.
-        (view) => view !== "workers" || !isCloudProfile()
-      ).map((view) => {
+      statusBarViews({
+        workflowActive,
+        openView,
+        cloud: isCloudProfile()
+      }).map((view) => {
         const spec = VIEW_SPECS[view];
         return {
           value: view,
@@ -469,7 +503,7 @@ const PanelBottom: React.FC = () => {
                 : undefined
         };
       }),
-    [queuedCount, generatingCount, t]
+    [workflowActive, openView, queuedCount, generatingCount, t]
   );
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
@@ -556,8 +590,12 @@ const PanelBottom: React.FC = () => {
                 }}
               />
               <span>{t(`i18n-next31.panels.connection.${wsStatus}`)}</span>
-              <span className="sep" aria-hidden>·</span>
-              <span>{workerLabel}</span>
+              {workerLabel && (
+                <>
+                  <span className="sep" aria-hidden>·</span>
+                  <span>{workerLabel}</span>
+                </>
+              )}
               <WorkerStatusIndicator />
             </div>
             <TabGroup

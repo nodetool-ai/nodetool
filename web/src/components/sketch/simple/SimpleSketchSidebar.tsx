@@ -146,7 +146,8 @@ const SimpleLayerRow = memo(function SimpleLayerRow({
 interface LayerPromptCardProps {
   layer: Layer;
   binding: LayerWorkflowBinding;
-  onOpenExpert: () => void;
+  /** Omitted where Expert mode is unavailable (the mobile layout). */
+  onOpenExpert?: () => void;
 }
 
 /** The active layer's prompt with one button to generate it again. */
@@ -195,9 +196,11 @@ const LayerPromptCard = memo(function LayerPromptCard({
           <Caption color="secondary">
             {t("i18n-next4.sketch.simple.workflowLayer", { name: layer.name })}
           </Caption>
-          <EditorButton size="small" variant="outlined" onClick={onOpenExpert}>
-            {t("i18n-next4.sketch.simple.openInExpert")}
-          </EditorButton>
+          {onOpenExpert && (
+            <EditorButton size="small" variant="outlined" onClick={onOpenExpert}>
+              {t("i18n-next4.sketch.simple.openInExpert")}
+            </EditorButton>
+          )}
         </>
       ) : (
         <>
@@ -247,7 +250,8 @@ const LayerPromptCard = memo(function LayerPromptCard({
 export interface SimpleSketchSidebarProps {
   onToggleVisibility: (layerId: string) => void;
   onAddLayer: () => void;
-  onOpenExpert: () => void;
+  /** Opens Expert mode. Omit it where Expert mode is unavailable. */
+  onOpenExpert?: () => void;
   /** Fill a bottom sheet instead of drawing a fixed-width column. */
   sheet?: boolean;
 }

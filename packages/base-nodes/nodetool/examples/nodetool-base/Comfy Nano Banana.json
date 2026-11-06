@@ -1,0 +1,153 @@
+{
+  "id": "50ec4f86dfdf5ec504352b2d8b7f645d",
+  "name": "Comfy Nano Banana",
+  "description": "Nano-banana (Gemini-2.5-Flash Image) - image editing with consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Nano Banana\n\nNano-banana (Gemini-2.5-Flash Image) - image editing with consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_google_gemini_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "comfyui_logo.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.GeminiImageNode",
+        "data": {
+          "prompt": "A giant yellow balloon in the shape of the letter 'C' floating high above a bustling city street with tall skyscrapers, viewed from street level, with traffic and pedestrians below. The sky is bright blue with some clouds. The architectural style of the buildings is modern and classic New York City",
+          "model": "gemini-2.5-flash-image",
+          "seed": 223380808661768,
+          "aspect_ratio": "auto",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "33",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "5-1-4-source",
+        "source": "5",
+        "sourceHandle": "STRING",
+        "target": "4",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "33-0-5-images",
+        "source": "33",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-30-images",
+        "source": "5",
+        "sourceHandle": "IMAGE",
+        "target": "30",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-33-images.image0",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "33",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      }
+    ]
+  }
+}

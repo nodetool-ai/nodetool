@@ -271,8 +271,11 @@ covers the correctness- and security-critical packages: `agents`, `auth`,
   records each function's hash and each mutant's outcome, so the next run
   reruns only survivors and functions whose text changed.
 - `Mutation Testing` runs weekly and reports the score per package.
-  `Mutation Testing (changed functions)` runs on pull requests and lists
-  survivors in the functions the PR adds or rewrites. Both are advisory.
+  `Mutation Testing (merged changes)` runs daily and lists survivors in the
+  functions that commits merged to `main` since its last successful scheduled
+  run add or rewrite. Pull requests do not run mutation testing. To check a
+  branch before merging, run `npm run mutate -- --base origin/main <paths>`.
+  Both workflows are advisory.
 - **Excluded:** integration-heavy packages like `websocket` are intentionally
   not mutation-tested (their value is in end-to-end/contract tests). Revisit if
   pure-logic modules there grow.

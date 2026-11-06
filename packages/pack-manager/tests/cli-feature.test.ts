@@ -63,7 +63,13 @@ describe("admitted CLI features", () => {
   it("reports an absent feature with an explicit install instruction", async () => {
     const snapshot = await fixture("");
     await expect(loadInstalledCommandFeature(import.meta.url, pack.id, { snapshot: { ...snapshot, packs: [] }, catalog }))
-      .rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-workflow"] });
+      .rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-workflow"], message: expect.stringContaining("nodetool packs add cli-workflow --yes") });
+  });
+  it("offers the standalone short install command when MCP is absent", async () => {
+    const snapshot = await fixture("");
+    const mcp = { ...pack, id: "cli-mcp", npm: { ...pack.npm, name: "@nodetool-ai/cli-mcp" } };
+    await expect(loadInstalledCommandFeature(import.meta.url, mcp.id, { snapshot: { ...snapshot, packs: [] }, catalog: { ...catalog, packs: [mcp] } }))
+      .rejects.toThrow("npx -y @nodetool-ai/cli-mcp install");
   });
   it("requires the selected feature and rejects unknown or duplicate catalog selectors", async () => {
     const snapshot = await fixture("");

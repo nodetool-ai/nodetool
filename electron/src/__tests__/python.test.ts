@@ -1,8 +1,4 @@
-import { EventEmitter } from "events";
 import * as config from "../config";
-import * as utils from "../utils";
-import * as events from "../events";
-import * as torchPlatformCache from "../torchPlatformCache";
 
 import {
   installRequiredPythonPackages,
@@ -18,10 +14,6 @@ jest.mock("fs", () => ({
   },
 }));
 
-jest.mock("child_process", () => ({
-  spawn: jest.fn(),
-}));
-
 jest.mock("electron", () => ({
   app: {
     getPath: jest.fn().mockReturnValue("/tmp"),
@@ -32,66 +24,35 @@ jest.mock("electron", () => ({
   },
 }));
 
-// The real config module; only the four toolchain lookups are stubbed.
-jest.spyOn(config, "getNodePath").mockReturnValue("/conda/bin/node");
-jest.spyOn(config, "getPythonPath").mockReturnValue("/conda/bin/python");
-jest.spyOn(config, "getUVPath").mockReturnValue("/conda/bin/uv");
-jest.spyOn(config, "getProcessEnv").mockReturnValue({});
+jest.mock("@nodetool-ai/runtime-install", () => ({
+  getInstalledPythonPackageVersion: jest.fn(),
+  canImportNodeToolWorker: jest.fn(),
+  installRequiredPythonPackages: jest.fn(),
+}));
+
+const desktopHost = { platform: "linux" };
+jest.mock("../runtimeHost", () => ({
+  getDesktopRuntimeHost: () => desktopHost,
+}));
 
 jest.mock("../logger", () => ({
   logMessage: jest.fn(),
   LOG_FILE: "/tmp/nodetool.log",
 }));
 
-// Real modules; only the filesystem probes, the log emitters and the torch
-// index lookup are stubbed on them.
-jest.spyOn(utils, "checkPermissions");
-jest.spyOn(utils, "fileExists").mockResolvedValue(true);
-jest.spyOn(events, "emitBootMessage").mockImplementation(() => {});
-jest.spyOn(events, "emitServerLog").mockImplementation(() => {});
-jest.spyOn(torchPlatformCache, "getTorchBackend").mockReturnValue(null);
-
-jest.mock("@nodetool-ai/protocol/bridge-protocol", () => ({
-  BRIDGE_PROTOCOL_VERSION: 1,
-  MIN_NODETOOL_CORE_VERSION: "0.7.0",
-}));
+// The real config module; only the toolchain lookups are stubbed.
+jest.spyOn(config, "getNodePath").mockReturnValue("/conda/bin/node");
+jest.spyOn(config, "getPythonPath").mockReturnValue("/conda/bin/python");
+jest.spyOn(config, "getUVPath").mockReturnValue("/conda/bin/uv");
 
 const { promises: fsPromises } = jest.requireMock("fs") as {
   promises: { access: jest.Mock };
 };
-const { spawn } = jest.requireMock("child_process") as {
-  spawn: jest.Mock;
+const runtimeInstall = jest.requireMock("@nodetool-ai/runtime-install") as {
+  getInstalledPythonPackageVersion: jest.Mock;
+  canImportNodeToolWorker: jest.Mock;
+  installRequiredPythonPackages: jest.Mock;
 };
-
-function createMockProcess(exitCode: number, stdoutText?: string) {
-  const proc = new EventEmitter() as EventEmitter & {
-    stdout: EventEmitter;
-    stderr: EventEmitter;
-    stdin: {
-      write: jest.Mock;
-      end: jest.Mock;
-    };
-  };
-
-  Object.assign(proc, {
-    stdout: new EventEmitter(),
-    stderr: new EventEmitter(),
-    stdin: {
-      write: jest.fn(),
-      end: jest.fn(),
-    },
-  });
-
-  process.nextTick(() => {
-    if (stdoutText !== undefined) {
-      proc.stdout.emit("data", Buffer.from(stdoutText));
-    }
-    proc.emit("exit", exitCode);
-    proc.emit("close", exitCode);
-  });
-
-  return proc;
-}
 
 describe("python environment helpers", () => {
   beforeEach(() => {
@@ -101,77 +62,52 @@ describe("python environment helpers", () => {
   });
 
   it("accepts an environment when nodetool-core is installed and nodetool.worker is importable", async () => {
-    spawn
-      .mockImplementationOnce(() => createMockProcess(0, "0.7.0\n"))
-      .mockImplementationOnce(() => createMockProcess(0));
+    runtimeInstall.getInstalledPythonPackageVersion.mockResolvedValue("0.7.0");
+    runtimeInstall.canImportNodeToolWorker.mockResolvedValue(true);
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
-    expect(spawn).toHaveBeenNthCalledWith(
-      1,
+    expect(runtimeInstall.getInstalledPythonPackageVersion).toHaveBeenCalledWith(
+      desktopHost,
       "/conda/bin/python",
-      expect.arrayContaining(["-c"]),
-      expect.objectContaining({
-        stdio: ["ignore", "pipe", "ignore"],
-      })
+      "nodetool-core"
     );
-    expect(spawn).toHaveBeenNthCalledWith(
-      2,
-      "/conda/bin/python",
-      ["-c", "import nodetool.worker"],
-      expect.objectContaining({
-        stdio: "ignore",
-      })
+    expect(runtimeInstall.canImportNodeToolWorker).toHaveBeenCalledWith(
+      desktopHost,
+      "/conda/bin/python"
     );
   });
 
-  it("accepts an older nodetool-core install (runtime protocol check handles compatibility)", async () => {
-    // App version 0.6.3-rc.42 in mock, installed core 0.6.3rc40 — mismatched
-    // but still considered installed. The runtime bridge handshake decides
-    // whether the protocol is actually compatible.
-    spawn
-      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc40\n"))
-      .mockImplementationOnce(() => createMockProcess(0));
+  it("treats the environment as incomplete when a toolchain binary is missing", async () => {
+    fsPromises.access.mockImplementation(async (file: string) => {
+      if (file === "/conda/bin/uv") {
+        throw new Error("ENOENT");
+      }
+    });
 
-    await expect(isCondaEnvironmentInstalled()).resolves.toBe(true);
+    await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+    expect(runtimeInstall.getInstalledPythonPackageVersion).not.toHaveBeenCalled();
   });
 
   it("treats the environment as incomplete when nodetool-core is missing", async () => {
-    spawn.mockImplementationOnce(() => createMockProcess(2));
+    runtimeInstall.getInstalledPythonPackageVersion.mockResolvedValue(null);
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
+    expect(runtimeInstall.canImportNodeToolWorker).not.toHaveBeenCalled();
   });
 
   it("treats the environment as incomplete when nodetool.worker import fails", async () => {
-    spawn
-      .mockImplementationOnce(() => createMockProcess(0, "0.6.3rc42\n"))
-      .mockImplementationOnce(() => createMockProcess(1));
+    runtimeInstall.getInstalledPythonPackageVersion.mockResolvedValue("0.6.3rc42");
+    runtimeInstall.canImportNodeToolWorker.mockResolvedValue(false);
 
     await expect(isCondaEnvironmentInstalled()).resolves.toBe(false);
   });
 
-  it("installs nodetool-core with >=MIN pin and additional node packages unpinned (uv resolves via pyproject)", async () => {
-    spawn.mockImplementation(() => createMockProcess(0));
-
+  it("installs the required packages through the desktop runtime host", async () => {
     await installRequiredPythonPackages(["nodetool-ai/nodetool-huggingface"]);
 
-    expect(spawn).toHaveBeenCalledWith(
-      "/conda/bin/uv",
-      expect.arrayContaining([
-        "pip",
-        "install",
-        "--system",
-        "nodetool-core>=0.7.0",
-        "nodetool-huggingface",
-      ]),
-      expect.objectContaining({
-        stdio: "pipe",
-      })
-    );
-
-    const argv = spawn.mock.calls[0][1] as string[];
-    expect(argv).not.toContain("--prerelease=allow");
-    expect(argv).not.toEqual(
-      expect.arrayContaining([expect.stringMatching(/^nodetool-huggingface==/)])
+    expect(runtimeInstall.installRequiredPythonPackages).toHaveBeenCalledWith(
+      desktopHost,
+      ["nodetool-ai/nodetool-huggingface"]
     );
   });
 });

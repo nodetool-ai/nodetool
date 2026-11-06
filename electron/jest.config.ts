@@ -28,6 +28,8 @@ export default {
     // import.meta helpers that this CommonJS Jest transform cannot compile.
     '^@nodetool-ai/config$': '<rootDir>/../packages/config/src/runtime-locations.ts',
     '^@nodetool-ai/config/(.*)$': '<rootDir>/../packages/config/src/$1',
+    // Electron uses the host-independent installer; its node-host entry is CLI-only.
+    '^@nodetool-ai/runtime-install$': '<rootDir>/../packages/runtime-install/src/index.ts',
     // Strip .js extensions from TypeScript ESM imports
     '^(\\.{1,2}/.+)\\.js$': '$1',
   },

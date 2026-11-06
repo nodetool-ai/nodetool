@@ -7,6 +7,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import WorkspaceTree from "../WorkspaceTree";
 import { useWorkspaceExplorerStore } from "../../../stores/WorkspaceExplorerStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { usePanelStore } from "../../../stores/PanelStore";
 
 const defaultWorkspace = {
   id: "ws-default",
@@ -87,6 +88,7 @@ describe("WorkspaceTree", () => {
   });
 
   it("opens a double-clicked file as a workspace-file tab", async () => {
+    usePanelStore.getState().setVisibility(true);
     renderTree();
     await userEvent.dblClick(await screen.findByText("notes.md"));
 
@@ -100,6 +102,8 @@ describe("WorkspaceTree", () => {
       title: "notes.md",
       projectId: "project-a"
     });
+    // The left panel steps aside for the file it just opened.
+    expect(usePanelStore.getState().panel.isVisible).toBe(false);
   });
 
   it("re-lists open folders on refresh, so a file written into one appears", async () => {

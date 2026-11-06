@@ -32,7 +32,9 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
 | Opper | ✅ | | | | | | |
+| Cheaper Inference | ✅ | | | | | | |
 | API Route | ✅ | | | | | | |
+| Runcrate | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
 | Meta AI | ✅ | ✅ | | | ✅ | | |
@@ -155,9 +157,17 @@ Requesty routes chat models from OpenAI, Anthropic, Google, DeepSeek, xAI and ot
 
 API Route serves hosted chat models through `https://global.api-route.com/v1`. Set `API_ROUTE_API_KEY` in Settings > API Keys or the environment. The model picker reads `/v1/models`, keeps OpenAI-compatible routes, and uses the shared model classifier to exclude image/video entries by metadata or model ID. Chat IDs without endpoint metadata remain available for older catalogs. This integration exposes text chat and tool calls. Get a key at [API Route](https://www.api-route.com/api-keys), then select a model available to that key. API Route is a paid service. See its [setup guide](https://www.api-route.com/docs/quickstart) and [pricing](https://www.api-route.com/pricing).
 
+## Runcrate
+
+Runcrate serves open-weight chat models (DeepSeek, Qwen, GLM, Kimi, gpt-oss and others) through one OpenAI-compatible endpoint, `https://api.runcrate.ai/v1`. Text only. Cloud only, keyed by `RUNCRATE_API_KEY`. The model picker reads `/v1/models` and keeps the rows whose `input_modalities` and `output_modalities` both include `text`, so embedding, image, video and speech models stay out. Tool calling follows each row's `supported_features`, and the context window comes from its `context_length`. Get a key at [Runcrate](https://runcrate.ai/dashboard/api-keys). See the [Runcrate docs](https://runcrate.ai/docs/models/overview) and the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
 ## Opper
 
 Opper is an EU-hosted AI gateway that routes chat models from 50+ providers, including OpenAI, Anthropic, Google, DeepSeek and Moonshot, through one OpenAI-compatible endpoint, `https://api.opper.ai/v3/compat`. Text only. Cloud only, keyed by `OPPER_API_KEY`. The model picker lists Opper's pools from `/v3/compat/models?type=pool` (bare ids such as `claude-sonnet-4-6`, routed across providers) followed by the full catalog from `/v3/compat/models`, which adds `provider/model` ids that pin one route. Get a key at [Opper](https://platform.opper.ai). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## Cheaper Inference
+
+Cheaper Inference is an AI gateway that routes chat models from several providers through one OpenAI-compatible endpoint, `https://api.cheaperinference.com/v1`. Text only. Cloud only, keyed by `CHEAPER_INFERENCE_API_KEY`. The model picker reads `/v1/models` and keeps rows whose `type` is `text`, so image and video rows in the same listing are dropped. Get a key at [Cheaper Inference](https://cheaperinference.com/signup). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Together AI
 

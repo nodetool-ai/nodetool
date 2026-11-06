@@ -7,6 +7,7 @@
  * from `@nodetool-ai/app-runtime`, so this harness checks the same rules the
  * web runtime enforces instead of a copy that drifts away from it.
  */
+import { exposeComfyInterface } from "@nodetool-ai/protocol";
 import {
   DEFAULT_OPERATION_ID,
   encodeBinding,
@@ -494,7 +495,7 @@ const isOutputNodeType = (type: string): boolean =>
 export function extractAppIO(graph: DebugGraph): AppIO {
   const io: AppIO = { inputs: [], outputs: [], variables: [], nodeIds: [] };
   const variables = new Set<string>();
-  for (const node of graph.nodes) {
+  for (const node of exposeComfyInterface(graph).nodes) {
     const type = str(node.type);
     const id = str(node.id);
     if (!type || !id) continue;

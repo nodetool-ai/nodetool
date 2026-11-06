@@ -1,0 +1,372 @@
+{
+  "id": "f5915f4822f641eb4d8ebb07ac827940",
+  "name": "Comfy Flux.1 Inpaint",
+  "description": "Fill missing parts of images using Flux.1 Fill Inpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Flux.1 Inpaint\n\nFill missing parts of images using Flux.1 Fill Inpainting. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/flux_fill_inpaint_example.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "flux_fill_inpaint_example_input_image.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:34",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "clip_l.safetensors",
+          "clip_name2": "t5xxl_fp16.safetensors",
+          "type": "flux",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:26",
+        "type": "comfy.FluxGuidance",
+        "data": {
+          "guidance": 30
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FluxGuidance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:32",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:31",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "flux1-fill-dev.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:46",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:23",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "anime girl with massive fennec ears blonde hair blue eyes wearing a pink shirt"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:39",
+        "type": "comfy.DifferentialDiffusion",
+        "data": {
+          "strength": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Differential Diffusion"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:38",
+        "type": "comfy.InpaintModelConditioning",
+        "data": {
+          "noise_mask": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "InpaintModelConditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 190664687740330,
+          "steps": 20,
+          "cfg": 1,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "47:8-0-9-images",
+        "source": "47:8",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "47:23-0-47:26-conditioning",
+        "source": "47:23",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:26",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "47:23-0-47:46-conditioning",
+        "source": "47:23",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:46",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "47:34-0-47:23-clip",
+        "source": "47:34",
+        "sourceHandle": "CLIP",
+        "target": "47:23",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "47:31-0-47:39-model",
+        "source": "47:31",
+        "sourceHandle": "MODEL",
+        "target": "47:39",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "47:3-0-47:8-samples",
+        "source": "47:3",
+        "sourceHandle": "LATENT",
+        "target": "47:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "47:32-0-47:8-vae",
+        "source": "47:32",
+        "sourceHandle": "VAE",
+        "target": "47:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "47:26-0-47:38-positive",
+        "source": "47:26",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:38",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "47:46-0-47:38-negative",
+        "source": "47:46",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:38",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "47:32-0-47:38-vae",
+        "source": "47:32",
+        "sourceHandle": "VAE",
+        "target": "47:38",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-47:38-pixels",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "47:38",
+        "targetHandle": "pixels",
+        "ui_properties": null
+      },
+      {
+        "id": "17-1-47:38-mask",
+        "source": "17",
+        "sourceHandle": "MASK",
+        "target": "47:38",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "47:39-0-47:3-model",
+        "source": "47:39",
+        "sourceHandle": "MODEL",
+        "target": "47:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "47:38-0-47:3-positive",
+        "source": "47:38",
+        "sourceHandle": "positive",
+        "target": "47:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "47:38-1-47:3-negative",
+        "source": "47:38",
+        "sourceHandle": "negative",
+        "target": "47:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "47:38-2-47:3-latent_image",
+        "source": "47:38",
+        "sourceHandle": "latent",
+        "target": "47:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

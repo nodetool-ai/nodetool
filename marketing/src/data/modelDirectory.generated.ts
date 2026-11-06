@@ -3047,7 +3047,7 @@ export const canonicalModels: CanonicalModel[] = [
 export const modelDirectory: ModelDirectoryGroup[] = [
   {
     "kind": "language",
-    "total": 219,
+    "total": 223,
     "providers": [
       {
         "provider": "replicate",
@@ -3092,6 +3092,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "anthropic/claude-opus-4.7",
             "name": "Claude Opus 4.7"
+          },
+          {
+            "id": "anthropic/claude-opus-5.5"
           },
           {
             "id": "anthropic/claude-sonnet-4.6",
@@ -3511,6 +3514,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/x-ailab/nsfw"
           },
           {
+            "id": "nvidia/nemotron-3-5-super/text"
+          },
+          {
+            "id": "nvidia/nemotron-3-5-super/video"
+          },
+          {
+            "id": "nvidia/nemotron-3-5-super/vision"
+          },
+          {
             "id": "nvidia/nemotron-3-nano-omni"
           },
           {
@@ -3897,11 +3909,23 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1004,
+    "total": 1052,
     "providers": [
       {
         "provider": "fal_ai",
         "models": [
+          {
+            "id": "blackforestlabs/flux-3/edit-image"
+          },
+          {
+            "id": "blackforestlabs/flux-3/klein/edit-image"
+          },
+          {
+            "id": "blackforestlabs/flux-3/klein/text-to-image"
+          },
+          {
+            "id": "blackforestlabs/flux-3/text-to-image"
+          },
           {
             "id": "bria/embed-product"
           },
@@ -3912,10 +3936,19 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/extract-object"
           },
           {
+            "id": "bria/fibo-2/edit"
+          },
+          {
+            "id": "bria/fibo-2/generate"
+          },
+          {
             "id": "bria/fibo-bbq-preview/generate"
           },
           {
             "id": "bria/fibo-edit-1.5/edit"
+          },
+          {
+            "id": "bria/fibo-edit-1.5/expand"
           },
           {
             "id": "bria/fibo-edit-1.5/product-holding"
@@ -3963,6 +3996,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/genfill/v2"
           },
           {
+            "id": "bria/guided-remove-background"
+          },
+          {
             "id": "bria/increase-resolution"
           },
           {
@@ -3994,6 +4030,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/aura-flow"
+          },
+          {
+            "id": "fal-ai/aura-sr"
           },
           {
             "id": "fal-ai/ben/v2/image"
@@ -4377,6 +4416,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux-control-lora-depth/image-to-image"
           },
           {
+            "id": "fal-ai/flux-general"
+          },
+          {
             "id": "fal-ai/flux-general/differential-diffusion"
           },
           {
@@ -4497,6 +4539,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/flux/dev"
           },
           {
+            "id": "fal-ai/flux/dev/image-to-image"
+          },
+          {
             "id": "fal-ai/flux/dev/redux"
           },
           {
@@ -4570,6 +4615,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/gpt-image-1/text-to-image"
+          },
+          {
+            "id": "fal-ai/hidream-i1-dev"
+          },
+          {
+            "id": "fal-ai/hidream-i1-fast"
+          },
+          {
+            "id": "fal-ai/hidream-i1-full"
           },
           {
             "id": "fal-ai/hidream-i1-full/image-to-image"
@@ -4932,6 +4986,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/lumina-image/v2"
           },
           {
+            "id": "fal-ai/marigold-v2"
+          },
+          {
             "id": "fal-ai/minimax/image-01"
           },
           {
@@ -4942,6 +4999,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/moondream3-preview/segment"
+          },
+          {
+            "id": "fal-ai/moss-image"
           },
           {
             "id": "fal-ai/nafnet/deblur"
@@ -5202,6 +5262,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/recraft/v3/image-to-image"
           },
           {
+            "id": "fal-ai/recraft/v3/text-to-image"
+          },
+          {
             "id": "fal-ai/recraft/v4.1/pro/text-to-image"
           },
           {
@@ -5421,6 +5484,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "google/nano-banana-2-lite"
           },
           {
+            "id": "google/nano-banana-2.1"
+          },
+          {
+            "id": "google/nano-banana-2.1/edit"
+          },
+          {
             "id": "google/nano-banana-lite"
           },
           {
@@ -5454,6 +5523,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "ideogram/v4/tiling/lora"
           },
           {
+            "id": "ideogram/vector/image-to-vector"
+          },
+          {
+            "id": "ideogram/vector/text-to-vector"
+          },
+          {
             "id": "imagineart/imagineart-1.5-preview/text-to-image"
           },
           {
@@ -5464,6 +5539,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "imagineart/imagineart-2.0-preview/text-to-image"
+          },
+          {
+            "id": "krea/v3/edit"
+          },
+          {
+            "id": "krea/v3/realtime"
+          },
+          {
+            "id": "krea/v3/text-to-image"
           },
           {
             "id": "luma/agent/uni-1/v1/edit"
@@ -5609,6 +5693,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "arthuryeti/dwiss-qwen-2"
           },
           {
+            "id": "black-forest-labs/flux-1.1-pro"
+          },
+          {
             "id": "black-forest-labs/flux-1.1-pro-ultra-finetuned"
           },
           {
@@ -5622,6 +5709,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "black-forest-labs/flux-2-klein-9b-base-lora"
+          },
+          {
+            "id": "black-forest-labs/flux-3-image"
           },
           {
             "id": "black-forest-labs/flux-canny-dev"
@@ -5954,6 +6044,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "google/nano-banana-2-lite"
           },
           {
+            "id": "google/nano-banana-2.1"
+          },
+          {
             "id": "google/nano-banana-pro"
           },
           {
@@ -5967,6 +6060,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "ibm-granite/granite-4.0-h-small"
+          },
+          {
+            "id": "ideogram-ai/ideogram-4-5"
+          },
+          {
+            "id": "ideogram-ai/ideogram-4-5-precise-edit"
           },
           {
             "id": "ideogram-ai/ideogram-character"
@@ -6003,6 +6102,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "jingyunliang/swinir"
+          },
+          {
+            "id": "krea/krea-3"
           },
           {
             "id": "leonardoai/lucid-origin"
@@ -6065,6 +6167,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "lucataco/vid2webp"
           },
           {
+            "id": "luma/photon"
+          },
+          {
             "id": "luma/reframe-image"
           },
           {
@@ -6107,6 +6212,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "openai/dall-e-2"
           },
           {
+            "id": "openai/dall-e-3"
+          },
+          {
             "id": "openai/gpt-image-1"
           },
           {
@@ -6117,6 +6225,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "openai/gpt-image-2"
+          },
+          {
+            "id": "openai/gpt-image-2.5-flare"
+          },
+          {
+            "id": "openai/gpt-image-2.5-sunburst"
           },
           {
             "id": "perceptron-ai-inc/isaac-0.1"
@@ -6155,6 +6269,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "prunaai/p-image-edit-lora"
           },
           {
+            "id": "prunaai/p-image-ideogram"
+          },
+          {
             "id": "prunaai/p-image-lora"
           },
           {
@@ -6171,6 +6288,18 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "prunaai/wan-2.2-image"
+          },
+          {
+            "id": "quiverai/arrow-1.1"
+          },
+          {
+            "id": "quiverai/arrow-1.1-max"
+          },
+          {
+            "id": "quiverai/arrow-1.1-max-vectorize"
+          },
+          {
+            "id": "quiverai/arrow-1.1-vectorize"
           },
           {
             "id": "qwen-edit-apps/qwen-image-edit-plus-lora-fusion"
@@ -6240,6 +6369,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "recraft-ai/recraft-v4-pro-svg"
+          },
+          {
+            "id": "recraft-ai/recraft-v4-styles-pro-svg"
           },
           {
             "id": "recraft-ai/recraft-v4-svg"
@@ -6320,6 +6452,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "stability-ai/stable-diffusion"
           },
           {
+            "id": "stability-ai/stable-diffusion-3"
+          },
+          {
             "id": "stability-ai/stable-diffusion-3.5-large"
           },
           {
@@ -6372,6 +6507,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "wuzoobia/bruna-portrait"
+          },
+          {
+            "id": "xai/grok-imagine-image-2"
           },
           {
             "id": "xinntao/esrgan"
@@ -6429,6 +6567,14 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "bytedance/seedream-v4-text-to-image",
             "name": "Seedream4.0 - Text to Image"
+          },
+          {
+            "id": "flux-3/klein-edit-image",
+            "name": "FLUX 3 Klein Edit Image"
+          },
+          {
+            "id": "flux-3/klein-text-to-image",
+            "name": "FLUX 3 Klein Text to Image"
           },
           {
             "id": "flux1-kontext",
@@ -6515,6 +6661,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Ideogram V3 Text to Image"
           },
           {
+            "id": "nano-banana-2-1",
+            "name": "Google - Nano Banana 2.1"
+          },
+          {
             "id": "nano-banana-pro",
             "name": "Google - Nano Banana Pro"
           },
@@ -6561,6 +6711,18 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "recraft/remove-background",
             "name": "Recraft - Remove Background"
+          },
+          {
+            "id": "seedream/5-flash-image-to-image",
+            "name": "Seedream5.0 Flash - Image to Image"
+          },
+          {
+            "id": "seedream/5-flash-layer-decomposition",
+            "name": "Seedream5.0 Flash -  Layer Decomposition"
+          },
+          {
+            "id": "seedream/5-flash-text-to-image",
+            "name": "Seedream5.0 Flash - Text to Image"
           },
           {
             "id": "seedream/5-pro-layer-decomposition",
@@ -7189,7 +7351,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "video",
-    "total": 994,
+    "total": 1053,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7232,6 +7394,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "argil/avatars/text-to-video"
+          },
+          {
+            "id": "blackforestlabs/flux-3-max/image-to-video"
+          },
+          {
+            "id": "blackforestlabs/flux-3-max/keyframes-to-video"
+          },
+          {
+            "id": "blackforestlabs/flux-3-max/text-to-video"
           },
           {
             "id": "blackforestlabs/flux-3/draft-enhance"
@@ -7279,6 +7450,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "bria/bria_video_eraser/erase/prompt"
           },
           {
+            "id": "bria/video/background-removal"
+          },
+          {
             "id": "bria/video/background-removal/green-screen-despill"
           },
           {
@@ -7301,6 +7475,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bytedance/lynx"
+          },
+          {
+            "id": "bytedance/omnihuman/v2"
           },
           {
             "id": "bytedance/seedance-2.0/fast/image-to-video"
@@ -7334,6 +7511,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "bytedance/seedance-2.0/us/text-to-video"
+          },
+          {
+            "id": "bytedance/seedance-2.5/draft/complete"
           },
           {
             "id": "bytedance/seedance-2.5/image-to-video"
@@ -7448,6 +7628,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video"
+          },
+          {
+            "id": "fal-ai/bytedance/seedance/v1/pro/image-to-video"
           },
           {
             "id": "fal-ai/bytedance/seedance/v1/pro/text-to-video"
@@ -7652,6 +7835,24 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/kandinsky5/text-to-video/distill"
+          },
+          {
+            "id": "fal-ai/kandinsky6-lite/image-to-video"
+          },
+          {
+            "id": "fal-ai/kandinsky6-lite/text-to-video"
+          },
+          {
+            "id": "fal-ai/kandinsky6-pro/image-to-video"
+          },
+          {
+            "id": "fal-ai/kandinsky6-pro/text-to-video"
+          },
+          {
+            "id": "fal-ai/kandinsky6-vsr"
+          },
+          {
+            "id": "fal-ai/kandinsky6-vsr/lite"
           },
           {
             "id": "fal-ai/kling-video/ai-avatar/v2/pro"
@@ -8248,6 +8449,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/minimax/hailuo-02/pro/text-to-video"
           },
           {
+            "id": "fal-ai/minimax/hailuo-02/standard/image-to-video"
+          },
+          {
+            "id": "fal-ai/minimax/hailuo-02/standard/text-to-video"
+          },
+          {
             "id": "fal-ai/minimax/hailuo-2.3-fast/pro/image-to-video"
           },
           {
@@ -8282,6 +8489,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/minimax/video-01-subject-reference"
+          },
+          {
+            "id": "fal-ai/minimax/video-01/image-to-video"
+          },
+          {
+            "id": "fal-ai/mmaudio-v2"
           },
           {
             "id": "fal-ai/mochi-v1"
@@ -8375,6 +8588,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/pixverse/v4.5/effects"
+          },
+          {
+            "id": "fal-ai/pixverse/v4.5/image-to-video"
           },
           {
             "id": "fal-ai/pixverse/v4.5/image-to-video/fast"
@@ -8599,6 +8815,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/vidu/q3/text-to-video/turbo"
           },
           {
+            "id": "fal-ai/vidu/q4/image-to-video"
+          },
+          {
+            "id": "fal-ai/vidu/q4/reference-to-video"
+          },
+          {
             "id": "fal-ai/vidu/reference-to-video"
           },
           {
@@ -8641,6 +8863,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/wan-flf2v"
           },
           {
+            "id": "fal-ai/wan-i2v"
+          },
+          {
             "id": "fal-ai/wan-i2v-lora"
           },
           {
@@ -8648,6 +8873,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/wan-move"
+          },
+          {
+            "id": "fal-ai/wan-pro/image-to-video"
           },
           {
             "id": "fal-ai/wan-pro/text-to-video"
@@ -8767,6 +8995,27 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "google/gemini-omni-flash/v1.1/reference-to-video"
           },
           {
+            "id": "heygen/heygen-video/image-to-video"
+          },
+          {
+            "id": "heygen/heygen-video/reference-to-video"
+          },
+          {
+            "id": "heygen/heygen-video/text-to-video"
+          },
+          {
+            "id": "kling/v4/image-to-video"
+          },
+          {
+            "id": "kling/v4/reference-to-video"
+          },
+          {
+            "id": "kling/v4/text-to-video"
+          },
+          {
+            "id": "kling/v4/video-to-video/edit"
+          },
+          {
             "id": "lightricks/ltx-2.5/audio-to-video/fast"
           },
           {
@@ -8795,6 +9044,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "luma/agent/ray/v3.2/video-to-video"
+          },
+          {
+            "id": "minimax/h3-max-turbo/extend-video"
           },
           {
             "id": "minimax/h3-max-turbo/image-to-video"
@@ -8827,7 +9079,16 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "minimax/h3-max/multi-angle/image-to-video"
           },
           {
+            "id": "minimax/h3-max/recast"
+          },
+          {
             "id": "minimax/h3-max/reference-to-video"
+          },
+          {
+            "id": "minimax/h3-max/reframe-video"
+          },
+          {
+            "id": "minimax/h3-max/relight"
           },
           {
             "id": "minimax/h3-max/styles/16bit-pixel"
@@ -8878,6 +9139,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "mirelo-ai/sfx1.6/video-to-video"
           },
           {
+            "id": "mirelo-ai/sfx2.0/video-to-video"
+          },
+          {
             "id": "moonvalley/marey/i2v"
           },
           {
@@ -8888,6 +9152,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "moonvalley/marey/t2v"
+          },
+          {
+            "id": "mureka/api/generate/lyrics-video"
           },
           {
             "id": "nvidia/cosmos-3-super/image-to-video"
@@ -8974,6 +9241,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "wan/v2.6/reference-to-video/flash"
           },
           {
+            "id": "wan/v2.6/text-to-video"
+          },
+          {
             "id": "xai/grok-imagine-video/edit-video"
           },
           {
@@ -8984,6 +9254,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "xai/grok-imagine-video/text-to-video"
+          },
+          {
+            "id": "xai/grok-imagine-video/v1.5/lite/image-to-video"
+          },
+          {
+            "id": "xai/grok-imagine-video/v1.5/lite/text-to-video"
           },
           {
             "id": "xai/grok-imagine-video/v1.5/reference-to-video"
@@ -9007,6 +9283,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "arielreplicate/robust_video_matting"
+          },
+          {
+            "id": "black-forest-labs/flux-3"
           },
           {
             "id": "black-forest-labs/flux-video-upscale"
@@ -9084,6 +9363,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fofr/kontext-ps1"
           },
           {
+            "id": "google/gemini-omni-1.1"
+          },
+          {
             "id": "google/veo-3-fast"
           },
           {
@@ -9144,6 +9426,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "kwaivgi/kling-v3-video"
           },
           {
+            "id": "kwaivgi/kling-v4.0"
+          },
+          {
             "id": "lightricks/audio-to-video"
           },
           {
@@ -9151,6 +9436,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "lightricks/ltx-2-retake"
+          },
+          {
+            "id": "lightricks/ltx-2.5-fast"
           },
           {
             "id": "lightricks/ltx-video"
@@ -9246,13 +9534,31 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "pixverse/pixverse-v4"
           },
           {
+            "id": "pixverse/pixverse-v6-max"
+          },
+          {
             "id": "pollinations/real-basicvsr-video-superresolution"
+          },
+          {
+            "id": "prunaai/p-video-2"
+          },
+          {
+            "id": "prunaai/p-video-2-pro"
+          },
+          {
+            "id": "prunaai/p-video-2-pro-avatar"
+          },
+          {
+            "id": "prunaai/p-video-2-pro-reference"
           },
           {
             "id": "prunaai/p-video-animate"
           },
           {
             "id": "prunaai/p-video-avatar"
+          },
+          {
+            "id": "prunaai/p-video-edit"
           },
           {
             "id": "prunaai/p-video-replace"
@@ -9379,6 +9685,333 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "zsxkib/stable-video-face-restoration"
+          }
+        ]
+      },
+      {
+        "provider": "kie",
+        "models": [
+          {
+            "id": "bytedance/seedance-2-5",
+            "name": "Bytedance Seedance 2.5"
+          },
+          {
+            "id": "bytedance/seedance-2-5-draft",
+            "name": "Bytedance Seedance 2.5 Draft"
+          },
+          {
+            "id": "bytedance/seedance-2-fast",
+            "name": "Bytedance Seedance 2.0 Fast"
+          },
+          {
+            "id": "bytedance/seedance-2-mini",
+            "name": "Bytedance Seedance 2.0 Mini"
+          },
+          {
+            "id": "bytedance/v1-lite-image-to-video",
+            "name": "Bytedance - V1 Lite Image to Video"
+          },
+          {
+            "id": "bytedance/v1-lite-text-to-video",
+            "name": "Bytedance - V1 Lite Text to Video"
+          },
+          {
+            "id": "bytedance/v1-pro-fast-image-to-video",
+            "name": "Bytedance V1 Pro Fast Image to Video"
+          },
+          {
+            "id": "bytedance/v1-pro-image-to-video",
+            "name": "Bytedance V1 Pro Image to Video"
+          },
+          {
+            "id": "bytedance/v1-pro-text-to-video",
+            "name": "Bytedance - V1 Pro Text to Video"
+          },
+          {
+            "id": "gemini-omni-audio",
+            "name": "Gemini Omni Audio"
+          },
+          {
+            "id": "gemini-omni-character",
+            "name": "Gemini Omni Character"
+          },
+          {
+            "id": "gemini-omni-video",
+            "name": "Gemini Omni Video"
+          },
+          {
+            "id": "grok-imagine/extend",
+            "name": "Grok Imagine - Video Extend"
+          },
+          {
+            "id": "grok-imagine/image-to-video",
+            "name": "Grok Imagine Image to Video"
+          },
+          {
+            "id": "grok-imagine/text-to-video",
+            "name": "Grok Imagine Text to Video"
+          },
+          {
+            "id": "grok-imagine/upscale",
+            "name": "Grok Imagine - Video Upscale"
+          },
+          {
+            "id": "hailuo/02-image-to-video-pro",
+            "name": "Hailuo Pro Image to Video"
+          },
+          {
+            "id": "hailuo/02-image-to-video-standard",
+            "name": "Hailuo Standard Image to Video"
+          },
+          {
+            "id": "hailuo/02-text-to-video-pro",
+            "name": "Hailuo Pro Text to Video"
+          },
+          {
+            "id": "hailuo/02-text-to-video-standard",
+            "name": "Hailuo Standard Text to Video"
+          },
+          {
+            "id": "hailuo/2-3-image-to-video-pro",
+            "name": "Hailuo 2.3 Pro Image to Video"
+          },
+          {
+            "id": "hailuo/2-3-image-to-video-standard",
+            "name": "Hailuo 2.3 Standard Image to Video"
+          },
+          {
+            "id": "happyhorse-1-1/reference-to-video",
+            "name": "HappyHorse-1-1 reference-to-video"
+          },
+          {
+            "id": "happyhorse/image-to-video",
+            "name": "happyhorse-image-to-video"
+          },
+          {
+            "id": "happyhorse/reference-to-video"
+          },
+          {
+            "id": "happyhorse/text-to-video",
+            "name": "happyhorse-text-to-video"
+          },
+          {
+            "id": "happyhorse/video-edit"
+          },
+          {
+            "id": "infinitalk/from-audio",
+            "name": "Infinitalk - From Audio"
+          },
+          {
+            "id": "kling-2.6/image-to-video",
+            "name": "Kling 2.6 Image to Video"
+          },
+          {
+            "id": "kling-2.6/motion-control",
+            "name": "Kling 2.6 motion-control"
+          },
+          {
+            "id": "kling-2.6/text-to-video",
+            "name": "Kling 2.6 Text to Video"
+          },
+          {
+            "id": "kling-3.0-omni/image-to-video",
+            "name": "Kling 3.0 Omni  Image To Video"
+          },
+          {
+            "id": "kling-3.0-omni/reference-to-video",
+            "name": "Kling 3.0 Omni Reference To Video"
+          },
+          {
+            "id": "kling-3.0-omni/text-to-video",
+            "name": "Kling 3.0 Omni Text to Video"
+          },
+          {
+            "id": "kling-3.0-omni/transformation",
+            "name": "Kling 3.0 Omni Transformation"
+          },
+          {
+            "id": "kling-3.0/motion-control",
+            "name": "Kling-3.0 motion-control"
+          },
+          {
+            "id": "kling-3.0/video",
+            "name": "Kling 3.0"
+          },
+          {
+            "id": "kling-4.0/keyframe-to-video",
+            "name": "Kling 4.0 Keyframe To Video"
+          },
+          {
+            "id": "kling-4.0/reference-to-video",
+            "name": "Kling 4.0 Reference To Video"
+          },
+          {
+            "id": "kling/ai-avatar-pro",
+            "name": "Kling AI Avatar Pro"
+          },
+          {
+            "id": "kling/ai-avatar-standard",
+            "name": "Kling AI Avatar Standard"
+          },
+          {
+            "id": "kling/v2-1-master-text-to-video",
+            "name": "Kling V2.1 Master Text to Video"
+          },
+          {
+            "id": "kling/v2-5-turbo-image-to-video-pro",
+            "name": "Kling - V2.5 Turbo Image to Video Pro"
+          },
+          {
+            "id": "kling/v2-5-turbo-text-to-video-pro",
+            "name": "Kling - V2.5 Turbo Text to Video Pro"
+          },
+          {
+            "id": "kling/v3-turbo-image-to-video",
+            "name": "Kling - V3 Turbo Image to Video"
+          },
+          {
+            "id": "kling/v3-turbo-text-to-video",
+            "name": "Kling - V3 Turbo Text to Video"
+          },
+          {
+            "id": "minimax-h3/reference-to-video",
+            "name": "MiniMax H3 Reference-to-Video"
+          },
+          {
+            "id": "minimax-h3/text-to-video",
+            "name": "MiniMax H3 Text-to-Video"
+          },
+          {
+            "id": "omnihuman-1-5",
+            "name": "Omnihuman 1.5"
+          },
+          {
+            "id": "omnihuman-1-5/human-identification",
+            "name": "Omnihuman 1.5 Human Identification"
+          },
+          {
+            "id": "omnihuman-1-5/subject-detection",
+            "name": "OmniHuman 1.5 Subject Detection"
+          },
+          {
+            "id": "omnihuman-2-0",
+            "name": "Omnihuman 2.0"
+          },
+          {
+            "id": "pixverse-v6-max/image-to-video",
+            "name": "PixVerse V6 Max Image-to-Video"
+          },
+          {
+            "id": "pixverse-v6-max/text-to-video",
+            "name": "PixVerse V6 Max Text-to-Video"
+          },
+          {
+            "id": "pixverse-v6/extend",
+            "name": "PixVerse V6 Video Extension"
+          },
+          {
+            "id": "pixverse-v6/reference-to-video",
+            "name": "PixVerse V6 Fusion / Reference-to-Video"
+          },
+          {
+            "id": "pixverse-v6/transition",
+            "name": "PixVerse V6 First & Last Frame Transition"
+          },
+          {
+            "id": "runway",
+            "name": "Generate AI Video"
+          },
+          {
+            "id": "runway/extend-ai-video",
+            "name": "Extend AI Video"
+          },
+          {
+            "id": "runway/gen4-aleph",
+            "name": "Generate Aleph Video"
+          },
+          {
+            "id": "topaz/video-upscale",
+            "name": "Topaz - Video Upscale"
+          },
+          {
+            "id": "veo/extend",
+            "name": "Extend Veo3.1 Video"
+          },
+          {
+            "id": "veo/get-1080p-video",
+            "name": "Get 1080P Video"
+          },
+          {
+            "id": "veo/get-4k-video",
+            "name": "Get 4K Video"
+          },
+          {
+            "id": "volcengine/video-to-video-lip-sync",
+            "name": "Volcengine video to video lip sync"
+          },
+          {
+            "id": "wan/2-2-a14b-image-to-video-turbo",
+            "name": "Wan - 2.2 A14B Image to Video Turbo"
+          },
+          {
+            "id": "wan/2-2-a14b-speech-to-video-turbo",
+            "name": "Wan - 2.2 A14B Speech to Video Turbo"
+          },
+          {
+            "id": "wan/2-2-a14b-text-to-video-turbo",
+            "name": "Wan - 2.2 A14B Text to Video Turbo"
+          },
+          {
+            "id": "wan/2-2-animate-move",
+            "name": "Wan - Animate Move"
+          },
+          {
+            "id": "wan/2-2-animate-replace",
+            "name": "Wan - Animate Replace"
+          },
+          {
+            "id": "wan/2-5-image-to-video",
+            "name": "Wan 2.5 - Image to Video"
+          },
+          {
+            "id": "wan/2-5-text-to-video",
+            "name": "Wan 2.5 - Text to Video"
+          },
+          {
+            "id": "wan/2-6-flash-image-to-video",
+            "name": "Wan - 2.6-flash-image-to-video"
+          },
+          {
+            "id": "wan/2-6-flash-video-to-video",
+            "name": "Wan - 2-6-flash-video-to-video"
+          },
+          {
+            "id": "wan/2-6-text-to-video",
+            "name": "Wan 2.6 - Text to Video"
+          },
+          {
+            "id": "wan/2-6-video-to-video",
+            "name": "Wan 2.6 - Video to Video"
+          },
+          {
+            "id": "wan/2-7-r2v",
+            "name": "Wan 2.7 - Reference to Video"
+          },
+          {
+            "id": "wan/2-7-text-to-video",
+            "name": "Wan 2.7 - Text to Video"
+          },
+          {
+            "id": "wan/2-7-videoedit",
+            "name": "Wan 2.7 - Video Edit"
+          },
+          {
+            "id": "wan/3-0-video",
+            "name": "Wan 3.0 - Video"
+          },
+          {
+            "id": "wan/3-0-video-prime",
+            "name": "Wan 3.0 - Video Prime"
           }
         ]
       },
@@ -9554,6 +10187,22 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Kling v3.0 Turbo — Text to Video"
           },
           {
+            "id": "kwaivgi/kling-v4.0/image-to-video",
+            "name": "Kling 4 — Image To Video"
+          },
+          {
+            "id": "kwaivgi/kling-v4.0/reference-to-video",
+            "name": "Kling 4 — Reference To Video"
+          },
+          {
+            "id": "kwaivgi/kling-v4.0/text-to-video",
+            "name": "Kling 4 — Text To Video"
+          },
+          {
+            "id": "kwaivgi/kling-v4.0/video-edit",
+            "name": "Kling 4 — Video Edit"
+          },
+          {
             "id": "kwaivgi/kling-video-o3-4k/image-to-video",
             "name": "Kling Video O3 4K — Image to Video"
           },
@@ -9684,305 +10333,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "youchuan/v8.2/image-to-video",
             "name": "Youchuan v8.2 — Image to Video"
-          }
-        ]
-      },
-      {
-        "provider": "kie",
-        "models": [
-          {
-            "id": "bytedance/seedance-2-5",
-            "name": "Bytedance Seedance 2.5"
-          },
-          {
-            "id": "bytedance/seedance-2-fast",
-            "name": "Bytedance Seedance 2.0 Fast"
-          },
-          {
-            "id": "bytedance/seedance-2-mini",
-            "name": "Bytedance Seedance 2.0 Mini"
-          },
-          {
-            "id": "bytedance/v1-lite-image-to-video",
-            "name": "Bytedance - V1 Lite Image to Video"
-          },
-          {
-            "id": "bytedance/v1-lite-text-to-video",
-            "name": "Bytedance - V1 Lite Text to Video"
-          },
-          {
-            "id": "bytedance/v1-pro-fast-image-to-video",
-            "name": "Bytedance V1 Pro Fast Image to Video"
-          },
-          {
-            "id": "bytedance/v1-pro-image-to-video",
-            "name": "Bytedance V1 Pro Image to Video"
-          },
-          {
-            "id": "bytedance/v1-pro-text-to-video",
-            "name": "Bytedance - V1 Pro Text to Video"
-          },
-          {
-            "id": "gemini-omni-audio",
-            "name": "Gemini Omni Audio"
-          },
-          {
-            "id": "gemini-omni-character",
-            "name": "Gemini Omni Character"
-          },
-          {
-            "id": "gemini-omni-video",
-            "name": "Gemini Omni Video"
-          },
-          {
-            "id": "grok-imagine/extend",
-            "name": "Grok Imagine - Video Extend"
-          },
-          {
-            "id": "grok-imagine/image-to-video",
-            "name": "Grok Imagine Image to Video"
-          },
-          {
-            "id": "grok-imagine/text-to-video",
-            "name": "Grok Imagine Text to Video"
-          },
-          {
-            "id": "grok-imagine/upscale",
-            "name": "Grok Imagine - Video Upscale"
-          },
-          {
-            "id": "hailuo/02-image-to-video-pro",
-            "name": "Hailuo Pro Image to Video"
-          },
-          {
-            "id": "hailuo/02-image-to-video-standard",
-            "name": "Hailuo Standard Image to Video"
-          },
-          {
-            "id": "hailuo/02-text-to-video-pro",
-            "name": "Hailuo Pro Text to Video"
-          },
-          {
-            "id": "hailuo/02-text-to-video-standard",
-            "name": "Hailuo Standard Text to Video"
-          },
-          {
-            "id": "hailuo/2-3-image-to-video-pro",
-            "name": "Hailuo 2.3 Pro Image to Video"
-          },
-          {
-            "id": "hailuo/2-3-image-to-video-standard",
-            "name": "Hailuo 2.3 Standard Image to Video"
-          },
-          {
-            "id": "happyhorse-1-1/reference-to-video",
-            "name": "HappyHorse-1-1 reference-to-video"
-          },
-          {
-            "id": "happyhorse/image-to-video",
-            "name": "happyhorse-image-to-video"
-          },
-          {
-            "id": "happyhorse/reference-to-video"
-          },
-          {
-            "id": "happyhorse/text-to-video",
-            "name": "happyhorse-text-to-video"
-          },
-          {
-            "id": "happyhorse/video-edit"
-          },
-          {
-            "id": "infinitalk/from-audio",
-            "name": "Infinitalk - From Audio"
-          },
-          {
-            "id": "kling-2.6/image-to-video",
-            "name": "Kling 2.6 Image to Video"
-          },
-          {
-            "id": "kling-2.6/motion-control",
-            "name": "Kling 2.6 motion-control"
-          },
-          {
-            "id": "kling-2.6/text-to-video",
-            "name": "Kling 2.6 Text to Video"
-          },
-          {
-            "id": "kling-3.0-omni/image-to-video",
-            "name": "Kling 3.0 Omni  Image To Video"
-          },
-          {
-            "id": "kling-3.0-omni/reference-to-video",
-            "name": "Kling 3.0 Omni Reference To Video"
-          },
-          {
-            "id": "kling-3.0-omni/text-to-video",
-            "name": "Kling 3.0 Omni Text to Video"
-          },
-          {
-            "id": "kling-3.0-omni/transformation",
-            "name": "Kling 3.0 Omni Transformation"
-          },
-          {
-            "id": "kling-3.0/motion-control",
-            "name": "Kling-3.0 motion-control"
-          },
-          {
-            "id": "kling-3.0/video",
-            "name": "Kling 3.0"
-          },
-          {
-            "id": "kling/ai-avatar-pro",
-            "name": "Kling AI Avatar Pro"
-          },
-          {
-            "id": "kling/ai-avatar-standard",
-            "name": "Kling AI Avatar Standard"
-          },
-          {
-            "id": "kling/v2-1-master-text-to-video",
-            "name": "Kling V2.1 Master Text to Video"
-          },
-          {
-            "id": "kling/v2-5-turbo-text-to-video-pro",
-            "name": "Kling - V2.5 Turbo Text to Video Pro"
-          },
-          {
-            "id": "kling/v3-turbo-image-to-video",
-            "name": "Kling - V3 Turbo Image to Video"
-          },
-          {
-            "id": "kling/v3-turbo-text-to-video",
-            "name": "Kling - V3 Turbo Text to Video"
-          },
-          {
-            "id": "minimax-h3/reference-to-video",
-            "name": "MiniMax H3 Reference-to-Video"
-          },
-          {
-            "id": "minimax-h3/text-to-video",
-            "name": "MiniMax H3 Text-to-Video"
-          },
-          {
-            "id": "omnihuman-1-5",
-            "name": "Omnihuman 1.5"
-          },
-          {
-            "id": "omnihuman-1-5/human-identification",
-            "name": "Omnihuman 1.5 Human Identification"
-          },
-          {
-            "id": "omnihuman-1-5/subject-detection",
-            "name": "OmniHuman 1.5 Subject Detection"
-          },
-          {
-            "id": "pixverse-v6/extend",
-            "name": "PixVerse V6 Video Extension"
-          },
-          {
-            "id": "pixverse-v6/reference-to-video",
-            "name": "PixVerse V6 Fusion / Reference-to-Video"
-          },
-          {
-            "id": "pixverse-v6/transition",
-            "name": "PixVerse V6 First & Last Frame Transition"
-          },
-          {
-            "id": "runway",
-            "name": "Generate AI Video"
-          },
-          {
-            "id": "runway/extend-ai-video",
-            "name": "Extend AI Video"
-          },
-          {
-            "id": "runway/gen4-aleph",
-            "name": "Generate Aleph Video"
-          },
-          {
-            "id": "topaz/video-upscale",
-            "name": "Topaz - Video Upscale"
-          },
-          {
-            "id": "veo/extend",
-            "name": "Extend Veo3.1 Video"
-          },
-          {
-            "id": "veo/get-1080p-video",
-            "name": "Get 1080P Video"
-          },
-          {
-            "id": "veo/get-4k-video",
-            "name": "Get 4K Video"
-          },
-          {
-            "id": "volcengine/video-to-video-lip-sync",
-            "name": "Volcengine video to video lip sync"
-          },
-          {
-            "id": "wan/2-2-a14b-image-to-video-turbo",
-            "name": "Wan - 2.2 A14B Image to Video Turbo"
-          },
-          {
-            "id": "wan/2-2-a14b-speech-to-video-turbo",
-            "name": "Wan - 2.2 A14B Speech to Video Turbo"
-          },
-          {
-            "id": "wan/2-2-a14b-text-to-video-turbo",
-            "name": "Wan - 2.2 A14B Text to Video Turbo"
-          },
-          {
-            "id": "wan/2-2-animate-move",
-            "name": "Wan - Animate Move"
-          },
-          {
-            "id": "wan/2-2-animate-replace",
-            "name": "Wan - Animate Replace"
-          },
-          {
-            "id": "wan/2-5-image-to-video",
-            "name": "Wan 2.5 - Image to Video"
-          },
-          {
-            "id": "wan/2-5-text-to-video",
-            "name": "Wan 2.5 - Text to Video"
-          },
-          {
-            "id": "wan/2-6-flash-image-to-video",
-            "name": "Wan - 2.6-flash-image-to-video"
-          },
-          {
-            "id": "wan/2-6-flash-video-to-video",
-            "name": "Wan - 2-6-flash-video-to-video"
-          },
-          {
-            "id": "wan/2-6-text-to-video",
-            "name": "Wan 2.6 - Text to Video"
-          },
-          {
-            "id": "wan/2-6-video-to-video",
-            "name": "Wan 2.6 - Video to Video"
-          },
-          {
-            "id": "wan/2-7-r2v",
-            "name": "Wan 2.7 - Reference to Video"
-          },
-          {
-            "id": "wan/2-7-text-to-video",
-            "name": "Wan 2.7 - Text to Video"
-          },
-          {
-            "id": "wan/2-7-videoedit",
-            "name": "Wan 2.7 - Video Edit"
-          },
-          {
-            "id": "wan/3-0-video",
-            "name": "Wan 3.0 - Video"
-          },
-          {
-            "id": "wan/3-0-video-prime",
-            "name": "Wan 3.0 - Video Prime"
           }
         ]
       },
@@ -10521,7 +10871,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "audio",
-    "total": 229,
+    "total": 239,
     "providers": [
       {
         "provider": "fal_ai",
@@ -10863,6 +11213,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "google/lyria-3.5"
           },
           {
+            "id": "heygen/heygen-voice"
+          },
+          {
+            "id": "heygen/heygen-voice/turbo"
+          },
+          {
             "id": "minimax/music-3"
           },
           {
@@ -10879,6 +11235,21 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "mirelo-ai/sfx1.6/text-to-audio"
+          },
+          {
+            "id": "mirelo-ai/sfx2.0/text-to-audio"
+          },
+          {
+            "id": "mirelo-ai/sfx2.0/video-to-audio"
+          },
+          {
+            "id": "mureka/api/generate/instrumental"
+          },
+          {
+            "id": "mureka/api/generate/podcast"
+          },
+          {
+            "id": "mureka/api/generate/song"
           },
           {
             "id": "resemble-ai/chatterboxhd/speech-to-speech"
@@ -11088,6 +11459,10 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Add Vocals to Music"
           },
           {
+            "id": "ai-music-api/validation-phrase",
+            "name": "Suno Voice Generate Verification Phrase API"
+          },
+          {
             "id": "boost-music-style",
             "name": "Boost Music Style"
           },
@@ -11150,6 +11525,14 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "google/gemini-2-5-pro-tts",
             "name": "Gemini 2.5 Pro Text to Speech"
+          },
+          {
+            "id": "google/gemini-3-8-flash-lite-tts",
+            "name": "Gemini 3.8 Flash Lite Text to speech"
+          },
+          {
+            "id": "google/gemini-3-8-flash-tts",
+            "name": "Gemini 3.8 Flash Text to speech"
           },
           {
             "id": "recoveryAudio",
@@ -11327,7 +11710,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "transcription",
-    "total": 47,
+    "total": 48,
     "providers": [
       {
         "provider": "replicate",
@@ -11448,6 +11831,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "fal-ai/wizper"
           },
           {
+            "id": "kotoba-technologies/kotoba-stt/v1/speech-to-text"
+          },
+          {
             "id": "nvidia/nemotron-3-nano-omni/audio"
           },
           {
@@ -11539,7 +11925,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "3d",
-    "total": 109,
+    "total": 112,
     "providers": [
       {
         "provider": "fal_ai",
@@ -11713,6 +12099,12 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "id": "hitem3d/hi3d/v3.0/multi-view-to-3d"
           },
           {
+            "id": "meshy/v6-lite/retexture"
+          },
+          {
+            "id": "meshy/v6/retexture"
+          },
+          {
             "id": "meshy/v7.1/image-to-3d"
           },
           {
@@ -11726,6 +12118,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "meshy/v7/multi-image-to-3d"
+          },
+          {
+            "id": "meshy/v7/retexture"
           },
           {
             "id": "meshy/v7/text-to-3d"
@@ -12135,7 +12530,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "other",
-    "total": 78,
+    "total": 82,
     "providers": [
       {
         "provider": "fal_ai",
@@ -12172,6 +12567,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "fal-ai/flux-2-trainer/edit"
+          },
+          {
+            "id": "fal-ai/flux-kontext-trainer"
+          },
+          {
+            "id": "fal-ai/flux-lora-fast-training"
+          },
+          {
+            "id": "fal-ai/flux-lora-portrait-trainer"
           },
           {
             "id": "fal-ai/hunyuan-video-lora-training"
@@ -12364,6 +12768,9 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           },
           {
             "id": "minimax/h3/t2v/trainer"
+          },
+          {
+            "id": "mureka/api/generate/lyrics"
           },
           {
             "id": "openrouter/router/audio"

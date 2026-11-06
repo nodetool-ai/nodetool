@@ -1,0 +1,87 @@
+{
+  "id": "ac18704d2517c414de2d8c119c6a827a",
+  "name": "Comfy Seedream 5.0 Lite- Text to Image",
+  "description": "Input your text prompt to generate a detailed image. This workflow creates a visual representation of your description with precise control over style and layout. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedream 5.0 Lite- Text to Image\n\nInput your text prompt to generate a detailed image. This workflow creates a visual representation of your description with precise control over style and layout. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_lite_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "26",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Seedream5.0_lite"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "A beautiful woman, wearing an elegant red long dress, a wide-brimmed black straw hat, and bright red lips. Overlapping multi-layered plant shadows create a unique visual depth and dynamism. The main visual elements may have multiple different angles and transparencies to enhance the three-dimensionality and layering. The dark green background is simple, with a sense of art and storytelling. It is a poster integrated with shadow overlapping effects. The overall design is mysterious and full of artistic sense. Photography, masterful composition,",
+          "model": "seedream 5.0 lite",
+          "model.size_preset": "(2K) 2048x2048 (1:1)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.max_images": 1,
+          "model.images": false,
+          "model.fail_on_partial": 42,
+          "model.seed": "randomize",
+          "model.watermark": false,
+          "model.thinking": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "29-0-26-images",
+        "source": "29",
+        "sourceHandle": "IMAGE",
+        "target": "26",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

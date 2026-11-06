@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/antigravity-cli",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Managed Antigravity CLI installation for NodeTool",
   "license": "MIT",
   "repository": {

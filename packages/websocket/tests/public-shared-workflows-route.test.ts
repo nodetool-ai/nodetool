@@ -113,6 +113,68 @@ describe("GET /api/shared-workflows/:token", () => {
     expect(node.dynamic_properties).toEqual({ worker_token: "", prompt: "hi" });
   });
 
+  it.each(["workflow_json", "app_json"])(
+    "redacts nested %s credentials before the anonymous response",
+    async (snapshotKey) => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(share("public"));
+      const nestedGraph = {
+        nodes: [
+          {
+            id: "wrapper",
+            type: "nodetool.workflows.workflow_node.Workflow",
+            data: {
+              [snapshotKey]: {
+                name: "Nested",
+                graph: {
+                  nodes: [
+                    {
+                      id: "bot",
+                      type: "messaging.discord.DiscordBotTrigger",
+                      data: { token: "FAKE_TEST_SECRET", max_tokens: 512 },
+                      dynamic_properties: {
+                        options: [{ api_key: "FAKE_TEST_SECRET", prompt: "hi" }]
+                      }
+                    }
+                  ],
+                  edges: []
+                },
+                constants: {
+                  options: [{ password: "FAKE_TEST_SECRET", enabled: false }]
+                }
+              }
+            }
+          }
+        ],
+        edges: []
+      };
+      const original = structuredClone(nestedGraph);
+      asMock(Workflow.get).mockResolvedValue({
+        name: "Nested",
+        graph: nestedGraph
+      });
+
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/shared-workflows/tok_abc"
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).not.toContain("FAKE_TEST_SECRET");
+      const snapshot = res.json().graph.nodes[0].data[snapshotKey];
+      expect(snapshot.graph.nodes[0].data).toEqual({
+        token: "",
+        max_tokens: 512
+      });
+      expect(snapshot.graph.nodes[0].dynamic_properties.options).toEqual([
+        { api_key: "", prompt: "hi" }
+      ]);
+      expect(snapshot.constants).toEqual({
+        options: [{ password: "", enabled: false }]
+      });
+      expect(nestedGraph).toEqual(original);
+    }
+  );
+
   it.each([
     ["a viewer token", share("viewer")],
     ["an editor token", share("editor")],

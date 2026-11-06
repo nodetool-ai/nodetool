@@ -23,7 +23,7 @@ export const JS_SCRIPT_SCHEMA_VERSION = 1;
 export const JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS = 30;
 
 /** Matches the sandbox harness ceiling (`MAX_TIMEOUT_SECONDS`). */
-export const JS_SCRIPT_MAX_TIMEOUT_SECONDS = 120;
+export const JS_SCRIPT_MAX_TIMEOUT_SECONDS = 1800;
 
 /** A port name has to be readable as `inputs.<name>` inside the body. */
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;

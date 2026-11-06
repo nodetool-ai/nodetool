@@ -1,0 +1,683 @@
+{
+  "id": "02f2b7e7fa9a9ef72264abd6e9280faf",
+  "name": "Comfy TripoSplat- Image to Gaussian Splat",
+  "description": "Upload a single 2D image. Generate a high-quality 3D Gaussian splat representation with controllable density and budget for rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "3d model",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy TripoSplat- Image to Gaussian Splat\n\nUpload a single 2D image. Generate a high-quality 3D Gaussian splat representation with controllable density and budget for rendering. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/3d_triposplat_image_to_gaussian_splat.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "41",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "fps": 25,
+          "bit_depth": "auto",
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "42",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI_TripoSplat",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "51",
+        "type": "comfy.SaveGLB",
+        "data": {
+          "filename_prefix": "3d/ComfyUI_TripoSplat"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save 3D Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "75",
+        "type": "comfy.RenderSplat",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "frames": 75,
+          "splat_scale": 1,
+          "sharpen": 2,
+          "headlight_shading": 0,
+          "opacity_threshold": 0,
+          "render_style": "color"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Render Splat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "79",
+        "type": "comfy.CreateCameraInfo",
+        "data": {
+          "mode": "orbit",
+          "mode.yaw": 35,
+          "mode.pitch": 30,
+          "mode.distance": 2.5,
+          "target_x": 0,
+          "target_y": 0,
+          "target_z": 0,
+          "roll": 0,
+          "fov": 35,
+          "zoom": 1,
+          "camera_type": "perspective"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Camera Info"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "92",
+        "type": "comfy.SplatToFile3D",
+        "data": {
+          "format": "spz"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Create 3D File (from Splat)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "99",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "white-hotel-on-rocky-island.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:24",
+        "type": "comfy.TripoSplatConditioning",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "TripoSplat Conditioning"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:6",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 46,
+          "steps": 20,
+          "cfg": 3,
+          "sampler_name": "dpmpp_2m",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:35",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Switch: Mask Source"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:2",
+        "type": "comfy.TripoSplatPreprocessImage",
+        "data": {
+          "erode_radius": 1,
+          "size": 1024
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "TripoSplat Preprocess Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:7",
+        "type": "comfy.CLIPVisionLoader",
+        "data": {
+          "clip_name": "dino_v3_vit_h.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP Vision"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:11",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "triposplat_vae_decoder_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:8",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "flux2-vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:55",
+        "type": "comfy.VAEDecodeTripoSplat",
+        "data": {
+          "num_gaussians": 262144,
+          "seed": 790219963981395
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "TripoSplat Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:85:81",
+        "type": "comfy.RemoveBackground",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Remove Background"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:85:82",
+        "type": "comfy.LoadBackgroundRemovalModel",
+        "data": {
+          "bg_removal_name": "birefnet.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load Background Removal Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:85:83",
+        "type": "comfy.InvertMask",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Invert Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:85:84",
+        "type": "comfy.JoinImageWithAlpha",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Join Image with Alpha"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:95",
+        "type": "comfy.InvertMask",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Invert Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:16",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "triposplat_fp16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:96",
+        "type": "comfy.ComfySwitchNode",
+        "data": {
+          "switch": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:97",
+        "type": "comfy.TripoSplatSamplingPreview",
+        "data": {
+          "octree_level": 5,
+          "num_gaussians": 16384,
+          "yaw": 90,
+          "pitch": 15,
+          "point_size": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "TripoSplat Sampling Preview"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "75-0-41-images",
+        "source": "75",
+        "sourceHandle": "image",
+        "target": "41",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "41-0-42-video",
+        "source": "41",
+        "sourceHandle": "VIDEO",
+        "target": "42",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "92-0-51-mesh",
+        "source": "92",
+        "sourceHandle": "model_3d",
+        "target": "51",
+        "targetHandle": "mesh",
+        "ui_properties": null
+      },
+      {
+        "id": "88:55-0-75-splat",
+        "source": "88:55",
+        "sourceHandle": "splat",
+        "target": "75",
+        "targetHandle": "splat",
+        "ui_properties": null
+      },
+      {
+        "id": "79-0-75-camera_info",
+        "source": "79",
+        "sourceHandle": "camera_info",
+        "target": "75",
+        "targetHandle": "camera_info",
+        "ui_properties": null
+      },
+      {
+        "id": "88:55-0-92-splat",
+        "source": "88:55",
+        "sourceHandle": "splat",
+        "target": "92",
+        "targetHandle": "splat",
+        "ui_properties": null
+      },
+      {
+        "id": "88:7-0-88:24-clip_vision",
+        "source": "88:7",
+        "sourceHandle": "CLIP_VISION",
+        "target": "88:24",
+        "targetHandle": "clip_vision",
+        "ui_properties": null
+      },
+      {
+        "id": "88:8-0-88:24-vae",
+        "source": "88:8",
+        "sourceHandle": "VAE",
+        "target": "88:24",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "88:2-0-88:24-image",
+        "source": "88:2",
+        "sourceHandle": "image",
+        "target": "88:24",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:96-0-88:6-model",
+        "source": "88:96",
+        "sourceHandle": "output",
+        "target": "88:6",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "88:24-0-88:6-positive",
+        "source": "88:24",
+        "sourceHandle": "positive",
+        "target": "88:6",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "88:24-1-88:6-negative",
+        "source": "88:24",
+        "sourceHandle": "negative",
+        "target": "88:6",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "88:24-2-88:6-latent_image",
+        "source": "88:24",
+        "sourceHandle": "latent",
+        "target": "88:6",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:95-0-88:35-on_false",
+        "source": "88:95",
+        "sourceHandle": "MASK",
+        "target": "88:35",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "88:85:81-0-88:35-on_true",
+        "source": "88:85:81",
+        "sourceHandle": "mask",
+        "target": "88:35",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "99-0-88:2-image",
+        "source": "99",
+        "sourceHandle": "IMAGE",
+        "target": "88:2",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:35-0-88:2-mask",
+        "source": "88:35",
+        "sourceHandle": "output",
+        "target": "88:2",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "88:6-0-88:55-samples",
+        "source": "88:6",
+        "sourceHandle": "LATENT",
+        "target": "88:55",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "88:11-0-88:55-vae",
+        "source": "88:11",
+        "sourceHandle": "VAE",
+        "target": "88:55",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "99-0-88:85:81-image",
+        "source": "99",
+        "sourceHandle": "IMAGE",
+        "target": "88:85:81",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:85:82-0-88:85:81-bg_removal_model",
+        "source": "88:85:82",
+        "sourceHandle": "bg_model",
+        "target": "88:85:81",
+        "targetHandle": "bg_removal_model",
+        "ui_properties": null
+      },
+      {
+        "id": "88:85:81-0-88:85:83-mask",
+        "source": "88:85:81",
+        "sourceHandle": "mask",
+        "target": "88:85:83",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "99-0-88:85:84-image",
+        "source": "99",
+        "sourceHandle": "IMAGE",
+        "target": "88:85:84",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:85:83-0-88:85:84-alpha",
+        "source": "88:85:83",
+        "sourceHandle": "MASK",
+        "target": "88:85:84",
+        "targetHandle": "alpha",
+        "ui_properties": null
+      },
+      {
+        "id": "99-1-88:95-mask",
+        "source": "99",
+        "sourceHandle": "MASK",
+        "target": "88:95",
+        "targetHandle": "mask",
+        "ui_properties": null
+      },
+      {
+        "id": "88:16-0-88:96-on_false",
+        "source": "88:16",
+        "sourceHandle": "MODEL",
+        "target": "88:96",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "88:97-0-88:96-on_true",
+        "source": "88:97",
+        "sourceHandle": "MODEL",
+        "target": "88:96",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "88:16-0-88:97-model",
+        "source": "88:16",
+        "sourceHandle": "MODEL",
+        "target": "88:97",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "88:11-0-88:97-vae",
+        "source": "88:11",
+        "sourceHandle": "VAE",
+        "target": "88:97",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -2379,7 +2379,7 @@ export function hasActiveAnimation(
     if (layer.camera2d?.keyframes?.length) return true;
     if (isClipFading(layer.clip, currentTimeMs)) return true;
     if (chainAnimating(layer.clip)) return true;
-    if (layer.matte && chainAnimating(layer.matte.layer.clip)) return true;
+    if (layer.matte && (isClipFading(layer.matte.layer.clip, currentTimeMs) || chainAnimating(layer.matte.layer.clip))) return true;
   }
   return false;
 }

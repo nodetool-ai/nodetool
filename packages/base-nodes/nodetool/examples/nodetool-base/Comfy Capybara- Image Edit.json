@@ -1,0 +1,578 @@
+{
+  "id": "477a87c660e25917b5a9a4d86646cc9b",
+  "name": "Comfy Capybara- Image Edit",
+  "description": "Upload an image or video and input a text instruction. Generate an edited output using the Capybara model for tasks like style changes, object replacement, or time-of-day adjustments. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Capybara- Image Edit\n\nUpload an image or video and input a text instruction. Generate an edited output using the Capybara model for tasks like style changes, object replacement, or time-of-day adjustments. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/Image_capybara_v0_1_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "80",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "wind_woman.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "102",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Capybara_v0.1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:17",
+        "type": "comfy.BasicScheduler",
+        "data": {
+          "scheduler": "simple",
+          "steps": 20,
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "BasicScheduler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:91",
+        "type": "comfy.CFGGuider",
+        "data": {
+          "cfg": 6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CFG Guider"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:13",
+        "type": "comfy.SamplerCustomAdvanced",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SamplerCustomAdvanced"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:78",
+        "type": "comfy.HunyuanVideo15ImageToVideo",
+        "data": {
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HunyuanVideo15ImageToVideo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:44",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "Keep the characters and fluttering costumes unchanged, replace the indoor scene with an outdoor grassland setting"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:67",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 7
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:12",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "capybara_v0.1.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:11",
+        "type": "comfy.DualCLIPLoader",
+        "data": {
+          "clip_name1": "qwen_2.5_vl_7b.safetensors",
+          "clip_name2": "byt5_small_glyphxl_fp16.safetensors",
+          "type": "hunyuan_video_15",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load CLIP (Dual)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:10",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "hunyuanvideo15_vae_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:81",
+        "type": "comfy.CLIPVisionLoader",
+        "data": {
+          "clip_name": "sigclip_vision_patch14_384.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load CLIP Vision"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:98",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:79",
+        "type": "comfy.CLIPVisionEncode",
+        "data": {
+          "crop": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Vision Encode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:105",
+        "type": "comfy.ResizeImageMaskNode",
+        "data": {
+          "resize_type": "scale dimensions",
+          "resize_type.width": 1024,
+          "resize_type.height": 1024,
+          "resize_type.crop": "center",
+          "scale_method": "lanczos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Resize Image/Mask"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:93",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "blurry, low quality, distorted, ugly, watermark, text"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:16",
+        "type": "comfy.KSamplerSelect",
+        "data": {
+          "sampler_name": "euler"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "KSamplerSelect"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "103:25",
+        "type": "comfy.RandomNoise",
+        "data": {
+          "noise_seed": 1044901887090653
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "RandomNoise"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "103:8-0-102-images",
+        "source": "103:8",
+        "sourceHandle": "IMAGE",
+        "target": "102",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "103:12-0-103:17-model",
+        "source": "103:12",
+        "sourceHandle": "MODEL",
+        "target": "103:17",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "103:67-0-103:91-model",
+        "source": "103:67",
+        "sourceHandle": "MODEL",
+        "target": "103:91",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "103:78-0-103:91-positive",
+        "source": "103:78",
+        "sourceHandle": "positive",
+        "target": "103:91",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "103:78-1-103:91-negative",
+        "source": "103:78",
+        "sourceHandle": "negative",
+        "target": "103:91",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "103:25-0-103:13-noise",
+        "source": "103:25",
+        "sourceHandle": "NOISE",
+        "target": "103:13",
+        "targetHandle": "noise",
+        "ui_properties": null
+      },
+      {
+        "id": "103:91-0-103:13-guider",
+        "source": "103:91",
+        "sourceHandle": "GUIDER",
+        "target": "103:13",
+        "targetHandle": "guider",
+        "ui_properties": null
+      },
+      {
+        "id": "103:16-0-103:13-sampler",
+        "source": "103:16",
+        "sourceHandle": "SAMPLER",
+        "target": "103:13",
+        "targetHandle": "sampler",
+        "ui_properties": null
+      },
+      {
+        "id": "103:17-0-103:13-sigmas",
+        "source": "103:17",
+        "sourceHandle": "SIGMAS",
+        "target": "103:13",
+        "targetHandle": "sigmas",
+        "ui_properties": null
+      },
+      {
+        "id": "103:78-2-103:13-latent_image",
+        "source": "103:78",
+        "sourceHandle": "latent",
+        "target": "103:13",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "103:98-0-103:78-width",
+        "source": "103:98",
+        "sourceHandle": "width",
+        "target": "103:78",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "103:98-1-103:78-height",
+        "source": "103:98",
+        "sourceHandle": "height",
+        "target": "103:78",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "103:98-2-103:78-length",
+        "source": "103:98",
+        "sourceHandle": "batch_size",
+        "target": "103:78",
+        "targetHandle": "length",
+        "ui_properties": null
+      },
+      {
+        "id": "103:44-0-103:78-positive",
+        "source": "103:44",
+        "sourceHandle": "CONDITIONING",
+        "target": "103:78",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "103:93-0-103:78-negative",
+        "source": "103:93",
+        "sourceHandle": "CONDITIONING",
+        "target": "103:78",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "103:10-0-103:78-vae",
+        "source": "103:10",
+        "sourceHandle": "VAE",
+        "target": "103:78",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "103:105-0-103:78-start_image",
+        "source": "103:105",
+        "sourceHandle": "resized",
+        "target": "103:78",
+        "targetHandle": "start_image",
+        "ui_properties": null
+      },
+      {
+        "id": "103:79-0-103:78-clip_vision_output",
+        "source": "103:79",
+        "sourceHandle": "CLIP_VISION_OUTPUT",
+        "target": "103:78",
+        "targetHandle": "clip_vision_output",
+        "ui_properties": null
+      },
+      {
+        "id": "103:11-0-103:44-clip",
+        "source": "103:11",
+        "sourceHandle": "CLIP",
+        "target": "103:44",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "103:12-0-103:67-model",
+        "source": "103:12",
+        "sourceHandle": "MODEL",
+        "target": "103:67",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "103:13-0-103:8-samples",
+        "source": "103:13",
+        "sourceHandle": "output",
+        "target": "103:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "103:10-0-103:8-vae",
+        "source": "103:10",
+        "sourceHandle": "VAE",
+        "target": "103:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "103:105-0-103:98-image",
+        "source": "103:105",
+        "sourceHandle": "resized",
+        "target": "103:98",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "103:81-0-103:79-clip_vision",
+        "source": "103:81",
+        "sourceHandle": "CLIP_VISION",
+        "target": "103:79",
+        "targetHandle": "clip_vision",
+        "ui_properties": null
+      },
+      {
+        "id": "103:105-0-103:79-image",
+        "source": "103:105",
+        "sourceHandle": "resized",
+        "target": "103:79",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "80-0-103:105-input",
+        "source": "80",
+        "sourceHandle": "IMAGE",
+        "target": "103:105",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "103:11-0-103:93-clip",
+        "source": "103:11",
+        "sourceHandle": "CLIP",
+        "target": "103:93",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

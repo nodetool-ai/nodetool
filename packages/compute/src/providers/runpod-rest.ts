@@ -21,7 +21,8 @@ const RUNPOD_REST_BASE_URL = "https://rest.runpod.io/v1";
 /** Request body for POST /v1/pods (subset we use; see the REST reference). */
 export interface RunpodPodSpec {
   name: string;
-  imageName: string;
+  imageName?: string;
+  templateId?: string;
   computeType?: "CPU" | "GPU";
   // CPU pods
   vcpuCount?: number;
@@ -215,6 +216,8 @@ export interface DeployWorkerPodOptions {
   name: string;
   /** Registry image RunPod pulls (must be reachable by RunPod). */
   image: string;
+  /** RunPod template. Replaces the image, ports and default disks. */
+  templateId?: string;
   /** Shared-secret passed as NODETOOL_WORKER_TOKEN (gates the ws handshake). */
   workerToken?: string;
   /** Internal port the worker serves on. Default 7777. */
@@ -280,29 +283,39 @@ export async function deployWorkerPod(
   const isGpu = opts.computeType === "GPU";
   const spec: RunpodPodSpec = {
     name: opts.name,
-    imageName: opts.image,
+    ...(opts.templateId ? { templateId: opts.templateId } : { imageName: opts.image }),
     computeType: opts.computeType ?? "CPU",
     // Always pin vcpuCount explicitly rather than relying on RunPod defaults.
     vcpuCount:
       opts.vcpuCount ??
       (isGpu ? DEFAULT_GPU_VCPU_COUNT : DEFAULT_CPU_VCPU_COUNT),
     gpuTypeIds: opts.gpuTypeIds,
-    ports: sshKey
-      ? [`${internalPort}/${exposure}`, "22/tcp"]
-      : [`${internalPort}/${exposure}`],
-    env,
-    containerDiskInGb: opts.containerDiskInGb ?? 20
+    env
   };
+  // A template owns its ports and container disk, unless the caller overrides.
+  if (!opts.templateId) {
+    spec.ports = sshKey
+      ? [`${internalPort}/${exposure}`, "22/tcp"]
+      : [`${internalPort}/${exposure}`];
+  }
+  if (!opts.templateId || opts.containerDiskInGb) {
+    spec.containerDiskInGb = opts.containerDiskInGb ?? 20;
+  }
   // GPU pods must request an explicit gpuCount; without it RunPod may allocate
   // zero GPUs while still reporting the pod as running.
   if (isGpu) {
     spec.gpuCount = opts.gpuCount ?? DEFAULT_GPU_COUNT;
-    spec.allowedCudaVersions = [...(opts.allowedCudaVersions ?? WORKER_CUDA_VERSIONS)];
+    const cudaVersions = opts.allowedCudaVersions ?? WORKER_CUDA_VERSIONS;
+    if (cudaVersions.length > 0) {
+      spec.allowedCudaVersions = [...cudaVersions];
+    }
   }
   // Persistent volume — survives stop/resume, holds the HF model cache.
   if (opts.volumeInGb) {
     spec.volumeInGb = opts.volumeInGb;
-    spec.volumeMountPath = opts.volumeMountPath ?? "/workspace";
+    if (!opts.templateId || opts.volumeMountPath) {
+      spec.volumeMountPath = opts.volumeMountPath ?? "/workspace";
+    }
   }
 
   const created = await createPod(apiKey, spec);

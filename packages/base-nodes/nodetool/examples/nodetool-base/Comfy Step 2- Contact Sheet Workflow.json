@@ -1,0 +1,1145 @@
+{
+  "id": "784dc50693b810d100308629ba939ebc",
+  "name": "Comfy Step 2- Contact Sheet Workflow",
+  "description": "Upload the fashion editorial and product image. Generate 8 distinct angle variations with product consistency from only 2 Nano Banana generations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "character & fashion",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Step 2- Contact Sheet Workflow\n\nUpload the fashion editorial and product image. Generate 8 distinct angle variations with product consistency from only 2 Nano Banana generations. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_contact_sheet-step_2.app.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "16",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "contact_sheet_app_input_1.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Character Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "brown_moisturizer_bottle.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Product Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 586933274482026,
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Analyze the input images and silently inventory all fashion-critical details: the subject(s) from image 1, exact wardrobe pieces, facial features, materials, colors, textures, accessories, hair, makeup, body proportions, environment, set geometry, light direction, and shadow quality.\nAll wardrobe, styling, hair, makeup, lighting, environment, and color grade must remain 100% unchanged across all frames. The character from image 1 is holding the product from image 2, maintain exact representation of the product, text legibility and relative size as seen in image 1.\nDo not add or remove anything (unless specified in the prompt).\nDo not generate with visible gutters/padding between grid images.\n \nYour visible output must be:\n \nOne 2×2 grid image (4 frames).\n \nThen a keyframe breakdown for each frame.\n \nEach frame must represent a resting point after a dramatic camera move — only describe the final camera position and what the subject is doing, never the motion itself.\n \nThe four frames must be spatially dynamic, non-linear, and visually distinct.\n \nRequired 4-Frame Shot List \n{grid_descriptions}\n\n \nContinuity & Technical Requirements\n \nMaintain perfect wardrobe fidelity in every frame: exact garment type, silhouette, material, color, texture, stitching, accessories, closures, jewelry, shoes, hair, and makeup.\n \nEnvironment, textures, and lighting must remain consistent.\n \nDepth of field shifts naturally with focal length (deep for distant shots, shallow for close/detail shots).\n \nPhoto real textures and physically plausible light behavior required.\n \nFrames must feel like different camera placements within the same scene, not different scenes.\n \nAll keyframes must be the exact same aspect ratio, and exactly 4 keyframes should be output. Maintain the exact visual style in all keyframes, where the image is shot on fuji velvia film with a hard flash, the light is concentrated on the subject and fades slightly toward the edges of the frame. The image is over exposed showing significant film grain and is oversaturated. The skin appears shiny (almost oily), and there are harsh white reflections on the glasses frames.\n \nOutput Format\nA) 2×2 Contact Sheet Image (Mandatory)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Prompt Template V1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "61",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 363592989122759,
+          "aspect_ratio": "9:16",
+          "resolution": "4K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "62",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "Analyze the input images and inventory all fashion-critical details: the subject(s) from image 1, exact wardrobe pieces, facial features, materials, colors, textures, accessories, hair, makeup, body proportions, environment, set geometry, light direction, and shadow quality.\nAll wardrobe, styling, hair, makeup, lighting, environment, and color grade must remain 100% unchanged across all frames. The character from image 1 is holding the product from image 2, maintain exact representation of the product, text legibility and relative size as seen in image 1.\nDo not add or remove anything (unless specified in the prompt).\nDo not generate with visible gutters/padding between grid images.\n \nYour visible output must be:\n \nOne 2×2 grid (4 frames).\n \nThen a keyframe breakdown for each frame.\n \nEach frame must represent a resting point after a dramatic camera move — only describe the final camera position and what the subject is doing, never the motion itself.\n \nThe four frames must be spatially dynamic, non-linear, and visually distinct.\n \nRequired 4-Frame Shot List \n{grid_descriptions}\n \nContinuity & Technical Requirements\n \nMaintain perfect wardrobe fidelity in every frame: exact garment type, silhouette, material, color, texture, stitching, accessories, closures, jewelry, shoes, hair, and makeup.\n \nEnvironment, textures, and lighting must remain consistent.\n \nDepth of field shifts naturally with focal length (deep for distant shots, shallow for close/detail shots).\n \nPhoto real textures and physically plausible light behavior required.\n \nFrames must feel like different camera placements within the same scene, not different scenes.\n \nAll keyframes must be the exact same aspect ratio, and exactly 4 keyframes should be output. Maintain the exact visual style in all keyframes, where the image is shot on fuji velvia film with a hard flash, the light is concentrated on the subject and fades slightly toward the edges of the frame. The image is over exposed showing significant film grain and is oversaturated. The skin appears shiny (almost oily), and there are harsh white reflections on the glasses frames.\n \nOutput Format\nA) 2×2 Contact Sheet Image (Mandatory)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Prompt Template V2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "89",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_6"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "90",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_7"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "91",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_8"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "229",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "230",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "239",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "240",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "241",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "242",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "245",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "1. High-Fashion Beauty Portrait (Close, Editorial, Intimate)\n \nCamera positioned very close to the subject's face, slightly above or slightly below eye level, using an elegant offset angle that enhances bone structure and highlights key wardrobe elements near the neckline. Shallow depth of field, flawless texture rendering, and a sculptural fashion-forward composition.\n \n2. High-Angle Three-Quarter Frame\n \nCamera positioned overhead but off-center, capturing the subject from a diagonal downward angle.\nThis frame should create strong shape abstraction and reveal wardrobe details from above.\n \n3. Low-Angle Oblique Full-Body Frame\n \nCamera positioned low to the ground and angled obliquely toward the subject.\nThis elongates the silhouette, emphasizes footwear, and creates a dramatic perspective distinct from Frames 1 and 2.\n \n4. Side-On Compression Frame (Long Lens)\n \nCamera placed far to one side of the subject, using a tighter focal length to compress space.\nThe subject appears in clean profile or near-profile, showcasing garment structure in a flattened, editorial manner."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Prompt Grid Images V1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "248",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "regex_pattern": "{grid_descriptions}\n",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "249",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": " 1. Intimate Close Portrait From an Unexpected Height\n \nCamera positioned very close to the subject's face (or upper torso) but slightly above or below eye level.\nThe angle should feel fashion-editorial, not conventional — offset, elegant, and expressive.\n \n2. Extreme Detail Frame From a Non-Intuitive Angle\n \nCamera positioned extremely close to a wardrobe detail, accessory, or texture, but from an unusual spatial direction (e.g., from below, from behind, from the side of a neckline).\nThis must be a striking, abstract, editorial detail frame.\n\n3. Extreme depth perception of the subject holding item (INTRODUCE A NEW ITEM IF PROMPTED)\n\nA dynamic, high-energy photograph shot from an extreme low-angle worm’s-eye view using forced perspective. The man is thrusting the product from image 2 toward the camera lens, making the device appear larger than life in the foreground. His free hand is raised in a casual peace sign. \n\n4. Extreme Low Angle Shot from Perspective of the Subject's Shoe.\n\nCamera positioned extremely low with main focus on the characters shoe in the immediate foreground. Extreme foreshortening makes the sneaker in the immediate foreground appear massive and highly detailed, dominating the bottom half of the frame, while the subject's body tapers upward towards a smaller head. Infer from the rest of the outfit what shoe the subject is wearing."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Prompt Grid Images V2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "255",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "regex_pattern": "{grid_descriptions}\n",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:226",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a / 2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "HEIGHT"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:83",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a / 2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "WIDTH"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:17",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:87",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a + (b/2)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Row 2 - Y val"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:264",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left",
+          "x_offset": 0,
+          "y_offset": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Crop Grid 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:265",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left",
+          "y_offset": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Crop Grid 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:268",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left",
+          "x_offset": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Crop Grid 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "228:269",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Crop Grid 4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:270",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a / 2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "HEIGHT"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:271",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a / 2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "WIDTH"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:272",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:273",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a + (b/2)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Row 2 - Y val"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:274",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left",
+          "x_offset": 0,
+          "y_offset": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Crop Grid 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:275",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left",
+          "y_offset": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Crop Grid 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:276",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left",
+          "x_offset": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Crop Grid 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "278:277",
+        "type": "comfy.ImageCrop+",
+        "data": {
+          "position": "top-left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Crop Grid 4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "248-0-30-prompt",
+        "source": "248",
+        "sourceHandle": "STRING",
+        "target": "30",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "229-0-30-images",
+        "source": "229",
+        "sourceHandle": "IMAGE",
+        "target": "30",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "255-0-61-prompt",
+        "source": "255",
+        "sourceHandle": "STRING",
+        "target": "61",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "230-0-61-images",
+        "source": "230",
+        "sourceHandle": "IMAGE",
+        "target": "61",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "228:264-0-88-images",
+        "source": "228:264",
+        "sourceHandle": "IMAGE",
+        "target": "88",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "228:265-0-89-images",
+        "source": "228:265",
+        "sourceHandle": "IMAGE",
+        "target": "89",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "228:268-0-90-images",
+        "source": "228:268",
+        "sourceHandle": "IMAGE",
+        "target": "90",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "228:269-0-91-images",
+        "source": "228:269",
+        "sourceHandle": "IMAGE",
+        "target": "91",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-229-images.image0",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "229",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "26-0-229-images.image1",
+        "source": "26",
+        "sourceHandle": "IMAGE",
+        "target": "229",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-230-images.image0",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "230",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "26-0-230-images.image1",
+        "source": "26",
+        "sourceHandle": "IMAGE",
+        "target": "230",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "278:274-0-239-images",
+        "source": "278:274",
+        "sourceHandle": "IMAGE",
+        "target": "239",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "278:275-0-240-images",
+        "source": "278:275",
+        "sourceHandle": "IMAGE",
+        "target": "240",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "278:276-0-241-images",
+        "source": "278:276",
+        "sourceHandle": "IMAGE",
+        "target": "241",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "278:277-0-242-images",
+        "source": "278:277",
+        "sourceHandle": "IMAGE",
+        "target": "242",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "34-0-248-string",
+        "source": "34",
+        "sourceHandle": "STRING",
+        "target": "248",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "245-0-248-replace",
+        "source": "245",
+        "sourceHandle": "STRING",
+        "target": "248",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "62-0-255-string",
+        "source": "62",
+        "sourceHandle": "STRING",
+        "target": "255",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "249-0-255-replace",
+        "source": "249",
+        "sourceHandle": "STRING",
+        "target": "255",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "228:17-1-228:226-a",
+        "source": "228:17",
+        "sourceHandle": "height",
+        "target": "228:226",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "228:17-0-228:83-a",
+        "source": "228:17",
+        "sourceHandle": "width",
+        "target": "228:83",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "61-0-228:17-image",
+        "source": "61",
+        "sourceHandle": "IMAGE",
+        "target": "228:17",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "228:226-0-228:87-a",
+        "source": "228:226",
+        "sourceHandle": "INT",
+        "target": "228:87",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "228:83-0-228:264-width",
+        "source": "228:83",
+        "sourceHandle": "INT",
+        "target": "228:264",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "228:226-0-228:264-height",
+        "source": "228:226",
+        "sourceHandle": "INT",
+        "target": "228:264",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "61-0-228:264-image",
+        "source": "61",
+        "sourceHandle": "IMAGE",
+        "target": "228:264",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "228:83-0-228:265-width",
+        "source": "228:83",
+        "sourceHandle": "INT",
+        "target": "228:265",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "228:226-0-228:265-height",
+        "source": "228:226",
+        "sourceHandle": "INT",
+        "target": "228:265",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "228:83-0-228:265-x_offset",
+        "source": "228:83",
+        "sourceHandle": "INT",
+        "target": "228:265",
+        "targetHandle": "x_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "61-0-228:265-image",
+        "source": "61",
+        "sourceHandle": "IMAGE",
+        "target": "228:265",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "228:83-0-228:268-width",
+        "source": "228:83",
+        "sourceHandle": "INT",
+        "target": "228:268",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "228:226-0-228:268-height",
+        "source": "228:226",
+        "sourceHandle": "INT",
+        "target": "228:268",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "228:87-0-228:268-y_offset",
+        "source": "228:87",
+        "sourceHandle": "INT",
+        "target": "228:268",
+        "targetHandle": "y_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "61-0-228:268-image",
+        "source": "61",
+        "sourceHandle": "IMAGE",
+        "target": "228:268",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "228:83-0-228:269-width",
+        "source": "228:83",
+        "sourceHandle": "INT",
+        "target": "228:269",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "228:226-0-228:269-height",
+        "source": "228:226",
+        "sourceHandle": "INT",
+        "target": "228:269",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "228:83-0-228:269-x_offset",
+        "source": "228:83",
+        "sourceHandle": "INT",
+        "target": "228:269",
+        "targetHandle": "x_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "228:87-0-228:269-y_offset",
+        "source": "228:87",
+        "sourceHandle": "INT",
+        "target": "228:269",
+        "targetHandle": "y_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "61-0-228:269-image",
+        "source": "61",
+        "sourceHandle": "IMAGE",
+        "target": "228:269",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "278:272-1-278:270-a",
+        "source": "278:272",
+        "sourceHandle": "height",
+        "target": "278:270",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "278:272-0-278:271-a",
+        "source": "278:272",
+        "sourceHandle": "width",
+        "target": "278:271",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-278:272-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "278:272",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "278:270-0-278:273-a",
+        "source": "278:270",
+        "sourceHandle": "INT",
+        "target": "278:273",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "278:271-0-278:274-width",
+        "source": "278:271",
+        "sourceHandle": "INT",
+        "target": "278:274",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "278:270-0-278:274-height",
+        "source": "278:270",
+        "sourceHandle": "INT",
+        "target": "278:274",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-278:274-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "278:274",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "278:271-0-278:275-width",
+        "source": "278:271",
+        "sourceHandle": "INT",
+        "target": "278:275",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "278:270-0-278:275-height",
+        "source": "278:270",
+        "sourceHandle": "INT",
+        "target": "278:275",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "278:271-0-278:275-x_offset",
+        "source": "278:271",
+        "sourceHandle": "INT",
+        "target": "278:275",
+        "targetHandle": "x_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-278:275-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "278:275",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "278:271-0-278:276-width",
+        "source": "278:271",
+        "sourceHandle": "INT",
+        "target": "278:276",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "278:270-0-278:276-height",
+        "source": "278:270",
+        "sourceHandle": "INT",
+        "target": "278:276",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "278:273-0-278:276-y_offset",
+        "source": "278:273",
+        "sourceHandle": "INT",
+        "target": "278:276",
+        "targetHandle": "y_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-278:276-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "278:276",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "278:271-0-278:277-width",
+        "source": "278:271",
+        "sourceHandle": "INT",
+        "target": "278:277",
+        "targetHandle": "width",
+        "ui_properties": null
+      },
+      {
+        "id": "278:270-0-278:277-height",
+        "source": "278:270",
+        "sourceHandle": "INT",
+        "target": "278:277",
+        "targetHandle": "height",
+        "ui_properties": null
+      },
+      {
+        "id": "278:271-0-278:277-x_offset",
+        "source": "278:271",
+        "sourceHandle": "INT",
+        "target": "278:277",
+        "targetHandle": "x_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "278:273-0-278:277-y_offset",
+        "source": "278:273",
+        "sourceHandle": "INT",
+        "target": "278:277",
+        "targetHandle": "y_offset",
+        "ui_properties": null
+      },
+      {
+        "id": "30-0-278:277-image",
+        "source": "30",
+        "sourceHandle": "IMAGE",
+        "target": "278:277",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

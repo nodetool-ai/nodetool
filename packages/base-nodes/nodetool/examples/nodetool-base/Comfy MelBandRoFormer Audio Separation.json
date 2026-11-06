@@ -1,0 +1,152 @@
+{
+  "id": "a1f0ee66ede0e02e7345b096d66ad438",
+  "name": "Comfy MelBandRoFormer Audio Separation",
+  "description": "Load an audio file and separate it into vocal and instrumental stems using the MelBandRoFormer model. Outputs two MP3 files for isolated vocals and background music. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "audio",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy MelBandRoFormer Audio Separation\n\nLoad an audio file and separate it into vocal and instrumental stems using the MelBandRoFormer model. Outputs two MP3 files for isolated vocals and background music. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/audio_melbandroformer_audio_separation.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "melbandroformer_input.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.MelBandRoFormerModelLoader",
+        "data": {
+          "model_name": "MelBandRoformer_fp16.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "MelBand Model Loader"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.MelBandRoFormerSampler",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "MelBand Separator"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.SaveAudioMP3",
+        "data": {
+          "filename_prefix": "vocals",
+          "quality": "128k"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Vocals"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveAudioMP3",
+        "data": {
+          "filename_prefix": "instruments",
+          "quality": "128k"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Instruments"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-3-model",
+        "source": "2",
+        "sourceHandle": "model",
+        "target": "3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-3-audio",
+        "source": "1",
+        "sourceHandle": "AUDIO",
+        "target": "3",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-4-audio",
+        "source": "3",
+        "sourceHandle": "vocals",
+        "target": "4",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "3-1-5-audio",
+        "source": "3",
+        "sourceHandle": "instruments",
+        "target": "5",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

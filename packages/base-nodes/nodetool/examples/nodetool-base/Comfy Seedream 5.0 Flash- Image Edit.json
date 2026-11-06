@@ -1,0 +1,112 @@
+{
+  "id": "b3057013142f487635a916098911b651",
+  "name": "Comfy Seedream 5.0 Flash- Image Edit",
+  "description": "Edit and generate images with Seedream 5.0 Flash, transforming a single input image into one refined output with cinematic lighting, accurate text rendering, and resolutions up to 2K. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Seedream 5.0 Flash- Image Edit\n\nEdit and generate images with Seedream 5.0 Flash, transforming a single input image into one refined output with cinematic lighting, accurate text rendering, and resolutions up to 2K. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_bytedance_seedream_5_0_flash_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "14",
+        "type": "comfy.ByteDanceSeedreamNodeV3",
+        "data": {
+          "prompt": "Photorealistic commercial product photography, a complete wine brand collection display derived from the reference image. Central hero is the original wine bottle with its purple label and two-women flat grain illustration. Surrounding products include a rigid wine gift box, canvas tote bag, wine glass, corkscrew, wooden cork, small grape cluster, branded paper card and fabric pouch. All items are printed or decorated with the same brand visual identity from reference: two women characters, geometric flowers, lavender purple, royal blue, pink, orange, grainy flat graphic style. Arranged on a light wooden table with soft studio lighting, elegant lifestyle mockup, shallow depth of field, realistic glass, paper and fabric texture, premium wine brand styling, clean background, high detail.\n",
+          "model": "seedream 5.0 flash",
+          "model.size_preset": "(1K) 1024x1024 (1:1)",
+          "model.width": 2048,
+          "model.height": 2048,
+          "model.images": 623508325,
+          "model.seed": "randomize",
+          "model.watermark": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "Seedream5.0_flash",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "16",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "wine_bottle_brand_ref.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "16-0-14-model.images.image_1",
+        "source": "16",
+        "sourceHandle": "IMAGE",
+        "target": "14",
+        "targetHandle": "model.images.image_1",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-15-images",
+        "source": "14",
+        "sourceHandle": "IMAGE",
+        "target": "15",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

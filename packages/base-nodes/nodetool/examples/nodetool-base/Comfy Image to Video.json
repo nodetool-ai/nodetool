@@ -1,0 +1,405 @@
+{
+  "id": "2d8a9cbec57a68d4ee612cb3cbe107c9",
+  "name": "Comfy Image to Video",
+  "description": "It shows how to go from a simple prompt to a Wes Anderson-style image using a cinematic image model, then enhance it with Nano Banana to improve textures and details, and finally turn it into a video using the current best video model, Kling 3.0. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Image to Video\n\nIt shows how to go from a simple prompt to a Wes Anderson-style image using a cinematic image model, then enhance it with Nano Banana to improve textures and details, and finally turn it into a video using the current best video model, Kling 3.0. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_ohneis_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "NBP"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "63",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Kling2.6_i2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "64",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Use the attached image and add some typical plane numberings and logos to the plane.",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 1079943371682559,
+          "aspect_ratio": "9:16",
+          "resolution": "2K",
+          "response_modalities": "IMAGE",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "65",
+        "type": "comfy.KlingImageToVideoWithAudio",
+        "data": {
+          "model_name": "kling-v2-6",
+          "prompt": "Handheld camera. An airplane moves forward while the camera slowly tracks along with it. No Cuts. No Talking. Ambient Sounds.",
+          "mode": "pro",
+          "duration": 5,
+          "generate_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Kling 2.6 Image(First Frame) to Video with Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "66",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "z-image-turbo"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:30",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:29",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:33",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:8",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:28",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:27",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": "On a snowy plateau framed by jagged white peaks, a small plane sits in the foreground, its bright red tail fin rising like a flag against the ice. Stripes of yellow, blue, and orange stretch across its fuselage, injecting bands of saturated color into the otherwise monochrome world. Its skis rest gently on the snow, anchoring it in stillness while the mountains loom behind, their ridges casting pale blue shadows that carve geometric patterns across the surface. The sky is a flawless ultramarine, creating stark contrast between peak and void. Every line--the fuselage, the wings, the slope of the mountains--appears arranged with geometric precision, balancing color against emptiness. The lighting is sharp, crisp, and shadowless, heightening the sense of clarity and frozen perfection. The tableau has the quiet tension of waiting: a machine poised in nature’s immensity, reduced to a prop in a carefully staged spectacle of scale and color."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:13",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1088,
+          "height": 1920,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:11",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "57:3",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 928035730101586,
+          "steps": 8,
+          "cfg": 1,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "64-0-9-images",
+        "source": "64",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "65-0-63-video",
+        "source": "65",
+        "sourceHandle": "VIDEO",
+        "target": "63",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "57:8-0-64-images",
+        "source": "57:8",
+        "sourceHandle": "IMAGE",
+        "target": "64",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "64-0-65-start_frame",
+        "source": "64",
+        "sourceHandle": "IMAGE",
+        "target": "65",
+        "targetHandle": "start_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "57:8-0-66-images",
+        "source": "57:8",
+        "sourceHandle": "IMAGE",
+        "target": "66",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "57:27-0-57:33-conditioning",
+        "source": "57:27",
+        "sourceHandle": "CONDITIONING",
+        "target": "57:33",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "57:3-0-57:8-samples",
+        "source": "57:3",
+        "sourceHandle": "LATENT",
+        "target": "57:8",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "57:29-0-57:8-vae",
+        "source": "57:29",
+        "sourceHandle": "VAE",
+        "target": "57:8",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "57:30-0-57:27-clip",
+        "source": "57:30",
+        "sourceHandle": "CLIP",
+        "target": "57:27",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "57:28-0-57:11-model",
+        "source": "57:28",
+        "sourceHandle": "MODEL",
+        "target": "57:11",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "57:11-0-57:3-model",
+        "source": "57:11",
+        "sourceHandle": "MODEL",
+        "target": "57:3",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "57:27-0-57:3-positive",
+        "source": "57:27",
+        "sourceHandle": "CONDITIONING",
+        "target": "57:3",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "57:33-0-57:3-negative",
+        "source": "57:33",
+        "sourceHandle": "CONDITIONING",
+        "target": "57:3",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "57:13-0-57:3-latent_image",
+        "source": "57:13",
+        "sourceHandle": "LATENT",
+        "target": "57:3",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

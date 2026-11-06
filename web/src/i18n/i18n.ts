@@ -5,13 +5,24 @@ import de from "./locales/de.json";
 import fi from "./locales/fi.json";
 import ru from "./locales/ru.json";
 import zhCN from "./locales/zh-CN.json";
-import { DEFAULT_LOCALE, type Locale } from "./locales";
+import es from "./locales/es.json";
+import pt from "./locales/pt.json";
+import fr from "./locales/fr.json";
+import it from "./locales/it.json";
+import pl from "./locales/pl.json";
+import sv from "./locales/sv.json";
+import nb from "./locales/nb.json";
+import nl from "./locales/nl.json";
+import ko from "./locales/ko.json";
+import ja from "./locales/ja.json";
+import hi from "./locales/hi.json";
+import { DEFAULT_LOCALE, LOCALE_OPTIONS, type Locale } from "./locales";
 
 function appI18nOptions(locale: Locale) {
   return {
     lng: locale,
     fallbackLng: DEFAULT_LOCALE,
-    supportedLngs: ["en", "de", "fi", "ru", "zh-CN"],
+    supportedLngs: LOCALE_OPTIONS.map(({ value }) => value),
     load: "currentOnly" as const,
     initAsync: false as const,
     defaultNS: "translation" as const,
@@ -20,7 +31,18 @@ function appI18nOptions(locale: Locale) {
       de: { translation: de },
       fi: { translation: fi },
       ru: { translation: ru },
-      "zh-CN": { translation: zhCN }
+      "zh-CN": { translation: zhCN },
+      es: { translation: es },
+      pt: { translation: pt },
+      fr: { translation: fr },
+      it: { translation: it },
+      pl: { translation: pl },
+      sv: { translation: sv },
+      nb: { translation: nb },
+      nl: { translation: nl },
+      ko: { translation: ko },
+      ja: { translation: ja },
+      hi: { translation: hi }
     },
     returnNull: false,
     returnEmptyString: false,

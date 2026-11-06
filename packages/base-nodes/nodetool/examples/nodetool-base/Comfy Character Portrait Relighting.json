@@ -1,0 +1,332 @@
+{
+  "id": "44fb4b59152ad42ee01dd4a92e7007a1",
+  "name": "Comfy Character Portrait Relighting",
+  "description": "Upload a portrait of your character and create multiple cinematic lighting conditions while maintaining character consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "character & fashion",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Character Portrait Relighting\n\nUpload a portrait of your character and create multiple cinematic lighting conditions while maintaining character consistency. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/template_character_portrait_relighting.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "124",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "silver_hand.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "136",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Maintain the identity of input image 1, modify the shadows to match the following lighting style: dual rim backlight, no front key, twin hard lights from behind left and right, subject silhouetted at center, glowing edge separation on both sides, dramatic dark fill",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 194380522768098,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "138",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-nb_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "150",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Maintain the identity of input image 1, modify the scene lighting and shadows to match the following lighting style: Hard top-down overhead key, harsh light directly above, deep under-eye and jaw shadows, pronounced brow ridge highlight, strong nose shadow pointing straight down, theatrical and sculpted",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 31312554729959,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "152",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-nb_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "156",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Maintain the identity of input image 1, modify the scene lighting and shadows to match the following lighting style: Split lighting, hard side key at 90°, one half face fully lit, other half near-black, sharp nose shadow line, minimal fill.",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 337125210981716,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "158",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-nb_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "168",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Maintain the identity of input image 1, modify the scene lighting and shadows to match the following lighting style: Rembrandt, side key slightly above, deep falloff, subtle rim separation.",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 95962613515780,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "170",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-nb_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "180",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "Maintain the identity of input image 1, modify the scene lighting and shadows to match the following lighting style: Motivated practical, off-axis kicker mimicking an environmental source, strong directional spill, naturalistic shadow logic, atmospheric fill.",
+          "model": "Nano Banana 2 (Gemini 3.1 Flash Image)",
+          "seed": 16095681705317,
+          "aspect_ratio": "auto",
+          "resolution": "1K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "181",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-nb_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "124-0-136-images",
+        "source": "124",
+        "sourceHandle": "IMAGE",
+        "target": "136",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "136-0-138-images",
+        "source": "136",
+        "sourceHandle": "IMAGE",
+        "target": "138",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-150-images",
+        "source": "124",
+        "sourceHandle": "IMAGE",
+        "target": "150",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "150-0-152-images",
+        "source": "150",
+        "sourceHandle": "IMAGE",
+        "target": "152",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-156-images",
+        "source": "124",
+        "sourceHandle": "IMAGE",
+        "target": "156",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "156-0-158-images",
+        "source": "156",
+        "sourceHandle": "IMAGE",
+        "target": "158",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-168-images",
+        "source": "124",
+        "sourceHandle": "IMAGE",
+        "target": "168",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "168-0-170-images",
+        "source": "168",
+        "sourceHandle": "IMAGE",
+        "target": "170",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "124-0-180-images",
+        "source": "124",
+        "sourceHandle": "IMAGE",
+        "target": "180",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "180-0-181-images",
+        "source": "180",
+        "sourceHandle": "IMAGE",
+        "target": "181",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

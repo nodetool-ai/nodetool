@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/project-services",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "NodeTool project services",
   "type": "module",
   "engines": {

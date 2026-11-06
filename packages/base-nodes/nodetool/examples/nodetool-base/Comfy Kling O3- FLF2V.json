@@ -1,0 +1,136 @@
+{
+  "id": "420ffba5828187bb2b67e879e6d845b6",
+  "name": "Comfy Kling O3- FLF2V",
+  "description": "Upload reference images or specify start and end frames. Generate a video with precise semantic control, longer duration, and improved narrative coherence. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Kling O3- FLF2V\n\nUpload reference images or specify start and end frames. Generate a video with precise semantic control, longer duration, and improved narrative coherence. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_kling_o3_flf2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "14",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/kling_o3_flf2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "ivory_rider_right_front_view.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "First Frame"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "32",
+        "type": "comfy.KlingOmniProFirstLastFrameNode",
+        "data": {
+          "model_name": "kling-v3-omni",
+          "prompt": "A graceful pale-haired girl in an ivory lace outfit and orange-tinted sunglasses rides a majestic white horse. The scene transitions from a calm, intimate close-up (first frame) to a dynamic, sweeping gallop across a sun-drenched desert (end frame). The horse’s mane flows with motion, and the desert landscape shifts from a soft, ethereal close-up to a vast, open expanse. The transition is smooth, maintaining the character’s and horse’s consistent appearance and style, with cinematic lighting and a dreamlike, otherworldly atmosphere.\n",
+          "duration": 5,
+          "resolution": "1080p",
+          "storyboards": "disabled",
+          "generate_audio": false,
+          "seed": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Kling 3.0 Omni First-Last-Frame to Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "34",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "ivory_rider.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "End Frame"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "32-0-14-video",
+        "source": "32",
+        "sourceHandle": "VIDEO",
+        "target": "14",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "17-0-32-first_frame",
+        "source": "17",
+        "sourceHandle": "IMAGE",
+        "target": "32",
+        "targetHandle": "first_frame",
+        "ui_properties": null
+      },
+      {
+        "id": "34-0-32-end_frame",
+        "source": "34",
+        "sourceHandle": "IMAGE",
+        "target": "32",
+        "targetHandle": "end_frame",
+        "ui_properties": null
+      }
+    ]
+  }
+}

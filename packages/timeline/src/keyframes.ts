@@ -91,7 +91,7 @@ export function keyframeTimesMs(
       continue;
     }
     for (const kf of curve.keyframes) {
-      times.add(Math.round(kf.t * clip.durationMs));
+      times.add(kf.t * clip.durationMs);
     }
   }
   return [...times].sort((a, b) => a - b);

@@ -128,24 +128,30 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   );
 
   /**
-   * Comfy workflows (`run_mode: "comfy"`): the Comfy Cloud node catalog as
+   * Comfy workflows (`run_mode: "comfy"`): the selected server's node catalog as
    * NodeTool node metadata, one `comfy.<ClassName>` type per ComfyUI class.
-   * Needs the caller's COMFY_API_KEY, so unlike `/api/nodes/metadata` it is
+   * Needs the caller's Comfy target settings, so unlike `/api/nodes/metadata` it is
    * per user.
    */
   app.get("/api/comfy/nodes", async (req, reply) => {
     await bridge(req, reply, async (request) => {
       const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const apiKey = (await getSecret("COMFY_API_KEY", userId))?.trim();
-      if (!apiKey) {
+      const { fetchComfyTargetCatalog, resolveComfyTarget } =
+        await importPack<IntegrationModule>("integration");
+      let target;
+      try {
+        target = await resolveComfyTarget((key) => getSecret(key, userId));
+      } catch (error) {
         return Response.json(
-          apiError(ApiErrorCode.INVALID_INPUT, "Add COMFY_API_KEY in Settings to load Comfy nodes."),
+          apiError(
+            ApiErrorCode.INVALID_INPUT,
+            error instanceof Error ? error.message : String(error)
+          ),
           { status: 400 }
         );
       }
       try {
-        const { fetchComfyObjectInfo } = await importPack<IntegrationModule>("integration");
-        const info = await fetchComfyObjectInfo(apiKey, { signal: request.signal });
+        const info = await fetchComfyTargetCatalog(target, { signal: request.signal });
         return Response.json(comfyObjectInfoToMetadata(info));
       } catch (error) {
         return Response.json(
@@ -182,16 +188,15 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         );
       }
       const prompt = workflow as ComfyApiPrompt;
-      const apiKey = (await getSecret("COMFY_API_KEY", userId))?.trim();
       let outputNames: (cls: string) => string[] | undefined = () => undefined;
-      if (apiKey) {
-        try {
-          const { fetchComfyObjectInfo } = await importPack<IntegrationModule>("integration");
-          const info = await fetchComfyObjectInfo(apiKey, { signal: request.signal });
-          outputNames = (cls) => (info[cls] ? comfyOutputNames(info[cls]) : undefined);
-        } catch {
-          // Without the catalog, edges fall back to `output_<index>` handles.
-        }
+      try {
+        const { fetchComfyTargetCatalog, resolveComfyTarget } =
+          await importPack<IntegrationModule>("integration");
+        const target = await resolveComfyTarget((key) => getSecret(key, userId));
+        const info = await fetchComfyTargetCatalog(target, { signal: request.signal });
+        outputNames = (cls) => (info[cls] ? comfyOutputNames(info[cls]) : undefined);
+      } catch {
+        // Without the catalog, edges fall back to `output_<index>` handles.
       }
       return Response.json(comfyPromptToGraph(prompt, outputNames));
     });

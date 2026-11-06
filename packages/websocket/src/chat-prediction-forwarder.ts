@@ -1,6 +1,6 @@
 /**
- * Forwards ProcessingContext `prediction` and `todo_update` events onto a chat
- * socket.
+ * Forwards ProcessingContext `prediction`, `todo_update` and
+ * `generation_batch_update` events onto a chat socket.
  *
  * The chat turn's context already emits provider/model/capability on every
  * `runProviderPrediction` call, and `todo_write` posts the agent's task list.
@@ -18,7 +18,11 @@ export function attachChatPredictionForwarder(
   ids: { threadId: string | null; workflowId?: string | null }
 ): () => void {
   return addMessageListener((msg) => {
-    if (msg.type !== "prediction" && msg.type !== "todo_update") {
+    if (
+      msg.type !== "prediction" &&
+      msg.type !== "todo_update" &&
+      msg.type !== "generation_batch_update"
+    ) {
       return;
     }
     const forwarded = {

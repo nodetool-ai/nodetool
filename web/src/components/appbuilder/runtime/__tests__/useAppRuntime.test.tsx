@@ -1202,3 +1202,56 @@ describe("useAppRuntime — script operations", () => {
     });
   });
 });
+
+describe("useAppRuntime — required models", () => {
+  it("stops a run with an unset model and names the widget to fill", async () => {
+    const workflow = {
+      ...workflowA,
+      graph: {
+        nodes: [
+          { id: "in-model", type: "nodetool.input.LanguageModelInput", data: { name: "model" } }
+        ],
+        edges: []
+      }
+    } as typeof workflowA;
+    const document = doc({
+      ui: {
+        root: { props: {} },
+        content: [
+          { type: "ModelSelect", props: { id: "picker", label: "Finishing model", binding: "var:finishModel" } }
+        ],
+        zones: {}
+      },
+      operations: [
+        {
+          id: "main",
+          name: "Suggest",
+          workflowId: "wf-a",
+          inputs: { "in-model": { from: "variable", variableId: "finishModel" } },
+          outputs: {},
+          policy: "replace"
+        }
+      ],
+      variables: [
+        {
+          id: "finishModel",
+          name: "Model",
+          scope: "instance",
+          persist: false,
+          default: { type: "language_model", provider: "", id: "", name: "" }
+        }
+      ]
+    });
+    const { result } = renderRuntime(workflow, document);
+
+    await act(async () => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+
+    await waitFor(() => {
+      const [invocation] = Object.values(result.current.store.getState().invocations);
+      expect(invocation?.error).toBe('Choose a model in "Finishing model" before you run this operation.');
+    });
+    expect(runnerState("wf-a").run).not.toHaveBeenCalled();
+  });
+});

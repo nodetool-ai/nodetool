@@ -9,6 +9,7 @@
  * the store while message handling remains testable.
  */
 
+import { useGenerationBatchStore } from "../../stores/GenerationBatchStore";
 import { visibleToolArgs } from "./toolCallFields";
 import {
   appendSubAgentChunk,
@@ -595,6 +596,10 @@ const applyChunk = (
       content: appendTextContent(lastMessage.content, chunkText)
     };
     updatedMessages = [...messages.slice(0, -1), updatedMessage];
+  } else if (!chunkText && !chunk.done) {
+    // A media turn's progress chunk has no text. A placeholder here would
+    // separate the user message from the result that follows it.
+    updatedMessages = messages;
   } else {
     const localStreamId = `local-stream-${Date.now()}-${Math.random()
       .toString(16)
@@ -1698,6 +1703,8 @@ export async function handleChatWebSocketMessage(
     if (tid) {
       set((state) => threadRuntimeUpdate(state, tid, { logUpdate: data }));
     }
+  } else if (data.type === "generation_batch_update") {
+    useGenerationBatchStore.getState().applyUpdate(data);
   } else if (data.type === "todo_update") {
     if (tid) {
       set((state) => ({

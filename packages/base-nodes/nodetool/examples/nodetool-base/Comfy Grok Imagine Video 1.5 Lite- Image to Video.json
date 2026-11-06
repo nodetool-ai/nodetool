@@ -1,0 +1,110 @@
+{
+  "id": "3d67af82c0def8c8cc7711ed5b4a6efd",
+  "name": "Comfy Grok Imagine Video 1.5 Lite- Image to Video",
+  "description": "Generate short videos from a single still image using Grok Imagine Video 1.5 Lite, a faster, lower-cost model that turns one image into a video clip up to 15 seconds at resolutions up to 1080p. Ideal for rapid social content, storyboard previews, and high-volume creative iteration where speed and cost matter more than maximum fidelity. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Grok Imagine Video 1.5 Lite- Image to Video\n\nGenerate short videos from a single still image using Grok Imagine Video 1.5 Lite, a faster, lower-cost model that turns one image into a video clip up to 15 seconds at resolutions up to 1080p. Ideal for rapid social content, storyboard previews, and high-volume creative iteration where speed and cost matter more than maximum fidelity. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_grok_imagine_video_1_5_lite_i2v.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "3",
+        "type": "comfy.GrokVideoNode",
+        "data": {
+          "model": "grok-imagine-video-1.5-lite",
+          "prompt": "High-fashion editorial video, vibrant pop-art studio portrait. A model in an oversized fluffy faux-fur headpiece of turquoise, lavender-purple, and white, with round gold-rimmed blue mirrored sunglasses, glossy pink lips, and bare shoulders against a seamless hot magenta backdrop. She slowly tilts her chin upward and turns her head slightly to the side with confident, elegant poise. A soft wind machine sweeps the long fur, which ripples and flutters in silky, flowing waves, individual strands catching the light. Her lips part gently into a subtle, cool expression. Studio light glides across the mirrored lenses, creating a sleek reflective glint that sweeps from one lens to the other. The camera performs a smooth, slow push-in with a slight upward arc, giving a cinematic slow-motion feel at 60fps. Crisp beauty lighting, saturated candy colors, high contrast, luxurious magazine-cover aesthetic, Vogue-style fashion film, ultra-detailed fur texture, shallow depth of field, polished commercial look, 5 seconds.",
+          "resolution": "480p",
+          "aspect_ratio": "auto",
+          "duration": 5,
+          "seed": 652094900
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Grok Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/Grok_video_i2v",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "fur_hat_blue_sunglasses_pink_bg.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "7-0-3-image",
+        "source": "7",
+        "sourceHandle": "IMAGE",
+        "target": "3",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-6-video",
+        "source": "3",
+        "sourceHandle": "VIDEO",
+        "target": "6",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

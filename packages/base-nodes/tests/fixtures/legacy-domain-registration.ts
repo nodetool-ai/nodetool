@@ -49669,8 +49669,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Run Comfy Workflow (Comfy Cloud)',
-    description: 'Runs a whole Comfy workflow on Comfy Cloud as one job through the Comfy API v2.\n' +
+    title: 'Run Comfy Workflow',
+    description: 'Runs a whole Comfy workflow as one job on the target in COMFY_TARGET: Comfy Cloud, a ComfyUI server or a ComfyUI worker.\n' +
       '    comfy, comfyui, cloud, workflow',
     namespace: 'lib.comfy',
     node_type: 'lib.comfy.RunComfyGraphOnCloud',
@@ -49724,6 +49724,18 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: []
       },
       {
+        name: 'output_slots',
+        type: { type: 'list', type_args: [{ type: 'str', type_args: [] }] },
+        required: false,
+        title: 'Output Slots',
+        description: 'The `<comfyNodeId>:<handle>` slots that workflow Output nodes read.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: []
+      },
+      {
         name: 'timeout',
         type: { type: 'int', type_args: [] },
         required: false,
@@ -49749,9 +49761,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     recommended_models: [],
-    inline_fields: undefined,
-    input_fields: undefined,
-    required_settings: [ 'COMFY_API_KEY' ],
+    inline_fields: [],
+    input_fields: [],
+    required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: true,
@@ -49761,7 +49773,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
-    supports_dynamic_inputs: false,
+    supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
     auto_save_asset: true,

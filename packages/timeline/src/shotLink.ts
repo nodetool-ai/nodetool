@@ -49,7 +49,8 @@ export function clipsFollowingShot(
  * when the take is long enough to hold it; a shorter take slides the window
  * back so it ends on the take's last frame, and a take shorter than the
  * window itself shortens the clip to the whole take. An unknown take length
- * leaves the window alone.
+ * leaves the window alone. A remap stays intact when its absolute source
+ * keyframes fit the take. Otherwise it is cleared and the linear window is fitted.
  *
  * Returns `clip` unchanged for a locked clip, a clip that is not video or
  * audio, and a clip already playing the asset.
@@ -79,6 +80,14 @@ export function applyShotTakeToClip(
   const takeMs = take.durationMs;
   if (takeMs === undefined || !Number.isFinite(takeMs) || takeMs <= 0) {
     return next;
+  }
+  const keyframes = clip.timeRemap?.keyframes ?? [];
+  if (keyframes.length > 0) {
+    if (keyframes.every(({ sourceMs }) => sourceMs >= 0 && sourceMs <= takeMs)) {
+      return next;
+    }
+    // Incompatible remaps fall back to the clip's rate-based window.
+    delete next.timeRemap;
   }
   const rate = sourceRate(clip);
   const spanMs = clip.durationMs * rate;

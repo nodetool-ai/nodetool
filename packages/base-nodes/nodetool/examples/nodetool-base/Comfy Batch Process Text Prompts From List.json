@@ -1,0 +1,340 @@
+{
+  "id": "063c1d7ccaf03d30d5fcb20e3746fcc1",
+  "name": "Comfy Batch Process Text Prompts From List",
+  "description": "Loads and executes a workflow sequentially using prompts from a text list. Iterates through each entry to generate multiple outputs from a single batch operation. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "node basics",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Batch Process Text Prompts From List\n\nLoads and executes a workflow sequentially using prompts from a text list. Iterates through each entry to generate multiple outputs from a single batch operation. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_text_lists_select_prompt.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.FL_PromptSelectorBasic",
+        "data": {
+          "prompts": "Modern art installation, tranquil scene, museum aesthetic\nContemporary gallery scene, calm atmosphere, elegant tone\nMinimal museum scene, soft light, peaceful aesthetic\nAbstract art space, gentle shadow, museum editorial"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "FL Prompt Selector Basic"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "36",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "37",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Int"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:39",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:40",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "ae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:41",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:42",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:43",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:44",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:45",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:34",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 577429684457215,
+          "steps": 4,
+          "cfg": 1,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "47:46",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "37-0-1-index",
+        "source": "37",
+        "sourceHandle": "INT",
+        "target": "1",
+        "targetHandle": "index",
+        "ui_properties": null
+      },
+      {
+        "id": "47:42-0-36-images",
+        "source": "47:42",
+        "sourceHandle": "IMAGE",
+        "target": "36",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "47:44-0-47:41-conditioning",
+        "source": "47:44",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:41",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "47:34-0-47:42-samples",
+        "source": "47:34",
+        "sourceHandle": "LATENT",
+        "target": "47:42",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "47:40-0-47:42-vae",
+        "source": "47:40",
+        "sourceHandle": "VAE",
+        "target": "47:42",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-47:44-text",
+        "source": "1",
+        "sourceHandle": "STRING",
+        "target": "47:44",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "47:39-0-47:44-clip",
+        "source": "47:39",
+        "sourceHandle": "CLIP",
+        "target": "47:44",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "47:46-0-47:34-model",
+        "source": "47:46",
+        "sourceHandle": "MODEL",
+        "target": "47:34",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "47:44-0-47:34-positive",
+        "source": "47:44",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:34",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "47:41-0-47:34-negative",
+        "source": "47:41",
+        "sourceHandle": "CONDITIONING",
+        "target": "47:34",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "47:45-0-47:34-latent_image",
+        "source": "47:45",
+        "sourceHandle": "LATENT",
+        "target": "47:34",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "47:43-0-47:46-model",
+        "source": "47:43",
+        "sourceHandle": "MODEL",
+        "target": "47:46",
+        "targetHandle": "model",
+        "ui_properties": null
+      }
+    ]
+  }
+}

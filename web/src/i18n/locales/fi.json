@@ -9037,9 +9037,17 @@
           "button": "Hanki Opper API-avain",
           "tooltip": "Hanki API-avain Opper-alustalta"
         },
+        "CHEAPER_INFERENCE_API_KEY": {
+          "button": "Hanki Cheaper Inference API-avain",
+          "tooltip": "Hanki API-avain Cheaper Inference -palvelusta"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Hanki API Route -avain",
           "tooltip": "Siirry API Routen API-avainsivulle"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Hanki Runcrate API-avain",
+          "tooltip": "Siirry Runcraten API-avainsivulle"
         },
         "HF_TOKEN": {
           "button": "Hanki Hugging Face -tunnus",
@@ -9534,6 +9542,16 @@
         "title": "Suorita graafeja vuokratulla GPU:lla",
         "description": "Yhdistä RunPod kerran ja valitse GPU. NodeTool suorittaa sitten Python-solmusi sillä, ja joutilaat työkoneet keskeytyvät itsestään.",
         "action": "Määritä työkone"
+      },
+      "presets": {
+        "summary_one": "Noin {{min}}–{{max}} tunnissa. Päättyy {{count}} tunnin jälkeen ja poistaa tiedostonsa.",
+        "summary_other": "Noin {{min}}–{{max}} tunnissa. Päättyy {{count}} tunnin jälkeen ja poistaa tiedostonsa.",
+        "start": "Käynnistä",
+        "starting": "Käynnistetään…",
+        "startAria": "Käynnistä {{name}} vuokratulla GPU:lla",
+        "bootingHint": "ComfyUI latautuu. Ensimmäinen käynnistys voi kestää useita minuutteja.",
+        "readyHint": "Kopioi URL kohteeseen Run ComfyUI Workflow. Kuka tahansa, jolla on tämä URL, voi käyttää podia.",
+        "copyEndpoint": "Kopioi ComfyUI-URL"
       }
     }
   },
@@ -19610,6 +19628,43 @@
     "simple": "Yksinkertainen",
     "expert": "Asiantuntija",
     "canvasSize": "{{width}} × {{height}}",
-    "frameRate": "{{fps}} fps"
+    "frameRate": "{{fps}} fps",
+    "showAssistant": "Näytä avustaja",
+    "hideAssistant": "Piilota avustaja",
+    "resizeAssistant": "Muuta aikajanan avustajan kokoa"
+  },
+  "generationBatch": {
+    "summary": "{{done}}/{{total}} valmiina",
+    "remaining": "Noin {{time}} jäljellä",
+    "finishing": "Viimeistellään",
+    "failedCount": "Epäonnistui: {{count}}",
+    "status": {
+      "queued": "Jonossa",
+      "running": "Käynnissä",
+      "completed": "Valmis",
+      "failed": "Epäonnistui"
+    },
+    "showRequests": "Näytä pyynnöt",
+    "hideRequests": "Piilota pyynnöt",
+    "expected": "Arvio {{time}}",
+    "took": "Kesti {{time}}",
+    "progressLabel": "Generoinnin edistyminen"
+  },
+  "workflowSteps": {
+    "stepOf": "Vaihe {{current}}/{{total}}",
+    "allDone": "Kaikki {{total}} vaihetta valmiina",
+    "waiting": "Odottaa",
+    "running": "Käynnissä",
+    "done": "Valmis",
+    "failed": "Epäonnistui",
+    "progressLabel": "Työnkulun edistyminen",
+    "steps": "Vaiheet",
+    "addStep": "Lisää vaihe",
+    "removeStep": "Poista vaihe",
+    "node": "Solmu",
+    "title": "Otsikko",
+    "description": "Kuvaus",
+    "autoHint": "Vaiheita ei ole asetettu. Widget näyttää jokaisen generatiivisen solmun.",
+    "chooseNode": "Valitse solmu"
   }
 }

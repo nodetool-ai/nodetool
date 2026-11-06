@@ -1,0 +1,647 @@
+{
+  "id": "652b7f4be2fbbfb583cd01389e69211c",
+  "name": "Comfy Equirectangular HDR Skybox Generator",
+  "description": "Prompt an environment and generate a equirectangular hdr image to use as skybox or lookdev in game development. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "brand & design",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Equirectangular HDR Skybox Generator\n\nPrompt an environment and generate a equirectangular hdr image to use as skybox or lookdev in game development. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates_text_prompt_to_360hdr.app.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 3.1000000000000005,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "qwen_image_vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 2048,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "9",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "13",
+        "type": "comfy.LoraLoaderModelOnly",
+        "data": {
+          "lora_name": "qwen-360-diffusion-2512-int8-bf16-v2.safetensors",
+          "strength_model": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load LoRA"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "14",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 364767852585212,
+          "steps": 50,
+          "cfg": 4,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "qwen_image_2512_bf16.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "49",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "360_4k"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3400,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "51",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "a quiet lakeside with pine trees and crystal blue lake. Captured during a sunset, the sun is in the frame with many clouds nearby"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Location Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "52",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "equirectangular 360 image, "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "53",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:43",
+        "type": "comfy.LayerUtility: If ",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "IfElse"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:40",
+        "type": "comfy.ImpactCompare",
+        "data": {
+          "cmp": "a <= b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ImpactCompare"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:25",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a*b"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Upscale to Shortest Edge (pixels)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:30",
+        "type": "comfy.PrimitiveFloat",
+        "data": {
+          "value": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Upscale Factor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:27",
+        "type": "comfy.SeedVR2VideoUpscaler",
+        "data": {
+          "seed": 3795628944,
+          "max_resolution": 0,
+          "batch_size": 1,
+          "uniform_batch_size": false,
+          "color_correction": "lab",
+          "temporal_overlap": 0,
+          "prepend_frames": 0,
+          "input_noise_scale": 0,
+          "latent_noise_scale": 0,
+          "offload_device": "cpu",
+          "enable_debug": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SeedVR2 Video Upscaler (v2.5.24)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:22",
+        "type": "comfy.SeedVR2LoadVAEModel",
+        "data": {
+          "model": "ema_vae_fp16.safetensors",
+          "device": "cuda:0",
+          "encode_tiled": true,
+          "encode_tile_size": 1024,
+          "encode_tile_overlap": 128,
+          "decode_tiled": true,
+          "decode_tile_size": 1024,
+          "decode_tile_overlap": 128,
+          "tile_debug": "false",
+          "offload_device": "none",
+          "cache_model": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "SeedVR2 (Down)Load VAE Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:28",
+        "type": "comfy.SeedVR2LoadDiTModel",
+        "data": {
+          "model": "seedvr2_ema_3b_fp16.safetensors",
+          "device": "cuda:0",
+          "blocks_to_swap": 0,
+          "swap_io_components": false,
+          "offload_device": "cpu",
+          "cache_model": false,
+          "attention_mode": "sdpa"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "SeedVR2 (Down)Load DiT Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50:21",
+        "type": "comfy.GetImageSize",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image Size"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "13-0-1-model",
+        "source": "13",
+        "sourceHandle": "MODEL",
+        "target": "1",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-2-clip",
+        "source": "4",
+        "sourceHandle": "CLIP",
+        "target": "2",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "53-0-3-text",
+        "source": "53",
+        "sourceHandle": "STRING",
+        "target": "3",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-3-clip",
+        "source": "4",
+        "sourceHandle": "CLIP",
+        "target": "3",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-9-samples",
+        "source": "14",
+        "sourceHandle": "LATENT",
+        "target": "9",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "5-0-9-vae",
+        "source": "5",
+        "sourceHandle": "VAE",
+        "target": "9",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "15-0-13-model",
+        "source": "15",
+        "sourceHandle": "MODEL",
+        "target": "13",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-14-model",
+        "source": "1",
+        "sourceHandle": "MODEL",
+        "target": "14",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "3-0-14-positive",
+        "source": "3",
+        "sourceHandle": "CONDITIONING",
+        "target": "14",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-14-negative",
+        "source": "2",
+        "sourceHandle": "CONDITIONING",
+        "target": "14",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-14-latent_image",
+        "source": "6",
+        "sourceHandle": "LATENT",
+        "target": "14",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "50:27-0-49-images",
+        "source": "50:27",
+        "sourceHandle": "IMAGE",
+        "target": "49",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "52-0-53-string_a",
+        "source": "52",
+        "sourceHandle": "STRING",
+        "target": "53",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "51-0-53-string_b",
+        "source": "51",
+        "sourceHandle": "STRING",
+        "target": "53",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "50:40-0-50:43-if_condition",
+        "source": "50:40",
+        "sourceHandle": "BOOLEAN",
+        "target": "50:43",
+        "targetHandle": "if_condition",
+        "ui_properties": null
+      },
+      {
+        "id": "50:21-0-50:43-when_TRUE",
+        "source": "50:21",
+        "sourceHandle": "width",
+        "target": "50:43",
+        "targetHandle": "when_TRUE",
+        "ui_properties": null
+      },
+      {
+        "id": "50:21-1-50:43-when_FALSE",
+        "source": "50:21",
+        "sourceHandle": "height",
+        "target": "50:43",
+        "targetHandle": "when_FALSE",
+        "ui_properties": null
+      },
+      {
+        "id": "50:21-0-50:40-a",
+        "source": "50:21",
+        "sourceHandle": "width",
+        "target": "50:40",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "50:21-1-50:40-b",
+        "source": "50:21",
+        "sourceHandle": "height",
+        "target": "50:40",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "50:43-0-50:25-a",
+        "source": "50:43",
+        "sourceHandle": "?",
+        "target": "50:25",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "50:30-0-50:25-b",
+        "source": "50:30",
+        "sourceHandle": "FLOAT",
+        "target": "50:25",
+        "targetHandle": "b",
+        "ui_properties": null
+      },
+      {
+        "id": "50:25-0-50:27-resolution",
+        "source": "50:25",
+        "sourceHandle": "INT",
+        "target": "50:27",
+        "targetHandle": "resolution",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-50:27-image",
+        "source": "9",
+        "sourceHandle": "IMAGE",
+        "target": "50:27",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "50:28-0-50:27-dit",
+        "source": "50:28",
+        "sourceHandle": "SEEDVR2_DIT",
+        "target": "50:27",
+        "targetHandle": "dit",
+        "ui_properties": null
+      },
+      {
+        "id": "50:22-0-50:27-vae",
+        "source": "50:22",
+        "sourceHandle": "SEEDVR2_VAE",
+        "target": "50:27",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "9-0-50:21-image",
+        "source": "9",
+        "sourceHandle": "IMAGE",
+        "target": "50:21",
+        "targetHandle": "image",
+        "ui_properties": null
+      }
+    ]
+  }
+}

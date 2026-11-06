@@ -1,0 +1,555 @@
+{
+  "id": "9e2e41b6d8f91d93303cbeecbc3446a0",
+  "name": "Comfy Ernie Image- Text to Image",
+  "description": "Generate images from text prompts using the ERNIE-Image model. Input a text description to produce detailed, structured visuals with a broad stylistic range. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Ernie Image- Text to Image\n\nGenerate images from text prompts using the ERNIE-Image model. Input a text description to produce detailed, structured visuals with a broad stylistic range. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_ernie_image.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "73",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "Ernie-Image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3060,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:71",
+        "type": "comfy.EmptyFlux2LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Empty Flux 2 Latent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:66",
+        "type": "comfy.UNETLoader",
+        "data": {
+          "unet_name": "ernie-image.safetensors",
+          "weight_dtype": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Diffusion Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:65",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2720,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:70",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 182596410725960,
+          "steps": 20,
+          "cfg": 4,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:67",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:72",
+        "type": "comfy.CLIPTextEncode",
+        "data": {
+          "text": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:83",
+        "type": "comfy.StringReplace",
+        "data": {
+          "string": "<s>[SYSTEM_PROMPT]你是一个专业的文生图 Prompt 增强助手。你将收到用户的简短图片描述及目标生成分辨率，请据此扩写为一段内容丰富、细节充分的视觉描述，以帮助文生图模型生成高质量的图片。仅输出增强后的描述，不要包含任何解释或前缀。[/SYSTEM_PROMPT][INST]{\"prompt\": \"{prompt}\", \"width\": {width}, \"height\": {height}}[/INST]",
+          "find": "{prompt}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:78",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "High-fashion style summer outfit infographic featuring color-coordinated floating elements arranged in an elegant expanded circular composition. It includes a breathable straw hat, a sleeveless organic cotton top, a flowing pleated skirt, handcrafted leather sandals, and a woven palm leaf handbag. Exquisite annotations highlight fabric breathability, refreshing texture, moisture-wicking properties, and seasonal comfort. The color palette adopts warm neutral tones—ivory white, terracotta, sand, and soft tan. Subtle dynamic trajectories and flowing fabric swirls suggest a gentle summer breeze, while bright natural sunlight creates soft shadows and sun-kissed sheen, in a Mediterranean style."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "String (Multiline - Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:74",
+        "type": "comfy.TextGenerate",
+        "data": {
+          "max_length": 2048,
+          "sampling_mode": "on",
+          "sampling_mode.temperature": 0.6,
+          "sampling_mode.top_k": 64,
+          "sampling_mode.top_p": 0.8,
+          "sampling_mode.min_p": 0.05,
+          "sampling_mode.repetition_penalty": 1.05,
+          "sampling_mode.seed": 0,
+          "sampling_mode.presence_penalty": 0,
+          "thinking": false,
+          "use_default_template": true,
+          "mtp": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Generate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:76",
+        "type": "comfy.PrimitiveBoolean",
+        "data": {
+          "value": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Enable prompt enhancement?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:75",
+        "type": "comfy.ComfySwitchNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "If/Else Switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:62",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "ministral-3-3b.safetensors",
+          "type": "flux2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Load CLIP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:63",
+        "type": "comfy.VAELoader",
+        "data": {
+          "vae_name": "flux2-vae.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Load VAE"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:91",
+        "type": "comfy.CLIPLoader",
+        "data": {
+          "clip_name": "ernie-image-prompt-enhancer.safetensors",
+          "type": "flux2",
+          "device": "default"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Load CLIP (PE)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:92",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Preview as Text (Int to String)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:93",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Preview as Text (Int to String)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:94",
+        "type": "comfy.StringReplace",
+        "data": {
+          "find": "{width}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:95",
+        "type": "comfy.StringReplace",
+        "data": {
+          "find": "{height}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "88:97",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview as Text (Int to String)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "88:65-0-73-images",
+        "source": "88:65",
+        "sourceHandle": "IMAGE",
+        "target": "73",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "88:70-0-88:65-samples",
+        "source": "88:70",
+        "sourceHandle": "LATENT",
+        "target": "88:65",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "88:63-0-88:65-vae",
+        "source": "88:63",
+        "sourceHandle": "VAE",
+        "target": "88:65",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "88:66-0-88:70-model",
+        "source": "88:66",
+        "sourceHandle": "MODEL",
+        "target": "88:70",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "88:67-0-88:70-positive",
+        "source": "88:67",
+        "sourceHandle": "CONDITIONING",
+        "target": "88:70",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "88:72-0-88:70-negative",
+        "source": "88:72",
+        "sourceHandle": "CONDITIONING",
+        "target": "88:70",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "88:71-0-88:70-latent_image",
+        "source": "88:71",
+        "sourceHandle": "LATENT",
+        "target": "88:70",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "88:75-0-88:67-text",
+        "source": "88:75",
+        "sourceHandle": "output",
+        "target": "88:67",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "88:62-0-88:67-clip",
+        "source": "88:62",
+        "sourceHandle": "CLIP",
+        "target": "88:67",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "88:62-0-88:72-clip",
+        "source": "88:62",
+        "sourceHandle": "CLIP",
+        "target": "88:72",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "88:78-0-88:83-replace",
+        "source": "88:78",
+        "sourceHandle": "STRING",
+        "target": "88:83",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "88:95-0-88:74-prompt",
+        "source": "88:95",
+        "sourceHandle": "STRING",
+        "target": "88:74",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "88:91-0-88:74-clip",
+        "source": "88:91",
+        "sourceHandle": "CLIP",
+        "target": "88:74",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "88:76-0-88:75-switch",
+        "source": "88:76",
+        "sourceHandle": "BOOLEAN",
+        "target": "88:75",
+        "targetHandle": "switch",
+        "ui_properties": null
+      },
+      {
+        "id": "88:78-0-88:75-on_false",
+        "source": "88:78",
+        "sourceHandle": "STRING",
+        "target": "88:75",
+        "targetHandle": "on_false",
+        "ui_properties": null
+      },
+      {
+        "id": "88:74-0-88:75-on_true",
+        "source": "88:74",
+        "sourceHandle": "generated_text",
+        "target": "88:75",
+        "targetHandle": "on_true",
+        "ui_properties": null
+      },
+      {
+        "id": "88:83-0-88:94-string",
+        "source": "88:83",
+        "sourceHandle": "STRING",
+        "target": "88:94",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "88:92-0-88:94-replace",
+        "source": "88:92",
+        "sourceHandle": "STRING",
+        "target": "88:94",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "88:94-0-88:95-string",
+        "source": "88:94",
+        "sourceHandle": "STRING",
+        "target": "88:95",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "88:93-0-88:95-replace",
+        "source": "88:93",
+        "sourceHandle": "STRING",
+        "target": "88:95",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "88:75-0-88:97-source",
+        "source": "88:75",
+        "sourceHandle": "output",
+        "target": "88:97",
+        "targetHandle": "source",
+        "ui_properties": null
+      }
+    ]
+  }
+}

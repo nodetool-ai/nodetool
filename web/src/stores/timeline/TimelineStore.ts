@@ -3526,12 +3526,17 @@ export const createTimelineStore = (
         ) =>
           set((state) => {
             const editable = editableTransitionTargets(state, clipIds);
+            const editableNeighbours = editableTransitionTargets(
+              state,
+              new Set(state.clips.map((clip) => clip.id))
+            );
             const growth = transitionGrowthOptions(state);
             const clips = applyAudioCrossfades(
               state.clips,
               editable,
               durationMs,
               {
+                canEdit: (clip) => editableNeighbours.has(clip.id),
                 canExtend: growth.canExtend,
                 sourceDurationMs: growth.sourceDurationMs
               }

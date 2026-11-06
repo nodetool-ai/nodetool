@@ -1,0 +1,108 @@
+{
+  "id": "4247f168ff4957d4bd5e99979bd4cf69",
+  "name": "Comfy Image Upscale- Nano Banana Pro Illustration",
+  "description": "Upload a stylized art or illustration. Generate a creatively upscaled 4K image with enhanced detail using the Nano Banana Pro model, ideal for marketing or gaming assets. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Image Upscale- Nano Banana Pro Illustration\n\nUpload a stylized art or illustration. Generate a creatively upscaled 4K image with enhanced detail using the Nano Banana Pro model, ideal for marketing or gaming assets. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_nanobanana_pro_illustration_upscale.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "2",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "downhill_run.jpg"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "prompt": "upscale this. refine details. preserve text. retain composition.",
+          "model": "gemini-3-pro-image-preview",
+          "seed": 380111496691105,
+          "aspect_ratio": "auto",
+          "resolution": "4K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-4-images",
+        "source": "2",
+        "sourceHandle": "IMAGE",
+        "target": "4",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "4-0-5-images",
+        "source": "4",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

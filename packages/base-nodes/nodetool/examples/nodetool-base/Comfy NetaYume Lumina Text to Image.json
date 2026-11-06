@@ -1,0 +1,403 @@
+{
+  "id": "fab8112d200425bb8ea2d2c12daecd4f",
+  "name": "Comfy NetaYume Lumina Text to Image",
+  "description": "High-quality anime-style image generation with enhanced character understanding and detailed textures. Fine-tuned from Neta Lumina on Danbooru dataset. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "image",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy NetaYume Lumina Text to Image\n\nHigh-quality anime-style image generation with enhanced character understanding and detailed textures. Fine-tuned from Neta Lumina on Danbooru dataset. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/image_netayume_lumina_t2i.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "9",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "NetaYume_Lumina_3.5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:31",
+        "type": "comfy.EmptySD3LatentImage",
+        "data": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "EmptySD3LatentImage"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:32",
+        "type": "comfy.ModelSamplingAuraFlow",
+        "data": {
+          "shift": 4,
+          "sampling": "flow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "ModelSamplingAuraFlow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:33",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 0,
+          "steps": 30,
+          "cfg": 4,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:34",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "NetaYumev35_pretrained_all_in_one.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:35:40",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:35:41",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "You are an assistant designed to generate low-quality images based on textual prompts <Prompt Start> "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "System prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:35:42",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "System prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:35:43",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Negative Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:36",
+        "type": "comfy.VAEDecode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:49",
+        "type": "comfy.StringConcatenate",
+        "data": {
+          "delimiter": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Concatenate Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:50",
+        "type": "comfy.CLIPTextEncode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "CLIP Text Encode (Positive Prompt)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:51",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "@comfyanonymous, \"Warm and cheerful digital illustration of a girl standing in the middle of an orange grove, surrounded by lush green leaves and ripe, vibrant oranges hanging from the trees. She has chestnut-brown hair tied in a single loose braid draped over her shoulder, with soft bangs framing her bright, smiling face.\n Her expression is full of joy and sunshine—eyes squinting slightly, mouth open in a wide, carefree smile, radiating pure happiness. She wears a crisp white blouse underneath a black jacket, slightly unbuttoned for a relaxed look. The sunlight filters through the leaves above, casting dappled golden light on her hair and shoulders, creating a warm, inviting atmosphere.\n  A few oranges hang close to her head, and one or two lie on the ground around her feet. The background features soft-focus trees stretching into the distance, with sunlight breaking through the foliage. The art style is painterly and soft, emphasizing the natural setting and the girl's radiant, wholesome charm.\""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "48:52",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {
+          "value": "You are an assistant designed to generate high quality anime images based on textual prompts. <Prompt Start> "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "System prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "48:36-0-9-images",
+        "source": "48:36",
+        "sourceHandle": "IMAGE",
+        "target": "9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "48:34-0-48:32-model",
+        "source": "48:34",
+        "sourceHandle": "MODEL",
+        "target": "48:32",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "48:32-0-48:33-model",
+        "source": "48:32",
+        "sourceHandle": "MODEL",
+        "target": "48:33",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "48:50-0-48:33-positive",
+        "source": "48:50",
+        "sourceHandle": "CONDITIONING",
+        "target": "48:33",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "48:35:43-0-48:33-negative",
+        "source": "48:35:43",
+        "sourceHandle": "CONDITIONING",
+        "target": "48:33",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "48:31-0-48:33-latent_image",
+        "source": "48:31",
+        "sourceHandle": "LATENT",
+        "target": "48:33",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "48:35:41-0-48:35:40-string_a",
+        "source": "48:35:41",
+        "sourceHandle": "STRING",
+        "target": "48:35:40",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "48:35:42-0-48:35:40-string_b",
+        "source": "48:35:42",
+        "sourceHandle": "STRING",
+        "target": "48:35:40",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "48:35:40-0-48:35:43-text",
+        "source": "48:35:40",
+        "sourceHandle": "STRING",
+        "target": "48:35:43",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "48:34-1-48:35:43-clip",
+        "source": "48:34",
+        "sourceHandle": "CLIP",
+        "target": "48:35:43",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "48:33-0-48:36-samples",
+        "source": "48:33",
+        "sourceHandle": "LATENT",
+        "target": "48:36",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "48:34-2-48:36-vae",
+        "source": "48:34",
+        "sourceHandle": "VAE",
+        "target": "48:36",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "48:52-0-48:49-string_a",
+        "source": "48:52",
+        "sourceHandle": "STRING",
+        "target": "48:49",
+        "targetHandle": "string_a",
+        "ui_properties": null
+      },
+      {
+        "id": "48:51-0-48:49-string_b",
+        "source": "48:51",
+        "sourceHandle": "STRING",
+        "target": "48:49",
+        "targetHandle": "string_b",
+        "ui_properties": null
+      },
+      {
+        "id": "48:49-0-48:50-text",
+        "source": "48:49",
+        "sourceHandle": "STRING",
+        "target": "48:50",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "48:34-1-48:50-clip",
+        "source": "48:34",
+        "sourceHandle": "CLIP",
+        "target": "48:50",
+        "targetHandle": "clip",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -2222,7 +2222,7 @@ for the setup guide.
 ```bash
 # Register the stdio server with every client found on this machine.
 # Without a global install:
-npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
+npx -y @nodetool-ai/cli-mcp install
 
 # Register for Claude Code only
 nodetool-mcp install --claude
@@ -2256,7 +2256,7 @@ nodetool-mcp uninstall
 `install` starts the server once before it writes a config, so a broken
 command never reaches a client config. The stdio entry runs `nodetool-mcp serve`
 when the MCP executable is first on `PATH`, else
-`npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp serve`.
+`npx -y @nodetool-ai/cli-mcp serve`.
 
 HTTP MCP (`/mcp`) needs the classic API server (`nodetool server serve` from `cli-server`). `nodetool-mcp serve`
 uses stdio for the client and forwards to the local API server when its MCP
@@ -2526,7 +2526,7 @@ worker bills by the minute, so `stop` is part of the workflow, not cleanup you
 get to postpone.
 
 **Subcommands:** `profile` (`add`, `list`, `rm`), `create`, `list`, `status`,
-`token`, `stop`, `models`
+`token`, `stop`, `terminate`, `models`
 
 **Options:**
 
@@ -2538,6 +2538,11 @@ get to postpone.
 - `--disk <gb>` — persistent volume size, which holds the model cache (default `100`).
 - `--token-policy <generate|fixed>` — default `generate`.
 - `--profile <name>` / `--attach` — for `create`.
+- `--comfy [port]` — run an unmodified ComfyUI image on RunPod and publish this
+  port (default `8188`). See [ComfyUI setup](comfyui-setup.md#expose-comfyui-yourself).
+- `--template <id>` — with `--comfy`, use a RunPod template instead of `--image`.
+- `--ready-timeout <minutes>` — for `create` with `--comfy`: how long to wait for
+  ComfyUI (default `10`).
 - `--all` — for `stop`, stops every non-stopped worker.
 - `--json` — for `list` and `profile list`.
 
@@ -2552,6 +2557,9 @@ nodetool worker create --profile hf-a40 --attach
 nodetool worker list
 nodetool worker status <instance-id>
 nodetool worker stop --all
+
+# Destroy one worker and its volume, which stops all billing
+nodetool worker terminate <instance-id>
 ```
 
 `token <id>` prints one worker's bearer token and nothing else — no table, no
@@ -2976,8 +2984,8 @@ install the recorded pack and runtime set for the new version.
 `run`, `debug`, `node run` and `workflows run` accept `--install-missing`.
 `NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing
 npm requirements and re-execute once, forwarding the child exit code. Serve,
-MCP and agent tools do not install packages automatically. External runtimes
-such as yt-dlp and Python require their own setup.
+MCP and agent tools do not install packages automatically. Install external
+runtimes such as yt-dlp and Python with [`nodetool runtime add`](#nodetool-runtime).
 
 See the [pack-system design](cli-pack-system-design.md#15-command-surface)
 for installation boundaries and the platform matrix.
@@ -3020,6 +3028,31 @@ Everything that stops a module short of admission is a named skip, not an
 error: `npm-module-builtin-import` (the dependency needs `node:*`),
 `npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
 `npm-module-forbidden-global`, and `npm-module-probe-failed`.
+
+### `nodetool runtime`
+
+Install the optional software that features load by id. The `cli-admin`
+command feature provides it. The installer is
+[`@nodetool-ai/runtime-install`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime-install/README.md), the
+one the desktop Package Manager uses, so both hosts apply the same pins and
+install policy.
+
+| Command | Behavior |
+|---|---|
+| `runtime list [--json]` | Show every runtime package, whether it is installed, and the conda environment path. |
+| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `wan2gp`, and the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`). Dependencies install first. `--reinstall` installs an installed conda or uv package again. |
+| `runtime remove <ids...>` | Uninstall the packages. |
+| `runtime path` | Print the npm root runtime libraries install into. |
+| `runtime python-packs list [--json]` | Show the Python node packs in the Python runtime. |
+| `runtime python-packs add <packs...>` | Install the newest release of each pack, such as `nodetool-huggingface`. Installs Python first when it is missing. |
+| `runtime python-packs update <packs...>` | Reinstall each pack at its newest release. |
+| `runtime python-packs remove <packs...>` | Uninstall each pack. |
+
+`python`, `yt-dlp` and `rust` install into the conda environment that
+`settings.yaml` records as `CONDA_ENV`, which the desktop app shares. The CLI
+downloads micromamba into its data directory to create it. Python pack
+installs keep every installed pack in each resolve and take torch from the
+detected PyTorch index, with a CPU fallback.
 
 ### `nodetool reliability`
 

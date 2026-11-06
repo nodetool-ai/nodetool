@@ -4,6 +4,18 @@ import fi from "../locales/fi.json";
 import ru from "../locales/ru.json";
 import zhCN from "../locales/zh-CN.json";
 
+import es from "../locales/es.json";
+import pt from "../locales/pt.json";
+import fr from "../locales/fr.json";
+import italian from "../locales/it.json";
+import pl from "../locales/pl.json";
+import sv from "../locales/sv.json";
+import nb from "../locales/nb.json";
+import nl from "../locales/nl.json";
+import ko from "../locales/ko.json";
+import ja from "../locales/ja.json";
+import hi from "../locales/hi.json";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -61,7 +73,18 @@ it.each([
   ["de", de],
   ["fi", fi],
   ["ru", ru],
-  ["zh-CN", zhCN]
+  ["zh-CN", zhCN],
+  ["es", es],
+  ["pt", pt],
+  ["fr", fr],
+  ["it", italian],
+  ["pl", pl],
+  ["sv", sv],
+  ["nb", nb],
+  ["nl", nl],
+  ["ko", ko],
+  ["ja", ja],
+  ["hi", hi]
 ])(
   "keeps English and %s catalog keys and interpolation names in sync",
   (locale, catalog) => {

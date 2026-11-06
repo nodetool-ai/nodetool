@@ -195,11 +195,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-mockups",
-                        "binding": "op:mockups/exec#progress",
-                        "label": "Staging your mockups…"
+                        "operationId": "mockups",
+                        "label": "Staging your mockups…",
+                        "steps": []
                       }
                     },
                     {
@@ -382,11 +383,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-video",
-                        "binding": "op:video/exec#progress",
-                        "label": "Producing your spot…"
+                        "operationId": "video",
+                        "label": "Producing your spot…",
+                        "steps": []
                       }
                     },
                     {

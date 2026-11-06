@@ -1,0 +1,302 @@
+{
+  "id": "9173b57e7257cd161bfda8e9e222a3d4",
+  "name": "Comfy Video Upscale- SeedVR2",
+  "description": "Upload a video to upscale and enhance its resolution using the SeedVR2 model for high-definition output. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Upscale- SeedVR2\n\nUpload a video to upscale and enhance its resolution using the SeedVR2 model for high-definition output. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/utility_seedvr2_video_upscale.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "16",
+        "type": "comfy.CreateVideo",
+        "data": {
+          "bit_depth": 8,
+          "color_space": "sRGB",
+          "codec": "none"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Create Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "17",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/SeedVR2",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "input_3d.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19",
+        "type": "comfy.GetVideoComponents",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Video Components"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.ImageScale",
+        "data": {
+          "upscale_method": "lanczos",
+          "width": 1280,
+          "height": 720,
+          "crop": "center"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Upscale Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22",
+        "type": "comfy.ImageFromBatch",
+        "data": {
+          "batch_index": 0,
+          "length": 96
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Get Image from Batch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15:5",
+        "type": "comfy.SeedVR2LoadDiTModel",
+        "data": {
+          "model": "seedvr2_ema_7b_fp16.safetensors",
+          "device": "cuda:0",
+          "blocks_to_swap": 0,
+          "swap_io_components": false,
+          "offload_device": "none",
+          "cache_model": false,
+          "attention_mode": "sdpa"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "SeedVR2 (Down)Load DiT Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15:4",
+        "type": "comfy.SeedVR2VideoUpscaler",
+        "data": {
+          "seed": 825616700,
+          "resolution": 1080,
+          "max_resolution": 0,
+          "batch_size": 5,
+          "uniform_batch_size": false,
+          "color_correction": "lab",
+          "temporal_overlap": 0,
+          "prepend_frames": 0,
+          "input_noise_scale": 0,
+          "latent_noise_scale": 0,
+          "offload_device": "cpu",
+          "enable_debug": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "SeedVR2 Video Upscaler (v2.5.24)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "15:6",
+        "type": "comfy.SeedVR2LoadVAEModel",
+        "data": {
+          "model": "ema_vae_fp16.safetensors",
+          "device": "cuda:0",
+          "encode_tiled": false,
+          "encode_tile_size": 1024,
+          "encode_tile_overlap": 128,
+          "decode_tiled": false,
+          "decode_tile_size": 1024,
+          "decode_tile_overlap": 128,
+          "tile_debug": "false",
+          "offload_device": "none",
+          "cache_model": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "SeedVR2 (Down)Load VAE Model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "19-2-16-fps",
+        "source": "19",
+        "sourceHandle": "fps",
+        "target": "16",
+        "targetHandle": "fps",
+        "ui_properties": null
+      },
+      {
+        "id": "15:4-0-16-images",
+        "source": "15:4",
+        "sourceHandle": "IMAGE",
+        "target": "16",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "19-1-16-audio",
+        "source": "19",
+        "sourceHandle": "audio",
+        "target": "16",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "16-0-17-video",
+        "source": "16",
+        "sourceHandle": "VIDEO",
+        "target": "17",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-19-video",
+        "source": "18",
+        "sourceHandle": "VIDEO",
+        "target": "19",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "22-0-20-image",
+        "source": "22",
+        "sourceHandle": "IMAGE",
+        "target": "20",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "19-0-22-image",
+        "source": "19",
+        "sourceHandle": "images",
+        "target": "22",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "20-0-15:4-image",
+        "source": "20",
+        "sourceHandle": "IMAGE",
+        "target": "15:4",
+        "targetHandle": "image",
+        "ui_properties": null
+      },
+      {
+        "id": "15:5-0-15:4-dit",
+        "source": "15:5",
+        "sourceHandle": "SEEDVR2_DIT",
+        "target": "15:4",
+        "targetHandle": "dit",
+        "ui_properties": null
+      },
+      {
+        "id": "15:6-0-15:4-vae",
+        "source": "15:6",
+        "sourceHandle": "SEEDVR2_VAE",
+        "target": "15:4",
+        "targetHandle": "vae",
+        "ui_properties": null
+      }
+    ]
+  }
+}

@@ -5494,6 +5494,638 @@
     ]
   },
   {
+    "className": "Seedream5FlashTextToImage",
+    "moduleName": "image",
+    "modelId": "seedream/5-flash-text-to-image",
+    "title": "Seedream5.0 Flash - Text to Image",
+    "description": "Seedream5.0 Flash - Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    High-quality photorealistic image generation powered by Seedream's advanced AI model",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt, 4–5000 characters.",
+        "required": true,
+        "min": 4,
+        "max": 5000
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "",
+        "title": "Aspect Ratio",
+        "description": "Required. Width-height ratio of the image, determining its visual form.",
+        "required": true,
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "2:3",
+          "3:2",
+          "21:9"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1K",
+        "title": "Size",
+        "description": "Resolution level of the output image.",
+        "required": false,
+        "values": [
+          "1K",
+          "1.5K",
+          "2K"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "",
+        "title": "Output Format",
+        "description": "Output image format. Set this field explicitly.",
+        "required": false,
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "nsfw_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Nsfw Checker",
+        "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+        "required": false
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      },
+      {
+        "field": "aspect_ratio",
+        "rule": "not_empty",
+        "message": "Aspect Ratio is required"
+      }
+    ]
+  },
+  {
+    "className": "Seedream5FlashImageToImage",
+    "moduleName": "image",
+    "modelId": "seedream/5-flash-image-to-image",
+    "title": "Seedream5.0 Flash - Image to Image",
+    "description": "Seedream5.0 Flash - Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    Image editing with Seedream 5.0 Flash",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt, 4–5000 characters.",
+        "required": true,
+        "min": 4,
+        "max": 5000
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Upload an image file to use as input for the API (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+        "required": true,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "",
+        "title": "Aspect Ratio",
+        "description": "Required. Width-height ratio of the image, determining its visual form.",
+        "required": true,
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "2:3",
+          "3:2",
+          "21:9"
+        ]
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "1K",
+        "title": "Size",
+        "description": "Resolution level of the output image.",
+        "required": false,
+        "values": [
+          "1K",
+          "1.5K",
+          "2K"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "",
+        "title": "Output Format",
+        "description": "Output image format. Set this field explicitly.",
+        "required": false,
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "nsfw_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Nsfw Checker",
+        "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+        "required": false
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "paramName": "image_urls",
+        "isList": true
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      },
+      {
+        "field": "aspect_ratio",
+        "rule": "not_empty",
+        "message": "Aspect Ratio is required"
+      }
+    ]
+  },
+  {
+    "className": "Seedream5FlashLayerDecomposition",
+    "moduleName": "image",
+    "modelId": "seedream/5-flash-layer-decomposition",
+    "title": "Seedream5.0 Flash -  Layer Decomposition",
+    "description": "Seedream5.0 Flash -  Layer Decomposition via Kie.ai.\n\n    kie, image, ai\n\n    Layer decomposition with Seedream 5.0 Flash: split an image into a base image and separate layers.",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional prompt for layer separation. - When a prompt is provided, the model separates the specified elements based on the prompt - When no prompt is provided, the model automatically identifies the main elements in the image - Supports using `<bbox>x1 y1 x2 y2</bbox>` to precisely specify element positions, recommending the use of normalized coordinates in the 0-1000 range - Length: 4–5000 characters",
+        "required": false,
+        "min": 4,
+        "max": 5000
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "The source image URL for layer separation. - Must upload exactly 1 image - Supported formats: PNG, JPEG. - Image size must not exceed 30 MB - Total pixel range is 262,144-36,000,000 - Aspect ratio range is 1:16-16:1",
+        "required": true,
+        "min": 262,
+        "max": 144
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "auto",
+        "title": "Size",
+        "description": "Resolution level of the output image. The base image maintains the aspect ratio of the input image, and each separated layer maintains the aspect ratio of the corresponding element in the original image. - `auto`: Automatically selected based on the input image size - `1K`: 1K resolution level - `1.5K`: 1.5K resolution level - `2K`: 2K resolution level",
+        "required": false,
+        "values": [
+          "auto",
+          "1K",
+          "1.5K",
+          "2K"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "Output format of the base image. This parameter only controls the base image format; all separated layers are fixed to output as PNG.",
+        "required": false,
+        "values": [
+          "png",
+          "jpeg"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      }
+    ]
+  },
+  {
+    "className": "GoogleNanoBanana21",
+    "moduleName": "image",
+    "modelId": "nano-banana-2-1",
+    "title": "Google - Nano Banana 2.1",
+    "description": "Google - Nano Banana 2.1 via Kie.ai.\n\n    kie, image, ai\n\n    Image generation by Nano Banana 2.1",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "A text description of the image you want to generate (Max length: 20000 characters)",
+        "required": true,
+        "max": 20000
+      },
+      {
+        "name": "image_input",
+        "type": "list[image]",
+        "default": [],
+        "title": "Image Input",
+        "description": "Input images to transform or use as reference (supports up to 10 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+        "required": false,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image",
+        "required": false,
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "1:4",
+          "4:1",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "1:8",
+          "8:1",
+          "9:16",
+          "16:9",
+          "21:9",
+          "auto"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Resolution of the generated image",
+        "required": false,
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpg",
+        "title": "Output Format",
+        "description": "Format of the output image",
+        "required": false,
+        "values": [
+          "png",
+          "jpg"
+        ]
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image_input",
+        "kind": "image",
+        "paramName": "image_input",
+        "isList": true
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Flux3KleinTextToImage",
+    "moduleName": "image",
+    "modelId": "flux-3/klein-text-to-image",
+    "title": "FLUX 3 Klein Text to Image",
+    "description": "FLUX 3 Klein Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    FLUX 3 Klein Text to Image",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "A text description of the image you want to generate (Max length: 5000 characters)",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image Options: 1:1; 4:3; 3:4; 3:2; 2:3; 16:9; 9:16; 21:9; 9:21",
+        "required": false,
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "21:9",
+          "9:21"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Resolution of the generated image Options: 1K; 2K; 4K",
+        "required": false,
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 0,
+        "title": "Width",
+        "description": "Image width. Both width and height must be passed at the same time. Aspect ratio must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+        "required": false,
+        "min": 256,
+        "max": 4096
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 0,
+        "title": "Height",
+        "description": "Image height. Both width and height must be passed at the same time. Aspect ratio must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+        "required": false,
+        "min": 256,
+        "max": 4096
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Format of the output image Options: png; jpeg; webp",
+        "required": false,
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Num Images",
+        "description": "Number of images to generate",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "enhance_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Enhance Prompt",
+        "description": "Rewrites the prompt into a fuller description before generating, which noticeably improves quality. Enabled by default (also when the parameter is omitted); pass false to turn it off. Applies to both text-to-image and image editing; in editing, the rewrite preserves the intent of the original instruction.",
+        "required": false
+      },
+      {
+        "name": "nsfw_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Nsfw Checker",
+        "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+        "required": false
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Flux3KleinEditImage",
+    "moduleName": "image",
+    "modelId": "flux-3/klein-edit-image",
+    "title": "FLUX 3 Klein Edit Image",
+    "description": "FLUX 3 Klein Edit Image via Kie.ai.\n\n    kie, image, ai\n\n    FLUX 3 Klein Edit Image",
+    "outputType": "image",
+    "pollInterval": 1500,
+    "maxAttempts": 400,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "An instruction describing how to edit the image (Max length: 5000 characters)",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Input images to transform or use as reference (supports up to 10 images) (File URL after upload, not file content; Accepted types: image/jpeg, image/png, image/webp; Max size: 30.0MB)",
+        "required": true,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image. Select auto to match the first input image ratio. Options: 1:1; 4:3; 3:4; 3:2; 2:3; 16:9; 9:16; 21:9; 9:21; auto",
+        "required": false,
+        "values": [
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "16:9",
+          "9:16",
+          "21:9",
+          "9:21",
+          "auto"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1K",
+        "title": "Resolution",
+        "description": "Resolution of the generated image Options: 1K; 2K; 4K",
+        "required": false,
+        "values": [
+          "1K",
+          "2K",
+          "4K"
+        ]
+      },
+      {
+        "name": "width",
+        "type": "int",
+        "default": 0,
+        "title": "Width",
+        "description": "Width of the generated image. Both width and height must be passed at the same time. Must be an integer between 256 and 4096. The aspect ratio (width:height) must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+        "required": false,
+        "min": 256,
+        "max": 4096
+      },
+      {
+        "name": "height",
+        "type": "int",
+        "default": 0,
+        "title": "Height",
+        "description": "Height of the generated image. Both width and height must be passed at the same time. Must be an integer between 256 and 4096. The aspect ratio (width:height) must be between 1:2.5 and 2.5:1. Once passed, aspect_ratio and resolution are ignored.",
+        "required": false,
+        "min": 256,
+        "max": 4096
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "png",
+        "title": "Output Format",
+        "description": "Format of the output image Options: png; jpeg; webp",
+        "required": false,
+        "values": [
+          "png",
+          "jpeg",
+          "webp"
+        ]
+      },
+      {
+        "name": "num_images",
+        "type": "int",
+        "default": 1,
+        "title": "Num Images",
+        "description": "Number of images to generate",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      },
+      {
+        "name": "enhance_prompt",
+        "type": "bool",
+        "default": true,
+        "title": "Enhance Prompt",
+        "description": "Rewrites the prompt into a fuller description before generating, which noticeably improves quality. Enabled by default (also when the parameter is omitted); pass false to turn it off. Applies to both text-to-image and image editing; in editing, the rewrite preserves the intent of the original instruction.",
+        "required": false
+      },
+      {
+        "name": "nsfw_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Nsfw Checker",
+        "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+        "required": false
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "paramName": "image_urls",
+        "isList": true
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
     "className": "ElevenlabsAudioIsolation",
     "moduleName": "audio",
     "modelId": "elevenlabs/audio-isolation",
@@ -8541,6 +9173,149 @@
         "field": "model",
         "rule": "not_empty",
         "message": "Model is required"
+      }
+    ]
+  },
+  {
+    "className": "Gemini38FlashTts",
+    "moduleName": "audio",
+    "modelId": "google/gemini-3-8-flash-tts",
+    "title": "Gemini 3.8 Flash Text to speech",
+    "description": "Gemini 3.8 Flash Text to speech via Kie.ai.\n\n    kie, audio, ai\n\n    Text-to-speech with Gemini 3.8 Flash.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Sampling temperature, e.g., 1",
+        "required": false,
+        "min": 0,
+        "max": 2
+      },
+      {
+        "name": "speakers",
+        "type": "list[dict]",
+        "default": [],
+        "title": "Speakers",
+        "description": "List of speaker configurations. Each speaker uses either `voice_name` (preset voice) or `replica` (voice clone); the two are mutually exclusive. If neither is sent, the speaker defaults to `Fola`.",
+        "required": true
+      },
+      {
+        "name": "filler_words",
+        "type": "bool",
+        "default": false,
+        "title": "Filler Words",
+        "description": "Whether to insert filler words in two-speaker dialogue. Off by default (omit this field); when enabled, the request includes `\"filler_words\": true`. Only takes effect when `speakers` has two speakers (e.g. Speaker 1 and Speaker 2). When two people are speaking, you can turn on this switch.",
+        "required": false
+      },
+      {
+        "name": "dialogue_turns",
+        "type": "list[dict]",
+        "default": [],
+        "title": "Dialogue Turns",
+        "description": "List of dialogue turns, output in sequential order",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "Gemini38FlashLiteTts",
+    "moduleName": "audio",
+    "modelId": "google/gemini-3-8-flash-lite-tts",
+    "title": "Gemini 3.8 Flash Lite Text to speech",
+    "description": "Gemini 3.8 Flash Lite Text to speech via Kie.ai.\n\n    kie, audio, ai\n\n    Text-to-speech with Gemini 3.8 Flash Lite.",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "temperature",
+        "type": "float",
+        "default": 1,
+        "title": "Temperature",
+        "description": "Sampling temperature, e.g., 1",
+        "required": false,
+        "min": 0,
+        "max": 2
+      },
+      {
+        "name": "speakers",
+        "type": "list[dict]",
+        "default": [],
+        "title": "Speakers",
+        "description": "List of speaker configurations. Each speaker uses either `voice_name` (preset voice) or `replica` (voice clone); the two are mutually exclusive. If neither is sent, the speaker defaults to `Fola`.",
+        "required": true
+      },
+      {
+        "name": "filler_words",
+        "type": "bool",
+        "default": false,
+        "title": "Filler Words",
+        "description": "Whether to insert filler words in two-speaker dialogue. Off by default (omit this field); when enabled, the request includes `\"filler_words\": true`. Only takes effect when `speakers` has two speakers (e.g. Speaker 1 and Speaker 2). When two people are speaking, you can turn on this switch.",
+        "required": false
+      },
+      {
+        "name": "dialogue_turns",
+        "type": "list[dict]",
+        "default": [],
+        "title": "Dialogue Turns",
+        "description": "List of dialogue turns, output in sequential order",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "AiMusicApiValidationPhrase",
+    "moduleName": "audio",
+    "modelId": "ai-music-api/validation-phrase",
+    "title": "Suno Voice Generate Verification Phrase API",
+    "description": "Suno Voice Generate Verification Phrase API via Kie.ai.\n\n    kie, audio, ai\n\n    :::warning Document updated",
+    "outputType": "audio",
+    "pollInterval": 4000,
+    "maxAttempts": 120,
+    "fields": [
+      {
+        "name": "voice_url",
+        "type": "str",
+        "default": "",
+        "title": "Voice Url",
+        "description": "The original recording URL uploaded by the user [Required]",
+        "required": true
+      },
+      {
+        "name": "vocal_start_s",
+        "type": "int",
+        "default": 0,
+        "title": "Vocal Start S",
+        "description": "Start time (in seconds) for extracting the vocal segment [Required]",
+        "required": true
+      },
+      {
+        "name": "vocal_end_s",
+        "type": "int",
+        "default": 0,
+        "title": "Vocal End S",
+        "description": "End time (in seconds) for extracting the vocal segment, must be greater than vocal_start_s [Required]",
+        "required": true
+      },
+      {
+        "name": "language",
+        "type": "str",
+        "default": "",
+        "title": "Language",
+        "description": "Verify the language of the short phrase. Supported languages ​​include: English (en), Chinese (zh), Spanish (es), French (fr), Portuguese (pt), German (de), Japanese (ja), Korean (ko), Hindi (hi), and Russian (ru).",
+        "required": false
+      }
+    ],
+    "validation": [
+      {
+        "field": "voice_url",
+        "rule": "not_empty",
+        "message": "Voice Url is required"
       }
     ]
   },
@@ -17359,6 +18134,686 @@
         "field": "prompt",
         "rule": "not_empty",
         "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "KlingV25TurboImageToVideoPro",
+    "moduleName": "video",
+    "modelId": "kling/v2-5-turbo-image-to-video-pro",
+    "title": "Kling - V2.5 Turbo Image to Video Pro",
+    "description": "Kling - V2.5 Turbo Image to Video Pro via Kie.ai.\n\n    kie, video, ai\n\n    ## Overview",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The text prompt describing the video to generate (Max length: 2500 characters)",
+        "required": true,
+        "max": 2500
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Image",
+        "description": "URL of the image to be used for the video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+        "required": true
+      },
+      {
+        "name": "tail_image",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Tail Image",
+        "description": "Tail frame image of video (File URL after upload, not file content; Accepted types: image/jpeg, image/png; Max size: 10.0MB)",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "type": "enum",
+        "default": "",
+        "title": "Duration",
+        "description": "Required. \"5\" or \"10\" (seconds).",
+        "required": true,
+        "values": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "type": "str",
+        "default": "",
+        "title": "Negative Prompt",
+        "description": "Negative prompt to exclude certain elements from the video (Max length: 2,496 characters)",
+        "required": false,
+        "min": 2,
+        "max": 2496
+      },
+      {
+        "name": "cfg_scale",
+        "type": "float",
+        "default": 0.5,
+        "title": "Cfg Scale",
+        "description": "The CFG (Classifier Free Guidance) scale is a measure of how close you want the model to stick to your prompt (Min: 0, Max: 1, Step: 0.1) (step: 0.1)",
+        "required": false,
+        "min": 0,
+        "max": 1
+      }
+    ],
+    "uploads": [
+      {
+        "field": "image",
+        "kind": "image",
+        "paramName": "image_url"
+      },
+      {
+        "field": "tail_image",
+        "kind": "image",
+        "paramName": "tail_image_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      },
+      {
+        "field": "duration",
+        "rule": "not_empty",
+        "message": "Duration is required"
+      }
+    ]
+  },
+  {
+    "className": "Kling40ReferenceToVideo",
+    "moduleName": "video",
+    "modelId": "kling-4.0/reference-to-video",
+    "title": "Kling 4.0 Reference To Video",
+    "description": "Kling 4.0 Reference To Video via Kie.ai.\n\n    kie, video, ai\n\n    Generate videos with Kling 4.0 from reference images, reference videos, elements, and voices. Reference your materials in the prompt using `@image_1`, `@video_1`, or custom `@name` tags.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Video description. Required. Maximum 8000 characters. Use `@` to mention assets uploaded in this request: - `@image_1`, `@image_2`, … map to `image_urls` in order (1-based) - `@video_1`, `@video_2`, … map to `video_urls` - `@name` maps to the `name` of an item in `elements` or `voices` Every `@` mention must match an asset included in this request, otherwise the request is rejected. Mentions use longest-match against declared names. If the matched name ends with a letter, digit, or underscore, the next character cannot be a letter, digit, or underscore.",
+        "required": true,
+        "min": 1,
+        "max": 8000
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Output video duration in seconds. Integer from 3 to 30. Default: `5`.",
+        "required": false,
+        "min": 3,
+        "max": 30
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Output resolution. `720p` or `1080p`. Default: `720p`.",
+        "required": false,
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "",
+        "title": "Aspect Ratio",
+        "description": "Output aspect ratio. Optional. - If omitted and any reference asset is provided, the model uses `auto` - If omitted and no reference asset is provided, the model uses `16:9`",
+        "required": false,
+        "values": [
+          "auto",
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ]
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Reference images, up to 10 publicly accessible URLs. Mention them in the prompt as `@image_1`, `@image_2`, … in array order. Each side must be 300–65536 pixels; aspect ratio 0.40–2.5.",
+        "required": false,
+        "max": 10
+      },
+      {
+        "name": "videos",
+        "type": "list[video]",
+        "default": [],
+        "title": "Videos",
+        "description": "Reference videos, up to 5 clips, each 2–30 seconds. Mention them in the prompt as `@video_1`, `@video_2`, …. Reference videos plus video subjects in `elements` cannot exceed 5 in total.",
+        "required": false,
+        "max": 5
+      },
+      {
+        "name": "keep_original_sound",
+        "type": "bool",
+        "default": false,
+        "title": "Keep Original Sound",
+        "description": "Whether to keep the original audio of the reference videos. Only takes effect when `video_urls` is provided. Default: `false`. If no reference video is provided, native audio is always generated.",
+        "required": false
+      },
+      {
+        "name": "elements",
+        "type": "list[dict]",
+        "default": [],
+        "title": "Elements",
+        "description": "Subjects used only for this task. Up to 7 items, of which at most 3 can be video subjects. Mention them in the prompt as `@name`. `image_urls`, `video_urls`, `elements`, and `voices` together cannot exceed 15 items.",
+        "required": false,
+        "max": 7
+      },
+      {
+        "name": "voices",
+        "type": "list[dict]",
+        "default": [],
+        "title": "Voices",
+        "description": "Standalone voice references used only for this task. Up to 3 items. Mention them in the prompt as `@name`. Audio bound on a subject via `voice_url` is separate and does not count toward this quota.",
+        "required": false,
+        "max": 3
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "paramName": "image_urls",
+        "isList": true
+      },
+      {
+        "field": "videos",
+        "kind": "video",
+        "paramName": "video_urls",
+        "isList": true
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "Kling40KeyframeToVideo",
+    "moduleName": "video",
+    "modelId": "kling-4.0/keyframe-to-video",
+    "title": "Kling 4.0 Keyframe To Video",
+    "description": "Kling 4.0 Keyframe To Video via Kie.ai.\n\n    kie, video, ai\n\n    Generate a video from first, middle, and last keyframe images with Kling 4.0. Mention frames in the prompt using `@first_frame`, `@keyframe_1`, and `@last_frame`.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Video description. Required. Maximum 8000 characters. Use `@first_frame`, `@keyframe_1`, `@keyframe_2`, …, `@last_frame` to mention frames that you uploaded in this request. You can only mention frames that are actually provided. Every `@` mention must match an asset included in this request, otherwise the request is rejected. Mentions use longest-match against declared names. If the matched name ends with a letter, digit, or underscore, the next character cannot be a letter, digit, or underscore.",
+        "required": true,
+        "min": 1,
+        "max": 8000
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration",
+        "description": "Output video duration in seconds. Integer from 3 to 30. Default: `5`. Also caps the total number of frames (first + middle + last): - 3 s → 4 frames - 4 s → 5 frames - 5 s → 6 frames - 6 s → 7 frames - 7 s → 8 frames - 8 s → 9 frames - 9 s or longer → 10 frames",
+        "required": false,
+        "min": 3,
+        "max": 30
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Output resolution. `720p` or `1080p`. Default: `720p`.",
+        "required": false,
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "",
+        "title": "Aspect Ratio",
+        "description": "Output aspect ratio. Only used when no frame is provided (text-to-video); default is `16:9`. If any frame is provided, the output follows the first frame's aspect ratio.",
+        "required": false,
+        "values": [
+          "auto",
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ]
+      },
+      {
+        "name": "first_frame",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "First Frame",
+        "description": "First-frame image URL. Mention it in the prompt as `@first_frame`.",
+        "required": false
+      },
+      {
+        "name": "keyframes",
+        "type": "list[image]",
+        "default": [],
+        "title": "Keyframes",
+        "description": "Middle-frame image URLs, in chronological order. Up to 8 images, also limited by `duration`. Mention them in the prompt as `@keyframe_1`, `@keyframe_2`, ….",
+        "required": false,
+        "max": 8
+      },
+      {
+        "name": "last_frame",
+        "type": "image",
+        "default": {
+          "type": "image",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Last Frame",
+        "description": "Last-frame image URL. Mention it in the prompt as `@last_frame`.",
+        "required": false
+      }
+    ],
+    "uploads": [
+      {
+        "field": "first_frame",
+        "kind": "image",
+        "paramName": "first_frame_url"
+      },
+      {
+        "field": "keyframes",
+        "kind": "image",
+        "paramName": "keyframe_urls",
+        "isList": true
+      },
+      {
+        "field": "last_frame",
+        "kind": "image",
+        "paramName": "last_frame_url"
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      }
+    ]
+  },
+  {
+    "className": "BytedanceSeedance25Draft",
+    "moduleName": "video",
+    "modelId": "bytedance/seedance-2-5-draft",
+    "title": "Bytedance Seedance 2.5 Draft",
+    "description": "Bytedance Seedance 2.5 Draft via Kie.ai.\n\n    kie, video, ai\n\n    ## Query Task Status",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "draft_task_id",
+        "type": "str",
+        "default": "",
+        "title": "Draft Task Id",
+        "description": "task id from model seedance 2.5 generation task. Valid for 7 days from draft creation.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "",
+        "title": "Resolution",
+        "description": "output video resolution.",
+        "required": true,
+        "values": [
+          "1080p"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "",
+        "title": "Output Format",
+        "description": "ouput video format.",
+        "required": false,
+        "values": [
+          "mp4",
+          "mov"
+        ]
+      },
+      {
+        "name": "return_last_frame",
+        "type": "bool",
+        "default": false,
+        "title": "Return Last Frame",
+        "description": "Whether to also return the last frame of the generated video as a JPEG (in resultJson.lastFrameUrl). Default false.",
+        "required": false
+      },
+      {
+        "name": "nsfw_checker",
+        "type": "bool",
+        "default": false,
+        "title": "Nsfw Checker",
+        "description": "Defaults to false. When false, no additional content filtering is applied and results are returned directly by the model.",
+        "required": false
+      }
+    ],
+    "validation": [
+      {
+        "field": "draft_task_id",
+        "rule": "not_empty",
+        "message": "Draft Task Id is required"
+      },
+      {
+        "field": "resolution",
+        "rule": "not_empty",
+        "message": "Resolution is required"
+      }
+    ]
+  },
+  {
+    "className": "PixverseV6MaxTextToVideo",
+    "moduleName": "video",
+    "modelId": "pixverse-v6-max/text-to-video",
+    "title": "PixVerse V6 Max Text-to-Video",
+    "description": "PixVerse V6 Max Text-to-Video via Kie.ai.\n\n    kie, video, ai\n\n    PixVerse V6 Max text-to-video. Generate cinematic video up to 15 seconds at up to 1080p, with optional native audio synchronized to the picture.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Generation prompt. Required. Cannot be empty. Maximum 5000 characters.",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "",
+        "title": "Aspect Ratio",
+        "description": "Required. Output video aspect ratio. This field is only used for text-to-video. Do not send it for image-to-video.",
+        "required": true,
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "2:3",
+          "3:2",
+          "21:9"
+        ]
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "",
+        "title": "Quality",
+        "description": "Required. Output video resolution. Supports 360p, 540p, 720p, and 1080p. Case-insensitive.",
+        "required": true,
+        "values": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 0,
+        "title": "Duration",
+        "description": "Required. Output video duration in seconds. PixVerse V6 Max supports 1–15 seconds.",
+        "required": true,
+        "min": 1,
+        "max": 15
+      },
+      {
+        "name": "generate_audio_switch",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio Switch",
+        "description": "Whether to generate native audio synchronized with the video. Default is false.",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed, range 0–2147483647. Using the same parameters and seed improves reproducibility. If omitted, a random seed is used.",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      },
+      {
+        "field": "aspect_ratio",
+        "rule": "not_empty",
+        "message": "Aspect Ratio is required"
+      },
+      {
+        "field": "quality",
+        "rule": "not_empty",
+        "message": "Quality is required"
+      }
+    ]
+  },
+  {
+    "className": "PixverseV6MaxImageToVideo",
+    "moduleName": "video",
+    "modelId": "pixverse-v6-max/image-to-video",
+    "title": "PixVerse V6 Max Image-to-Video",
+    "description": "PixVerse V6 Max Image-to-Video via Kie.ai.\n\n    kie, video, ai\n\n    PixVerse V6 Max image-to-video. Animate a single reference image as the first frame into cinematic video up to 15 seconds at up to 1080p, with optional native audio synchronized to the picture. The output aspect ratio follows the input image; do not send `aspect_ratio`.",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Generation prompt. Required. Cannot be empty. Maximum 5000 characters.",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Required. Input image used as the first frame. The array must contain exactly 1 URL. HTTP, HTTPS, and OSS addresses are supported. Formats: JPG, JPEG, PNG, and WebP. Each side must be ≤ 10,000 px and the file size must be ≤ 20 MB. The output aspect ratio follows this image; do not send `aspect_ratio`.",
+        "required": true,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "name": "quality",
+        "type": "enum",
+        "default": "",
+        "title": "Quality",
+        "description": "Required. Output video resolution. Supports 360p, 540p, 720p, and 1080p. Case-insensitive.",
+        "required": true,
+        "values": [
+          "360p",
+          "540p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 0,
+        "title": "Duration",
+        "description": "Required. Output video duration in seconds. PixVerse V6 Max supports 1–15 seconds.",
+        "required": true,
+        "min": 1,
+        "max": 15
+      },
+      {
+        "name": "generate_audio_switch",
+        "type": "bool",
+        "default": false,
+        "title": "Generate Audio Switch",
+        "description": "Whether to generate native audio synchronized with the video. Default is false.",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "type": "int",
+        "default": 0,
+        "title": "Seed",
+        "description": "Random seed, range 0–2147483647. Using the same parameters and seed improves reproducibility. If omitted, a random seed is used.",
+        "required": false,
+        "min": 0,
+        "max": 2147483647
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "paramName": "image_urls",
+        "isList": true
+      }
+    ],
+    "validation": [
+      {
+        "field": "prompt",
+        "rule": "not_empty",
+        "message": "Prompt is required"
+      },
+      {
+        "field": "quality",
+        "rule": "not_empty",
+        "message": "Quality is required"
+      }
+    ]
+  },
+  {
+    "className": "Omnihuman20",
+    "moduleName": "video",
+    "modelId": "omnihuman-2-0",
+    "title": "Omnihuman 2.0",
+    "description": "Omnihuman 2.0 via Kie.ai.\n\n    kie, video, ai\n\n    ## Create Task",
+    "outputType": "video",
+    "pollInterval": 8000,
+    "maxAttempts": 450,
+    "fields": [
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": [],
+        "title": "Images",
+        "description": "Source image URL. Only **one** image is supported. Pass it as a one-element array. - Formats: jpeg, png, webp, bmp, tiff, gif, heic, heif (`image/jpeg`, `image/png`, `image/webp`, `image/bmp`, `image/tiff`, `image/gif`, `image/heic`, `image/heif`) - Size: less than 30 MB - Aspect ratio (width/height): `[0.4, 2.5]` - Dimension: `[300, 6000]` px",
+        "required": true
+      },
+      {
+        "name": "audio",
+        "type": "audio",
+        "default": {
+          "type": "audio",
+          "uri": "",
+          "asset_id": null,
+          "data": null,
+          "metadata": null
+        },
+        "title": "Audio",
+        "description": "Audio URL that drives motion and lip sync. - Duration: `[4, 300]` seconds - Formats: wav, mp3 (`audio/wav`, `audio/x-wav`, `audio/mpeg`) - Size: less than 15 MB",
+        "required": true,
+        "min": 4,
+        "max": 300
+      },
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text prompt for precise control of the scene, character motion, and camera movement. Supported languages: Chinese, English, Japanese, Korean, Spanish (Mexican), Indonesian. Up to 300 characters.",
+        "required": false,
+        "max": 300
+      },
+      {
+        "name": "enable_watermark",
+        "type": "bool",
+        "default": true,
+        "title": "Enable Watermark",
+        "description": "Whether to add a watermark to the output video. Default: `true` (enabled).",
+        "required": false
+      }
+    ],
+    "uploads": [
+      {
+        "field": "images",
+        "kind": "image",
+        "paramName": "image_urls",
+        "isList": true
+      },
+      {
+        "field": "audio",
+        "kind": "audio",
+        "paramName": "audio_url"
       }
     ]
   }

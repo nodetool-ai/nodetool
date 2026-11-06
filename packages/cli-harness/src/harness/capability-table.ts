@@ -511,6 +511,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "generate_batch",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "d705466cc8dd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generate-batch.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
+    ],
+  },
+  {
     name: "transcribe_audio",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
@@ -744,6 +755,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_workers",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "f5b61b2ae34c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
+    name: "get_worker_status",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "ea27affc592c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
+    ],
+  },
+  {
+    name: "stop_worker",
+    module: "workers",
+    impl: "packages/agents/src/capabilities/workers.ts",
+    contract: "08363e9c263b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workers.test.ts",
     ],
   },
   {
@@ -3349,7 +3390,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "run_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "ff41dab56c40",
+    contract: "f1d500e1777a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",
@@ -3359,7 +3400,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "test_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "8db4b25f2583",
+    contract: "dd32f0edff38",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",

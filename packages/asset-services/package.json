@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/asset-services",
-  "version": "0.8.10",
+  "version": "0.8.11",
   "description": "Shared asset services for NodeTool hosts",
   "type": "module",
   "engines": {

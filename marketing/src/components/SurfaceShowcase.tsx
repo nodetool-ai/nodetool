@@ -363,7 +363,7 @@ export default function SurfaceShowcase({
                 width={1920}
                 height={1080}
                 decoding="async"
-                loading={i === 0 ? "eager" : "lazy"}
+                loading="lazy"
                 className="block h-auto w-full"
               />
               {inView && (

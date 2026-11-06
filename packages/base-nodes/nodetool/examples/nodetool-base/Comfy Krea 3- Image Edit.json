@@ -1,0 +1,112 @@
+{
+  "id": "3c4bfaac4369440ce74d863a1731120b",
+  "name": "Comfy Krea 3- Image Edit",
+  "description": "Perform targeted regional edits on an image with Krea 3, changing only the areas you specify while the rest of the picture stays untouched. One image goes in and one edited image comes out. Ideal for e-commerce product restaging, fashion and portrait relighting, and architectural sketch-to-render work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "image",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Krea 3- Image Edit\n\nPerform targeted regional edits on an image with Krea 3, changing only the areas you specify while the rest of the picture stays untouched. One image goes in and one edited image comes out. Ideal for e-commerce product restaging, fashion and portrait relighting, and architectural sketch-to-render work. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_krea3_image_edit.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.Krea3ImageNode",
+        "data": {
+          "model": "Krea 3",
+          "model.images": "Replace the green muscle car with a polished retro-futuristic orange hover car, wide curved body, subtle glowing undercarriage lights, parked in front of the same gas station. Keep the original composition, desert background, building structure, dust, lighting and perspective unchanged. The new car must fit the scene naturally and cast a realistic shadow.",
+          "model.prompt": "auto",
+          "model.aspect_ratio": "1K",
+          "model.resolution": "fast",
+          "model.thinking_mode": false,
+          "model.precise_edit": 2087889669,
+          "model.seed": "randomize"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Krea 3 Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "7",
+        "type": "comfy.SaveImageAdvanced",
+        "data": {
+          "filename_prefix": "api_krea3_image_edit",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "wide_format_digital_render.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "8-0-1-model.images.image_0",
+        "source": "8",
+        "sourceHandle": "IMAGE",
+        "target": "1",
+        "targetHandle": "model.images.image_0",
+        "ui_properties": null
+      },
+      {
+        "id": "1-0-7-images",
+        "source": "1",
+        "sourceHandle": "IMAGE",
+        "target": "7",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

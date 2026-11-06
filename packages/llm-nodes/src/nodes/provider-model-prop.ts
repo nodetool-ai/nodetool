@@ -3,6 +3,13 @@ import { isString, prop } from "@nodetool-ai/node-sdk";
 /** A model field's value: a picked model, or a bare id from an older enum field. */
 export type ModelFieldValue = string | { id?: string | null } | null | undefined;
 
+/** A TTS picker value, including its voice selection, or a legacy model id. */
+export type TTSModelFieldValue =
+  | string
+  | { id?: string | null; selected_voice?: string }
+  | null
+  | undefined;
+
 /** The model id a field holds, or an empty string when none is picked. */
 export function modelIdOf(value: ModelFieldValue): string {
   if (isString(value)) return value;

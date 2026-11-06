@@ -1,0 +1,108 @@
+{
+  "id": "271cc0f9b45c0253b8716afd9fc1eccd",
+  "name": "Comfy Video Upscale- Topaz Astra 2 Creative",
+  "description": "Upscale GenAI video footage with Astra 2's creative diffusion, adding dynamic detail and texture. Adjust creativity, sharpness, and prompt-based guidance for precise stylization of AI-generated content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "video tools",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Video Upscale- Topaz Astra 2 Creative\n\nUpscale GenAI video footage with Astra 2's creative diffusion, adding dynamic detail and texture. Adjust creativity, sharpness, and prompt-based guidance for precise stylization of AI-generated content. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/api_topaz_astra2.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.LoadVideo",
+        "data": {
+          "file": "cyber_fight.mp4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.TopazVideoEnhanceV2",
+        "data": {
+          "upscaler_model": "Starlight (Astra) Fast",
+          "upscaler_model.upscaler_resolution": "FullHD (1080p)",
+          "interpolation_model": "Disabled",
+          "dynamic_compression_level": "Low"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Topaz Video Enhance"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "3",
+        "type": "comfy.SaveVideo",
+        "data": {
+          "filename_prefix": "video/ComfyUI",
+          "format": "auto",
+          "format.codec": "auto",
+          "codec": "auto"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Video"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "1-0-2-video",
+        "source": "1",
+        "sourceHandle": "VIDEO",
+        "target": "2",
+        "targetHandle": "video",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-3-video",
+        "source": "2",
+        "sourceHandle": "VIDEO",
+        "target": "3",
+        "targetHandle": "video",
+        "ui_properties": null
+      }
+    ]
+  }
+}

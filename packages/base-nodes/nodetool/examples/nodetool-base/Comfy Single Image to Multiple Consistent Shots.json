@@ -1,0 +1,2052 @@
+{
+  "id": "191564423399ec49e59cf77fbe2c0aea",
+  "name": "Comfy Single Image to Multiple Consistent Shots",
+  "description": "Upload an input image and automatically generate X prompts for camera angle and shot type. Runs on Comfy Cloud and needs Comfy Cloud partner credits.",
+  "tags": [
+    "comfy",
+    "character & fashion",
+    "partner",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy Single Image to Multiple Consistent Shots\n\nUpload an input image and automatically generate X prompts for camera angle and shot type. Runs on Comfy Cloud and needs Comfy Cloud partner credits.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/templates-multiple_consistent_shots-nb_pro.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "1",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview All Generated Prompts"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2",
+        "type": "comfy.GeminiNode",
+        "data": {
+          "prompt": "Generate 6 different prompts following the instructions below. \nEach prompt idea needs to be 50-80 words max and be separated by *.\nEach prompt should be unique, varying the camera angles and shot type. Add subtle detail and maintain consistent elements.",
+          "model": "gemini-3-pro-preview",
+          "seed": 12345,
+          "system_prompt": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Google Gemini"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Image 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "6",
+        "type": "comfy.LoadImage",
+        "data": {
+          "image": "sportbike_rider.png"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Reference Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "11",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Prompt 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_2"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Save Image 1"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "20",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Prompt 2"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "21",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Save Image 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "23",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Preview Prompt 3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "24",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_4"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Save Image 4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "26",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview Prompt 4"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "27",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_5"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Save Image 5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "29",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Preview Prompt 5"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "30",
+        "type": "comfy.SaveImage",
+        "data": {
+          "filename_prefix": "ComfyUI-image_6"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Save Image 6"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "32",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Preview Prompt 6"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:8",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "(?:^(?!\\s*\\*?\\s*$).+$\\n(?:^\\s*\\*?\\s*$\\n)*){0}^(?!\\s*\\*?\\s*$)(.+)$",
+          "regex_pattern": "(?<=\\{)\\d+(?=\\})",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:6",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Int - Select Prompt Number (not index)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:9",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a-1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Convert Prompt Number to Index"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:3",
+        "type": "comfy.SomethingToString",
+        "data": {
+          "prefix": "",
+          "suffix": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Something To String"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:1",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": true,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:2",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:3:7",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:8",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "10:9",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 1,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:8",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "(?:^(?!\\s*\\*?\\s*$).+$\\n(?:^\\s*\\*?\\s*$\\n)*){0}^(?!\\s*\\*?\\s*$)(.+)$",
+          "regex_pattern": "(?<=\\{)\\d+(?=\\})",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:6",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Int - Select Prompt Number (not index)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:9",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a-1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Convert Prompt Number to Index"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:3",
+        "type": "comfy.SomethingToString",
+        "data": {
+          "prefix": "",
+          "suffix": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Something To String"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:1",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": true,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:2",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:3:7",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:8",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:9",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 2,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:10",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "19:11",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:8",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "(?:^(?!\\s*\\*?\\s*$).+$\\n(?:^\\s*\\*?\\s*$\\n)*){0}^(?!\\s*\\*?\\s*$)(.+)$",
+          "regex_pattern": "(?<=\\{)\\d+(?=\\})",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:6",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Int - Select Prompt Number (not index)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:9",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a-1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Convert Prompt Number to Index"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:3",
+        "type": "comfy.SomethingToString",
+        "data": {
+          "prefix": "",
+          "suffix": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Something To String"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:1",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": true,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:2",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:3:7",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:8",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:9",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 3,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:10",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "22:11",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 330
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:8",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "(?:^(?!\\s*\\*?\\s*$).+$\\n(?:^\\s*\\*?\\s*$\\n)*){0}^(?!\\s*\\*?\\s*$)(.+)$",
+          "regex_pattern": "(?<=\\{)\\d+(?=\\})",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:6",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Int - Select Prompt Number (not index)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:9",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a-1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Convert Prompt Number to Index"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:3",
+        "type": "comfy.SomethingToString",
+        "data": {
+          "prefix": "",
+          "suffix": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Something To String"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:1",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": true,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:2",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:3:7",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:8",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "25:9",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 4,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 4290
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:8",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "(?:^(?!\\s*\\*?\\s*$).+$\\n(?:^\\s*\\*?\\s*$\\n)*){0}^(?!\\s*\\*?\\s*$)(.+)$",
+          "regex_pattern": "(?<=\\{)\\d+(?=\\})",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:6",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Int - Select Prompt Number (not index)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:9",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a-1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2310
+          },
+          "width": 280,
+          "title": "Convert Prompt Number to Index"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:3",
+        "type": "comfy.SomethingToString",
+        "data": {
+          "prefix": "",
+          "suffix": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Something To String"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:1",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": true,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1320
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:2",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 4620
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:3:7",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:8",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 3300
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:9",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 5,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 4950
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:10",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2640
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "28:11",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:8",
+        "type": "comfy.RegexReplace",
+        "data": {
+          "string": "(?:^(?!\\s*\\*?\\s*$).+$\\n(?:^\\s*\\*?\\s*$\\n)*){0}^(?!\\s*\\*?\\s*$)(.+)$",
+          "regex_pattern": "(?<=\\{)\\d+(?=\\})",
+          "case_insensitive": true,
+          "multiline": false,
+          "dotall": false,
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Replace Text (Regex)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:6",
+        "type": "comfy.PrimitiveInt",
+        "data": {
+          "value": 6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1980
+          },
+          "width": 280,
+          "title": "Int - Select Prompt Number (not index)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:9",
+        "type": "comfy.SimpleMath+",
+        "data": {
+          "value": "a-1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 2970
+          },
+          "width": 280,
+          "title": "Convert Prompt Number to Index"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:3",
+        "type": "comfy.SomethingToString",
+        "data": {
+          "prefix": "",
+          "suffix": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Something To String"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:1",
+        "type": "comfy.RegexExtract",
+        "data": {
+          "mode": "First Group",
+          "case_insensitive": true,
+          "multiline": true,
+          "dotall": false,
+          "group_index": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 1650
+          },
+          "width": 280,
+          "title": "Extract Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:2",
+        "type": "comfy.PreviewAny",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 5280
+          },
+          "width": 280,
+          "title": "Preview as Text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:3:7",
+        "type": "comfy.PrimitiveStringMultiline",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 3960
+          },
+          "width": 280,
+          "title": "Text (Multiline)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:8",
+        "type": "comfy.BatchImagesNode",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 3630
+          },
+          "width": 280,
+          "title": "Batch Images"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:9",
+        "type": "comfy.GeminiImage2Node",
+        "data": {
+          "model": "gemini-3-pro-image-preview",
+          "seed": 6,
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "response_modalities": "IMAGE+TEXT",
+          "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 5610
+          },
+          "width": 280,
+          "title": "Nano Banana Pro (Google Gemini Image)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "31:11",
+        "type": "comfy.PreviewImage",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2380,
+            "y": 990
+          },
+          "width": 280,
+          "title": "Preview Image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "2-0-1-source",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "1",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-2-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "2",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "10:9-0-5-images",
+        "source": "10:9",
+        "sourceHandle": "IMAGE",
+        "target": "5",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:1-0-11-source",
+        "source": "10:3:1",
+        "sourceHandle": "STRING",
+        "target": "11",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "19:9-0-18-images",
+        "source": "19:9",
+        "sourceHandle": "IMAGE",
+        "target": "18",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:1-0-20-source",
+        "source": "19:3:1",
+        "sourceHandle": "STRING",
+        "target": "20",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "22:9-0-21-images",
+        "source": "22:9",
+        "sourceHandle": "IMAGE",
+        "target": "21",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:1-0-23-source",
+        "source": "22:3:1",
+        "sourceHandle": "STRING",
+        "target": "23",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "25:9-0-24-images",
+        "source": "25:9",
+        "sourceHandle": "IMAGE",
+        "target": "24",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:1-0-26-source",
+        "source": "25:3:1",
+        "sourceHandle": "STRING",
+        "target": "26",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "28:9-0-27-images",
+        "source": "28:9",
+        "sourceHandle": "IMAGE",
+        "target": "27",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:1-0-29-source",
+        "source": "28:3:1",
+        "sourceHandle": "STRING",
+        "target": "29",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "31:9-0-30-images",
+        "source": "31:9",
+        "sourceHandle": "IMAGE",
+        "target": "30",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:1-0-32-source",
+        "source": "31:3:1",
+        "sourceHandle": "STRING",
+        "target": "32",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:3-0-10:3:8-replace",
+        "source": "10:3:3",
+        "sourceHandle": "STRING",
+        "target": "10:3:8",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:6-0-10:3:9-a",
+        "source": "10:3:6",
+        "sourceHandle": "INT",
+        "target": "10:3:9",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:9-0-10:3:3-input",
+        "source": "10:3:9",
+        "sourceHandle": "INT",
+        "target": "10:3:3",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:7-0-10:3:1-string",
+        "source": "10:3:7",
+        "sourceHandle": "STRING",
+        "target": "10:3:1",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:8-0-10:3:1-regex_pattern",
+        "source": "10:3:8",
+        "sourceHandle": "STRING",
+        "target": "10:3:1",
+        "targetHandle": "regex_pattern",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:1-0-10:3:2-source",
+        "source": "10:3:1",
+        "sourceHandle": "STRING",
+        "target": "10:3:2",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-10:3:7-value",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "10:3:7",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-10:8-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "10:8",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "10:9-0-10:8-images.image1",
+        "source": "10:9",
+        "sourceHandle": "IMAGE",
+        "target": "10:8",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "10:3:1-0-10:9-prompt",
+        "source": "10:3:1",
+        "sourceHandle": "STRING",
+        "target": "10:9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-10:9-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "10:9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:3-0-19:3:8-replace",
+        "source": "19:3:3",
+        "sourceHandle": "STRING",
+        "target": "19:3:8",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:6-0-19:3:9-a",
+        "source": "19:3:6",
+        "sourceHandle": "INT",
+        "target": "19:3:9",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:9-0-19:3:3-input",
+        "source": "19:3:9",
+        "sourceHandle": "INT",
+        "target": "19:3:3",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:7-0-19:3:1-string",
+        "source": "19:3:7",
+        "sourceHandle": "STRING",
+        "target": "19:3:1",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:8-0-19:3:1-regex_pattern",
+        "source": "19:3:8",
+        "sourceHandle": "STRING",
+        "target": "19:3:1",
+        "targetHandle": "regex_pattern",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:1-0-19:3:2-source",
+        "source": "19:3:1",
+        "sourceHandle": "STRING",
+        "target": "19:3:2",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-19:3:7-value",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "19:3:7",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-19:8-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "19:8",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "19:9-0-19:8-images.image1",
+        "source": "19:9",
+        "sourceHandle": "IMAGE",
+        "target": "19:8",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "19:3:1-0-19:9-prompt",
+        "source": "19:3:1",
+        "sourceHandle": "STRING",
+        "target": "19:9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-19:9-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "19:9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-19:10-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "19:10",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "19:8-0-19:11-images",
+        "source": "19:8",
+        "sourceHandle": "IMAGE",
+        "target": "19:11",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:3-0-22:3:8-replace",
+        "source": "22:3:3",
+        "sourceHandle": "STRING",
+        "target": "22:3:8",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:6-0-22:3:9-a",
+        "source": "22:3:6",
+        "sourceHandle": "INT",
+        "target": "22:3:9",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:9-0-22:3:3-input",
+        "source": "22:3:9",
+        "sourceHandle": "INT",
+        "target": "22:3:3",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:7-0-22:3:1-string",
+        "source": "22:3:7",
+        "sourceHandle": "STRING",
+        "target": "22:3:1",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:8-0-22:3:1-regex_pattern",
+        "source": "22:3:8",
+        "sourceHandle": "STRING",
+        "target": "22:3:1",
+        "targetHandle": "regex_pattern",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:1-0-22:3:2-source",
+        "source": "22:3:1",
+        "sourceHandle": "STRING",
+        "target": "22:3:2",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-22:3:7-value",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "22:3:7",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-22:8-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "22:8",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "22:9-0-22:8-images.image1",
+        "source": "22:9",
+        "sourceHandle": "IMAGE",
+        "target": "22:8",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "22:3:1-0-22:9-prompt",
+        "source": "22:3:1",
+        "sourceHandle": "STRING",
+        "target": "22:9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-22:9-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "22:9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-22:10-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "22:10",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "22:8-0-22:11-images",
+        "source": "22:8",
+        "sourceHandle": "IMAGE",
+        "target": "22:11",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:3-0-25:3:8-replace",
+        "source": "25:3:3",
+        "sourceHandle": "STRING",
+        "target": "25:3:8",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:6-0-25:3:9-a",
+        "source": "25:3:6",
+        "sourceHandle": "INT",
+        "target": "25:3:9",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:9-0-25:3:3-input",
+        "source": "25:3:9",
+        "sourceHandle": "INT",
+        "target": "25:3:3",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:7-0-25:3:1-string",
+        "source": "25:3:7",
+        "sourceHandle": "STRING",
+        "target": "25:3:1",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:8-0-25:3:1-regex_pattern",
+        "source": "25:3:8",
+        "sourceHandle": "STRING",
+        "target": "25:3:1",
+        "targetHandle": "regex_pattern",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:1-0-25:3:2-source",
+        "source": "25:3:1",
+        "sourceHandle": "STRING",
+        "target": "25:3:2",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-25:3:7-value",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "25:3:7",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-25:8-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "25:8",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "25:9-0-25:8-images.image1",
+        "source": "25:9",
+        "sourceHandle": "IMAGE",
+        "target": "25:8",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "25:3:1-0-25:9-prompt",
+        "source": "25:3:1",
+        "sourceHandle": "STRING",
+        "target": "25:9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-25:9-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "25:9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:3-0-28:3:8-replace",
+        "source": "28:3:3",
+        "sourceHandle": "STRING",
+        "target": "28:3:8",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:6-0-28:3:9-a",
+        "source": "28:3:6",
+        "sourceHandle": "INT",
+        "target": "28:3:9",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:9-0-28:3:3-input",
+        "source": "28:3:9",
+        "sourceHandle": "INT",
+        "target": "28:3:3",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:7-0-28:3:1-string",
+        "source": "28:3:7",
+        "sourceHandle": "STRING",
+        "target": "28:3:1",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:8-0-28:3:1-regex_pattern",
+        "source": "28:3:8",
+        "sourceHandle": "STRING",
+        "target": "28:3:1",
+        "targetHandle": "regex_pattern",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:1-0-28:3:2-source",
+        "source": "28:3:1",
+        "sourceHandle": "STRING",
+        "target": "28:3:2",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-28:3:7-value",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "28:3:7",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-28:8-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "28:8",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "28:9-0-28:8-images.image1",
+        "source": "28:9",
+        "sourceHandle": "IMAGE",
+        "target": "28:8",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "28:3:1-0-28:9-prompt",
+        "source": "28:3:1",
+        "sourceHandle": "STRING",
+        "target": "28:9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-28:9-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "28:9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-28:10-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "28:10",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "28:8-0-28:11-images",
+        "source": "28:8",
+        "sourceHandle": "IMAGE",
+        "target": "28:11",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:3-0-31:3:8-replace",
+        "source": "31:3:3",
+        "sourceHandle": "STRING",
+        "target": "31:3:8",
+        "targetHandle": "replace",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:6-0-31:3:9-a",
+        "source": "31:3:6",
+        "sourceHandle": "INT",
+        "target": "31:3:9",
+        "targetHandle": "a",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:9-0-31:3:3-input",
+        "source": "31:3:9",
+        "sourceHandle": "INT",
+        "target": "31:3:3",
+        "targetHandle": "input",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:7-0-31:3:1-string",
+        "source": "31:3:7",
+        "sourceHandle": "STRING",
+        "target": "31:3:1",
+        "targetHandle": "string",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:8-0-31:3:1-regex_pattern",
+        "source": "31:3:8",
+        "sourceHandle": "STRING",
+        "target": "31:3:1",
+        "targetHandle": "regex_pattern",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:1-0-31:3:2-source",
+        "source": "31:3:1",
+        "sourceHandle": "STRING",
+        "target": "31:3:2",
+        "targetHandle": "source",
+        "ui_properties": null
+      },
+      {
+        "id": "2-0-31:3:7-value",
+        "source": "2",
+        "sourceHandle": "STRING",
+        "target": "31:3:7",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-31:8-images.image0",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "31:8",
+        "targetHandle": "images.image0",
+        "ui_properties": null
+      },
+      {
+        "id": "31:9-0-31:8-images.image1",
+        "source": "31:9",
+        "sourceHandle": "IMAGE",
+        "target": "31:8",
+        "targetHandle": "images.image1",
+        "ui_properties": null
+      },
+      {
+        "id": "31:3:1-0-31:9-prompt",
+        "source": "31:3:1",
+        "sourceHandle": "STRING",
+        "target": "31:9",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "6-0-31:9-images",
+        "source": "6",
+        "sourceHandle": "IMAGE",
+        "target": "31:9",
+        "targetHandle": "images",
+        "ui_properties": null
+      },
+      {
+        "id": "31:8-0-31:11-images",
+        "source": "31:8",
+        "sourceHandle": "IMAGE",
+        "target": "31:11",
+        "targetHandle": "images",
+        "ui_properties": null
+      }
+    ]
+  }
+}

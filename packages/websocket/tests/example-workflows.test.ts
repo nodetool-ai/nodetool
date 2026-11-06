@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, it, expect } from "vitest";
+import { buildExampleWorkflows } from "@nodetool-ai/project-services/example-catalog";
 import {
   loadExampleGraph,
   resolveExampleJsonPath,
@@ -33,6 +34,21 @@ function writeExample(
 }
 
 describe("example-workflows", () => {
+  it("lists native Comfy examples with their mode and required cloud key", () => {
+    const examplesDir = tempDir();
+    writeExample(examplesDir, "native.json", {
+      name: "Native Comfy",
+      run_mode: "comfy",
+      graph: { nodes: [{ id: "save", type: "comfy.SaveImage" }], edges: [] }
+    });
+    expect(buildExampleWorkflows({ examplesDir })).toEqual([
+      expect.objectContaining({
+        name: "Native Comfy",
+        run_mode: "comfy",
+        needs: { modelKinds: [], requiredSettings: ["COMFY_API_KEY"] }
+      })
+    ]);
+  });
   it("does not resolve a ref that escapes the examples directory", () => {
     const root = tempDir();
     const examplesDir = path.join(root, "examples", "nodetool-base");

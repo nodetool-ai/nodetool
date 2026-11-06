@@ -1,0 +1,337 @@
+{
+  "id": "835902742a7c882f01069bd774a1e1e9",
+  "name": "Comfy ACE Step v1 M2M Editing",
+  "description": "Edit existing songs to change style and lyrics using ACE-Step v1 M2M. Runs on Comfy Cloud and needs a COMFY_API_KEY.",
+  "tags": [
+    "comfy",
+    "audio",
+    "open-weights",
+    "example"
+  ],
+  "access": "public",
+  "required_providers": [],
+  "thumbnail": null,
+  "run_mode": "comfy",
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Comfy ACE Step v1 M2M Editing\n\nEdit existing songs to change style and lyrics using ACE-Step v1 M2M. Runs on Comfy Cloud and needs a COMFY_API_KEY.\n\n**How it works:** The Comfy nodes form the complete template graph. Run submits the graph to Comfy Cloud and saves its outputs.\n\n**Try this:** Change the prompt or the Load node inputs and run again to compare results.\n\nSource: https://github.com/Comfy-Org/workflow_templates/blob/1ae390968e323dba24a6991d1860ded051f5a79b/templates/audio_ace_step_1_m2m_editing.json (MIT). Model licenses apply separately."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -440
+          },
+          "width": 600
+        }
+      },
+      {
+        "id": "14",
+        "type": "comfy.TextEncodeAceStepAudio",
+        "data": {
+          "tags": "anime, cute female vocals, kawaii pop, j-pop, childish, piano, guitar, synthesizer, fast, happy, cheerful, lighthearted",
+          "lyrics": "Verse\nNeon rain on my screen,\nDreams compile in silver sheen.\nNo weight, just motion,\nI’m plugged into emotion.\n\nChorus\nComfy Cloud — breathing light,\nCode and color, spark and wire.\nDrift through data, feel alive,\nIn your circuits, I arrive.",
+          "lyrics_strength": 0.9900000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 280,
+          "title": "TextEncodeAceStepAudio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "18",
+        "type": "comfy.VAEDecodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 0
+          },
+          "width": 280,
+          "title": "VAE Decode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "40",
+        "type": "comfy.CheckpointLoaderSimple",
+        "data": {
+          "ckpt_name": "ace_step_v1_3.5b.safetensors"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Load Checkpoint"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "44",
+        "type": "comfy.ConditioningZeroOut",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Conditioning Zero Out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "49",
+        "type": "comfy.LatentApplyOperationCFG",
+        "data": {
+          "start_percent": 0,
+          "end_percent": 1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LatentApplyOperationCFG"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "50",
+        "type": "comfy.LatentOperationTonemapReinhard",
+        "data": {
+          "multiplier": 1.0000000000000002
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 330
+          },
+          "width": 280,
+          "title": "LatentOperationTonemapReinhard"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "51",
+        "type": "comfy.ModelSamplingSD3",
+        "data": {
+          "shift": 5.000000000000001
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 330
+          },
+          "width": 280,
+          "title": "ModelSamplingSD3"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "52",
+        "type": "comfy.KSampler",
+        "data": {
+          "seed": 378808614834773,
+          "steps": 50,
+          "cfg": 5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 0.30000000000000004
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 0
+          },
+          "width": 280,
+          "title": "KSampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "64",
+        "type": "comfy.LoadAudio",
+        "data": {
+          "audio": "audio_ace_step_1_m2m_editing_input_audio.mp3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 660
+          },
+          "width": 280,
+          "title": "Load Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "68",
+        "type": "comfy.VAEEncodeAudio",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 660
+          },
+          "width": 280,
+          "title": "VAE Encode Audio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "74",
+        "type": "comfy.SaveAudioAdvanced",
+        "data": {
+          "filename_prefix": "audio/ComfyUI",
+          "format": "flac"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 0
+          },
+          "width": 280,
+          "title": "Save Audio (Advanced)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "40-1-14-clip",
+        "source": "40",
+        "sourceHandle": "CLIP",
+        "target": "14",
+        "targetHandle": "clip",
+        "ui_properties": null
+      },
+      {
+        "id": "52-0-18-samples",
+        "source": "52",
+        "sourceHandle": "LATENT",
+        "target": "18",
+        "targetHandle": "samples",
+        "ui_properties": null
+      },
+      {
+        "id": "40-2-18-vae",
+        "source": "40",
+        "sourceHandle": "VAE",
+        "target": "18",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-44-conditioning",
+        "source": "14",
+        "sourceHandle": "CONDITIONING",
+        "target": "44",
+        "targetHandle": "conditioning",
+        "ui_properties": null
+      },
+      {
+        "id": "51-0-49-model",
+        "source": "51",
+        "sourceHandle": "MODEL",
+        "target": "49",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "50-0-49-operation",
+        "source": "50",
+        "sourceHandle": "LATENT_OPERATION",
+        "target": "49",
+        "targetHandle": "operation",
+        "ui_properties": null
+      },
+      {
+        "id": "40-0-51-model",
+        "source": "40",
+        "sourceHandle": "MODEL",
+        "target": "51",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "49-0-52-model",
+        "source": "49",
+        "sourceHandle": "MODEL",
+        "target": "52",
+        "targetHandle": "model",
+        "ui_properties": null
+      },
+      {
+        "id": "14-0-52-positive",
+        "source": "14",
+        "sourceHandle": "CONDITIONING",
+        "target": "52",
+        "targetHandle": "positive",
+        "ui_properties": null
+      },
+      {
+        "id": "44-0-52-negative",
+        "source": "44",
+        "sourceHandle": "CONDITIONING",
+        "target": "52",
+        "targetHandle": "negative",
+        "ui_properties": null
+      },
+      {
+        "id": "68-0-52-latent_image",
+        "source": "68",
+        "sourceHandle": "LATENT",
+        "target": "52",
+        "targetHandle": "latent_image",
+        "ui_properties": null
+      },
+      {
+        "id": "64-0-68-audio",
+        "source": "64",
+        "sourceHandle": "AUDIO",
+        "target": "68",
+        "targetHandle": "audio",
+        "ui_properties": null
+      },
+      {
+        "id": "40-2-68-vae",
+        "source": "40",
+        "sourceHandle": "VAE",
+        "target": "68",
+        "targetHandle": "vae",
+        "ui_properties": null
+      },
+      {
+        "id": "18-0-74-audio",
+        "source": "18",
+        "sourceHandle": "AUDIO",
+        "target": "74",
+        "targetHandle": "audio",
+        "ui_properties": null
+      }
+    ]
+  }
+}

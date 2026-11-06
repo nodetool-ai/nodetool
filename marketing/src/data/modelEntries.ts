@@ -1185,6 +1185,150 @@ export const modelEntries: ModelEntry[] = [
     ],
     showcaseSlugs: ["retro-diffusion"],
   }),
+  model({
+    slug: "ernie-image",
+    name: "ERNIE Image",
+    vendor: "Baidu",
+    modality: "text-to-image",
+    accent: "cyan",
+    tagline:
+      "Run Baidu's ERNIE Image in a visual AI workflow: text-to-image with a faster Turbo tier and LoRA, BYOK at provider prices.",
+    blurb: [
+      "ERNIE Image is Baidu's text-to-image model. The Turbo tier is listed as faster ERNIE text-to-image generation.",
+      "Both the standard and Turbo tiers have a LoRA endpoint that takes custom weights. In NodeTool the four endpoints are interchangeable nodes, so you can compare them on one prompt in a single graph.",
+      "ERNIE Image is BYOK. The provider table below is generated from the node manifests, so it lists only the providers that serve it today.",
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Tiers", value: "Standard and Turbo" },
+      { label: "Customization", value: "LoRA on both tiers" },
+      { label: "Vendor", value: "Baidu" },
+    ],
+    faq: [
+      {
+        q: "Can I use my own LoRA with ERNIE Image?",
+        a: "Yes. Both the standard and Turbo tiers list a LoRA endpoint that accepts custom weights.",
+      },
+      {
+        q: "How do I run ERNIE Image in NodeTool?",
+        a: "Add the ERNIE Image node to a workflow, connect a text prompt, and run. NodeTool calls a provider you have a key for and returns the image to the canvas.",
+      },
+      {
+        q: "What does ERNIE Image cost in NodeTool?",
+        a: "You pay the serving provider's list price. NodeTool is bring-your-own-key with no markup.",
+      },
+    ],
+    showcaseSlugs: ["ernie-image"],
+    templateSlug: "movie-posters",
+  }),
+  model({
+    slug: "mai-image",
+    name: "MAI Image",
+    vendor: "Microsoft",
+    modality: "text-to-image",
+    accent: "blue",
+    tagline:
+      "Run Microsoft's MAI Image in a visual AI workflow: photorealistic generation and editing, BYOK at provider prices.",
+    blurb: [
+      "MAI-Image-2.5 is Microsoft's photorealistic image generation and editing model. It turns text prompts or uploaded images into design-ready visuals with fine-grained, pixel-level control. MAI Image 2.5 Pro is the high-end text-to-image tier for photorealistic generation.",
+      "The lineup has an edit endpoint on the Pro tier. Use the standard tier for drafts and Pro for the final render in the same graph.",
+      "MAI Image is BYOK. The provider table below is generated from the node manifests, so it lists only the providers that serve it today.",
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      { label: "Tiers", value: "MAI-Image-2.5 and 2.5 Pro" },
+      { label: "Strengths", value: "Photorealism, pixel-level control" },
+      { label: "Vendor", value: "Microsoft" },
+    ],
+    faq: [
+      {
+        q: "What is the difference between MAI-Image-2.5 and the Pro tier?",
+        a: "Pro is listed as the high-end text-to-image tier for photorealistic generation. The standard model generates and edits from text or uploaded images.",
+      },
+      {
+        q: "How do I run MAI Image in NodeTool?",
+        a: "Add the MAI Image node to a workflow, connect a text prompt, and run. NodeTool calls a provider you have a key for and returns the image to the canvas.",
+      },
+      {
+        q: "What does MAI Image cost in NodeTool?",
+        a: "You pay the serving provider's list price. NodeTool is bring-your-own-key with no markup.",
+      },
+    ],
+    showcaseSlugs: ["mai-image", "mai-image-2-5"],
+    templateSlug: "movie-posters",
+  }),
+  model({
+    slug: "uni-1",
+    name: "Luma Uni-1",
+    vendor: "Luma AI",
+    modality: "text-to-image",
+    accent: "violet",
+    tagline:
+      "Run Luma Uni-1 in a visual AI workflow: high-fidelity text-to-image with style control and reference guidance, BYOK at provider prices.",
+    blurb: [
+      "Luma Uni-1 turns a text prompt into a single high-fidelity image. It takes aspect ratio and visual style controls, plus optional web-sourced and reference-image guidance.",
+      "Uni-1 Max is the top tier. Its listing says it generates a single image at the model's highest fidelity, with richer detail and stronger prompt adherence than the base tier, for hero-quality stills.",
+      "Luma Uni-1 is BYOK. The provider table below is generated from the node manifests, so it lists only the providers that serve it today.",
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Tiers", value: "Uni-1 and Uni-1 Max" },
+      { label: "Controls", value: "Aspect ratio and visual style" },
+      { label: "Guidance", value: "Optional web-sourced and reference images" },
+    ],
+    faq: [
+      {
+        q: "When should I use Uni-1 Max?",
+        a: "Use it for the final hero still. The listing places it above the base tier for detail and prompt adherence. Draft on the base tier first.",
+      },
+      {
+        q: "How do I run Luma Uni-1 in NodeTool?",
+        a: "Add the Luma Uni-1 node to a workflow, connect a text prompt, and run. NodeTool calls a provider you have a key for and returns the image to the canvas.",
+      },
+      {
+        q: "What does Luma Uni-1 cost in NodeTool?",
+        a: "You pay the serving provider's list price. NodeTool is bring-your-own-key with no markup.",
+      },
+    ],
+    showcaseSlugs: ["uni-1", "luma-uni-1"],
+    templateSlug: "movie-posters",
+  }),
+  model({
+    slug: "muse-image",
+    name: "Meta Muse Image",
+    vendor: "Meta",
+    modality: "text-to-image",
+    accent: "emerald",
+    tagline:
+      "Run Meta's Muse Image in a visual AI workflow: text-to-image that reasons about the request first, BYOK at provider prices.",
+    blurb: [
+      "Meta Muse Image generates images from text. Its listing says it reasons about the request before rendering, composing scenes with strong prompt adherence.",
+      "As a node it takes a prompt and returns an image, so it drops into the same graphs as any other image model. Compare it with another model by running both nodes on one prompt.",
+      "Meta Muse Image is BYOK. The provider table below is generated from the node manifests, so it lists only the providers that serve it today.",
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image" },
+      { label: "Approach", value: "Reasons about the request before rendering" },
+      { label: "Strengths", value: "Prompt adherence, scene composition" },
+      { label: "Vendor", value: "Meta" },
+    ],
+    faq: [
+      {
+        q: "What does it mean that Muse Image reasons first?",
+        a: "The listing says the model reasons about the request before rendering. That helps with prompts that describe a scene with several parts.",
+      },
+      {
+        q: "How do I run Meta Muse Image in NodeTool?",
+        a: "Add the Meta Muse Image node to a workflow, connect a text prompt, and run. NodeTool calls a provider you have a key for and returns the image to the canvas.",
+      },
+      {
+        q: "What does Meta Muse Image cost in NodeTool?",
+        a: "You pay the serving provider's list price. NodeTool is bring-your-own-key with no markup.",
+      },
+    ],
+    showcaseSlugs: ["muse-image", "meta-muse-image"],
+    templateSlug: "movie-posters",
+  }),
 ];
 
 /** Page-registry contribution: one entry per model page + the hub. */

@@ -12,7 +12,8 @@ import {
   SPACING,
   ToolbarIconButton,
   Z_INDEX,
-  getSpacingPx
+  getSpacingPx,
+  ICON_SIZE
 } from "../../ui_primitives";
 import {
   useAddMediaToCanvas,
@@ -54,7 +55,7 @@ const wrapperStyles = css({
       backgroundColor: "var(--palette-c_scrim_strong)"
     },
     "& svg": {
-      fontSize: 14
+      fontSize: ICON_SIZE.xs
     }
   },
   "&:hover .add-to-canvas-button": {

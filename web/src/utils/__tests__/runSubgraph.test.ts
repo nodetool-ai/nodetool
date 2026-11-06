@@ -135,6 +135,20 @@ const propsOf = (sub: ReturnType<typeof build>, id: string) =>
   sub.nodes.find((n) => n.id === id)!.data.properties;
 
 describe("buildRunSubgraph", () => {
+  it.each([false, true])("runs selected generators live with cached output: %s", (cached) => {
+    const nodes = [node("up", "gen.Up"), node("producer", "gen.Image"), node("consumer", "proc.Use")];
+    const edges = [edge("a", "up", "producer"), edge("b", "producer", "consumer")];
+    const sub = buildRunSubgraph({
+      targetIds: ["producer", "consumer"], nodes, edges, workflowId: WF,
+      getMetadata: baseMeta,
+      getGenerations: (_wf, id) => id === "producer" && cached ? [gen({ id: "old", outputs: { output: "old" } })] : [],
+      now: NOW
+    });
+    expect(sub.blocked.map((item) => item.nodeId)).toEqual(["up"]);
+    expect(sub.edges.map((item) => item.id)).toEqual(["b"]);
+    expect(propsOf(sub, "consumer")).toEqual({});
+  });
+
   it("runs a group whose input comes from an uncached upstream outside it", () => {
     // Image Input → Blur (outside) → Compositor + Color Balance (the group).
     const input = node("in", "nodetool.input.ImageInput", {

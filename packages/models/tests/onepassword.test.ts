@@ -8,15 +8,24 @@ const sdkMock = vi.hoisted(() => {
   const vaultsList = vi.fn();
   const itemsList = vi.fn();
   const itemsGet = vi.fn();
-  const createClient = vi.fn(async () => ({
-    secrets: { resolve },
-    vaults: { list: vaultsList },
-    items: { list: itemsList, get: itemsGet }
-  }));
   class DesktopAuth {
     constructor(public accountName: string) {}
   }
-  return { resolve, vaultsList, itemsList, itemsGet, createClient, DesktopAuth };
+  const client = async (_config: { auth: string | DesktopAuth }) => ({
+    secrets: { resolve },
+    vaults: { list: vaultsList },
+    items: { list: itemsList, get: itemsGet }
+  });
+  const createClient = vi.fn(client);
+  return {
+    resolve,
+    vaultsList,
+    itemsList,
+    itemsGet,
+    createClient,
+    client,
+    DesktopAuth
+  };
 });
 vi.mock("@1password/sdk", () => ({
   createClient: sdkMock.createClient,
@@ -65,6 +74,7 @@ const ENV_KEYS = [
   "OP_CONNECT_HOST",
   "OP_CONNECT_TOKEN",
   "OP_SERVICE_ACCOUNT_TOKEN",
+  "OP_ACCOUNT",
   "NODETOOL_1PASSWORD_ACCOUNT",
   "NODETOOL_1PASSWORD_CLI",
   "NODETOOL_1PASSWORD_CACHE_TTL_SECONDS",
@@ -78,7 +88,7 @@ describe("onepassword", () => {
     clearOnePasswordCache();
     execFileMock.mockReset();
     sdkMock.resolve.mockReset();
-    sdkMock.createClient.mockClear();
+    sdkMock.createClient.mockReset().mockImplementation(sdkMock.client);
     sdkMock.vaultsList.mockReset();
     sdkMock.itemsList.mockReset();
     sdkMock.itemsGet.mockReset();
@@ -178,6 +188,17 @@ describe("onepassword", () => {
       expect(await resolveOnePasswordReference(ref)).toBe("rotated");
     });
 
+    it("re-reads when the CLI authentication environment changes", async () => {
+      const ref = "op://Private/API/password";
+      process.env.OP_ACCOUNT = "first";
+      cliAnswers("first-secret");
+      expect(await resolveOnePasswordReference(ref)).toBe("first-secret");
+      process.env.OP_ACCOUNT = "second";
+      cliAnswers("second-secret");
+      expect(await resolveOnePasswordReference(ref)).toBe("second-secret");
+      expect(execFileMock.mock.calls[1][2].env.OP_ACCOUNT).toBe("second");
+    });
+
     it("returns null when op fails", async () => {
       cliFails("[ERROR] could not find item OpenAI in vault Dev");
       expect(
@@ -214,6 +235,131 @@ describe("onepassword", () => {
   });
 
   describe("SDK backend", () => {
+    it.each(["sequential", "concurrent"])(
+      "isolates %s reads of the same reference for different users",
+      async (mode) => {
+        const started = Promise.withResolvers<void>();
+        const release = Promise.withResolvers<void>();
+        process.env.NODETOOL_1PASSWORD_USER_REFERENCES = "true";
+        settingMock.find.mockImplementation(async (userId: string) => ({
+          value: userId
+        }));
+        sdkMock.createClient.mockImplementation(async (config) => ({
+          ...(await sdkMock.client(config)),
+          secrets: {
+            resolve: vi.fn(async () => {
+              if (!(config.auth instanceof sdkMock.DesktopAuth)) {
+                throw new Error("Expected desktop authentication");
+              }
+              if (
+                mode === "concurrent" &&
+                config.auth.accountName === "alice"
+              ) {
+                started.resolve();
+                await release.promise;
+              }
+              return `${config.auth.accountName}-secret`;
+            })
+          }
+        }));
+        const read = (userId: string) =>
+          resolveUserSecretValue(
+            "API_KEY",
+            "op://Private/API/password",
+            userId
+          );
+        const alice = read("alice");
+        if (mode === "concurrent") {
+          await started.promise;
+        } else {
+          await alice;
+        }
+        const bob = read("bob");
+        release.resolve();
+        const values = await Promise.all([alice, bob]);
+        expect(values).toEqual(["alice-secret", "bob-secret"]);
+        expect(await read("alice")).toBe("alice-secret");
+        expect(await read("bob")).toBe("bob-secret");
+        expect(sdkMock.createClient).toHaveBeenCalledTimes(2);
+      }
+    );
+
+    it("does not share failed reads across accounts", async () => {
+      settingMock.find.mockImplementation(async (userId: string) => ({
+        value: userId
+      }));
+      sdkMock.resolve.mockRejectedValueOnce(new Error("No access"));
+      sdkMock.resolve.mockResolvedValueOnce("bob-secret");
+      const ref = "op://Private/API/password";
+      expect(await resolveOnePasswordReference(ref, "alice")).toBeNull();
+      expect(await resolveOnePasswordReference(ref, "bob")).toBe("bob-secret");
+    });
+
+    it("uses a user's current account before consulting cached values", async () => {
+      const ref = "op://Private/API/password";
+      settingMock.find.mockResolvedValue({ value: "first" });
+      sdkMock.resolve.mockResolvedValueOnce("first-secret");
+      expect(await resolveOnePasswordReference(ref, "alice")).toBe(
+        "first-secret"
+      );
+      settingMock.find.mockResolvedValue({ value: "second" });
+      sdkMock.resolve.mockResolvedValueOnce("second-secret");
+      expect(await resolveOnePasswordReference(ref, "alice")).toBe(
+        "second-secret"
+      );
+    });
+
+    it("re-reads when the service account credentials change", async () => {
+      const ref = "op://Private/API/password";
+      process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_first";
+      sdkMock.resolve.mockResolvedValueOnce("first-secret");
+      expect(await resolveOnePasswordReference(ref)).toBe("first-secret");
+      process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_second";
+      sdkMock.resolve.mockResolvedValueOnce("second-secret");
+      expect(await resolveOnePasswordReference(ref)).toBe("second-secret");
+      expect(sdkMock.createClient).toHaveBeenLastCalledWith(
+        expect.objectContaining({ auth: "ops_second" })
+      );
+    });
+
+    it("shares concurrent reads within the same user and account", async () => {
+      settingMock.find.mockResolvedValue({ value: "account" });
+      sdkMock.resolve.mockResolvedValue("secret");
+      const ref = "op://Private/API/password";
+      expect(
+        await Promise.all([
+          resolveOnePasswordReference(ref, "alice"),
+          resolveOnePasswordReference(ref, "alice")
+        ])
+      ).toEqual(["secret", "secret"]);
+      expect(sdkMock.resolve).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not let a cleared read overwrite or remove newer work", async () => {
+      process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_token";
+      const old = Promise.withResolvers<string>();
+      const current = Promise.withResolvers<string>();
+      sdkMock.resolve
+        .mockReturnValueOnce(old.promise)
+        .mockReturnValueOnce(current.promise);
+      const ref = "op://Private/API/password";
+      const first = resolveOnePasswordReference(ref, "alice");
+      await vi.waitFor(() => expect(sdkMock.resolve).toHaveBeenCalledTimes(1));
+      clearOnePasswordCache();
+      const second = resolveOnePasswordReference(ref, "alice");
+      await vi.waitFor(() => expect(sdkMock.resolve).toHaveBeenCalledTimes(2));
+      old.resolve("old-secret");
+      expect(await first).toBe("old-secret");
+      const third = resolveOnePasswordReference(ref, "alice");
+      current.resolve("current-secret");
+      expect(await second).toBe("current-secret");
+      expect(await third).toBe("current-secret");
+      expect(await resolveOnePasswordReference(ref, "alice")).toBe(
+        "current-secret"
+      );
+      expect(sdkMock.resolve).toHaveBeenCalledTimes(2);
+    });
+
     it("resolves through a service account without running op", async () => {
       process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_token";
       sdkMock.resolve.mockResolvedValue("sk-sdk");
@@ -301,6 +447,19 @@ describe("onepassword", () => {
       );
       expect(init.headers.Authorization).toBe("Bearer connect-token");
     });
+
+    it.each(["OP_CONNECT_HOST", "OP_CONNECT_TOKEN"])(
+      "re-reads when %s changes",
+      async (key) => {
+        const ref = `op://${vaultId}/${itemId}/credential`;
+        stubConnect({ fields: [{ id: "credential", value: "first-secret" }] });
+        expect(await resolveOnePasswordReference(ref)).toBe("first-secret");
+        process.env[key] =
+          key === "OP_CONNECT_HOST" ? "http://other.internal" : "other-token";
+        stubConnect({ fields: [{ id: "credential", value: "second-secret" }] });
+        expect(await resolveOnePasswordReference(ref)).toBe("second-secret");
+      }
+    );
 
     it("selects a field inside a named section", async () => {
       stubConnect({
@@ -408,6 +567,18 @@ describe("onepassword", () => {
   });
 
   describe("browsing", () => {
+    it("authenticates browsing with the service account token", async () => {
+      process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_token";
+      sdkMock.vaultsList.mockResolvedValue([{ id: "vault", title: "Private" }]);
+      const browser = await onePasswordBrowser("alice");
+      expect(await browser.listVaults()).toEqual([
+        { id: "vault", title: "Private" }
+      ]);
+      expect(sdkMock.createClient).toHaveBeenCalledWith(
+        expect.objectContaining({ auth: "ops_token" })
+      );
+    });
+
     it("needs a connected account", async () => {
       settingMock.find.mockResolvedValue(null);
       await expect(onePasswordBrowser("u1")).rejects.toThrow(

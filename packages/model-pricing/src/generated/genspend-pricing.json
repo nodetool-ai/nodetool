@@ -2,11 +2,11 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-11-01T10:43:05.218Z",
-  "catalogGeneratedAt": "2026-11-01T10:43:04.139Z",
+  "updatedAt": "2026-11-05T11:16:10.151Z",
+  "catalogGeneratedAt": "2026-11-05T11:16:08.784Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
-  "catalogModels": 168,
-  "catalogOfferings": 571,
+  "catalogModels": 173,
+  "catalogOfferings": 581,
   "providers": [
     "atlascloud",
     "elevenlabs",
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 361,
+  "pricedModels": 373,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -2116,7 +2116,7 @@
       ]
     },
     "elevenlabs:eleven_flash_v2_5": {
-      "unit_price": 50,
+      "unit_price": 40,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-flash-v2.5",
@@ -2125,7 +2125,7 @@
       "source_url": "https://elevenlabs.io/pricing/api"
     },
     "elevenlabs:eleven_multilingual_v2": {
-      "unit_price": 100,
+      "unit_price": 80,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-multilingual-v2",
@@ -2134,7 +2134,7 @@
       "source_url": "https://elevenlabs.io/pricing/api"
     },
     "elevenlabs:eleven_turbo_v2_5": {
-      "unit_price": 50,
+      "unit_price": 40,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-turbo-v2.5",
@@ -2143,7 +2143,7 @@
       "source_url": "https://elevenlabs.io/pricing/api"
     },
     "elevenlabs:eleven_v3": {
-      "unit_price": 100,
+      "unit_price": 80,
       "billing_unit": "1m_chars",
       "unit_class": "per-1m-chars",
       "model_slug": "eleven-v3",
@@ -2177,6 +2177,15 @@
         "min": 3,
         "max": 15
       }
+    },
+    "fal_ai:alibaba/qwen-audio-3-tts": {
+      "unit_price": 50,
+      "billing_unit": "1m_chars",
+      "unit_class": "per-1m-chars",
+      "model_slug": "qwen-audio-3.0-tts-flash",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/alibaba/qwen-audio-3-tts"
     },
     "fal_ai:alibaba/wan-3.0-prime/image-to-video": {
       "unit_price": 0.05,
@@ -2238,12 +2247,32 @@
       "source_url": "https://fal.ai/models/alibaba/wan-3.0/reference-to-video",
       "clip_seconds": null
     },
+    "fal_ai:blackforestlabs/flux-3-max/image-to-video": {
+      "unit_price": 0.0425,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "flux-3-max",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/flux-3-max",
+      "clip_seconds": null
+    },
+    "fal_ai:blackforestlabs/flux-3-max/text-to-video": {
+      "unit_price": 0.0425,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "flux-3-max",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/flux-3-max",
+      "clip_seconds": null
+    },
     "fal_ai:blackforestlabs/flux-3/edit-image": {
       "unit_price": 0.048,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-3-image",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/blackforestlabs/flux-3/edit-image"
     },
@@ -2280,14 +2309,14 @@
       "live": true,
       "source_url": "https://fal.ai/models/bria/fibo-edit/edit"
     },
-    "fal_ai:bria/fibo-gen-1.5/text-to-image": {
+    "fal_ai:bria/fibo-gen-1.5/text-to-image/llms.txt": {
       "unit_price": 0.04,
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "bria-fibo-1.5",
-      "match": "provider-id",
+      "match": "receipt",
       "live": false,
-      "source_url": "https://fal.ai/models/bria/fibo-gen-1.5/text-to-image"
+      "source_url": "https://fal.ai/models/bria/fibo-gen-1.5/text-to-image/llms.txt"
     },
     "fal_ai:bria/fibo/generate": {
       "unit_price": 0.04,
@@ -2363,6 +2392,34 @@
       "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/bytedance/seed-speech/tts/v2"
+    },
+    "fal_ai:fal-ai/bytedance/seedance/v1/pro/image-to-video": {
+      "unit_price": 2.5,
+      "billing_unit": "1m_tokens",
+      "unit_class": "per-1m-tokens",
+      "model_slug": "seedance-1-pro",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "tier": "pro",
+      "variants": [
+        {
+          "price_usd": 2.5,
+          "unit_class": "per-1m-tokens",
+          "tier": "pro",
+          "is_base": true
+        },
+        {
+          "price_usd": 2.5,
+          "unit_class": "per-1m-tokens",
+          "tier": "pro",
+          "is_base": false
+        }
+      ],
+      "clip_seconds": {
+        "min": 2,
+        "max": 12
+      }
     },
     "fal_ai:fal-ai/bytedance/seedance/v1/pro/text-to-video": {
       "unit_price": 2.5,
@@ -2793,6 +2850,15 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/flux/dev"
     },
+    "fal_ai:fal-ai/flux/dev/image-to-image": {
+      "unit_price": 0.03,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "flux-1-dev",
+      "match": "variant",
+      "live": true,
+      "source_url": "https://fal.ai/models/fal-ai/flux/dev"
+    },
     "fal_ai:fal-ai/flux/dev/redux": {
       "unit_price": 0.025,
       "billing_unit": "images",
@@ -3086,30 +3152,6 @@
           "is_base": false
         }
       ]
-    },
-    "fal_ai:fal-ai/infinitalk": {
-      "unit_price": 0.2,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "infinitalk",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/infinitalk",
-      "clip_seconds": {
-        "max": 28
-      }
-    },
-    "fal_ai:fal-ai/infinitalk/video-to-video": {
-      "unit_price": 0.2,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "infinitalk",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/infinitalk",
-      "clip_seconds": {
-        "max": 28
-      }
     },
     "fal_ai:fal-ai/kling-image/o1": {
       "unit_price": 0.028,
@@ -3414,7 +3456,7 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "hailuo-02",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/minimax/hailuo-02/standard/text-to-video",
       "variants": [
@@ -3931,42 +3973,6 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/qwen-image"
     },
-    "fal_ai:fal-ai/qwen-image-edit": {
-      "unit_price": 0.03,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image-edit",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
-    },
-    "fal_ai:fal-ai/qwen-image-edit/image-to-image": {
-      "unit_price": 0.03,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image-edit",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
-    },
-    "fal_ai:fal-ai/qwen-image-edit/inpaint": {
-      "unit_price": 0.03,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image-edit",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
-    },
-    "fal_ai:fal-ai/qwen-image/image-to-image": {
-      "unit_price": 0.03,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "qwen-image-edit",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/qwen-image-edit"
-    },
     "fal_ai:fal-ai/recraft-20b": {
       "unit_price": 0.022,
       "billing_unit": "images",
@@ -3999,7 +4005,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "recraft-v3",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/recraft/v3/text-to-image"
     },
@@ -4615,35 +4621,6 @@
         "max": 10
       }
     },
-    "fal_ai:fal-ai/wan/v2.2-a14b/image-to-video": {
-      "unit_price": 0.08,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "wan-2.2",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/image-to-video",
-      "variants": [
-        {
-          "price_usd": 0.04,
-          "unit_class": "per-video-second",
-          "resolution": "480p",
-          "is_base": false
-        },
-        {
-          "price_usd": 0.08,
-          "unit_class": "per-video-second",
-          "resolution": "720p",
-          "is_base": true
-        }
-      ],
-      "clip_seconds": {
-        "set": [
-          5
-        ],
-        "max": 5
-      }
-    },
     "fal_ai:fal-ai/wan/v2.7/image-to-video": {
       "unit_price": 0.1,
       "billing_unit": "seconds",
@@ -4820,7 +4797,37 @@
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-4.0",
-      "match": "receipt",
+      "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/kling/v4/image-to-video",
+      "clip_seconds": null
+    },
+    "fal_ai:kling/v4/reference-to-video": {
+      "unit_price": 0.157,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/kling/v4/image-to-video",
+      "clip_seconds": null
+    },
+    "fal_ai:kling/v4/text-to-video": {
+      "unit_price": 0.157,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://fal.ai/models/kling/v4/image-to-video",
+      "clip_seconds": null
+    },
+    "fal_ai:kling/v4/video-to-video/edit": {
+      "unit_price": 0.157,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/kling/v4/image-to-video",
       "clip_seconds": null
@@ -4869,6 +4876,126 @@
       "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/meta/muse-image/edit"
+    },
+    "fal_ai:minimax/h3-max/image-to-video": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "minimax-h3-max",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/minimax/h3-max/text-to-video",
+      "variants": [
+        {
+          "price_usd": 0.056,
+          "unit_class": "per-video-second",
+          "resolution": "768p",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.035,
+          "unit_class": "per-video-second",
+          "resolution": "480p",
+          "is_base": false
+        },
+        {
+          "price_usd": 0.112,
+          "unit_class": "per-video-second",
+          "resolution": "1080p",
+          "is_base": false
+        }
+      ],
+      "clip_seconds": null
+    },
+    "fal_ai:minimax/h3-max/lip-sync/image-to-video": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "minimax-h3-max",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/minimax/h3-max/text-to-video",
+      "variants": [
+        {
+          "price_usd": 0.056,
+          "unit_class": "per-video-second",
+          "resolution": "768p",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.035,
+          "unit_class": "per-video-second",
+          "resolution": "480p",
+          "is_base": false
+        },
+        {
+          "price_usd": 0.112,
+          "unit_class": "per-video-second",
+          "resolution": "1080p",
+          "is_base": false
+        }
+      ],
+      "clip_seconds": null
+    },
+    "fal_ai:minimax/h3-max/reference-to-video": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "minimax-h3-max",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://fal.ai/models/minimax/h3-max/text-to-video",
+      "variants": [
+        {
+          "price_usd": 0.056,
+          "unit_class": "per-video-second",
+          "resolution": "768p",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.035,
+          "unit_class": "per-video-second",
+          "resolution": "480p",
+          "is_base": false
+        },
+        {
+          "price_usd": 0.112,
+          "unit_class": "per-video-second",
+          "resolution": "1080p",
+          "is_base": false
+        }
+      ],
+      "clip_seconds": null
+    },
+    "fal_ai:minimax/h3-max/text-to-video": {
+      "unit_price": 0.056,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "minimax-h3-max",
+      "match": "provider-id",
+      "live": false,
+      "source_url": "https://fal.ai/models/minimax/h3-max/text-to-video",
+      "variants": [
+        {
+          "price_usd": 0.056,
+          "unit_class": "per-video-second",
+          "resolution": "768p",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.035,
+          "unit_class": "per-video-second",
+          "resolution": "480p",
+          "is_base": false
+        },
+        {
+          "price_usd": 0.112,
+          "unit_class": "per-video-second",
+          "resolution": "1080p",
+          "is_base": false
+        }
+      ],
+      "clip_seconds": null
     },
     "fal_ai:minimax/h3/image-to-video": {
       "unit_price": 0.13,
@@ -4990,6 +5117,15 @@
         "max": 15
       }
     },
+    "fal_ai:mureka/v9.5/generate/song": {
+      "unit_price": 0.15,
+      "billing_unit": "generations",
+      "unit_class": "per-generation",
+      "model_slug": "mureka-v9.5",
+      "match": "receipt",
+      "live": false,
+      "source_url": "https://fal.ai/models/mureka/v9.5/generate/song"
+    },
     "fal_ai:nvidia/cosmos-3-super/text-to-image": {
       "unit_price": 0.04,
       "billing_unit": "images",
@@ -5019,6 +5155,33 @@
       "unit_class": "per-video-second",
       "model_slug": "wan-2.6-i2v",
       "match": "provider-id",
+      "live": true,
+      "source_url": "https://fal.ai/models/wan/v2.6/image-to-video",
+      "variants": [
+        {
+          "price_usd": 0.1,
+          "unit_class": "per-video-second",
+          "resolution": "720p",
+          "is_base": true
+        },
+        {
+          "price_usd": 0.15,
+          "unit_class": "per-video-second",
+          "resolution": "1080p",
+          "is_base": false
+        }
+      ],
+      "clip_seconds": {
+        "min": 2,
+        "max": 15
+      }
+    },
+    "fal_ai:wan/v2.6/text-to-video": {
+      "unit_price": 0.1,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "wan-2.6-i2v",
+      "match": "catalog",
       "live": true,
       "source_url": "https://fal.ai/models/wan/v2.6/image-to-video",
       "variants": [
@@ -6485,7 +6648,7 @@
       }
     },
     "kie:kling-3.0/video": {
-      "unit_price": 0.07,
+      "unit_price": 0.0755,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-standard",
@@ -6494,42 +6657,42 @@
       "source_url": "https://kie.ai/kling-3-0",
       "variants": [
         {
-          "price_usd": 0.335,
+          "price_usd": 0.3775,
           "unit_class": "per-video-second",
           "resolution": "4K",
           "with_audio": true,
           "is_base": false
         },
         {
-          "price_usd": 0.335,
+          "price_usd": 0.3775,
           "unit_class": "per-video-second",
           "resolution": "4K",
           "with_audio": false,
           "is_base": false
         },
         {
-          "price_usd": 0.135,
+          "price_usd": 0.151,
           "unit_class": "per-video-second",
           "resolution": "1080p",
           "with_audio": true,
           "is_base": false
         },
         {
-          "price_usd": 0.09,
+          "price_usd": 0.101,
           "unit_class": "per-video-second",
           "resolution": "1080p",
           "with_audio": false,
           "is_base": false
         },
         {
-          "price_usd": 0.1,
+          "price_usd": 0.1135,
           "unit_class": "per-video-second",
           "resolution": "720p",
           "with_audio": true,
           "is_base": false
         },
         {
-          "price_usd": 0.07,
+          "price_usd": 0.0755,
           "unit_class": "per-video-second",
           "resolution": "720p",
           "with_audio": false,
@@ -6540,6 +6703,16 @@
         "min": 3,
         "max": 15
       }
+    },
+    "kie:kling-4.0/reference-to-video": {
+      "unit_price": 0.1425,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://kie.ai/kling-4-0",
+      "clip_seconds": null
     },
     "kie:kling/v3-turbo-image-to-video": {
       "unit_price": 0.09,
@@ -6667,6 +6840,15 @@
         }
       ]
     },
+    "kie:nano-banana-2-1": {
+      "unit_price": 0.02,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "nano-banana-2.1",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://kie.ai/nano-banana-2-1"
+    },
     "kie:nano-banana-2-lite": {
       "unit_price": 0.02,
       "billing_unit": "images",
@@ -6727,6 +6909,24 @@
       "match": "provider-id",
       "live": true,
       "source_url": "https://kie.ai/seedream-4-5"
+    },
+    "kie:seedream/5-flash-image-to-image": {
+      "unit_price": 0.0162,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "seedream-5-flash",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://kie.ai/seedream-5-0-flash"
+    },
+    "kie:seedream/5-flash-text-to-image": {
+      "unit_price": 0.0162,
+      "billing_unit": "images",
+      "unit_class": "per-image",
+      "model_slug": "seedream-5-flash",
+      "match": "catalog",
+      "live": true,
+      "source_url": "https://kie.ai/seedream-5-0-flash"
     },
     "kie:seedream/5-lite-image-to-image": {
       "unit_price": 0.0275,
@@ -7206,6 +7406,24 @@
       "live": false,
       "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
     },
+    "minimax:speech-2.8-hd": {
+      "unit_price": 100,
+      "billing_unit": "1m_chars",
+      "unit_class": "per-1m-chars",
+      "model_slug": "minimax-speech-2.8-hd",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
+    },
+    "minimax:speech-2.8-turbo": {
+      "unit_price": 60,
+      "billing_unit": "1m_chars",
+      "unit_class": "per-1m-chars",
+      "model_slug": "minimax-speech-2.8-turbo",
+      "match": "catalog",
+      "live": false,
+      "source_url": "https://platform.minimax.io/docs/guides/pricing-paygo"
+    },
     "openai:gpt-4o-mini-tts": {
       "unit_price": 12,
       "billing_unit": "1m_tokens",
@@ -7214,15 +7432,6 @@
       "match": "provider-id",
       "live": false,
       "source_url": "https://developers.openai.com/api/docs/models/gpt-4o-mini-tts"
-    },
-    "openai:gpt-image-1": {
-      "unit_price": 0.011,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "gpt-image-1",
-      "match": "provider-id",
-      "live": false,
-      "source_url": "https://developers.openai.com/api/docs/guides/image-generation"
     },
     "openai:gpt-image-1.5": {
       "unit_price": 0.009,
@@ -7265,7 +7474,7 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "flux-1.1-pro",
-      "match": "receipt",
+      "match": "provider-id",
       "live": true,
       "source_url": "https://replicate.com/black-forest-labs/flux-1.1-pro",
       "variants": [
