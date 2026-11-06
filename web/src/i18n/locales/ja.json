@@ -12760,7 +12760,7 @@
       "disableAll": "すべてのノードを無効にする",
       "color": "グループカラー",
       "removeNodesHeading": "グループからノードを削除",
-      "dragOutModifier": "CTRL | を押しながらドラッグします。 ⌘キー",
+      "dragOutModifier": "Alt（MacではOption ⌥）を押しながら外にドラッグ",
       "shakeToRemove": "素早く振ってから引きずり出します"
     }
   },

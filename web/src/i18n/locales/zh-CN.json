@@ -12760,7 +12760,7 @@
       "disableAll": "禁用所有节点",
       "color": "分组颜色",
       "removeNodesHeading": "从分组中移除节点",
-      "dragOutModifier": "按住 CTRL | ⌘ 键并拖出",
+      "dragOutModifier": "按住 Alt（Mac 上的 Option ⌥）并拖出",
       "shakeToRemove": "快速晃动，然后拖出"
     }
   },

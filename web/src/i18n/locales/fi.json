@@ -12760,7 +12760,7 @@
       "disableAll": "Poista kaikki solmut käytöstä",
       "color": "Ryhmän väri",
       "removeNodesHeading": "POISTA SOLMUJA RYHMÄSTÄ",
-      "dragOutModifier": "Vedä ulos pitäen CTRL | ⌘ -näppäintä pohjassa",
+      "dragOutModifier": "Vedä ulos pitäen Alt pohjassa (Macissa Optio ⌥)",
       "shakeToRemove": "Ravista nopeasti ja vedä sitten ulos"
     }
   },

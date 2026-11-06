@@ -12760,7 +12760,7 @@
       "disableAll": "Schakel alle knooppunten uit",
       "color": "Groepskleur",
       "removeNodesHeading": "VERWIJDER KNOPEN UIT DE GROEP",
-      "dragOutModifier": "Sleep uit terwijl u CTRL | ingedrukt houdt ⌘ sleutel",
+      "dragOutModifier": "Sleep naar buiten terwijl je Alt ingedrukt houdt (Option ⌥ op Mac)",
       "shakeToRemove": "Schud snel en sleep vervolgens naar buiten"
     }
   },

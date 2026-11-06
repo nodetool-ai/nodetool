@@ -12959,7 +12959,7 @@
       "disableAll": "Desabilitar todos os nós",
       "color": "Cor do grupo",
       "removeNodesHeading": "REMOVER NÓS DO GRUPO",
-      "dragOutModifier": "Arraste enquanto segura CTRL | ⌘ chave",
+      "dragOutModifier": "Arraste para fora segurando Alt (Option ⌥ no Mac)",
       "shakeToRemove": "Agite rapidamente e depois arraste"
     }
   },
