@@ -9045,6 +9045,10 @@
           "button": "API-Route-Schlüssel abrufen",
           "tooltip": "Zur API-Route-API-Schlüsselseite"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate-API-Schlüssel abrufen",
+          "tooltip": "Zur Runcrate-API-Schlüsselseite"
+        },
         "HF_TOKEN": {
           "button": "Hugging-Face-Token abrufen",
           "tooltip": "Zur Hugging-Face-Token-Seite"

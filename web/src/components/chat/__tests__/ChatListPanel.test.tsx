@@ -112,6 +112,7 @@ describe("ChatListPanel", () => {
       title: "Fixing the encoder",
       projectId: "default"
     });
+    expect(setVisibility).toHaveBeenCalledWith(false);
   });
 
   it("filters threads by the search term", async () => {
@@ -144,6 +145,7 @@ describe("ChatListPanel", () => {
     expect(createNewThread).toHaveBeenCalledWith(undefined, undefined, {
       projectId: "project-a"
     });
+    expect(setVisibility).toHaveBeenCalledWith(false);
   });
 
   // UX research study 4: the empty panel pointed at another menu, and

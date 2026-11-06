@@ -17,6 +17,7 @@ import { adRecipes, formatKey } from "@/data/adLibrary";
 import type { AdRecipe } from "@/data/adLibrary";
 import JsonLd from "@/components/JsonLd";
 import { adVideoUploadDate } from "@/data/contentDates";
+import { videoUploadDate } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 
 interface AdRecipePageProps {
@@ -348,7 +349,7 @@ export default async function AdRecipePage({ params }: AdRecipePageProps) {
           duration: `PT${Math.round(recipe.video.duration_ms / 1000)}S`,
           width: recipe.video.width,
           height: recipe.video.height,
-          ...(uploadDate ? { uploadDate } : {})
+          ...(uploadDate ? { uploadDate: videoUploadDate(uploadDate) } : {})
         }}
       />
       <article className="mx-auto max-w-7xl px-6 pb-24 pt-10 lg:px-8">

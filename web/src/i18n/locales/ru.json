@@ -9333,6 +9333,10 @@
           "button": "Получить ключ API Route",
           "tooltip": "Перейти на страницу API-ключей API Route"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Получить API-ключ Runcrate",
+          "tooltip": "Перейти на страницу API-ключей Runcrate"
+        },
         "HF_TOKEN": {
           "button": "Получить токен Hugging Face",
           "tooltip": "Перейти на страницу токенов Hugging Face"

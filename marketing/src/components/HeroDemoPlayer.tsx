@@ -5,7 +5,12 @@
  * casts (demo/src/hero/HeroProject.tsx).
  *
  * The poster is a plain <img> with a srcSet and high fetch priority, and it
- * stays the LCP element — a <video poster> cannot carry either. The video
+ * stays the LCP element — a <video poster> cannot carry either. A playing
+ * video's first frame is itself an LCP candidate, and Chrome replaces the
+ * poster with any later candidate that measures larger. In the same box the
+ * video measured a few pixels larger, which moved mobile LCP from the poster
+ * (about 2 s) to the moment the video faded in (5 to 7 s on a throttled phone).
+ * So the poster fills a 16:9 box and the video sits 1px inside it. The video
  * mounts only once the section is on screen, is revealed once it is actually
  * painting frames, and never autoplays for a reader who asked for reduced
  * motion.
@@ -135,7 +140,7 @@ export default function HeroDemoPlayer({
 
   return (
     <figure className="m-0">
-      <div ref={frameRef} className="hero-demo relative">
+      <div ref={frameRef} className="hero-demo relative aspect-video">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`${mediaBase}-poster.webp`}
@@ -145,7 +150,7 @@ export default function HeroDemoPlayer({
           width={1920}
           height={1080}
           decoding="async"
-          className="block h-auto w-full rounded-xl"
+          className="absolute inset-0 h-full w-full rounded-xl object-cover"
           fetchPriority={priority ? "high" : "auto"}
           loading={priority ? "eager" : "lazy"}
         />
@@ -164,7 +169,7 @@ export default function HeroDemoPlayer({
             }}
             onPause={() => setPlaying(false)}
             aria-label={alt}
-            className={`absolute inset-0 h-full w-full rounded-xl object-cover transition-opacity duration-500 ${
+            className={`absolute inset-px h-[calc(100%-2px)] w-[calc(100%-2px)] rounded-xl object-cover transition-opacity duration-500 ${
               started ? "opacity-100" : "opacity-0"
             }`}
           >

@@ -65,6 +65,11 @@ export const moviePosterUseCase: UseCaseEntry = {
         "In NodeTool it takes four nodes: enter the title, genre, and audience; an agent writes the creative strategy; a list generator turns it into distinct plot concepts; an image model renders each concept as a full theatrical poster, title, tagline, and billing block included.",
     },
     {
+      question: "What is a billing block, and does the AI poster include one?",
+      answer:
+        "A billing block is the block of credits at the bottom of a theatrical poster: cast, director, producers, studio logos, and the release date in tall condensed type. The poster prompt asks the image model for one in the standard layout, so every poster has it, but the names in it are placeholder text the model writes. For real credits, put the exact names in the prompt and fix any wrong letters with a masked edit.",
+    },
+    {
       question: "Which models does this workflow use?",
       answer:
         "Gemini 3.1 Pro Preview writes the strategy and the plot concepts, and GPT Image-2 renders the key art. Both are called with your own provider keys at provider prices.",
