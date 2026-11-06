@@ -10,4 +10,4 @@ Game event schemas already describe payloads and targeting. That is useful infra
 
 **Next check:** request an AI action, leave the scene before completion, and confirm the late response cannot mutate the replacement scene. Measure tick progress while the request is pending.
 
-Evidence: [game script contract](../../game-engine/scripts.md), [game event schema](../../../packages/protocol/src/game-script-events.ts), [audio processing](../../../packages/audio-nodes/src/nodes/realtime-audio.ts), [execution lifecycle](../../execution-lifecycle.md).
+Evidence: [game script contract](../../game-engine/scripts.md), [game event schema](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-script-events.ts), [audio processing](https://github.com/nodetool-ai/nodetool/blob/main/packages/audio-nodes/src/nodes/realtime-audio.ts), [execution lifecycle](../../execution-lifecycle.md).

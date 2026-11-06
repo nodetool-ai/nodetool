@@ -10,4 +10,4 @@ Game export has a different purpose: package a playable document, runtime and re
 
 **Next check:** import a generated timeline into a clean project. Verify playback, then attempt regeneration and inspect unresolved source references. A successful media import alone should not certify a portable recipe.
 
-Evidence: [timeline bundle codec](../../../packages/project-services/src/timeline-bundle.ts), [game publication and export](../../game-engine/publishing.md).
+Evidence: [timeline bundle codec](https://github.com/nodetool-ai/nodetool/blob/main/packages/project-services/src/timeline-bundle.ts), [game publication and export](../../game-engine/publishing.md).

@@ -10,4 +10,4 @@ By contrast, the shared media-transfer action creates constant nodes from the se
 
 **Next check:** send a generated clip to a workflow, select a different take, and inspect which consumers change. Preserve the old result when a user chose a fixed asset.
 
-Evidence: [media transfer](../../../web/src/hooks/useSendMediaToWorkflow.ts), [constant creation](../../../web/src/hooks/handlers/useGenerationToCanvas.ts), [timeline binding](../../../packages/websocket/src/trpc/routers/timeline.ts), [sketch binding](../../../packages/websocket/src/trpc/routers/sketch.ts).
+Evidence: [media transfer](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/useSendMediaToWorkflow.ts), [constant creation](https://github.com/nodetool-ai/nodetool/blob/main/web/src/hooks/handlers/useGenerationToCanvas.ts), [timeline binding](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/timeline.ts), [sketch binding](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/sketch.ts).
