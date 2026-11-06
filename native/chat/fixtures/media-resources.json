@@ -1,0 +1,144 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "cccccccccccccccccccccccccccccccc",
+      "role": "assistant",
+      "media_generation": {
+        "mode": "image",
+        "model": "Fixture model",
+        "variations": 3,
+        "aspect_ratio": "2:1"
+      },
+      "content": [
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC"
+          }
+        },
+        {
+          "type": "audio",
+          "audio": {
+            "asset_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "duration": 12
+          }
+        },
+        {
+          "type": "video",
+          "video": {
+            "asset_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "duration": 6
+          }
+        }
+      ]
+    },
+    {
+      "type": "prediction",
+      "id": "prediction-full-id",
+      "model": "Fixture model",
+      "status": "running",
+      "progress": 0.5
+    },
+    {
+      "type": "message",
+      "id": "dddddddddddddddddddddddddddddddd",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "document",
+          "document": {
+            "name": "Production notes",
+            "text": "Exterior at dusk. Hold the final frame for two seconds."
+          }
+        },
+        {
+          "type": "text",
+          "text": "[Evening cut](timeline://eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee)"
+        }
+      ]
+    }
+  ],
+  "helperCases": [
+    {
+      "content": [
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC"
+          }
+        },
+        {
+          "type": "audio",
+          "audio": {
+            "asset_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "duration": 12
+          }
+        },
+        {
+          "type": "video",
+          "video": {
+            "asset_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "duration": 6
+          }
+        }
+      ],
+      "expected": true
+    },
+    {
+      "content": [],
+      "expected": false
+    },
+    {
+      "content": null,
+      "expected": false
+    },
+    {
+      "content": "string",
+      "expected": false
+    },
+    {
+      "content": 42,
+      "expected": false
+    },
+    {
+      "content": [
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC"
+          }
+        },
+        {
+          "type": "text",
+          "text": "hello"
+        }
+      ],
+      "expected": false
+    },
+    {
+      "content": [
+        null,
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC"
+          }
+        }
+      ],
+      "expected": false
+    },
+    {
+      "content": [
+        {
+          "type": "audio",
+          "audio": {
+            "asset_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "duration": 12
+          }
+        }
+      ],
+      "expected": true
+    }
+  ]
+}

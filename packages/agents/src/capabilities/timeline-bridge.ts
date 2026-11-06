@@ -206,6 +206,7 @@ export type TimelineFormatRetargeter = (
 
 /** A whole sequence handed to the bridge as-is, fields and all. */
 export interface TimelineBridgeSequenceSeed {
+  workingColorSpaceVersion?: number;
   fps?: number;
   width?: number;
   height?: number;
@@ -1047,6 +1048,7 @@ export function createTimelineToolBridge(
       setup,
       transcript: seed?.transcript,
       scriptEnabled: seed?.scriptEnabled,
+      workingColorSpaceVersion: seed?.workingColorSpaceVersion,
       templateId: seed?.templateId,
       trackFolders: structuredClone(seed?.trackFolders),
       storyboardMaterializations: structuredClone(

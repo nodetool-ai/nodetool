@@ -1,0 +1,11 @@
+nt_sources(audio src/audio/hooks/MixerHooks.h src/audio/hooks/MixerHooks.cpp
+    src/audio/hooks/OutputDevice.h src/audio/hooks/OutputDevice.cpp)
+function(nt_mixer_hook_tests)
+    qt_add_executable(tst_mixerhooks src/audio/hooks/tst_mixerhooks.cpp)
+    set_target_properties(tst_mixerhooks PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_mixerhooks PRIVATE timeline_core timeline_audio Qt6::Test)
+    target_compile_definitions(tst_mixerhooks PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+    add_test(NAME tst_mixerhooks COMMAND tst_mixerhooks)
+    set_tests_properties(tst_mixerhooks PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" FIXTURES_REQUIRED media)
+endfunction()
+nt_tests(nt_mixer_hook_tests)

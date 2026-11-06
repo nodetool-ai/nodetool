@@ -149,15 +149,15 @@ describe("premultiplied invariant: color modules", () => {
 });
 
 describe("filters.blur.gaussian: param honesty", () => {
-  it("samples across the requested radius when the kernel is capped", () => {
+  it("samples every texel across the supported radius", () => {
     const wgsl = blurGaussianV1.wgsl;
     const uiMax = (
       blurGaussianV1.paramUi as { radius: { max: number } }
     ).radius.max;
     expect(uiMax).toBeGreaterThanOrEqual(160);
-    expect(wgsl).toMatch(/let sampleStep = max\(1\.0, blur\.radius \/ 20\.0\)/);
-    expect(wgsl).toMatch(/let distance = f32\(i\) \* sampleStep/);
-    expect(wgsl).toMatch(/gaussianWeight\(distance, sigma\)/);
+    expect(wgsl).toMatch(/let kernelRadius = i32\(min\(blur\.radius, 256\.0\)\)/);
+    expect(wgsl).toMatch(/let distance = f32\(i\)/);
+    expect(wgsl).not.toContain("sampleStep");
   });
 
   it("honors a caller-supplied non-zero sigma instead of forcing radius/3", () => {
@@ -194,7 +194,7 @@ describe("filters.blur recipes: colorSpace consistency", () => {
 
 describe("mask.fromImage: luma weights", () => {
   it("uses Rec. 709 luma weights on declared-linear input", () => {
-    expect(maskFromImageV1.io.inputs.source.colorSpace).toBe("linear");
+    expect(maskFromImageV1.io.inputs.source.colorSpace).toBe("encoded-sdr");
     expect(maskFromImageV1.wgsl).toMatch(/0\.2126/);
     expect(maskFromImageV1.wgsl).toMatch(/0\.7152/);
     expect(maskFromImageV1.wgsl).toMatch(/0\.0722/);

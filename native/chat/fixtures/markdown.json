@@ -1,0 +1,71 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "00000000000000000000000000000043",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "<|start|>assistant<|channel|>final<|message|>## Markdown preview\n\n[NodeTool](https://nodetool.ai)\n\n```cpp\nint answer = 42;\n```\n\n| Format | Support |\n| --- | --- |\n| Code | Copy |\n| Tables | Paged |\n\nMath source: $$x^2 + y^2 = z^2$$<|end|>"
+        },
+        {
+          "type": "tool_call",
+          "tool_call_id": "00000000000000000000000000000044",
+          "name": "read_file",
+          "args": {
+            "path": "notes.txt"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Text after the tool."
+        },
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "asset://00000000000000000000000000000045"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Text after the image."
+        }
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "00000000000000000000000000000043",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "<|start|>assistant<|channel|>final<|message|>## Markdown preview\n\n[NodeTool](https://nodetool.ai)\n\n```cpp\nint answer = 42;\n```\n\n| Format | Support |\n| --- | --- |\n| Code | Copy |\n| Tables | Paged |\n\nMath source: $$x^2 + y^2 = z^2$$<|end|>"
+        },
+        {
+          "type": "tool_call",
+          "tool_call_id": "00000000000000000000000000000044",
+          "name": "read_file",
+          "args": {
+            "path": "notes.txt"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Text after the tool."
+        },
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "asset://00000000000000000000000000000045"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Text after the image."
+        }
+      ]
+    }
+  ]
+}

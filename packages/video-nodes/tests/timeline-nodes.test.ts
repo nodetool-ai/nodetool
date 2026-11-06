@@ -130,6 +130,15 @@ beforeEach(() => {
 });
 
 describe("RenderTimelineNode", () => {
+  it.each([2, 3])("refuses version %s before any renderer or rough cut", async (workingColorSpaceVersion) => {
+    const sequence = { ...baseSequence(), workingColorSpaceVersion };
+    const saved = JSON.stringify(sequence);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await expect(node.process(stubContext(sequence) as never)).rejects.toThrow(`Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.`);
+    expect(JSON.stringify(sequence)).toBe(saved);
+  });
+
   it("normalizes clips, concatenates them, and mixes audio at offsets", async () => {
     const context = stubContext(baseSequence());
     const node = new RenderTimelineNode();

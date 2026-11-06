@@ -1,0 +1,311 @@
+{
+  "id": "seq-generator-modes",
+  "projectId": "native-prototype",
+  "name": "generator-modes",
+  "fps": 30,
+  "width": 320,
+  "height": 180,
+  "durationMs": 8000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "noise",
+      "trackId": "t0",
+      "name": "noise",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-noise",
+          "type": "generator",
+          "enabled": true,
+          "mode": "noise",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    },
+    {
+      "id": "fractal",
+      "trackId": "t0",
+      "name": "fractal",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-fractal",
+          "type": "generator",
+          "enabled": true,
+          "mode": "fractal",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 17,
+          "colorA": "#182040",
+          "colorB": "#ffc060",
+          "animate": true
+        }
+      ]
+    },
+    {
+      "id": "conicGradient",
+      "trackId": "t0",
+      "name": "conicGradient",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-conicGradient",
+          "type": "generator",
+          "enabled": true,
+          "mode": "conicGradient",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    },
+    {
+      "id": "meshGradient",
+      "trackId": "t0",
+      "name": "meshGradient",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-meshGradient",
+          "type": "generator",
+          "enabled": true,
+          "mode": "meshGradient",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    },
+    {
+      "id": "gradientField",
+      "trackId": "t0",
+      "name": "gradientField",
+      "startMs": 4000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-gradientField",
+          "type": "generator",
+          "enabled": true,
+          "mode": "gradientField",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    },
+    {
+      "id": "particles",
+      "trackId": "t0",
+      "name": "particles",
+      "startMs": 5000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-particles",
+          "type": "generator",
+          "enabled": true,
+          "mode": "particles",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    },
+    {
+      "id": "lightLeak",
+      "trackId": "t0",
+      "name": "lightLeak",
+      "startMs": 6000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-lightLeak",
+          "type": "generator",
+          "enabled": true,
+          "mode": "lightLeak",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    },
+    {
+      "id": "gridPattern",
+      "trackId": "t0",
+      "name": "gridPattern",
+      "startMs": 7000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "generator-gridPattern",
+          "type": "generator",
+          "enabled": true,
+          "mode": "gridPattern",
+          "amount": 1.3,
+          "scale": 7,
+          "seed": 13,
+          "angle": 37,
+          "time": 0.35,
+          "colorA": "#182040",
+          "colorB": "#ffc060"
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 generator noise, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 generator fractal, PSNR >= 40 dB"
+    },
+    {
+      "frame": 51,
+      "criterion": "J1 generator fractal, PSNR >= 40 dB"
+    },
+    {
+      "frame": 60,
+      "criterion": "J1 generator conicGradient, PSNR >= 40 dB"
+    },
+    {
+      "frame": 90,
+      "criterion": "J1 generator meshGradient, PSNR >= 40 dB"
+    },
+    {
+      "frame": 120,
+      "criterion": "J1 generator gradientField, PSNR >= 40 dB"
+    },
+    {
+      "frame": 150,
+      "criterion": "J1 generator particles, PSNR >= 40 dB"
+    },
+    {
+      "frame": 180,
+      "criterion": "J1 generator lightLeak, PSNR >= 40 dB"
+    },
+    {
+      "frame": 210,
+      "criterion": "J1 generator gridPattern, PSNR >= 40 dB"
+    }
+  ]
+}

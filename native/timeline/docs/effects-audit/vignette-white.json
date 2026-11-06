@@ -1,0 +1,126 @@
+{
+  "id": "audit-vignette-white",
+  "projectId": "native-prototype",
+  "name": "vignette-white",
+  "fps": 30,
+  "width": 640,
+  "height": 360,
+  "durationMs": 4000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "case-0",
+      "trackId": "t0",
+      "name": "case-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 640,
+      "height": 360,
+      "mediaPath": "white.png",
+      "effects": [
+        {
+          "type": "vignette",
+          "softness": 0.5,
+          "id": "fx-case-0-0",
+          "radius": 0.9,
+          "enabled": true,
+          "amount": 0.5
+        }
+      ]
+    },
+    {
+      "id": "case-1",
+      "trackId": "t0",
+      "name": "case-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 640,
+      "height": 360,
+      "mediaPath": "white.png",
+      "effects": [
+        {
+          "type": "vignette",
+          "softness": 0.6,
+          "id": "fx-case-1-0",
+          "radius": 1.2,
+          "enabled": true,
+          "amount": 0.5
+        }
+      ]
+    },
+    {
+      "id": "case-2",
+      "trackId": "t0",
+      "name": "case-2",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 640,
+      "height": 360,
+      "mediaPath": "white.png",
+      "effects": [
+        {
+          "type": "vignette",
+          "softness": 0,
+          "id": "fx-case-2-0",
+          "radius": 0.9,
+          "enabled": true,
+          "amount": 0.5
+        }
+      ]
+    },
+    {
+      "id": "case-3",
+      "trackId": "t0",
+      "name": "case-3",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 640,
+      "height": 360,
+      "mediaPath": "white.png",
+      "effects": [
+        {
+          "type": "vignette",
+          "softness": 0.5,
+          "id": "fx-case-3-0",
+          "radius": 0.9,
+          "enabled": true,
+          "amount": 0
+        }
+      ]
+    }
+  ],
+  "markers": []
+}

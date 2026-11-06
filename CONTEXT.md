@@ -4,6 +4,11 @@ Visual AI workflow platform. Documents (workflows, timelines, sketches, storyboa
 
 ## Language
 
+### Asset library
+
+**Asset tag**:
+A label attached to an asset for finding and filtering it in the library.
+
 ### Document sync
 
 **Document**:

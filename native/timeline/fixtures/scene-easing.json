@@ -1,0 +1,4668 @@
+{
+  "id": "seq-scene-easing",
+  "projectId": "native-prototype",
+  "name": "Scene easing and presets",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 5000,
+  "tracks": [
+    {
+      "id": "e0",
+      "name": "e0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e1",
+      "name": "e1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e2",
+      "name": "e2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e3",
+      "name": "e3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e4",
+      "name": "e4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e5",
+      "name": "e5",
+      "type": "video",
+      "index": 5,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e6",
+      "name": "e6",
+      "type": "video",
+      "index": 6,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e7",
+      "name": "e7",
+      "type": "video",
+      "index": 7,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e8",
+      "name": "e8",
+      "type": "video",
+      "index": 8,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e9",
+      "name": "e9",
+      "type": "video",
+      "index": 9,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e10",
+      "name": "e10",
+      "type": "video",
+      "index": 10,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e11",
+      "name": "e11",
+      "type": "video",
+      "index": 11,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e12",
+      "name": "e12",
+      "type": "video",
+      "index": 12,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e13",
+      "name": "e13",
+      "type": "video",
+      "index": 13,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e14",
+      "name": "e14",
+      "type": "video",
+      "index": 14,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e15",
+      "name": "e15",
+      "type": "video",
+      "index": 15,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e16",
+      "name": "e16",
+      "type": "video",
+      "index": 16,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e17",
+      "name": "e17",
+      "type": "video",
+      "index": 17,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e18",
+      "name": "e18",
+      "type": "video",
+      "index": 18,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e19",
+      "name": "e19",
+      "type": "video",
+      "index": 19,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e20",
+      "name": "e20",
+      "type": "video",
+      "index": 20,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e21",
+      "name": "e21",
+      "type": "video",
+      "index": 21,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e22",
+      "name": "e22",
+      "type": "video",
+      "index": 22,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e23",
+      "name": "e23",
+      "type": "video",
+      "index": 23,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e24",
+      "name": "e24",
+      "type": "video",
+      "index": 24,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e25",
+      "name": "e25",
+      "type": "video",
+      "index": 25,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e26",
+      "name": "e26",
+      "type": "video",
+      "index": 26,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e27",
+      "name": "e27",
+      "type": "video",
+      "index": 27,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e28",
+      "name": "e28",
+      "type": "video",
+      "index": 28,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e29",
+      "name": "e29",
+      "type": "video",
+      "index": 29,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e30",
+      "name": "e30",
+      "type": "video",
+      "index": 30,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e31",
+      "name": "e31",
+      "type": "video",
+      "index": 31,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e32",
+      "name": "e32",
+      "type": "video",
+      "index": 32,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e33",
+      "name": "e33",
+      "type": "video",
+      "index": 33,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e34",
+      "name": "e34",
+      "type": "video",
+      "index": 34,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e35",
+      "name": "e35",
+      "type": "video",
+      "index": 35,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e36",
+      "name": "e36",
+      "type": "video",
+      "index": 36,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e37",
+      "name": "e37",
+      "type": "video",
+      "index": 37,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e38",
+      "name": "e38",
+      "type": "video",
+      "index": 38,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e39",
+      "name": "e39",
+      "type": "video",
+      "index": 39,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e40",
+      "name": "e40",
+      "type": "video",
+      "index": 40,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e41",
+      "name": "e41",
+      "type": "video",
+      "index": 41,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e42",
+      "name": "e42",
+      "type": "video",
+      "index": 42,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e43",
+      "name": "e43",
+      "type": "video",
+      "index": 43,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e44",
+      "name": "e44",
+      "type": "video",
+      "index": 44,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e45",
+      "name": "e45",
+      "type": "video",
+      "index": 45,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e46",
+      "name": "e46",
+      "type": "video",
+      "index": 46,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e47",
+      "name": "e47",
+      "type": "video",
+      "index": 47,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e48",
+      "name": "e48",
+      "type": "video",
+      "index": 48,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e49",
+      "name": "e49",
+      "type": "video",
+      "index": 49,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e50",
+      "name": "e50",
+      "type": "video",
+      "index": 50,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e51",
+      "name": "e51",
+      "type": "video",
+      "index": 51,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e52",
+      "name": "e52",
+      "type": "video",
+      "index": 52,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e53",
+      "name": "e53",
+      "type": "video",
+      "index": 53,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e54",
+      "name": "e54",
+      "type": "video",
+      "index": 54,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "e55",
+      "name": "e55",
+      "type": "video",
+      "index": 55,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "ease_0",
+      "trackId": "e0",
+      "name": "ease_0",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_0_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "linear"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "linear"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "linear"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_0_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "linear"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_1",
+      "trackId": "e1",
+      "name": "ease_1",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -580,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_1_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeIn"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeIn"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeIn"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_1_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeIn"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_2",
+      "trackId": "e2",
+      "name": "ease_2",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -360,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_2_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOut"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOut"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOut"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_2_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOut"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_3",
+      "trackId": "e3",
+      "name": "ease_3",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -140,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_3_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInOut"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOut"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInOut"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_3_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOut"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_4",
+      "trackId": "e4",
+      "name": "ease_4",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_4_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOutBack"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutBack"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOutBack"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_4_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutBack"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_5",
+      "trackId": "e5",
+      "name": "ease_5",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_5_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOutElastic"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutElastic"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOutElastic"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_5_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutElastic"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_6",
+      "trackId": "e6",
+      "name": "ease_6",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 520,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_6_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOutBounce"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutBounce"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOutBounce"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_6_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutBounce"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_7",
+      "trackId": "e7",
+      "name": "ease_7",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 740,
+          "y": -400
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_7_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInExpo"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInExpo"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInExpo"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_7_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInExpo"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_8",
+      "trackId": "e8",
+      "name": "ease_8",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_8_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOutExpo"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutExpo"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOutExpo"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_8_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutExpo"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_9",
+      "trackId": "e9",
+      "name": "ease_9",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -580,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_9_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInOutExpo"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOutExpo"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInOutExpo"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_9_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOutExpo"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_10",
+      "trackId": "e10",
+      "name": "ease_10",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -360,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_10_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInQuint"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInQuint"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInQuint"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_10_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInQuint"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_11",
+      "trackId": "e11",
+      "name": "ease_11",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -140,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_11_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOutQuint"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutQuint"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOutQuint"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_11_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutQuint"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_12",
+      "trackId": "e12",
+      "name": "ease_12",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_12_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInOutQuint"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOutQuint"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInOutQuint"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_12_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOutQuint"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_13",
+      "trackId": "e13",
+      "name": "ease_13",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_13_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInCirc"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInCirc"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInCirc"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_13_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInCirc"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_14",
+      "trackId": "e14",
+      "name": "ease_14",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 520,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_14_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeOutCirc"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutCirc"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeOutCirc"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_14_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutCirc"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_15",
+      "trackId": "e15",
+      "name": "ease_15",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 740,
+          "y": -150
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_15_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "easeInOutCirc"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOutCirc"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "easeInOutCirc"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_15_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeInOutCirc"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_16",
+      "trackId": "e16",
+      "name": "ease_16",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_16_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "hold"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "hold"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "hold"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_16_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "hold"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_17",
+      "trackId": "e17",
+      "name": "ease_17",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -580,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_17_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "cubic-bezier(0.65,0,0.35,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "cubic-bezier(0.65,0,0.35,1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "cubic-bezier(0.65,0,0.35,1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_17_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "cubic-bezier(0.65,0,0.35,1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_18",
+      "trackId": "e18",
+      "name": "ease_18",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -360,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_18_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "cubic-bezier(0.16,1,0.3,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "cubic-bezier(0.16,1,0.3,1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "cubic-bezier(0.16,1,0.3,1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_18_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "cubic-bezier(0.16,1,0.3,1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_19",
+      "trackId": "e19",
+      "name": "ease_19",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -140,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_19_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "cubic-bezier(0.5,-0.4,0.5,1.4)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "cubic-bezier(0.5,-0.4,0.5,1.4)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "cubic-bezier(0.5,-0.4,0.5,1.4)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_19_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "cubic-bezier(0.5,-0.4,0.5,1.4)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_20",
+      "trackId": "e20",
+      "name": "ease_20",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_20_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "spring(190,18,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(190,18,1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "spring(190,18,1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_20_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(190,18,1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_21",
+      "trackId": "e21",
+      "name": "ease_21",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_21_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "spring(100,20,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(100,20,1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "spring(100,20,1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_21_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(100,20,1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_22",
+      "trackId": "e22",
+      "name": "ease_22",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 520,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_22_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "spring(100,40,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(100,40,1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "spring(100,40,1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_22_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(100,40,1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_23",
+      "trackId": "e23",
+      "name": "ease_23",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 740,
+          "y": 100
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_23_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "spring(260,14,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(260,14,1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "spring(260,14,1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_23_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "spring(260,14,1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ease_24",
+      "trackId": "e24",
+      "name": "ease_24",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.15,
+          "y": 0.15
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "ease_24_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1500,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 300
+                  },
+                  {
+                    "t": 0.6,
+                    "value": -40,
+                    "easing": "notAnEasing(1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "notAnEasing(1)"
+                  }
+                ]
+              },
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0.2,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 1,
+                    "easing": "notAnEasing(1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "delayMs": 200
+        },
+        {
+          "id": "ease_24_out",
+          "role": "out",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "notAnEasing(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_0",
+      "trackId": "e25",
+      "name": "preset_0",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_0_a",
+          "role": "in",
+          "preset": "fade",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_1",
+      "trackId": "e26",
+      "name": "preset_1",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -580,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_1_a",
+          "role": "out",
+          "preset": "fade",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_2",
+      "trackId": "e27",
+      "name": "preset_2",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -360,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_2_a",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 1200,
+          "delayMs": 400,
+          "params": {
+            "direction": "up",
+            "distance": 0.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_3",
+      "trackId": "e28",
+      "name": "preset_3",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -140,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_3_a",
+          "role": "out",
+          "preset": "slide",
+          "durationMs": 1200,
+          "delayMs": 400,
+          "params": {
+            "direction": "right"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_4",
+      "trackId": "e29",
+      "name": "preset_4",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_4_a",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_5",
+      "trackId": "e30",
+      "name": "preset_5",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_5_a",
+          "role": "out",
+          "preset": "pop",
+          "durationMs": 1200,
+          "delayMs": 400,
+          "params": {
+            "overshoot": 1.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_6",
+      "trackId": "e31",
+      "name": "preset_6",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 520,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_6_a",
+          "role": "in",
+          "preset": "spin",
+          "durationMs": 1200,
+          "delayMs": 400,
+          "params": {
+            "turns": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_7",
+      "trackId": "e32",
+      "name": "preset_7",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 740,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_7_a",
+          "role": "in",
+          "preset": "wipe",
+          "durationMs": 1200,
+          "delayMs": 400,
+          "params": {
+            "direction": "down"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_8",
+      "trackId": "e33",
+      "name": "preset_8",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_8_a",
+          "role": "in",
+          "preset": "blur",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_9",
+      "trackId": "e34",
+      "name": "preset_9",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -580,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_9_a",
+          "role": "out",
+          "preset": "colorFade",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_10",
+      "trackId": "e35",
+      "name": "preset_10",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -360,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_10_a",
+          "role": "emphasis",
+          "preset": "pulse",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_11",
+      "trackId": "e36",
+      "name": "preset_11",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -140,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_11_a",
+          "role": "emphasis",
+          "preset": "flash",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_12",
+      "trackId": "e37",
+      "name": "preset_12",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_12_a",
+          "role": "emphasis",
+          "preset": "shake",
+          "durationMs": 1200,
+          "delayMs": 400,
+          "params": {
+            "intensity": 0.05,
+            "frequency": 6,
+            "seed": 7,
+            "fadeInMs": 100,
+            "fadeOutMs": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_13",
+      "trackId": "e38",
+      "name": "preset_13",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_13_a",
+          "role": "emphasis",
+          "preset": "bounce",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_14",
+      "trackId": "e39",
+      "name": "preset_14",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 520,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_14_a",
+          "role": "emphasis",
+          "preset": "squash",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_15",
+      "trackId": "e40",
+      "name": "preset_15",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 740,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_15_a",
+          "role": "loop",
+          "preset": "kenBurns",
+          "durationMs": 1200,
+          "delayMs": -300,
+          "params": {
+            "zoom": 0.3,
+            "direction": "out"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_16",
+      "trackId": "e41",
+      "name": "preset_16",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -800,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_16_a",
+          "role": "loop",
+          "preset": "float",
+          "durationMs": 1200,
+          "delayMs": -300,
+          "params": {
+            "seed": 3,
+            "frequency": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_17",
+      "trackId": "e42",
+      "name": "preset_17",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -580,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_17_a",
+          "role": "loop",
+          "preset": "float",
+          "durationMs": 1200,
+          "delayMs": -300
+        }
+      ]
+    },
+    {
+      "id": "preset_18",
+      "trackId": "e43",
+      "name": "preset_18",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -360,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_18_a",
+          "role": "loop",
+          "preset": "breathe",
+          "durationMs": 1200,
+          "delayMs": -300
+        }
+      ]
+    },
+    {
+      "id": "preset_19",
+      "trackId": "e44",
+      "name": "preset_19",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -140,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_19_a",
+          "role": "loop",
+          "preset": "rotate",
+          "durationMs": 1200,
+          "delayMs": -300,
+          "params": {
+            "direction": "ccw"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preset_20",
+      "trackId": "e45",
+      "name": "preset_20",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_20_a",
+          "role": "loop",
+          "preset": "hueShift",
+          "durationMs": 1200,
+          "delayMs": -300
+        }
+      ]
+    },
+    {
+      "id": "preset_21",
+      "trackId": "e46",
+      "name": "preset_21",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_21_a",
+          "role": "in",
+          "preset": "typewriter",
+          "durationMs": 1200,
+          "delayMs": 400
+        }
+      ]
+    },
+    {
+      "id": "preset_22",
+      "trackId": "e47",
+      "name": "preset_22",
+      "startMs": 0,
+      "durationMs": 5000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 520,
+          "y": 500
+        },
+        "scale": {
+          "x": 0.12,
+          "y": 0.12
+        },
+        "rotation": 0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "preset_22_a",
+          "role": "loop",
+          "preset": "spin",
+          "durationMs": 1200,
+          "delayMs": -300
+        }
+      ]
+    },
+    {
+      "id": "override",
+      "trackId": "e48",
+      "name": "override",
+      "startMs": 500,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotationX": 10
+      },
+      "animations": [
+        {
+          "id": "override_a",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 800,
+          "custom": {
+            "curves": [
+              {
+                "property": "rotation",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": -1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          "easing": "easeOutExpo"
+        },
+        {
+          "id": "keyed",
+          "role": "emphasis",
+          "preset": "custom",
+          "durationMs": 100,
+          "custom": {
+            "curves": [
+              {
+                "property": "positionX",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": -500
+                  },
+                  {
+                    "t": 0.5,
+                    "value": 300,
+                    "easing": "spring(170,17,1)"
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ]
+              },
+              {
+                "property": "anchorY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 0.2
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.8,
+                    "easing": "easeInOut"
+                  }
+                ]
+              },
+              {
+                "property": "rotationY",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 1,
+                    "value": 40
+                  }
+                ]
+              }
+            ]
+          },
+          "params": {
+            "keyframed": true
+          }
+        },
+        {
+          "id": "off",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 500,
+          "custom": {
+            "curves": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 1,
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "id": "stepped",
+      "trackId": "e49",
+      "name": "stepped",
+      "startMs": 0,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 500,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 0.2
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "steppedTime": {
+        "fps": 8
+      },
+      "animations": [
+        {
+          "id": "stepped_a",
+          "role": "loop",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "rotation",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 1,
+                    "value": 6.283
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "asset_video",
+      "trackId": "e50",
+      "name": "asset_video",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "currentAssetId": "0123456789abcdef0123456789abcdef",
+      "inPointMs": 500,
+      "transform": {
+        "position": {
+          "x": -300,
+          "y": -350
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 0.2
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "stepped_video",
+      "trackId": "e51",
+      "name": "stepped_video",
+      "startMs": 200,
+      "durationMs": 3000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "stale",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "currentAssetId": "fedcba9876543210fedcba9876543210",
+      "steppedTime": {
+        "fps": 6
+      },
+      "speedMultiplier": 0.75,
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": -350
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 0.2
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "repeated",
+      "trackId": "e52",
+      "name": "repeated",
+      "startMs": 300,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": -600,
+          "y": 300
+        },
+        "scale": {
+          "x": 0.1,
+          "y": 0.1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "repeater": {
+        "count": 6,
+        "columns": 3,
+        "positionStep": {
+          "x": 120,
+          "y": 0
+        },
+        "rowStep": {
+          "x": 0,
+          "y": 120
+        },
+        "timeStepMs": 150,
+        "colorStep": {
+          "hueDegrees": 30
+        }
+      },
+      "animations": [
+        {
+          "id": "repeated_pop",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 500
+        }
+      ]
+    },
+    {
+      "id": "echoed",
+      "trackId": "e53",
+      "name": "echoed",
+      "startMs": 200,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 600,
+          "y": -300
+        },
+        "scale": {
+          "x": 0.1,
+          "y": 0.1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "opacity": 0.8,
+      "temporalEcho": {
+        "copies": 3,
+        "intervalMs": 120,
+        "opacityDecay": 0.6
+      },
+      "animations": [
+        {
+          "id": "echoed_a",
+          "role": "loop",
+          "preset": "custom",
+          "durationMs": 900,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetX",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": -200
+                  },
+                  {
+                    "t": 0.5,
+                    "value": 200
+                  },
+                  {
+                    "t": 1,
+                    "value": -200
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sourced",
+      "trackId": "e54",
+      "name": "sourced",
+      "startMs": 1000,
+      "durationMs": 3000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "inPointMs": 2000,
+      "speedMultiplier": 1.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 350
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 0.2
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "animations": [
+        {
+          "id": "sourced_a",
+          "role": "emphasis",
+          "preset": "custom",
+          "durationMs": 3000,
+          "custom": {
+            "timeBase": "source",
+            "curves": [
+              {
+                "property": "scale",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "sourceMs": 2000,
+                    "value": 0.5
+                  },
+                  {
+                    "t": 0,
+                    "sourceMs": 5000,
+                    "value": 1.5,
+                    "easing": "easeInOut"
+                  },
+                  {
+                    "t": 0,
+                    "sourceMs": 6000,
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "staggered",
+      "trackId": "e55",
+      "name": "staggered",
+      "startMs": 0,
+      "durationMs": 3000,
+      "mediaType": "text",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "textStyle": {
+        "text": "three short words",
+        "fontFamily": "Inter",
+        "fontSizePx": 64,
+        "color": "#ffffff"
+      },
+      "animations": [
+        {
+          "id": "stag",
+          "role": "in",
+          "preset": "slide",
+          "durationMs": 400,
+          "stagger": {
+            "unit": "word",
+            "offsetMs": 120
+          }
+        },
+        {
+          "id": "stag_op",
+          "role": "in",
+          "preset": "fade",
+          "durationMs": 400,
+          "stagger": {
+            "unit": "character",
+            "offsetMs": 30,
+            "from": "center"
+          }
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

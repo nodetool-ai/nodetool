@@ -1,0 +1,112 @@
+{
+  "id": "seq-secondary-color",
+  "projectId": "native-prototype",
+  "name": "clip-secondary-color",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "secondary-0",
+      "trackId": "t0",
+      "name": "Secondary 1",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "e0",
+          "type": "secondaryColor",
+          "enabled": true,
+          "hueCenter": 350,
+          "hueWidth": 30,
+          "hueSoftness": 45,
+          "saturationMin": 0.2,
+          "lightnessMax": 0.7,
+          "rangeSoftness": 0.2,
+          "hueShift": 90,
+          "saturation": 1.4
+        }
+      ]
+    },
+    {
+      "id": "secondary-1",
+      "trackId": "t0",
+      "name": "Secondary 2",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "curves",
+          "type": "secondaryColor",
+          "enabled": true,
+          "hueCurve": [
+            {
+              "x": 0.2,
+              "y": 0.3
+            },
+            {
+              "x": 0.8,
+              "y": 0.7
+            }
+          ],
+          "saturationCurve": [
+            {
+              "x": 0,
+              "y": 0.3
+            },
+            {
+              "x": 0.5,
+              "y": 0.8
+            },
+            {
+              "x": 1,
+              "y": 0.3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "F53 soft qualification and cyclic hue curves, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "F53 soft qualification and cyclic hue curves, PSNR >= 40 dB"
+    }
+  ]
+}

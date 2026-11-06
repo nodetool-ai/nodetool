@@ -192,6 +192,7 @@ export type {
 export { Secret } from "./secret.js";
 export {
   getSecret,
+  getSecrets,
   getSecretRequired,
   hasSecret,
   getSecretSync,

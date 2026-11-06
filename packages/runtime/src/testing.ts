@@ -138,7 +138,7 @@ export function createFakeContext(
   let assetCounter = 0;
   let sequenceCounter = 0;
   const sequences = new Map<string, { id: string }>();
-  const storyboards = new Map<string, { id: string; name: string; project_id: string; document: unknown }>();
+  const storyboards = new Map<string, { id: string; name: string; project_id: string; document: unknown; timelineId?: string | null }>();
   const entities = new Map<string, Entity>();
   const assets = new Map<string, string>();
 
@@ -200,10 +200,12 @@ export function createFakeContext(
         storyboards.set(id, board);
         return board;
       },
-      updateStoryboard: async ({ id, document }) => {
+      updateStoryboard: async ({ id, document, timelineId }) => {
         const existing = storyboards.get(id);
         if (!existing) { return null; }
-        const saved = { ...existing, document: document ?? existing.document };
+        const saved = { ...existing };
+        if (document !== undefined) { saved.document = document; }
+        if (timelineId !== undefined) { saved.timelineId = timelineId; }
         storyboards.set(id, saved);
         return saved;
       },

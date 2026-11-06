@@ -1,0 +1,28 @@
+{
+  "environment": {
+    "platform": "darwin",
+    "machine": "arm64",
+    "os_version": "27.0",
+    "qpa": "offscreen",
+    "backend": "software",
+    "qt_version": "6.12.0"
+  },
+  "cases": [
+    "dark-standard-dpr1-ui1-text1.png",
+    "dark-standard-dpr1.25-ui1.5-text1.png",
+    "dark-standard-dpr1.5-ui0.75-text1.5.png",
+    "dark-standard-dpr2-ui2-text2.png",
+    "dark-narrow-rtl-dpr1-ui1-text1.png",
+    "dark-narrow-rtl-dpr1.25-ui1.5-text1.5.png",
+    "dark-narrow-rtl-dpr1.5-ui0.75-text2.png",
+    "dark-narrow-rtl-dpr2-ui2-text2.png",
+    "light-standard-dpr1-ui1-text1.png",
+    "light-standard-dpr1.25-ui0.75-text1.5.png",
+    "light-standard-dpr1.5-ui1.5-text1.png",
+    "light-standard-dpr2-ui2-text2.png",
+    "light-narrow-rtl-dpr1-ui1-text1.png",
+    "light-narrow-rtl-dpr1.25-ui1.5-text2.png",
+    "light-narrow-rtl-dpr1.5-ui0.75-text1.5.png",
+    "light-narrow-rtl-dpr2-ui2-text2.png"
+  ]
+}

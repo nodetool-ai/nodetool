@@ -33,6 +33,15 @@ export function hasTimeRemap(
   return (clip.timeRemap?.keyframes.length ?? 0) > 0;
 }
 
+/** True when every remap keyframe holds the same source position. */
+export function isHoldRemap(clip: Pick<TimelineClip, "timeRemap">): boolean {
+  const keyframes = clip.timeRemap?.keyframes ?? [];
+  const first = keyframes[0];
+  return first !== undefined && keyframes.every(
+    (keyframe) => Math.abs(keyframe.sourceMs - first.sourceMs) <= 1e-6
+  );
+}
+
 /**
  * Source position in milliseconds at normalized clip position `t`.
  *
@@ -215,20 +224,19 @@ export function timeRemapAudioSegments(
 }
 
 /**
- * The refusal split and trim share. A remap makes "the source time at this
+ * The refusal split and trim share. A nonconstant remap makes "the source time at this
  * timeline instant" a curve over the clip's own window, so cutting the window
  * in two or moving its edges would re-normalize `t` and move every frame the
  * clip shows — a cut that silently retimes both halves. Baking the curve into
  * the media first is the only edit that keeps what the user approved (D13).
  *
- * There is no `bakeTimeRemap` in this build: T29 shipped the refusal, and the
- * bake it names is a separate change.
+ * A hold stays constant when its window changes, so it can be split or trimmed.
  */
 export function assertNotTimeRemapped(
   clip: Pick<TimelineClip, "timeRemap">,
   op: "splitClip" | "trimClip"
 ): void {
-  if (!hasTimeRemap(clip)) return;
+  if (!hasTimeRemap(clip) || isHoldRemap(clip)) return;
   throw new Error(
     `${op} cannot edit a clip that carries a time remap — the curve is ` +
       "normalized over the clip's window, so changing the window would retime " +

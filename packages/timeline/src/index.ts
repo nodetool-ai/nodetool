@@ -4,6 +4,7 @@
 
 export * from "./types.js";
 export * from "./defaults.js";
+export * from "./paramCurves.js";
 export * from "./authoring.js";
 export * from "./authoredStyles.js";
 export * from "./trackOrder.js";
@@ -71,3 +72,5 @@ export * from "./storyboardValidation.js";
 export { stableSerialize } from "./stableSerialize.js";
 
 export * from "./storyboardDesignFrame.js";
+
+export * from "./colorSpaceVersion.js";

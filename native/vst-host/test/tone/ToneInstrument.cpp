@@ -3,12 +3,14 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <map>
+#include <vector>
 
 class ToneInstrument : public juce::AudioProcessor {
 public:
     ToneInstrument()
         : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
         addParameter(level_ = new juce::AudioParameterFloat(juce::ParameterID { "level", 1 }, "Level", 0.0f, 1.0f, 0.5f));
+        addParameter(latency_ = new juce::AudioParameterInt(juce::ParameterID { "latency", 1 }, "Latency", 0, 2048, 0));
     }
 
     const juce::String getName() const override { return "NodeTool Test Tone"; }
@@ -23,9 +25,15 @@ public:
     bool hasEditor() const override { return true; }
     juce::AudioProcessorEditor* createEditor() override { return new juce::GenericAudioProcessorEditor(*this); }
 
-    void prepareToPlay(double sampleRate, int) override { rate_ = sampleRate; notes_.clear(); }
+    void prepareToPlay(double sampleRate, int) override {
+        rate_ = sampleRate;
+        notes_.clear();
+        setLatencySamples(latency_->get());
+        delay_.assign(static_cast<size_t>(getLatencySamples()), 0.0f);
+        delayAt_ = 0;
+    }
     void releaseResources() override {}
-    void reset() override { notes_.clear(); }
+    void reset() override { notes_.clear(); std::fill(delay_.begin(), delay_.end(), 0.0f); delayAt_ = 0; }
 
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override {
         buffer.clear();
@@ -38,6 +46,14 @@ public:
             else if (msg.isNoteOff()) notes_.erase(msg.getNoteNumber());
         }
         render(buffer, pos, buffer.getNumSamples());
+        if (!delay_.empty()) {
+            for (int i = 0; i < buffer.getNumSamples(); ++i) {
+                const float delayed = delay_[delayAt_];
+                delay_[delayAt_] = buffer.getSample(0, i);
+                delayAt_ = (delayAt_ + 1) % delay_.size();
+                for (int ch = 0; ch < buffer.getNumChannels(); ++ch) buffer.setSample(ch, i, delayed);
+            }
+        }
     }
 
     void getStateInformation(juce::MemoryBlock& dest) override {
@@ -61,6 +77,9 @@ private:
     }
 
     juce::AudioParameterFloat* level_;
+    juce::AudioParameterInt* latency_;
+    std::vector<float> delay_;
+    size_t delayAt_ = 0;
     std::map<int, double> notes_;
     double rate_ = 48000;
 };

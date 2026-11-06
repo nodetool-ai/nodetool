@@ -145,7 +145,11 @@ export const timelineMarker = z.object({
   timeMs: z.number(),
   label: z.string(),
   color: z.string().optional(),
-  note: z.string().optional()
+  note: z.string().optional(),
+  /** Length of a range marker. Absent or 0 is a point marker. */
+  durationMs: z.number().min(0).optional(),
+  /** Who placed the marker, as free text. */
+  author: z.string().optional()
 });
 export type TimelineMarker = z.infer<typeof timelineMarker>;
 
@@ -256,6 +260,9 @@ export const trackFableEffect = z.object({
 // ── Track video effects ──────────────────────────────────────────────────────
 
 export const trackColorCorrectionEffect = z.object({
+  exposure: z.number().min(-5).max(5).optional(),
+  rolloff: z.number().min(0).max(1).optional(),
+  whites: z.number().min(-2).max(2).optional(),
   id: z.string(),
   type: z.literal("colorCorrection"),
   enabled: z.boolean(),
@@ -290,7 +297,10 @@ export const trackVignetteEffect = z.object({
   enabled: z.boolean(),
   intensity: z.number(),
   radius: z.number(),
-  softness: z.number()
+  softness: z.number(),
+  centerX: z.number().min(0).max(1).optional(),
+  centerY: z.number().min(0).max(1).optional(),
+  roundness: z.number().min(0).max(1).optional()
 });
 
 export const trackChromaKeyEffect = z.object({
@@ -1071,7 +1081,10 @@ export const clipVignetteEffect = z.object({
   amount: z.number(),
   softness: z.number(),
   /** Absent means the shader's own default. Mirrors ClipVignetteEffect.radius. */
-  radius: z.number().optional()
+  radius: z.number().optional(),
+  centerX: z.number().min(0).max(1).optional(),
+  centerY: z.number().min(0).max(1).optional(),
+  roundness: z.number().min(0).max(1).optional()
 });
 
 export const clipSharpenEffect = z.object({
@@ -1145,7 +1158,81 @@ export const clipGrainEffect = z.object({
  * type it does not carry on every PATCH, so a graded clip loses that step of
  * its chain on the next save.
  */
+export const secondaryCurvePoints = z.array(z.object({x: z.number().min(0).max(1), y: z.number().min(0).max(1)})).max(256);
+export const clipDenoiseEffect = z.object({
+  id: z.string(), type: z.literal("denoise"), enabled: z.boolean(),
+  lumaStrength: z.number().min(0).max(1).optional(), chromaStrength: z.number().min(0).max(1).optional(),
+  temporalStrength: z.number().min(0).max(1).optional(), radius: z.number().int().min(1).max(4).optional()
+});
+export const clipStabilizeAnalysis = z.object({
+  version: z.literal(1), kind: z.literal("stabilize"),
+  source: z.object({assetId: z.string(), mediaPath: z.string()}),
+  rangeStartMs: z.number().min(0), rangeEndMs: z.number().min(0),
+  windowMs: z.number().min(0).max(2000), frameRate: z.number().positive().max(240),
+  width: z.number().int().positive().max(32768), height: z.number().int().positive().max(32768),
+  requiredZoom: z.number().min(1).max(10), trackedFrames: z.number().int().min(0).max(18000),
+  samples: z.array(z.object({timeMs: z.number().min(0), x: z.number().min(-2000).max(2000),
+    y: z.number().min(-2000).max(2000), angle: z.number().min(-600).max(600), scale: z.number().min(0.000001).max(1000000)})).min(1).max(18000)
+}).refine(data => data.rangeEndMs >= data.rangeStartMs && data.trackedFrames < data.samples.length && data.samples.every((sample, index) =>
+  index === 0 ? sample.timeMs <= data.rangeStartMs + 1e-6 : sample.timeMs > data.samples[index - 1]!.timeMs),
+"Motion samples must have ascending source times, cover the range start and bound the tracked frame count.");
+export const clipStabilizeEffect = z.object({
+  id: z.string(), type: z.literal("stabilize"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), windowMs: z.number().min(0).max(2000).optional(),
+  maxZoom: z.number().min(1).max(1.5).optional(), analysis: clipStabilizeAnalysis.optional()
+});
+export const clipDeflickerAnalysis = z.object({
+  version: z.literal(1),
+  source: z.object({assetId: z.string(), mediaPath: z.string()}),
+  rangeStartMs: z.number().min(0), rangeEndMs: z.number().min(0),
+  windowMs: z.number().min(0).max(2000), maxCorrection: z.number().min(0).max(3),
+  frameRate: z.number().positive().max(240),
+  samples: z.array(z.object({timeMs: z.number().min(0), stops: z.number().min(-3).max(3)})).min(1).max(18000)
+}).refine(data => data.rangeEndMs >= data.rangeStartMs && data.samples.every((sample, index) =>
+  Math.abs(sample.stops) <= data.maxCorrection + 1e-6 && (index === 0
+    ? sample.timeMs <= data.rangeStartMs + 1e-6 : sample.timeMs > data.samples[index - 1]!.timeMs)),
+"Analysis samples must have ascending source times, cover the range start and respect the correction limit.");
+export const clipDeflickerEffect = z.object({
+  id: z.string(), type: z.literal("deflicker"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), windowMs: z.number().min(0).max(2000).optional(),
+  maxCorrection: z.number().min(0).max(3).optional(), analysis: clipDeflickerAnalysis.optional()
+});
+export const clipDebandEffect = z.object({
+  id: z.string(), type: z.literal("deband"), enabled: z.boolean(),
+  strength: z.number().min(0).max(1).optional(), range: z.number().int().min(1).max(64).optional(),
+  threshold: z.number().min(0).max(0.1).optional(), dither: z.number().min(0).max(1).optional()
+});
+export const clipSecondaryColorEffect = z.object({
+  id: z.string(), type: z.literal("secondaryColor"), enabled: z.boolean(),
+  hueCenter: z.number().min(0).max(360).optional(),
+  hueWidth: z.number().min(0).max(180).optional(),
+  hueSoftness: z.number().min(0).max(180).optional(),
+  rangeSoftness: z.number().min(0).max(1).optional(),
+  saturationMin: z.number().min(0).max(1).optional(),
+  saturationMax: z.number().min(0).max(1).optional(),
+  lightnessMin: z.number().min(0).max(1).optional(),
+  lightnessMax: z.number().min(0).max(1).optional(),
+  hueShift: z.number().min(-180).max(180).optional(),
+  saturation: z.number().min(0).max(4).optional(),
+  lightness: z.number().min(-1).max(1).optional(),
+  hueCurve: secondaryCurvePoints.optional(),
+  saturationCurve: secondaryCurvePoints.optional(),
+});
+
+export const clipExposureEffect = z.object({
+  id: z.string(), type: z.literal("exposure"), enabled: z.boolean(),
+  exposure: z.number().min(-5).max(5).optional(),
+  rolloff: z.number().min(0).max(1).optional(),
+  whites: z.number().min(-2).max(2).optional()
+});
+
 const knownClipEffect = z.discriminatedUnion("type", [
+  clipDenoiseEffect,
+  clipStabilizeEffect,
+  clipDeflickerEffect,
+  clipDebandEffect,
+  clipSecondaryColorEffect,
+  clipExposureEffect,
   clipColorEffect,
   clipBlurEffect,
   clipPixelateEffect,
@@ -1171,6 +1258,12 @@ const knownClipEffect = z.discriminatedUnion("type", [
  * a list for the same reason {@link KNOWN_TRANSITION_TYPE_LIST} is.
  */
 export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
+  "denoise",
+  "stabilize",
+  "deflicker",
+  "deband",
+  "secondaryColor",
+  "exposure",
   "color",
   "blur",
   "pixelate",
@@ -1255,9 +1348,11 @@ export const animationKeyframe = z.object({
 export type AnimationKeyframe = z.infer<typeof animationKeyframe>;
 
 /**
- * One baked property curve. `property` is a plain string on the wire: a curve
- * naming a property this build does not animate parses fine and is dropped at
- * compile time, the same forward compat `preset` has.
+ * One baked property curve. `property` is a plain string on the wire, so any
+ * name parses. On a custom animation the compiler's gate
+ * (`normalizeCustomCurves`) then refuses the whole list for a name outside
+ * `ANIMATED_PROPERTIES`, and skips that animation. In `timelineClip.paramCurves`
+ * any name is kept and the compiler never reads it.
  */
 export const animationPropertyCurve = z.object({
   property: z.string(),
@@ -1321,6 +1416,34 @@ export const customClipAnimation = z.object({
     .optional()
 });
 export type CustomClipAnimation = z.infer<typeof customClipAnimation>;
+
+/**
+ * What a fixed effect held when the native Effect Controls panel switched it
+ * off. The clip's own fields stay at their identity meanwhile, so every renderer
+ * draws the bypass without knowing about this field. Switching the effect on
+ * writes these values back.
+ */
+export const clipBypassedFixedEffects = z.object({
+  motion: z
+    .object({
+      transform: clipTransform.optional(),
+      curves: z.array(animationPropertyCurve).max(16).optional()
+    })
+    .optional(),
+  opacity: z
+    .object({
+      opacity: z.number().optional(),
+      curves: z.array(animationPropertyCurve).max(16).optional()
+    })
+    .optional(),
+  volume: z
+    .object({
+      volumeDb: z.number().optional(),
+      curves: z.array(animationPropertyCurve).max(16).optional()
+    })
+    .optional()
+});
+export type ClipBypassedFixedEffects = z.infer<typeof clipBypassedFixedEffects>;
 
 /**
  * `POST /api/timelines/animations/bake` — run a custom animation's JS body once
@@ -1779,6 +1902,13 @@ export const clipTimeRemap = z.object({
 });
 export type ClipTimeRemap = z.infer<typeof clipTimeRemap>;
 
+/**
+ * What a clip's sound is, so loudness targets and ducking can treat it by kind.
+ * It does not change playback by itself.
+ */
+export const clipAudioRole = z.enum(["dialogue", "music", "sfx", "ambience"]);
+export type ClipAudioRole = z.infer<typeof clipAudioRole>;
+
 export const timelineClip = z.object({
   id: z.string(),
   trackId: z.string(),
@@ -1881,6 +2011,10 @@ export const timelineClip = z.object({
   fadeOutShape: clipFadeShapeEnum.optional(),
   /** Without this field Zod strips a clip's audio effects on every PATCH. */
   audioEffects: z.array(clipAudioEffect).optional(),
+  audioRole: clipAudioRole.optional(),
+  /** Without this field Zod strips it on every PATCH and a switched-off effect
+   * loses the values it would come back with. */
+  bypassedFixedEffects: clipBypassedFixedEffects.optional(),
   transform: clipTransform.optional(),
   layout: clipLayout.optional(),
   flexItem: clipFlexItem.optional(),
@@ -1909,9 +2043,21 @@ export const timelineClip = z.object({
   /** Paragraph grouping id for transcript clips. Without this field Zod strips
    * it on every PATCH, so autosave silently breaks paragraph grouping. */
   paragraphId: z.string().optional(),
+  /** CSS colour of the clip's label, set in the native timeline. Without this
+   * field Zod strips it on every PATCH, so autosave erases the label. */
+  labelColor: z.string().optional(),
   /** Motion-design animations. Without this field Zod strips it on every
    * PATCH, so autosave erases animations. */
   animations: z.array(clipAnimation).optional(),
+  /**
+   * Keys for parameters with no animated channel: `volumeDb`, the crop edges,
+   * `borderRadius`, `perspective`, `depthPx` and `effect:<effectId>:<param>`.
+   * One curve per name, with `t` normalized over the clip like a hand-set
+   * keyframe. The native editor reads them. Other readers keep the field and
+   * draw the static values, and a name no reader knows is kept and ignored.
+   * Bounded to `MAX_PARAM_CURVES`; see `animationPropertyCurve.keyframes`.
+   */
+  paramCurves: z.array(animationPropertyCurve).max(256).optional(),
   animationLinks: z.array(z.union([
     z.object({
       target: z.enum(["positionX", "positionY", "scale", "rotation", "opacity"]),
@@ -2105,6 +2251,9 @@ export const timelineSource = z.object({
 export type TimelineSource = z.infer<typeof timelineSource>;
 
 export const timelineDocument = z.object({
+  workingColorSpaceVersion: z.number().int().positive().optional(),
+  /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */
+  dropFrame: z.boolean().optional(),
   tracks: z.array(timelineTrack),
   trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
@@ -2172,6 +2321,8 @@ export const installExampleTimelineInput = z.object({
 // ── Sequence response ────────────────────────────────────────────────────────
 
 export const timelineSequenceResponse = z.object({
+  workingColorSpaceVersion: z.number().int().positive().optional(),
+  dropFrame: z.boolean().optional(),
   id: z.string(),
   projectId: z.string(),
   workflowId: z.string().optional(),

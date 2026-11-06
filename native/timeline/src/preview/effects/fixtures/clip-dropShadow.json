@@ -1,0 +1,168 @@
+{
+  "id": "seq-clip-dropShadow",
+  "projectId": "native-prototype",
+  "name": "clip-dropShadow",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "dropShadow-0",
+      "trackId": "t0",
+      "name": "dropShadow-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "effects": [
+        {
+          "id": "dropShadow-0",
+          "type": "dropShadow",
+          "enabled": true,
+          "offsetX": 70,
+          "offsetY": 45,
+          "blur": 24,
+          "color": "#102060",
+          "opacity": 0.9
+        }
+      ],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.18,
+        "y": 0.18,
+        "width": 0.64,
+        "height": 0.64,
+        "fill": "#d8d8d8"
+      }
+    },
+    {
+      "id": "background-0",
+      "trackId": "t4",
+      "name": "background-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/pip-a-720p.mp4"
+    },
+    {
+      "id": "dropShadow-1",
+      "trackId": "t0",
+      "name": "dropShadow-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "effects": [
+        {
+          "id": "dropShadow-1",
+          "type": "dropShadow",
+          "enabled": true,
+          "offsetX": -65,
+          "offsetY": -35,
+          "blur": 40,
+          "color": "#600040",
+          "opacity": 0.8
+        }
+      ],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.18,
+        "y": 0.18,
+        "width": 0.64,
+        "height": 0.64,
+        "fill": "#d8d8d8"
+      }
+    },
+    {
+      "id": "background-1",
+      "trackId": "t4",
+      "name": "background-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/pip-a-720p.mp4"
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 dropShadow two parameter settings, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 dropShadow two parameter settings, PSNR >= 40 dB"
+    }
+  ]
+}

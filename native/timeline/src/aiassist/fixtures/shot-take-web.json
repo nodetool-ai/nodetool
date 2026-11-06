@@ -1,0 +1,965 @@
+{
+  "cases": [
+    {
+      "name": "fits",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 6000
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "new-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "slides",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 3000,
+            "outPointMs": 7000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 5000
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "new-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "shrinks",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 4000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 3001
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "new-version",
+            "startMs": 7000,
+            "durationMs": 1500,
+            "inPointMs": 0,
+            "outPointMs": 3001,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "baked",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 4000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7,
+            "speedBaked": true
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 3000
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "new-version",
+            "startMs": 7000,
+            "durationMs": 3000,
+            "inPointMs": 0,
+            "outPointMs": 3000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "opacity": 0.7,
+            "speedBaked": true
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "unknown",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new"
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero-length",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 0
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "new-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "already-selected",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "stale",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 1000
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "stale",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "locked",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7,
+            "locked": true
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 1000
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 1000,
+            "outPointMs": 5000,
+            "speedMultiplier": 2,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7,
+            "locked": true
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "slow-floor",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "old",
+            "activeTakeId": "old-version",
+            "startMs": 7000,
+            "durationMs": 2000,
+            "inPointMs": 5,
+            "outPointMs": 5000,
+            "speedMultiplier": 0,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "timeRemap": {
+              "points": [
+                {
+                  "timeMs": 0,
+                  "sourceMs": 1000
+                },
+                {
+                  "timeMs": 2000,
+                  "sourceMs": 5000
+                }
+              ]
+            },
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      },
+      "payload": {
+        "boardId": "board",
+        "shotId": "shot",
+        "assetId": "new",
+        "durationMs": 0.001
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "video",
+            "type": "video"
+          }
+        ],
+        "clips": [
+          {
+            "id": "clip",
+            "trackId": "video",
+            "mediaType": "video",
+            "storyboardBoardId": "board",
+            "storyboardShotId": "shot",
+            "storyboardElementId": "$source",
+            "currentAssetId": "new",
+            "activeTakeId": "new-version",
+            "startMs": 7000,
+            "durationMs": 10,
+            "inPointMs": 0,
+            "outPointMs": 0.001,
+            "speedMultiplier": 0,
+            "status": "generated",
+            "versions": [
+              {
+                "id": "new-version",
+                "assetId": "new"
+              }
+            ],
+            "opacity": 0.7
+          }
+        ],
+        "markers": [
+          {
+            "id": "marker",
+            "timeMs": 2
+          }
+        ]
+      }
+    }
+  ]
+}

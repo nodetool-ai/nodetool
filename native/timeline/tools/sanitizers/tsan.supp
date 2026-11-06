@@ -1,0 +1,16 @@
+# QtCore is uninstrumented. Suppress only accesses whose top frame is inside it.
+race_top:libQt6Core.so
+# QtGui is uninstrumented. Suppress only accesses whose top frame is inside it.
+race_top:libQt6Gui.so
+# QtQml is uninstrumented. Suppress only accesses whose top frame is inside it.
+race_top:libQt6Qml.so
+# QtQuick is uninstrumented. Suppress only accesses whose top frame is inside it.
+race_top:libQt6Quick.so
+# Uninstrumented FFmpeg H.264 frame threading: h264_copy_picture_params vs ff_h264_unref_picture.
+called_from_lib:libavcodec.so
+# Uninstrumented FFmpeg buffer pool: av_buffer_pool_get mutex access vs av_malloc allocation.
+called_from_lib:libavutil.so
+# Project race V-TSAN-1 in baseline.md, owned by package K. Remove when K fixes notification state.
+race:nt::audio::AudioEngine::Impl::onNotification
+# Test report V-TSAN-2 in baseline.md, unowned: latch wait's acquire can occur in uninstrumented libstdc++.
+race:TstCpuUsage::nativeQueryKeepsThreadIdentity

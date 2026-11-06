@@ -154,7 +154,8 @@ class GlowNode extends BaseNode {
         threshold: num(props.threshold, 0.7),
         softness: num(props.softness, 0.1),
         radius: num(props.radius, 8),
-        intensity: num(props.intensity, 1)
+        intensity: num(props.intensity, 1),
+        tint: filtersGlowV1.paramDefaults.tint
       },
       props.image,
       {},
@@ -181,7 +182,7 @@ class AddBlendNode extends BaseNode {
     const props = this.serialize();
     const output = await runShaderNode(
       mixerAddV1,
-      { gain: num(props.gain, 1) },
+      { gain: num(props.gain, 1), tint: mixerAddV1.paramDefaults.tint },
       props.image,
       { extraInputs: { over: props.over } },
       context

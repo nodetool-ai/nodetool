@@ -1,0 +1,229 @@
+{
+  "id": "seq-three-tracks",
+  "projectId": "native-prototype",
+  "name": "Three tracks",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 20000,
+  "tracks": [
+    {
+      "id": "track-v1",
+      "name": "Titles",
+      "type": "overlay",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-v2",
+      "name": "Picture in picture",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-v3",
+      "name": "Background",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip-background",
+      "trackId": "track-v3",
+      "name": "Background",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-pip-a",
+      "trackId": "track-v2",
+      "name": "PiP A",
+      "startMs": 2000,
+      "durationMs": 7000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "transform": {
+        "position": {
+          "x": -480,
+          "y": -220
+        },
+        "scale": {
+          "x": 0.42,
+          "y": 0.42
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-pip-b",
+      "trackId": "track-v2",
+      "name": "PiP B",
+      "startMs": 8000,
+      "durationMs": 8000,
+      "inPointMs": 1500,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.85,
+      "transform": {
+        "position": {
+          "x": 460,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotation": 0.15,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-title",
+      "trackId": "track-v1",
+      "name": "Title card",
+      "startMs": 1000,
+      "durationMs": 5000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1600,
+      "height": 400,
+      "opacity": 0.9,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 330
+        },
+        "scale": {
+          "x": 0.6,
+          "y": 0.6
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-square",
+      "trackId": "track-v1",
+      "name": "Overlay square",
+      "startMs": 5000,
+      "durationMs": 9000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 800,
+      "height": 800,
+      "opacity": 0.7,
+      "transform": {
+        "position": {
+          "x": 260,
+          "y": -180
+        },
+        "scale": {
+          "x": 0.45,
+          "y": 0.45
+        },
+        "rotation": -0.3,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-lower-third",
+      "trackId": "track-v1",
+      "name": "Lower third",
+      "startMs": 12000,
+      "durationMs": 7000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1600,
+      "height": 240,
+      "opacity": 0.8,
+      "transform": {
+        "position": {
+          "x": -120,
+          "y": 380
+        },
+        "scale": {
+          "x": 0.7,
+          "y": 0.7
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

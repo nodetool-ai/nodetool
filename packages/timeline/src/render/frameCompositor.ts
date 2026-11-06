@@ -1,3 +1,4 @@
+import type { TemporalSources } from "./denoise.js";
 /**
  * The WebGPU compositing rules every timeline render surface draws through.
  *
@@ -22,12 +23,16 @@
  * `dispose`, so a throw mid-frame leaks nothing.
  */
 
+import type { WorkingFormat, WorkingFrame } from "@nodetool-ai/gpu/webgpu";
 import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
+  copyWorkingRows,
+  frameReadbackLayout,
   BLIT_FRAGMENT,
   FULLSCREEN_QUAD_VERTEX,
   UNPREMULTIPLY_FRAGMENT,
   WebGPULayerCompositor,
+  validateRenderTexture,
   forwardClipMatrixToInverseAffine,
   placedLayerRect,
   invertClipPlacement,
@@ -43,7 +48,7 @@ import type {
 } from "../types.js";
 import { cropRectPx, hasCrop } from "../crop.js";
 import { parseCssColorOrBlack } from "./color.js";
-import { WebGPUEffectsProcessor } from "./effects.js";
+import { unsupportedGpuEffectTypes, WebGPUEffectsProcessor } from "./effects.js";
 import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
 import {
   IDENTITY_TRANSFORM,
@@ -174,6 +179,7 @@ export interface FrameLayer<TSource = FrameLayerPixels> {
   /** Stable across frames for the same clip — keys the source texture. */
   id: string;
   source: TSource;
+  temporalSources?: TemporalSources<TSource>;
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;
@@ -382,6 +388,11 @@ const sortStack = (items: StackItem[]): StackItem[] =>
 
 const TEXTURE_FORMAT: GPUTextureFormat = "rgba8unorm";
 
+/** Internal qualification switch. Omit or select rgba8unorm to roll back. */
+export interface WorkingPrecisionOptions {
+  readonly workingFormat?: WorkingFormat;
+}
+
 /** A layer's pixels, once the host has them in a texture. */
 export interface GpuSourceTexture {
   texture: GPUTexture;
@@ -402,10 +413,12 @@ export type GpuSourceUploader<TSource> = (
 ) => GpuSourceTexture | null;
 
 /** What a host needs to tell the compositor about its own texture cache. */
-export interface GpuFrameCompositorOptions<TSource> {
+export interface GpuFrameCompositorOptions<TSource> extends WorkingPrecisionOptions {
   /** Distinguishes this instance's GPU labels from another's. */
   label?: string;
   upload: GpuSourceUploader<TSource>;
+  /** Maximum retained promotion bytes after submission. Active frames may exceed it. */
+  maxPromotionCacheBytes?: number;
   /**
    * The source ids still in use after this frame. A host drops whatever its
    * cache holds beyond them, the way the compositor drops its own intermediates.
@@ -422,6 +435,8 @@ export interface GpuCompositeResult {
    * that covers no area this frame.
    */
   drawn: number;
+  /** Texture storage descriptor. Interpretation remains unknown pending A97. */
+  frame: WorkingFrame;
 }
 
 /**
@@ -435,10 +450,13 @@ const EMPTY_LAYER = "empty" as const;
 type LayerResolution = ResolvedLayer | typeof EMPTY_LAYER | null;
 
 export class GpuFrameCompositor<TSource = FrameLayerPixels> {
+  readonly skippedLayerIds: string[] = [];
+  effectsNotApplied: string[] = [];
   private readonly device: GPUDevice;
   private readonly core: WebGPULayerCompositor;
   private readonly effects: WebGPUEffectsProcessor;
   private readonly label: string;
+  private readonly workingFormat: "rgba8unorm" | "rgba16float";
   private readonly upload: GpuSourceUploader<TSource>;
   private readonly retainSources: (live: ReadonlySet<string>) => void;
   private width: number;
@@ -463,6 +481,9 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   private readonly solids = new Map<string, GPUTexture>();
   /** One cropped copy per cropped layer, by layer id — see {@link cropSource}. */
   private readonly crops = new Map<string, GpuSourceTexture>();
+  private readonly maxPromotionCacheBytes: number;
+  private readonly promotedSources = new Map<string, GpuSourceTexture>();
+  private promotionPipeline: GPURenderPipeline | null = null;
   /** Resolves a premultiplied accumulation to the straight alpha the blend
    *  shader reads a source as. Built with the second pass. */
   private unpremultiply: GPURenderPipeline | null = null;
@@ -478,6 +499,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     options: GpuFrameCompositorOptions<TSource>
   ) {
     this.device = device;
+    this.maxPromotionCacheBytes = options.maxPromotionCacheBytes ?? 64 * 1024 * 1024;
+    if (!(this.maxPromotionCacheBytes >= 0)) {
+      throw new Error("Promotion cache byte budget must be nonnegative");
+    }
+    this.workingFormat = options.workingFormat ?? "rgba8unorm";
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
     this.label = options.label ?? "timeline";
@@ -485,12 +511,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     this.retainSources = options.retainSources ?? (() => {});
     this.core = new WebGPULayerCompositor(
       device,
-      TEXTURE_FORMAT,
+      this.workingFormat,
       "linear",
       this.label
     );
     this.core.ensureSize(this.width, this.height);
-    this.effects = new WebGPUEffectsProcessor(device);
+    this.effects = new WebGPUEffectsProcessor(device, this.workingFormat);
   }
 
   /**
@@ -556,6 +582,14 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     clearValue: GPUColor = { r: 0, g: 0, b: 0, a: 1 },
     adjustments: readonly FrameAdjustment<TSource>[] = []
   ): GpuCompositeResult {
+    this.skippedLayerIds.length = 0;
+    const scopes = [...layers, ...layers.flatMap(layer => layer.matte ? [layer.matte.layer] : []), ...precomposites, ...adjustments];
+    this.effectsNotApplied = unsupportedGpuEffectTypes(scopes.map(scope => ({ ...scope, effects: "transition" in scope && scope.transition?.effect ? [...scope.effects ?? [], scope.transition.effect] : scope.effects })));
+    const groupIds = new Set(precomposites.map(group => group.id));
+    for (const scope of scopes) {
+      if (scope.precomposeGroupId && !groupIds.has(scope.precomposeGroupId)) throw new Error(`Timeline group ${scope.precomposeGroupId} is missing`);
+    }
+
     const ordered = [...layers].sort((a, b) => a.zIndex - b.zIndex);
     this.retainOnly(ordered, precomposites, adjustments);
 
@@ -609,7 +643,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       writeStart
     );
     this.device.queue.submit([encoder.finish()]);
-    return { texture, drawn };
+    this.trimPromotionCache();
+    return { texture, drawn, frame: { representation: "gpu-texture", texture, format: this.workingFormat, width: this.width, height: this.height, bytesPerRow: null, alpha: "premultiplied", interpretation: "encoded-sdr" } };
   }
 
   /**
@@ -809,7 +844,14 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     // Crop first: everything below — the effect chain, the shape mask, the
     // contain fit, the border radius — then sees the cropped rectangle as the
     // layer's whole picture, which is what a crop means.
-    const src = this.cropSource(layer, uploaded, encoder);
+    const src = this.cropSource(layer, this.promoteSource(layer.id, uploaded, encoder), encoder);
+    const neighbor = (role: "before" | "after"): GPUTexture => {
+      const id = `${layer.id}#denoise-${role}`;
+      const value = this.upload(id, layer.temporalSources![role]);
+      if (!value) throw new Error(`Noise reduction ${role} frame could not be uploaded`);
+      return this.cropSource({...layer, id}, this.promoteSource(id, value, encoder), encoder).texture;
+    };
+    const temporalSources = layer.temporalSources ? {before: neighbor("before"), after: neighbor("after")} : undefined;
     const window = layer.sourceWindow;
     const placement = this.placementOf(
       {
@@ -841,7 +883,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
             clipEffects,
             trackEffects,
             "straight",
-            encoder
+            encoder,
+            temporalSources
           )
         : src.texture;
 
@@ -852,6 +895,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const coverage = layer.shapeMask
       ? this.upload(`${layer.id}#mask`, layer.shapeMask)
       : null;
+    if (layer.shapeMask && !coverage) throw new Error(`Timeline layer ${layer.id} mask could not be uploaded`);
     const texture = coverage
       ? this.effects.applyMask(
           `mask:${layer.id}`,
@@ -968,6 +1012,63 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     };
   }
 
+  private trimPromotionCache(): void {
+    let bytes = 0;
+    for (const entry of this.promotedSources.values()) {
+      bytes += entry.width * entry.height * 8;
+    }
+    for (const [id, entry] of this.promotedSources) {
+      if (bytes <= this.maxPromotionCacheBytes) { break; }
+      entry.texture.destroy();
+      this.promotedSources.delete(id);
+      bytes -= entry.width * entry.height * 8;
+    }
+  }
+
+  private promoteSource(id: string, source: GpuSourceTexture, encoder: GPUCommandEncoder): GpuSourceTexture {
+    if (this.workingFormat === "rgba8unorm" || source.texture.format === this.workingFormat) {
+      return source;
+    }
+    let target = this.promotedSources.get(id);
+    if (!target || target.width !== source.width || target.height !== source.height) {
+      target?.texture.destroy();
+      target = {
+        width: source.width,
+        height: source.height,
+        texture: this.device.createTexture({
+          label: `${this.label}-promoted-${id}`,
+          size: { width: source.width, height: source.height },
+          format: this.workingFormat,
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
+        })
+      };
+      this.promotedSources.set(id, target);
+    }
+    if (!this.promotionPipeline) {
+      const module = this.device.createShaderModule({ code: `${FULLSCREEN_QUAD_VERTEX}\n${BLIT_FRAGMENT}` });
+      this.promotionPipeline = this.device.createRenderPipeline({
+        layout: "auto",
+        vertex: { module, entryPoint: "vs_main" },
+        fragment: { module, entryPoint: "fs_blit", targets: [{ format: this.workingFormat }] },
+        primitive: { topology: "triangle-strip" }
+      });
+    }
+    // Copy encoded straight RGBA without filtering or premultiplication. Leaf
+    // filtering must still interpolate straight alpha in the blend shader.
+    const pass = encoder.beginRenderPass({ colorAttachments: [{
+      view: target.texture.createView(), loadOp: "clear", storeOp: "store",
+      clearValue: { r: 0, g: 0, b: 0, a: 0 }
+    }] });
+    pass.setPipeline(this.promotionPipeline);
+    pass.setBindGroup(0, this.device.createBindGroup({
+      layout: this.promotionPipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: source.texture.createView() }]
+    }));
+    pass.draw(4);
+    pass.end();
+    return target;
+  }
+
   /**
    * The layer's pixels narrowed to its crop rectangle, as a texture of exactly
    * that size. Returns the upload untouched when there is no usable crop, which
@@ -998,13 +1099,13 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
 
     const rect = cropRectPx(layer.crop, uploaded.width, uploaded.height);
     let entry = this.crops.get(layer.id);
-    if (!entry || entry.width !== rect.width || entry.height !== rect.height) {
+    if (!entry || entry.width !== rect.width || entry.height !== rect.height || entry.texture.format !== uploaded.texture.format) {
       entry?.texture.destroy();
       entry = {
         texture: this.device.createTexture({
           label: `${this.label}-crop-${layer.id}`,
           size: { width: rect.width, height: rect.height },
-          format: TEXTURE_FORMAT,
+          format: uploaded.texture.format,
           usage:
             GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
@@ -1070,7 +1171,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       const stack: StackItem[] = [];
       for (const layer of layers) {
         const item = this.resolveLayer(layer, encoder);
-        if (!item) continue;
+        if (!item) { this.skippedLayerIds.push(layer.id); continue; }
         drawn += 1;
         if (item === EMPTY_LAYER) continue;
         const solid = this.dipSolidFor(layer);
@@ -1099,7 +1200,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
 
     for (const layer of layers) {
       const item = this.resolveLayer(layer, encoder);
-      if (!item) continue;
+      if (!item) { this.skippedLayerIds.push(layer.id); continue; }
       drawn += 1;
       if (item === EMPTY_LAYER) continue;
       // The solid shares the layer's z and is pushed first, so the stable sort
@@ -1160,6 +1261,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         ? this.upload(`${adjustment.id}#adjustmask`, adjustment.shapeMask)
         : null
     };
+    if (adjustment.shapeMask && !item.coverage) throw new Error(`Timeline adjustment ${adjustment.id} mask could not be uploaded`);
     if (adjustment.wipe) item.mask = adjustment.wipe;
     return item;
   }
@@ -1382,7 +1484,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     if (!core) {
       core = new WebGPULayerCompositor(
         this.device,
-        TEXTURE_FORMAT,
+        this.workingFormat,
         "linear",
         `${this.label}-precomp`
       );
@@ -1398,7 +1500,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
       target = this.device.createTexture({
         label: `${this.label}-precomp-target-${id}`,
         size: { width: this.width, height: this.height },
-        format: TEXTURE_FORMAT,
+        format: this.workingFormat,
         usage:
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
       });
@@ -1441,7 +1543,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         fragment: {
           module,
           entryPoint: "fs_mix",
-          targets: [{ format: TEXTURE_FORMAT }]
+          targets: [{ format: this.workingFormat }]
         },
         primitive: { topology: "triangle-strip" }
       });
@@ -1464,7 +1566,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         fragment: {
           module,
           entryPoint: "fs_unpremultiply",
-          targets: [{ format: TEXTURE_FORMAT }]
+          targets: [{ format: this.workingFormat }]
         },
         primitive: { topology: "triangle-strip" }
       });
@@ -1485,6 +1587,10 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     const effectKeys = new Set<string>();
     const visit = (layer: FrameLayer<TSource>): void => {
       live.add(layer.id);
+      if (layer.temporalSources) {
+        live.add(`${layer.id}#denoise-before`);
+        live.add(`${layer.id}#denoise-after`);
+      }
       effectKeys.add(layer.id);
       if (layer.shapeMask) {
         live.add(`${layer.id}#mask`);
@@ -1517,6 +1623,12 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     }
 
     this.retainSources(live);
+    for (const [id, entry] of this.promotedSources) {
+      if (!live.has(id)) {
+        entry.texture.destroy();
+        this.promotedSources.delete(id);
+      }
+    }
     for (const [id, entry] of this.crops) {
       if (!live.has(id)) {
         entry.texture.destroy();
@@ -1543,6 +1655,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     for (const texture of this.solids.values()) texture.destroy();
     this.solids.clear();
     this.effects.dispose();
+    for (const entry of this.promotedSources.values()) entry.texture.destroy();
+    this.promotedSources.clear();
     for (const entry of this.crops.values()) entry.texture.destroy();
     this.crops.clear();
     this.core.dispose();
@@ -1551,14 +1665,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
   }
 }
 
-/** `copyTextureToBuffer` requires a 256-byte-aligned `bytesPerRow`. */
-const ROW_ALIGNMENT = 256;
-
 interface SourceTexture {
   texture: GPUTexture;
   width: number;
   height: number;
-  version: string;
+  version: string | undefined;
 }
 
 /**
@@ -1599,6 +1710,10 @@ export interface HeadlessRenderFrameOptions {
  * buffer the finished frame is copied through.
  */
 export class HeadlessFrameCompositor {
+  /** Enabled effects omitted by the GPU chain in the latest frame. */
+  get effectsNotApplied(): readonly string[] { return this.compositor.effectsNotApplied; }
+  /** Layers omitted because their source or matte could not be uploaded. */
+  get skippedLayerIds(): readonly string[] { return this.compositor.skippedLayerIds; }
   private readonly device: GPUDevice;
   private readonly compositor: GpuFrameCompositor<FrameLayerPixels>;
   private readonly width: number;
@@ -1624,16 +1739,25 @@ export class HeadlessFrameCompositor {
   /** Shared straight-alpha resolve target and pipeline for both render paths. */
   private resolveTarget: GPUTexture | null = null;
   private resolvePipeline: GPURenderPipeline | null = null;
+  private readonly ditherDelivery: boolean;
 
-  constructor(device: GPUDevice, width: number, height: number) {
+  constructor(device: GPUDevice, width: number, height: number, options: WorkingPrecisionOptions = {}) {
     this.device = device;
+    this.ditherDelivery = options.workingFormat === "rgba16float";
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
+    const layout = frameReadbackLayout(this.width, this.height, "rgba8unorm");
+    if (layout.byteLength > device.limits.maxBufferSize) {
+      throw new Error(`Timeline readback exceeds device buffer limit ${device.limits.maxBufferSize}`);
+    }
+    validateRenderTexture(device, this.width, this.height, options.workingFormat ?? "rgba8unorm",
+      GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST);
     this.compositor = new GpuFrameCompositor<FrameLayerPixels>(
       device,
       this.width,
       this.height,
       {
+        ...options,
         label: "timeline-headless",
         upload: (id, pixels) => this.uploadPixels(id, pixels),
         retainSources: (live) => {
@@ -1645,15 +1769,22 @@ export class HeadlessFrameCompositor {
         }
       }
     );
-    this.bytesPerRow =
-      Math.ceil((this.width * 4) / ROW_ALIGNMENT) * ROW_ALIGNMENT;
+    this.bytesPerRow = layout.bytesPerRow;
     const makeReadback = (index: number): GPUBuffer =>
       device.createBuffer({
         label: `timeline-headless-readback-${index}`,
         size: this.bytesPerRow * this.height,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
       });
-    this.readbacks = [makeReadback(0), makeReadback(1)];
+    let first: GPUBuffer | undefined;
+    try {
+      first = makeReadback(0);
+      this.readbacks = [first, makeReadback(1)];
+    } catch (error) {
+      first?.destroy();
+      this.compositor.dispose();
+      throw error;
+    }
   }
 
   /**
@@ -1705,6 +1836,39 @@ export class HeadlessFrameCompositor {
     this.device.queue.submit([encoder.finish()]);
 
     return this.readMapped(readback);
+  }
+
+  /** Capture owned, tightly packed working samples before alpha resolve or delivery. */
+  async renderWorkingFrame(
+    layers: FrameLayer[],
+    precomposites: readonly FramePrecomposite[] = [],
+    options: HeadlessRenderFrameOptions = {},
+    adjustments: readonly FrameAdjustment[] = []
+  ): Promise<WorkingFrame> {
+    const { frame } = this.compositor.composite(
+      layers, precomposites,
+      { r: 0, g: 0, b: 0, a: options.alpha ? 0 : 1 }, adjustments
+    );
+    if (frame.representation !== "gpu-texture") {
+      throw new Error("Compositor must return a GPU working frame");
+    }
+    const { format, texture, width, height, alpha, interpretation } = frame;
+    const layout = frameReadbackLayout(width, height, format);
+    const buffer = this.device.createBuffer({
+      size: layout.byteLength, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+    try {
+      const encoder = this.device.createCommandEncoder();
+      encoder.copyTextureToBuffer({ texture }, { buffer, bytesPerRow: layout.bytesPerRow }, { width, height });
+      this.device.queue.submit([encoder.finish()]);
+      await buffer.mapAsync(GPUMapMode.READ);
+      const metadata = { width, height, alpha, interpretation, bytesPerRow: layout.rowBytes };
+      return format === "rgba16float"
+        ? { ...metadata, representation: format, data: copyWorkingRows(buffer.getMappedRange(), width, height, format) }
+        : { ...metadata, representation: format, data: copyWorkingRows(buffer.getMappedRange(), width, height, format) };
+    } finally {
+      buffer.destroy();
+    }
   }
 
   /**
@@ -1914,7 +2078,7 @@ export class HeadlessFrameCompositor {
     if (!this.resolvePipeline) {
       const module = this.device.createShaderModule({
         label: "timeline-headless-resolve",
-        code: `${FULLSCREEN_QUAD_VERTEX}\n${UNPREMULTIPLY_FRAGMENT}`
+        code: `${FULLSCREEN_QUAD_VERTEX}\n${this.ditherDelivery ? DITHERED_DELIVERY_FRAGMENT : UNPREMULTIPLY_FRAGMENT}`
       });
       this.resolvePipeline = this.device.createRenderPipeline({
         label: "timeline-headless-resolve",
@@ -1941,16 +2105,7 @@ export class HeadlessFrameCompositor {
   private async readMapped(readback: GPUBuffer): Promise<Uint8Array> {
     await readback.mapAsync(GPUMapMode.READ);
     try {
-      const mapped = new Uint8Array(readback.getMappedRange());
-      const rgba = new Uint8Array(this.width * this.height * 4);
-      const rowBytes = this.width * 4;
-      for (let row = 0; row < this.height; row++) {
-        rgba.set(
-          mapped.subarray(row * this.bytesPerRow, row * this.bytesPerRow + rowBytes),
-          row * rowBytes
-        );
-      }
-      return rgba;
+      return copyWorkingRows(readback.getMappedRange(), this.width, this.height, "rgba8unorm");
     } finally {
       readback.unmap();
     }
@@ -1980,7 +2135,7 @@ export class HeadlessFrameCompositor {
         }),
         width,
         height,
-        version: ""
+        version: undefined
       };
       this.sources.set(id, entry);
     }
@@ -2030,3 +2185,20 @@ function dipColorBytes(color: string): { r: number; g: number; b: number } {
     b: Math.round(b * 255)
   };
 }
+
+// Delivery coordinates follow all scene resampling. Working captures use neither
+// this shader nor its byte target. Match native DeliveryFrame's centered tile.
+const DITHERED_DELIVERY_FRAGMENT = UNPREMULTIPLY_FRAGMENT.replace(
+  "@location(0) uv: vec2f)", "@location(0) uv: vec2f, @builtin(position) position: vec4f)"
+).replace(
+  "return vec4f(c.rgb / c.a, c.a);",
+  `var rank = 0u;
+  for (var bit = 0u; bit < 3u; bit++) {
+    let a = (u32(position.x) >> bit) & 1u;
+    let b = (u32(position.y) >> bit) & 1u;
+    rank |= ((a ^ b) * 2u + b) << (4u - bit * 2u);
+  }
+  let noise = (f32(rank) + 0.5) / 64.0 - 0.5;
+  let rgb = clamp(c.rgb / c.a, vec3f(0.0), vec3f(1.0));
+  return vec4f(floor(rgb * 255.0 + noise + 0.5) / 255.0, c.a);`
+);

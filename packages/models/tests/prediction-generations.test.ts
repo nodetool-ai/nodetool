@@ -45,7 +45,9 @@ describe("Prediction generations", () => {
 
     const [all, next] = await Prediction.listGenerations("u1", { limit: 2 });
     expect(all.map((p) => p.status)).toEqual(["failed", "running"]);
-    expect(next).toBe(all[1].id);
+    expect(JSON.parse(Buffer.from(next, "base64url").toString())).toEqual({
+      created_at: all[1].created_at, id: all[1].id
+    });
     const [rest, done] = await Prediction.listGenerations("u1", {
       limit: 2,
       startKey: next
@@ -65,6 +67,29 @@ describe("Prediction generations", () => {
     expect(byJob.map((p) => p.status)).toEqual(["failed"]);
     const [since] = await Prediction.listGenerations("u1", { since: t(3) });
     expect(since).toHaveLength(1);
+  });
+
+  it("pages equal timestamps without skips, including legacy row cursors and deleted anchors", async () => {
+    const timestamp = "2026-01-01T00:00:00.000Z";
+    const ids = ["11111111111111111111111111111111", "22222222222222222222222222222222", "33333333333333333333333333333333"];
+    for (const id of ids) {
+      await row({ id, created_at: timestamp, project_id: "project" });
+    }
+    await row({ id: "44444444444444444444444444444444", created_at: timestamp, project_id: "other" });
+    const filter = { limit: 1, projectId: "project" };
+    const [first, cursor] = await Prediction.listGenerations("u1", filter);
+    expect(first.map((item) => item.id)).toEqual([ids[2]]);
+    const [legacy] = await Prediction.listGenerations("u1", { ...filter, startKey: ids[2] });
+    expect(legacy.map((item) => item.id)).toEqual([ids[1]]);
+    await first[0].delete();
+    const [second, next] = await Prediction.listGenerations("u1", { ...filter, startKey: cursor });
+    expect(second.map((item) => item.id)).toEqual([ids[1]]);
+    const [third, done] = await Prediction.listGenerations("u1", { ...filter, startKey: next });
+    expect(third.map((item) => item.id)).toEqual([ids[0]]);
+    expect(done).toBe("");
+    await expect(Prediction.listGenerations("u1", { startKey: "bad cursor" })).rejects.toThrow("Invalid generation cursor");
+    const malformed = Buffer.from(JSON.stringify({ created_at: timestamp })).toString("base64url");
+    await expect(Prediction.listGenerations("u1", { startKey: malformed })).rejects.toThrow("Invalid generation cursor");
   });
 
   it("uses the public status derivation for durable status filters", async () => {

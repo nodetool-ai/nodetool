@@ -37,6 +37,10 @@ export interface TimelineSequenceMutationResult<T> {
 }
 
 function validateTimelineDocument(doc: TimelineDocument): void {
+  if (doc.workingColorSpaceVersion !== undefined &&
+      (!Number.isInteger(doc.workingColorSpaceVersion) || doc.workingColorSpaceVersion <= 0)) {
+    throw new Error("workingColorSpaceVersion must be a positive integer");
+  }
   if (
     !Array.isArray(doc.tracks) ||
     !Array.isArray(doc.clips) ||
@@ -64,6 +68,9 @@ export function timelineDocumentDurationMs(doc: TimelineDocument): number {
 }
 
 export interface TimelineDocument {
+  workingColorSpaceVersion?: number;
+  /** Show timecode as drop-frame at 29.97, 59.94 and 119.88 fps. Display only. */
+  dropFrame?: boolean;
   tracks: TimelineTrack[];
   trackFolders?: TimelineSequenceDoc["trackFolders"];
   clips: TimelineClip[];
@@ -128,28 +135,23 @@ export class TimelineSequence extends DBModel {
     // Resource refs carry this; every write must move it forward.
     this.revision = (this.revision ?? 0) + 1;
     const doc = JSON.parse(this.document);
-    if (
-      !Array.isArray(doc.tracks) ||
-      !Array.isArray(doc.clips) ||
-      !Array.isArray(doc.markers)
-    ) {
-      throw new Error(
-        "document must contain tracks, clips, and markers arrays"
-      );
-    }
+    validateTimelineDocument(doc);
   }
 
   toDocument(): TimelineDocument {
-    return JSON.parse(this.document) as TimelineDocument;
+    const doc = JSON.parse(this.document) as TimelineDocument;
+    validateTimelineDocument(doc);
+    return doc;
   }
 
   fromDocument(doc: TimelineDocument): void {
+    validateTimelineDocument(doc);
     this.document = JSON.stringify(doc);
   }
 
   toTimelineSequence(): TimelineSequenceDoc {
     const doc = this.toDocument();
-    return {
+    const sequence: TimelineSequenceDoc = {
       id: this.id,
       projectId: this.project_id,
       workflowId: this.workflow_id ?? undefined,
@@ -158,6 +160,7 @@ export class TimelineSequence extends DBModel {
       width: this.width,
       height: this.height,
       durationMs: this.duration_ms,
+      dropFrame: doc.dropFrame,
       tracks: doc.tracks,
       trackFolders: doc.trackFolders,
       clips: doc.clips,
@@ -175,6 +178,11 @@ export class TimelineSequence extends DBModel {
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
+    // An absent version stays absent, so a read never adds the field.
+    if (doc.workingColorSpaceVersion !== undefined) {
+      sequence.workingColorSpaceVersion = doc.workingColorSpaceVersion;
+    }
+    return sequence;
   }
 
   static fromTimelineSequence(
@@ -182,6 +190,8 @@ export class TimelineSequence extends DBModel {
     seq: TimelineSequenceDoc
   ): TimelineSequence {
     const doc: TimelineDocument = {
+      workingColorSpaceVersion: seq.workingColorSpaceVersion,
+      dropFrame: seq.dropFrame,
       tracks: seq.tracks,
       trackFolders: seq.trackFolders,
       clips: seq.clips,
@@ -197,6 +207,7 @@ export class TimelineSequence extends DBModel {
       source: seq.source,
       mediaTracks: seq.mediaTracks
     };
+    validateTimelineDocument(doc);
     return new TimelineSequence({
       id: seq.id,
       user_id: userId,

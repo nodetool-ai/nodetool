@@ -1,0 +1,180 @@
+{
+  "id": "seq-adjustment-group",
+  "projectId": "native-prototype",
+  "name": "adjustment-group",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "effects": [
+        {
+          "id": "ignored",
+          "type": "colorCorrection",
+          "enabled": true,
+          "brightness": -0.5,
+          "contrast": 1,
+          "saturation": 1,
+          "hue": 0,
+          "temperature": 0,
+          "tint": 0,
+          "shadows": 0,
+          "highlights": 0
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "startMs": 0,
+      "durationMs": 1000,
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "bottom",
+      "name": "bottom",
+      "trackId": "t4",
+      "mediaType": "image",
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png"
+    },
+    {
+      "startMs": 0,
+      "durationMs": 1000,
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "front",
+      "name": "front",
+      "trackId": "t2",
+      "mediaType": "image",
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "opacity": 0.55,
+      "transform": {
+        "position": {
+          "x": 0.65,
+          "y": 0.5
+        },
+        "scale": {
+          "x": 0.65,
+          "y": 0.7
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "parentId": "group"
+    },
+    {
+      "startMs": 0,
+      "durationMs": 1000,
+      "sourceType": "generated",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "adjust",
+      "name": "adjust",
+      "trackId": "t1",
+      "mediaType": "adjustment",
+      "effects": [
+        {
+          "id": "grade",
+          "type": "color",
+          "enabled": true,
+          "brightness": 0.24,
+          "saturation": 0.15,
+          "hue": 110
+        },
+        {
+          "id": "soften",
+          "type": "blur",
+          "enabled": true,
+          "radius": 14
+        }
+      ],
+      "opacity": 0.65,
+      "fadeInMs": 400,
+      "mask": {
+        "kind": "rect",
+        "x": 0.12,
+        "y": 0.15,
+        "width": 0.56,
+        "height": 0.65,
+        "invert": true
+      },
+      "parentId": "group"
+    },
+    {
+      "startMs": 0,
+      "durationMs": 1000,
+      "sourceType": "generated",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "id": "group",
+      "name": "group",
+      "trackId": "t0",
+      "mediaType": "group",
+      "opacity": 0.8
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 6,
+      "criterion": "J adjustment group isolation and premultiplied alpha, PSNR >= 40 dB"
+    },
+    {
+      "frame": 18,
+      "criterion": "J adjustment group isolation and premultiplied alpha, PSNR >= 40 dB"
+    }
+  ]
+}

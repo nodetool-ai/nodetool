@@ -12,6 +12,7 @@ import { sourceRate, type TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineStore";
 import {
   attributeGroupApplies,
+  paramCurveGroup,
   PASTE_ATTRIBUTE_GROUPS,
   type PasteAttributeGroup
 } from "../../../stores/timeline/pasteAttributes";
@@ -38,11 +39,17 @@ function sourceCarries(source: TimelineClip, group: PasteAttributeGroup): boolea
     case "effects":
       return (source.effects?.length ?? 0) > 0;
     case "animations":
-      return (source.animations?.length ?? 0) > 0;
+      return (
+        (source.animations?.length ?? 0) > 0 ||
+        (source.paramCurves ?? []).some((curve) => paramCurveGroup(curve.property) === "animations")
+      );
     case "speed":
       return sourceRate(source) !== 1;
     case "volume":
-      return (source.volumeDb ?? 0) !== 0;
+      return (
+        (source.volumeDb ?? 0) !== 0 ||
+        (source.paramCurves ?? []).some((curve) => paramCurveGroup(curve.property) === "volume")
+      );
     case "audioEffects":
       return (source.audioEffects?.length ?? 0) > 0;
   }

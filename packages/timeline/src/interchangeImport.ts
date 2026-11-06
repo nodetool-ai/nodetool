@@ -9,6 +9,17 @@
  * effects other than opacity, speed and level) is reported, never guessed.
  */
 import { makeClip, makeTrack } from "./defaults.js";
+import { PPRO_TICKS_PER_MS, type Interpolation } from "./interchangeMotion.js";
+import {
+  applyVisualMotion,
+  levelFromParam,
+  type MotionContext,
+  type ParamKey,
+  type Point,
+  type PointParam,
+  type ScalarParam,
+  type VisualMotion
+} from "./interchangeMotionImport.js";
 import type { TimelineClip, TimelineMarker, TimelineTrack } from "./types.js";
 
 export interface XmlElement {
@@ -170,6 +181,9 @@ export interface PremiereFile {
   hasAudio: boolean;
   /** No duration of its own: an image held for the clip's length. */
   still: boolean;
+  /** The picture's size in pixels, when the file said. */
+  width?: number;
+  height?: number;
 }
 
 interface PremiereClip {
@@ -182,10 +196,18 @@ interface PremiereClip {
   start: number;
   end: number;
   in: number;
+  out: number;
+  /** The exact source times, when Premiere wrote `pproTicks`. */
+  inMs?: number;
+  outMs?: number;
   fileId: string;
   speed?: number;
-  opacity?: number;
-  level?: number;
+  reverse?: boolean;
+  /** Basic Motion and Opacity of a picture clip. */
+  motion?: VisualMotion;
+  level?: ScalarParam;
+  /** An Audio Pan that is not centred. */
+  panned?: boolean;
   links: string[];
 }
 
@@ -198,7 +220,7 @@ export interface PremiereSequence {
   audioTracks: Array<{ enabled: boolean; locked: boolean }>;
   clips: PremiereClip[];
   files: PremiereFile[];
-  markers: Array<{ name: string; frame: number }>;
+  markers: Array<{ name: string; frame: number; comment?: string; endFrame?: number }>;
   /** Milliseconds per frame at the sequence rate. */
   frameMs: number;
   warnings: string[];
@@ -228,6 +250,59 @@ function effectParameter(clipitem: XmlElement, effectId: string, parameterId: st
   return undefined;
 }
 
+function interpolationOf(keyframe: XmlElement): Interpolation {
+  const name = textOf(keyframe, "interpolation", "name")?.toLowerCase();
+  if (name === "hold") return "hold";
+  return name === undefined || name === "linear" ? "linear" : "curve";
+}
+
+function readScalar(parameter: XmlElement | undefined): ScalarParam | undefined {
+  const value = numberOf(parameter, "value");
+  if (!parameter || value === undefined) return undefined;
+  const keys: ParamKey<number>[] = [];
+  for (const keyframe of parameter.children.filter((candidate) => candidate.name === "keyframe")) {
+    const when = numberOf(keyframe, "when");
+    const keyValue = numberOf(keyframe, "value");
+    if (when !== undefined && keyValue !== undefined) keys.push({ when, value: keyValue, interpolation: interpolationOf(keyframe) });
+  }
+  keys.sort((left, right) => left.when - right.when);
+  // Premiere's `value` is the parameter's value; with keys, the first key is where it starts.
+  return { value: keys[0]?.value ?? value, keys };
+}
+
+function readPoint(parameter: XmlElement | undefined): PointParam | undefined {
+  const point = (element: XmlElement | undefined): Point | undefined => {
+    const x = numberOf(element, "horiz");
+    const y = numberOf(element, "vert");
+    return x === undefined || y === undefined ? undefined : { x, y };
+  };
+  const value = point(child(parameter, "value"));
+  if (!parameter || !value) return undefined;
+  const keys: ParamKey<Point>[] = [];
+  for (const keyframe of parameter.children.filter((candidate) => candidate.name === "keyframe")) {
+    const when = numberOf(keyframe, "when");
+    const keyValue = point(child(keyframe, "value"));
+    if (when !== undefined && keyValue) keys.push({ when, value: keyValue, interpolation: interpolationOf(keyframe) });
+  }
+  keys.sort((left, right) => left.when - right.when);
+  return { value: keys[0]?.value ?? value, keys };
+}
+
+/** The parameter elements of the enabled filters with this effect id. */
+function effectParameters(clipitem: XmlElement, effectId: string): Map<string, XmlElement> {
+  const found = new Map<string, XmlElement>();
+  for (const filter of clipitem.children.filter((candidate) => candidate.name === "filter")) {
+    if (!isTrue(textOf(filter, "enabled"), true)) continue;
+    const effect = child(filter, "effect");
+    if (textOf(effect, "effectid") !== effectId) continue;
+    for (const parameter of effect?.children ?? []) {
+      const id = parameter.name === "parameter" ? textOf(parameter, "parameterid") : undefined;
+      if (id && !found.has(id)) found.set(id, parameter);
+    }
+  }
+  return found;
+}
+
 /** Parse the first sequence in an xmeml document. Throws when there is none. */
 export function readPremiereXml(xml: string): PremiereSequence {
   const document = parseXml(xml);
@@ -250,14 +325,22 @@ export function readPremiereXml(xml: string): PremiereSequence {
     if (pathurl === undefined) continue;
     const name = fileNameOf(pathurl, textOf(element, "name"));
     const hasVideo = !!path(element, "media", "video");
-    files.set(element.attrs.id, {
+    const sample = path(element, "media", "video", "samplecharacteristics");
+    const width = numberOf(sample, "width");
+    const height = numberOf(sample, "height");
+    const file: PremiereFile = {
       id: element.attrs.id,
       name,
       pathurl,
       hasVideo,
       hasAudio: !!path(element, "media", "audio"),
       still: STILL_EXTENSIONS.test(name) || (hasVideo && !path(element, "media", "audio") && numberOf(element, "duration") === undefined)
-    });
+    };
+    if (width !== undefined && height !== undefined && width > 0 && height > 0) {
+      file.width = width;
+      file.height = height;
+    }
+    files.set(element.attrs.id, file);
   }
 
   const clips: PremiereClip[] = [];
@@ -306,21 +389,46 @@ export function readPremiereXml(xml: string): PremiereSequence {
             start,
             end,
             in: Math.max(0, numberOf(item, "in") ?? 0),
+            out: Math.max(0, numberOf(item, "out") ?? 0),
             fileId,
             links: item.children.filter((link) => link.name === "link").map((link) => textOf(link, "linkclipref") ?? "").filter(Boolean)
           };
+          const ticksIn = numberOf(item, "pproTicksIn");
+          const ticksOut = numberOf(item, "pproTicksOut");
+          if (ticksIn !== undefined && ticksIn >= 0) clip.inMs = ticksIn / PPRO_TICKS_PER_MS;
+          if (ticksOut !== undefined && ticksOut >= 0) clip.outMs = ticksOut / PPRO_TICKS_PER_MS;
           if (effectParameter(item, "timeremap", "variablespeed") === "1") {
             warnings.push(`${clip.name}: variable speed was imported at constant speed.`);
           }
           const speed = Number(effectParameter(item, "timeremap", "speed"));
-          if (Number.isFinite(speed) && speed !== 100) {
-            if (speed <= 0) warnings.push(`${clip.name}: reverse playback was imported forward.`);
-            else clip.speed = speed / 100;
+          const reverse = isTrue(effectParameter(item, "timeremap", "reverse"), false);
+          if (Number.isFinite(speed) && speed === 0 && effectParameter(item, "timeremap", "speed") !== undefined) {
+            warnings.push(`${clip.name}: a freeze frame was imported as playing.`);
+          } else if (Number.isFinite(speed) && (speed !== 100 || reverse)) {
+            // A negative speed and the Reverse flag both play backwards.
+            if (speed < 0 || reverse) clip.reverse = true;
+            if (Math.abs(speed) !== 100) clip.speed = Math.abs(speed) / 100;
           }
-          const opacity = Number(effectParameter(item, "opacity", "opacity"));
-          if (Number.isFinite(opacity) && opacity !== 100) clip.opacity = Math.min(100, Math.max(0, opacity)) / 100;
-          const level = Number(effectParameter(item, "audiolevels", "level"));
-          if (Number.isFinite(level) && level !== 1) clip.level = level;
+          if (kind === "video") {
+            const motion: VisualMotion = {};
+            const basic = effectParameters(item, "basic");
+            const scale = readScalar(basic.get("scale"));
+            const rotation = readScalar(basic.get("rotation"));
+            const center = readPoint(basic.get("center"));
+            const anchor = readPoint(basic.get("centerOffset"));
+            const opacity = readScalar(effectParameters(item, "opacity").get("opacity"));
+            if (scale) motion.scale = scale;
+            if (rotation) motion.rotation = rotation;
+            if (center) motion.center = center;
+            if (anchor) motion.anchor = anchor;
+            if (opacity) motion.opacity = opacity;
+            if (Object.keys(motion).length > 0) clip.motion = motion;
+          } else {
+            const level = readScalar(effectParameters(item, "audiolevels").get("level"));
+            if (level) clip.level = level;
+            const pan = readScalar(effectParameters(item, "audiopan").get("pan"));
+            if (pan && (Math.abs(pan.value) > 1e-6 || pan.keys.length >= 2)) clip.panned = true;
+          }
           clips.push(clip);
         });
         return {
@@ -335,7 +443,15 @@ export function readPremiereXml(xml: string): PremiereSequence {
 
   const markers = sequence.children
     .filter((element) => element.name === "marker")
-    .map((marker) => ({ name: textOf(marker, "name") || textOf(marker, "comment") || "Marker", frame: numberOf(marker, "in") ?? 0 }));
+    .map((marker) => {
+      const frame = numberOf(marker, "in") ?? 0;
+      const end = numberOf(marker, "out");
+      const comment = textOf(marker, "comment");
+      const imported: PremiereSequence["markers"][number] = { name: textOf(marker, "name") || comment || "Marker", frame };
+      if (comment && textOf(marker, "name")) imported.comment = comment;
+      if (end !== undefined && end > frame) imported.endFrame = end;
+      return imported;
+    });
 
   const usedFileIds = new Set(clips.map((clip) => clip.fileId));
   return {
@@ -393,7 +509,8 @@ export function premiereToTimeline(
     const picture = clip.links
       .map((id) => byId.get(id))
       .find((other) => other?.kind === "video" && other.fileId === clip.fileId && other.start === clip.start
-        && other.end === clip.end && other.in === clip.in && (other.speed ?? 1) === (clip.speed ?? 1));
+        && other.end === clip.end && other.in === clip.in && (other.speed ?? 1) === (clip.speed ?? 1)
+        && !!other.reverse === !!clip.reverse);
     if (picture && !folded.has(picture.id)) folded.set(picture.id, clip);
   }
   const foldedAudio = new Set([...folded.values()].map((clip) => clip.id));
@@ -451,13 +568,47 @@ export function premiereToTimeline(
       currentAssetId: assetId
     });
     if (newId) clip.id = newId("clip");
-    if (mediaType !== "image" && source.in > 0) clip.inPointMs = ms(source.in);
-    if (mediaType !== "image" && source.speed !== undefined) clip.speedMultiplier = source.speed;
-    if (source.opacity !== undefined && source.kind === "video") clip.opacity = source.opacity;
-    const sound = source.kind === "audio" ? source : folded.get(source.id);
-    if (sound?.level !== undefined) {
-      clip.volumeDb = sound.level > 0 ? Number((20 * Math.log10(sound.level)).toFixed(2)) : -60;
+    const inMs = source.inMs !== undefined ? Math.round(source.inMs) : ms(source.in);
+    if (mediaType !== "image" && inMs > 0) clip.inPointMs = inMs;
+    if (mediaType !== "image" && source.speed !== undefined && !source.reverse) clip.speedMultiplier = source.speed;
+    if (mediaType !== "image" && source.reverse) {
+      // A clip here has no reverse flag: a remap that runs the source backwards says it.
+      const outMs = source.outMs !== undefined ? Math.round(source.outMs) : ms(source.out);
+      clip.timeRemap = { keyframes: [{ t: 0, sourceMs: outMs }, { t: 1, sourceMs: inMs }] };
     }
+    const contextFor = (entry: PremiereClip): MotionContext => {
+      const frames = entry.end - entry.start;
+      const speed = entry.speed ?? 1;
+      const context: MotionContext = {
+        frame: { width: sequence.width, height: sequence.height },
+        frameMs: sequence.frameMs,
+        in: entry.in,
+        out: entry.out > entry.in ? entry.out : entry.in + frames * speed,
+        speed,
+        reverse: !!entry.reverse,
+        durationMs: clip.durationMs,
+        warn: (message) => warnings.push(`${entry.name}: ${message}`)
+      };
+      if (file.width !== undefined && file.height !== undefined) context.picture = { width: file.width, height: file.height };
+      return context;
+    };
+    if (source.kind === "video") applyVisualMotion(clip, source.motion ?? {}, contextFor(source));
+    const sound = source.kind === "audio" ? source : folded.get(source.id);
+    if (sound?.level) {
+      const level = levelFromParam(sound.level, contextFor(sound));
+      if (level) {
+        clip.volumeDb = level.gain > 0 ? Number((20 * Math.log10(level.gain)).toFixed(2)) : -60;
+        if (level.fadeInMs) {
+          clip.fadeInMs = level.fadeInMs;
+          if (level.fadeInShape && level.fadeInShape !== "linear") clip.fadeInShape = level.fadeInShape;
+        }
+        if (level.fadeOutMs) {
+          clip.fadeOutMs = level.fadeOutMs;
+          if (level.fadeOutShape && level.fadeOutShape !== "linear") clip.fadeOutShape = level.fadeOutShape;
+        }
+      }
+    }
+    if (sound?.panned) warnings.push(`${sound.name}: audio pan was not imported.`);
     if (!source.enabled) {
       if (source.kind === "video") clip.hidden = true;
       else clip.muted = true;
@@ -490,11 +641,16 @@ export function premiereToTimeline(
   if (missingFiles.size > 0) {
     warnings.push(`${missingClips} clip(s) were left out because their media was not supplied: ${[...missingFiles].join(", ")}.`);
   }
-  const markers: TimelineMarker[] = sequence.markers.map((marker, position) => ({
-    id: newId ? newId("marker") : `marker-${position + 1}`,
-    timeMs: ms(marker.frame),
-    label: marker.name
-  }));
+  const markers: TimelineMarker[] = sequence.markers.map((marker, position) => {
+    const imported: TimelineMarker = {
+      id: newId ? newId("marker") : `marker-${position + 1}`,
+      timeMs: ms(marker.frame),
+      label: marker.name
+    };
+    if (marker.comment) imported.note = marker.comment;
+    if (marker.endFrame !== undefined) imported.durationMs = ms(marker.endFrame - marker.frame);
+    return imported;
+  });
   return {
     name: sequence.name,
     fps: sequence.fps,

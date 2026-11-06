@@ -60,6 +60,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      codeql-actions:
+        patterns:
+          - "github/codeql-action/*"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"

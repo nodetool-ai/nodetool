@@ -39,6 +39,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorLevelsV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.levels",
   version: 1,
   surface: "internal",
@@ -98,19 +99,19 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       },
       mask: {
-        colorSpace: "linear",
+        colorSpace: "data",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"],
         optional: true
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

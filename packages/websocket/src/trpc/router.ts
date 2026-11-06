@@ -15,6 +15,7 @@ import { documentSharingRouter } from "./routers/document-sharing.js";
 import { filesRouter } from "./routers/files.js";
 import { agentAccessRouter } from "./routers/agent-access.js";
 import { integrationsRouter } from "./routers/integrations.js";
+import { generationsRouter } from "./routers/generations.js";
 import { jobsRouter } from "./routers/jobs.js";
 import { jsScriptsRouter } from "./routers/js-scripts.js";
 import { triggersRouter } from "./routers/triggers.js";
@@ -67,6 +68,7 @@ type AppRouterRecord = {
   fonts: typeof fontsRouter;
   games: typeof gamesRouter;
   integrations: typeof integrationsRouter;
+  generations: typeof generationsRouter;
   jobs: typeof jobsRouter;
   jsScripts: typeof jsScriptsRouter;
   triggers: typeof triggersRouter;
@@ -118,6 +120,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   fonts: fontsRouter,
   games: gamesRouter,
   integrations: integrationsRouter,
+  generations: generationsRouter,
   jobs: jobsRouter,
   jsScripts: jsScriptsRouter,
   triggers: triggersRouter,

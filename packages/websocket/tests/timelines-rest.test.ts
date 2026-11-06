@@ -192,6 +192,10 @@ describe("timeline zip routes", () => {
     expect(strFromU8(entries["export-report.txt"])).toContain(
       "choose File > Import and pick My_Cut.xml"
     );
+    // The report also rides in a header, so a client need not open the zip.
+    expect(
+      JSON.parse(decodeURIComponent(String(res.headers["x-nodetool-export-report"])))
+    ).toMatchObject({ clipsExported: 1, omitted: 0 });
   });
 
   it("exports a media zip with each clip's file and a clip list", async () => {
@@ -250,6 +254,31 @@ describe("timeline zip routes", () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.json()).toEqual({ detail: "Timeline not found" });
+  });
+
+  it("reads the project and name from the json field the native editor sends", async () => {
+    const asset = await seedAsset();
+    const seq = await seedTimeline(USER_ID, asset.id);
+    const exported = await server.inject({
+      url: `/api/timelines/${seq.id}/export-zip`
+    });
+
+    const { payload, headers } = await multipart(
+      { json: JSON.stringify({ project_id: "p3", name: "From native" }) },
+      { name: "cut.zip", bytes: new Uint8Array(exported.rawPayload) }
+    );
+    const res = await server.inject({
+      method: "POST",
+      url: "/api/timelines/import-zip",
+      payload,
+      headers
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().timeline).toMatchObject({
+      projectId: "p3",
+      name: "From native"
+    });
   });
 
   it("imports a bundle into a new timeline pointing at newly stored bytes", async () => {

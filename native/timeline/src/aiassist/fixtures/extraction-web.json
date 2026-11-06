@@ -1,0 +1,157 @@
+{
+  "clips": [
+    {
+      "id": "last",
+      "startMs": 9000,
+      "durationMs": 1000,
+      "sourceType": "generated",
+      "bindingKind": "text-to-audio",
+      "prompt": "A draft line",
+      "speaker": " Alice "
+    },
+    {
+      "id": "a",
+      "startMs": 0,
+      "durationMs": 1000,
+      "sourceType": "imported",
+      "currentAssetId": "audio-a",
+      "speaker": " Alice ",
+      "caption": {
+        "words": [
+          {
+            "word": "Hello",
+            "startMs": 0,
+            "endMs": 500,
+            "kind": "word"
+          },
+          {
+            "word": "there",
+            "startMs": 500,
+            "endMs": 1000
+          }
+        ]
+      }
+    },
+    {
+      "id": "music",
+      "startMs": 0,
+      "durationMs": 10000,
+      "sourceType": "imported"
+    },
+    {
+      "id": "b",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "sourceType": "imported",
+      "paragraphId": "joined",
+      "currentAssetId": "audio-b",
+      "speaker": "Bob",
+      "caption": {
+        "words": [
+          {
+            "word": "Two",
+            "startMs": 0,
+            "endMs": 1000
+          }
+        ]
+      }
+    },
+    {
+      "id": "c",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "sourceType": "imported",
+      "paragraphId": "joined",
+      "currentAssetId": "audio-c",
+      "speaker": "Other",
+      "caption": {
+        "words": [
+          {
+            "word": "pieces",
+            "startMs": 0,
+            "endMs": 1000
+          }
+        ]
+      }
+    },
+    {
+      "id": "empty",
+      "startMs": 8000,
+      "durationMs": 500,
+      "sourceType": "imported",
+      "caption": {
+        "words": []
+      }
+    }
+  ],
+  "expected": {
+    "cast": [
+      {
+        "id": "spk_fixed_0",
+        "name": "Alice",
+        "voice": null
+      },
+      {
+        "id": "spk_fixed_1",
+        "name": "Bob",
+        "voice": null
+      }
+    ],
+    "sections": [
+      {
+        "id": "sec_fixed_7",
+        "lines": [
+          {
+            "id": "line_fixed_3",
+            "speakerId": "spk_fixed_0",
+            "text": "Hello there",
+            "takes": [
+              {
+                "id": "take_fixed_2",
+                "assetId": "audio-a",
+                "durationMs": 1000,
+                "words": [
+                  {
+                    "word": "Hello",
+                    "startMs": 0,
+                    "endMs": 500
+                  },
+                  {
+                    "word": "there",
+                    "startMs": 500,
+                    "endMs": 1000
+                  }
+                ],
+                "textSnapshot": "Hello there",
+                "voiceSnapshot": null,
+                "createdAt": "2023-11-14T22:13:20.000Z"
+              }
+            ],
+            "currentTakeId": "take_fixed_2"
+          },
+          {
+            "id": "line_fixed_4",
+            "speakerId": "spk_fixed_1",
+            "text": "Two pieces",
+            "takes": [],
+            "currentTakeId": null
+          },
+          {
+            "id": "line_fixed_5",
+            "speakerId": null,
+            "text": "",
+            "takes": [],
+            "currentTakeId": null
+          },
+          {
+            "id": "line_fixed_6",
+            "speakerId": "spk_fixed_0",
+            "text": "A draft line",
+            "takes": [],
+            "currentTakeId": null
+          }
+        ]
+      }
+    ]
+  }
+}

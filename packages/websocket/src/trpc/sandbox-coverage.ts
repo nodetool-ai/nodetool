@@ -489,6 +489,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "party access to this account. A run that could complete a link " +
       "could hand that access to whoever wrote the prompt."
   },
+  "generations.cancel": { capability: "cancel_generation" },
+  "generations.get": { capability: "get_generation" },
+  "generations.list": { capability: "list_generations" },
   "jobs.cancel": { capability: "cancel_job" },
   "jobs.get": { capability: "get_job" },
   "jobs.list": { capability: "list_jobs" },
@@ -925,6 +928,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "scripts.update": { capability: "edit_script" },
   "segmentation.segment": { capability: "segment_image" },
   "settings.list": { capability: "list_settings" },
+  "settings.providerCatalog": {
+    elsewhere:
+      "list_secrets exposes credential names and configured status; " +
+      "list_models and list_provider_models expose provider discovery."
+  },
   "settings.history.get": {
     withheld:
       "Database size, retention policy, and cleanup status are host " +

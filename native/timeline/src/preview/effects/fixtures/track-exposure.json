@@ -1,0 +1,65 @@
+{
+  "id": "seq-track-exposure",
+  "projectId": "native-prototype",
+  "name": "track-exposure",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "effects": [
+        {
+          "id": "e",
+          "type": "colorCorrection",
+          "enabled": true,
+          "brightness": 0.1,
+          "contrast": 1,
+          "saturation": 1,
+          "hue": 0,
+          "temperature": 0,
+          "tint": 0,
+          "shadows": 0,
+          "highlights": 0,
+          "exposure": 1,
+          "rolloff": 0.7,
+          "whites": -0.5
+        }
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "id": "exposure-0",
+      "trackId": "t0",
+      "name": "Exposure 1",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": []
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "F51 track exposure and highlight roll-off, PSNR >= 40 dB"
+    }
+  ]
+}

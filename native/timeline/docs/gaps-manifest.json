@@ -1,0 +1,1288 @@
+{
+  "plan": "native/timeline/docs/PLAN-GAPS.md",
+  "baseBranch": "feat/native-timeline",
+  "maxConcurrentBuilds": 4,
+  "sanitizerGate": {
+    "after": "V",
+    "preset": "sanitize",
+    "baseline": "tools/sanitizers/baseline.md",
+    "rule": "After V has merged, every merge also runs the sanitize ctest on the merged tree. A report not in the baseline fails the merge."
+  },
+  "review": "codex exec -m gpt-6-astra -s read-only -C <worktree> -o <report> -",
+  "packages": [
+    {
+      "id": "S1",
+      "wave": 0,
+      "needs": [],
+      "gaps": [],
+      "title": "Seams for parallel work",
+      "owns": [
+        "src/*/module.cmake",
+        "src/app/BuiltinEdits.cpp",
+        "src/app/CliModes.*",
+        "src/app/MenuRegistry.*",
+        "src/app/README.md",
+        "src/app/UploadAssetCli.cpp",
+        "src/app/compare-ctest.mjs",
+        "src/app/contracts.test.mjs",
+        "src/app/example/",
+        "src/app/module.cmake",
+        "src/app/tst_inspectorprimitives.cpp",
+        "qml/Inspector/primitives/ClipIdentityCard.qml",
+        "qml/Inspector/primitives/InspectorCard.qml",
+        "qml/Inspector/primitives/InspectorColour.qml",
+        "qml/Inspector/primitives/InspectorDivider.qml",
+        "qml/Inspector/primitives/InspectorHeader.qml",
+        "qml/Inspector/primitives/InspectorPillInput.qml",
+        "qml/Inspector/primitives/InspectorPrimitivesHelpers.js",
+        "qml/Inspector/primitives/InspectorRow.qml",
+        "qml/Inspector/primitives/InspectorSection.qml",
+        "qml/Inspector/primitives/InspectorSectionTitle.qml",
+        "qml/Inspector/primitives/InspectorSelect.qml",
+        "qml/Inspector/primitives/InspectorStaticValue.qml",
+        "qml/Inspector/primitives/InspectorToggleRow.qml",
+        "qml/Inspector/primitives/InspectorTokens.qml",
+        "scripts/conformance/suites/"
+      ],
+      "web": [
+        "web/src/components/timeline/Inspector/InspectorPrimitives.tsx",
+        "web/src/components/timeline/Inspector/InspectorPrimitives.helpers.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Build, ctest, plan check and op check give the same results as before the change",
+        "CMakeLists.txt includes every module.cmake under src/ at any depth (GLOB_RECURSE, sorted), so nested modules such as src/preview/transitions/ register without a shared edit",
+        "A test package that adds a module in a nested folder (src/<module>/<name>/module.cmake), CLI mode, edit, panel and menu item touches no shared file (git diff --stat), and its test runs in ctest",
+        "ServerClient::upload(json, filePath, contentType) sends the multipart POST /api/assets of AssetStore.ts through the same private write path as mutate: an upload of a media fixture to the scratch server returns the asset and assets.get returns it",
+        "With an expected instance and a listener whose /ready answer lacks it, upload sends no multipart body (tst_serverclient)"
+      ]
+    },
+    {
+      "id": "S2",
+      "wave": 1,
+      "needs": [],
+      "gaps": [],
+      "title": "Core seams, round 2",
+      "owns": [
+        "src/main.cpp",
+        "src/model/TimelineModel.*",
+        "src/scene/ClipScene.*",
+        "src/audio/Mixer.cpp",
+        "src/audio/Mixer.h",
+        "src/audio/AudioEngine.*",
+        "scripts/plan-conformance.mjs",
+        "scripts/conformance/plan/",
+        "src/audio/hooks/",
+        "src/model/hooks/",
+        "src/app/startup/"
+      ],
+      "web": [],
+      "server": [],
+      "exit": [
+        "Build, ctest, the plan check (with and without --examples), the op check and check-mix.mjs give the same results as before. --dump-plan output is byte-identical on every fixture while no hook is registered",
+        "The sanitize and tsan ctest runs report nothing outside tools/sanitizers/baseline.md (Mixer and AudioEngine are threaded units)",
+        "Layer-source registry (I): a factory registered for a layer kind replaces SyntheticSource in PreviewCompositorRenderer::entryFor; tst_layerhooks draws a registered solid-colour source in an offscreen still. Red: the same test against the old entryFor shows the synthetic pattern",
+        "Layer decorators (D3, D5, I, J): a registered decorator gets each ActiveLayer with its Clip and time, may set ActiveLayer.ext and ActiveLayer.sourceRect, and framePlanJson writes ext when it is not empty (tst_layerhooks)",
+        "Source UV rectangle (D5): composite.vert and composite.frag sample through sourceRect, full by default; a decorator that sets the left half gives a still equal to the cropped reference (tst_layerhooks)",
+        "Effect stages (J): a registered stage runs on a layer texture and on a group surface before compositing, with the layer's ext parameters; an invert stage registered by tst_layerhooks inverts that layer's pixels in the still and leaves the others",
+        "Text measurer (I): a measurer registered for the scene is passed to the flex layout in evaluateScene; tst_layerhooks shows a changed flex box with a fixed-width measurer and the fallback rule without one",
+        "Source-time mapper (D3): clipSourceMsAt consults a registered mapper and keeps its formula without one (tst_layerhooks)",
+        "Mixer voice expander (D3) and gain envelope (P2) in src/audio/hooks/: a registered expander splits a voice into segments, a silent segment writes zeros, an envelope scales the gain; without hooks tst_mixer and check-mix.mjs are unchanged (tst_mixerhooks)",
+        "Output device selector (R): AudioEngine asks a registered provider for a device name before ma_device_init and falls back to the default device when no playback device matches; tst_mixerhooks covers the pick on miniaudio's null backend",
+        "Decode-mode default (R): main.cpp uses a provider registered in src/app/startup/ when neither --decode nor --decoder is set, and the help text names it; tst_startuphooks checks flag, provider and the sw fallback",
+        "TimelineModel media registration (B F1): registerMedia adds the runtime paths of new media without a history reset or a generation change; tst_modelhooks drops a clip with new media, registers it, and the preview resolves the path with the undo count unchanged",
+        "TimelineModel settlement (B F2): applyEdit and commitEdit return a command token, and settleCommand(token, document) replaces that command's result; undo then redo after a settlement gives the settled document, and a settlement after an undo changes only the command (tst_modelhooks)",
+        "Plan comparators (D5, I, J): scripts/plan-conformance.mjs loads extra comparators from scripts/conformance/plan/*.mjs; a planted comparator that rejects every layer fails the check once, and the plant is removed"
+      ]
+    },
+    {
+      "id": "S3",
+      "wave": 1,
+      "needs": [],
+      "gaps": [
+        "F7"
+      ],
+      "title": "UI wiring, round 2",
+      "owns": [
+        "src/edit/ClipGestureController.*",
+        "src/edit/Keymap.*",
+        "src/ui/RulerCanvas.*",
+        "src/ui/TimelineViewState.*",
+        "qml/Tracks/Clip.qml",
+        "qml/Tracks/ClipBody.qml",
+        "qml/Tracks/TrackHeader.qml",
+        "qml/Tracks/TrackLane.qml",
+        "qml/Tracks/TimeRuler.qml",
+        "qml/Tracks/ToolToggle.qml",
+        "qml/Tracks/TracksRegion.qml",
+        "qml/DocumentBar.qml",
+        "qml/preview/PreviewArea.qml",
+        "qml/Inspector/primitives/InspectorSliderRow.qml",
+        "src/app/PanelRegistry.*",
+        "src/app/QmlDiscovery.cmake",
+        "src/edit/transitions/",
+        "src/preview/gizmo/",
+        "src/wiring/",
+        "qml/wiring/",
+        "tests/tst_tracksui.cpp",
+        "src/model/TrackWindowModel.*",
+        "qml/Tracks/Playhead.qml",
+        "src/app/Menus/tst_appshell.cpp"
+      ],
+      "ownsNotes": {
+        "tests/tst_tracksui.cpp": "approved by the user (D8)",
+        "src/model/TrackWindowModel.*": "approved by the user (D8)",
+        "qml/Tracks/Playhead.qml": "approved by the user (D8)",
+        "src/app/Menus/tst_appshell.cpp": "approved by the user (D8)"
+      },
+      "web": [
+        "web/src/components/timeline/Tracks/TracksRegion.tsx",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx",
+        "web/src/components/timeline/Tracks/TrackLane.tsx",
+        "web/src/components/timeline/Tracks/Clip.tsx",
+        "web/src/components/timeline/Tracks/ClipBody.tsx",
+        "web/src/components/timeline/Tracks/TimeRuler.tsx",
+        "web/src/components/timeline/ToolToggle.tsx",
+        "web/src/components/timeline/timelineKeymap.ts",
+        "web/src/components/timeline/TimelineDocumentBar.tsx",
+        "web/src/components/timeline/preview/PreviewCompositor.tsx",
+        "web/src/stores/timeline/TimelineStore.ts",
+        "web/src/stores/timeline/TimelinePlaybackStore.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Every in-app criterion has a test that loads the production QML (TimelineEditor.qml with a fixture document, offscreen) and drives it by pointer or keyboard; tests that call a command directly do not count",
+        "C: the visible, lock, mute and solo header buttons toggle their field, delete asks to confirm as the menu does, a grip drag reorders tracks of the same type with a 2 px drop line, and a 6 px separator resizes a track (48 to 300 px, divided by vertical zoom, ArrowUp/Down 8 or 32 px), each one undo entry (closes B9, B10, B11)",
+        "M: the target chip toggles targeting and dims when off, the sync button toggles sync lock and shows SyncDisabled in the warning tone, and liftRange, extractRange, rippleTrimPrevToPlayhead, rippleTrimNextToPlayhead, cutAllTracks and splitAtPlayhead with an empty selection follow TracksRegion.tsx (closes B22, B27, B28)",
+        "F: copy, cut, paste, pasteInsert, pasteAttributes (opens PasteAttributesDialog), duplicate, duplicateWithGap, groupClips and ungroupClips keys, Alt-drag copy, marquee selection with RubberBandOverlay, gap selection with Delete closing the gap, and GroupBracket on group clips; paste reads the targeted tracks and the drop mode (closes B19, B26)",
+        "K: shuttleBack, shuttleStop, shuttleForward, toggleLoop, playInToOut, stepFrameBack, stepFrameForward, and the in and out marks drive the PlaybackClock range (closes B14, B34)",
+        "D1: the clip keyframe diamonds are mounted in ClipBody, and a drag retimes and a click seeks (closes B12)",
+        "D4: the transition wedge has a length grip labelled Transition length, one undo entry per drag (closes B33), and TransitionHandle caps growth at the probed source length (closes B29)",
+        "The shortcut sheet marks each newly wired action as available",
+        "InspectorSliderRow lays its slider out at a non-zero height, a pointer drag changes the value, and the QEXPECT_FAIL in tst_transitions.cpp is removed (closes B21)",
+        "Panel slots accept any name matching [a-z][A-Za-z0-9]* in registerPanel and in the nt-panel marker, and a refused registration logs a warning",
+        "Slot clipBody: an item registered there is created on every clip body with clip, timeline, gestures and viewState (D2 fade grips)",
+        "Slot toolbar: items registered there appear after Snap in ToolToggle (N Bars toggle and grid select)",
+        "Slot documentBar: actions registered there appear after Undo and Redo (A project settings)",
+        "Slot preview: items registered there sit inside the preview frame and are clipped to it; the transform gizmo moves there and takes no click outside the frame (closes B18; D5 focus overlay)",
+        "Slot trackLane: rows registered there appear under each track lane (P2 automation lanes)",
+        "Context menus: a right-click on a clip, a track header, an empty lane or the ruler opens the MenuRegistry items of that kind, and an item runs ClipGestureController::runAction, the same handler as its shortcut (G)",
+        "Key actions: an action registered in src/wiring/ runs when handleKey does not handle its key, and availableActions lists it (O source keys, D2 audioGain, D3 speedDuration, Q workspaces)",
+        "Snap candidates: providers registered in src/wiring/ add candidates in collectSnapCandidates while snapping applies (N beat lines)",
+        "Ruler: TimelineViewState has rulerMode (time or bars) and gridDivision (beat by default), and TimeRuler and RulerCanvas draw ticks from a provider registered for the mode, time by default (N)",
+        "Each slot and registry has a test that registers a test item and finds it in the running editor, and each fails once against the unwired files",
+        "Build, ctest, the plan check and the op check pass; tst_tracksregion, tst_tracksui, tst_transitions (with the expected failure removed) and the D1 QML tests pass"
+      ]
+    },
+    {
+      "id": "S4",
+      "wave": 1,
+      "needs": [],
+      "gaps": [],
+      "title": "Compositor seams, round 3",
+      "owns": [
+        "src/preview/PreviewCompositor.*",
+        "src/preview/LayerSource.h",
+        "src/preview/SceneEval.h",
+        "src/preview/SceneEval.cpp",
+        "shaders/composite.vert",
+        "shaders/composite.frag",
+        "src/preview/layers/",
+        "src/preview/compose/"
+      ],
+      "web": [
+        "packages/timeline/src/render/frameCompositor.ts",
+        "web/src/components/timeline/preview/gpu/compositor.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Backdrop blend seam: for a layer or precomposite whose blendMode is not normal, the compositor gives a registered blend handler for that mode the backdrop (a copy of the accumulation target before the layer draws) and the layer texture, and composites the handler's result instead of over; without a handler the layer draws with over as before. Works for group surfaces (D35 group blend mode). A test handler for multiply changes the still as expected and leaves the other layers",
+        "Matte seam: SceneEval exposes, for each matted layer, its matte source layer and matte mode as the web's FrameMatte does; the compositor renders the matte source frame-sized and passes its texture to a registered matte stage for the matted layer; framePlanJson stays byte-identical when no matte stage is registered. A test stage uses the matte alpha",
+        "Second-source seam: a registered provider can request a second decoded source for a layer (clip.generatedMatte, a luma video) through the existing source pool, and a stage receives its texture for the same frame time. Tested with a small generated fixture video",
+        "Effect outset: a stage can report an outset in pixels per side from its ext parameters; the compositor allocates the larger output and expands the layer quad to match, for layers and group surfaces. A test stage that draws a border outside its input is visible in the still and is clipped without the outset",
+        "Export uses the same seams: an export still of the hook fixtures equals the preview still",
+        "Unchanged otherwise: build, ctest, the plan check (with and without --examples), the op check and check-mix.mjs give the same results; --dump-plan output is byte-identical on every fixture with no hook registered; the sanitize ctest reports nothing outside tools/sanitizers/baseline.md",
+        "No effect, blend formula or matte rule is implemented here: those belong to J"
+      ]
+    },
+    {
+      "id": "PX",
+      "wave": 1,
+      "needs": [],
+      "gaps": [],
+      "title": "Parity P1 fixes",
+      "owns": [
+        "src/app/EditRegistry.h",
+        "src/edit/groups/GroupRegistrations.cpp",
+        "src/edit/targeting/TargetingEditRegistrations.cpp",
+        "src/edit/clipboard/ClipboardRegistrations.cpp",
+        "src/edit/registry/",
+        "qml/Inspector/TimelineInspector.qml",
+        "qml/Inspector/TransitionSection.qml",
+        "src/edit/inspectorsections/",
+        "qml/SaveBanners.qml"
+      ],
+      "web": [
+        "web/src/stores/timeline/TimelineStore.ts",
+        "web/src/components/timeline/Inspector/TimelineInspector.tsx",
+        "web/src/components/timeline/Inspector/ClipAdjustments.tsx",
+        "web/src/components/timeline/Inspector/ClipTransitionSection.tsx",
+        "web/src/hooks/useWorkspaceDocumentClose.ts",
+        "web/src/hooks/timeline/useTimelineAutosave.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Behaviour F1: rippleTrimClipStart, rippleTrimClipEnd, rippleDeleteSelected and closeGapAt each have one registration, a group-aware wrapper around M's sync-lock functions that reads TrackTargeting when the payload has no targeting lists",
+        "registerEdit and overrideEdit record each refused name with a warning; nodetool-timeline --check-edit-registry lists every name with its registrar and exits 1 on a refusal; ctest runs it on the app binary. Red: on the old registrars it reports the four duplicates",
+        "In the app's registration set, ripple delete, both ripple trims and close gap on V1 leave a sync-lock-off track A2 unchanged, and a group target still ripples as F's did (tst_editregistry). tst_fclipboard, tst_targeting, tst_seamexample and the op check pass unchanged",
+        "Layout F1: TimelineInspector hosts the sections registered with registerInspectorSection inside its Flickable, between Transform and Animate in web order, and passes timelineModel, gestures and controller to each; TransitionSection registers there and has no nt-panel marker",
+        "With TimelineEditor.qml loaded offscreen at 1280x800 and a clip after another selected, the Transition section scrolls into the Inspector viewport, has a model, and choosing Crossfade adds one undo entry (tst_inspectorsections). Red: on the old files the section lies outside the window",
+        "tst_transitions and the D1 Inspector tests pass unchanged",
+        "Data-safety F1: on start the controller moves a recovery or conflict copy from an earlier session aside, a save of this session never deletes it, and SaveBanners offers it with Restore and Discard; Restore applies it as one undo entry through the restoreDocument edit and autosave saves it, Discard deletes it",
+        "tst_autosave: a recovery copy from an earlier controller survives a clean save of a new one (red on the old controller), a second conflict does not overwrite the first session's copy, Restore and Discard behave as stated, and every existing case passes"
+      ]
+    },
+    {
+      "id": "SY",
+      "wave": 1,
+      "needs": [
+        "PX"
+      ],
+      "gaps": [],
+      "title": "External sync",
+      "owns": [
+        "src/server/AutosaveController.*",
+        "src/server/recovery/",
+        "tests/tst_autosave.cpp",
+        "src/server/sync/",
+        "src/server/module.cmake",
+        "CMakeLists.txt",
+        "../../.github/workflows/native-timeline.yml",
+        "scripts/conformance/suites/merge.*"
+      ],
+      "web": [
+        "web/src/hooks/timeline/useTimelineExternalSync.ts",
+        "web/src/hooks/timeline/timelineExternalMerge.ts",
+        "web/src/stores/timeline/merge.ts",
+        "web/src/stores/documentMerge.ts",
+        "web/src/stores/documentSync.ts",
+        "web/src/hooks/timeline/useTimelineAutosave.ts",
+        "web/src/lib/websocket/WebSocketManager.ts",
+        "web/src/lib/websocket/GlobalWebSocketManager.ts"
+      ],
+      "server": [
+        "packages/websocket/src/lib/resource-change-fanout.ts",
+        "packages/websocket/src/websocket-client-session.ts",
+        "packages/websocket/src/server.ts"
+      ],
+      "exit": [
+        "resource_change reaches the editor: a script proves on a scratch server that an MCP timeline edit emits resource_change for that sequence (red: report a server-side blocker and use a CLI or tRPC write as the trigger)",
+        "Clean editor adopts: with no unsaved edits an external write appears in the open editor (model and rendered state), only when the server copy is newer than the held updatedAt, and undo does not revert the external edit",
+        "Dirty editor merges: with unsaved local edits an external write is merged as timelineExternalMerge does; the merge conformance suite gives the web merge result on fixtures covering disjoint edits, same-clip edits, deletes, adds, track changes and conflicts",
+        "Autosave survives a conflict (B35): a save conflict merges the server copy and continues saving; no edit is left only in memory; the conflict copy rule matches the web",
+        "Reconnect: after the WebSocket drops and reconnects with the web backoff, the editor fetches once to catch missed changes; auth matches ServerClient (Bearer for remote servers)",
+        "End to end, headless: the native editor opens a timeline from a scratch server; an MCP edit appears within 2 s; the next native save succeeds without conflict; with a pending local edit both changes survive",
+        "Unchanged otherwise: the full 6e checks pass; the sanitize ctest has no report outside tools/sanitizers/baseline.md"
+      ],
+      "ownsLimits": "src/server/module.cmake: registration of the new files only. CMakeLists.txt: the Qt WebSockets find_package and link line only. native-timeline.yml: the qtwebsockets module of the aqt install step only."
+    },
+    {
+      "id": "A",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S3"
+      ],
+      "gaps": [
+        "F5"
+      ],
+      "title": "Open and create timelines",
+      "owns": [
+        "src/server/TimelineList*",
+        "qml/TimelineListPanel.qml",
+        "qml/ProjectSettingsDialog.qml",
+        "src/server/ServerSource.*",
+        "src/server/AutosaveController.*",
+        "tests/tst_autosave.cpp",
+        "qml/TimelineDocumentActions.qml",
+        "src/app/Menus/ShellMenus.*",
+        "src/wiring/w/tst_wiringw.cpp",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp"
+      ],
+      "ownsNotes": {
+        "src/server/AutosaveController.*": "shared with PX and SY (merged), approved by the user (D14)",
+        "tests/tst_autosave.cpp": "shared with PX and SY (merged), approved by the user (D14)",
+        "src/app/Menus/ShellMenus.*": "shared with R (merged), two File items only, approved by the user (D13)",
+        "src/wiring/w/tst_wiringw.cpp": "shared with W (merged), exportMenu finds Export by action after the A File items, shared, approved by the user",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp": "shared with O (merged), marking closes the Ctrl+O timeline list before typing, shared, approved by the user"
+      },
+      "web": [
+        "web/src/components/timeline/TimelineListPanel.tsx",
+        "web/src/components/timeline/TimelineDocumentBar.tsx",
+        "web/src/components/timeline/ProjectSettingsDialog.tsx",
+        "web/src/components/projects/"
+      ],
+      "server": [
+        "timeline.list",
+        "timeline.create",
+        "timeline.delete",
+        "packages/websocket/src/trpc/routers/projects.ts"
+      ],
+      "exit": [
+        "List, open, create with web defaults, rename and delete work against the scratch server",
+        "Project settings change canvas and rate with undo",
+        "Offscreen screenshot matches the web layout"
+      ]
+    },
+    {
+      "id": "B",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S2"
+      ],
+      "gaps": [
+        "F1"
+      ],
+      "title": "Media import and asset browser",
+      "owns": [
+        "src/assets/",
+        "qml/assets/",
+        "scripts/conformance/suites/assets.mjs"
+      ],
+      "web": [
+        "web/src/components/assets/AssetExplorer.tsx",
+        "web/src/components/assets/AssetGrid.tsx",
+        "web/src/components/assets/AssetItem.tsx",
+        "web/src/serverState/useAssetUpload.ts",
+        "web/src/components/timeline/AddClipMenu.tsx",
+        "web/src/components/timeline/dnd/assetToClipAdapter.ts",
+        "web/src/components/timeline/packageClipMedia.ts"
+      ],
+      "server": [
+        "assets.list",
+        "assets.get",
+        "assets.ensureProxy",
+        "POST /api/assets through ServerClient::upload from S1 (B adds no request code and does not edit ServerClient.*)"
+      ],
+      "exit": [
+        "Imported file appears as an asset and gets a proxy when the server makes one",
+        "Dropped asset gives the same clip JSON as assetToClipAdapter.ts (oracle)",
+        "Video with sound drops as the linked video and audio pair"
+      ]
+    },
+    {
+      "id": "C",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F2"
+      ],
+      "title": "Track management",
+      "owns": [
+        "src/edit/tracks/",
+        "qml/Tracks/AddTrackButton.qml",
+        "qml/Tracks/TrackHeaderMenu.qml"
+      ],
+      "web": [
+        "web/src/components/timeline/Tracks/AddTrackButton.tsx",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx",
+        "web/src/stores/timeline/TimelineStore.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Add, delete, rename, reorder, colour, mute, solo, lock, hide and height match the web store actions (store differential)",
+        "Undo restores the document"
+      ]
+    },
+    {
+      "id": "D1",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F3"
+      ],
+      "title": "Inspector: transform and keyframes",
+      "owns": [
+        "qml/Inspector/Motion*",
+        "qml/Inspector/Keyframe*",
+        "src/edit/keyframes/"
+      ],
+      "web": [
+        "web/src/components/timeline/Inspector/TimelineInspector.tsx",
+        "web/src/components/timeline/Inspector/InspectorMotionFields.tsx",
+        "web/src/components/timeline/Inspector/KeyframedPropertyRow.tsx",
+        "web/src/components/timeline/Inspector/keyframeRows.ts",
+        "web/src/components/timeline/Inspector/ClipAnimations.tsx",
+        "web/src/components/timeline/Tracks/ClipKeyframeDiamonds.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Transform fields edit with undo",
+        "Stopwatch, add, delete, step, retime and easing match keyframeRows.ts (oracle)",
+        "Keyframe diamonds drag the same way",
+        "Preview shows the change in the next frame"
+      ]
+    },
+    {
+      "id": "D2",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S3",
+        "PX"
+      ],
+      "gaps": [
+        "F3"
+      ],
+      "title": "Inspector: audio",
+      "owns": [
+        "qml/Inspector/Audio*",
+        "qml/Tracks/ClipFadeShapeMenu.qml",
+        "src/edit/clipaudio/",
+        "qml/Tracks/ClipFadeGrips.qml",
+        "qml/Tracks/Clip.qml",
+        "scripts/conformance/suites/clip-audio.*"
+      ],
+      "notes": {
+        "qml/Tracks/Clip.qml": "shared with its merged owner, approved by the user (D15)"
+      },
+      "web": [
+        "web/src/components/timeline/Inspector/ClipAudioEffects.tsx",
+        "web/src/components/timeline/Inspector/ClipAudioDrive.tsx",
+        "web/src/components/timeline/clipDialogs/AudioGainDialog.tsx",
+        "web/src/components/timeline/fadeShapes.ts",
+        "web/src/components/timeline/Tracks/ClipFadeShapeMenu.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Gain, pan, fade lengths and the four curves edit with undo",
+        "Fade grips on the clip match the web",
+        "check-mix.mjs passes on edited documents"
+      ]
+    },
+    {
+      "id": "D3",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S2",
+        "PX"
+      ],
+      "gaps": [
+        "F3"
+      ],
+      "title": "Inspector: speed and time remap",
+      "owns": [
+        "qml/Inspector/Speed*",
+        "src/edit/speed/",
+        "src/model/TimelineTypes.h",
+        "src/model/TimelineJson.*",
+        "src/model/LaneClipModel.*",
+        "scripts/conformance/suites/speed.*"
+      ],
+      "web": [
+        "web/src/components/timeline/Inspector/ClipTimeRemap.tsx",
+        "web/src/components/timeline/clipDialogs/SpeedDurationDialog.tsx",
+        "packages/timeline/src/clipSpeed.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Speed, reverse, keep pitch, duration and remap curve match the web operations (oracle)",
+        "Preview and mix follow the new timing"
+      ]
+    },
+    {
+      "id": "D4",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F3"
+      ],
+      "title": "Inspector: transitions",
+      "owns": [
+        "qml/Inspector/TransitionEasingField.qml"
+      ],
+      "web": [
+        "web/src/components/timeline/Inspector/ClipTransitionSection.tsx",
+        "packages/timeline/src/render/sceneModel.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Type, length, easing and parameters edit with undo",
+        "Plan check passes on documents edited this way"
+      ]
+    },
+    {
+      "id": "D5",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S2",
+        "S3",
+        "PX"
+      ],
+      "gaps": [
+        "F3"
+      ],
+      "title": "Inspector: crop and reframe",
+      "owns": [
+        "qml/Inspector/Reframe*",
+        "src/preview/crop/",
+        "scripts/conformance/suites/reframe.*",
+        "scripts/conformance/plan/crop.mjs"
+      ],
+      "web": [
+        "web/src/components/timeline/Inspector/ClipReframe.tsx",
+        "packages/timeline/src/crop.ts",
+        "web/src/components/timeline/preview/ReframeFocusOverlay.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Crop edges, fit mode and reframe focus match the web",
+        "Compositor draws the crop (golden against timeline render --stills)"
+      ]
+    },
+    {
+      "id": "E",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F4"
+      ],
+      "title": "Export",
+      "owns": [
+        "src/export/",
+        "qml/ExportVideoDialog.qml"
+      ],
+      "web": [
+        "web/src/components/timeline/ExportVideoDialog.tsx",
+        "web/src/components/timeline/render/TimelineRenderer.ts",
+        "web/src/components/timeline/render/renderAudio.ts",
+        "web/src/components/timeline/render/encodeAudio.ts",
+        "web/src/components/timeline/render/canEncodeMp4.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Export of each media fixture matches nodetool timeline render at 40 dB or better per checked frame",
+        "Audio matches the offline mix",
+        "Duration and frame count are exact",
+        "Cancel leaves no partial file"
+      ]
+    },
+    {
+      "id": "F",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F6"
+      ],
+      "title": "Clipboard and structure",
+      "owns": [
+        "src/edit/clipboard/AppEditCheck.cpp",
+        "src/edit/clipboard/ClipboardOps.*",
+        "src/edit/clipboard/README.md",
+        "src/edit/clipboard/RawDocument.h",
+        "src/edit/clipboard/StructureOpsCli.cpp",
+        "src/edit/clipboard/clipboard-differential.test.ts",
+        "src/edit/clipboard/module.cmake",
+        "src/edit/clipboard/oracle.ts",
+        "src/edit/clipboard/tst_fclipboard.cpp",
+        "src/edit/groups/GroupOps.*",
+        "src/edit/groups/groups-differential.test.ts",
+        "src/edit/groups/module.cmake",
+        "qml/Tracks/RubberBandOverlay.qml",
+        "qml/Tracks/GroupBracket.qml",
+        "qml/PasteAttributesDialog.qml"
+      ],
+      "web": [
+        "web/src/stores/timeline/clipboardOps.ts",
+        "web/src/stores/timeline/pasteAttributes.ts",
+        "web/src/components/timeline/clipDialogs/PasteAttributesDialog.tsx",
+        "web/src/stores/timeline/TimelineStore.ts",
+        "web/src/components/timeline/Tracks/RubberBandOverlay.tsx",
+        "web/src/components/timeline/Tracks/GroupBracket.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Copy, cut, paste, paste attributes, duplicate, Alt-drag copy, group, ungroup, marquee and gap selection match the web (store differential, oracle on clipboardOps.ts)",
+        "Group targets for move, trim and delete are no longer refused"
+      ]
+    },
+    {
+      "id": "H",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F8"
+      ],
+      "title": "Transform gizmo",
+      "owns": [
+        "qml/preview/TransformGizmoOverlay.qml",
+        "qml/preview/ClipTransformContextMenu.qml"
+      ],
+      "web": [
+        "web/src/components/timeline/preview/TransformGizmoOverlay.tsx",
+        "web/src/components/timeline/preview/ClipTransformContextMenu.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Drag, scale and rotate in the program monitor with the web handles and snapping",
+        "One gesture is one undo command",
+        "Drag on an animated property keys it"
+      ]
+    },
+    {
+      "id": "I",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S2",
+        "PX"
+      ],
+      "gaps": [
+        "F9"
+      ],
+      "title": "Text, shapes and captions",
+      "owns": [
+        "src/render2d/",
+        "src/scene/TextBlock.*",
+        "qml/Inspector/Text*",
+        "qml/Inspector/Shape*",
+        "qml/Inspector/Caption*",
+        "scripts/window-checks.sh",
+        "scripts/conformance/plan/text.mjs"
+      ],
+      "web": [
+        "web/src/components/timeline/preview/textRender.ts",
+        "web/src/components/timeline/preview/textMeasure.ts",
+        "web/src/components/timeline/preview/fontLoading.ts",
+        "web/src/components/timeline/preview/shapeRender.ts",
+        "web/src/components/timeline/preview/captionRender.ts",
+        "web/src/components/timeline/Inspector/ClipTextStyleSection.tsx",
+        "web/src/components/timeline/Inspector/ClipShapeSection.tsx",
+        "web/src/components/timeline/Inspector/ClipCaptionStyle.tsx",
+        "web/src/components/timeline/Inspector/FontPicker.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "The 7 shipped examples match timeline render --stills at 35 dB or better on frames with text and shapes",
+        "Plan check keeps passing",
+        "Window check added: serein on the M0 counters against the web"
+      ]
+    },
+    {
+      "id": "J",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S2",
+        "E",
+        "S4"
+      ],
+      "gaps": [
+        "F9"
+      ],
+      "title": "Effects, adjustments, masks and blend modes",
+      "owns": [
+        "shaders/effects/",
+        "src/preview/effects/",
+        "scripts/conformance/plan/effects.mjs",
+        "src/preview/SceneEval.h",
+        "src/preview/SceneEval.cpp",
+        "src/preview/layers/SceneHooks.h",
+        "src/preview/PreviewCompositor.h",
+        "src/preview/PreviewCompositor.cpp"
+      ],
+      "ownsNote": "src/preview/SceneEval.h, src/preview/SceneEval.cpp, src/preview/layers/SceneHooks.h and src/preview/PreviewCompositor.*: shared with S4 (merged), approved by the user (D11)",
+      "web": [
+        "web/src/components/timeline/preview/gpu/compositor.ts",
+        "web/src/components/timeline/preview/maskRender.ts",
+        "web/src/components/timeline/preview/matteOverlay.ts",
+        "web/src/components/timeline/Inspector/ClipAdjustments.tsx",
+        "web/src/components/timeline/Inspector/ClipEffectsList.tsx",
+        "web/src/components/timeline/Inspector/ToneCurveEditor.tsx",
+        "web/src/components/timeline/Inspector/ClipMaskMatte.tsx",
+        "packages/protocol/src/api-schemas/timeline.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Each effect, blend mode, mask and matte has a golden fixture at 40 dB or better against the export",
+        "Group blend mode and group effects from D35 are drawn"
+      ]
+    },
+    {
+      "id": "K",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F11",
+        "F12"
+      ],
+      "title": "Range playback and live audio edits",
+      "owns": [
+        "src/playback/"
+      ],
+      "web": [
+        "web/src/components/timeline/preview/PlaybackClock.ts",
+        "web/src/components/timeline/preview/playbackSync.ts",
+        "web/src/stores/timeline/TimelinePlaybackStore.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Loop, play in to out and J/K/L shuttle speeds match the web",
+        "Edit during playback changes the sound within one audio block (headless mix test)"
+      ]
+    },
+    {
+      "id": "L",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F13"
+      ],
+      "title": "Keyframes on split and trim",
+      "owns": [
+        "src/edit/ClipOps.*",
+        "scripts/op-conformance.mjs",
+        "scripts/conformance/known-differences.test.ts",
+        "tests/tst_editactions.cpp"
+      ],
+      "web": [
+        "packages/timeline/src/keyframes.ts",
+        "packages/timeline/src/animation/"
+      ],
+      "server": [],
+      "exit": [
+        "The 7 refused op-conformance cases pass",
+        "No refusal remains for source-anchored curves"
+      ]
+    },
+    {
+      "id": "M",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F14"
+      ],
+      "title": "Sync lock and track targeting",
+      "owns": [
+        "src/edit/targeting/RangeSplit.*",
+        "src/edit/targeting/TargetingEdits.*",
+        "src/edit/targeting/TargetingOpsCli.cpp",
+        "src/edit/targeting/TrackTargeting.*",
+        "src/edit/targeting/TrackTargetingQml.h",
+        "src/edit/targeting/module.cmake",
+        "src/edit/targeting/targeting-differential.test.ts",
+        "src/edit/targeting/tst_targeting.cpp"
+      ],
+      "web": [
+        "web/src/stores/timeline/TimelineStore.ts",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Ripple, insert and delete respect targets and sync lock as in the web (store differential)"
+      ]
+    },
+    {
+      "id": "N",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S3"
+      ],
+      "gaps": [
+        "F15"
+      ],
+      "title": "Tempo, bars and beat snapping",
+      "owns": [
+        "src/ui/Tempo*",
+        "qml/Tracks/GridDivisionSelect.qml",
+        "scripts/conformance/suites/tempo.*",
+        "src/wiring/tst_wiring.cpp",
+        "src/wiring/SnapProviders.h",
+        "src/wiring/TestSlotProbe.qml",
+        "src/wiring/README.md",
+        "src/edit/ClipGestureController.*",
+        "qml/Tracks/ToolToggle.qml",
+        "qml/Tracks/TimeRuler.qml"
+      ],
+      "ownsNotes": {
+        "src/wiring/tst_wiring.cpp": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/SnapProviders.h": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/TestSlotProbe.qml": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/README.md": "shared with S3 (merged), approved by the user (D12)",
+        "src/edit/ClipGestureController.*": "shared with S3 (merged), approved by the user (D12)",
+        "qml/Tracks/ToolToggle.qml": "shared with S3 (merged), approved by the user (D12)",
+        "qml/Tracks/TimeRuler.qml": "shared with S3 (merged), approved by the user (D12)"
+      },
+      "web": [
+        "web/src/components/timeline/Tracks/TimeRuler.tsx",
+        "packages/timeline/src/beats.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Bars ruler, grid select and beat snapping match the web (oracle on beats.ts)"
+      ]
+    },
+    {
+      "id": "P1",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [
+        "F16"
+      ],
+      "title": "Audio effects",
+      "owns": [
+        "src/audio/effects/",
+        "qml/fx/"
+      ],
+      "web": [
+        "web/src/components/timeline/daw/fx/",
+        "web/src/components/timeline/preview/audioEffectNodes.ts",
+        "packages/protocol/src/api-schemas/timeline.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Gain, EQ, filter, compressor, echo, reverb and distortion run in the native mixer and match an offline web render within a stated tolerance",
+        "Effect UI matches FxControls.tsx"
+      ]
+    },
+    {
+      "id": "R",
+      "wave": 1,
+      "needs": [
+        "S1",
+        "S2"
+      ],
+      "gaps": [
+        "F18"
+      ],
+      "title": "App shell",
+      "owns": [
+        "src/app/Menus*",
+        "src/app/Preferences*",
+        "qml/Preferences*"
+      ],
+      "web": [
+        "web/src/components/timeline/TimelineRoute.tsx",
+        "web/src/components/timeline/timelineKeymap.ts"
+      ],
+      "server": [],
+      "exit": [
+        "macOS menu bar with File, Edit, View, Playback and Help and the keymap shortcuts",
+        "Preferences: keyboard layout, cache folder and budget, decoder mode, audio device",
+        "Recent timelines"
+      ]
+    },
+    {
+      "id": "V",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [],
+      "priority": "first",
+      "title": "Memory-safety tooling",
+      "owns": [
+        "CMakeLists.txt",
+        "CMakePresets.json",
+        "cmake/Sanitizers.cmake",
+        "cmake/Hardening.cmake",
+        ".clang-tidy",
+        "tools/sanitizers/",
+        "tests/fuzz/",
+        "src/platform/ThreadSafety.h",
+        "../../.github/workflows/native-timeline.yml"
+      ],
+      "web": [],
+      "server": [],
+      "exit": [
+        "The sanitize (ASan + UBSan) and tsan ctest runs report nothing outside tools/sanitizers/baseline.md",
+        "Each tool fails once on a planted defect (use after free, out-of-bounds operator[] under hardening, data race, fuzz crash), then the plant is removed",
+        "The full checks pass with the hardening flags on",
+        "Each fuzz target (timeline JSON parser, media probe) runs 10 minutes without a new crash",
+        "clang-tidy reports nothing outside its baseline"
+      ]
+    },
+    {
+      "id": "T",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [],
+      "title": "Server identity before a write",
+      "owns": [
+        "src/server/ServerClient.*",
+        "src/server/ServerIdentity*",
+        "src/server/SaveCli.*",
+        "tests/tst_serveridentity.cpp",
+        "tests/tst_serverclient.cpp",
+        "tests/TestHttpServer.h",
+        "scripts/scratch-safety.mjs",
+        "scripts/scratch-safety.test.mjs",
+        "scripts/scratch-server.mjs",
+        "scripts/check-server-identity.mjs"
+      ],
+      "web": [],
+      "server": [
+        "timeline.update",
+        "GET /ready"
+      ],
+      "exit": [
+        "Closes m5b F4 (docs/reviews/round3-save.md): the identity proof covers the connection that carries the write, and a copied /ready answer does not pass it",
+        "check-server-identity.mjs swaps the scratch server for a recording listener during --wait-before-write. The listener receives no byte of the POST, and the client exits 1 with WRONG_SERVER or a connection error and does not retry. With only the flag added and the old mutate, the check fails",
+        "A listener that replays headers copied from a real scratch server /ready answer gets no write (tst_serveridentity and the check script)",
+        "ServerClient::upload takes the same proof: a listener that replaces the server after the identity check receives no byte of the multipart body, and an upload to the scratch server still stores the asset (tst_serveridentity)",
+        "mutate and upload keep the signatures S1 gave them, so merged A and B need no change",
+        "scratch-safety.test.mjs: mutate and upload send no body to a replacement listener",
+        "A save against the scratch server still writes, and timeline.get returns the edit. tst_autosave and tst_serverclient pass",
+        "A client with no expected instance sends one request (mutateWithoutAnExpectationSendsDirectly)",
+        "No check sends a request to port 7777"
+      ]
+    },
+    {
+      "id": "U",
+      "wave": 1,
+      "needs": [
+        "S1"
+      ],
+      "gaps": [],
+      "title": "Linear transition resolver",
+      "owns": [
+        "src/preview/transitions/",
+        "tests/tst_transitionresolver.cpp"
+      ],
+      "web": [
+        "packages/timeline/src/render/transition.ts",
+        "packages/timeline/src/render/sceneModel.ts"
+      ],
+      "server": [],
+      "exit": [
+        "plan-conformance.mjs passes with no problems, with and without --examples",
+        "Differential test: the new resolver equals the old quadratic one (keys and every field, doubles bit for bit) on every timeline fixture and example at 30 fps, and on 1,000 generated buckets with shared starts, equal ends, zero and negative durations, hidden and adjustment clips and nested groups. A planted tie change (>= for >) fails it once",
+        "Timing test: one bucket of n overlapping active clips at n = 2,000 and n = 32,000, median of 5 runs, larger run under 40 times the smaller. It fails against the old resolver",
+        "SceneEval.cpp changes only by the removal of the moved code and the two call sites (transitionOpacitiesAt, evaluateScene)",
+        "src/preview/transitions/module.cmake registers the resolver and its test through S1's recursive include, with no edit to src/preview/module.cmake or CMakeLists.txt"
+      ]
+    },
+    {
+      "id": "G",
+      "wave": 2,
+      "needs": [
+        "C",
+        "D2",
+        "F",
+        "S3"
+      ],
+      "gaps": [
+        "F7"
+      ],
+      "title": "Context menus",
+      "owns": [
+        "qml/menus/",
+        "qml/Tracks/Clip.qml",
+        "qml/Tracks/TrackLane.qml",
+        "qml/Tracks/TimeRuler.qml",
+        "qml/Tracks/TrackHeaderMenu.qml",
+        "src/edit/ClipGestureController.cpp",
+        "src/edit/ClipGestureController.h",
+        "src/app/Menus/tst_appshell.cpp",
+        "docs/gaps-manifest.json"
+      ],
+      "web": [
+        "web/src/components/timeline/Tracks/ClipContextMenu.tsx",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx",
+        "web/src/components/timeline/Tracks/TrackLane.tsx",
+        "web/src/components/timeline/Tracks/TimeRuler.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Clip, track, lane and ruler menus match the web, and each item runs the same action as its shortcut"
+      ],
+      "ownsNotes": {
+        "qml/Tracks/Clip.qml": "shared with its merged owner, approved by the user",
+        "qml/Tracks/TrackLane.qml": "shared with its merged owner, approved by the user",
+        "qml/Tracks/TimeRuler.qml": "shared with its merged owner, approved by the user",
+        "qml/Tracks/TrackHeaderMenu.qml": "shared with its merged owner, approved by the user",
+        "src/edit/ClipGestureController.cpp": "shared with its merged owner, approved by the user",
+        "src/edit/ClipGestureController.h": "shared with its merged owner, approved by the user",
+        "src/app/Menus/tst_appshell.cpp": "shared with its merged owner, approved by the user",
+        "docs/gaps-manifest.json": "shared with its merged owner, approved by the user"
+      }
+    },
+    {
+      "id": "O",
+      "wave": 2,
+      "needs": [
+        "B",
+        "S3"
+      ],
+      "gaps": [
+        "F10"
+      ],
+      "title": "Source viewer",
+      "owns": [
+        "qml/SourceViewerPanel.qml",
+        "src/edit/sourceEdit/",
+        "CMakeLists.txt",
+        "cmake/TestPreferences.cmake",
+        "src/app/Preferences/module.cmake"
+      ],
+      "ownsNotes": {
+        "CMakeLists.txt": "shared with its merged owner, approved by the user (D15)",
+        "src/app/Preferences/module.cmake": "shared with its merged owner, approved by the user (D15)"
+      },
+      "web": [
+        "web/src/components/timeline/SourceViewerPanel.tsx",
+        "web/src/components/timeline/sourceEdit.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Mark in and out on an asset, then append, insert or overwrite, matching sourceEdit.ts (oracle)"
+      ]
+    },
+    {
+      "id": "D6",
+      "wave": 2,
+      "needs": [
+        "J",
+        "PX"
+      ],
+      "gaps": [
+        "F3"
+      ],
+      "title": "Inspector: adjustments and effects UI",
+      "owns": [
+        "qml/Inspector/Adjust*",
+        "qml/Inspector/Effects*",
+        "qml/Inspector/ToneCurve*",
+        "src/edit/clipeffects/",
+        "src/edit/inspectorsections/ClipGroupPanel.qml"
+      ],
+      "web": [
+        "web/src/components/timeline/Inspector/ClipAdjustments.tsx",
+        "web/src/components/timeline/Inspector/ToneCurveEditor.tsx",
+        "web/src/components/timeline/Inspector/ClipEffectsList.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Colour, tone curve and effect list edit with undo, and the preview shows them (golden)"
+      ],
+      "ownsNotes": {
+        "src/edit/inspectorsections/ClipGroupPanel.qml": "shared with its merged owner, approved by the user"
+      }
+    },
+    {
+      "id": "P2",
+      "wave": 2,
+      "needs": [
+        "P1",
+        "M",
+        "S2",
+        "S3"
+      ],
+      "gaps": [
+        "F16"
+      ],
+      "title": "Automation and mixer",
+      "owns": [
+        "src/audio/automation/",
+        "qml/mixer/",
+        "qml/Tracks/automation/"
+      ],
+      "ownsShared": [
+        {
+          "path": "src/audio/Mixer.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/audio/effects/Effects.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "qml/Tracks/TrackHeader.qml",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "qml/Tracks/TracksRegion.qml",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/SceneEval.h",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/SceneEval.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/layers/SceneHooks.h",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/layers/SceneHooks.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/server/FieldAudit.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "tools/sanitizers/lsan.supp",
+          "note": "shared, approved by the user"
+        },
+        {
+          "path": "tools/sanitizers/baseline.md",
+          "note": "shared, approved by the user"
+        },
+        {
+          "path": "docs/gaps-manifest.json",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        }
+      ],
+      "web": [
+        "web/src/components/timeline/Tracks/automation/",
+        "web/src/components/timeline/daw/mixer/",
+        "packages/timeline/src/automation.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Automation lanes and the mixer match the web, and the mix follows automation (oracle on automation.ts)"
+      ]
+    },
+    {
+      "id": "Q",
+      "wave": 2,
+      "needs": [
+        "A",
+        "B",
+        "D1"
+      ],
+      "gaps": [
+        "F17"
+      ],
+      "title": "Dock and workspaces",
+      "owns": [
+        "qml/dock/",
+        "qml/TimelineEditor.qml",
+        "src/app/PanelSlot.qml",
+        "src/wiring/WiringFixture.h",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp"
+      ],
+      "ownsNotes": {
+        "src/wiring/WiringFixture.h": "shared with its merged owner (S3), approved by the user: the fixture sizes the dock's bottom region so the tracks show every row",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp": "shared with its merged owner (A), approved by the user: the fixture keeps the 300 px tracks region and settles layout before clicking"
+      },
+      "web": [
+        "web/src/components/dock/",
+        "web/src/stores/timeline/TimelineDockLayout.ts",
+        "web/src/components/timeline/dock/timelinePanels.tsx"
+      ],
+      "server": [],
+      "exit": [
+        "Movable panels and the built-in workspaces match TimelineDockLayout.ts"
+      ]
+    },
+    {
+      "id": "W",
+      "wave": 3,
+      "needs": [
+        "E",
+        "P1",
+        "D3",
+        "S3"
+      ],
+      "gaps": [
+        "F4",
+        "F16",
+        "F3"
+      ],
+      "title": "UI wiring for merged features",
+      "owns": [
+        "src/wiring/w/",
+        "qml/wiring/w/"
+      ],
+      "web": [
+        "web/src/components/timeline/TimelineDocumentBar.tsx",
+        "web/src/components/timeline/TimelineEditor.tsx",
+        "web/src/components/timeline/Tracks/TrackEffectsPanel.tsx",
+        "web/src/components/timeline/Tracks/trackEffectsConstants.ts",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx",
+        "web/src/components/timeline/Tracks/TracksRegion.tsx",
+        "web/src/components/timeline/timelineKeymap.ts",
+        "web/src/stores/timeline/TimelineStore.ts"
+      ],
+      "server": [],
+      "exit": [
+        "The document bar Export button and the File menu Export item open the export dialog in the running editor",
+        "The track header effects button shows the track effects panel, where effects are added, toggled, edited, reordered and removed, one undo entry each",
+        "Ctrl+R opens Speed / Duration for the selected clips",
+        "No layout or wording difference from the web in these three places"
+      ]
+    }
+  ],
+  "mergeOrder": [
+    "S1",
+    "V",
+    "C",
+    "D1",
+    "D4",
+    "F",
+    "H",
+    "K",
+    "M",
+    "T",
+    "P1",
+    "U",
+    "S2",
+    "S3",
+    "PX",
+    "L",
+    "E",
+    "A",
+    "B",
+    "D2",
+    "D3",
+    "D5",
+    "I",
+    "S4",
+    "J",
+    "N",
+    "R",
+    "G",
+    "O",
+    "D6",
+    "P2",
+    "Q",
+    "W"
+  ],
+  "outOfPlan": [
+    "F19 signing and notarization",
+    "Windows and Linux reference-machine benches",
+    "AI features",
+    "MIDI clips and instruments"
+  ]
+}

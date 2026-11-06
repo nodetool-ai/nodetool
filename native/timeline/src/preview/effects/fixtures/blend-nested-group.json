@@ -1,0 +1,177 @@
+{
+  "id": "seq-blend-nested-group",
+  "projectId": "native-prototype",
+  "name": "blend-nested-group",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "outer",
+      "trackId": "t0",
+      "name": "outer",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "blendMode": "overlay",
+      "opacity": 0.75
+    },
+    {
+      "id": "inner",
+      "trackId": "t1",
+      "name": "inner",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "parentId": "outer",
+      "blendMode": "difference",
+      "opacity": 0.6
+    },
+    {
+      "id": "inner-child",
+      "trackId": "t2",
+      "name": "inner-child",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "parentId": "inner",
+      "opacity": 0.7,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "outer-child",
+      "trackId": "t3",
+      "name": "outer-child",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/pip-a-720p.mp4",
+      "parentId": "outer",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.98,
+          "y": 0.98
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "opacity": 0.8
+    },
+    {
+      "id": "background",
+      "trackId": "t4",
+      "name": "background",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1/J2 nested D35 surfaces: difference inside overlay, PSNR >= 40 dB"
+    },
+    {
+      "frame": 15,
+      "criterion": "J1/J2 nested D35 surfaces: difference inside overlay, PSNR >= 40 dB"
+    }
+  ]
+}

@@ -38,6 +38,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const colorCurvesV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "color.curves",
   version: 1,
   surface: "internal",
@@ -84,19 +85,19 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       },
       mask: {
-        colorSpace: "srgb",
+        colorSpace: "data",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"],
         optional: true
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

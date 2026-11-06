@@ -11,15 +11,15 @@
  * It resolves the scene the same way every other render surface does
  * (`computeActiveLayers` → `resolveAnimatedLayerProps`), rasterizes the
  * text/shape/caption layers through the shared drawing rules, decodes the media
- * layers with Mediabunny, and composites on `@napi-rs/canvas` through the
- * shared Canvas 2D rules. So it needs no GPU, no ffmpeg and no browser, and it
- * runs anywhere the agent runs.
+ * layers with Mediabunny, and composites through a lazy WebGPU child.
+ * Previews use 8-bit targets and require Dawn plus an adapter.
  *
- * Effects run through CPU pixel passes matching the GPU chain. Unknown effect
+ * The CPU comparison route remains until A92. Unknown effect
  * types are reported in `effects_not_applied`, and missing render resources
  * are reported on each frame.
  */
 
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import type { Canvas, loadImage } from "@napi-rs/canvas";
 import { loadCanvas } from "@nodetool-ai/runtime";
 import {
@@ -46,6 +46,9 @@ import type {
 import {
   accumulateBlurSample,
   clipSourceTimeSec,
+  denoiseSourceTimes,
+  hasTemporalDenoise,
+  type TemporalSources,
   computeActiveLayersWithHorizon,
   createAnimationCompileCache,
   drawTimelineFrame,
@@ -73,6 +76,7 @@ import {
   sessionOptionsFor
 } from "./model3d.js";
 import { PreviewRasterizer } from "./rasterize.js";
+import type { RenderChild } from "./render-child-client.js";
 
 /**
  * Reads of one asset allowed per render pass. See `bytesFor` for why a failed
@@ -118,6 +122,9 @@ type ResolvedPreviewSample = ReturnType<typeof computeActiveLayersWithHorizon> &
 };
 
 export interface RenderTimelineFramesOptions {
+  /** Borrow one child for a batch with identical output and reference dimensions. */
+  renderChild?: RenderChild;
+  signal?: AbortSignal;
   sequence: TimelineSequence;
   /** Absolute timeline positions to composite, in milliseconds. */
   timesMs: readonly number[];
@@ -346,13 +353,17 @@ function clipName(sequence: TimelineSequence, clipId: string): string {
 /**
  * Composite `timesMs` and return the PNG of each, plus what each layer
  * contributed. Asset bytes are loaded once per asset across all timecodes.
+ * The legacy CPU route remains available for numerical comparison until A92.
  */
 export async function renderTimelineFrames(
-  options: RenderTimelineFramesOptions
+  options: RenderTimelineFramesOptions,
+  sharedShaders = true
 ): Promise<RenderTimelineFramesResult> {
+  options.signal?.throwIfAborted();
   const { createCanvas } = await loadCanvas();
   const { ensureGoogleFonts } = await import("@nodetool-ai/timeline/fonts/google-node");
   const { sequence, loadAsset } = options;
+  assertTimelineColorSpaceSupported(sequence);
   const onlyClipIds = options.onlyClipIds ? new Set(options.onlyClipIds) : undefined;
   const { width, height } = frameSize(sequence, options.width);
   // Animation offsets and text sizes are authored against the sequence's own
@@ -377,6 +388,11 @@ export async function renderTimelineFrames(
     refHeight: animationCanvas.height
   };
 
+  const shared = sharedShaders
+    ? await (await import("./shared-compositor.js")).createSharedPreviewCompositor(
+        width, height, animationCanvas.width, animationCanvas.height, options.signal, options.renderChild)
+    : undefined;
+  try {
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = await PreviewRasterizer.create(width, height);
   // Text size, tracking, and wrapping are authored in sequence pixels.
@@ -639,7 +655,7 @@ export async function renderTimelineFrames(
     // A group's effects run on its composed surface, so they are named here
     // beside the layers' own — otherwise a group effect this path cannot draw
     // would go unreported (I7).
-    for (const type of unsupportedEffectTypes([
+    for (const type of shared ? [] : unsupportedEffectTypes([
       ...active,
       ...drawPrecomposites,
       ...drawAdjustments
@@ -669,6 +685,7 @@ export async function renderTimelineFrames(
     type LayerSource =
       | {
           source: PreviewSource;
+          temporalSources?: TemporalSources<PreviewSource>;
           width: number;
           height: number;
           untransformed?: boolean;
@@ -774,7 +791,16 @@ export async function renderTimelineFrames(
             )}ms into the source`
           };
         }
+        let temporalSources: TemporalSources<PreviewSource> | undefined;
+        if (layer.clip.mediaType === "video" && hasTemporalDenoise(anim.effects ?? layer.effects)) {
+          const times = denoiseSourceTimes(layer.clip, sourceTimeSec * 1000);
+          const before = await decodeVideoFrameAt(bytes, times.before / 1000);
+          const after = await decodeVideoFrameAt(bytes, times.after / 1000);
+          if (!before || !after) return {skipped: "noise reduction could not decode neighboring source frames"};
+          temporalSources = {before: before.canvas, after: after.canvas};
+        }
         return {
+          temporalSources,
           source: frame.canvas,
           width: frame.width,
           height: frame.height
@@ -818,6 +844,7 @@ export async function renderTimelineFrames(
       const drawn: Canvas2DLayer<PreviewSource> = {
         clipId: layer.clipId,
         source: resolved.source,
+        temporalSources: resolved.temporalSources,
         sourceWidth: resolved.width,
         sourceHeight: resolved.height,
         opacity: anim.opacity,
@@ -917,7 +944,8 @@ export async function renderTimelineFrames(
       reportFor.set(drawn, report);
     }
 
-    const drawReport = drawTimelineFrame(ctx, drawLayers, geometry, {
+    const sharedReport = shared ? await shared.draw(canvas, drawLayers, drawPrecomposites, drawAdjustments) : undefined;
+    const drawReport = sharedReport ?? drawTimelineFrame(ctx, drawLayers, geometry, {
       maskScratch: scratchFor,
       projectiveSurface: precompositeSurfaceFor,
       effectSurface: precompositeSurfaceFor,
@@ -929,6 +957,7 @@ export async function renderTimelineFrames(
       matteSurface: matteSurfaceFor,
       cropSurface: cropSurfaceFor
     });
+    for (const type of sharedReport?.effectsNotApplied ?? []) effectsNotApplied.add(type);
     for (const layer of drawReport.skipped) {
       const report = reportFor.get(layer);
       if (report) report.skipped = "source could not be drawn";
@@ -1025,6 +1054,7 @@ export async function renderTimelineFrames(
   }
 
   for (const { timeMs, sampleTimes, samples, blur } of frameInstants) {
+    options.signal?.throwIfAborted();
     let composed: Awaited<ReturnType<typeof composeAt>>;
     const failures = new Map<string, PreviewSampleFailure>();
     const dropped = new Map<string, PreviewDroppedLayer>();
@@ -1074,6 +1104,7 @@ export async function renderTimelineFrames(
       recordSample(composed, 0, sampleTimes[0]);
       accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
       for (const [index, sampleMs] of sampleTimes.slice(1).entries()) {
+        options.signal?.throwIfAborted();
         const sample = await composeAt(samples[index + 1]);
         recordSample(sample, index + 1, sampleMs);
         accumulateBlurSample(blurCtx, canvas, blur.weight, geometry);
@@ -1100,4 +1131,7 @@ export async function renderTimelineFrames(
     effectsNotApplied: [...effectsNotApplied].sort(),
     fontsUnavailable
   };
+  } finally {
+    await shared?.dispose();
+  }
 }

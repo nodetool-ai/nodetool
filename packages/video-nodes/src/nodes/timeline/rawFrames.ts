@@ -537,7 +537,7 @@ export interface FrameEncoder {
   write(frame: Uint8Array): Promise<void>;
   /** Close the input and wait for the file to be finalized. */
   finish(): Promise<void>;
-  abort(): void;
+  abort(): void | Promise<void>;
 }
 
 /**
@@ -611,18 +611,25 @@ export function encoderSpecFromArgs(args: readonly string[]): VideoEncoderSpec {
 function pendingEncoder(opening: Promise<VideoFrameEncoder>): FrameEncoder {
   opening.catch(() => {});
   let aborted = false;
+  let pending: Promise<void> = Promise.resolve();
   return {
     async write(frame: Uint8Array): Promise<void> {
       if (aborted) throw new Error("Encoding aborted");
-      await (await opening).write(frame);
+      pending = opening.then((encoder) => encoder.write(frame));
+      await pending;
     },
     async finish(): Promise<void> {
       if (aborted) throw new Error("Encoding aborted");
-      await (await opening).finish();
+      pending = opening.then((encoder) => encoder.finish());
+      await pending;
     },
-    abort(): void {
+    async abort(): Promise<void> {
       aborted = true;
-      void opening.then((encoder) => encoder.abort()).catch(() => {});
+      // Native work must settle before closing the objects it is using.
+      await pending.catch(() => undefined);
+      // An opening failure has no encoder to release. write/finish report it.
+      const encoder = await opening.catch(() => null);
+      await encoder?.abort();
     }
   };
 }

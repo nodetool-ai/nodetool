@@ -1,0 +1,231 @@
+{
+  "raw": {
+    "id": "sequence",
+    "projectId": "project",
+    "name": "Plan",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "durationMs": 0,
+    "tracks": [],
+    "clips": [
+      {
+        "id": "source1",
+        "name": "Boat",
+        "sourceType": "imported",
+        "mediaType": "video",
+        "startMs": 0,
+        "currentAssetId": "asset1"
+      },
+      {
+        "id": "source2",
+        "name": "Dock",
+        "sourceType": "imported",
+        "mediaType": "image",
+        "startMs": 1000,
+        "currentAssetId": "asset2"
+      }
+    ],
+    "setup": {
+      "stage": "review",
+      "brief": "A harbor film",
+      "format": "ad-15",
+      "references": [
+        {
+          "name": "Palette",
+          "uri": "asset://reference"
+        }
+      ],
+      "entityIds": [
+        "entity"
+      ],
+      "creative_context": {
+        "product_name": "Boat",
+        "audience": "Sailors",
+        "approved_claims": [
+          "Quiet"
+        ],
+        "prohibited_claims": [
+          "Fastest"
+        ]
+      },
+      "beats": [
+        {
+          "id": "old",
+          "prompt": "Opening",
+          "duration_ms": 4000,
+          "voiceover": "Hello"
+        }
+      ]
+    },
+    "markers": [],
+    "createdAt": "date",
+    "updatedAt": "date"
+  },
+  "request": {
+    "provider": "nodetool",
+    "model": "nodetool/director",
+    "system": "You are a film director. Turn the user's brief into a structured screenplay. Break the piece into scenes. Give each a slugline in screenplay form (INT./EXT. LOCATION — TIME) and a lighting note that holds for every shot in it. Then write the shots, each with a concrete visual action, camera direction, and the scene_id of exactly one scene you returned. Shots of the same scene must be consecutive. Apply one consistent style across every shot. Call the screenplay tool exactly once with the result.",
+    "prompt": "Brief:\nA harbor film\n\nThe creator has already placed this media on the timeline, in this order. Write one beat per clip, describing the clip that is there — do not invent shots to render instead:\n1. Boat (source clip source1)\n2. Dock (source clip source2)\nReference images the creator attached — match what they show:\n- Palette\nKeep these entities consistent: entity\nCreative context — use only the approved product facts:\nProduct: Boat\nAudience: Sailors\nApproved claims: Quiet\nDo not assert: Fastest\n\nThe current plan, as the creator has edited it — keep what works and fix what does not:\n1. (4s) Opening — voiceover: Hello\n\nProduce exactly 2 shots for a 16:9 piece.\n\nGroup them into scenes. Give each scene an id, a slugline and a lighting note, and give every shot the scene_id of the one scene it belongs to.\n\nGive each shot a concrete visual action and camera direction, and set a style_bible describing the palette, light, lens, and texture applied to all shots.",
+    "max_tokens": 8192,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "scenes",
+        "shots"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "logline": {
+          "type": "string"
+        },
+        "style_bible": {
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "type": "string"
+        },
+        "narration": {
+          "type": "string"
+        },
+        "music_prompt": {
+          "type": "string"
+        },
+        "scenes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "slugline"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "slugline": {
+                "type": "string"
+              },
+              "lighting": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "shots": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scene_id",
+              "action"
+            ],
+            "properties": {
+              "scene_id": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string"
+              },
+              "motion": {
+                "type": "string"
+              },
+              "dialogue": {
+                "type": "string"
+              },
+              "narration": {
+                "type": "string"
+              },
+              "duration_seconds": {
+                "type": "number"
+              },
+              "camera": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "framing": {
+                    "type": "string"
+                  },
+                  "lens": {
+                    "type": "string"
+                  },
+                  "angle": {
+                    "type": "string"
+                  },
+                  "movement": {
+                    "type": "string"
+                  },
+                  "equipment": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schema_name": "screenplay",
+    "schema_description": "Submit the finished screenplay with exactly the requested number of shots."
+  },
+  "result": {
+    "data": {
+      "title": "Harbor",
+      "style_bible": "warm film",
+      "scenes": [
+        {
+          "id": "dock",
+          "slugline": "EXT. DOCK — DAWN",
+          "lighting": "soft sunrise"
+        }
+      ],
+      "shots": [
+        {
+          "scene_id": "dock",
+          "action": "Boat moves",
+          "camera": {
+            "framing": "wide",
+            "angle": "low",
+            "lens": "35mm",
+            "movement": "track",
+            "equipment": "dolly"
+          },
+          "motion": "glide",
+          "duration_seconds": 2,
+          "narration": "We sail"
+        },
+        {
+          "scene_id": "unknown",
+          "action": "Dock waits"
+        }
+      ]
+    }
+  },
+  "beats": [
+    {
+      "prompt": "Boat moves, wide shot, low, 35mm lens, soft sunrise, glide, track, dolly, warm film",
+      "durationMs": 2000,
+      "voiceover": "We sail",
+      "music": true,
+      "source_clip_id": "source1"
+    },
+    {
+      "prompt": "Dock waits, soft sunrise, warm film",
+      "durationMs": 3000,
+      "music": true,
+      "source_clip_id": "source2"
+    }
+  ]
+}

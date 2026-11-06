@@ -1,0 +1,86 @@
+{
+  "id": "seq-group-grain-animated",
+  "projectId": "native-prototype",
+  "name": "group-grain-animated",
+  "fps": 24,
+  "width": 64,
+  "height": 32,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "group",
+      "trackId": "t0",
+      "name": "group",
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "generated",
+      "startMs": 100,
+      "durationMs": 1900,
+      "locked": false,
+      "versions": [],
+      "effects": [
+        {
+          "id": "animated-grain",
+          "type": "grain",
+          "enabled": true,
+          "amount": 1,
+          "size": 2,
+          "colorAmount": 0,
+          "roughness": 0.2,
+          "softness": 0.15,
+          "seed": 101,
+          "animate": true
+        }
+      ]
+    },
+    {
+      "id": "treated",
+      "trackId": "t0",
+      "name": "treated",
+      "startMs": 200,
+      "durationMs": 1800,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 64,
+      "height": 32,
+      "mediaPath": "posterize-midpoint.png",
+      "steppedTime": {
+        "fps": 4
+      },
+      "parentId": "group"
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 17,
+      "criterion": "J5 animated group grain on a static image at 24 fps, PSNR >= 40 dB"
+    },
+    {
+      "frame": 18,
+      "criterion": "J5 animated group grain on a static image at 24 fps, PSNR >= 40 dB"
+    }
+  ],
+  "distinctFrames": [
+    [
+      17,
+      18
+    ]
+  ]
+}

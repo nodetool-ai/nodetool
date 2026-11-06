@@ -945,7 +945,10 @@ sequence that Premiere imports through **File > Import**, the active asset of
 every exported clip under `media/`, and `export-report.txt`, which lists each
 clip that needs baking or was left out. The XML points at its media with
 relative `media/<file>` paths. The response carries
-`x-nodetool-export-warnings` with the number of report entries, and is named
+`x-nodetool-export-warnings` with the number of report entries,
+`x-nodetool-export-report` with the clip count and the report messages as
+percent-encoded JSON (`clipsExported`, `warnings`, and `omitted` for messages
+that did not fit the header, which stay in `export-report.txt`), and is named
 `<timeline name>-premiere.zip` by the same rule as above.
 
 `GET /api/timelines/{id}/export-media` packs only the media: the original file
@@ -963,7 +966,9 @@ had no NodeTool counterpart, such as transitions or nested sequences).
 
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`
-overrides the name in the bundle:
+overrides the name in the bundle. A `json` field holding
+`{"project_id": "...", "name": "..."}` sets the same two values, for clients
+that send their metadata that way:
 
 ```bash
 curl -X POST "http://localhost:7777/api/timelines/import-zip" \
