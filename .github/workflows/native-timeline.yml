@@ -28,7 +28,7 @@ on:
   # run builds the base branch and saves its compiler caches, so the first run
   # of each pull request does not compile from scratch.
   push:
-    branches: [feat/native-timeline]
+    branches: [main, feat/native-timeline]
     paths:
       - "native/timeline/**"
       - "native/ui_primitives/**"
