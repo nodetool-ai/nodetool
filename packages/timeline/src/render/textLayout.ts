@@ -97,11 +97,13 @@ export function textFontSpec(style: FontSpecStyle): string {
  * 100 through 900. A browser's own `ctx.font` weight matching against an
  * `@font-face` weight range does not have this bug, and a static
  * (non-variable) face simply has no `wght` axis to move, so setting this is
- * harmless there — it is applied unconditionally rather than only for a
- * known-variable face.
+ * harmless there. The optical-size axis follows the font size, matching the
+ * browser canvas default. Skia otherwise keeps the face's default optical
+ * size, changing both advances and outlines. A face clamps to its axis range
+ * and ignores axes it does not carry.
  */
 export function textFontVariationSettings(style: FontSpecStyle): string {
-  return `"wght" ${style.fontWeight ?? 400}`;
+  return `"wght" ${style.fontWeight ?? 400}, "opsz" ${Math.max(1, style.fontSizePx)}`;
 }
 
 /** Line advance in px: the `lineHeight` multiple of the font size, default 1.2. */
