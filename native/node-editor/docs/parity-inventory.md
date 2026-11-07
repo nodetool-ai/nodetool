@@ -148,14 +148,17 @@ for the missing flows in this inventory.
 
 ### User-approved scope changes
 
-On 2026-11-06 the user decided to document these preview gaps and not
-implement them. Each one is a scope change for its row, not an implemented flow.
+On 2026-11-06 the user decided to document the preview gaps SC1 to SC3 and not
+implement them. On 2026-11-07 the user decided SC4 and SC5. Each one is a scope
+change for its row, not an implemented flow.
 
 | Code | Row | Web behavior | Native behavior | What closing it would need |
 |---|---|---|---|---|
 | SC1 | F24 | Image-adjustment sliders re-run the downstream subgraph in the browser kernel on every move (`hooks/nodes/useLiveSliderWriter.ts`), so previews update while dragging. | Slider commits use the server Instant Update path with its 300 ms debounce. No local preview runs during a drag. | A native kernel runner that can execute browser-capable nodes, or a server preview protocol. |
 | SC2 | F22 | The 3D model field embeds a live model viewer (`LazyModel3DViewer` in `components/properties/Model3DProperty.tsx`). | The field shows the asset name and thumbnail where available, with URL entry, upload and open. | Qt Quick 3D in the Qt kit and a viewer component, or a separate preview renderer. |
 | SC3 | F21, F23 | Document assets render in an embedded PDF viewer and a sandboxed HTML viewer. | TXT and HTML show plain text without executing HTML. PDF, DOC and DOCX show the asset name. Every type opens externally. | QtPdf or QtWebEngine in the Qt kit, with a sandboxed HTML integration, or an external preview service. |
+| SC4 | F41 | Persistent chrome casts shadows: the toolbar, viewport control, side panels, bottom panel and Preview and Output cards (whole-window comparison W26). | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. The user decided on 2026-11-07 to keep it flat. | An exception to the native design rule for these surfaces. |
+| SC5 | F41 | Graph and Chain switch between the canvas and the linear chain editor (`WorkflowChainSurface.tsx`, whole-window comparison W29). | No chain view. Chain is disabled, and its tooltip says the chain view is not available. The user decided on 2026-11-07 not to build it. | A native linear chain editor bound to the same document. |
 
 ## Native acceptance commands
 
