@@ -22,10 +22,10 @@ description: "Runbook for adding new Topaz image/video API endpoints and model v
 | What | Path |
 |---|---|
 | Manifest (all nodes) | `packages/topaz-nodes/src/topaz-manifest.json` |
-| API + HTTP utilities | `packages/topaz-nodes/src/topaz-base.ts` |
+| Request building, result mapping, video probing | `packages/topaz-nodes/src/topaz-base.ts` |
 | Runtime node factory | `packages/topaz-nodes/src/topaz-factory.ts` |
 | Package entry point | `packages/topaz-nodes/src/index.ts` |
-| Runtime provider (upscale only) | `packages/runtime/src/providers/topaz-provider.ts` |
+| Runtime provider (the Topaz transport, `upscaleImage` and the endpoint calls every node makes) | `packages/runtime/src/providers/topaz-provider.ts` |
 | Manifest loader (for ImageModel list) | `packages/runtime/src/providers/manifest-models.ts` |
 | Provider registration | `packages/runtime/src/providers/index.ts` |
 | Unit tests | `packages/topaz-nodes/tests/topaz-base.test.ts`, `topaz-factory.test.ts`, `packages/runtime/tests/providers/topaz-provider.test.ts` |
@@ -38,9 +38,11 @@ description: "Runbook for adding new Topaz image/video API endpoints and model v
 
 The build script (`package.json` `build`) compiles the TypeScript and then copies `src/topaz-manifest.json` to `dist/topaz-manifest.json` so the `package.json` `exports` entry `"./topaz-manifest.json"` resolves correctly. The runtime provider (`topaz-provider.ts`) loads the same file through `loadManifest` in `manifest-models.ts` to build its list of `ImageModel` objects, but only exposes the `enhance` and `enhance-gen` endpoints as upscale-task models. All other endpoints (sharpen, sharpen-gen, denoise, denoise-gen, lighting, matting, restore-gen) live solely as workflow nodes. The manifest holds nine image endpoints and two video endpoints (`EnhanceVideo`, `InterpolateVideo`).
 
-**Image nodes** call a single multipart POST → poll status → download flow implemented in `topazExecuteImageTask` (`topaz-base.ts`).
+Every node calls `context.callProviderEndpoint` with the `topaz` provider id, so `TopazProvider` holds `TOPAZ_API_KEY` and each run writes a generation record.
 
-**Video nodes** drive a multi-step pipeline: create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status → download. The node probes the source video's resolution, frame rate, and duration in process before the job is created.
+**Image nodes** send the image bytes and form fields on the `image` route. `TopazProvider` runs the multipart POST → poll status → download lookup flow, and `topazExecuteImageTask` (`topaz-base.ts`) downloads the result through `context.downloadProviderMedia`.
+
+**Video nodes** send the create body and the source bytes on the `video` route. `TopazProvider` runs create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status, and the node downloads the result. The node probes the source video's resolution, frame rate, and duration in process before the job is created.
 
 ---
 

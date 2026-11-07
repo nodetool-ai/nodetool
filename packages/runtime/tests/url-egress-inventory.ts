@@ -444,18 +444,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "provider-response",
     "resultUrls / audioUrl come out of a response body and reach downloadMedia; the API calls beside them are fixed-host."
   ),
-  {
-    ...guardedSafeFetch(
-      "packages/topaz-nodes/src/topaz-base.ts",
-      "Topaz result downloads",
-      "provider-response",
-      "download_url from a status body, plus a media-ref read on the way in."
-    ),
-    // Same delegation as reve-base: the inbound media read goes through
-    // loadMediaRefBytes, which is inventoried above; safeFetch still guards the
-    // download_url that comes out of the status body.
-    guardedBy: ["safeFetch", "loadMediaRefBytes"]
-  },
   guardedSafeFetch(
     "packages/minimax-nodes/src/minimax-base.ts",
     "MiniMax audio / file downloads",
@@ -494,9 +482,9 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/topaz-provider.ts",
-    "Topaz provider download",
+    "Topaz provider and node pack downloads and part uploads",
     "provider-response",
-    "finalUrl from the result body."
+    "download_url from the download lookup, download.url from a video status body, and the presigned part URLs from the accept body."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/atlascloud-transport.ts",
@@ -1189,7 +1177,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   fixedHost(
     "packages/runtime/src/providers/topaz-provider.ts",
-    "Topaz provider API calls",
+    "Topaz provider and node pack API calls",
     "TOPAZ_API_KEY",
     "api.topazlabs.com; the download beside them is guarded."
   ),
@@ -1205,10 +1193,4 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "MINIMAX_API_KEY",
     "MiniMax endpoints; the downloads beside them are guarded."
   ),
-  fixedHost(
-    "packages/topaz-nodes/src/topaz-base.ts",
-    "Topaz API calls",
-    "TOPAZ_API_KEY",
-    "api.topazlabs.com; the downloads beside them are guarded."
-  )
 ];
