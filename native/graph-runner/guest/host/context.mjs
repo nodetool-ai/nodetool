@@ -317,6 +317,21 @@ export class GuestContext extends ContextServices {
       const bareId = ids[ids.length - 1];
       if (!bareId) continue;
       const owner = this.userId;
+      // An id without its extension names <dir>/<id>.<ext>. The host reads the
+      // owner's folder (or the id's own folder) for it, instead of the listing
+      // below walking and sorting the whole store.
+      if (typeof adapter.findStem === "function") {
+        const slash = bareId.lastIndexOf("/");
+        const stem = bareId.slice(slash + 1);
+        const dirs = slash >= 0 ? [bareId.slice(0, slash)] : owner ? [owner, ""] : [""];
+        for (const dir of dirs) {
+          for (const key of adapter.findStem(dir, stem)) {
+            if (/_(thumb|proxy)\./.test(key.slice(key.lastIndexOf("/") + 1))) continue;
+            const bytes = await tryUri(adapter, adapter.uriForKey(key));
+            if (bytes) return { bytes, attempts };
+          }
+        }
+      }
       const prefixes = owner && !bareId.startsWith(`${owner}/`) ? [`${owner}/${bareId}`, bareId, owner, ""] : [bareId, ""];
       for (const prefix of prefixes) {
         try {

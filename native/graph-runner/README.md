@@ -374,7 +374,9 @@ keys refuse `..`, absolute keys and any symlink. The tests are in
 Media refs resolve as in the TypeScript runner: `data:` URIs and inline data
 in the guest, `file:` URIs and absolute paths through `files`, `asset://`
 refs through the asset store and the run's in-memory temp store (`memory://`),
-and http(s) through `http`. `package://` assets do not resolve.
+and http(s) through `http`. `package://` assets do not resolve. Without a
+database, `asset://<id>` carries no extension, so the store's `find` reads the
+owner's folder for `<id>.<ext>`. The store is listed only when that misses.
 
 The context (`guest/host/context.mjs`) mirrors `ProcessingContext` for
 workspace, storage, secrets, variables and channels, `normalizeOutputValue`,

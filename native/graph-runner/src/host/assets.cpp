@@ -11,6 +11,7 @@
 //   write(key, bytes)
 //   stat(key)            -> json {size, mtimeMs}, or null
 //   list(prefix)         -> json [{key, size, mtimeMs}], every file below prefix, sorted
+//   find(dir, stem)      -> json [key], files directly in dir named <stem>.<ext>, sorted
 //   remove(key)          -> whether a file was removed
 #include "host/capabilities.h"
 #include "host/paths.h"
@@ -181,6 +182,38 @@ struct Assets {
     return out;
   }
 
+  // Keys of the regular files directly in `dir` (the root when empty) whose
+  // name is `<stem>.<extension>`, sorted. Reads one directory and stats only
+  // the matches, so resolving `asset://<id>` stays cheap in a large store.
+  nlohmann::json find(const std::string& dir, const std::string& stem) const {
+    nlohmann::json out = nlohmann::json::array();
+    if (roots.empty() || stem.empty() || stem.find('/') != std::string::npos) return out;
+    std::string path = root();
+    if (!dir.empty()) {
+      try {
+        path = resolve(dir, Access::Read, "scandir").real;
+      } catch (const FsError& e) {
+        if (e.code == "ENOENT" || e.code == "ENOTDIR") return out;
+        throw;
+      }
+    }
+    std::unique_ptr<DIR, int (*)(DIR*)> d(::opendir(path.c_str()), ::closedir);
+    if (!d) return out;
+    const std::string needle = stem + ".";
+    std::vector<std::string> names;
+    while (struct dirent* e = ::readdir(d.get())) {
+      std::string name = e->d_name;
+      if (name.size() > needle.size() && name.compare(0, needle.size(), needle) == 0) names.push_back(name);
+    }
+    std::sort(names.begin(), names.end());
+    for (const auto& name : names) {
+      struct stat st {};
+      if (::lstat((path + "/" + name).c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
+      out.push_back(dir.empty() ? name : dir + "/" + name);
+    }
+    return out;
+  }
+
   bool remove(const std::string& key) const {
     Resolved r = resolve(key, Access::Write, "unlink");
     if (!r.exists) return false;
@@ -215,6 +248,10 @@ void installAssets(js::Engine& e, const js::Value& object, const HostOptions& op
   }));
   e.set(object, "list", e.function("list", 1, [assets, key](js::Engine& en, Args a) {
     return en.string(assets->list(key(en, a)).dump());
+  }));
+  e.set(object, "find", e.function("find", 2, [assets, key](js::Engine& en, Args a) {
+    const std::string stem = a.size() < 2 ? std::string() : en.toString(a[1]);
+    return en.string(assets->find(key(en, a), stem).dump());
   }));
   e.set(object, "remove", e.function("remove", 1, [assets, key](js::Engine& en, Args a) {
     return en.boolean(assets->remove(key(en, a)));

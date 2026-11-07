@@ -167,6 +167,19 @@ export class HostAssetStorage {
     return listResult(stored, normalized, opts, (key) => this.uriForKey(key));
   }
 
+  /** Keys of the files directly in `dir` named `<stem>.<ext>`, sorted. */
+  findStem(dir, stem) {
+    let normalized = "";
+    if (dir) {
+      try {
+        normalized = normalizeStorageKey(dir);
+      } catch {
+        return [];
+      }
+    }
+    return JSON.parse(assets().find(normalized, String(stem)));
+  }
+
   async delete(uri) {
     const key = keyFromUri(uri);
     return key ? assets().remove(key) : false;

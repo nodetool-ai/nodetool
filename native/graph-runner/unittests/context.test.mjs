@@ -236,6 +236,28 @@ const persisted=await assetCode.process(assetContext);
 check(persisted.text==='AB' && persisted.asset.type==='document' && /^[a-f0-9]{32}$/.test(persisted.asset.asset_id),'real Code asset persistence and workspace roundtrip');
 check((await assetContext.getAssetInfo(persisted.asset.asset_id)).name==='original.txt','real persisted asset metadata');
 assetContext._models.close();
+// asset://<id> without an extension resolves from the owner's folder with one
+// directory read, never the store listing; other layouts still fall back to it.
+{
+  const hostAssets=globalThis.__host.assets;
+  const stemId='0123456789abcdef0123456789abcdef';
+  hostAssets.write(`u1/${stemId}_thumb.jpg`,new Uint8Array([9]));
+  hostAssets.write(`u1/${stemId}.png`,new Uint8Array([1,2,3]));
+  hostAssets.write(`deep/nested/${stemId.replace(/0/g,'f')}.bin`,new Uint8Array([7]));
+  let listed=0;
+  const list=hostAssets.list;
+  hostAssets.list=(prefix)=>{listed++;return list(prefix);};
+  try {
+    const owned=new GuestContext({userId:'u1'});
+    const direct=await owned.resolveAssetBytes(`asset://${stemId}`);
+    check(direct.bytes && Array.from(direct.bytes).join()==='1,2,3' && listed===0,'asset id resolves from the owner folder without listing');
+    check(JSON.stringify(owned.assetStorage.findStem('missing',stemId))==='[]','finding in a missing folder returns no keys');
+    const nested=await owned.resolveAssetBytes(`asset://${stemId.replace(/0/g,'f')}`);
+    check(nested.bytes && Array.from(nested.bytes).join()==='7' && listed>0,'nested asset still resolves through the listing');
+  } finally {
+    hostAssets.list=list;
+  }
+}
 __g5Result.workspaceContract=true;__g5Result.fetchBridge=true;__g5Result.assetBridge=true;
 
 const {CodexWebSearchNode}=await import('@nodetool-ai/llm-nodes/nodes/codex');
