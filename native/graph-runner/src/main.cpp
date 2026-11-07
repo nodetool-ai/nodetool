@@ -4,13 +4,13 @@
 //   nodetool-graph-runner run --bundle <guest.js|guest.bin> --graph <graph.json> [--params '<json>'] [--repeat <n>] [--job-summary]
 //                             [--sqlite-dir <dir>]
 //                             [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]
-//                             [--secrets <file.json>] [--allow-http]
+//                             [--secrets <file.json>] [--allow-http] [--allow-media]
 //   nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>
 //
 // The host options grant node code what HostOptions describes: a workspace
 // directory (created when missing), read-only directories, an asset store,
-// secrets from a JSON object file, and https media fetches. Nothing is
-// granted by default.
+// secrets from a JSON object file, https media fetches, and media decoding
+// in the native media host (no encoders). Nothing is granted by default.
 //
 // `run` prints every kernel ProcessingMessage as one JSON line on stdout.
 // The job summary the library sends after the terminal job_update is
@@ -47,7 +47,7 @@ int usage(const char* message) {
                "<graph.json> [--params '<json>'] [--repeat <n>] [--job-summary]\n"
                "      [--sqlite-dir <dir>]\n"
                "      [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]\n"
-               "      [--secrets <file.json>] [--allow-http]\n"
+               "      [--secrets <file.json>] [--allow-http] [--allow-media]\n"
                "  nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>\n");
   return 2;
 }
@@ -121,6 +121,10 @@ int main(int argc, char** argv) {
     if (a == "--no-gpu") { host.gpu.enabled = false; continue; }
     if (a == "--allow-http") {
       host.allowHttpFetch = true;
+      continue;
+    }
+    if (a == "--allow-media") {
+      host.allowMedia = true;
       continue;
     }
     if (a == "--read-root" && i + 1 < argc) {

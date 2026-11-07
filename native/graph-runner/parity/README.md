@@ -43,6 +43,8 @@ It hydrates graphs as `tools/ts-reference.mjs` does, and gives the context
 in-memory storage. Its SQLite databases (the vector store) are files under the
 sandbox `HOME`. The native runner gets no `--sqlite-dir`, so its node code opens
 in-memory databases only, and no run can reach the user's NodeTool database.
+It gets `--allow-media`, so media decodes in the case workspace as libav
+does on the reference side, with no encoder granted.
 
 ## Statuses
 

@@ -57,13 +57,15 @@ change from a script bundle to a module bundle.
 ./build/nodetool-graph-runner run --bundle build/guest.bin \
   --graph tests/graphs/repeat-collect.json [--params '{"n": 42}'] [--repeat 3] \
   [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>] \
-  [--secrets <file.json>] [--allow-http] [--sqlite-dir <dir>]
+  [--secrets <file.json>] [--allow-http] [--allow-media] [--sqlite-dir <dir>]
 ```
 
 These options set the host grants described in
 [What node code can reach](#what-node-code-can-reach). Without them node
 code reaches no file, secret or network. `--workspace` creates the directory
 when it is missing, and `--secrets` reads a JSON object of key to value.
+`--allow-media` sets `allowMedia` without encoders, so node code can probe
+and decode media in the workspace but not encode it.
 
 Every kernel message goes to stdout as one JSON line, with `job_id: "job"` and
 `workflow_id: "wf"`. The CLI grants the GPU capability. `--no-gpu` runs

@@ -338,7 +338,7 @@ async function runNativeAll(box, opts, bundle, cases, graphDir, onDone) {
         const c = queue.shift();
         const file = join(graphDir, `${c.id.replace(/[^\w.-]+/g, "_")}.json`);
         writeFileSync(file, JSON.stringify(c.graph));
-        const args = ["run", "--bundle", bundle, "--graph", file, "--workspace", c.workspaces.native];
+        const args = ["run", "--bundle", bundle, "--graph", file, "--workspace", c.workspaces.native, "--allow-media"];
         if (c.params) args.push("--params", JSON.stringify(c.params));
         results.set(c.id, await collect(box.spawn(opts.runner, args), opts.timeout + 10_000));
         onDone?.();

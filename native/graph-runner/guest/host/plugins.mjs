@@ -57,7 +57,7 @@ export function capabilityPlugins() {
       name: "host-capabilities",
       setup(b) {
         b.onResolve({ filter: /^@napi-rs\/canvas$/ }, () => ({ path: join(here, "canvas.mjs") }));
-        b.onResolve({ filter: /^\.\.\/lib\/audio-context\.js$/ }, (args) => {
+        b.onResolve({ filter: /^\.\.?\/(lib\/)?audio-context\.js$/ }, (args) => {
           if (args.importer.includes('/audio-nodes/')) return { path: join(here, 'offline-audio.mjs') };
         });
         if (nodesDir) {

@@ -6,14 +6,15 @@ import {
 } from "nodetool:code-audio-dsp";
 import {
   probeMedia,
-  decodeAudioToPcm,
   packetTimes,
   openRgbaFrameReader,
   openVideoFrameEncoder,
   openFilterComplex,
   muxAudioWithVideoCopy
 } from "./media-native.mjs";
-import { writeFileSync, readFileSync, statSync } from "./fs.mjs";
+import { statSync } from "./fs.mjs";
+import { staged, nativeAudioData } from "./media-decode.mjs";
+export { nativeAudioData };
 const codecName = (name) =>
   ({ h264: "avc", pcm_s16le: "pcm-s16", pcm_f32le: "pcm-f32" })[name] ?? name;
 function finite(value, name, fallback) {
@@ -31,64 +32,6 @@ function dimensions(width, height, maxBytes) {
     width > Math.floor(maxBytes / 4 / height)
   )
     throw new Error("video: decoded frame exceeds the run media limit");
-}
-async function staged(inputs, signal, maxBytes, fn) {
-  signal?.throwIfAborted();
-  const root = globalThis.__host?.files?.cwd?.();
-  if (!root)
-    throw new Error(
-      "Code native media requires an explicitly granted workspace"
-    );
-  let total = 0;
-  for (const bytes of inputs) {
-    if (!(bytes instanceof Uint8Array))
-      throw new TypeError("Code media requires bytes");
-    total += bytes.byteLength;
-    if (total > maxBytes)
-      throw new Error("Code media inputs exceed the run media limit");
-  }
-  const media = globalThis.__host?.media;
-  if (!media?.tempDir)
-    throw new Error("Code media staging capability is not registered");
-  const directory = media.tempDir();
-  try {
-    const files = inputs.map((bytes, index) => {
-      const path = `${directory}/input-${index}`;
-      writeFileSync(path, bytes);
-      return path;
-    });
-    const read = (path) => {
-      if (statSync(path).size > maxBytes)
-        throw new Error("Code media output exceeds the run media limit");
-      return readFileSync(path);
-    };
-    return await fn({ files, directory, read });
-  } finally {
-    media.releaseTempDir(directory);
-  }
-}
-export async function nativeAudioData(bytes, signal, maxBytes) {
-  return staged([bytes], signal, maxBytes, async ({ files }) => {
-    const info = await probeMedia(files[0], { signal });
-    if (!info.audio) throw new Error("audio.decode: no audio track found");
-    const { sampleRate, channels } = info.audio;
-    const seconds = maxBytes / (4 * channels * sampleRate);
-    if (info.durationSec > seconds)
-      throw new Error(
-        "audio.decode: decoded audio exceeds the run media limit"
-      );
-    const data = await decodeAudioToPcm(files[0], {
-      signal,
-      sampleRate,
-      channels,
-      maxSeconds: seconds + 1 / sampleRate
-    });
-    if (data.samples.byteLength > maxBytes)
-      throw new Error(
-        "audio.decode: decoded audio exceeds the run media limit"
-      );
-    return data;
-  });
 }
 export function createAudioBridge(signal, maxBytes = 256 * 1024 * 1024) {
   const original = audioDsp(signal, maxBytes);
