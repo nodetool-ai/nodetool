@@ -394,8 +394,25 @@ listed above add to, not replace, this list.
 
 Packages that wrap third-party AI APIs (`atlascloud-nodes`, `topaz-nodes`,
 `replicate-nodes`, `kie-nodes`, `fal-nodes`, `minimax-nodes`, …) share a billing
-and transport surface where transient errors cost real money. Rules from shipped
-fixes:
+and transport surface where transient errors cost real money.
+
+- **Reach the vendor through its runtime provider.** A node calls
+  `context.callProviderEndpoint({ provider, capability, model, input })`,
+  uploads input media with `context.uploadProviderMedia` and fetches result
+  files with `context.downloadProviderMedia`. The call runs inside the
+  generation seam, so it writes the generation record, receipt and
+  `prediction` message. The vendor transport and the API key live only in the
+  provider class in `packages/runtime/src/providers/`. A node keeps its
+  `requiredSettings` declaration but never reads the key, calls `fetch` on the
+  vendor, or imports a vendor SDK. Realtime WebSocket nodes are the one
+  exception until providers gain a session interface. See the
+  [provider endpoint interface](../docs/plans/provider-endpoint-interface.md).
+- **Test a provider node against `ScriptedProvider`** through
+  `context.setProviderResolver`, not a mocked `fetch` or SDK. Assert the
+  endpoint request it logs and the `prediction` message the run emits.
+
+The rules below come from shipped fixes. They apply to the transport code in
+the provider classes:
 
 - **Never retry a non-idempotent request (job-creating `POST`, state-transition
   `PATCH`) on 5xx** — the server may have already acted (and billed) before the
