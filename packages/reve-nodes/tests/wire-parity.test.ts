@@ -1,10 +1,11 @@
 /**
  * Pins the HTTP request each Reve node sends. The fixtures were recorded from
- * the pack's own transport before the nodes moved onto the runtime provider,
- * so a change to the endpoint, headers or body bytes fails here.
+ * the pack's own transport before the nodes moved onto the runtime provider.
+ * The nodes now reach Reve through ReveProvider, with fetch stubbed at the
+ * provider boundary, and must send the same endpoint, headers and body bytes.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, ReveProvider } from "@nodetool-ai/runtime";
 import type { BaseNode } from "@nodetool-ai/node-sdk";
 import { CreateImageNode } from "../src/nodes/create-image.js";
 import { EditImageNode } from "../src/nodes/edit-image.js";
@@ -56,8 +57,11 @@ async function wireRequest(node: BaseNode): Promise<WireRequest> {
     Response.json({ image: IMAGE_B64, request_id: "req-1" })
   );
   vi.stubGlobal("fetch", fetchMock);
-  node.setDynamic("_secrets", { REVE_API_KEY: "test-key" });
-  await node.process(new ProcessingContext({ jobId: "job-1" }));
+  const context = new ProcessingContext({ jobId: "job-1" });
+  context.setProviderResolver(
+    () => new ReveProvider({ REVE_API_KEY: "test-key" })
+  );
+  await node.process(context);
   expect(fetchMock).toHaveBeenCalledTimes(1);
   const [url, init] = fetchMock.mock.calls[0] as unknown as [
     string,

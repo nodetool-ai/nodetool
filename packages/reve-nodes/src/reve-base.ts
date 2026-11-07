@@ -9,24 +9,23 @@
  *  - POST /v1/image/remix   — prompt + 1–6 reference images → image
  *
  * Wire spec:
- *  - Auth:    `Authorization: Bearer <REVE_API_KEY>`.
- *  - Accept:  `application/json` → response carries a base64 PNG in `image`.
  *  - Images:  `reference_image` / `reference_images[]` are base64-encoded
  *             strings (no data: prefix).
  *  - Response (200): { image, version, content_violation, request_id,
  *             credits_used, credits_remaining }.
  *
- * Uses native fetch (Node 18+). Asset → base64 resolution mirrors the other
- * media node packs: inline data, data URIs, the workflow storage backend,
- * `file://` paths, and remote `http(s)` URLs are all supported.
+ * Nodes reach Reve through `context.callProviderEndpoint` and the runtime
+ * `ReveProvider`, which holds the API key and writes the generation record.
+ * Asset → base64 resolution mirrors the other media node packs: inline data,
+ * data URIs, the workflow storage backend, `file://` paths, and remote
+ * `http(s)` URLs are all supported.
  */
 
+import { isNonEmptyString, isRecord } from "@nodetool-ai/node-sdk";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
 import { imageRefFromBytes } from "@nodetool-ai/runtime/provider-transport";
 import type { EncodedImageRef } from "@nodetool-ai/runtime/provider-transport";
-
-export const REVE_API_BASE = "https://api.reve.com";
 
 /** Aspect ratios accepted by every Reve image endpoint. */
 export const REVE_ASPECT_RATIOS = [
@@ -57,16 +56,6 @@ export interface ReveImageResponse {
   request_id?: string;
   credits_used?: number;
   credits_remaining?: number;
-}
-
-// ---------------------------------------------------------------------------
-// API key
-// ---------------------------------------------------------------------------
-
-export function getReveApiKey(secrets: Record<string, string>): string {
-  const key = secrets?.REVE_API_KEY || process.env.REVE_API_KEY || "";
-  if (!key) throw new Error("REVE_API_KEY is not configured");
-  return key;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,45 +156,43 @@ function cleanBody(body: ReveRequestBody): ReveRequestBody {
  * Normalize a postprocessing enum selection into the API's array form. The
  * selection is a node prop, so it arrives as whatever the graph stored.
  */
-export function postprocessingArray(value: string | null | undefined): string[] {
+export function postprocessingArray(
+  value: string | null | undefined
+): string[] {
   const v = String(value ?? "none");
   return v === "none" ? [] : [v];
 }
 
+/** The generation capability each endpoint records. */
+const REVE_ENDPOINT_CAPABILITY = {
+  create: "text_to_image",
+  edit: "image_to_image",
+  remix: "image_to_image"
+} as const;
+
 /**
- * POST to a Reve image endpoint and return the parsed JSON response. Throws on
- * non-2xx responses and on flagged content (a content violation yields no
- * usable image).
+ * Call a Reve image endpoint through the runtime provider and return the
+ * generated image. The provider throws on a non-2xx response and on flagged
+ * content. A reply without an image throws here.
  */
 export async function reveGenerate(
-  apiKey: string,
+  context: ProcessingContext,
   endpoint: ReveEndpoint,
-  body: ReveRequestBody
+  body: ReveRequestBody,
+  nodeId?: string
 ): Promise<ReveImageResponse> {
-  const response = await fetch(`${REVE_API_BASE}/v1/image/${endpoint}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    },
-    body: JSON.stringify(cleanBody(body))
+  const result = await context.callProviderEndpoint({
+    provider: "reve",
+    capability: REVE_ENDPOINT_CAPABILITY[endpoint],
+    model: `reve-${endpoint}`,
+    input: { ...cleanBody(body) },
+    nodeId,
+    signal: context.signal
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Reve API error (${response.status}): ${errorText}`);
-  }
-
-  // SAFETY: a 2xx from the documented Reve endpoints carries this JSON shape;
-  // the two fields read below (`content_violation`, `image`) are checked
-  // immediately, and a missing `image` throws rather than reaching a node.
-  const result = (await response.json()) as ReveImageResponse;
-  if (result.content_violation) {
-    throw new Error("Reve flagged this request as a content policy violation");
-  }
-  if (!result.image) {
+  const output = result.output;
+  const image = isRecord(output) ? output.image : undefined;
+  if (!isNonEmptyString(image)) {
     throw new Error("Reve returned no image");
   }
-  return result;
+  return { image };
 }
