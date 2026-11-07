@@ -1,6 +1,8 @@
 /**
  * The graph a new Comfy workflow starts from: ComfyUI's default text-to-image
- * graph, on FLUX.1 schnell so the first run on Comfy Cloud takes seconds.
+ * graph, on FLUX.1 schnell so the first run on Comfy Cloud takes seconds. On
+ * the user's own ComfyUI it starts on one of that server's checkpoints, with
+ * sampler settings for the checkpoint's family.
  */
 import {
   comfyPromptToGraph,
@@ -64,9 +66,39 @@ const OUTPUTS: Record<string, string[]> = {
   SaveImage: []
 };
 
+export interface ComfyStarterOptions {
+  /** A checkpoint file on the target ComfyUI. Defaults to FLUX.1 schnell. */
+  checkpoint?: string;
+}
+
+/**
+ * The checkpoint a starter graph uses on a server: an SDXL file if there is
+ * one, because those make a good 1024px picture at default settings, then the
+ * first file in the folder.
+ */
+export const pickStarterCheckpoint = (
+  checkpoints: readonly string[]
+): string | undefined =>
+  checkpoints.find((name) => /xl/i.test(name) && !/refiner/i.test(name)) ??
+  checkpoints.find((name) => !/refiner/i.test(name)) ??
+  checkpoints[0];
+
+/** Steps and CFG for a checkpoint's family, judged from its file name. */
+const samplerFor = (
+  checkpoint: string
+): { steps: number; cfg: number; scheduler: string } => {
+  if (/schnell/i.test(checkpoint)) return { steps: 4, cfg: 1, scheduler: "simple" };
+  if (/flux/i.test(checkpoint)) return { steps: 20, cfg: 1, scheduler: "simple" };
+  return { steps: 25, cfg: 7, scheduler: "normal" };
+};
+
 /** A fresh seed per workflow, so a first run is never a cached result. */
-export const comfyStarterGraph = (): ComfyGraph => {
+export const comfyStarterGraph = (options: ComfyStarterOptions = {}): ComfyGraph => {
   const prompt: ComfyApiPrompt = structuredClone(STARTER_PROMPT);
   prompt["3"].inputs.seed = Math.floor(Math.random() * 2 ** 31);
+  if (options.checkpoint) {
+    prompt["4"].inputs.ckpt_name = options.checkpoint;
+    Object.assign(prompt["3"].inputs, samplerFor(options.checkpoint));
+  }
   return comfyPromptToGraph(prompt, (cls) => OUTPUTS[cls]);
 };

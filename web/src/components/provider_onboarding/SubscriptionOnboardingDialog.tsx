@@ -28,6 +28,7 @@ import geminiColorIcon from "../../icons/providers/gemini-color.svg";
 import ProviderOnboardingCard from "./ProviderOnboardingCard";
 import ProviderDirectory from "./ProviderDirectory";
 import LocalModelsRow from "./LocalModelsRow";
+import LocalComfyConnect from "../comfy/LocalComfyConnect";
 import ChromeExtensionStep from "./ChromeExtensionStep";
 import {
   ONBOARDING_PROVIDERS,
@@ -144,12 +145,15 @@ interface SubscriptionsStepProps {
   providers: OnboardingProvider[];
   onSetUpExtension: () => void;
   onOpenSettings: () => void;
+  /** Closes the dialog once a Comfy workflow has opened. */
+  onComfyStarted: () => void;
 }
 
 const SubscriptionsStep: React.FC<SubscriptionsStepProps> = ({
   providers,
   onSetUpExtension,
-  onOpenSettings
+  onOpenSettings,
+  onComfyStarted
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -223,6 +227,9 @@ const SubscriptionsStep: React.FC<SubscriptionsStepProps> = ({
         />
       </FlexColumn>
       <LocalModelsRow />
+      <FlexColumn sx={frame}>
+        <LocalComfyConnect onStarted={onComfyStarted} />
+      </FlexColumn>
       <FlexRow gap={SPACING.md} align="center">
         <LockOutlinedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.text.secondary }} />
         <Caption>{t("batch2_7.providerOnboarding.encryptedKeys")}</Caption>
@@ -293,6 +300,7 @@ const SubscriptionOnboardingDialog: React.FC = () => {
             providers={providers}
             onSetUpExtension={handleNext}
             onOpenSettings={handleOpenSettings}
+            onComfyStarted={dismiss}
           />
         ) : (
           <ChromeExtensionStep />

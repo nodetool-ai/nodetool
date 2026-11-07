@@ -23,6 +23,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
 import { comfyStarterGraph } from "../../lib/comfy/comfyStarterGraph";
+import { starterCheckpointForTarget } from "../../hooks/useStartComfyWorkflow";
 import type { Workflow } from "../../stores/ApiTypes";
 
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
@@ -268,7 +269,9 @@ export const useNewDocumentCatalog = (
         const workflow = await createNew(destinationProjectId, {
           name: "New Comfy Workflow",
           run_mode: COMFY_RUN_MODE,
-          graph: comfyStarterGraph() as Workflow["graph"]
+          graph: comfyStarterGraph({
+            checkpoint: await starterCheckpointForTarget()
+          }) as Workflow["graph"]
         });
         openTab({
           type: "workflow",

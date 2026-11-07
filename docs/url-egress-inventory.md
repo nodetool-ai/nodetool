@@ -250,8 +250,9 @@ at 24 hours.
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
 - `packages/integration-nodes/src/nodes/comfy-graph-cloud.ts`,
-  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`, and
-  `GET /api/comfy/nodes` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
+  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`,
+  `packages/integration-nodes/src/nodes/comfy-server-status.ts`,
+  `GET /api/comfy/nodes`, and `GET /api/comfy/server-status` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
   setting. It is normally localhost or the LAN, the same case as
   `comfy-executor.ts`, and the setting holder picks the address.
 - `packages/integration-nodes/src/nodes/comfy-worker-transport.ts` — a NodeTool
