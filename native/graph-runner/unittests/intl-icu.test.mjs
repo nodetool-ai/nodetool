@@ -18,5 +18,22 @@ for (const locale of ["en-US", "de-DE", "sv-SE", "tr-TR", "ja-JP", "ar-EG"]) {
     results.push(new Intl.DateTimeFormat(locale, { timeStyle: "short", timeZone }).format(1782562830000));
   }
 }
+// localeCompare keeps one collator per locale and options pair. Interleaved
+// calls must not reuse another pair's collator, and a sort builds only one.
+const host = globalThis.__host?.intl;
+const createCollator = host?.collator;
+let collators = 0;
+if (host) host.collator = (...args) => (collators++, createCollator(...args));
+const words = ["z", "ä", "A", "a", "a10", "a2", "İ", "i"];
+for (let round = 0; round < 2; round++) {
+  results.push([...words].sort((x, y) => x.localeCompare(y)));
+  results.push([...words].sort((x, y) => x.localeCompare(y, "sv-SE")));
+  results.push([...words].sort((x, y) => x.localeCompare(y, "en-US", { numeric: true })));
+  results.push([...words].sort((x, y) => x.localeCompare(y, ["tr-TR"], { sensitivity: "base" })));
+}
+if (host) {
+  host.collator = createCollator;
+  if (collators !== 4) throw new Error(`localeCompare built ${collators} collators for 4 locale and options pairs`);
+}
 globalThis.G6_RESULTS = JSON.stringify(results);
 globalThis.__nodetool = {};

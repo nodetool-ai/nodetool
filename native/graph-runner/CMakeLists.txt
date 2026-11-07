@@ -257,6 +257,7 @@ if(PROJECT_IS_TOP_LEVEL)
   endif()
   include(cmake/image-codec-tests.cmake)
   include(cmake/url-tests.cmake)
+  include(cmake/intl-icu-tests.cmake)
   set(GR_CONTEXT_TEST "${CMAKE_CURRENT_BINARY_DIR}/context-test.mjs")
   add_custom_target(gr_context_test_bundle ALL
     COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-context.mjs" "${GR_CONTEXT_TEST}"

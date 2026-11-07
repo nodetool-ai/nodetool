@@ -99,11 +99,25 @@ export function installIcu(target = globalThis) {
     }
   }
   Object.defineProperty(target.Intl, "Collator", { value: Collator, configurable: true, writable: true });
+  // A sort calls localeCompare once per pair, and building an ICU collator
+  // costs far more than one comparison, so each locale and options pair keeps
+  // its collator.
+  const compares = new Map();
+  const compareFor = (locales, options) => {
+    const key = JSON.stringify([locales ?? null, options ?? null]);
+    let compare = compares.get(key);
+    if (!compare) {
+      if (compares.size >= 64) compares.clear();
+      compare = new Collator(locales, options).compare;
+      compares.set(key, compare);
+    }
+    return compare;
+  };
   Object.defineProperty(String.prototype, "localeCompare", {
     configurable: true, writable: true,
     value(other, locales, options) {
       if (this == null) throw new TypeError("String.prototype.localeCompare called on null or undefined");
-      return new Collator(locales, options).compare(String(this), String(other));
+      return compareFor(locales, options)(String(this), String(other));
     }
   });
   installed.add(target);
