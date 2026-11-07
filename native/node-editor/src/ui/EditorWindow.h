@@ -492,7 +492,7 @@ private:
   QQmlEngine *engine_ = nullptr;
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.
-  QQuickWidget *catalogPanel_ = nullptr;
+  QPointer<QQuickWidget> catalogPanel_;
   void layoutCatalog();
   // The status bar is the bottom panel's tab strip while the Output panel is open (PanelBottom.tsx).
   QQuickWidget *statusBar_ = nullptr;

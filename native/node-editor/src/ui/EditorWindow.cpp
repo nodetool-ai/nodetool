@@ -772,6 +772,11 @@ EditorWindow::~EditorWindow() {
     // Popups retain callbacks into their Quick children and the inspector.
     // Cancel every generation before panels or scene selection are destroyed.
     clearDynamicPortDialogs();
+    // Docks die in ~QWidget after this class is gone, so their visibility and
+    // destroyed signals must not reach its slots.
+    for (auto *dock : findChildren<QDockWidget *>()) {
+        dock->disconnect(this);
+    }
     disconnect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChatContext);
     disconnect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
   if (!tabOwner_) {
