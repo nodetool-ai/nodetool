@@ -14,6 +14,7 @@ const ImageSurface = React.lazy(() => import("./ImageSurface"));
 const SvgSurface = React.lazy(() => import("./SvgSurface"));
 const SketchSurface = React.lazy(() => import("./SketchSurface"));
 const TextSurface = React.lazy(() => import("./TextSurface"));
+const DocumentSurface = React.lazy(() => import("./DocumentSurface"));
 const Model3DSurface = React.lazy(() => import("./Model3DSurface"));
 const AudioSurface = React.lazy(() => import("./AudioSurface"));
 const TimelineSurface = React.lazy(() => import("./TimelineSurface"));
@@ -65,6 +66,8 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       return (
         <SketchSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />
       );
+    case "document":
+      return <DocumentSurface tab={tab} />;
     case "text":
       return (
         <TextSurface refId={tab.ref} mode={tab.mode} active={active} tab={tab} />

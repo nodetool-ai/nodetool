@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   initTestDb,
+  Asset,
   LOOSE_PROJECT_ID,
   ModelObserver,
   Prediction,
@@ -146,6 +147,52 @@ describe("projects router", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("restores only document tabs whose asset belongs to the project and caller", async () => {
+    const project = await caller().projects.create({ name: "Documents" });
+    const owned = await Asset.create<Asset>({
+      user_id: "user-1",
+      project_id: project.id,
+      name: "owned.pdf",
+      content_type: "application/pdf"
+    });
+    const foreign = await Asset.create<Asset>({
+      user_id: "user-2",
+      project_id: project.id,
+      name: "foreign.pdf",
+      content_type: "application/pdf"
+    });
+    const elsewhere = await Asset.create<Asset>({
+      user_id: "user-1",
+      project_id: "elsewhere",
+      name: "other.pdf",
+      content_type: "application/pdf"
+    });
+    const kept = {
+      type: "document" as const,
+      ref: `asset://${owned.id}`,
+      title: "Owned PDF"
+    };
+    await expect(
+      caller().projects.restoreTabs({
+        id: project.id,
+        tabs: [
+          kept,
+          {
+            type: "document",
+            ref: `asset://${foreign.id}`,
+            title: "Foreign PDF"
+          },
+          {
+            type: "document",
+            ref: `asset://${elsewhere.id}`,
+            title: "Other project PDF"
+          },
+          { type: "document", ref: "asset://missing", title: "Missing PDF" }
+        ]
+      })
+    ).resolves.toEqual([kept]);
   });
 
   it("removes files from project workspaces", async () => {
