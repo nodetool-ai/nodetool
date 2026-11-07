@@ -7,7 +7,7 @@ import {
   higgsfieldSubmit,
   higgsfieldUploadMedia,
   type HiggsfieldCredentials
-} from "@nodetool-ai/runtime";
+} from "../../src/providers/higgsfield-transport.js";
 
 const credentials: HiggsfieldCredentials = { keyId: "id", secret: "secret" };
 const originalFetch = globalThis.fetch;
@@ -63,7 +63,7 @@ describe("Higgsfield transport", () => {
       upload_headers: { "x-upload-token": "presigned" }
     }), { status: 200 }));
     globalThis.fetch = fetchMock;
-    const { higgsfieldCreateUploadUrl, higgsfieldGetStatus } = await import("@nodetool-ai/runtime");
+    const { higgsfieldCreateUploadUrl, higgsfieldGetStatus } = await import("../../src/providers/higgsfield-transport.js");
     await expect(higgsfieldCreateUploadUrl(credentials, "image/png")).resolves.toMatchObject({ headers: { "x-upload-token": "presigned" } });
     globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ status: "completed", error: null, video: { url: "https://cdn.example/video.mp4" } }), { status: 200 }));
     await expect(higgsfieldGetStatus(credentials, "https://api.higgsfield.ai/status")).resolves.toMatchObject({ status: "completed", error: null });
