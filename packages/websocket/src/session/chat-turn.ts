@@ -2293,6 +2293,14 @@ export class ChatTurnHandler {
       const directNames = new Set<string>(DIRECT_TOOL_NAMES);
       if (permissionMode === "plan") directNames.add("create_plan");
       else directNames.add("execute_plan");
+      // A chat app's agent drives the app with its `ui_app_run_*` tools on
+      // every turn. Direct calls keep each one a call of its own in the
+      // thread, which the client renders as the step card it shows.
+      if (uiContext?.focused?.type === "app_run") {
+        for (const name of focusedUiToolNames(uiContext, allSchemas.map((s) => s.name))) {
+          directNames.add(name);
+        }
+      }
       const directSchemas = allSchemas.filter(
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );

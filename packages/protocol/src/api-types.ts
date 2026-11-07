@@ -781,7 +781,8 @@ export interface UiDocumentRef {
    * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
    * for timeline, `storyboards.id`, `scripts.id`, `js_scripts.id` for
    * `jsscript`, `workflows.id` for `workflow`, `applications.id` for
-   * `app`, and `assets.id` for `svg` and `audio`.
+   * `app`, `assets.id` for `svg` and `audio`, and the app run id (the app
+   * instance, else the application) for `app_run`, a chat app being run.
    */
   id: string;
   title?: string | null;
@@ -798,7 +799,8 @@ export type UiSurfaceType =
   | "app"
   | "svg"
   | "audio"
-  | "chat";
+  | "chat"
+  | "app_run";
 
 /**
  * Chat surface that sent a turn. Distinct from {@link UiContext.focused}: the
@@ -818,7 +820,8 @@ export type ChatSource =
   | "text_editor"
   | "model3d_assistant"
   | "svg_assistant"
-  | "audio_assistant";
+  | "audio_assistant"
+  | "app_run";
 
 export interface UiRunReference {
   run_id: string;

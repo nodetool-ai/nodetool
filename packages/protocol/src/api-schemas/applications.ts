@@ -204,6 +204,7 @@ export const applicationDocument = z.object({
   resources: z.array(resourceBinding).default([]),
   variables: z.array(variableDeclaration).default([]),
   theme: z.object({ id: z.string() }).optional(),
+  presentation: z.enum(["page", "chat"]).optional(),
   recipe: recipeManifest.optional()
 }).superRefine((document, context) => {
   if (!document.recipe) return;

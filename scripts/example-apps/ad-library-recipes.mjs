@@ -384,10 +384,15 @@ const layoutSteps = (bundle, concept) => {
 };
 
 /** Catalog entries in the shape scripts/example-apps/apps.mjs expects. */
+const CHAT_CONCEPTS = new Set(["calm-breathing-shape-loop"]);
+
 export const AD_LIBRARY_APPS = CONCEPTS.map(concept => {
   const manifest = adLibraryManifest(concept);
   const description = `${concept.objective} Builds an editable ${seconds(concept.duration_ms)}-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.`;
   const bundle = layoutSteps(addAiAssist(buildRecipeAppBundle(manifest, concept.title, description), manifest, concept), concept);
+  // Chat apps run as a conversation with the app agent, which shows each step
+  // as a card. Piloted on one concept before the rest of the library follows.
+  if (CHAT_CONCEPTS.has(concept.slug)) bundle.app.presentation = "chat";
   // The option cards show once a suggestion returns, which a no-run debug never executes.
   // A no-run debug never executes the suggestion or the plan, so it sets the
   // state they would leave: the website panel open with options, then each

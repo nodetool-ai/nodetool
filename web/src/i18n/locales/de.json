@@ -12173,6 +12173,27 @@
         "undo": "Rückgängig",
         "redo": "Wiederholen",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "{{step}} angezeigt",
+        "stepLabel": "Schritt {{index}} von {{total}}: {{title}}",
+        "show": "Anzeigen",
+        "hide": "Ausblenden",
+        "pressed": "„{{control}}“ gedrückt",
+        "asksForStep": "zu {{title}}",
+        "asksToRun": "{{name}} ausführen",
+        "settled": {
+          "completed": "{{name}} ist fertig",
+          "failed": "{{name}} ist fehlgeschlagen",
+          "cancelled": "{{name}} wurde abgebrochen"
+        },
+        "stepsBar": "Schrittleiste",
+        "sendFailed": "Konnte nicht an den Agenten gesendet werden: {{error}}",
+        "starter": "Beginne mit diesem Schritt oder sag dem Agenten, was du machen willst.",
+        "newChat": "Neuer Chat",
+        "pageView": "Seitenansicht",
+        "chatView": "Chatansicht",
+        "composerPlaceholder": "Frag zu einem Schritt, einem Ergebnis oder einem Problem"
       }
     }
   },

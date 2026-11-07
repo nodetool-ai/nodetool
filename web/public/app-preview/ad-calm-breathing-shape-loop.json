@@ -2805,7 +2805,8 @@
           }
         ]
       }
-    }
+    },
+    "presentation": "chat"
   },
   "workflows": [
     {
