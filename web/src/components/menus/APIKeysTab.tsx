@@ -41,6 +41,7 @@ import {
 import { ToolbarIconButton } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
 import AntigravityCard from "./AntigravityCard";
+import CopilotCard from "./CopilotCard";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
 import LocalComfyConnect from "../comfy/LocalComfyConnect";
 import { CustomProvidersSection } from "./CustomProvidersSection";
@@ -97,7 +98,13 @@ interface ProviderCardProps {
 }
 
 export const ProviderCard = (props: ProviderCardProps) =>
-  props.meta.providerId === "antigravity" ? <AntigravityCard /> : <ApiKeyProviderCard {...props} />;
+  props.meta.providerId === "antigravity" ? (
+    <AntigravityCard />
+  ) : props.meta.providerId === "copilot" ? (
+    <CopilotCard />
+  ) : (
+    <ApiKeyProviderCard {...props} />
+  );
 
 const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
   secret,

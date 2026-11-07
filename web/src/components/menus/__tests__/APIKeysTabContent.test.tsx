@@ -112,6 +112,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Codex")).not.toBeInTheDocument();
     expect(screen.queryByText("Antigravity")).not.toBeInTheDocument();
+    expect(screen.queryByText("GitHub Copilot")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /install antigravity/i })
     ).not.toBeInTheDocument();

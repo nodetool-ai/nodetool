@@ -18913,6 +18913,12 @@
     "refreshModels": "Oppdater modellene",
     "statusUnavailable": "Status utilgjengelig"
   },
+  "copilot": {
+    "description": "Bruk GitHub Copilot-kontoen din til språkmodeller. Ingen API-nøkkel er nødvendig.",
+    "install": "Installer GitHub Copilot CLI i en terminal på denne datamaskinen.",
+    "signIn": "Logg deretter inn og oppdater modellene. Modeller som Copilot-abonnementet ditt ikke inkluderer, vises ikke.",
+    "refreshModels": "Oppdater modeller"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Dra et skudd til et videospor, eller trykk på Enter for å plassere det ved spillehodet.",

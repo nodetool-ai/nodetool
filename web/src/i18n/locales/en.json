@@ -18913,6 +18913,12 @@
     "refreshModels": "Refresh models",
     "statusUnavailable": "Status unavailable"
   },
+  "copilot": {
+    "description": "Use your GitHub Copilot account for language models. No API key needed.",
+    "install": "Install the GitHub Copilot CLI in a terminal on this computer.",
+    "signIn": "Then sign in and refresh models. Models your Copilot plan does not include do not appear.",
+    "refreshModels": "Refresh models"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Drag a shot onto a video track, or press Enter to place it at the playhead.",

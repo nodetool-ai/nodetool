@@ -18913,6 +18913,12 @@
     "refreshModels": "모델 새로 고침",
     "statusUnavailable": "상태를 알 수 없음"
   },
+  "copilot": {
+    "description": "GitHub Copilot 계정으로 언어 모델을 사용하세요. API 키가 필요 없습니다.",
+    "install": "이 컴퓨터의 터미널에서 GitHub Copilot CLI를 설치하세요.",
+    "signIn": "그런 다음 로그인하고 모델을 새로 고치세요. Copilot 요금제에 포함되지 않은 모델은 표시되지 않습니다.",
+    "refreshModels": "모델 새로 고침"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "샷을 비디오 트랙으로 드래그하거나 Enter를 눌러 재생 헤드에 배치합니다.",

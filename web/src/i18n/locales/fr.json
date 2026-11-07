@@ -19223,6 +19223,12 @@
     "refreshModels": "Actualiser les modèles",
     "statusUnavailable": "Statut indisponible"
   },
+  "copilot": {
+    "description": "Utilisez votre compte GitHub Copilot pour les modèles de langage. Aucune clé d’API n’est nécessaire.",
+    "install": "Installez la CLI GitHub Copilot dans un terminal sur cet ordinateur.",
+    "signIn": "Connectez-vous ensuite et actualisez les modèles. Les modèles que votre offre Copilot n’inclut pas n’apparaissent pas.",
+    "refreshModels": "Actualiser les modèles"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Faites glisser une prise de vue sur une piste vidéo ou appuyez sur Entrée pour la placer sur la tête de lecture.",

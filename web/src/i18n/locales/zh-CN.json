@@ -18913,6 +18913,12 @@
     "refreshModels": "刷新模型",
     "statusUnavailable": "状态不可用"
   },
+  "copilot": {
+    "description": "使用你的 GitHub Copilot 账户调用语言模型，无需 API 密钥。",
+    "install": "在这台计算机的终端中安装 GitHub Copilot CLI。",
+    "signIn": "然后登录并刷新模型。你的 Copilot 套餐未包含的模型不会显示。",
+    "refreshModels": "刷新模型"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "将镜头拖到视频轨道上，或按 Enter 将其放在播放头处。",
