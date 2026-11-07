@@ -31,6 +31,7 @@ import {
   imageModelSupportsTask,
   loadMediaRefBytes,
   probeVideoDurationSeconds,
+  rasterizeSvgInput,
   resolveEntities
 } from "@nodetool-ai/runtime";
 import { parseScreenplay, shotRenderMode } from "@nodetool-ai/protocol";
@@ -359,7 +360,11 @@ function renderHost(context: ProcessingContext): StoryboardRenderHost {
       })) as StoryboardRowLike | null;
       return saved ? { document, updatedAt: saved.updatedAt } : null;
     },
-    loadMedia: async (ref: KeyframeVersion | ImageRef) => loadMediaRefBytes(ref, context)
+    // Video models take raster frames, so an SVG still is rendered to PNG.
+    loadMedia: async (ref: KeyframeVersion | ImageRef) => {
+      const bytes = await loadMediaRefBytes(ref, context);
+      return bytes ? rasterizeSvgInput(bytes) : bytes;
+    }
   };
 }
 
