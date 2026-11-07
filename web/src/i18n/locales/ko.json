@@ -19488,13 +19488,34 @@
     "takes_other": "{{count}} 소요",
     "placeholder": {
       "image": "황혼의 등대, 영화 스틸",
-      "video": "황혼의 등대 위에서 천천히 돌리를 해보세요"
+      "video": "황혼의 등대 위에서 천천히 돌리를 해보세요",
+      "image_edit": "밤으로 바꾸고 비를 추가해",
+      "image_to_video": "파도가 부서지고 불빛이 돌기 시작한다",
+      "reference_to_video": "레퍼런스 속 인물이 부두를 따라 걷는다",
+      "retake": "하늘을 폭풍으로 바꿔",
+      "extend": "카메라가 계속 뒤로 물러난다",
+      "audio": "읽을 문장을 입력하세요",
+      "music": "잔잔한 빗소리와 느린 앰비언트 피아노"
     },
     "blocker": {
       "noPrompt": "생성할 프롬프트를 작성합니다.",
       "noModel": {
         "image": "생성할 이미지 모델을 선택하세요.",
-        "video": "생성할 비디오 모델을 선택하세요."
+        "video": "생성할 비디오 모델을 선택하세요.",
+        "image_edit": "생성하려면 이미지 편집 모델을 선택하세요.",
+        "image_to_video": "생성하려면 이미지-동영상 모델을 선택하세요.",
+        "reference_to_video": "생성하려면 레퍼런스-동영상 모델을 선택하세요.",
+        "retake": "생성하려면 동영상 편집 모델을 선택하세요.",
+        "extend": "생성하려면 동영상 늘리기 모델을 선택하세요.",
+        "audio": "생성하려면 음성 모델을 선택하세요.",
+        "music": "생성하려면 음악 모델을 선택하세요."
+      },
+      "needsInput": {
+        "image_edit": "편집할 이미지를 추가하세요.",
+        "image_to_video": "애니메이션으로 만들 이미지를 추가하세요.",
+        "reference_to_video": "레퍼런스 이미지나 클립을 하나 이상 추가하세요.",
+        "retake": "변경할 클립을 추가하세요.",
+        "extend": "늘릴 클립을 추가하세요."
       }
     },
     "sendFailed": "{{count}} 중 {{sent}}이(가) 시작되었습니다. 나머지는 NodeTool에 도달하지 못했습니다. 연결을 확인하고 다시 시도하세요.",
@@ -19503,7 +19524,7 @@
     "gridLabel": "세대",
     "empty": {
       "title": "아직 생성된 항목이 없습니다.",
-      "description": "위에 프롬프트를 작성하고 생성을 누르세요. 귀하의 이미지와 비디오가 최신 항목부터 여기에 표시됩니다.",
+      "description": "위에 프롬프트를 쓰고 생성을 누르세요. 이미지, 동영상, 오디오가 최신순으로 여기에 표시됩니다.",
       "action": "프롬프트 작성"
     },
     "item": {
@@ -19520,8 +19541,65 @@
       "downloaded": "{{name}}을(를) 다운로드했습니다.",
       "downloadFailed": "다운로드할 수 없습니다: {{reason}}",
       "workflowName": "워크플로우 생성",
-      "workflowFailed": "워크플로를 구축할 수 없습니다: {{reason}}"
-    }
+      "workflowFailed": "워크플로를 구축할 수 없습니다: {{reason}}",
+      "more": "작업 더 보기",
+      "moreLabel": "{{title}} 작업 더 보기",
+      "useAsReference": "레퍼런스로 사용",
+      "startFrom": {
+        "image_edit": "이 이미지 편집",
+        "image_to_video": "이 이미지로 애니메이션 만들기",
+        "retake": "이 클립 변경",
+        "extend": "이 클립 늘리기"
+      },
+      "openInSketch": "스케치에서 열기",
+      "reusePrompt": "프롬프트 다시 사용",
+      "sketchTitle": "만든 이미지"
+    },
+    "kindLabel": "만들 것",
+    "modeLabel": "만드는 방법",
+    "kinds": {
+      "image": "이미지",
+      "video": "동영상",
+      "audio": "오디오"
+    },
+    "modes": {
+      "image": "텍스트로",
+      "image_edit": "편집",
+      "video": "텍스트로",
+      "image_to_video": "애니메이션",
+      "reference_to_video": "레퍼런스로",
+      "retake": "변경",
+      "extend": "늘리기",
+      "audio": "음성",
+      "music": "음악"
+    },
+    "references": {
+      "label": "레퍼런스",
+      "remove": "제거",
+      "removeLabel": "{{name}} 제거",
+      "role": {
+        "source": "원본 이미지",
+        "startFrame": "시작 프레임",
+        "sourceClip": "원본 클립",
+        "reference": "레퍼런스",
+        "unused": "여기서는 사용하지 않음"
+      },
+      "add": {
+        "image": "이미지 추가",
+        "video": "클립 추가",
+        "image-or-video": "레퍼런스 추가"
+      },
+      "hint": {
+        "image_edit": "편집할 이미지를 추가하거나 여기에 놓으세요. 추가 이미지는 스타일을 잡아 줍니다.",
+        "image_to_video": "클립이 시작될 이미지를 추가하거나 여기에 놓으세요.",
+        "reference_to_video": "유지할 인물, 장소, 스타일의 이미지와 클립을 추가하거나 여기에 놓으세요.",
+        "retake": "변경할 클립을 추가하거나 여기에 놓으세요. 추가한 이미지는 스타일을 잡아 줍니다.",
+        "extend": "늘릴 클립을 추가하거나 여기에 놓으세요."
+      },
+      "uploadFailed": "{{name}}을(를) 업로드하지 못했습니다: {{reason}}"
+    },
+    "switched": "이미지를 추가해서 {{mode}}(으)로 바꿨습니다.",
+    "undoSwitch": "{{from}}(으)로 돌아가기"
   },
   "effectsGallery": {
     "title": "효과",

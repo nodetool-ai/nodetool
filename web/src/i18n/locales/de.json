@@ -19488,13 +19488,34 @@
     "takes_other": "{{count}} Takes",
     "placeholder": {
       "image": "Ein Leuchtturm in der Dämmerung, Filmstill",
-      "video": "Langsame Kamerafahrt auf einen Leuchtturm in der Dämmerung"
+      "video": "Langsame Kamerafahrt auf einen Leuchtturm in der Dämmerung",
+      "image_edit": "Mach es Nacht und lass es regnen",
+      "image_to_video": "Die Wellen brechen und das Licht beginnt sich zu drehen",
+      "reference_to_video": "Die Figur aus den Referenzen geht den Steg entlang",
+      "retake": "Ändere den Himmel zu einem Sturm",
+      "extend": "Die Kamera zieht sich weiter zurück",
+      "audio": "Gib den Text ein, der gesprochen werden soll",
+      "music": "Ruhiges Ambient-Klavier mit leisem Regen"
     },
     "blocker": {
       "noPrompt": "Schreibe einen Prompt, um zu generieren.",
       "noModel": {
         "image": "Wähle ein Bildmodell, um zu generieren.",
-        "video": "Wähle ein Videomodell, um zu generieren."
+        "video": "Wähle ein Videomodell, um zu generieren.",
+        "image_edit": "Wähle ein Bildbearbeitungsmodell, um zu generieren.",
+        "image_to_video": "Wähle ein Bild-zu-Video-Modell, um zu generieren.",
+        "reference_to_video": "Wähle ein Referenz-zu-Video-Modell, um zu generieren.",
+        "retake": "Wähle ein Videobearbeitungsmodell, um zu generieren.",
+        "extend": "Wähle ein Modell zum Verlängern von Videos, um zu generieren.",
+        "audio": "Wähle ein Sprachmodell, um zu generieren.",
+        "music": "Wähle ein Musikmodell, um zu generieren."
+      },
+      "needsInput": {
+        "image_edit": "Füge das Bild hinzu, das bearbeitet werden soll.",
+        "image_to_video": "Füge das Bild hinzu, das animiert werden soll.",
+        "reference_to_video": "Füge mindestens ein Referenzbild oder einen Referenzclip hinzu.",
+        "retake": "Füge den Clip hinzu, der geändert werden soll.",
+        "extend": "Füge den Clip hinzu, der verlängert werden soll."
       }
     },
     "sendFailed": "{{sent}} von {{count}} Takes gestartet. Die übrigen haben NodeTool nicht erreicht. Prüfe die Verbindung und versuche es erneut.",
@@ -19503,7 +19524,7 @@
     "gridLabel": "Generierungen",
     "empty": {
       "title": "Noch nichts erstellt",
-      "description": "Schreibe oben einen Prompt und drücke Generieren. Deine Bilder und Videos erscheinen hier, die neuesten zuerst.",
+      "description": "Schreibe oben einen Prompt und drücke Generieren. Deine Bilder, Videos und Audios erscheinen hier, die neuesten zuerst.",
       "action": "Prompt schreiben"
     },
     "item": {
@@ -19520,8 +19541,65 @@
       "downloaded": "{{name}} heruntergeladen",
       "downloadFailed": "Download nicht möglich: {{reason}}",
       "workflowName": "Create-Workflow",
-      "workflowFailed": "Workflow konnte nicht erstellt werden: {{reason}}"
-    }
+      "workflowFailed": "Workflow konnte nicht erstellt werden: {{reason}}",
+      "more": "Weitere Aktionen",
+      "moreLabel": "Weitere Aktionen für {{title}}",
+      "useAsReference": "Als Referenz verwenden",
+      "startFrom": {
+        "image_edit": "Dieses Bild bearbeiten",
+        "image_to_video": "Dieses Bild animieren",
+        "retake": "Diesen Clip ändern",
+        "extend": "Diesen Clip verlängern"
+      },
+      "openInSketch": "Im Sketch öffnen",
+      "reusePrompt": "Prompt wiederverwenden",
+      "sketchTitle": "Erstelltes Bild"
+    },
+    "kindLabel": "Was entstehen soll",
+    "modeLabel": "Wie es entstehen soll",
+    "kinds": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio"
+    },
+    "modes": {
+      "image": "Aus Text",
+      "image_edit": "Bearbeiten",
+      "video": "Aus Text",
+      "image_to_video": "Animieren",
+      "reference_to_video": "Aus Referenzen",
+      "retake": "Ändern",
+      "extend": "Verlängern",
+      "audio": "Sprache",
+      "music": "Musik"
+    },
+    "references": {
+      "label": "Referenzen",
+      "remove": "Entfernen",
+      "removeLabel": "{{name}} entfernen",
+      "role": {
+        "source": "Quellbild",
+        "startFrame": "Startbild",
+        "sourceClip": "Quellclip",
+        "reference": "Referenz",
+        "unused": "Hier nicht verwendet"
+      },
+      "add": {
+        "image": "Bild hinzufügen",
+        "video": "Clip hinzufügen",
+        "image-or-video": "Referenz hinzufügen"
+      },
+      "hint": {
+        "image_edit": "Füge das Bild hinzu, das bearbeitet werden soll, oder ziehe es hierher. Weitere Bilder bestimmen den Look.",
+        "image_to_video": "Füge das Bild hinzu, mit dem der Clip beginnt, oder ziehe es hierher.",
+        "reference_to_video": "Füge Bilder und Clips der Personen, Orte und des Stils hinzu, die erhalten bleiben sollen, oder ziehe sie hierher.",
+        "retake": "Füge den Clip hinzu, der geändert werden soll, oder ziehe ihn hierher. Bilder bestimmen den Look.",
+        "extend": "Füge den Clip hinzu, der verlängert werden soll, oder ziehe ihn hierher."
+      },
+      "uploadFailed": "{{name}} konnte nicht hochgeladen werden: {{reason}}"
+    },
+    "switched": "Zu {{mode}} gewechselt, weil du ein Bild hinzugefügt hast.",
+    "undoSwitch": "Zurück zu {{from}}"
   },
   "effectsGallery": {
     "title": "Effekte",

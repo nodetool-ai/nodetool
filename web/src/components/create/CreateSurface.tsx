@@ -1,5 +1,5 @@
 /**
- * The Create view: a prompt bar over a grid of image and video generations.
+ * The Create view: a prompt bar over a grid of image, video and audio takes.
  *
  * It submits through `generate_media`, so a take makes no thread or message
  * row. The grid reads GenerationActivityStore, which already lists every
@@ -16,6 +16,7 @@ import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useAssetStore } from "../../stores/AssetStore";
 import type { Asset } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useCreateViewStore } from "../../stores/CreateViewStore";
 import {
   creationProjectId,
   useWorkspaceTabsStore
@@ -32,7 +33,7 @@ import {
 } from "../ui_primitives";
 import CreateGridItem, { type CreateGridItemActions } from "./CreateGridItem";
 import CreatePromptBar from "./CreatePromptBar";
-import { generationToWorkflowGraph, retakeRequest } from "./createActions";
+import { generationToWorkflowGraph, referenceFromItem, retakeRequest } from "./createActions";
 import type { CreateFeedItem } from "./createFeed";
 import { submitCreateBatch } from "./submitCreateBatch";
 import { useCreateFeed } from "./useCreateFeed";
@@ -139,6 +140,42 @@ const CreateSurface = () => {
             fail(t("create_view.item.workflowFailed", { reason: errorText(cause) }));
           }
         })();
+      },
+      onUseAsReference: (item) => {
+        const reference = referenceFromItem(item, t);
+        if (reference) {
+          useCreateViewStore.getState().addReferences([reference]);
+          promptRef.current?.focus();
+        }
+      },
+      onStartFrom: (item, mode) => {
+        const reference = referenceFromItem(item, t);
+        if (!reference) {
+          return;
+        }
+        const store = useCreateViewStore.getState();
+        store.setMode(mode);
+        store.clearReferences();
+        store.addReferences([reference]);
+        promptRef.current?.focus();
+      },
+      onOpenInSketch: (item) => {
+        if (!item.assetId) {
+          return;
+        }
+        openForegroundTab({
+          type: "image",
+          ref: item.assetId,
+          mode: "edit",
+          title: item.prompt?.slice(0, 40) || t("create_view.item.sketchTitle"),
+          projectId: creationProjectId()
+        });
+      },
+      onReusePrompt: (item) => {
+        if (item.prompt) {
+          useCreateViewStore.getState().setPrompt(item.prompt);
+          promptRef.current?.focus();
+        }
       },
       onStop: async (item) => {
         if (!item.generation) {

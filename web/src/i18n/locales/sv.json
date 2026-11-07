@@ -19488,13 +19488,34 @@
     "takes_other": "{{count}} tar",
     "placeholder": {
       "image": "En fyr i skymningen, film stilla",
-      "video": "Slow dolly in på en fyr i skymningen"
+      "video": "Slow dolly in på en fyr i skymningen",
+      "image_edit": "Gör det till natt och lägg till regn",
+      "image_to_video": "Vågorna bryter och ljuset börjar vrida sig",
+      "reference_to_video": "Figuren från referenserna går längs bryggan",
+      "retake": "Byt himlen mot en storm",
+      "extend": "Kameran fortsätter att dra sig bakåt",
+      "audio": "Skriv orden som ska läsas upp",
+      "music": "Lugnt ambient-piano med stilla regn"
     },
     "blocker": {
       "noPrompt": "Skriv en uppmaning att generera.",
       "noModel": {
         "image": "Välj en bildmodell att generera.",
-        "video": "Välj en videomodell att generera."
+        "video": "Välj en videomodell att generera.",
+        "image_edit": "Välj en bildredigeringsmodell för att generera.",
+        "image_to_video": "Välj en bild-till-video-modell för att generera.",
+        "reference_to_video": "Välj en referens-till-video-modell för att generera.",
+        "retake": "Välj en videoredigeringsmodell för att generera.",
+        "extend": "Välj en modell för videoförlängning för att generera.",
+        "audio": "Välj en talmodell för att generera.",
+        "music": "Välj en musikmodell för att generera."
+      },
+      "needsInput": {
+        "image_edit": "Lägg till bilden som ska redigeras.",
+        "image_to_video": "Lägg till bilden som ska animeras.",
+        "reference_to_video": "Lägg till minst en referensbild eller ett referensklipp.",
+        "retake": "Lägg till klippet som ska ändras.",
+        "extend": "Lägg till klippet som ska förlängas."
       }
     },
     "sendFailed": "Startade {{sent}} av {{count}} tar. Resten nådde inte NodeTool. Kontrollera din anslutning och försök igen.",
@@ -19503,7 +19524,7 @@
     "gridLabel": "Generationer",
     "empty": {
       "title": "Inget skapat ännu",
-      "description": "Skriv en uppmaning ovan och tryck på Generera. Dina bilder och videor visas här, de senaste först.",
+      "description": "Skriv en prompt ovan och tryck på Generera. Dina bilder, videor och ljud visas här, nyaste först.",
       "action": "Skriv en uppmaning"
     },
     "item": {
@@ -19520,8 +19541,65 @@
       "downloaded": "Nedladdat {{name}}",
       "downloadFailed": "Kunde inte ladda ner: {{reason}}",
       "workflowName": "Skapa arbetsflöde",
-      "workflowFailed": "Kunde inte bygga ett arbetsflöde: {{reason}}"
-    }
+      "workflowFailed": "Kunde inte bygga ett arbetsflöde: {{reason}}",
+      "more": "Fler åtgärder",
+      "moreLabel": "Fler åtgärder för {{title}}",
+      "useAsReference": "Använd som referens",
+      "startFrom": {
+        "image_edit": "Redigera den här bilden",
+        "image_to_video": "Animera den här bilden",
+        "retake": "Ändra det här klippet",
+        "extend": "Förläng det här klippet"
+      },
+      "openInSketch": "Öppna i skiss",
+      "reusePrompt": "Återanvänd prompten",
+      "sketchTitle": "Skapad bild"
+    },
+    "kindLabel": "Vad du vill skapa",
+    "modeLabel": "Hur det skapas",
+    "kinds": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Ljud"
+    },
+    "modes": {
+      "image": "Från text",
+      "image_edit": "Redigera",
+      "video": "Från text",
+      "image_to_video": "Animera",
+      "reference_to_video": "Från referenser",
+      "retake": "Ändra",
+      "extend": "Förläng",
+      "audio": "Tal",
+      "music": "Musik"
+    },
+    "references": {
+      "label": "Referenser",
+      "remove": "Ta bort",
+      "removeLabel": "Ta bort {{name}}",
+      "role": {
+        "source": "Källbild",
+        "startFrame": "Startbild",
+        "sourceClip": "Källklipp",
+        "reference": "Referens",
+        "unused": "Används inte här"
+      },
+      "add": {
+        "image": "Lägg till bild",
+        "video": "Lägg till klipp",
+        "image-or-video": "Lägg till referens"
+      },
+      "hint": {
+        "image_edit": "Lägg till eller släpp bilden som ska redigeras. Fler bilder styr utseendet.",
+        "image_to_video": "Lägg till eller släpp bilden som klippet börjar med.",
+        "reference_to_video": "Lägg till eller släpp bilder och klipp på personerna, platserna och stilen som ska behållas.",
+        "retake": "Lägg till eller släpp klippet som ska ändras. Bilder du lägger till styr utseendet.",
+        "extend": "Lägg till eller släpp klippet som ska förlängas."
+      },
+      "uploadFailed": "Kunde inte ladda upp {{name}}: {{reason}}"
+    },
+    "switched": "Bytte till {{mode}} eftersom du lade till en bild.",
+    "undoSwitch": "Tillbaka till {{from}}"
   },
   "effectsGallery": {
     "title": "Effekter",
