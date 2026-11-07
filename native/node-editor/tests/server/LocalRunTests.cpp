@@ -4,7 +4,6 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
-#include <QScopeGuard>
 #include <QTemporaryDir>
 #include <QtTest>
 #include <memory>
@@ -84,14 +83,11 @@ private slots:
     QVERIFY2(errors.isEmpty(), qPrintable(errors.isEmpty() ? QString() : errors.first().first().toString()));
   }
   // FLAC decodes only through native media, which stages the bytes in the
-  // local workspace. The runner is created with the audio bundle because no
-  // other session is alive.
+  // local workspace.
   void decodesCompressedAudio() {
-    WorkflowSession::setGuestBundlePath(AUDIO_GUEST_BUNDLE);
-    const auto restore = qScopeGuard([] { WorkflowSession::setGuestBundlePath(GUEST_BUNDLE); });
     const QString flac = "data:audio/flac;base64,ZkxhQ4AAACIBuQG5AAHTAAHTCsRA8AAAAbmJiHuA+BAoW0X2xOzHLJd+//h5CAABuFVWAAABAAH/Av0D+ATuBeAGzAewCI0JYgot56R1RDp6MM/BSJHRgghA1Hs66o2/i1rQDNzY1NDIxMC4sKSclIiB66bs2CxUmRocmfVu49PHv5/oqanqquusLCytLS1tba2tbW0s7Gxr66sq6ilo6H9779eW7XoyYcSZSsYM2zl2/IiQmKSwuMDIzNDU2Nzc3ODc2NjU1NDIwLiwqKSUjIHrpu0YrVSdGgx5te7h07+fn+ipKeqq66vsLKzs7S1tbW2tbW0s7Kwrq2rqKekof3vz15b9ejLiwJFCxeyauHb4hJCcpKy0vMTM0NDU2Njc3ODc3NjUzMjAvLSooJiQhfO3DViuVp0iFFm0bOHPt5+f6Kkpqmrra+wsbKztLW2tba1tbSzsrCuraupp6Si//PPbnv2asuPAjTqlzFo3dviEjJigqLS8vMTM1NjY3ODg4NzY1NTMzMC8tLCknJCF+7cNWS5YoTIkOTRs38uvj5+oaSmp6qsrrCxsrS1tbW2tba0tLKxsK+uq6qnpaKg++u/Tht1ZseBGmVLWDNu6evyIlKCksLzAyMzQ2Nzc3Nzc3NzY1MzMyMC4rKSclI371y2ZsFilKiQZNGrdspE=";
     QJsonArray nodes{node("a", "nodetool.constant.Audio", {{"value", QJsonObject{{"type", "audio"}, {"uri", flac}}}}),
-                     node("n", "nodetool.audio.MonoToStereo", {}),
+                     node("n", "nodetool.audio.Normalize", {}),
                      node("info", "nodetool.audio.GetAudioInfo", {}),
                      node("out", "nodetool.output.Output", {{"name", "channels"}})};
     QJsonArray edges{edge("e1", "a", "output", "n", "audio"), edge("e2", "n", "output", "info", "audio"),
@@ -104,7 +100,7 @@ private slots:
         {{"id", "wf-audio"}, {"name", "Audio"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}});
     QVERIFY(session.runsInProcess(id));
     QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
-    QCOMPARE(runtime.nodeState("out")["outputs"].toObject()["channels"].toInt(), 2);
+    QCOMPARE(runtime.nodeState("out")["outputs"].toObject()["channels"].toInt(), 1);
     QVERIFY(QFileInfo(QDir(m_workspaces.path()).filePath("1")).isDir());
   }
   void cancelsThenRunsAgain() {
@@ -199,7 +195,7 @@ private slots:
     WorkflowSession session;
     QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
     QSignalSpy errors(&session, &WorkflowSession::errorOccurred);
-    QVERIFY(session.run(snapshot(3, "nodetool.text.Concat")).isEmpty());
+    QVERIFY(session.run(snapshot(3, "vector.Count")).isEmpty());
     QCOMPARE(errors.count(), 1);
     QCOMPARE(errors.first().first().toString(), QString("Connect before running"));
     QVERIFY(session.queue().isEmpty());

@@ -1,6 +1,7 @@
 // The `parity` guest profile: bundles every module the base node library
 // (ALL_BASE_NODES) is built from, so the parity suite can run each node in
-// QuickJS. The default profile is untouched by anything in this file.
+// QuickJS. The default profile bundles the same modules and admits only the
+// node types guest/local-nodes.mjs lists, without the probe node.
 //
 // entry.mjs stays as it is. Its three node imports, when made from entry.mjs,
 // resolve to one generated module (`nodes.mjs`, below) that imports every
@@ -148,7 +149,7 @@ function missingSource(spec, reason) {
  * ALL_BASE_NODES from. Each is a dynamic import(), so a module with
  * top-level await bundles, and modules load one after another in this order.
  */
-function nodesSource(modules, polyfillBuffer) {
+function nodesSource(modules, polyfillBuffer, admit) {
   const loads = modules
     .map((spec) => `await load(${JSON.stringify(spec)}, () => import(${JSON.stringify(spec)}));`)
     .join("\n");
@@ -186,12 +187,19 @@ async function load(spec, thunk) {
       }
     }
   }
-  for (const cls of found) classes[cls.nodeType] ??= cls;
+  for (const cls of found) {
+    if (admitted(spec, cls.nodeType)) classes[cls.nodeType] ??= cls;
+  }
   report.push({ module: spec, ok: true, classes: new Set(found).size });
 }
+${admit
+    ? `const admitModules = new Set(${JSON.stringify(admit.modules)});
+const admitTypes = new Set(${JSON.stringify(admit.types)});
+const admitted = (spec, type) => admitModules.has(spec) || admitTypes.has(type);`
+    : "const admitted = () => true;"}
 ${loads}
 const probe = buildProbe(report, classes);
-export const parityClasses = { ...probe.admitted, [probe.Probe.nodeType]: probe.Probe };
+export const parityClasses = ${admit ? "probe.admitted" : "{ ...probe.admitted, [probe.Probe.nodeType]: probe.Probe }"};
 `;
 }
 
@@ -209,9 +217,11 @@ const CONSTANT_IMPORT = 'import * as constant from "@nodetool-ai/core-nodes/node
 /**
  * `builtinShims` maps Node builtins the guest implements (without the
  * `node:` prefix) to their guest modules. Their stubs take every export the
- * guest module has, and the rest throw as for any other builtin.
+ * guest module has, and the rest throw as for any other builtin. `admit`,
+ * {modules, types}, keeps every class of the listed modules and the listed
+ * node types, and leaves out the probe node. Without it every class loads.
  */
-export async function parityPlugins({ modules, builtinShims = {} }) {
+export async function parityPlugins({ modules, builtinShims = {}, admit = null }) {
   const polyfillBuffer = hasBufferPackage();
   const emptyEsm = join(here, "empty.mjs");
   return [
@@ -226,7 +236,7 @@ export async function parityPlugins({ modules, builtinShims = {} }) {
           return { path: emptyEsm };
         });
         b.onLoad({ filter: /.*/, namespace: "parity-nodes" }, () => ({
-          contents: nodesSource(modules, polyfillBuffer),
+          contents: nodesSource(modules, polyfillBuffer, admit),
           loader: "js",
           resolveDir: here
         }));

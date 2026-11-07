@@ -50,7 +50,7 @@ QString localWorkspaceDir() {
 }
 // One loaded guest serves every session in the process. Sessions live on the
 // GUI thread, so the weak reference needs no lock. Runs get the local
-// workspace and native media with the encoders the media nodes use.
+// workspace, the GPU, and native media with the encoders the media nodes use.
 std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   if (qEnvironmentVariable("NODETOOL_LOCAL_RUNNER") == "0") { return {}; }
   static std::weak_ptr<gr::GraphRunner> shared;
@@ -60,6 +60,7 @@ std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   gr::HostOptions options;
   const auto workspace = localWorkspaceDir();
   if (QDir().mkpath(workspace)) { options.workspaceDir = QFile::encodeName(workspace).toStdString(); }
+  options.gpu.enabled = true;
   options.allowMedia = true;
   options.mediaEncoders = {"libx264", "aac", "libmp3lame", "libopus"};
   auto runner = std::make_shared<gr::GraphRunner>(QFile::encodeName(path).toStdString(), std::move(options));

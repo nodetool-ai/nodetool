@@ -52,10 +52,10 @@ QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
 
 The editor links [`native/graph-runner`](../graph-runner/README.md) and loads
 its guest bundle in the background at startup. A graph runs inside the editor
-process, with or without a server connection, when every node and edge is one
-the runner supports (constant, control, input and Output nodes, no control
-edges). Comment and Group nodes do not count, because the runner drops them as
-the server does. Other graphs go to the server as before. Local run messages go
+process, with or without a server connection, when the runner supports every
+node: the core workflow nodes and the nodes the parity suite shows match the
+server, as `native/graph-runner/guest/local-nodes.mjs` selects them. Comment
+and Group nodes do not count, because the runner drops them as the server does. Other graphs go to the server as before. Local run messages go
 through the same session handling as server messages, including the job summary
 that puts the run's outputs on the Output panel's job row. Stop cancels a local
 run, and the run status text ends with "(local)". The bundle comes from `--guest-bundle <path>`, then
@@ -64,17 +64,16 @@ executable. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
 
 Local runs use the local user's workspace, the folder the server keeps:
 `$NODETOOL_WORKSPACES_DIR/1`, otherwise `nodetool/workspaces/1` in
-`$XDG_DATA_HOME` (`~/.local/share`) or, on Windows, `%APPDATA%`. They may
-decode media through the native media host and encode with libx264, aac,
-libmp3lame and libopus.
+`$XDG_DATA_HOME` (`~/.local/share`) or, on Windows, `%APPDATA%`. They may use
+the GPU, decode media through the native media host, and encode with libx264,
+aac, libmp3lame and libopus.
 
 CMake also fetches QuickJS-ng and nlohmann/json for the runner. Supply
 `-DFETCHCONTENT_SOURCE_DIR_QUICKJS` and `-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON`
 for offline builds. The `node_editor_local_run` test loads
 `native/graph-runner/build/guest.js`. Build it first with
 `node native/graph-runner/guest/build.mjs`, or point the
-`NODETOOL_GUEST_BUNDLE` CMake variable at another bundle. The test also builds a
-bundle with the audio nodes for its compressed-audio case.
+`NODETOOL_GUEST_BUNDLE` CMake variable at another bundle.
 
 ```sh
 /tmp/node-editor-build/nodetool-node-editor --server http://localhost:7777 --workflow FULL_WORKFLOW_ID

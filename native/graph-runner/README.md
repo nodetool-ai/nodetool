@@ -183,6 +183,13 @@ so node code may use top-level await. `Guest::load` runs the loop (jobs and
 timers) until the module's evaluation promise settles, and fails the load with
 the module's error when it rejects or never settles.
 
+The default bundle holds every module of the base node library but runs only
+the node types `guest/local-nodes.mjs` admits: every class of the core workflow
+modules, and the nodes `parity/baseline.json` records at parity on a success
+path, except nodes that keep state in SQLite. A graph with any other node is
+unsupported, so the node editor sends it to the server. `--profile core` builds
+only the core workflow modules into `build/guest-core.js`.
+
 The kernel in `src/kernel/` ports `packages/execution-core/src/{runner,actor,
 inbox,io,correlation-analysis}.ts`. Scheduling is cooperative and
 single-threaded. `Task<T>` is an eagerly started C++20 coroutine, so it behaves

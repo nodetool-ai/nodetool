@@ -2,14 +2,17 @@
 // entry.mjs, as one self-contained ES module for QuickJS. A module, because
 // node code may use top-level await; the runner awaits its evaluation.
 //
-//   node guest/build.mjs [outfile] [--profile default|parity] [--modules a,b,...]
+//   node guest/build.mjs [outfile] [--profile default|parity|core] [--modules a,b,...]
 //
-// The default profile (build/guest.js) bundles the core workflow modules and
-// delivered-trigger nodes that entry.mjs imports. The parity profile
-// (build/guest-parity.js) bundles every module of the base node library, or
-// the --modules list, as described in parity/profile.mjs. In both, the
-// capability plugins of guest/host/plugins.mjs point node code at the guest
-// halves of host capabilities.
+// The default profile (build/guest.js) bundles every module of the base node
+// library and runs the node types guest/local-nodes.mjs admits: the core
+// workflow nodes and the nodes at parity. The parity profile
+// (build/guest-parity.js) bundles the same modules, or the --modules list,
+// admits every class and adds the probe node, as described in
+// parity/profile.mjs. The core profile (build/guest-core.js) bundles only the
+// core workflow modules and delivered-trigger nodes that entry.mjs imports.
+// In all three, the capability plugins of guest/host/plugins.mjs point node
+// code at the guest halves of host capabilities.
 import { build } from "esbuild";
 import { providerCapabilitiesPlugin } from "./provider-capabilities-plugin.mjs";
 import { textEncodingBanner } from "./text-encoding-banner.mjs";
@@ -33,15 +36,15 @@ const option = (name) => {
 };
 const profile = option("--profile") ?? "default";
 const moduleList = option("--modules");
-if (!["default", "parity"].includes(profile)) {
-  console.error(`unknown profile ${profile} (have: default, parity)`);
+if (!["default", "parity", "core"].includes(profile)) {
+  console.error(`unknown profile ${profile} (have: default, parity, core)`);
   process.exit(2);
 }
 if (moduleList && profile !== "parity") {
   console.error("--modules needs --profile parity");
   process.exit(2);
 }
-const outfile = args[0] ?? join(here, "..", "build", profile === "default" ? "guest.js" : "guest-parity.js");
+const outfile = args[0] ?? join(here, "..", "build", { default: "guest.js", parity: "guest-parity.js", core: "guest-core.js" }[profile]);
 mkdirSync(dirname(outfile), { recursive: true });
 
 const shims = {
@@ -90,12 +93,13 @@ const options = {
   logLevel: "warning",
 };
 
-if (profile === "parity") {
+if (profile === "core") {
+  await build(options);
+} else {
   const { parityPlugins } = await import("./parity/profile.mjs");
   const { baseNodeModules } = await import("../parity/modules.mjs");
   const modules = moduleList ? moduleList.split(",").filter(Boolean) : baseNodeModules();
-  await build({ ...options, logLevel: "silent", plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), ...await parityPlugins({ modules, builtinShims })] });
-} else {
-  await build(options);
+  const admit = profile === "default" ? (await import("./local-nodes.mjs")).localAdmission() : null;
+  await build({ ...options, logLevel: "silent", plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), ...await parityPlugins({ modules, builtinShims, admit })] });
 }
 console.log(outfile);
