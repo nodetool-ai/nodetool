@@ -67,7 +67,7 @@ const INTEGRATION_KEYWORDS = [
   "mcp servers claude desktop",
   "browser extension chrome",
   "search provider serp brave serpapi",
-  "local model servers ollama vllm llamacpp lmstudio",
+  "local model servers ollama vllm llamacpp lmstudio comfyui comfy server worker",
   "provider options zai kie",
   "observability traceloop",
   "data storage supabase",

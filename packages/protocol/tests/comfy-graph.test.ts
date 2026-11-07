@@ -92,6 +92,15 @@ describe("comfyEntryToMetadata", () => {
     ]);
   });
 
+  it("asks for the Comfy Cloud key only when the caller names no other settings", () => {
+    expect(comfyEntryToMetadata("KSampler", INFO.KSampler).required_settings).toEqual([
+      "COMFY_API_KEY"
+    ]);
+    expect(
+      comfyEntryToMetadata("KSampler", INFO.KSampler, { requiredSettings: [] }).required_settings
+    ).toEqual([]);
+  });
+
   it("flattens the default branch of a dynamic combo", () => {
     const md = comfyEntryToMetadata("SaveVideo", INFO.SaveVideo);
     expect(md.properties.map((p) => p.name)).toEqual(["video", "format", "format.codec", "format.codec.encoding"]);

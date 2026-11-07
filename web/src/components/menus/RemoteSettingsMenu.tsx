@@ -69,6 +69,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
     groups: [
       "vLLM",
       "Ollama",
+      "ComfyUI",
       "LlamaCpp",
       "NodeLlamaCpp",
       "LMStudio",
