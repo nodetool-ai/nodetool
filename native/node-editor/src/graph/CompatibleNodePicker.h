@@ -38,6 +38,8 @@ public:
   bool active() const { return active_; }
   bool canDeleteOutput() const;
   QQuickWidget *widget() const;
+  // Create `type` beside `source`'s output and wire the output into `targetPort` as one document step.
+  bool addConnected(QtNodes::NodeId source, const QString &outputName, const QString &type, const QString &targetPort);
   std::function<bool(const QJsonObject &)> applyCommand;
 public slots:
   void open(QtNodes::NodeId node, QtNodes::PortType port,
@@ -81,6 +83,8 @@ private:
   void applyBody(const QString &port, const QJsonArray &prefix = {},
                  const QJsonObject &sourceTypeOverride = {}, bool newDynamicInput = false);
   bool current() const;
+  QJsonObject connectCommand(const QJsonObject &metadata, bool forward, const QString &resource, const QString &handle,
+                             const QString &port, const QPointF &position, QString &id) const;
   bool owns(QObject *object) const;
   void positionWidget();
 };

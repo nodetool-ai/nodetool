@@ -221,6 +221,71 @@ private slots:
     QMetaObject::invokeMethod(imageViewer(), "dismiss");
     QTRY_VERIFY(!imageViewer());
   }
+  // Web OutputQuickActionButtons: image outputs offer Upscale, Remove background and
+  // "Edit with prompt". Each creates the node (when it is in the catalog) and wires the
+  // output into its `image` input (config/outputQuickActions.ts). Native offers them on the
+  // node menu, next to Open image viewer.
+  void imageQuickActionsCreateConnectedNodes() {
+    EditorWindow window; setup(window);
+    const auto imageNode = [](const QString &type, const QString &title) {
+      return QJsonObject{{"node_type", type}, {"title", title},
+        {"properties", QJsonArray{QJsonObject{{"name", "image"}, {"type", QJsonObject{{"type", "image"}}}}}},
+        {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "image"}}}}}}};
+    };
+    window.setCatalog(QJsonArray{
+      QJsonObject{{"node_type", "Fixture.Gallery"}, {"title", "Mixed output gallery"}, {"outputs", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "any"}}}}}}},
+      imageNode("nodetool.image.Upscale", "Upscale"), imageNode("nodetool.image.ImageToImage", "Image To Image")});
+    window.runOutput()->beginRun("quick-actions");
+    output(window, "quick-actions", media("image", imageUri(Qt::blue)));
+    window.fit();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto id = *model.allNodeIds().begin();
+    auto *node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
+    node->setSelected(true);
+    auto hostFor = [&](const QString &name) -> QQuickWidget * {
+      for (auto *widget : window.findChildren<QQuickWidget *>()) { if (widget->isVisible() && control(widget, name)) { return widget; } }
+      return nullptr;
+    };
+    const auto openMenu = [&]() -> QQuickWidget * {
+      QQuickWidget *toolbar = nullptr; [&] { QTRY_VERIFY(toolbar = hostFor("selection-more-node-actions")); }();
+      auto *more = control(toolbar, "selection-more-node-actions"); more->forceActiveFocus();
+      QTest::keyClick(toolbar->quickWindow(), Qt::Key_Space);
+      QQuickWidget *menu = nullptr; [&] { QTRY_VERIFY(menu = window.findChild<QQuickWidget *>("context-menu-host")); }();
+      return menu;
+    };
+    const auto entry = [](QQuickWidget *menu, const QString &name) -> QQuickItem * {
+      QVariant result;
+      QMetaObject::invokeMethod(menu->rootObject(), "itemFor", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, name));
+      return qobject_cast<QQuickItem *>(result.value<QObject *>());
+    };
+    auto *menu = openMenu(); QVERIFY(menu);
+    QTRY_VERIFY(entry(menu, "quick-action-upscale"));
+    QVERIFY(entry(menu, "quick-action-edit"));
+    QVERIFY2(!entry(menu, "quick-action-remove-background"), "An action whose node is not in the catalog is not offered");
+    QCOMPARE(entry(menu, "quick-action-upscale")->property("text").toString(), QString("Upscale"));
+    QCOMPARE(entry(menu, "quick-action-edit")->property("text").toString(), QString("Edit with prompt"));
+    const auto nodes = window.document()->nodes().size();
+    const auto undo = window.document()->undoStack()->count();
+    entry(menu, "quick-action-upscale")->forceActiveFocus();
+    QTest::keyClick(menu->quickWindow(), Qt::Key_Return);
+    QTRY_COMPARE(window.document()->nodes().size(), nodes + 1);
+    QCOMPARE(window.document()->undoStack()->count(), undo + 1);
+    QCOMPARE(window.document()->edges().size(), 1);
+    const auto edge = window.document()->edges().first().toObject();
+    QCOMPARE(edge["source"].toString(), NodeId);
+    QCOMPARE(edge["sourceHandle"].toString(), QString("value"));
+    QCOMPARE(edge["targetHandle"].toString(), QString("image"));
+    const auto created = window.document()->node(edge["target"].toString());
+    QCOMPARE(created["type"].toString(), QString("nodetool.image.Upscale"));
+    const auto position = created["ui_properties"].toObject()["position"].toObject();
+    const auto origin = window.document()->node(NodeId)["ui_properties"].toObject()["position"].toObject();
+    QVERIFY2(position["x"].toDouble() > origin["x"].toDouble() + 100, "The new node is placed to the right of the source");
+    // Undo removes the node and the wire in one step.
+    window.document()->undoStack()->undo();
+    QCOMPARE(window.document()->nodes().size(), nodes);
+    QCOMPARE(window.document()->edges().size(), 0);
+  }
   void rasterCanvasActivationAndScope() {
     EditorWindow window; setup(window);
     window.runOutput()->beginRun("raster-image");

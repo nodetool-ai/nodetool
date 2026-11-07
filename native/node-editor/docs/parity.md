@@ -90,9 +90,10 @@ records implemented surfaces and remaining work without claiming full parity.
   previews, and legacy nested media-list flattening.
   3D, llama.cpp, and Transformers.js model fields, provider setup, recommendations,
   model packs, and model download/install progress.
-- Modal asset-viewer behavior, copy, multiselect/compare, batch download and
-  Save to assets actions. Mixed collections use native gallery tiles instead of
-  every specialized web array renderer.
+- Grid-tile hover actions, grid multi-select with compare, batch download,
+  copying video/audio info and the library viewer's edit, transform,
+  open-workflow and info actions. Mixed collections use native gallery tiles
+  instead of every specialized web array renderer.
 - Real-platform accessibility, IME, high-DPI, installation, and measured
   large-graph interaction latency acceptance.
 
@@ -808,11 +809,39 @@ The focused sanitizer suites also pass serially with leak detection disabled.
 
 The native panel preserves mixed text alongside media, including arrays that the web
 image-specific AssetGrid filters to images. Audio/video/text collections use
-native gallery tiles rather than every specialized web array renderer. Copy,
-multiselect/compare, batch download, Save to assets and other web output quick
-actions remain pending. Selected media reuse the authenticated resolver and
-download controls. Offscreen tests do not establish platform accessibility or
-fractional-DPI rendering acceptance.
+native gallery tiles rather than every specialized web array renderer.
+Grid multi-select with compare, batch download and tile hover actions remain
+pending. Selected media reuse the authenticated resolver and download controls.
+Offscreen tests do not establish platform accessibility or fractional-DPI
+rendering acceptance.
+
+## Output actions evidence
+
+Web owners: `ContentCardBody.tsx` (`VideoPreview`), `ImageView.tsx`,
+`AssetViewer.tsx`, `OutputQuickActionButtons.tsx` and
+`config/outputQuickActions.ts`. Status is acceptance pending.
+
+| Web action | Native |
+| --- | --- |
+| Video card Save to assets (`createAsset`, then `POST /api/assets` multipart `json` with `name` and `content_type`) | `MediaResolver::saveToAssets` uploads the leased bytes with the account token and no `parent_id`. The video preview shows Save to assets and the web's result strings. Images and audio do not offer it, as on the web card. |
+| Image Copy (`CopyAssetButton`, viewer Copy) | Copy on image previews, the gallery toolbar and the viewer. The decoded pixels go to the clipboard. Video and audio info copy is open. |
+| Viewer Download | Unchanged. The save dialog now keeps the media's extension when a bare name is typed. |
+| Viewer Compare with another image | Compare, pick another image with Previous and Next, then the shared wipe comparison. Exit returns to picking and Cancel leaves compare mode. Hidden for a single image. |
+| Output quick actions Upscale, Remove background, Edit with prompt | Node menu items for a node with an image result. Each requires its node type in the catalog and adds the node plus the `image` wire as one undo step to the right of the output. |
+| Library viewer edit, transform, open workflow, info | Open. They act on library assets, not on run outputs. |
+
+`MediaResolverTests` covers the upload request, refusal, missing id, cancel and
+lease checks. `MediaUiTest` covers Save to assets, Copy, the dialog suffix and
+compare. `MediaGalleryHostTest::imageQuickActionsCreateConnectedNodes` drives the
+node menu and checks the new node, wire, placement and undo. Image comparison
+layers decode asynchronously and `ImageComparisonTest` waits for both images
+before sampling pixels.
+
+Run with:
+
+```bash
+ctest --test-dir <build> -R 'node_editor_(media_tests|media_ui|media_gallery_host|image_comparison|rich_output_host)$' --output-on-failure
+```
 
 ## F14 action inventory
 
@@ -1205,7 +1234,7 @@ Columns size to bounded cell content and can be resized by dragging a header edg
 The full-view action opens a read-only window-bounded dialog and returns focus
 to its trigger when closed. The explicit preview notice remains in both views. Each matrix row
 is fetched once before its cells are read. Markdown uses Qt's Markdown parser, shared link colors, code typography and code surfaces for inline and fenced code. Selecting an HTTP or HTTPS link exposes an explicit Open action. Other schemes cannot open. Tool arguments use formatted JSON in shared MonoCode typography rather than the web syntax highlighter. Comparison images use the existing
-authenticated media resolver. The comparison overlays the images with a wipe in
+authenticated media resolver and decode off the GUI thread. The comparison overlays the images with a wipe in
 horizontal and vertical modes. A mouse moves the divider on hover and recenters on
 leave. Touch, pen and a pressed mouse drag it and keep the position on release.
 Each image fits on its own at natural size without upscaling, over the alpha checker,

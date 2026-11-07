@@ -23,6 +23,8 @@ public:
   ~CanvasMediaPresenter() override;
   QList<QQuickWidget *> activeWidgets() const;
   bool canViewImage(const QString &nodeId) const;
+  // The output name of the node's current image result, empty when it has none (web OutputQuickActionButtons).
+  QString imageOutputName(const QString &nodeId) const;
   bool viewImage(const QString &nodeId);
 public slots:
   void setSources(const QVariantList &sources);

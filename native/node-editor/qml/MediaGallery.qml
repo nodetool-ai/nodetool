@@ -50,6 +50,7 @@ ColumnLayout {
         NodeButton { objectName: "gallery-grid"; text: "Grid"; accessibleName: "Show output grid"; visible: gallery.singleView; variant: NodeButton.Flat; onClicked: gallery.showGrid() }
         NodeButton { objectName: "gallery-previous"; text: root.compact ? "‹" : "Previous"; accessibleName: "Previous output"; enabled: gallery.currentIndex > 0; variant: NodeButton.Flat; onClicked: gallery.open(gallery.currentIndex - 1) }
         Ui.Text { objectName: "gallery-position"; height: Ui.Metrics.compact; verticalAlignment: Text.AlignVCenter; text: (gallery.currentIndex + 1) + " / " + gallery.count; role: Ui.Typography.MonoCaption; elide: Text.ElideRight }
+        NodeButton { objectName: "gallery-copy"; text: "Copy"; accessibleName: "Copy selected image"; visible: gallery.singleView && root.selected.kind === "image"; variant: NodeButton.Flat; onClicked: { if (viewer.item && viewer.item.copyImage) viewer.item.copyImage() } }
         NodeButton { objectName: "gallery-download"; text: "Download"; accessibleName: "Download selected output"; visible: gallery.singleView && root.selected.kind === "image"; variant: NodeButton.Flat; onClicked: { if (viewer.item && viewer.item.download) viewer.item.download() } }
         NodeButton { objectName: "gallery-next"; text: root.compact ? "›" : "Next"; accessibleName: "Next output"; enabled: gallery.currentIndex + 1 < gallery.count; variant: NodeButton.Flat; onClicked: gallery.open(gallery.currentIndex + 1) }
     }

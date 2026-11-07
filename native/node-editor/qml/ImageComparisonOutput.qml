@@ -87,9 +87,10 @@ ColumnLayout {
             height: implicitHeight * fit
             source: layer.resolvedSource
             fillMode: Image.Stretch
-            // The resolver already holds the decoded-ready bytes in a local file, so loading is
-            // immediate and the first frame shows the pair rather than a transient checker.
-            asynchronous: false
+            // The resolver holds the bytes in a local file, but decoding a large image on the GUI
+            // thread freezes the editor. The layer decodes off-thread and the checker shows until
+            // it is ready (`natural` and `fit` already wait for Image.Ready).
+            asynchronous: true
             onStatusChanged: if (status === Image.Error) layer.failure = "Unable to display image"
         }
     }

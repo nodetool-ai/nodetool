@@ -1821,6 +1821,16 @@ bool EditorWindow::addNodeAt(const QString &type, const QPointF &position, bool 
   }
   return false;
 }
+bool EditorWindow::addConnectedNode(const QString &sourceId, const QString &outputName, const QString &type, const QString &targetPort) {
+  if (!compatiblePicker_) { return false; }
+  for (const auto id : model_.allNodeIds()) {
+    if (model_.resourceId(id) != sourceId) { continue; }
+    const bool added = compatiblePicker_->addConnected(id, outputName, type, targetPort);
+    if (added) { rememberRecentNode(type); }
+    return added;
+  }
+  return false;
+}
 QStringList EditorWindow::catalogRecent() const {
     return QSettings().value("catalog/recentNodes").toStringList();
 }

@@ -330,6 +330,21 @@ public:
                 if (w.canvasMedia_) { w.canvasMedia_->viewImage(nodeId_); }
             });
         }
+        // Web OutputQuickActionButtons / config/outputQuickActions.ts: one-step follow-ups on an image output.
+        if (w.canvasMedia_) {
+            const auto imageOutput = w.canvasMedia_->imageOutputName(nodeId_);
+            struct QuickAction { const char *id; const char *type; const char *icon; QString label; };
+            const QuickAction quickActions[] = {
+                {"quick-action-upscale", "nodetool.image.Upscale", "aspectRatio", tr("Upscale")},
+                {"quick-action-remove-background", "nodetool.image.RemoveBackground", "layers", tr("Remove background")},
+                {"quick-action-edit", "nodetool.image.ImageToImage", "autoFixHigh", tr("Edit with prompt")}};
+            for (const auto &action : quickActions) {
+                if (imageOutput.isEmpty() || !w.knownNodeType(action.type)) { continue; }
+                menu.item(action.id, action.label, action.icon,
+                    [this, imageOutput, type = QString::fromLatin1(action.type)] { w.addConnectedNode(nodeId_, imageOutput, type, "image"); },
+                    {.tooltip = tr("Add a connected node for this image"), .reason = w.readOnlyReason(), .enabled = editable});
+            }
+        }
         menu.separator();
         if (inGroup) {
             menu.item("remove-from-group", tr("Remove from group"), "groupRemove", [this] { w.action("Remove from group"); },

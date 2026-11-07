@@ -258,6 +258,10 @@ bool CanvasMediaPresenter::canViewImage(const QString &nodeId) const {
   }
   return false;
 }
+QString CanvasMediaPresenter::imageOutputName(const QString &nodeId) const {
+  const auto source = sources_.value(nodeId);
+  return source.value("kind") == "image" ? source.value("outputName").toString() : QString{};
+}
 bool CanvasMediaPresenter::viewImage(const QString &nodeId) {
   for (const auto id : model_.allNodeIds()) {
     if (model_.resourceId(id) == nodeId) { return openImageViewer(id); }

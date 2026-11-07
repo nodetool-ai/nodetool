@@ -220,27 +220,36 @@ void CompatibleNodePicker::choose(const QString &key, int generation) {
   QJsonObject metadata;
   for (const auto &value:catalog_) { if (nodeType(value.toObject())==row["type"].toString()) { metadata=value.toObject(); break; } }
   if (metadata.isEmpty()) { cancel(); return; }
-  const bool forward=port_==QtNodes::PortType::Out;
+  QString id;
+  const auto command=connectCommand(metadata,port_==QtNodes::PortType::Out,resource_,handle_,row["port"].toString(),position_,id);
+  // Close before document projection destroys any scene items or Quick objects.
+  cancel();
+  if (applyCommand && applyCommand(command)) { emit nodeCreated(id); }
+}
+// One canonical add-node/add-edge batch. `forward` wires `resource`'s output `handle` into the new
+// node's `port`; otherwise the new node's output `port` feeds `resource`'s input `handle`.
+QJsonObject CompatibleNodePicker::connectCommand(const QJsonObject &metadata,bool forward,const QString &resource,
+    const QString &handle,const QString &port,const QPointF &position,QString &id) const {
   QJsonArray existing;
   for (const auto nodeId:model_.allNodeIds()) { existing.append(model_.nodeSnapshot(nodeId)); }
   NodeCreationOptions options;
-  if (forward) { options.receivingName=handle_; options.useMetadataStyle=true; }
-  auto node=createNativeNode(metadata,position_,existing,{},options);
-  const auto id=node["id"].toString();
+  if (forward) { options.receivingName=handle; options.useMetadataStyle=true; }
+  auto node=createNativeNode(metadata,position,existing,{},options);
+  id=node["id"].toString();
   const QJsonObject edge{{"id",QUuid::createUuid().toString(QUuid::Id128)},
-    {"source",forward ? resource_:id},{"target",forward ? id:resource_},
-    {"sourceHandle",forward ? handle_:row["port"].toString()},
-    {"targetHandle",forward ? row["port"].toString():handle_}};
+    {"source",forward ? resource:id},{"target",forward ? id:resource},
+    {"sourceHandle",forward ? handle:port},
+    {"targetHandle",forward ? port:handle}};
   WorkflowGraphModel preview;
   preview.project(QJsonObject{{"nodes",QJsonArray{node}},{"edges",QJsonArray{edge}}},QJsonArray{metadata});
   const auto previewId=*preview.allNodeIds().begin();
   const auto &layout=preview.layout(previewId);
-  auto placed=position_;
+  auto placed=position;
   if (forward) {
     const auto inputs=preview.ports(previewId,QtNodes::PortType::In);
     double offset=node_metrics::contentTop+node_metrics::rowHeight/2.0;
     for (qsizetype i=0;i<inputs.size();++i) {
-      if (inputs[i].toObject()["name"].toString()==row["port"].toString()) { offset=layout.inputY[i]; break; }
+      if (inputs[i].toObject()["name"].toString()==port) { offset=layout.inputY[i]; break; }
     }
     placed+=QPointF(60,-offset);
   } else {
@@ -254,11 +263,28 @@ void CompatibleNodePicker::choose(const QString &key, int generation) {
   auto ui=node["ui_properties"].toObject();
   ui["position"]=QJsonObject{{"x",placed.x()},{"y",placed.y()}};
   node["ui_properties"]=ui;
-  const QJsonObject command{{"op","batch"},{"commands",QJsonArray{
+  return QJsonObject{{"op","batch"},{"commands",QJsonArray{
     QJsonObject{{"op","addNode"},{"node",node}},QJsonObject{{"op","addEdge"},{"edge",edge}}}}};
-  // Close before document projection destroys any scene items or Quick objects.
-  cancel();
-  if (applyCommand && applyCommand(command)) { emit nodeCreated(id); }
+}
+// Web useAddConnectedNode: a node of `type` beside an output, wired to `targetPort`, in one step.
+// The output handle's scene position is the anchor the loose-wire picker would have used.
+bool CompatibleNodePicker::addConnected(QtNodes::NodeId source,const QString &outputName,const QString &type,const QString &targetPort) {
+  if (model_.readOnly() || !model_.nodeExists(source) || model_.metadata(source).isEmpty()) { return false; }
+  const auto outputs=model_.ports(source,QtNodes::PortType::Out);
+  const auto &layout=model_.layout(source);
+  QJsonObject metadata;
+  for (const auto &value:catalog_) { if (nodeType(value.toObject())==type) { metadata=value.toObject(); break; } }
+  if (metadata.isEmpty()) { return false; }
+  for (qsizetype i=0;i<outputs.size();++i) {
+    if (outputs[i].toObject()["name"].toString()!=outputName) { continue; }
+    const auto anchor=model_.nodeData(source,QtNodes::NodeRole::Position).toPointF()
+        +QPointF(layout.size.width(),i<layout.outputY.size() ? layout.outputY[i]:node_metrics::contentTop+node_metrics::rowHeight/2.0);
+    QString id;
+    const auto command=connectCommand(metadata,true,model_.resourceId(source),outputName,targetPort,anchor,id);
+    if (applyCommand && applyCommand(command)) { emit nodeCreated(id); return true; }
+    return false;
+  }
+  return false;
 }
 void CompatibleNodePicker::search(const QString &query,int generation) { if (generation==generation_ && current()) { setQuery(query); } }
 void CompatibleNodePicker::dismiss(int generation) { if (generation==generation_) { cancel(); } }

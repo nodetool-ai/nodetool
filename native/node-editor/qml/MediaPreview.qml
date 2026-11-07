@@ -31,6 +31,11 @@ Item {
     property string filename: locator && typeof locator === "object" ? String(locator.filename || locator.name || "") : ""
     property bool showFilename: true
     property bool showDownload: mediaKind !== "image"
+    // Web ContentCardBody VideoPreview offers Save to assets next to Download, on video only.
+    property bool showSaveToAssets: mediaKind === "video"
+    // Web ImageView and AssetViewer offer Copy for images, wherever Download is offered.
+    property bool showCopy: mediaKind === "image" && showDownload
+    property bool savingToAssets: false
     property real zoom: 1
     property real waveScroll: 0
     readonly property real viewFraction: Math.min(1, waveform.width / Math.max(1, player.duration / 1000 * zoom))
@@ -40,8 +45,21 @@ Item {
     function download() {
         if (!mediaResolver || !resolvedSource.toString().length) return
         downloadStatus = ""
-        downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + mediaResolver.suggestedFilename(resolverKey, filename, mediaKind)
+        const suggested = mediaResolver.suggestedFilename(resolverKey, filename, mediaKind)
+        // A bare name typed into the dialog keeps the media's extension.
+        downloadDialog.defaultSuffix = suggested.lastIndexOf(".") > 0 ? suggested.slice(suggested.lastIndexOf(".") + 1) : ""
+        downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + suggested
         downloadDialog.open()
+    }
+    function saveToAssets() {
+        if (!mediaResolver || !resolvedSource.toString().length || savingToAssets) return
+        downloadStatus = ""
+        savingToAssets = true
+        if (!mediaResolver.saveToAssets(resolverKey, filename, mediaKind)) savingToAssets = false
+    }
+    function copyImage() {
+        if (!mediaResolver || mediaKind !== "image" || !resolvedSource.toString().length) return
+        downloadStatus = clipboard.copyImage(mediaResolver.resolvedBytes(resolverKey)) ? "Copied!" : "Could not copy the image"
     }
     function toggleFullscreen() {
         if (mediaKind !== "video" || !resolvedSource.toString().length) return
@@ -65,7 +83,7 @@ Item {
     function reset() {
         const previousKey = resolverKey
         resolverKey = ""
-        fitImage(); downloadDialog.close(); downloadStatus = ""; zoom = 1; waveScroll = 0; exitFullscreen()
+        fitImage(); downloadDialog.close(); downloadStatus = ""; savingToAssets = false; zoom = 1; waveScroll = 0; exitFullscreen()
         if (mediaResolver && previousKey) mediaResolver.cancel(previousKey)
         player.stop(); player.source = ""; video.clearFrame(); resolvedSource = ""
         if (mediaResolver && previousKey) mediaResolver.release(previousKey)
@@ -104,7 +122,18 @@ Item {
         function onCleared() { root.reset() }
         function onSaved(key, destination) { if (key === root.resolverKey) root.downloadStatus = "Saved media" }
         function onSaveFailed(key, message) { if (key === root.resolverKey) root.downloadStatus = message }
+        function onAssetSaved(key, assetId) {
+            if (key !== root.resolverKey) return
+            root.savingToAssets = false
+            root.downloadStatus = "1 file added to assets"
+        }
+        function onAssetSaveFailed(key, message) {
+            if (key !== root.resolverKey) return
+            root.savingToAssets = false
+            root.downloadStatus = "Failed to add " + root.mediaKind + " to assets"
+        }
     }
+    MediaClipboard { id: clipboard }
     MediaPlayer {
         id: player
         objectName: "preview-player"
@@ -285,7 +314,7 @@ Item {
     Flow {
         Layout.fillWidth: true
         spacing: Ui.Metrics.sm
-        visible: root.mediaKind !== "image" || root.showDownload
+        visible: root.mediaKind !== "image" || root.showDownload || root.showCopy
         NodeButton { objectName: "preview-open-image"; visible: root.mediaKind === "image" && !root.interactiveImage; text: "Open"; accessibleName: "Open image viewer"; variant: NodeButton.Flat; onClicked: root.imageActivated() }
         NodeButton { objectName: "preview-image-fit"; visible: root.interactiveImage; text: "Fit"; accessibleName: "Fit image"; variant: NodeButton.Flat; onClicked: root.fitImage() }
         Ui.Text { objectName: "preview-image-dimensions"; visible: root.interactiveImage; text: image.sourceSize.width + " × " + image.sourceSize.height; role: Ui.Typography.MonoCaption; height: Ui.Metrics.standard; verticalAlignment: Text.AlignVCenter }
@@ -330,7 +359,9 @@ Item {
         }
         NodeButton { objectName: "preview-mute"; visible: root.mediaKind !== "image"; checkable: true; checked: audio.muted; text: audio.muted ? "Unmute" : "Mute"; accessibleName: text; variant: NodeButton.Flat; onClicked: audio.muted = !audio.muted }
         Ui.Slider { objectName: "preview-volume"; visible: root.mediaKind !== "image" && (!root.compact || root.mediaKind !== "audio"); width: Ui.Metrics.xxxl * 3; accessibleName: "Volume"; from: 0; to: 1; value: audio.volume; onValueCommitted: value => audio.volume = value }
+        NodeButton { objectName: "preview-copy"; visible: root.showCopy; text: "Copy"; accessibleName: "Copy image"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.copyImage() }
         NodeButton { objectName: "preview-download"; visible: root.showDownload; text: "Download"; accessibleName: "Download media"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.download() }
+        NodeButton { objectName: "preview-save-assets"; visible: root.showDownload && root.showSaveToAssets; text: "Save to assets"; accessibleName: "Save " + root.mediaKind + " to assets"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure && !root.savingToAssets; onClicked: root.saveToAssets() }
     }
 }
 }

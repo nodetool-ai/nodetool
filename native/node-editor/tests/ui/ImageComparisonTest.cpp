@@ -16,6 +16,7 @@
 #include <QTcpSocket>
 #include <QtTest>
 #include <cmath>
+#include <functional>
 #include <memory>
 using nodetool::node_editor::MediaResolver;
 namespace {
@@ -87,6 +88,16 @@ struct Host {
         QTest::mouseClick(&window, Qt::LeftButton, {}, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
     }
 };
+// Layers decode off the GUI thread, so a pixel sample waits for both images to be ready.
+bool imagesReady(const QQuickItem *root, int expected = 2) {
+    int ready = 0;
+    std::function<void(const QQuickItem *)> visit = [&](const QQuickItem *item) {
+        if (item->inherits("QQuickImage") && item->property("source").toUrl().isLocalFile() && item->property("status").toInt() == 1) { ++ready; }
+        for (auto *child : item->childItems()) { visit(child); }
+    };
+    visit(root);
+    return ready == expected;
+}
 struct FakeHttp final : QObject {
     QTcpServer server;
     QHash<QString, QPointer<QTcpSocket>> sockets;
@@ -137,11 +148,13 @@ private slots:
         h.comparison()->setProperty("mode", mode); h.comparison()->setProperty("position", position);
         const auto left = mode == "horizontal" ? QPointF(0.15, 0.5) : QPointF(0.5, 0.35);
         const auto right = mode == "horizontal" ? QPointF(0.85, 0.5) : QPointF(0.5, 0.65);
+        QTRY_VERIFY_WITH_TIMEOUT(imagesReady(h.root()), 10000);
         QTRY_VERIFY_WITH_TIMEOUT(near(h.pixel(left.x(), left.y()), position > (mode == "horizontal" ? 0.15 : 0.35) ? Qt::red : Qt::blue), 3000);
         QVERIFY(near(h.pixel(right.x(), right.y()), position > (mode == "horizontal" ? 0.85 : 0.65) ? Qt::red : Qt::blue));
     }
     void hoverAndMouseLeaveFollowWeb() {
         Host h; QVERIFY2(h.root(), qPrintable(h.error)); QVERIFY(h.surface());
+        QTRY_VERIFY_WITH_TIMEOUT(imagesReady(h.root()), 10000);
         QTest::mouseMove(&h.window, h.at(0.8, 0.5));
         QTRY_VERIFY(std::abs(h.comparison()->property("position").toReal() - 0.8) < 0.03);
         QVERIFY(near(h.pixel(0.7, 0.5), Qt::red));
@@ -191,12 +204,33 @@ private slots:
         QFETCH(QSize, aSize);
         Host h(pair(inlineImage(Qt::red, aSize))); QVERIFY2(h.root(), qPrintable(h.error)); QVERIFY(h.surface());
         h.comparison()->setProperty("position", 1.0);
+        QTRY_VERIFY_WITH_TIMEOUT(imagesReady(h.root()), 10000);
         QTRY_VERIFY_WITH_TIMEOUT(near(h.pixel(0.5, 0.5), Qt::red), 3000);
         const auto offset = 80.0 / h.surface()->width();
         QVERIFY2(near(h.pixel(0.5 + offset, 0.5), Qt::blue), "A must fit independently and small images must retain natural size");
         h.root()->setWidth(600); h.window.resize(600, 280); QTest::qWait(30);
         QCOMPARE(h.comparison()->property("position").toReal(), 1.0);
         QVERIFY(near(h.pixel(0.5 + 80.0 / h.surface()->width(), 0.5), Qt::blue));
+    }
+    // A large image decoded on the GUI thread freezes the editor, so both layers load
+    // asynchronously. The pair is still painted once decoding finishes.
+    void largeImageDecodesAsynchronously() {
+        Host h(pair(inlineImage(Qt::red, QSize(5000, 4000)), inlineImage(Qt::blue, QSize(5000, 4000))));
+        QVERIFY2(h.root(), qPrintable(h.error)); QVERIFY(h.surface());
+        QList<QQuickItem *> images;
+        std::function<void(QQuickItem *)> collect = [&](QQuickItem *item) {
+            if (item->inherits("QQuickImage") && item->property("source").toUrl().isLocalFile()) { images.append(item); }
+            for (auto *child : item->childItems()) { collect(child); }
+        };
+        collect(h.root());
+        QCOMPARE(images.size(), 2);
+        for (auto *image : images) { QVERIFY2(image->property("asynchronous").toBool(), "A layer decodes on the GUI thread"); }
+        bool sawLoading = false;
+        for (auto *image : images) { sawLoading = sawLoading || image->property("status").toInt() == 2; }
+        QVERIFY2(sawLoading, "Decoding must be pending while the event loop runs");
+        h.comparison()->setProperty("position", 1.0);
+        QTRY_VERIFY_WITH_TIMEOUT(imagesReady(h.root()), 20000);
+        QTRY_VERIFY_WITH_TIMEOUT(near(h.pixel(0.25, 0.5), Qt::red), 10000);
     }
     void transparentPairShowsChecker() {
         Host h(pair(inlineImage(Qt::transparent), inlineImage(Qt::transparent))); QVERIFY2(h.root(), qPrintable(h.error)); QVERIFY(h.surface());

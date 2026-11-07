@@ -23,12 +23,18 @@ public:
   Q_INVOKABLE void clear();
   Q_INVOKABLE QString suggestedFilename(const QString &key, const QString &requested, const QString &kind) const;
   Q_INVOKABLE bool saveResolved(const QString &key, const QUrl &destination);
+  // Web "Save to assets": uploads the leased bytes through POST /api/assets as the account.
+  Q_INVOKABLE bool saveToAssets(const QString &key, const QString &requested, const QString &kind);
+  // The leased bytes, for clipboard copy. Empty once the key is released or unresolved.
+  Q_INVOKABLE QByteArray resolvedBytes(const QString &key) const;
 signals:
   void resolved(QString key, QUrl localUrl);
   void failed(QString key, QString message);
   void cleared();
   void saved(QString key, QUrl destination);
   void saveFailed(QString key, QString message);
+  void assetSaved(QString key, QString assetId);
+  void assetSaveFailed(QString key, QString message);
 private:
   void fetch(const QString &key, quint64 serial, const QUrl &url, bool lookup, int redirects = 0);
   void store(const QString &key, quint64 serial, const QByteArray &bytes, const QString &suffix, const QString &contentType = {});
@@ -48,6 +54,7 @@ private:
   QTemporaryDir cache_;
   QHash<QString, quint64> serials_;
   QHash<QString, QPointer<QNetworkReply>> replies_;
+  QHash<QString, QPointer<QNetworkReply>> uploads_;
   quint64 next_ = 0;
   qint64 diskBytes_ = 0;
 

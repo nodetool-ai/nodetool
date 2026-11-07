@@ -340,6 +340,8 @@ private:
   // clearOverlap moves the new card vertically off the top-level cards it would cover,
   // as a node menu add does (web hooks/useCreateNode.ts resolveVerticalOverlap).
   bool addNodeAt(const QString &type, const QPointF &position, bool clearOverlap = false);
+  // Web useAddConnectedNode: a node of `type` beside `sourceId`'s output, wired into `targetPort`.
+  bool addConnectedNode(const QString &sourceId, const QString &outputName, const QString &type, const QString &targetPort);
   void autoLayout(bool selectedOnly);
   void refresh();
   void showBrowser(bool visible);

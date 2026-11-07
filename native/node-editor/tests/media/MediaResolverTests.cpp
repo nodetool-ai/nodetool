@@ -137,6 +137,74 @@ private slots:
   QVERIFY(saved.open(QIODevice::ReadOnly));
   QCOMPARE(saved.readAll(), QByteArray("new"));
  }
+
+ // The web's "Save to assets" (ContentCardBody.tsx VideoPreview.handleAddToAssets ->
+ // AssetStore.createAsset -> uploadAsset) POSTs multipart to /api/assets with a "json"
+ // part {content_type, name} and the file bytes, carrying the account's bearer token.
+ void saveToAssetsPostsMultipartLikeTheWeb() {
+  QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+  QByteArray request; QPointer<QTcpSocket> client; int status = 200; QByteArray reply = R"({"id":"0123456789abcdef0123456789abcdef","content_type":"video/mp4"})";
+  connect(&server, &QTcpServer::newConnection, this, [&] {
+   auto socket = server.nextPendingConnection(); client = socket;
+   connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+    request += socket->readAll();
+    const auto split = request.indexOf("\r\n\r\n");
+    if (split < 0) { return; }
+    const auto header = request.left(split);
+    const auto at = header.toLower().indexOf("content-length:");
+    if (at < 0 || request.size() - split - 4 < header.mid(at + 15).split('\r').first().trimmed().toInt()) { return; }
+    socket->write("HTTP/1.1 " + QByteArray::number(status) + " Result\r\nContent-Type: application/json\r\nContent-Length: " + QByteArray::number(reply.size()) + "\r\nConnection: close\r\n\r\n" + reply);
+    socket->disconnectFromHost();
+   });
+   connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+  });
+  MediaResolver resolver;
+  const QUrl base(QString("http://127.0.0.1:%1").arg(server.serverPort()));
+  resolver.configure(base, "assets-account");
+  QSignalSpy savedAsset(&resolver, &MediaResolver::assetSaved), failedAsset(&resolver, &MediaResolver::assetSaveFailed);
+  QVERIFY(!resolver.saveToAssets("clip", "Take one", "video"));
+  QCOMPARE(failedAsset.size(), 1);
+  failedAsset.clear();
+  resolver.resolve("clip", "data:video/mp4;base64,bW92aWU=");
+  QVERIFY(resolver.saveToAssets("clip", "Take one", "video"));
+  QTRY_COMPARE(savedAsset.size(), 1);
+  QCOMPARE(savedAsset[0][0].toString(), QString("clip"));
+  QCOMPARE(savedAsset[0][1].toString(), QString("0123456789abcdef0123456789abcdef"));
+  QVERIFY(request.startsWith("POST /api/assets"));
+  QVERIFY(request.contains("Authorization: Bearer assets-account"));
+  QVERIFY(request.toLower().contains("content-type: multipart/form-data"));
+  QVERIFY(request.contains("name=\"json\""));
+  QVERIFY(request.contains("\"content_type\":\"video/mp4\""));
+  QVERIFY(request.contains("\"name\":\"Take one.mp4\""));
+  QVERIFY(!request.contains("parent_id"));
+  QVERIFY(request.contains("name=\"file\""));
+  QVERIFY(request.contains("movie"));
+  QCOMPARE(failedAsset.size(), 0);
+  // A server refusal reports once, keeps the preview, and allows a retry.
+  request.clear(); status = 500; reply = "{}";
+  QVERIFY(resolver.saveToAssets("clip", "Take one", "video"));
+  QTRY_COMPARE(failedAsset.size(), 1);
+  QVERIFY(failedAsset[0][1].toString().contains("500"));
+  QCOMPARE(savedAsset.size(), 1);
+  request.clear(); status = 200; reply = R"({"name":"no id"})";
+  QVERIFY(resolver.saveToAssets("clip", "Take one", "video"));
+  QTRY_COMPARE(failedAsset.size(), 2);
+  // Releasing or cancelling the key drops a pending upload without a late signal.
+  request.clear(); reply = R"({"id":"ffffffffffffffffffffffffffffffff"})";
+  QVERIFY(resolver.saveToAssets("clip", "Take one", "video"));
+  resolver.cancel("clip");
+  QTest::qWait(150);
+  QCOMPARE(savedAsset.size(), 1); QCOMPARE(failedAsset.size(), 2);
+  QVERIFY(!resolver.saveToAssets("clip", "Take one", "video"));
+ }
+ void resolvedBytesFollowTheLease() {
+  MediaResolver resolver;
+  resolver.resolve("img", "data:image/png;base64,aGVsbG8=");
+  QCOMPARE(resolver.resolvedBytes("img"), QByteArray("hello"));
+  QCOMPARE(resolver.resolvedBytes("missing"), QByteArray());
+  resolver.release("img");
+  QCOMPARE(resolver.resolvedBytes("img"), QByteArray());
+ }
  void inlineAndReject() {
   MediaResolver resolver;
   QSignalSpy loaded(&resolver, &MediaResolver::resolved), failed(&resolver, &MediaResolver::failed);
