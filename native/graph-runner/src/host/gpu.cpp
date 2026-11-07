@@ -32,6 +32,11 @@ struct ContextGpu final : js::NativePayload {
   std::shared_ptr<const Catalog> catalog;
   std::map<uint64_t, Texture> textures;
   uint64_t allocated = 0;
+  // A texture never changes after it is created, and every message that
+  // carries it (output, result, generation, summary) needs the same PNG, so
+  // each texture is read back and encoded once.
+  struct Portable { std::string data; uint32_t width; uint32_t height; };
+  std::map<uint64_t, Portable> portables;
 
   ~ContextGpu() override { clear(); }
 
@@ -65,18 +70,21 @@ struct ContextGpu final : js::NativePayload {
     device->release(id);
     allocated -= textures.at(id).bytes;
     textures.erase(id);
+    portables.erase(id);
   }
   void releaseRun(const std::string& run) {
     for (auto it = textures.begin(); it != textures.end();) {
       if (it->second.run != run) { ++it; continue; }
       device->release(it->first);
       allocated -= it->second.bytes;
+      portables.erase(it->first);
       it = textures.erase(it);
     }
   }
   void clear() {
     for (const auto& [id, texture] : textures) device->release(id);
     textures.clear();
+    portables.clear();
     allocated = 0;
   }
 };
@@ -143,13 +151,17 @@ void portable(Json& v, const std::shared_ptr<ContextGpu>& state) {
       const uint64_t id = textureId(v.at("texture").at("gpu"));
       if (!state) throw std::runtime_error("GPU texture has no owning context");
       state->require(id);
-      uint32_t w = 0, h = 0;
-      const auto rgba = state->ready().read(id, w, h);
-      const auto png = encodePng(rgba.data(), w, h);
+      auto cached = state->portables.find(id);
+      if (cached == state->portables.end()) {
+        uint32_t w = 0, h = 0;
+        const auto rgba = state->ready().read(id, w, h);
+        const auto png = encodePng(rgba.data(), w, h);
+        cached = state->portables.emplace(id, ContextGpu::Portable{base64Encode(png.data(), png.size()), w, h}).first;
+      }
       v["mimeType"] = "image/png";
-      v["data"] = base64Encode(png.data(), png.size());
-      v["width"] = w;
-      v["height"] = h;
+      v["data"] = cached->second.data;
+      v["width"] = cached->second.width;
+      v["height"] = cached->second.height;
     } catch (const std::exception& e) {
       std::fprintf(stderr, "[gpu] cannot read back an output image: %s\n", e.what());
       v.erase("mimeType");

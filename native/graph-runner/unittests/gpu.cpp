@@ -459,6 +459,14 @@ void catalogOwnerIsolation() {
   CHECK(readable(*b, peer));
   auto ownOutput = gr::host::gpuBoundary(*b, ref(peer));
   CHECK(ownOutput && (*ownOutput)["value"].value("mimeType", std::string()) == "image/png");
+  // Every message that carries the texture gets the same encoding, and a
+  // released texture's encoding is never served again.
+  auto again = gr::host::gpuBoundary(*b, ref(peer));
+  CHECK(again && (*again)["value"]["data"] == (*ownOutput)["value"]["data"]);
+  b->evaluateScript("gpu.release(" + std::to_string(peer) + ")", "owner-release-encoded");
+  auto released = gr::host::gpuBoundary(*b, ref(peer));
+  CHECK(released && (*released)["value"].value("mimeType", std::string()) != "image/png");
+  peer = upload(*b, "same-job");
   b->releaseRunResources();
   gr::host::gpuEndRun(*b, "same-job");
   gr::host::gpuEndRun(*b, "guest-controlled-label");
