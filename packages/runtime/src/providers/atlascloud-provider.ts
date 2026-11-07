@@ -760,7 +760,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input.speech_rate = Math.round((params.speed - 1) * 100);
     }
     if (params.model === "bytedance/seed-audio-1.0" && params.referenceAudio) {
-      const referenceUrl = await this.uploadMedia(
+      const referenceUrl = await this.uploadInput(
         params.referenceAudio,
         sniffMediaMime(params.referenceAudio, "audio/mpeg"),
         "reference-voice"
@@ -827,7 +827,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     if (!ATLASCLOUD_ASR_MODELS.some((model) => model.id === args.model)) {
       throw new Error(`Unknown AtlasCloud ASR model: ${args.model}`);
     }
-    const audioUrl = await this.uploadMedia(
+    const audioUrl = await this.uploadInput(
       args.audio,
       sniffMediaMime(args.audio, "audio/mpeg"),
       "input-audio"
@@ -876,7 +876,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       (item) => item.id === params.model.id && item.supportedTasks?.includes("image_to_3d")
     );
     if (!model) throw new Error(`AtlasCloud model ${params.model.id} does not support image_to_3d`);
-    const imageUrl = await this.uploadMedia(image, "image/png", "input-image");
+    const imageUrl = await this.uploadInput(image, "image/png", "input-image");
     const input: Record<string, unknown> = { model: model.id };
     if (model.id === "bytedance/seed3d-v2.0/image-to-3d") {
       input.image = imageUrl;
@@ -986,7 +986,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     return atlasDownload(pickOutputUrl(result), opts.signal);
   }
 
-  private uploadMedia(
+  private uploadInput(
     bytes: Uint8Array,
     fallbackMime: string,
     filename: string,
@@ -1112,8 +1112,8 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       );
     }
     const [videoUrl, audioUrl] = await Promise.all([
-      this.uploadMedia(video, "video/mp4", "input-video"),
-      this.uploadMedia(params.audio, "audio/mpeg", "input-audio")
+      this.uploadInput(video, "video/mp4", "input-video"),
+      this.uploadInput(params.audio, "audio/mpeg", "input-audio")
     ]);
     const input: Record<string, unknown> = {
       [videoField]: videoUrl,
@@ -1228,7 +1228,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const videoUrl = await this.uploadMedia(
+    const videoUrl = await this.uploadInput(
       video,
       "video/mp4",
       "input-video",
@@ -1307,7 +1307,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
           ? buffers.map(bytesToImageDataUri)
           : await Promise.all(
               buffers.map((bytes, index) =>
-                this.uploadMedia(
+                this.uploadInput(
                   bytes,
                   field.kind === "video" ? "video/mp4" : sniffMediaMime(bytes, "audio/mpeg"),
                   `reference-${field.kind}-${index + 1}`,
@@ -1373,7 +1373,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const videoUrl = await this.uploadMedia(
+    const videoUrl = await this.uploadInput(
       video,
       "video/mp4",
       "input-video",
@@ -1451,7 +1451,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const videoUrl = await this.uploadMedia(video, "video/mp4", "input-video");
+    const videoUrl = await this.uploadInput(video, "video/mp4", "input-video");
     const input: Record<string, unknown> = { [videoField]: videoUrl };
     setIfDeclared(input, info, params.prompt, "prompt");
     setIfDeclared(input, info, params.durationSeconds, "duration");

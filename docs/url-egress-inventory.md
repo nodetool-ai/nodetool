@@ -124,6 +124,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
 | MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
+| default provider `downloadMedia` for endpoint results | `packages/runtime/src/providers/base-provider.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
 | durable FAL output recovery | `packages/websocket/src/generation-recovery.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |

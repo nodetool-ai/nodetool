@@ -168,6 +168,10 @@ export type {
   RunProbesOptions
 } from "./contract/index.js";
 export type {
+  EndpointCallRequest,
+  EndpointCallResult,
+  EndpointProgress,
+  MediaUpload,
   ProviderCapability,
   ProviderUsageTotals
 } from "./base-provider.js";
@@ -416,7 +420,12 @@ export type {
   ScriptFn,
   ScriptItem,
   TaskPlanSpec,
-  MultiTaskPlanSpec
+  MultiTaskPlanSpec,
+  ScriptedDownloadCall,
+  ScriptedEndpointReply,
+  ScriptedEndpointResponse,
+  ScriptedProviderOptions,
+  ScriptedUploadCall
 } from "./scripted-provider.js";
 export { sampleForSchema } from "./fake-schema-answer.js";
 export {

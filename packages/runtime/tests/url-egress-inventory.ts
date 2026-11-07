@@ -432,6 +432,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   },
 
   // -------------------------------------------- guarded (provider result URLs)
+  guardedMedia(
+    "packages/runtime/src/providers/base-provider.ts",
+    "Default provider downloadMedia",
+    "A result URL a vendor returned to an endpoint call. Providers whose result URLs need credentials override it.",
+    "provider-response"
+  ),
   guardedSafeFetch(
     "packages/kie-nodes/src/kie-base.ts",
     "KIE result downloads",
