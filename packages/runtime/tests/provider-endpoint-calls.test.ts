@@ -146,6 +146,37 @@ describe("ProcessingContext.callProviderEndpoint", () => {
     expect(provider.endpointCalls[0].signal).toBeInstanceOf(AbortSignal);
   });
 
+  // MiniMax answers with hex audio and Together with base64 images. The node
+  // needs the whole reply, but every listener receives the message.
+  it("redacts large vendor payloads on the prediction message only", async () => {
+    const audio = "ab".repeat(50_000);
+    const reply = {
+      data: { audio, status: 2 },
+      trace_id: "t-1",
+      image: `data:image/png;base64,${"A".repeat(100)}`
+    };
+    const provider = new ScriptedProvider([], {
+      providerId: "minimax",
+      endpoints: { "speech-02-hd": { output: reply } }
+    });
+    const ctx = contextWith(provider);
+
+    const result = await ctx.callProviderEndpoint({
+      provider: "minimax",
+      capability: "text_to_speech",
+      model: "speech-02-hd",
+      input: { text: "hello" }
+    });
+
+    expect(result.output).toEqual(reply);
+    const completed = predictions(ctx).find((m) => m.status === "completed");
+    expect(completed?.data).toEqual({
+      data: { audio: { truncated: true, length: audio.length }, status: 2 },
+      trace_id: "t-1",
+      image: { bytes: reply.image.length, truncated: true }
+    });
+  });
+
   it("fills requestId from the receipt when the provider leaves it null", async () => {
     const provider = new ScriptedProvider([], {
       endpoints: {

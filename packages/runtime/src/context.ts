@@ -60,7 +60,10 @@ import {
   runWithGenerationReceipt
 } from "./generation-receipt.js";
 import { generationRegistry, type GenerationDelivery } from "./generation-registry.js";
-import { redactGenerationParams } from "./redact-params.js";
+import {
+  redactGenerationOutput,
+  redactGenerationParams
+} from "./redact-params.js";
 import {
   isCallable,
   isBoolean,
@@ -5006,7 +5009,7 @@ function generationResultData(
     }
     return { count: output.length };
   }
-  return output ?? null;
+  return redactGenerationOutput(output) ?? null;
 }
 
 const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
