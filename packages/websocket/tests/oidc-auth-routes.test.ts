@@ -16,6 +16,11 @@ import {
   oidcUserId,
   readOidcConfig
 } from "@nodetool-ai/auth";
+import {
+  getUserAccount,
+  initTestDb,
+  updateUserAccount
+} from "@nodetool-ai/models";
 import oidcAuthRoutes, {
   OIDC_LOGIN_COOKIE,
   SSO_ERROR_FRAGMENT,
@@ -55,6 +60,7 @@ describe("SSO routes", () => {
       .sign(keys.privateKey);
 
   beforeEach(async () => {
+    initTestDb();
     providerUp = true;
     let lastNonce = "";
     nextIdToken = (nonce) => sign({ nonce, email: "ada@example.com" });
@@ -182,6 +188,52 @@ describe("SSO routes", () => {
     const fragment = fragmentOf(res.headers.location as string);
     expect(fragment.get(SSO_TOKEN_FRAGMENT)).toBeNull();
     expect(fragment.get(SSO_ERROR_FRAGMENT)).toBe("invalid_id_token");
+  });
+
+  async function finishLogin(): Promise<URLSearchParams> {
+    const { cookie, state } = await startLogin();
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/auth/oidc/callback?code=abc&state=${encodeURIComponent(state)}`,
+      headers: { cookie: `${OIDC_LOGIN_COOKIE}=${cookie}` }
+    });
+    expect(res.statusCode).toBe(302);
+    return fragmentOf(res.headers.location as string);
+  }
+
+  it("records the signed-in user in the directory, with groups", async () => {
+    nextIdToken = (nonce) =>
+      sign({ nonce, email: "ada@example.com", name: "Ada", groups: ["staff"] });
+    await finishLogin();
+    const account = await getUserAccount(oidcUserId(ISSUER, "sub-1"));
+    expect(account).toMatchObject({
+      email: "ada@example.com",
+      displayName: "Ada",
+      authSource: "oidc",
+      groups: ["staff"],
+      role: "member",
+      status: "active"
+    });
+  });
+
+  it("keeps the admin's role and refreshes the profile on the next sign-in", async () => {
+    await finishLogin();
+    const userId = oidcUserId(ISSUER, "sub-1");
+    await updateUserAccount(userId, { role: "admin" });
+    nextIdToken = (nonce) => sign({ nonce, email: "ada@new.example.com" });
+    await finishLogin();
+    expect(await getUserAccount(userId)).toMatchObject({
+      email: "ada@new.example.com",
+      role: "admin"
+    });
+  });
+
+  it("refuses a sign-in to a disabled account", async () => {
+    await finishLogin();
+    await updateUserAccount(oidcUserId(ISSUER, "sub-1"), { status: "disabled" });
+    const fragment = await finishLogin();
+    expect(fragment.get(SSO_TOKEN_FRAGMENT)).toBeNull();
+    expect(fragment.get(SSO_ERROR_FRAGMENT)).toBe("account_disabled");
   });
 
   it("reports an unreachable provider at login", async () => {

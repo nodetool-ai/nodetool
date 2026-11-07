@@ -45,6 +45,7 @@ import { applicationsRouter } from "./routers/applications.js";
 import { resourcesRouter } from "./routers/resources.js";
 import { timelineRouter } from "./routers/timeline.js";
 import { usersRouter } from "./routers/users.js";
+import { adminRouter } from "./routers/admin.js";
 import { workerRouter } from "./routers/worker.js";
 import { workflowsRouter } from "./routers/workflows.js";
 import { workspaceRouter } from "./routers/workspace.js";
@@ -97,6 +98,7 @@ type AppRouterRecord = {
   bugReports: typeof bugReportsRouter;
   timeline: typeof timelineRouter;
   users: typeof usersRouter;
+  admin: typeof adminRouter;
   worker: typeof workerRouter;
   workflows: typeof workflowsRouter;
   workspace: typeof workspaceRouter;
@@ -149,6 +151,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   bugReports: bugReportsRouter,
   timeline: timelineRouter,
   users: usersRouter,
+  admin: adminRouter,
   worker: workerRouter,
   workflows: workflowsRouter,
   workspace: workspaceRouter

@@ -82,6 +82,7 @@ describe("readOidcConfig", () => {
       OIDC_ALLOWED_DOMAINS: "Example.com, @acme.org",
       OIDC_ALLOWED_GROUPS: "nodetool-users,admins",
       OIDC_GROUPS_CLAIM: "realm_access.roles",
+      OIDC_ADMIN_GROUPS: "nodetool-admins ops",
       OIDC_SESSION_TTL_SECONDS: "3600",
       OIDC_PROVIDER_NAME: "Acme"
     })!;
@@ -89,6 +90,7 @@ describe("readOidcConfig", () => {
     expect(config.allowedDomains).toEqual(["example.com", "acme.org"]);
     expect(config.allowedGroups).toEqual(["nodetool-users", "admins"]);
     expect(config.groupsClaim).toBe("realm_access.roles");
+    expect(config.adminGroups).toEqual(["nodetool-admins", "ops"]);
     expect(config.sessionTtlSeconds).toBe(3600);
     expect(config.providerName).toBe("Acme");
   });
@@ -247,7 +249,8 @@ describe("OidcClient", () => {
       userId: oidcUserId(ISSUER, "user-123"),
       subject: "user-123",
       email: "ada@example.com",
-      name: "Ada Lovelace"
+      name: "Ada Lovelace",
+      groups: []
     });
 
     const tokenRequest = provider.requests.find((r) => r.url.endsWith("/token"))!;
@@ -376,7 +379,10 @@ describe("OidcClient", () => {
         nonce: state.nonce,
         realm_access: { roles: ["offline_access", "nodetool-users"] }
       });
-      await expect(signIn(provider, env, state)).resolves.toMatchObject({ subject: "user-123" });
+      await expect(signIn(provider, env, state)).resolves.toMatchObject({
+        subject: "user-123",
+        groups: ["offline_access", "nodetool-users"]
+      });
 
       provider.idToken = await idToken({
         nonce: state.nonce,
