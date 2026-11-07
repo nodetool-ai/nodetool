@@ -97,7 +97,7 @@ interface ModeChipsProps {
   /** Lets the composer open the mode's model picker when a send is refused. */
   openModelPickerRef: React.Ref<ModelPickerHandle>;
   /**
-   * Leave out the image variations chip. The Create view counts takes itself
+   * Leave out the image variations chips. The Create view counts takes itself
    * and asks each request for one image.
    */
   hideVariations?: boolean;
@@ -236,7 +236,7 @@ function ImageModeChips({ openModelPickerRef, hideVariations }: ClusterProps) {
   );
 }
 
-function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
+function ImageEditModeChips({ openModelPickerRef, hideVariations }: ClusterProps) {
   const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.imageEdit);
   const setParams = useMediaGenerationStore((s) => s.setImageEditParams);
@@ -315,15 +315,17 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
         options={STEPS_OPTIONS}
         onChange={(numInferenceSteps) => setParams({ numInferenceSteps })}
       />
-      <OptionChip
-        menu="option"
-        icon={<AppsIcon fontSize="small" />}
-        label={`${params.variations}`}
-        header={t("i18n-next54.composer.numberOfVariations")}
-        value={params.variations}
-        options={VARIATIONS_OPTIONS}
-        onChange={(variations) => setParams({ variations })}
-      />
+      {!hideVariations && (
+        <OptionChip
+          menu="option"
+          icon={<AppsIcon fontSize="small" />}
+          label={`${params.variations}`}
+          header={t("i18n-next54.composer.numberOfVariations")}
+          value={params.variations}
+          options={VARIATIONS_OPTIONS}
+          onChange={(variations) => setParams({ variations })}
+        />
+      )}
     </>
   );
 }
@@ -733,7 +735,12 @@ export function ModeChips({
     );
   }
   if (mode === "image_edit") {
-    return <ImageEditModeChips openModelPickerRef={openModelPickerRef} />;
+    return (
+      <ImageEditModeChips
+        openModelPickerRef={openModelPickerRef}
+        hideVariations={hideVariations}
+      />
+    );
   }
   if (mode === "video") {
     return <VideoModeChips openModelPickerRef={openModelPickerRef} />;

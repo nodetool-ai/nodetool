@@ -16,6 +16,7 @@ import type { Graph } from "../../stores/ApiTypes";
 import { presetCatalog } from "../../lib/presets/catalog";
 import type { CreateFeedItem } from "./createFeed";
 import type { GenerationRequestSettings } from "../../stores/GenerationActivityStore";
+import type { CreateReference } from "../../stores/CreateViewStore";
 import { batchSeeds } from "./createRequest";
 
 /** The request a retake sends: the same settings and prompt, a fresh seed. */
@@ -148,5 +149,33 @@ export const generationToWorkflowGraph = (item: CreateFeedItem): Graph => {
       ui_properties: { position }
     })),
     edges: ejected.edges
+  };
+};
+
+/** The content type an item's asset is attached under when its record is not loaded. */
+const KIND_CONTENT_TYPE: Record<string, string> = {
+  image: "image/png",
+  video: "video/mp4",
+  audio: "audio/mpeg"
+};
+
+/**
+ * A finished item as a prompt reference, or null while it has no result.
+ * `translate` names a take with no prompt.
+ */
+export const referenceFromItem = (
+  item: CreateFeedItem,
+  translate: (key: string, options?: Record<string, unknown>) => string
+): CreateReference | null => {
+  if (!item.assetId) {
+    return null;
+  }
+  return {
+    assetId: item.assetId,
+    contentType:
+      item.asset?.content_type || KIND_CONTENT_TYPE[item.kind] || "application/octet-stream",
+    name:
+      item.prompt?.slice(0, 40) ||
+      translate("generations.untitled", { kind: translate(`generations.kind.${item.kind}`) })
   };
 };
