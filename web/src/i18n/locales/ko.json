@@ -19754,6 +19754,59 @@
       "save": "저장",
       "cancel": "취소",
       "saveFailed": "한도를 저장하지 못했습니다."
+    },
+    "permissions": {
+      "edit": "권한",
+      "editDefault": "기본 권한 편집",
+      "defaultTitle": "기본 권한",
+      "userTitle": "{{name}}의 권한",
+      "defaultAll": "기본 권한: 모두 허용.",
+      "defaultBlockedCount": "기본 권한: {{count}}개 차단.",
+      "blockedCount": "차단된 권한: {{count}}",
+      "defaultIntro": "따로 정하지 않으면 모든 사용자가 할 수 있는 일입니다.",
+      "userIntro": "각 권한은 여기서 허용하거나 차단하기 전까지 기본값을 따릅니다.",
+      "allow": "허용",
+      "block": "차단",
+      "defaultAllowed": "기본값: 허용",
+      "defaultBlocked": "기본값: 차단",
+      "adminNote": "관리자는 항상 모든 권한을 가집니다.",
+      "save": "저장",
+      "cancel": "취소",
+      "saveFailed": "권한을 저장하지 못했습니다.",
+      "flags": {
+        "use_llm": {
+          "label": "언어 모델 사용",
+          "description": "채팅, 에이전트, 텍스트 생성."
+        },
+        "generate_media": {
+          "label": "미디어 생성",
+          "description": "이미지, 동영상, 오디오, 3D."
+        },
+        "use_server_keys": {
+          "label": "서버의 제공자 키 사용",
+          "description": "차단하면 설정에서 직접 추가한 키로만 작업할 수 있습니다."
+        },
+        "manage_own_keys": {
+          "label": "내 제공자 키 관리",
+          "description": "제공자 키와 사용자 지정 제공자를 추가, 변경, 삭제합니다."
+        },
+        "share_links": {
+          "label": "공유 링크 만들기",
+          "description": "로그인한 사람이 워크플로나 문서를 보거나 편집할 수 있는 링크."
+        },
+        "share_public": {
+          "label": "공개 공유",
+          "description": "워크플로를 공개하거나 누구나 열 수 있는 공개 링크를 만듭니다."
+        },
+        "publish_apps": {
+          "label": "앱 게시",
+          "description": "미니 앱을 게시, 릴리스, 배포합니다."
+        },
+        "install_packs": {
+          "label": "노드 팩 변경",
+          "description": "팩 신뢰 설정 변경, 기본 제공 팩 켜기/끄기, 팩 다시 불러오기. 모든 사용자에게 영향을 줍니다."
+        }
+      }
     }
   }
 }

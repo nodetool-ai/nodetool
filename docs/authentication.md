@@ -240,6 +240,23 @@ Only work paid with the server's keys counts. Each prediction row records whose 
 
 The limit is checked before a chat turn, a workflow run, or a direct generation starts, using the price estimate for media work. A run already admitted finishes even when it crosses the limit, and the next one is refused with a message that names the budget. Workflow runs are checked by the models their nodes select, so a node that calls a model without selecting one is not checked. With several replicas, a limit change reaches the others within 30 seconds.
 
+### Permissions
+
+An admin can turn off what a person may do, on the Admin page or through `admin.permissions.*`. Every permission is allowed until an admin blocks it. The default applies to everyone, and a person can be given their own value for any single permission, which then replaces the default for that permission only. Admins always hold every permission.
+
+| Permission | What blocking it stops |
+|---|---|
+| `use_llm` | Chat turns, direct text generation, and workflow runs whose nodes select a language or embedding model |
+| `generate_media` | Image, video, audio and 3D generation, in chat, direct calls, and workflows |
+| `use_server_keys` | Any of the above that the server's own provider key would pay for. Keys the person saves in Settings, and local models with no key, still work |
+| `manage_own_keys` | Saving or deleting provider keys in Settings, and saving custom providers |
+| `share_links` | Creating viewer or editor links for workflows and documents |
+| `share_public` | Making a workflow public and creating public workflow links |
+| `publish_apps` | Publishing, releasing and deploying mini apps |
+| `install_packs` | Changing pack trust, turning built-in packs on or off, and reloading packs, which affect every user |
+
+The checks for `use_llm`, `generate_media` and `use_server_keys` run at the same points as the spend limits. A blocked call is refused with a message that names the permission. Links and public workflows created before a permission was blocked stay as they are. With several replicas, a change reaches the others within 30 seconds.
+
 Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
 
 ### Sign-in failures

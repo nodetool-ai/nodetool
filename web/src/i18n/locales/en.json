@@ -19754,6 +19754,59 @@
       "save": "Save",
       "cancel": "Cancel",
       "saveFailed": "Could not save the limits."
+    },
+    "permissions": {
+      "edit": "Permissions",
+      "editDefault": "Edit default permissions",
+      "defaultTitle": "Default permissions",
+      "userTitle": "Permissions for {{name}}",
+      "defaultAll": "Default permissions: everything is allowed.",
+      "defaultBlockedCount": "Default permissions: {{count}} blocked.",
+      "blockedCount": "Blocked permissions: {{count}}",
+      "defaultIntro": "What every user may do unless you set a permission for them.",
+      "userIntro": "Each permission follows the default until you allow or block it here.",
+      "allow": "Allow",
+      "block": "Block",
+      "defaultAllowed": "Default: allowed",
+      "defaultBlocked": "Default: blocked",
+      "adminNote": "Admins always have every permission.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saveFailed": "Could not save the permissions.",
+      "flags": {
+        "use_llm": {
+          "label": "Use language models",
+          "description": "Chat, agents and text generation."
+        },
+        "generate_media": {
+          "label": "Generate media",
+          "description": "Images, video, audio and 3D."
+        },
+        "use_server_keys": {
+          "label": "Use the server's provider keys",
+          "description": "When blocked, the person can only work with keys they add in Settings."
+        },
+        "manage_own_keys": {
+          "label": "Manage own provider keys",
+          "description": "Add, change or remove provider keys and custom providers."
+        },
+        "share_links": {
+          "label": "Create share links",
+          "description": "Links that let signed-in people view or edit a workflow or document."
+        },
+        "share_public": {
+          "label": "Share publicly",
+          "description": "Make a workflow public or create a public link anyone can open."
+        },
+        "publish_apps": {
+          "label": "Publish apps",
+          "description": "Publish, release and deploy mini apps."
+        },
+        "install_packs": {
+          "label": "Change node packs",
+          "description": "Change pack trust, turn built-in packs on or off, and reload packs. This affects every user."
+        }
+      }
     }
   }
 }

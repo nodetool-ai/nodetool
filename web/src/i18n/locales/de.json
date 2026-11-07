@@ -19754,6 +19754,59 @@
       "save": "Speichern",
       "cancel": "Abbrechen",
       "saveFailed": "Die Limits konnten nicht gespeichert werden."
+    },
+    "permissions": {
+      "edit": "Berechtigungen",
+      "editDefault": "Standardberechtigungen bearbeiten",
+      "defaultTitle": "Standardberechtigungen",
+      "userTitle": "Berechtigungen für {{name}}",
+      "defaultAll": "Standardberechtigungen: alles erlaubt.",
+      "defaultBlockedCount": "Standardberechtigungen: {{count}} gesperrt.",
+      "blockedCount": "Gesperrte Berechtigungen: {{count}}",
+      "defaultIntro": "Was alle Nutzer dürfen, solange du für sie nichts anderes festlegst.",
+      "userIntro": "Jede Berechtigung folgt dem Standard, bis du sie hier erlaubst oder sperrst.",
+      "allow": "Erlauben",
+      "block": "Sperren",
+      "defaultAllowed": "Standard: erlaubt",
+      "defaultBlocked": "Standard: gesperrt",
+      "adminNote": "Admins haben immer alle Berechtigungen.",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "saveFailed": "Die Berechtigungen konnten nicht gespeichert werden.",
+      "flags": {
+        "use_llm": {
+          "label": "Sprachmodelle nutzen",
+          "description": "Chat, Agenten und Textgenerierung."
+        },
+        "generate_media": {
+          "label": "Medien generieren",
+          "description": "Bilder, Video, Audio und 3D."
+        },
+        "use_server_keys": {
+          "label": "Anbieterschlüssel des Servers nutzen",
+          "description": "Wenn gesperrt, kann die Person nur mit Schlüsseln arbeiten, die sie in den Einstellungen hinzufügt."
+        },
+        "manage_own_keys": {
+          "label": "Eigene Anbieterschlüssel verwalten",
+          "description": "Anbieterschlüssel und eigene Anbieter hinzufügen, ändern oder entfernen."
+        },
+        "share_links": {
+          "label": "Freigabelinks erstellen",
+          "description": "Links, mit denen angemeldete Personen einen Workflow oder ein Dokument ansehen oder bearbeiten."
+        },
+        "share_public": {
+          "label": "Öffentlich teilen",
+          "description": "Einen Workflow öffentlich machen oder einen öffentlichen Link erstellen, den alle öffnen können."
+        },
+        "publish_apps": {
+          "label": "Apps veröffentlichen",
+          "description": "Mini-Apps veröffentlichen, freigeben und bereitstellen."
+        },
+        "install_packs": {
+          "label": "Node-Pakete ändern",
+          "description": "Paketvertrauen ändern, eingebaute Pakete ein- oder ausschalten und Pakete neu laden. Das betrifft alle Nutzer."
+        }
+      }
     }
   }
 }

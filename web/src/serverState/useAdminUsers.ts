@@ -127,3 +127,61 @@ export const useSetUserQuota = () => {
       queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
   });
 };
+
+export type AdminPermissionFlag = admin.AdminPermissionFlag;
+export type AdminPermissionOverrides = admin.AdminPermissionOverrides;
+export type AdminUserPermissions = admin.AdminUserPermissions;
+
+/** In the order the permissions dialog lists them. */
+export const ADMIN_PERMISSION_FLAGS: readonly AdminPermissionFlag[] = [
+  "use_llm",
+  "generate_media",
+  "use_server_keys",
+  "manage_own_keys",
+  "share_links",
+  "share_public",
+  "publish_apps",
+  "install_packs"
+];
+
+export const adminDefaultPermissionsQueryKey = [
+  "admin",
+  "permissions",
+  "default"
+] as const;
+
+/** The flags every user gets unless an admin set one for them. */
+export const useAdminDefaultPermissions = () =>
+  useQuery({
+    queryKey: adminDefaultPermissionsQueryKey,
+    queryFn: () => trpcClient.admin.permissions.getDefault.query(),
+    staleTime: 10 * 1000
+  });
+
+export interface PermissionsChange {
+  /** One user, or null for the default. */
+  userId: string | null;
+  /** Replaces the flags set at that level. */
+  overrides: AdminPermissionOverrides;
+}
+
+/** Set the default flags or one user's, then refresh both views. */
+export const useSetPermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, overrides }: PermissionsChange) =>
+      userId === null
+        ? trpcClient.admin.permissions.setDefault.mutate({ overrides })
+        : trpcClient.admin.permissions.setUser.mutate({
+            user_id: userId,
+            overrides
+          }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: adminDefaultPermissionsQueryKey
+        }),
+        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
+      ])
+  });
+};

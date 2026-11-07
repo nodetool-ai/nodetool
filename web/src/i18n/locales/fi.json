@@ -19754,6 +19754,59 @@
       "save": "Tallenna",
       "cancel": "Peruuta",
       "saveFailed": "Rajoja ei voitu tallentaa."
+    },
+    "permissions": {
+      "edit": "Oikeudet",
+      "editDefault": "Muokkaa oletusoikeuksia",
+      "defaultTitle": "Oletusoikeudet",
+      "userTitle": "Oikeudet: {{name}}",
+      "defaultAll": "Oletusoikeudet: kaikki sallittu.",
+      "defaultBlockedCount": "Oletusoikeudet: {{count}} estetty.",
+      "blockedCount": "Estetyt oikeudet: {{count}}",
+      "defaultIntro": "Mitä kaikki käyttäjät saavat tehdä, ellet aseta heille omaa oikeutta.",
+      "userIntro": "Jokainen oikeus noudattaa oletusta, kunnes sallit tai estät sen tässä.",
+      "allow": "Salli",
+      "block": "Estä",
+      "defaultAllowed": "Oletus: sallittu",
+      "defaultBlocked": "Oletus: estetty",
+      "adminNote": "Ylläpitäjillä on aina kaikki oikeudet.",
+      "save": "Tallenna",
+      "cancel": "Peruuta",
+      "saveFailed": "Oikeuksia ei voitu tallentaa.",
+      "flags": {
+        "use_llm": {
+          "label": "Käytä kielimalleja",
+          "description": "Chat, agentit ja tekstin luonti."
+        },
+        "generate_media": {
+          "label": "Luo mediaa",
+          "description": "Kuvat, video, ääni ja 3D."
+        },
+        "use_server_keys": {
+          "label": "Käytä palvelimen palveluntarjoaja-avaimia",
+          "description": "Kun estetty, henkilö voi käyttää vain avaimia, jotka hän lisää asetuksiin."
+        },
+        "manage_own_keys": {
+          "label": "Hallitse omia palveluntarjoaja-avaimia",
+          "description": "Lisää, muuta tai poista palveluntarjoaja-avaimia ja omia palveluntarjoajia."
+        },
+        "share_links": {
+          "label": "Luo jakolinkkejä",
+          "description": "Linkit, joilla kirjautuneet henkilöt voivat katsoa tai muokata työnkulkua tai dokumenttia."
+        },
+        "share_public": {
+          "label": "Jaa julkisesti",
+          "description": "Tee työnkulusta julkinen tai luo julkinen linkki, jonka kuka tahansa voi avata."
+        },
+        "publish_apps": {
+          "label": "Julkaise sovelluksia",
+          "description": "Julkaise ja ota käyttöön minisovelluksia."
+        },
+        "install_packs": {
+          "label": "Muuta solmupaketteja",
+          "description": "Muuta pakettien luottamusta, kytke sisäänrakennettuja paketteja päälle tai pois ja lataa paketit uudelleen. Tämä koskee kaikkia käyttäjiä."
+        }
+      }
     }
   }
 }

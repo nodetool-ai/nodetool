@@ -19754,6 +19754,59 @@
       "save": "Spara",
       "cancel": "Avbryt",
       "saveFailed": "Det gick inte att spara gränserna."
+    },
+    "permissions": {
+      "edit": "Behörigheter",
+      "editDefault": "Redigera standardbehörigheter",
+      "defaultTitle": "Standardbehörigheter",
+      "userTitle": "Behörigheter för {{name}}",
+      "defaultAll": "Standardbehörigheter: allt är tillåtet.",
+      "defaultBlockedCount": "Standardbehörigheter: {{count}} blockerade.",
+      "blockedCount": "Blockerade behörigheter: {{count}}",
+      "defaultIntro": "Vad alla användare får göra, om du inte anger en egen behörighet för dem.",
+      "userIntro": "Varje behörighet följer standarden tills du tillåter eller blockerar den här.",
+      "allow": "Tillåt",
+      "block": "Blockera",
+      "defaultAllowed": "Standard: tillåten",
+      "defaultBlocked": "Standard: blockerad",
+      "adminNote": "Administratörer har alltid alla behörigheter.",
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "saveFailed": "Det gick inte att spara behörigheterna.",
+      "flags": {
+        "use_llm": {
+          "label": "Använda språkmodeller",
+          "description": "Chatt, agenter och textgenerering."
+        },
+        "generate_media": {
+          "label": "Generera media",
+          "description": "Bilder, video, ljud och 3D."
+        },
+        "use_server_keys": {
+          "label": "Använda serverns leverantörsnycklar",
+          "description": "När det är blockerat kan personen bara arbeta med nycklar som de lägger till i Inställningar."
+        },
+        "manage_own_keys": {
+          "label": "Hantera egna leverantörsnycklar",
+          "description": "Lägga till, ändra eller ta bort leverantörsnycklar och egna leverantörer."
+        },
+        "share_links": {
+          "label": "Skapa delningslänkar",
+          "description": "Länkar som låter inloggade personer visa eller redigera ett arbetsflöde eller dokument."
+        },
+        "share_public": {
+          "label": "Dela offentligt",
+          "description": "Göra ett arbetsflöde offentligt eller skapa en offentlig länk som vem som helst kan öppna."
+        },
+        "publish_apps": {
+          "label": "Publicera appar",
+          "description": "Publicera, släppa och driftsätta miniappar."
+        },
+        "install_packs": {
+          "label": "Ändra nodpaket",
+          "description": "Ändra pakettillit, slå på eller av inbyggda paket och läsa in paket på nytt. Det påverkar alla användare."
+        }
+      }
     }
   }
 }

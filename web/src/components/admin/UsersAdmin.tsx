@@ -2,11 +2,16 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  ADMIN_PERMISSION_FLAGS,
+  useAdminDefaultPermissions,
   useAdminDefaultQuota,
   useAdminUsers,
   useSetDefaultQuota,
+  useSetPermissions,
   useSetUserQuota,
   useUpdateAdminUser,
+  type AdminPermissionFlag,
+  type AdminPermissionOverrides,
   type AdminQuotaLimits,
   type AdminUser,
   type AdminUserChange,
@@ -33,6 +38,7 @@ import {
   type DataTableColumn
 } from "../ui_primitives";
 import { formatDateTime } from "../../utils/formatUtils";
+import PermissionsDialog from "./PermissionsDialog";
 import QuotaDialog from "./QuotaDialog";
 
 const PAGE_SIZE = 50;
@@ -54,8 +60,17 @@ const formatUsd = (value: number): string => `$${value.toFixed(2)}`;
 const errorText = (error: unknown): string | null =>
   error instanceof Error ? error.message : null;
 
-/** Whose limits the open dialog edits: the default, or one user's. */
+/** Whose limits or permissions the open dialog edits: the default, or one user's. */
 type QuotaTarget = { kind: "default" } | { kind: "user"; user: AdminUser };
+type PermissionsTarget = QuotaTarget;
+
+const EMPTY_OVERRIDES: AdminPermissionOverrides = {};
+const ALL_ALLOWED = Object.fromEntries(
+  ADMIN_PERMISSION_FLAGS.map((flag) => [flag, true])
+) as Record<AdminPermissionFlag, boolean>;
+
+const blockedCount = (flags: Record<string, boolean>): number =>
+  Object.values(flags).filter((allowed) => !allowed).length;
 
 const limitsOf = (quota: AdminUserQuota): AdminQuotaLimits => ({
   period: quota.period,
@@ -78,12 +93,40 @@ const UsersAdmin: React.FC = () => {
   );
 
   const [quotaTarget, setQuotaTarget] = useState<QuotaTarget | null>(null);
+  const [permissionsTarget, setPermissionsTarget] =
+    useState<PermissionsTarget | null>(null);
 
   const users = useAdminUsers({ query, status, offset, limit: PAGE_SIZE });
   const update = useUpdateAdminUser();
   const defaultQuota = useAdminDefaultQuota();
   const setDefaultQuota = useSetDefaultQuota();
   const setUserQuota = useSetUserQuota();
+  const defaultPermissions = useAdminDefaultPermissions();
+  const setPermissions = useSetPermissions();
+
+  const defaultBlocked = blockedCount(defaultPermissions.data?.flags ?? {});
+
+  const closePermissions = useCallback(() => {
+    setPermissionsTarget(null);
+    setPermissions.reset();
+  }, [setPermissions]);
+
+  const savePermissions = useCallback(
+    (overrides: AdminPermissionOverrides) => {
+      if (!permissionsTarget) return;
+      setPermissions.mutate(
+        {
+          userId:
+            permissionsTarget.kind === "user"
+              ? permissionsTarget.user.user_id
+              : null,
+          overrides
+        },
+        { onSuccess: () => setPermissionsTarget(null) }
+      );
+    },
+    [permissionsTarget, setPermissions]
+  );
 
   const usageLine = useCallback(
     (used: string, limit: string | null) =>
@@ -220,6 +263,13 @@ const UsersAdmin: React.FC = () => {
                 color={user.is_admin ? "primary" : "default"}
               />
               {viaGroup ? <Caption>{t("admin.users.role.viaGroup")}</Caption> : null}
+              {!user.is_admin && blockedCount(user.permissions.flags) > 0 ? (
+                <Caption>
+                  {t("admin.permissions.blockedCount", {
+                    count: blockedCount(user.permissions.flags)
+                  })}
+                </Caption>
+              ) : null}
             </FlexColumn>
           ),
           status: (
@@ -268,6 +318,13 @@ const UsersAdmin: React.FC = () => {
                 onClick={() => setQuotaTarget({ kind: "user", user })}
               >
                 {t("admin.quotas.editLimits")}
+              </EditorButton>
+              <EditorButton
+                variant="text"
+                disabled={user.is_admin}
+                onClick={() => setPermissionsTarget({ kind: "user", user })}
+              >
+                {t("admin.permissions.edit")}
               </EditorButton>
               {user.role === "admin" ? (
                 <EditorButton
@@ -420,6 +477,21 @@ const UsersAdmin: React.FC = () => {
           {t("admin.quotas.editDefault")}
         </EditorButton>
       </FlexRow>
+      <FlexRow gap={GAP.normal} align="center" justify="space-between" wrap>
+        <Caption>
+          {defaultBlocked === 0
+            ? t("admin.permissions.defaultAll")
+            : t("admin.permissions.defaultBlockedCount", {
+                count: defaultBlocked
+              })}
+        </Caption>
+        <EditorButton
+          variant="outlined"
+          onClick={() => setPermissionsTarget({ kind: "default" })}
+        >
+          {t("admin.permissions.editDefault")}
+        </EditorButton>
+      </FlexRow>
       {update.isError ? (
         <AlertBanner severity="error" compact>
           {update.error instanceof Error
@@ -447,6 +519,34 @@ const UsersAdmin: React.FC = () => {
         }
         onClose={closeQuota}
         onSave={saveQuota}
+      />
+      <PermissionsDialog
+        open={permissionsTarget !== null}
+        title={
+          permissionsTarget?.kind === "user"
+            ? t("admin.permissions.userTitle", {
+                name: userLabel(permissionsTarget.user)
+              })
+            : t("admin.permissions.defaultTitle")
+        }
+        overrides={
+          permissionsTarget?.kind === "user"
+            ? permissionsTarget.user.permissions.overrides
+            : (defaultPermissions.data?.overrides ?? EMPTY_OVERRIDES)
+        }
+        inherited={
+          permissionsTarget?.kind === "user"
+            ? (defaultPermissions.data?.flags ?? ALL_ALLOWED)
+            : undefined
+        }
+        saving={setPermissions.isPending}
+        error={
+          setPermissions.isError
+            ? (errorText(setPermissions.error) ?? t("admin.permissions.saveFailed"))
+            : null
+        }
+        onClose={closePermissions}
+        onSave={savePermissions}
       />
       <ConfirmDialog
         open={pendingDisable !== null}
