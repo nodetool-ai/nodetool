@@ -22,6 +22,13 @@ QtObject {
     readonly property color fieldDisabled: dark ? "#1affffff" : "#141a1a1a"
     readonly property color shadow: dark ? "#4d000000" : "#22000000"
     readonly property color checker: dark ? "#06ffffff" : "#061a1a1a"
+    // web/src/styles/AlphaSurface.ts: alphaSurfaceBg, fixed dark in both schemes.
+    readonly property color alphaBase: "#1e1e1e"
+    readonly property color alphaChecker: "#2a2a2a"
+    // web/src/components/widgets/ImageComparer.tsx: metadata is white at 80 percent over the scrim.
+    readonly property color comparisonMetadataInk: "#ccffffff"
+    // web/src/components/widgets/ImageComparer.tsx: minHeight 200px.
+    readonly property real comparisonMinimumHeight: 200 * Ui.Theme.uiScale
     readonly property color outline: dark ? "#803e68a7" : "#803062c3"
     readonly property color disabledInk: dark ? "#4dffffff" : "#4d17171a"
     readonly property color disabledOutline: dark ? "#1affffff" : "#141a1a1a"

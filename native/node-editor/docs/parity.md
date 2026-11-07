@@ -1205,8 +1205,11 @@ Columns size to bounded cell content and can be resized by dragging a header edg
 The full-view action opens a read-only window-bounded dialog and returns focus
 to its trigger when closed. The explicit preview notice remains in both views. Each matrix row
 is fetched once before its cells are read. Markdown uses Qt's Markdown parser, shared link colors, code typography and code surfaces for inline and fenced code. Selecting an HTTP or HTTPS link exposes an explicit Open action. Other schemes cannot open. Tool arguments use formatted JSON in shared MonoCode typography rather than the web syntax highlighter. Comparison images use the existing
-authenticated media resolver. The comparison overlays the images with a draggable
-wipe in horizontal and vertical modes. Switching modes resets the divider.
+authenticated media resolver. The comparison overlays the images with a wipe in
+horizontal and vertical modes. A mouse moves the divider on hover and recenters on
+leave. Touch, pen and a pressed mouse drag it and keep the position on release.
+Each image fits on its own at natural size without upscaling, over the alpha checker,
+with A and B labels and natural dimensions. Switching modes resets the divider.
 The dispatcher loads separate image comparison and dataframe components.
 
 `tests/run/RunOutputModelTests.cpp` covers dispatch, unknown typed values and
@@ -1225,15 +1228,15 @@ captures show the two fixture images separated by the moved divider. The focused
 renderer host fixtures pass. Native primitive design and dependency checks pass.
 
 Open differences: The native dataframe full view retains the bounded preview
-rather than loading omitted rows. Image comparison does not show image metadata.
+rather than loading omitted rows.
 Tool headers still use a flat button instead of the web
 badge structure, and arguments have no syntax highlighting. Markdown links and
 code blocks retain Qt styling rather than the web styling. Plotly exposes configuration and data instead of a chart.
 Streaming PCM has Start, Stop and Restart controls backed by a bounded native playback buffer.
 Scoped text references load through the native resolver with retry. Qt Markdown
 does not reproduce web reasoning toggles or all web Markdown extensions. Structured previews have bounded depth and field counts. Specialized nested
-coverage remains incomplete. Comparison wipes still need the web
-hover/touch behavior, intrinsic-size fit and dimension overlays. Complete chunk-array
+coverage remains incomplete. Comparison hardware touch and pen input remain
+unverified, and the mode button has no tooltip. Complete chunk-array
 dispatch remains separate acceptance work. These fixtures do not
 verify live server streaming or physical audio output.
 

@@ -367,6 +367,14 @@ if(BUILD_TESTING)
  set_tests_properties(node_editor_live_audio_visualizer PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_image_comparison_tests tests/ui/ImageComparisonTest.cpp)
+ target_link_libraries(node_editor_image_comparison_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_image_comparison_tests)
+ add_test(NAME node_editor_image_comparison COMMAND node_editor_image_comparison_tests)
+ set_tests_properties(node_editor_image_comparison PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
 qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js)
 qt_add_resources(node_editor_core chat_tool_manifest PREFIX /editor/chat BASE resources/chat FILES resources/chat/tool-manifest.json)
 

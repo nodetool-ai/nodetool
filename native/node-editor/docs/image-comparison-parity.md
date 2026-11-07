@@ -1,11 +1,12 @@
 # Image comparison parity proposal
 
-This proposal covers the image-comparison renderer within F31. It requires
-review before production edits. The [inventory](parity-inventory.md) remains the
-acceptance record. Its description and parts of
-[rich output evidence](parity.md#rich-output-evidence) lag the current native
-source: native already has an overlaid wipe with two axes, rather than only
-labeled side-by-side previews.
+This proposal covers the image-comparison renderer within F31. The
+[inventory](parity-inventory.md) remains the acceptance record. The gaps in the
+table below are closed by `ImageComparisonOutput.qml` and covered by
+`tests/ui/ImageComparisonTest.cpp`, except hardware touch and pen input, which
+need a physical device. Vertical mode accepts drags in both axes, because a
+Qt drag handler that claims only the y axis ignores movement that is mostly
+horizontal and the native host scrolls vertically only.
 
 ## Source contract
 
