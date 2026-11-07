@@ -2457,6 +2457,7 @@
         }
       }
     ],
+    "presentation": "chat",
     "recipe": {
       "schemaVersion": 1,
       "slug": "ad-calm-breathing-shape-loop",
@@ -2801,8 +2802,7 @@
           }
         ]
       }
-    },
-    "presentation": "chat"
+    }
   },
   "workflows": [
     {
