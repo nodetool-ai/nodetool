@@ -15,7 +15,11 @@ import type {
   UploadUrlOptions
 } from "./storage-adapter.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
-import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
+import {
+  compareStorageKeys,
+  joinStorageKey,
+  normalizeStorageKey
+} from "./storage-keys.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 
 export interface S3StorageAdapterOptions {
@@ -202,7 +206,7 @@ export class S3StorageAdapter implements StorageAdapter {
     }
 
     return {
-      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
       commonPrefixes: commonPrefixes.sort()
     };
   }

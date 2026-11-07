@@ -147,6 +147,15 @@ describe("InMemoryStorageAdapter list", () => {
     expect(res.commonPrefixes).toEqual([]);
   });
 
+  it("sorts entries by code unit, as the common prefixes are", async () => {
+    const s = new InMemoryStorageAdapter();
+    for (const key of ["u/a.png", "u/_x.png", "u/B.png"]) {
+      await s.store(key, new Uint8Array([1]));
+    }
+    const res = await s.list("u");
+    expect(res.entries.map((e) => e.key)).toEqual(["u/B.png", "u/_x.png", "u/a.png"]);
+  });
+
   it("treats '/' the same as an empty prefix", async () => {
     const s = await seed();
     const res = await s.list("/");

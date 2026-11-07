@@ -4,7 +4,7 @@ import type {
   StorageListResult,
   StorageStat
 } from "./storage-adapter.js";
-import { normalizeStorageKey } from "./storage-keys.js";
+import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 
 interface MemoryEntry {
   data: Uint8Array;
@@ -100,7 +100,7 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     }
 
     return {
-      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
       commonPrefixes: [...commonPrefixes].sort()
     };
   }

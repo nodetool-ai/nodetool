@@ -20,6 +20,7 @@ export type {
 export {
   normalizeStorageKey,
   joinStorageKey,
+  compareStorageKeys,
   assetObjectKey,
   assetKeyCandidates,
   assetKeyOwner

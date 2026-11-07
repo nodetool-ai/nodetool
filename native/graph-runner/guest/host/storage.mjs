@@ -4,7 +4,7 @@
 // HostAssetStorage is the asset store on the `assets` host capability
 // (src/host/assets.cpp), addressed as `/api/storage/<key>` like the
 // server's FileStorageAdapter. Key rules come from the real package.
-import { normalizeStorageKey } from "guest-real:@nodetool-ai/storage/storage-keys";
+import { compareStorageKeys, normalizeStorageKey } from "guest-real:@nodetool-ai/storage/storage-keys";
 
 export { normalizeStorageKey, joinStorageKey } from "guest-real:@nodetool-ai/storage/storage-keys";
 
@@ -38,7 +38,7 @@ function listResult(stored, prefix, opts, uriFor) {
     }
   }
   return {
-    entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+    entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
     commonPrefixes: [...commonPrefixes].sort()
   };
 }

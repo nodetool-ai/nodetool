@@ -4,6 +4,7 @@ import { isWithinRoot } from "../src/file-storage-adapter.js";
 import {
   normalizeStorageKey,
   joinStorageKey,
+  compareStorageKeys,
   assetObjectKey,
   assetKeyCandidates,
   assetKeyOwner,
@@ -165,5 +166,20 @@ describe("storage-keys module", () => {
     );
     expect(source).toContain("export function normalizeStorageKey");
     expect(source).not.toMatch(/^import\b/m);
+  });
+});
+
+describe("compareStorageKeys", () => {
+  it("orders keys by code unit, not by locale", () => {
+    const keys = ["a", "_x", "B", "1/b.png", "1/B.png", "10/a.png"];
+    expect([...keys].sort(compareStorageKeys)).toEqual([
+      "1/B.png",
+      "1/b.png",
+      "10/a.png",
+      "B",
+      "_x",
+      "a"
+    ]);
+    expect(compareStorageKeys("same", "same")).toBe(0);
   });
 });
