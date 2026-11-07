@@ -1,10 +1,10 @@
 {
  "counts": {
-  "parity": 320,
-  "mismatch": 3,
-  "native-unsupported": 36,
-  "reference-unavailable": 75,
-  "skipped": 31
+  "parity": 343,
+  "mismatch": 2,
+  "native-unsupported": 0,
+  "reference-unavailable": 88,
+  "skipped": 32
  },
  "nodes": {
   "anthropic.text.WebSearch": {
@@ -183,9 +183,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "lib.image.Mask": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "not a function"
+   "reason": "2 case(s) match"
   },
   "lib.image.channel.Merge": {
    "status": "parity",
@@ -523,9 +523,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "lib.pdf.ExtractOcr": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/document-nodes",
-   "reason": "The optional \"@llamaindex/liteparse\" package (PDF Libraries) is not installed.\nnodetool packs add pdf-js --yes"
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "lib.pdf.ExtractStyledText": {
    "status": "parity",
@@ -538,9 +538,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "lib.pdf.ExtractText": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/document-nodes",
-   "reason": "The optional \"@llamaindex/liteparse\" package (PDF Libraries) is not installed.\nnodetool packs add pdf-js --yes"
+   "reason": "2 case(s) match"
   },
   "lib.pdf.Pdftoppm": {
    "status": "parity",
@@ -633,39 +633,39 @@
    "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
   },
   "nodetool.agents.Agent": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.Classifier": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.CreateThread": {
-   "status": "native-unsupported",
+   "status": "skipped",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "skip rule nondeterministic: outputs a thread id made from the clock and a random suffix"
   },
   "nodetool.agents.Decision": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.EnhancePrompt": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.Extractor": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.Summarizer": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.audio.AudioMixer": {
    "status": "parity",
@@ -898,9 +898,9 @@
    "reason": "skip rule host-binary:blender: spawns Blender"
   },
   "nodetool.code.Code": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/code-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "1 case(s) match"
   },
   "nodetool.compare.CompareImages": {
    "status": "parity",
@@ -1133,9 +1133,9 @@
    "reason": "2 case(s) match"
   },
   "nodetool.control.Loop": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "Loop nodes are not supported by the native runner (A1)"
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.control.RepeatCount": {
    "status": "parity",
@@ -1183,29 +1183,29 @@
    "reason": "2 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.creative.ApplyEntities": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "1 case(s) match"
   },
   "nodetool.creative.Director": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.creative.ScreenplayShots": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "1 case(s) match"
   },
   "nodetool.creative.ShotBatch": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "1 case(s) match"
   },
   "nodetool.creative.ShotChain": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.data.ForEachRow": {
    "status": "parity",
@@ -1228,9 +1228,9 @@
    "reason": "2 case(s) match"
   },
   "nodetool.document.SaveDocumentFile": {
-   "status": "mismatch",
+   "status": "parity",
    "package": "@nodetool-ai/document-nodes",
-   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Cannot read properties of null (reading 'length')\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Node \\\"n\\\" failed: cannot read pr..."
+   "reason": "2 case(s) match"
   },
   "nodetool.entity.CreateEntity": {
    "status": "parity",
@@ -1298,29 +1298,29 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.generators.ChartGenerator": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.DataGenerator": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.ListGenerator": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.SVGGenerator": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.StructuredOutputGenerator": {
-   "status": "native-unsupported",
+   "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "class did not load in the guest: Error: guest: process.getuid is unavailable in the native runner"
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.image.BatchToList": {
    "status": "parity",
@@ -1893,14 +1893,14 @@
    "reason": "3 case(s) match"
   },
   "nodetool.timeline.AddClips": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "class did not load in the guest: Error: guest: @nodetool-ai/runtime.loadCanvas is unavailable in the native runner"
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.timeline.FillTimelineText": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "class did not load in the guest: Error: guest: @nodetool-ai/runtime.loadCanvas is unavailable in the native runner"
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.timeline.RenderTimeline": {
    "status": "skipped",
@@ -1908,14 +1908,14 @@
    "reason": "skip rule browser: launches Chromium through Playwright"
   },
   "nodetool.timeline.RetargetTimeline": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "class did not load in the guest: Error: guest: @nodetool-ai/runtime.loadCanvas is unavailable in the native runner"
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.timeline.Transcript": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "class did not load in the guest: Error: guest: @nodetool-ai/runtime.loadCanvas is unavailable in the native runner"
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.triggers.FileWatchTrigger": {
    "status": "skipped",
@@ -2213,24 +2213,24 @@
    "reason": "needs secret: OPENAI_API_KEY is not configured"
   },
   "vector.Collection": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "1 case(s) match"
   },
   "vector.Count": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.GetDocuments": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "3 case(s) match"
   },
   "vector.HybridSearch": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.IndexAggregatedText": {
    "status": "parity",
@@ -2238,29 +2238,29 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "vector.IndexEmbedding": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "3 case(s) match"
   },
   "vector.IndexImage": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.IndexString": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.IndexTextChunk": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.Peek": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.QueryImage": {
    "status": "parity",
@@ -2268,9 +2268,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "vector.QueryText": {
-   "status": "native-unsupported",
+   "status": "parity",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "process is not defined"
+   "reason": "2 case(s) match"
   },
   "vector.RemoveOverlap": {
    "status": "parity",

@@ -179,12 +179,14 @@ function caseWorkspace(work, c, side) {
  * $TIME (the two sides run at different seconds), and bytes in
  * the native stream ({"__bytes__": "<base64>"}, guest/values.mjs) take the
  * form the reference's jsonSafe gives them, {"__bytes__": <length>}, or a
- * Buffer's {"type": "Buffer", "data": [...]}.
+ * Buffer's {"type": "Buffer", "data": [...]}. QuickJS's wording of a
+ * property read on null or undefined takes V8's, since the error is the same.
  */
 function comparable(messages, workspace) {
   let text = JSON.stringify(messages);
   if (workspace) text = text.replaceAll(JSON.stringify(workspace).slice(1, -1), "$WORKSPACE");
   text = text.replace(/\b\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\b/g, "$TIME");
+  text = text.replace(/cannot read property '([^'\\]+)' of (null|undefined)/g, "Cannot read properties of $2 (reading '$1')");
   return JSON.parse(text, function (_key, value) {
     if (value === null || typeof value !== "object" || typeof value.__bytes__ !== "string") return value;
     if (this.mimeType === "image/x-raw-rgba") return { __rgba__: value.__bytes__ };

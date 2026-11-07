@@ -52,6 +52,11 @@ export const SKIP_RULES = [
     id: "nondeterministic",
     reason: "outputs the wall-clock time it resumed at",
     match: prefix("nodetool.triggers.Wait")
+  },
+  {
+    id: "nondeterministic",
+    reason: "outputs a thread id made from the clock and a random suffix",
+    match: prefix("nodetool.agents.CreateThread")
   }
 ];
 
