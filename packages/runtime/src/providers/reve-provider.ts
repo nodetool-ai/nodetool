@@ -7,6 +7,8 @@
  *   - textToImage  → POST /v1/image/create
  *   - imageToImage → POST /v1/image/edit   (one source image)
  *                  → POST /v1/image/remix  (two or more reference images)
+ *   - callEndpoint → any of the three, named by `model`. The
+ *                    `@nodetool-ai/reve-nodes` nodes call Reve this way.
  *
  * imageToImage routes by image count: a single source image uses the Edit
  * endpoint (`edit_instruction` + one base64 `reference_image`); two or more use
@@ -26,8 +28,14 @@
  *  - Accept:  `application/json` → response carries a base64 PNG in `image`.
  */
 
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type ProviderCapability
+} from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
+import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -44,6 +52,19 @@ const REVE_API_BASE = "https://api.reve.com";
 /** Model ids exposed to the generic image composer. */
 const REVE_CREATE_MODEL = "reve-create";
 const REVE_EDIT_MODEL = "reve-edit";
+
+/**
+ * The endpoint `callEndpoint` posts to for each model id it accepts. The ids
+ * match the image models above, plus Remix, which the composer reaches only
+ * through imageToImage.
+ */
+const REVE_ENDPOINT_MODELS: Readonly<Record<string, ReveEndpoint>> = {
+  [REVE_CREATE_MODEL]: "create",
+  [REVE_EDIT_MODEL]: "edit",
+  "reve-remix": "remix"
+};
+
+type ReveEndpoint = "create" | "edit" | "remix";
 
 /** Max reference images accepted by the Remix endpoint. */
 const REVE_MAX_REMIX_IMAGES = 6;
@@ -70,10 +91,7 @@ export class ReveProvider extends BaseProvider {
   private readonly apiKey: string;
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
-    return [
-      "text_to_image",
-      "image_to_image"
-    ];
+    return ["text_to_image", "image_to_image"];
   }
 
   static override requiredSecrets(): string[] {
@@ -127,11 +145,12 @@ export class ReveProvider extends BaseProvider {
     ];
   }
 
-  private async post(
-    endpoint: "create" | "edit" | "remix",
-    body: Record<string, unknown>
-  ): Promise<Uint8Array> {
-    const response = await fetch(`${REVE_API_BASE}/v1/image/${endpoint}`, {
+  private send(
+    endpoint: ReveEndpoint,
+    body: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const init: RequestInit = {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.requireApiKey()}`,
@@ -139,7 +158,74 @@ export class ReveProvider extends BaseProvider {
         Accept: "application/json"
       },
       body: JSON.stringify(body)
-    });
+    };
+    if (signal) init.signal = signal;
+    return fetch(`${REVE_API_BASE}/v1/image/${endpoint}`, init);
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Call one Reve image endpoint. `model` names it: `reve-create`,
+   * `reve-edit` or `reve-remix`. `input` is the JSON body, sent unchanged.
+   * Reve has no sub-routes, so a `route` is rejected. The output is Reve's
+   * JSON reply, with the generated image as base64 in `image`.
+   *
+   * A flagged content violation throws, because Reve returns no usable image
+   * for it. Reading `image` is left to the caller.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    if (req.route !== undefined) {
+      throw new Error(
+        `reve does not accept an endpoint route, got "${req.route}"`
+      );
+    }
+    const endpoint = Object.hasOwn(REVE_ENDPOINT_MODELS, req.model)
+      ? REVE_ENDPOINT_MODELS[req.model]
+      : undefined;
+    if (!endpoint) {
+      throw new Error(
+        `reve has no endpoint for model "${req.model}". Use one of: ${Object.keys(REVE_ENDPOINT_MODELS).join(", ")}`
+      );
+    }
+    const response = await this.send(endpoint, req.input, req.signal);
+    if (!response.ok) {
+      throw new Error(
+        `Reve API error (${response.status}): ${await response.text()}`
+      );
+    }
+    const json = (await response.json()) as ReveImageResponse;
+    if (json.content_violation) {
+      throw new Error(
+        "Reve flagged this request as a content policy violation"
+      );
+    }
+    const metadata: Record<string, unknown> = {};
+    if (typeof json.credits_used === "number") {
+      metadata.credits_used = json.credits_used;
+    }
+    if (typeof json.credits_remaining === "number") {
+      metadata.credits_remaining = json.credits_remaining;
+    }
+    const requestId =
+      typeof json.request_id === "string" && json.request_id
+        ? json.request_id
+        : null;
+    if (requestId) {
+      await recordGenerationReceiptAsync({ provider_request_id: requestId });
+    }
+    return { output: json, requestId, metadata };
+  }
+
+  private async post(
+    endpoint: ReveEndpoint,
+    body: Record<string, unknown>
+  ): Promise<Uint8Array> {
+    const response = await this.send(endpoint, body);
     if (!response.ok) {
       throw new Error(
         `Reve ${endpoint} failed: ${response.status} ${await response.text()}`
@@ -147,7 +233,9 @@ export class ReveProvider extends BaseProvider {
     }
     const json = (await response.json()) as ReveImageResponse;
     if (json.content_violation) {
-      throw new Error("Reve flagged this request as a content policy violation");
+      throw new Error(
+        "Reve flagged this request as a content policy violation"
+      );
     }
     if (!json.image) {
       throw new Error(`Reve returned no image: ${JSON.stringify(json)}`);

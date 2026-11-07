@@ -581,3 +581,192 @@ describe("MinimaxProvider", () => {
     expect(result.content).toBe("hi");
   });
 });
+
+describe("MinimaxProvider endpoint calls", () => {
+  const json = (body: unknown) => Response.json(body);
+  const make = (fetchFn: unknown) =>
+    new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: fetchFn as typeof fetch }
+    );
+
+  it("supports endpoint calls", () => {
+    expect(make(vi.fn()).supportsEndpointCalls()).toBe(true);
+  });
+
+  it.each([
+    ["tts", "t2a_v2"],
+    ["music", "music_generation"],
+    ["image", "image_generation"]
+  ])("posts route %s to /v1/%s with the model in the body", async (route, path) => {
+    const reply = {
+      data: { audio: "0102" },
+      trace_id: "trace-1",
+      base_resp: { status_code: 0 }
+    };
+    const fetchFn = vi.fn(async () => json(reply));
+    const controller = new AbortController();
+
+    const result = await make(fetchFn).callEndpoint({
+      model: "m-1",
+      route,
+      input: { model: "m-1", text: "hi", stream: false },
+      signal: controller.signal
+    });
+
+    expect(result).toEqual({ output: reply, requestId: "trace-1" });
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`https://api.minimax.io/v1/${path}`);
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({
+      Authorization: "Bearer k",
+      "Content-Type": "application/json"
+    });
+    expect(init.body).toBe('{"model":"m-1","text":"hi","stream":false}');
+    expect(init.signal).toBe(controller.signal);
+  });
+
+  it("sends the request model even when the input omits it", async () => {
+    const fetchFn = vi.fn(async () => json({ base_resp: { status_code: 0 } }));
+    const result = await make(fetchFn).callEndpoint({
+      model: "image-01",
+      route: "image",
+      input: { prompt: "x" }
+    });
+    const init = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.body).toBe('{"prompt":"x","model":"image-01"}');
+    expect(result.requestId).toBeNull();
+  });
+
+  it("rejects a missing or unknown route without calling MiniMax", async () => {
+    const fetchFn = vi.fn();
+    const provider = make(fetchFn);
+    await expect(
+      provider.callEndpoint({ model: "m", input: {} })
+    ).rejects.toThrow(
+      "minimax endpoint route must be one of tts, music, image, video, got none"
+    );
+    await expect(
+      provider.callEndpoint({ model: "m", route: "voice_clone", input: {} })
+    ).rejects.toThrow('got "voice_clone"');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("throws the pack's HTTP and base_resp messages", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("no", { status: 401 }))
+      .mockResolvedValueOnce(
+        json({ base_resp: { status_code: 1004, status_msg: "invalid api key" } })
+      );
+    const provider = make(fetchFn);
+    await expect(
+      provider.callEndpoint({ model: "m", route: "tts", input: {} })
+    ).rejects.toThrow("MiniMax t2a_v2 failed: 401 no");
+    await expect(
+      provider.callEndpoint({ model: "m", route: "music", input: {} })
+    ).rejects.toThrow(
+      "MiniMax music_generation failed: invalid api key (code 1004)"
+    );
+  });
+
+  it("runs the video route through submit, poll and retrieve", async () => {
+    const retrieve = {
+      file: { download_url: "https://cdn.minimax.io/v.mp4" },
+      base_resp: { status_code: 0 }
+    };
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.endsWith("/v1/video_generation")) {
+        return json({ task_id: "task-9", base_resp: { status_code: 0 } });
+      }
+      if (url.includes("/v1/query/video_generation")) {
+        return json({ status: "Success", file_id: "file-3" });
+      }
+      return json(retrieve);
+    });
+    const progress: unknown[] = [];
+
+    const result = await make(fetchFn).callEndpoint({
+      model: "MiniMax-Hailuo-02",
+      route: "video",
+      input: { model: "MiniMax-Hailuo-02", prompt: "waves" },
+      onProgress: (event) => progress.push(event)
+    });
+
+    expect(result).toEqual({
+      output: retrieve,
+      requestId: "task-9",
+      metadata: { task_id: "task-9", file_id: "file-3" }
+    });
+    expect(progress).toEqual([{ message: "Success" }]);
+    const urls = fetchFn.mock.calls.map((call) => call[0]);
+    expect(urls).toEqual([
+      "https://api.minimax.io/v1/video_generation",
+      "https://api.minimax.io/v1/query/video_generation?task_id=task-9",
+      "https://api.minimax.io/v1/files/retrieve?file_id=file-3"
+    ]);
+  });
+
+  it("retries the file retrieve after a gateway error", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchFn = vi.fn(async (url: string) => {
+        if (url.endsWith("/v1/video_generation")) {
+          return json({ task_id: "t", base_resp: { status_code: 0 } });
+        }
+        if (url.includes("/v1/query/video_generation")) {
+          return json({ status: "Success", file_id: "f" });
+        }
+        return fetchFn.mock.calls.filter((c) => c[0].includes("retrieve"))
+          .length === 1
+          ? new Response("bad gateway", { status: 502 })
+          : json({ file: { download_url: "https://cdn.minimax.io/v.mp4" } });
+      });
+      const pending = make(fetchFn).callEndpoint({
+        model: "MiniMax-Hailuo-02",
+        route: "video",
+        input: {}
+      });
+      await vi.runAllTimersAsync();
+      await expect(pending).resolves.toMatchObject({ requestId: "t" });
+      expect(
+        fetchFn.mock.calls.filter((c) => c[0].includes("retrieve"))
+      ).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("downloads result URLs through safeFetch on the provider fetch", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(Uint8Array.from([1, 2, 3])))
+      .mockResolvedValueOnce(new Response("gone", { status: 404 }));
+    const provider = make(fetchFn);
+    const bytes = await provider.downloadMedia("https://cdn.minimax.io/a.mp3");
+    expect([...bytes]).toEqual([1, 2, 3]);
+    expect(fetchFn.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
+    await expect(
+      provider.downloadMedia("https://cdn.minimax.io/b.mp3")
+    ).rejects.toThrow(
+      "Failed to download MiniMax file from https://cdn.minimax.io/b.mp3"
+    );
+  });
+
+  it("refuses a private download URL before fetching it", async () => {
+    const fetchFn = vi.fn();
+    await expect(
+      make(fetchFn).downloadMedia("http://169.254.169.254/latest")
+    ).rejects.toThrow();
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("does not upload media, because MiniMax takes images inline", async () => {
+    await expect(
+      make(vi.fn()).uploadMedia({
+        bytes: Uint8Array.from([1]),
+        mimeType: "image/png"
+      })
+    ).rejects.toThrow("minimax does not support media uploads");
+  });
+});

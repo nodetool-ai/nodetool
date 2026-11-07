@@ -18,14 +18,34 @@ Node definitions are generated from KIE docs through `packages/kie-codegen`.
 
 - `kie-manifest.json` — node definitions with model IDs, input/output schemas
 - `kie-factory.ts` — runtime node class generator from manifest (reference implementation)
-- `kie-base.ts` — shared API utilities (execute task, upload, asset conversion)
+- `kie-base.ts` — input uploads, the endpoint call, result mapping and cost
+  reporting. It holds no transport and no API key.
 
 ## Runtime Flow
 
 1. `src/index.ts` loads `src/kie-manifest.json`.
 2. `src/kie-factory.ts` creates runtime node classes from manifest entries.
-3. `src/kie-base.ts` handles KIE API submission, polling, uploads, and result
-   conversion.
+3. `kieExecute` in `src/kie-base.ts` calls `context.callProviderEndpoint` with
+   provider `kie`, which runs the call inside the generation seam. The runtime
+   `KieProvider` (`packages/runtime/src/providers/kie-provider.ts`, transport in
+   `kie-endpoint.ts`) reads `KIE_API_KEY`, submits, polls, and handles the
+   `KIE_WEBHOOK_URL` callback. `kieExecute` maps the returned KIE JSON to the
+   node output and downloads results through `context.downloadProviderMedia`.
+
+## Transport and Keys
+
+- Nodes never read `KIE_API_KEY`. They keep `requiredSettings`, and the
+  provider resolves the key from the secret store or the environment.
+- The route picks the endpoint family: no route for the job API,
+  `suno:<path>` for Suno nodes, `direct:<path>` for endpoints that answer in
+  the submit response (the Gemini Omni nodes). `KieProvider.callEndpoint`
+  rejects any other route.
+- Poll interval and attempt budget come from this manifest, looked up by model
+  id in the provider. A model the manifest does not list gets 2 s × 300 for
+  jobs and 4 s × 120 for Suno.
+- `reportKieProviderCost` prices `metadata.creditsConsumed` from the endpoint
+  result. `registerKieCostReconciler` asks `KieProvider.fetchBillingCost` for
+  a task's credits, so the key stays in the provider.
 
 ## Media Input Rules
 
@@ -38,7 +58,8 @@ must expose media handles, not raw URL strings.
 - multiple media URL fields use `list[image]`, `list[video]`, or `list[audio]`
 
 The factory uploads AssetRefs with `uploadImageInput`, `uploadVideoInput`, or
-`uploadAudioInput` before sending URL strings to KIE.
+`uploadAudioInput` (through `context.uploadProviderMedia`) before sending URL
+strings to KIE.
 
 ## AssetRef Type Rules
 
@@ -57,7 +78,7 @@ All nodes correctly use `metadataOutputTypes` set from `spec.outputType`.
 
 ### Input: AssetRef → API URL
 
-- `uploadImageInput()` / `uploadAudioInput()` / `uploadVideoInput()` — upload asset to KIE CDN
+- `uploadImageInput()` / `uploadAudioInput()` / `uploadVideoInput()` — upload asset to KIE's file host through the provider. Public http(s) URLs pass through.
 - Supports grouped uploads (multiple fields → single array parameter)
 - Supports list uploads (`list[image]` → array of URLs)
 
@@ -74,7 +95,7 @@ All nodes correctly use `metadataOutputTypes` set from `spec.outputType`.
 
 ## Special Features
 
-- Suno music nodes use separate `kieExecuteSunoTask()` API path
+- Suno music nodes call the `suno:<sunoEndpoint>` route
 - Validation rules (`not_empty`) checked before API calls
 - Conditional fields (`gte_zero`, `truthy`, `not_default`) for optional parameters
 
@@ -87,17 +108,15 @@ All nodes correctly use `metadataOutputTypes` set from `spec.outputType`.
   reachable `else` branch. The old `else if (!conditional)` nested inside
   `if (conditional)` was dead code and silently dropped those fields. Add a test
   per condition type.
-- **Poll loops must accept every spelling of a terminal state.** `pollCustom`
-  treated only `state === "fail"` as failure and missed `"failed"`, so a
-  Veo/Runway task reporting `"failed"` polled to timeout. `pollStatus`,
-  `pollCustom` and `kiePollSuno` now share one loop (`pollKieTask` in
-  `kie-base.ts`) reading `TERMINAL_SUCCESS_STATES` / `TERMINAL_FAILURE_STATES`
-  from `@nodetool-ai/runtime/provider-transport`; a vendor-specific word
-  (Veo's `successFlag`, Suno's `*_FAILED`) layers on top of those sets rather
+- **Poll loops must accept every spelling of a terminal state.** A loop that
+  treated only `state === "fail"` as failure missed `"failed"`, so a task
+  reporting `"failed"` polled to timeout. The endpoint transport in
+  `packages/runtime/src/providers/kie-endpoint.ts` reads
+  `TERMINAL_SUCCESS_STATES` / `TERMINAL_FAILURE_STATES` from the shared HTTP
+  transport, and Suno's `*_FAILED` words layer on top of those sets rather
   than replacing them.
-- **A dead job must not look like a slow one.** `pollKieTask` gives up after
-  five consecutive failed polls, and `parseKieJson` reports a non-JSON body
-  (a gateway HTML page) with its HTTP status instead of a bare `SyntaxError`.
-  Result downloads go through `fetchBilledResult` — screened by `safeFetch`,
-  retried on 429/5xx, because the job is already billed. Submit `POST`s are
-  never retried.
+- **A dead job must not look like a slow one.** The poll loop gives up after
+  five consecutive failed polls, and a non-JSON body (a gateway HTML page) is
+  reported with its HTTP status instead of a bare `SyntaxError`.
+  `KieProvider.downloadMedia` screens result URLs with `safeFetch` and retries
+  429/5xx, because the job is already billed. Submit `POST`s are never retried.

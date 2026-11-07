@@ -4,7 +4,13 @@
 
 > Read [packages/AGENTS.md § External-API Wrapper Nodes](../AGENTS.md#external-api-wrapper-nodes) first — those billing/SSRF/poll/retry rules are the bulk of what matters here. This overlay notes the AtlasCloud specifics.
 
-`atlascloud-base.ts` holds the **hardened SSRF reference** for the monorepo:
+Nodes reach AtlasCloud through `context.callProviderEndpoint`, with the
+manifest `modality` as the route, `context.uploadProviderMedia` and
+`context.downloadProviderMedia` with the `atlascloud` provider id. They never
+read `ATLASCLOUD_API_KEY`. `AtlasCloudProvider` runs the transport in
+`packages/runtime/src/providers/atlascloud-transport.ts`.
+
+`atlascloud-factory.ts` holds the **hardened SSRF reference** for the monorepo:
 `isPrivateOrLocalHost` normalizes a host to numeric octets via full `inet_aton`
 semantics (decimal/hex/octal + short forms), unwraps IPv4-mapped IPv6, blocks
 `localhost`/`*.localhost`, and is tested against the decimal metadata IP
@@ -12,13 +18,11 @@ semantics (decimal/hex/octal + short forms), unwraps IPv4-mapped IPv6, blocks
 
 Package specifics from shipped fixes:
 
-- **Download billed results through `atlasDownload` (`fetchWithRetry`)**, not a
-  plain `fetch` — a transient 429/5xx on the CDN otherwise discards an
-  already-billed result.
-- **Latent gap to respect**: `fetchWithRetry` here does **not** yet distinguish
-  idempotent methods, so do **not** route job-creating `POST`s through a retrying
-  path — a 5xx after the server billed would double-submit. (See the `topaz-nodes`
-  `IDEMPOTENT_METHODS` pattern.)
+- **Download billed results through `context.downloadProviderMedia`**, not a
+  plain `fetch`. The provider's `atlasDownload` retries 429/5xx, and a transient
+  CDN failure otherwise discards an already-billed result.
+- **Never retry a job-creating `POST`**: `atlasSubmit` makes one attempt, since a
+  5xx after the server billed would double-submit.
 - **Recognize all terminal poll states** via the `SUCCESS_STATUS` /
   `FAILURE_STATUS` synonym sets (`complete`/`done`/`succeeded`, `canceled`) — an
   unrecognized terminal status must not poll to timeout.

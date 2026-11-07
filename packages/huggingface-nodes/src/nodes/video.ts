@@ -2,7 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   cleanParams,
-  getHfToken,
   hfPipelineBinary,
   videoRefFromBytes
 } from "../huggingface-base.js";
@@ -93,8 +92,9 @@ export class TextToVideoNode extends BaseNode {
   })
   declare seed: number;
 
-  async process(): Promise<TextToVideoNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TextToVideoNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
@@ -103,10 +103,12 @@ export class TextToVideoNode extends BaseNode {
     const steps = Number(this.num_inference_steps ?? 0);
     const seed = Number(this.seed ?? -1);
 
-    const { bytes, mimeType } = await hfPipelineBinary(
-      token,
-      String(this.model ?? "Wan-AI/Wan2.2-T2V-A14B"),
-      {
+    const { bytes, mimeType } = await hfPipelineBinary({
+      context,
+      nodeId: this.__node_id,
+      task: "text-to-video",
+      model: String(this.model ?? "Wan-AI/Wan2.2-T2V-A14B"),
+      body: {
         inputs: prompt,
         parameters: cleanParams({
           negative_prompt: String(this.negative_prompt ?? "") || undefined,
@@ -116,7 +118,7 @@ export class TextToVideoNode extends BaseNode {
           seed: seed >= 0 ? seed : undefined
         })
       }
-    );
+    });
 
     return {
       output: videoRefFromBytes(bytes, mimeType.startsWith("video/") ? mimeType : "video/mp4")
