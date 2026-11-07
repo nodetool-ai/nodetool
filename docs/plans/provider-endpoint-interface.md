@@ -112,7 +112,8 @@ export interface MediaUpload {
 Add three methods with defaults:
 
 ```ts
-/** True when callEndpoint and uploadMedia are implemented. */
+/** True when callEndpoint is implemented. uploadMedia may still throw when
+ * the vendor has no standalone upload step. */
 supportsEndpointCalls(): boolean { return false; }
 
 async callEndpoint(_req: EndpointCallRequest): Promise<EndpointCallResult> {

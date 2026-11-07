@@ -2094,7 +2094,11 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support rerank`);
   }
 
-  /** True when callEndpoint and uploadMedia are implemented. */
+  /**
+   * True when callEndpoint is implemented. uploadMedia may still throw when
+   * the vendor has no standalone upload step (Topaz uploads inside a job,
+   * Hugging Face and ElevenLabs take inputs inline).
+   */
   supportsEndpointCalls(): boolean {
     return false;
   }
