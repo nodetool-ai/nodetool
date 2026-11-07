@@ -1,4 +1,5 @@
 #include "ChatSession.h"
+#include "ComposerRules.h"
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
@@ -11,8 +12,29 @@
 #include <algorithm>
 namespace nt::chat {
 ChatSession::ChatSession(QObject *parent)
-    : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this) {
+    : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this), m_mediaCatalog(this) {
   m_catalog.setMode("chat");
+    m_mediaCatalog.setQuery([this](const QString &procedure, QJsonObject input,
+                                   nt::modelpicker::Catalog::Completion done) {
+        m_client.call(procedure, input, false, [done = std::move(done)](QJsonValue value, QString error) mutable {
+            done(value, error);
+        });
+    });
+    // ModeChips.tsx onPick handlers snap settings the picked model cannot take.
+    connect(&m_mediaCatalog, &nt::modelpicker::Catalog::selectionCommitted, this, [this] {
+        if (composer::isMediaMode(m_mediaMode)) {
+            m_mediaSettings[m_mediaMode] =
+                composer::clampSettings(m_mediaMode, mediaSettings(), m_mediaCatalog.constraints());
+        }
+        emit stateChanged();
+    });
+    connect(&m_mediaCatalog, &nt::modelpicker::Catalog::changed, this, &ChatSession::stateChanged);
+    m_assetTimer = new QTimer(this);
+    m_assetTimer->setSingleShot(true);
+    m_assetTimer->setInterval(150);
+    connect(m_assetTimer, &QTimer::timeout, this, [this] {
+        requestAssets(false);
+    });
   m_catalog.setQuery([this](const QString &procedure, QJsonObject input,
                             nt::modelpicker::Catalog::Completion done) {
     m_client.call(procedure, input, false,
@@ -134,6 +156,7 @@ void ChatSession::connectToServer(const QUrl &url, const QString &token) {
   m_serverToken = token;
   m_client.connectToServer(url, token);
   m_catalog.setIdentity(url.toString(QUrl::RemoveUserInfo) + QChar(0x1f) + token);
+    m_mediaCatalog.setIdentity(url.toString(QUrl::RemoveUserInfo) + QChar(0x1f) + token);
   m_provider = m_catalog.selectedProvider();
   m_model = m_catalog.selectedModelId();
   emit stateChanged();
@@ -162,6 +185,15 @@ void ChatSession::disconnectFromServer() {
     uiContext.remove("run");
     m_hostContext["ui_context"] = uiContext;
   m_catalog.setIdentity({});
+    m_mediaCatalog.setIdentity({});
+    ++m_assetSearch;
+    m_assetTimer->stop();
+    m_assetResults.clear();
+    m_recentAssets.clear();
+    m_assetQuery.clear();
+    m_assetCursor.clear();
+    m_assetSearchOpen = false;
+    emit assetsChanged();
   m_provider.clear();
   m_model.clear();
   m_client.disconnectFromServer();
@@ -475,7 +507,8 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
   }
 }
 void ChatSession::send() {
-  if (!m_model.isEmpty() && m_catalog.selectedModelId() == m_model &&
+  const bool media = composer::isMediaMode(m_mediaMode);
+  if (!media && !m_model.isEmpty() && m_catalog.selectedModelId() == m_model &&
       m_catalog.selectedProvider() == m_provider && m_catalog.loaded() &&
       !m_catalog.selectionAvailable()) {
     fail("The selected model is unavailable. Choose another model or use the server default.");
@@ -495,6 +528,12 @@ void ChatSession::send() {
       s.status == "stopping") {
     return;
   }
+    // MediaChatComposer.tsx refuses a media send with no model and opens the picker.
+    if (media && m_mediaCatalog.selectedModelId().isEmpty()) {
+        fail(composer::pickModelMessage(m_mediaMode));
+        emit modelPickerRequested();
+        return;
+    }
   if (!m_client.ready()) {
     fail("Connect before sending. Your draft has been kept.");
     return;
@@ -512,8 +551,11 @@ void ChatSession::send() {
       {"project_id",
        m_threads.get(m_selected)["project_id"].toString("default")},
       {"permission_mode", "default"}};
+  // MediaChatComposer.tsx submitPrompt sends a text part only for a non-blank prompt.
   QJsonArray content;
-  content.append(QJsonObject{{"type", "text"}, {"text", s.draft}});
+    if (!s.draft.trimmed().isEmpty()) {
+        content.append(QJsonObject{{"type", "text"}, {"text", s.draft}});
+    }
   for (const auto &attachment : s.attachments) {
     const auto item = attachment.toMap();
     if (item["status"] != "ready") {
@@ -521,23 +563,27 @@ void ChatSession::send() {
            "attachments");
       return;
     }
-    const auto mime = item["mimeType"].toString();
-    const auto kind = mime.startsWith("image/")   ? QString("image")
-                      : mime.startsWith("audio/") ? QString("audio")
-                      : mime.startsWith("video/") ? QString("video")
-                                                  : QString("document");
-    content.append(QJsonObject{
-        {"type", kind == "image" ? "image_url" : kind},
-        {kind, QJsonObject{{"type", kind},
-                           {"uri", "asset://" + item["assetId"].toString()}}}});
+        // The server's asset record decides the part, as useDragAndDrop.ts assetToDroppedFile does.
+        const auto contentType = item["contentType"].toString().isEmpty() ? item["mimeType"].toString()
+                                                                          : item["contentType"].toString();
+        content.append(composer::assetContent(item["assetId"].toString(), item["name"].toString(), contentType));
   }
   message["content"] = content;
-  if (!m_provider.isEmpty()) {
-    message["provider"] = m_provider;
+    // CanvasMediaComposer.tsx and GlobalChatStore.ts trySendMessage: a media turn
+    // runs on the mode's model and carries no reasoning level.
+    const auto provider = media ? m_mediaCatalog.selectedProvider() : m_provider;
+    const auto model = media ? m_mediaCatalog.selectedModelId() : m_model;
+  if (!provider.isEmpty()) {
+    message["provider"] = provider;
   }
-  if (!m_model.isEmpty()) {
-    message["model"] = m_model;
+  if (!model.isEmpty()) {
+    message["model"] = model;
   }
+    if (media) {
+        message["media_generation"] = composer::mediaRequest(m_mediaMode, mediaSettings(), provider, model);
+    } else if (!m_reasoningEffort.isEmpty()) {
+        message["reasoning_effort"] = m_reasoningEffort;
+    }
   if (!m_hostContext.isEmpty()) {
     const auto workflowId = m_hostContext.value("workflow_id").toString();
     message["workflow_id"] = workflowId.isEmpty() ? QJsonValue(QJsonValue::Null) : QJsonValue(workflowId);
@@ -681,6 +727,10 @@ void ChatSession::addAttachment(const QUrl &local) {
           }
           item["error"] = error;
           item["assetId"] = value.toObject()["id"].toString();
+            item["contentType"] = value.toObject()["content_type"].toString(item["mimeType"].toString());
+            if (!value.toObject()["name"].toString().isEmpty()) {
+                item["name"] = value.toObject()["name"].toString();
+            }
           items[i] = item;
         }
         if (!found) {
@@ -899,6 +949,217 @@ void ChatSession::applyEvent(const QJsonObject &event) {
     }
   }
   emit stateChanged();
+}
+void ChatSession::setMediaMode(const QString &mode) {
+    bool enabled = false;
+    for (const auto &entry : composer::mediaModes()) {
+        enabled = enabled || (entry.toMap()["id"] == mode && entry.toMap()["enabled"].toBool());
+    }
+    if (!enabled || mode == m_mediaMode) {
+        return;
+    }
+    m_mediaMode = mode;
+    if (composer::isMediaMode(mode)) {
+        m_mediaCatalog.setFilter({}, composer::catalogTasks(mode));
+        m_mediaCatalog.setMode(composer::catalogMode(mode));
+    }
+    emit stateChanged();
+}
+QVariantList ChatSession::mediaModes() const {
+    return composer::mediaModes();
+}
+QVariantMap ChatSession::mediaSettings() const {
+    return m_mediaSettings.value(m_mediaMode, composer::defaultSettings(m_mediaMode));
+}
+QString ChatSession::mediaModelName() const {
+    const auto id = m_mediaCatalog.selectedModelId();
+    if (id.isEmpty()) {
+        return {};
+    }
+    const auto details = m_mediaCatalog.modelDetails(id, m_mediaCatalog.selectedProvider());
+    return details.value("name").toString().isEmpty() ? id : details.value("name").toString();
+}
+QVariantList ChatSession::mediaChips() const {
+    return composer::settingChips(m_mediaMode, mediaSettings(), m_mediaCatalog.constraints());
+}
+QString ChatSession::mediaModelHint() const {
+    return composer::pickModelMessage(m_mediaMode);
+}
+QString ChatSession::mediaModelPlaceholder() const {
+    return composer::modelPlaceholder(m_mediaMode);
+}
+void ChatSession::setReasoningEffort(const QString &effort) {
+    if (effort != "" && effort != "low" && effort != "medium" && effort != "high") {
+        return;
+    }
+    m_reasoningEffort = effort;
+    emit stateChanged();
+}
+bool ChatSession::reasoningSupported() const {
+    return composer::supportsReasoningEffort(m_provider, m_model);
+}
+QVariantList ChatSession::reasoningLevels() const {
+    return composer::reasoningLevels();
+}
+void ChatSession::setMediaSetting(const QString &key, const QVariant &value) {
+    if (!composer::isMediaMode(m_mediaMode)) {
+        return;
+    }
+    auto settings = mediaSettings();
+    if (!settings.contains(key)) {
+        return;
+    }
+    bool offered = false;
+    for (const auto &entry : mediaOptions(key)) {
+        offered = offered || entry.toMap()["value"] == value;
+    }
+    if (!offered) {
+        return;
+    }
+    settings[key] = value;
+    m_mediaSettings[m_mediaMode] = settings;
+    emit stateChanged();
+}
+QVariantList ChatSession::mediaOptions(const QString &key) const {
+    return composer::settingOptions(m_mediaMode, key, m_mediaCatalog.constraints());
+}
+QVariantMap ChatSession::mediaRequest() const {
+    if (!composer::isMediaMode(m_mediaMode)) {
+        return {};
+    }
+    return composer::mediaRequest(m_mediaMode, mediaSettings(), m_mediaCatalog.selectedProvider(),
+                                  m_mediaCatalog.selectedModelId())
+        .toVariantMap();
+}
+// useAssetMentionSearch.ts: Saved is the library searched by the query, debounced
+// by 150 ms. Recent holds the assets used in this session.
+void ChatSession::searchAssets(const QString &query) {
+    m_assetSearchOpen = true;
+    if (query == m_assetQuery && (m_assetTimer->isActive() || !m_assetResults.isEmpty())) {
+        return;
+    }
+    m_assetQuery = query;
+    ++m_assetSearch;
+    m_assetTimer->start();
+    emit assetsChanged();
+}
+void ChatSession::loadMoreAssets() {
+    if (m_assetSearchOpen && !m_assetCursor.isEmpty()) {
+        requestAssets(true);
+    }
+}
+void ChatSession::closeAssetSearch() {
+    m_assetSearchOpen = false;
+    ++m_assetSearch;
+    m_assetTimer->stop();
+    m_assetQuery.clear();
+    m_assetResults.clear();
+    m_assetCursor.clear();
+    emit assetsChanged();
+}
+void ChatSession::requestAssets(bool append) {
+    if (!m_client.ready() || !m_assetSearchOpen) {
+        return;
+    }
+    const auto token = append ? m_assetSearch : ++m_assetSearch;
+    QJsonObject input{{"query", m_assetQuery}, {"page_size", 24}, {"project_id", "default"}};
+    if (append) {
+        input["cursor"] = m_assetCursor;
+    }
+    m_client.call("assets.search", input, false, [this, token, append](QJsonValue value, QString error) {
+        if (token != m_assetSearch) {
+            return;
+        }
+        if (!append) {
+            m_assetResults.clear();
+        }
+        m_assetCursor.clear();
+        if (error.isEmpty()) {
+            for (const auto &entry : value.toObject()["assets"].toArray()) {
+                // Folders are not attachable.
+                if (entry.toObject()["content_type"] != "folder") {
+                    m_assetResults.append(entry.toObject().toVariantMap());
+                }
+            }
+            m_assetCursor = value.toObject()["next_cursor"].toString();
+        }
+        emit assetsChanged();
+    });
+}
+QVariantList ChatSession::recentAssets() const {
+    const auto query = m_assetQuery.trimmed().toLower();
+    QVariantList matches;
+    for (const auto &entry : m_recentAssets) {
+        const auto asset = entry.toMap();
+        const auto name = asset["name"].toString().isEmpty() ? asset["id"].toString() : asset["name"].toString();
+        if (query.isEmpty() || name.toLower().contains(query)) {
+            matches.append(asset);
+        }
+    }
+    return matches;
+}
+// MediaChatComposer.tsx handleSelectAsset attaches the asset as an asset:// reference.
+void ChatSession::attachAsset(const QVariantMap &asset) {
+    if (m_selected.isEmpty() || asset["id"].toString().isEmpty()) {
+        return;
+    }
+    const auto contentType = asset["content_type"].toString().isEmpty() ? QString("application/octet-stream")
+                                                                        : asset["content_type"].toString();
+    const auto name = asset["name"].toString().isEmpty() ? asset["id"].toString() : asset["name"].toString();
+    state(m_selected).attachments.append(QVariantMap{{"id", QUuid::createUuid().toString(QUuid::Id128)},
+                                                     {"name", name},
+                                                     {"status", "ready"},
+                                                     {"progress", 100},
+                                                     {"mimeType", contentType},
+                                                     {"contentType", contentType},
+                                                     {"assetId", asset["id"]}});
+    for (qsizetype i = 0; i < m_recentAssets.size(); ++i) {
+        if (m_recentAssets[i].toMap()["id"] == asset["id"]) {
+            m_recentAssets.removeAt(i);
+            break;
+        }
+    }
+    m_recentAssets.prepend(asset);
+    while (m_recentAssets.size() > 24) {
+        m_recentAssets.removeLast();
+    }
+    emit assetsChanged();
+    emit stateChanged();
+}
+QVariantMap ChatSession::mentionTrigger(const QString &text, int caret) const {
+    return composer::mentionTrigger(text, caret);
+}
+QVariantMap ChatSession::removeMention(const QString &text, int start, int end) const {
+    return composer::removeMention(text, start, end);
+}
+// ThreadList.tsx: one header per relative-date group, none for a single thread.
+QVariantList ChatSession::workflowThreadRows(const QString &query) const {
+    const auto needle = query.trimmed().toLower();
+    QVariantList rows;
+    for (const auto &entry : workflowThreads()) {
+        const auto row = entry.toMap();
+        const auto text = (row["title"].toString() + " " + row["preview"].toString()).toLower();
+        if (needle.isEmpty() || text.contains(needle)) {
+            rows.append(row);
+        }
+    }
+    const auto now = QDateTime::currentDateTime();
+    QString previous;
+    for (auto &entry : rows) {
+        auto row = entry.toMap();
+        const auto updated = QDateTime::fromString(row["updated_at"].toString(), Qt::ISODateWithMs);
+        row["time"] = updated.isValid() ? updated.toLocalTime().toString("HH:mm") : QString();
+        if (rows.size() > 1 && updated.isValid()) {
+            const auto group = composer::dateGroup(updated, now);
+            if (group != previous) {
+                row["header"] = group;
+                row["headerDate"] = composer::groupDate(updated);
+                previous = group;
+            }
+        }
+        entry = row;
+    }
+    return rows;
 }
 QJsonObject ChatSession::dumpState() const {
   QJsonObject states;

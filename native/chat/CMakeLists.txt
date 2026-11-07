@@ -27,6 +27,7 @@ qt_add_qml_module(nodetool_chat
         src/model/ThreadModel.h src/model/ThreadModel.cpp
         src/model/MessageModel.h src/model/MessageModel.cpp
         src/runtime/ChatSession.h src/runtime/ChatSession.cpp
+        src/runtime/ComposerRules.h src/runtime/ComposerRules.cpp
         src/server/ChatClient.h src/server/ChatClient.cpp)
 target_include_directories(nodetool_chat PUBLIC src)
 target_link_libraries(nodetool_chat PUBLIC nodetool_ui_primitives nodetool_model_picker Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
