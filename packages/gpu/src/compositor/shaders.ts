@@ -244,6 +244,9 @@ fn fs_unpremultiply(@location(0) uv: vec2f) -> @location(0) vec4f {
   if (c.a <= 0.0) {
     return vec4f(0.0, 0.0, 0.0, 0.0);
   }
-  return vec4f(c.rgb / c.a, c.a);
+  // The resolve target is RGBA8. Round before device-dependent UNORM storage
+  // conversion so half-byte alpha divisions match the CPU pixel surface.
+  let straight = vec4f(c.rgb / c.a, c.a);
+  return floor(straight * 255.0 + vec4f(0.5)) / 255.0;
 }
 `;
