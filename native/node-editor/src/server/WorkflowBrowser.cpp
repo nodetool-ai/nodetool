@@ -115,6 +115,7 @@ void WorkflowBrowser::loadNext() {
   if (!m_loading && !m_busy && hasNext()) { page(true); }
 }
 void WorkflowBrowser::page(bool append) {
+  if (!append) { m_pageCursors.clear(); }
   m_error.clear(); m_loading = true; emit changed();
   QUrlQuery query;
   query.addQueryItem("limit", "100");
@@ -136,7 +137,12 @@ void WorkflowBrowser::page(bool append) {
       if (!ids.contains(item["id"].toString())) { rows.append(item); ids.insert(item["id"].toString()); }
     }
     const auto next = object["next"].toString();
-    if (append && !next.isEmpty() && next == m_next) { fail(tr("Server repeated its pagination cursor")); return; }
+    if (!next.isEmpty() && m_pageCursors.contains(next)) {
+      m_next.clear();
+      fail(tr("Server repeated its pagination cursor"));
+      return;
+    }
+    if (!next.isEmpty()) { m_pageCursors.insert(next); }
     m_rows = rows; m_next = next; m_loading = false; emit changed();
   });
 }

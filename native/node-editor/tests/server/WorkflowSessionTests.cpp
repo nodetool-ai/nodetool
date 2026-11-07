@@ -11,6 +11,34 @@ using namespace nodetool::node_editor;
 class Tests : public QObject {
   Q_OBJECT
 private slots:
+    void liveSnapshotsAreCachedPerEdit() {
+        WorkflowSession session;
+        QJsonObject current{{"name", "initial"}};
+        int reads = 0;
+        session.setSnapshot(current);
+        session.setSnapshotProvider([&] {
+            ++reads;
+            return current;
+        });
+        current["name"] = "edited";
+        session.documentChanged();
+        QVERIFY(session.dirty());
+        QCOMPARE(reads, 0);
+        QCOMPARE(session.workflow(), current);
+        QCOMPARE(session.workflow(), current);
+        QCOMPARE(reads, 1);
+        current["name"] = "latest";
+        session.documentChanged();
+        QCOMPARE(reads, 1);
+        QCOMPARE(session.workflow(), current);
+        QCOMPARE(reads, 2);
+        session.detachServerWorkflow();
+        QCOMPARE(session.workflow(), current);
+        QCOMPARE(reads, 2);
+        session.disconnectFromServer();
+        QCOMPARE(session.workflow(), current);
+        QCOMPARE(reads, 3);
+    }
   void rejectsUnsafeServerUrls_data() {
     QTest::addColumn<QUrl>("url");
     QTest::addColumn<QString>("token");

@@ -13,14 +13,15 @@ inline QJsonArray catalog() {
     QJsonObject{{"node_type","Fixed"},{"title","Fixed"},{"input_fields",QJsonArray{"in"}},
       {"properties",QJsonArray{slot("in",text)}},{"outputs",QJsonArray{slot("out",text)}}},
     QJsonObject{{"node_type","Receiver"},{"title","Receiver"},{"input_fields",QJsonArray{"prompt"}},
+      {"inline_fields",QJsonArray{"fallback","other","seed"}},
       {"properties",QJsonArray{slot("fallback",any),slot("other",text),prompt,seed}},{"outputs",QJsonArray{}}},
     QJsonObject{{"node_type","Producer"},{"title","Producer"},{"primary_output","primary"},
       {"properties",QJsonArray{}},{"outputs",QJsonArray{slot("fallback",any),slot("other",text),slot("primary",text)}}},
     QJsonObject{{"node_type","Multi"},{"title","Multi"},{"input_fields",QJsonArray{"left","right"}},
       {"properties",QJsonArray{slot("left",text),slot("right",text)}},{"outputs",QJsonArray{}}},
-    QJsonObject{{"node_type","FloatOnly"},{"title","Float only"},
+    QJsonObject{{"node_type","FloatOnly"},{"title","Float only"},{"inline_fields",QJsonArray{"in"}},
       {"properties",QJsonArray{slot("in",number)}},{"outputs",QJsonArray{slot("out",number)}}},
-    QJsonObject{{"node_type","ListReceiver"},{"title","List receiver"},
+    QJsonObject{{"node_type","ListReceiver"},{"title","List receiver"},{"inline_fields",QJsonArray{"items"}},
       {"properties",QJsonArray{slot("items",QJsonObject{{"type","list"},{"type_args",QJsonArray{text}}})}},{"outputs",QJsonArray{}}}
   };
 }

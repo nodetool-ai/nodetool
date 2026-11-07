@@ -5,9 +5,11 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QVector>
+#include <QtNodes/Definitions>
 class QGraphicsView;
 class QQmlEngine;
 class QQuickWidget;
+class QQuickWindow;
 namespace nodetool {
 class WorkflowGraphModel;
 class EditorScene;
@@ -20,6 +22,8 @@ public:
                        QObject *parent = nullptr);
   ~CanvasMediaPresenter() override;
   QList<QQuickWidget *> activeWidgets() const;
+  bool canViewImage(const QString &nodeId) const;
+  bool viewImage(const QString &nodeId);
 public slots:
   void setSources(const QVariantList &sources);
   void setCollections(const QVariantList &collections);
@@ -38,9 +42,15 @@ private:
   QHash<QString, QVariantMap> sources_;
   QHash<QString, Entry> active_;
   QVector<QPointer<QQuickWidget>> retired_;
+  QPointer<QQuickWindow> imageViewer_;
+  QString imageViewerNode_;
+  QVariantMap imageViewerSource_;
   quint64 serial_ = 0;
   bool scheduled_ = false;
   void schedule();
+  bool canOpenImageViewer(QtNodes::NodeId id) const;
+  bool openImageViewer(QtNodes::NodeId id);
+  void closeImageViewer();
   void applySources(const QHash<QString, QVariantMap> &sources);
   void retire(const QString &id);
   void releaseWidgets();

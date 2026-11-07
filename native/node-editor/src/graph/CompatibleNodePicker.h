@@ -22,6 +22,8 @@ class CompatibleNodePicker final : public QObject {
   Q_PROPERTY(QString title READ title NOTIFY changed)
   Q_PROPERTY(bool active READ active NOTIFY changed)
   Q_PROPERTY(int generation READ generation NOTIFY changed)
+  // A dynamic output's menu also deletes it (web OutputContextMenu.tsx:93-124, :622-630).
+  Q_PROPERTY(bool canDeleteOutput READ canDeleteOutput NOTIFY changed)
 public:
   CompatibleNodePicker(WorkflowGraphModel &model, EditorScene &scene,
                        QGraphicsView &view, QQmlEngine *engine,
@@ -34,6 +36,7 @@ public:
   int generation() const { return generation_; }
   void choose(const QString &key) { choose(key, generation_); }
   bool active() const { return active_; }
+  bool canDeleteOutput() const;
   QQuickWidget *widget() const;
   std::function<bool(const QJsonObject &)> applyCommand;
 public slots:
@@ -46,6 +49,7 @@ public slots:
   void choose(const QString &key, int generation);
   void search(const QString &query, int generation);
   void dismiss(int generation);
+  void deleteOutput(int generation);
   void cancel();
 signals:
   void changed();

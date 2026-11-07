@@ -13,6 +13,8 @@
 #include <QtTest>
 #include <QTimer>
 #include <QSettings>
+#include <QUrlQuery>
+#include <QQmlEngine>
 #include <algorithm>
 namespace {
 constexpr auto ThreadId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -30,6 +32,10 @@ public:
     bool holdUploads = false;
     bool failUploads = false;
     QPointer<QTcpSocket> uploadSocket;
+    // Model rows by tRPC procedure, as models.*ByProvider returns them.
+    QHash<QString, QJsonArray> models;
+    QJsonArray assets;
+    QJsonArray threads{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"workflow_id", "workflow-chat"}, {"project_id", "default"}}};
     ChatServer() {
         connect(&http, &QTcpServer::newConnection, this, [this] {
             while (http.hasPendingConnections()) {
@@ -56,8 +62,9 @@ public:
                     if (target.startsWith("/api/assets")) {
                         uploadSocket = socket;
                         if (holdUploads) { return; }
+                        // The asset API returns the stored asset record.
                         const auto body = failUploads ? QByteArray("{\"error\":\"Upload rejected\"}")
-                            : QByteArray("{\"id\":\"cccccccccccccccccccccccccccccccc\"}");
+                            : QByteArray("{\"id\":\"cccccccccccccccccccccccccccccccc\",\"name\":\"brief.pdf\",\"content_type\":\"application/pdf\"}");
                         socket->write((failUploads ? QByteArray("HTTP/1.1 500 Internal Server Error\r\n") : QByteArray("HTTP/1.1 200 OK\r\n"))
                             + "Content-Type: application/json\r\nConnection: close\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\n\r\n" + body);
                         socket->disconnectFromHost();
@@ -71,7 +78,7 @@ public:
                     }
                     QJsonValue data;
                     if (target.startsWith("/trpc/threads.list")) {
-                        data = QJsonObject{{"threads", QJsonArray{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"workflow_id", "workflow-chat"}, {"project_id", "default"}}}}, {"next", QJsonValue::Null}};
+                        data = QJsonObject{{"threads", threads}, {"next", QJsonValue::Null}};
                     } else if (target.startsWith("/trpc/messages.list")) {
                         if (paginateHistory) {
                             const bool earlier = target.contains("cursor-one");
@@ -79,6 +86,36 @@ public:
                                 {"next", earlier ? QJsonValue(QJsonValue::Null) : QJsonValue("cursor-one")}};
                         } else {
                             data = QJsonObject{{"messages", QJsonArray{}}, {"next", QJsonValue::Null}};
+                        }
+                    } else if (target.startsWith("/trpc/models.providers")) {
+                        const QJsonArray capabilities{"generate_message", "text_to_image", "image_to_image", "text_to_video",
+                            "image_to_video", "reference_to_video", "video_to_video", "extend_video", "text_to_speech", "text_to_music"};
+                        QJsonArray providers;
+                        for (const auto *name : {"anthropic", "elevenlabs", "fal", "openai"}) {
+                            providers.append(QJsonObject{{"provider", name}, {"capabilities", capabilities}});
+                        }
+                        data = providers;
+                    } else if (target.startsWith("/trpc/settings.providerCatalog")) {
+                        data = QJsonArray{};
+                    } else if (target.startsWith("/trpc/models.") || target.startsWith("/trpc/assets.search")) {
+                        const QUrl url(QString::fromUtf8(target));
+                        const auto procedure = url.path().mid(6);
+                        const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+                        QJsonArray matching;
+                        if (procedure == "assets.search") {
+                            for (const auto &asset : assets) {
+                                if (asset.toObject()["name"].toString().contains(input["query"].toString(), Qt::CaseInsensitive)) {
+                                    matching.append(asset);
+                                }
+                            }
+                            data = QJsonObject{{"assets", matching}, {"next_cursor", QJsonValue::Null}};
+                        } else {
+                            for (const auto &model : models.value(procedure)) {
+                                if (model.toObject()["provider"] == input["provider"]) {
+                                    matching.append(model);
+                                }
+                            }
+                            data = matching;
                         }
                     } else if (target.startsWith("/trpc/threads.create")) {
                         data = QJsonObject{{"id", createdId}, {"title", "Created"}, {"project_id", "default"}};
@@ -170,6 +207,94 @@ class EditorChatTest final : public QObject {
         for (const auto character : text.toLatin1()) {
             QTest::keyClick(widget->quickWindow(), character);
         }
+    }
+    static QQuickItem *findVisible(QQuickItem *root, const QString &name) {
+        if (!root->isVisible()) {
+            return nullptr;
+        }
+        if (root->objectName() == name) {
+            return root;
+        }
+        for (auto *child : root->childItems()) {
+            if (auto *found = findVisible(child, name)) {
+                return found;
+            }
+        }
+        return nullptr;
+    }
+    // Popup items live in the window overlay beside the content item.
+    static QQuickItem *visibleItem(QQuickWidget *widget, const QString &name) {
+        auto *root = widget->quickWindow()->contentItem();
+        while (root->parentItem()) {
+            root = root->parentItem();
+        }
+        return findVisible(root, name);
+    }
+    static void clickVisible(QQuickWidget *widget, const QString &name) {
+        QQuickItem *item = nullptr;
+        QTRY_VERIFY2((item = visibleItem(widget, name)) != nullptr, qPrintable(name));
+        // A control that just appeared waits for its layout pass.
+        QTRY_VERIFY(item->width() > 0 && item->height() > 0);
+        QTest::qWait(30);
+        const auto point = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
+        QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier, point.toPoint());
+    }
+    static void chooseOption(QQuickWidget *widget, nt::chat::ChatSession *chat, const QString &key, const QVariant &value) {
+        const auto options = chat->mediaOptions(key);
+        qsizetype index = -1;
+        for (qsizetype i = 0; i < options.size(); ++i) {
+            if (options[i].toMap()["value"] == value) {
+                index = i;
+            }
+        }
+        QVERIFY2(index >= 0, qPrintable(key + " " + value.toString()));
+        clickVisible(widget, "mediaSetting-" + key);
+        clickVisible(widget, "chip-option-" + QString::number(index));
+        QTRY_COMPARE(chat->mediaSettings()[key], value);
+    }
+    static void pickModel(nt::modelpicker::Catalog *catalog, const QJsonObject &model) {
+        if (!catalog->loaded()) {
+            catalog->reload();
+        }
+        QTRY_VERIFY(catalog->loaded());
+        catalog->selectModel(model["id"].toString(), model["provider"].toString());
+        QTRY_COMPARE(catalog->selectedModelId(), model["id"].toString());
+    }
+    // Model rows for every model the payload fixture picks.
+    static void serveModels(ChatServer &server, const QJsonArray &cases) {
+        const QHash<QString, QString> procedures{{"image", "models.imageByProvider"}, {"imageEdit", "models.imageByProvider"},
+            {"video", "models.videoByProvider"}, {"imageToVideo", "models.videoByProvider"},
+            {"referenceToVideo", "models.videoByProvider"}, {"retake", "models.videoByProvider"},
+            {"extend", "models.videoByProvider"}, {"audio", "models.ttsByProvider"}, {"music", "models.musicByProvider"}};
+        const QJsonArray videoTasks{"text_to_video", "image_to_video", "reference_to_video", "video_to_video", "extend_video"};
+        QSet<QString> seen;
+        const auto add = [&](const QString &procedure, QJsonObject model) {
+            if (seen.contains(procedure + model["id"].toString())) {
+                return;
+            }
+            seen.insert(procedure + model["id"].toString());
+            model.remove("type");
+            if (procedure == "models.videoByProvider") {
+                model["supported_tasks"] = videoTasks;
+            }
+            server.models[procedure].append(model);
+        };
+        add("models.llmByProvider", {{"id", "claude-opus-4-6"}, {"provider", "anthropic"}, {"name", "claude-opus-4-6"}});
+        for (const auto &value : cases) {
+            const auto spec = value.toObject();
+            if (spec.contains("chatModel")) {
+                add("models.llmByProvider", spec["chatModel"].toObject());
+            }
+            const auto settings = spec["settings"].toObject();
+            for (auto it = settings.begin(); it != settings.end(); ++it) {
+                add(procedures[it.key()], it.value().toObject()["model"].toObject());
+            }
+        }
+    }
+    static void setReducedMotion(QQuickWidget *widget, bool reduced) {
+        auto *theme = widget->engine()->singletonInstance<QObject *>("NodeTool.UiPrimitives", "Theme");
+        QVERIFY(theme);
+        theme->setProperty("reducedMotion", reduced);
     }
     static void capture(nodetool::EditorWindow &window, const QString &name) {
         const auto dir = qEnvironmentVariable("NODETOOL_EDITOR_CHAT_CAPTURE_DIR");
@@ -308,7 +433,13 @@ private slots:
         QTRY_COMPARE(chat->error(), QString("Could not delete the conversation. Please try again."));
         QCOMPARE(chat->workflowThreads().size(), 1);
     }
+    void askAgentDraft_data() {
+        QTest::addColumn<QString>("spanId");
+        QTest::newRow("run") << QString{};
+        QTest::newRow("span") << QStringLiteral("1111111111111111");
+    }
     void askAgentDraft() {
+        QFETCH(QString, spanId);
         ChatServer server;
         QVERIFY(server.listen());
         nodetool::EditorWindow window;
@@ -327,8 +458,13 @@ private slots:
             }
         }
         QVERIFY(output);
-        click(output, "askRunAgent");
-        QTRY_COMPARE(chat->draft(), QString("Help me diagnose the selected run."));
+        if (spanId.isEmpty()) {
+            click(output, "askRunAgent");
+        } else {
+            window.askRunAgent("run-fixture", spanId);
+        }
+        QTRY_COMPARE(chat->draft(), spanId.isEmpty() ? QString("Help me diagnose the selected run.") : QString("Help me diagnose the selected span."));
+        QCOMPARE(server.count("command", "chat_message"), 0);
         QTRY_VERIFY(!chat->historyLoading());
         click(surface(window), "sendMessage");
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
@@ -339,6 +475,7 @@ private slots:
             }
         }
         QCOMPARE(data["ui_context"].toObject()["run"].toObject()["run_id"].toString(), QString("run-fixture"));
+        QCOMPARE(data["ui_context"].toObject()["run"].toObject()["span_id"].toString(), spanId);
     }
     void draftAndTabs() {
         nodetool::EditorWindow window;
@@ -393,7 +530,8 @@ private slots:
         const QJsonObject reference{{"type", "workflow"}, {"id", "workflow-chat"}, {"title", "Chat fixture"}};
         const QJsonObject ui{{"source", "workflow_canvas"}, {"focused", reference},
             {"open", QJsonArray{reference}}, {"selection", QJsonObject{{"node_ids", QJsonArray{"node-chat"}}}}};
-        const QJsonObject attachmentRef{{"type", "document"}, {"uri", "asset://cccccccccccccccccccccccccccccccc"}};
+        // useDragAndDrop.ts assetToDroppedFile names the extension from the asset record.
+        const QJsonObject attachmentRef{{"type", "document"}, {"uri", "asset://cccccccccccccccccccccccccccccccc.pdf"}};
         const QJsonArray content{QJsonObject{{"type", "text"}, {"text", "Edit this workflow"}},
             QJsonObject{{"type", "document"}, {"document", attachmentRef}}};
         const QJsonObject expected{{"id", sent["id"]}, {"type", "message"}, {"name", ""},
@@ -477,21 +615,265 @@ private slots:
         QCOMPARE(chat->messages()->rowCount(), 0);
         QVERIFY(chat->workflowThreads().isEmpty());
     }
+    void payloadsMatchWebSendPath() {
+        // ChatPayloadFixture.json holds chat_message data from the web send path:
+        // CanvasMediaComposer.tsx into GlobalChatStore.ts trySendMessage, executed
+        // by scripts/generate-chat-web-fixtures.mjs. Only the random id differs.
+        QFile file(QFINDTESTDATA("ChatPayloadFixture.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto cases = QJsonDocument::fromJson(file.readAll()).object()["cases"].toArray();
+        QVERIFY(cases.size() >= 15);
+        const QHash<QString, QString> settingsKeys{{"image", "image"}, {"image_edit", "imageEdit"}, {"video", "video"},
+            {"image_to_video", "imageToVideo"}, {"reference_to_video", "referenceToVideo"}, {"retake", "retake"},
+            {"extend", "extend"}, {"audio", "audio"}, {"music", "music"}};
+        for (const auto &value : cases) {
+            const auto spec = value.toObject();
+            const auto name = spec["name"].toString();
+            const auto mode = spec["mode"].toString();
+            ChatServer server;
+            QVERIFY(server.listen());
+            serveModels(server, cases);
+            nodetool::EditorWindow window;
+            setup(window);
+            auto *chat = window.chatSession();
+            auto *widget = surface(window);
+            chat->connectToServer(server.url());
+            QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+            QTRY_VERIFY(!chat->historyLoading());
+            if (spec.contains("selection")) {
+                QVERIFY(window.selectNode("node-chat"));
+            }
+            if (spec.contains("reasoning")) {
+                // The level is chosen while a model that takes it is picked.
+                pickModel(chat->modelCatalog(), {{"id", "claude-opus-4-6"}, {"provider", "anthropic"}});
+                QTRY_VERIFY(chat->reasoningSupported());
+                clickVisible(widget, "reasoningChip");
+                clickVisible(widget, "reasoning-" + spec["reasoning"].toString());
+                QTRY_COMPARE(chat->reasoningEffort(), spec["reasoning"].toString());
+            }
+            if (spec.contains("chatModel")) {
+                pickModel(chat->modelCatalog(), spec["chatModel"].toObject());
+                QTRY_COMPARE(chat->model(), spec["chatModel"].toObject()["id"].toString());
+            }
+            if (mode != "chat") {
+                clickVisible(widget, "mediaModeChip");
+                clickVisible(widget, "mediaMode-" + mode);
+                QTRY_COMPARE(chat->mediaMode(), mode);
+                const auto settings = spec["settings"].toObject()[settingsKeys[mode]].toObject();
+                pickModel(chat->mediaCatalog(), settings["model"].toObject());
+                for (auto it = settings.begin(); it != settings.end(); ++it) {
+                    if (it.key() != "model") {
+                        chooseOption(widget, chat, it.key(), it.value().toVariant());
+                    }
+                }
+            }
+            for (const auto &asset : spec["attachments"].toArray()) {
+                chat->attachAsset(asset.toObject().toVariantMap());
+            }
+            if (!spec["prompt"].toString().isEmpty()) {
+                type(widget, spec["prompt"].toString());
+                QTRY_COMPARE(chat->draft(), spec["prompt"].toString());
+            }
+            clickVisible(widget, mode == "chat" ? "sendMessage" : "generateMedia");
+            QTRY_VERIFY2(server.count("command", "chat_message") == 1, qPrintable(name + " " + chat->error()));
+            QJsonObject sent;
+            for (const auto &frame : server.frames) {
+                if (frame["command"] == "chat_message") {
+                    sent = frame["data"].toObject();
+                }
+            }
+            QVERIFY(QRegularExpression("^[0-9a-f]{32}$").match(sent.take("id").toString()).hasMatch());
+            const auto expected = spec["expected"].toObject()["data"].toObject();
+            QVERIFY2(sent == expected, qPrintable(name + "\nnative " + QString::fromUtf8(QJsonDocument(sent).toJson(QJsonDocument::Compact))
+                + "\nweb    " + QString::fromUtf8(QJsonDocument(expected).toJson(QJsonDocument::Compact))));
+        }
+    }
+    void mediaModeRequiresModel() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        nodetool::EditorWindow window;
+        setup(window);
+        auto *chat = window.chatSession();
+        auto *widget = surface(window);
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+        QTRY_VERIFY(!chat->historyLoading());
+        clickVisible(widget, "mediaModeChip");
+        // Disabled "Soon" modes cannot be chosen.
+        QTRY_VERIFY(visibleItem(widget, "mediaMode-audio_to_video"));
+        QVERIFY(!visibleItem(widget, "mediaMode-audio_to_video")->isEnabled());
+        clickVisible(widget, "mediaMode-video");
+        QTRY_COMPARE(chat->mediaMode(), QString("video"));
+        QVERIFY(visibleItem(widget, "mediaSetting-duration"));
+        QVERIFY(!visibleItem(widget, "chooseChatModel"));
+        QVERIFY(!visibleItem(widget, "reasoningChip"));
+        type(widget, "Waves");
+        clickVisible(widget, "generateMedia");
+        QTRY_COMPARE(chat->error(), QString("Pick the video model to generate with."));
+        QCOMPARE(server.count("command", "chat_message"), 0);
+        QCOMPARE(chat->draft(), QString("Waves"));
+        QVERIFY(chat->mediaRequest()["model"].isNull());
+    }
+    void assetMentionPicker() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        server.assets = {QJsonObject{{"id", "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"}, {"name", "photo.png"}, {"content_type", "image/png"}},
+            QJsonObject{{"id", "f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"}, {"name", "photos"}, {"content_type", "folder"}},
+            QJsonObject{{"id", "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"}, {"name", "brief.pdf"}, {"content_type", "application/pdf"}}};
+        nodetool::EditorWindow window;
+        setup(window);
+        auto *chat = window.chatSession();
+        auto *widget = surface(window);
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+        QTRY_VERIFY(!chat->historyLoading());
+        type(widget, "Use @pho");
+        QTRY_VERIFY(visibleItem(widget, "assetMentionMenu"));
+        // Saved holds the library search. Folders are not offered.
+        QTRY_VERIFY(visibleItem(widget, "assetMention-c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"));
+        QVERIFY(!visibleItem(widget, "assetMention-f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"));
+        QVERIFY(std::any_of(server.requests.cbegin(), server.requests.cend(), [](const auto &request) {
+            return request.contains("assets.search") && request.contains("pho");
+        }));
+        QTest::keyClick(widget->quickWindow(), Qt::Key_Return);
+        QTRY_COMPARE(chat->attachments().size(), 1);
+        QCOMPARE(chat->attachments()[0].toMap()["assetId"].toString(), QString("c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"));
+        QCOMPARE(chat->draft(), QString("Use"));
+        QVERIFY(!visibleItem(widget, "assetMentionMenu"));
+        // A new mention opens on Recent. Escape dismisses it and keeps the text.
+        for (const auto key : QByteArray(" @")) {
+            QTest::keyClick(widget->quickWindow(), key);
+        }
+        QTRY_VERIFY(visibleItem(widget, "assetMentionMenu"));
+        QVERIFY(visibleItem(widget, "assetMention-c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"));
+        QTest::keyClick(widget->quickWindow(), Qt::Key_Escape);
+        QTRY_VERIFY(!visibleItem(widget, "assetMentionMenu"));
+        QCOMPARE(chat->draft(), QString("Use @"));
+        QTest::keyClick(widget->quickWindow(), Qt::Key_Backspace);
+        clickVisible(widget, "sendMessage");
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        QJsonArray content;
+        for (const auto &frame : server.frames) {
+            if (frame["command"] == "chat_message") {
+                content = frame["data"].toObject()["content"].toArray();
+            }
+        }
+        const QJsonArray expected{QJsonObject{{"type", "text"}, {"text", "Use "}},
+            QJsonObject{{"type", "image_url"}, {"image", QJsonObject{{"type", "image"}, {"uri", "asset://c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1.png"}}}}};
+        QCOMPARE(content, expected);
+    }
+    void threadDateHeadingsAndDelete() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        const auto now = QDateTime::currentDateTimeUtc();
+        const auto thread = [](const QString &id, const QString &title, const QDateTime &updated) {
+            return QJsonObject{{"id", id}, {"title", title}, {"workflow_id", "workflow-chat"}, {"project_id", "default"},
+                {"updated_at", updated.toString(Qt::ISODateWithMs)}};
+        };
+        const QString today = "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1";
+        const QString yesterday = "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2";
+        const QString older = "b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3";
+        server.threads = {thread(today, "Today thread", now), thread(yesterday, "Yesterday thread", now.addDays(-1)),
+            thread(older, "Older thread", now.addDays(-20)), thread("b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4", "Also older", now.addDays(-20))};
+        nodetool::EditorWindow window;
+        setup(window);
+        auto *chat = window.chatSession();
+        auto *widget = surface(window);
+        setReducedMotion(widget, false);
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), today);
+        QTRY_VERIFY(!chat->historyLoading());
+        clickVisible(widget, "showEditorThreads");
+        // groupByDate.ts labels, one heading per group, newest first.
+        QTRY_VERIFY(visibleItem(widget, "editorThreadGroup-Today"));
+        QVERIFY(visibleItem(widget, "editorThreadGroup-Yesterday"));
+        QVERIFY(visibleItem(widget, "editorThreadGroup-2 weeks ago"));
+        const auto rows = chat->workflowThreadRows({});
+        QCOMPARE(rows.size(), 4);
+        QCOMPARE(rows[3].toMap()["header"].toString(), QString());
+        QCOMPARE(rows[2].toMap()["headerDate"].toString(),
+            QLocale(QLocale::English, QLocale::UnitedStates).toString(now.addDays(-20).toLocalTime().date(), "MMM dd").toUpper());
+        // A search keeps headings for the matching rows only.
+        QCOMPARE(chat->workflowThreadRows("older").size(), 2);
+        QCOMPARE(chat->workflowThreadRows("older")[0].toMap()["header"].toString(), QString("2 weeks ago"));
+        QCOMPARE(chat->workflowThreadRows("today thread")[0].toMap()["header"].toString(), QString());
+        // ThreadList.tsx: the row slides out over MOTION.normal, then the delete is sent.
+        auto *row = visibleItem(widget, "editorThreadRow-" + yesterday);
+        QVERIFY(row);
+        const auto height = row->height();
+        clickVisible(widget, "deleteThread" + yesterday);
+        clickVisible(widget, "confirmDeleteEditorThread");
+        QTest::qWait(90);
+        QVERIFY2(row->opacity() > 0 && row->opacity() < 1, qPrintable(QString::number(row->opacity())));
+        QVERIFY(row->height() < height);
+        QVERIFY(!std::any_of(server.requests.cbegin(), server.requests.cend(), [](const auto &request) {
+            return request.contains("threads.delete");
+        }));
+        QTRY_VERIFY(std::any_of(server.requests.cbegin(), server.requests.cend(), [&](const auto &request) {
+            return request.contains("threads.delete") && request.contains(yesterday.toUtf8());
+        }));
+        QTRY_VERIFY(!visibleItem(widget, "editorThreadRow-" + yesterday));
+        // Reduced motion removes the row at once and keeps the delete timing.
+        setReducedMotion(widget, true);
+        auto *oldRow = visibleItem(widget, "editorThreadRow-" + older);
+        QVERIFY(oldRow);
+        clickVisible(widget, "deleteThread" + older);
+        clickVisible(widget, "confirmDeleteEditorThread");
+        QTest::qWait(20);
+        QCOMPARE(oldRow->opacity(), 0.0);
+        QCOMPARE(oldRow->height(), 0.0);
+        QTRY_VERIFY(std::any_of(server.requests.cbegin(), server.requests.cend(), [&](const auto &request) {
+            return request.contains("threads.delete") && request.contains(older.toUtf8());
+        }));
+        setReducedMotion(widget, false);
+    }
     void captures() {
         for (const bool dark : {true, false}) {
             nodetool::EditorWindow window;
             setup(window);
             ChatServer server;
             QVERIFY(server.listen());
+            const auto now = QDateTime::currentDateTimeUtc();
+            const auto dated = [](const QString &id, const QString &title, const QDateTime &updated) {
+                return QJsonObject{{"id", id}, {"title", title}, {"workflow_id", "workflow-chat"}, {"project_id", "default"},
+                    {"updated_at", updated.toString(Qt::ISODateWithMs)}};
+            };
+            server.threads = {dated(ThreadId, "Server conversation", now),
+                dated("b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1", "Storyboard pass", now.addSecs(-3600)),
+                dated("b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2", "Fix the upscale step", now.addDays(-1)),
+                dated("b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3", "Draft the poster", now.addDays(-3)),
+                dated("b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4", "First workflow", now.addDays(-20))};
+            server.models["models.llmByProvider"] = {QJsonObject{{"id", "claude-opus-4-6"}, {"provider", "anthropic"}, {"name", "Claude Opus 4.6"}}};
+            server.assets = {QJsonObject{{"id", "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"}, {"name", "photo.png"}, {"content_type", "image/png"}},
+                QJsonObject{{"id", "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"}, {"name", "product brief.pdf"}, {"content_type", "application/pdf"}}};
             window.chatSession()->connectToServer(server.url());
             QTRY_COMPARE(window.chatSession()->selectedThreadId(), QString(ThreadId));
             QTRY_VERIFY(!window.chatSession()->historyLoading());
             window.setDarkTheme(dark);
             const auto prefix = dark ? QString("dark-") : QString("light-");
+            auto *widget = surface(window);
             capture(window, prefix + "open-empty");
-            click(surface(window), "showEditorThreads");
+            click(widget, "showEditorThreads");
+            QTRY_VERIFY(visibleItem(widget, "editorThreadGroup-Yesterday"));
             capture(window, prefix + "thread-list");
-            click(surface(window), "showEditorThreads");
+            click(widget, "showEditorThreads");
+            pickModel(window.chatSession()->modelCatalog(), {{"id", "claude-opus-4-6"}, {"provider", "anthropic"}});
+            clickVisible(widget, "reasoningChip");
+            QTRY_VERIFY(visibleItem(widget, "reasoning-high"));
+            capture(window, prefix + "reasoning-menu");
+            clickVisible(widget, "reasoning-high");
+            type(widget, "Use @");
+            QTRY_VERIFY(visibleItem(widget, "assetMention-c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"));
+            capture(window, prefix + "mention-picker");
+            QTest::keyClick(widget->quickWindow(), Qt::Key_Escape);
+            clickVisible(widget, "mediaModeChip");
+            QTRY_VERIFY(visibleItem(widget, "mediaMode-image"));
+            capture(window, prefix + "mode-menu");
+            clickVisible(widget, "mediaMode-image");
+            QTRY_VERIFY(visibleItem(widget, "mediaSetting-aspectRatio"));
+            capture(window, prefix + "media-chips");
+            clickVisible(widget, "mediaModeChip");
+            clickVisible(widget, "mediaMode-chat");
             window.toggleChat();
             capture(window, prefix + "closed");
             window.toggleChat();

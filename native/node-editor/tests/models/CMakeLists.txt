@@ -2,16 +2,16 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
  cmake_minimum_required(VERSION 3.24)
  project(NodeEditorModelTests LANGUAGES CXX)
  enable_testing()
- find_package(Qt6 6.12 REQUIRED COMPONENTS Core Network Test Quick QuickControls2 Qml Widgets Svg)
+ find_package(Qt6 6.12 REQUIRED COMPONENTS Core Network Test Quick QuickControls2 Qml Widgets Svg WebSockets)
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/CodeInference.cmake)
  qt_standard_project_setup(REQUIRES 6.12)
  add_subdirectory(../../../ui_primitives ui_primitives)
  add_subdirectory(../../../model-picker model-picker)
 endif()
-qt_add_executable(node_editor_model_tests ModelPickerTest.cpp ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h ../../src/properties/ModelPickerController.cpp ../../src/properties/ModelPickerController.h)
+qt_add_executable(node_editor_model_tests ../../src/graph/NodeCreation.cpp ModelPickerTest.cpp ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h ../../src/properties/ModelPickerController.cpp ../../src/properties/ModelPickerController.h)
 node_editor_use_code_inference(node_editor_model_tests)
 target_include_directories(node_editor_model_tests PRIVATE ../../src)
-target_link_libraries(node_editor_model_tests PRIVATE nodetool_model_picker nodetool_model_pickerplugin Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets)
+target_link_libraries(node_editor_model_tests PRIVATE nodetool_model_picker nodetool_model_pickerplugin Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets Qt6::WebSockets)
 qt_add_resources(node_editor_model_tests model_qml PREFIX /editor BASE ../../qml FILES ../../qml/ModelPropertyEditor.qml ../../qml/NodeButton.qml ../../qml/EditorRoles.qml)
 nodetool_use_ui_primitives(node_editor_model_tests)
 add_test(NAME node_editor_models COMMAND node_editor_model_tests)
@@ -24,6 +24,8 @@ qt_add_executable(node_editor_asset_picker_tests AssetPickerTest.cpp
  ../../src/media/MediaResolver.cpp ../../src/media/MediaResolver.h
  ../../src/media/AudioWaveform.cpp ../../src/media/AudioWaveform.h
  ../../src/media/VideoFrameView.cpp ../../src/media/VideoFrameView.h
+ ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h ../../src/media/AudioVisualAnalysis.h
+ ../../src/media/LiveAudioVisualizer.cpp ../../src/media/LiveAudioVisualizer.h
  ../../src/media/MediaGalleryModel.cpp ../../src/media/MediaGalleryModel.h)
 node_editor_use_code_inference(node_editor_asset_picker_tests)
 target_include_directories(node_editor_asset_picker_tests PRIVATE ../../src)

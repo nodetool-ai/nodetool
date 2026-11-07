@@ -31,6 +31,7 @@ public:
     Q_INVOKABLE bool addPort(bool output, const QString& name, const QString& type = {});
     Q_INVOKABLE bool renamePort(bool output, const QString& name, const QString& newName);
     Q_INVOKABLE bool removePort(bool output, const QString& name);
+    Q_INVOKABLE bool setPortType(const QString& name, const QString& type);
     Q_INVOKABLE void clearError();
 signals:
     void changed();

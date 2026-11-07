@@ -5,6 +5,7 @@
 #include "../graph/CompatiblePickerFixture.h"
 #include <QGraphicsView>
 #include <QMouseEvent>
+#include <QContextMenuEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QSignalSpy>
@@ -80,7 +81,7 @@ private slots:
   void lowerPopupRowStaysAboveRunToolbar() {
     EditorWindow window;
     auto catalog=picker_fixture::catalog();
-    catalog.append(QJsonObject{{"node_type","Zed"},{"title","Zed"},
+    catalog.append(QJsonObject{{"node_type","Zed"},{"title","Zed"},{"inline_fields",QJsonArray{"input"}},
       {"properties",QJsonArray{picker_fixture::slot("input",picker_fixture::type("str"))}},{"outputs",QJsonArray{}}});
     window.setCatalog(catalog); QVERIFY(window.document()->load(picker_fixture::workflow()));
     window.show(); QVERIFY(window.selectNode("origin")); window.action("Reset zoom"); QTest::qWait(80);
@@ -89,15 +90,19 @@ private slots:
     auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id=picker_fixture::id(model,"origin");
     const auto start=view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
-    drag(*view,start,emptyDrop(*view,*window.scene(),id)); QTRY_VERIFY(picker->active());
-    auto popup=picker->widget(); QVERIFY(popup);
-    QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QQuickItem *row=nullptr; QTRY_VERIFY((row=findItem(popup->rootObject(),"compatible-result-5")));
     QQuickWidget *toolbar=nullptr;
     for (auto candidate:window.findChildren<QQuickWidget *>()) {
       if (candidate->isVisible() && candidate->source().path().endsWith("/Toolbar.qml")) { toolbar=candidate; break; }
     }
     QVERIFY(toolbar);
+    // Drop at the toolbar's left edge, so the popup opens across the centered toolbar.
+    auto drop=emptyDrop(*view,*window.scene(),id);
+    drop.setX(view->viewport()->mapFromGlobal(toolbar->mapToGlobal(QPoint())).x());
+    QVERIFY(emptyAt(*window.scene(),view->mapToScene(drop)));
+    drag(*view,start,drop); QTRY_VERIFY(picker->active());
+    auto popup=picker->widget(); QVERIFY(popup);
+    QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
+    QQuickItem *row=nullptr; QTRY_VERIFY((row=findItem(popup->rootObject(),"compatible-result-5")));
     const auto rowTop=popup->mapToGlobal(row->mapToScene(QPointF(0,0)).toPoint());
     const QRect rowRect(rowTop,QSize(int(row->width()),int(row->height())));
     const QRect toolbarRect(toolbar->mapToGlobal(QPoint()),toolbar->size());
@@ -236,6 +241,96 @@ private slots:
     const auto before=window.document()->snapshot();
     picker->open(picker_fixture::id(model,"origin"),PortType::Out,0,QPointF(400,300));
     QVERIFY(!picker->active()); QCOMPARE(window.document()->snapshot(),before);
+  }
+  // F03: a right-click on a handle opens its connection menu, as the web
+  // NodeOutput.tsx:66-84 and PropertyField.tsx:165-180 handlers do. A dynamic
+  // output's menu also deletes it with its wires (OutputContextMenu.tsx:93-124).
+  void rightClickHandleOpensMenuAndDeletesDynamicOutput() {
+    EditorWindow window;
+    auto catalog=picker_fixture::catalog();
+    catalog.append(QJsonObject{{"node_type","DynamicOut"},{"title","Dynamic out"},{"supports_dynamic_outputs",true},
+      {"properties",QJsonArray{}},{"outputs",QJsonArray{}}});
+    window.setCatalog(catalog);
+    auto workflow=picker_fixture::workflow();
+    auto graph=workflow["graph"].toObject();
+    auto nodes=graph["nodes"].toArray();
+    nodes.append(QJsonObject{{"id","dynamic"},{"type","DynamicOut"},{"data",QJsonObject{}},
+      {"dynamic_outputs",QJsonObject{{"extra",QJsonObject{{"type","str"},{"optional",false},{"type_args",QJsonArray{}}}}}},
+      {"ui_properties",QJsonObject{{"position",QJsonObject{{"x",-300},{"y",100}}}}}});
+    graph["nodes"]=nodes;
+    graph["edges"]=QJsonArray{QJsonObject{{"id","wire"},{"source","dynamic"},{"sourceHandle","extra"},{"target","origin"},{"targetHandle","in"}}};
+    workflow["graph"]=graph;
+    QVERIFY(window.document()->load(workflow));
+    window.show();
+    QVERIFY(window.selectNode("origin"));
+    window.action("Reset zoom");
+    QTest::qWait(80);
+    auto view=window.findChild<QGraphicsView *>();
+    auto picker=window.findChild<CompatibleNodePicker *>();
+    QVERIFY(view);
+    QVERIFY(picker);
+    view->centerOn(QPointF(0,150));
+    QTest::qWait(30);
+    auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto baseline=window.document()->snapshot();
+    const auto handle=[&](const QString &resource) {
+      const auto id=picker_fixture::id(model,resource);
+      return view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
+    };
+    QSignalSpy requested(window.scene(),&EditorScene::handleContextMenuRequested);
+    const auto rightClick=[&](const QPoint &point) {
+      QTest::mouseMove(view->viewport(),point);
+      QContextMenuEvent menu(QContextMenuEvent::Mouse,point,view->viewport()->mapToGlobal(point));
+      QApplication::sendEvent(view->viewport(),&menu);
+    };
+    // A static output offers compatible nodes and no delete action.
+    rightClick(handle("origin"));
+    QCOMPARE(requested.count(),1);
+    QTRY_VERIFY(picker->active());
+    QVERIFY(!picker->canDeleteOutput());
+    auto popup=picker->widget();
+    QVERIFY(popup);
+    QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
+    QVERIFY(!picker->rows().isEmpty());
+    QVERIFY(!findItem(popup->rootObject(),"compatible-delete-output")->isVisible());
+    QTest::keyClick(popup,Qt::Key_Escape);
+    QTRY_VERIFY(!picker->active());
+    QCOMPARE(window.document()->snapshot(),baseline);
+    rightClick(handle("dynamic"));
+    QCOMPARE(requested.count(),2);
+    QTRY_VERIFY(picker->active());
+    QVERIFY(picker->canDeleteOutput());
+    popup=picker->widget();
+    QVERIFY(popup);
+    QQuickItem *remove=nullptr;
+    QTRY_VERIFY((remove=findItem(popup->rootObject(),"compatible-delete-output")) && remove->isVisible());
+    const auto capture=qEnvironmentVariable("NODETOOL_COMPATIBLE_CAPTURE");
+    if (!capture.isEmpty()) {
+      QTest::qWait(50);
+      QVERIFY(window.grab().save(capture+"-handle-menu-dark.png"));
+      window.setDarkTheme(false);
+      QTest::qWait(50);
+      QVERIFY(window.grab().save(capture+"-handle-menu-light.png"));
+      window.setDarkTheme(true);
+      QTest::qWait(30);
+    }
+    // A search hides the action, as the web menu shows it only with an empty search.
+    popup->setFocus();
+    popup->rootObject()->findChild<QQuickItem *>("compatible-search")->forceActiveFocus();
+    QTest::keyClicks(popup,"Rec");
+    QTRY_VERIFY(!remove->isVisible());
+    QTest::keyClick(popup,Qt::Key_Backspace);
+    QTest::keyClick(popup,Qt::Key_Backspace);
+    QTest::keyClick(popup,Qt::Key_Backspace);
+    QTRY_VERIFY(remove->isVisible());
+    const auto global=popup->mapToGlobal(remove->mapToScene(QPointF(remove->width()/2,remove->height()/2)).toPoint());
+    QTest::mouseClick(window.windowHandle(),Qt::LeftButton,Qt::NoModifier,window.windowHandle()->mapFromGlobal(global));
+    QTRY_VERIFY(!window.document()->node("dynamic")["dynamic_outputs"].toObject().contains("extra"));
+    QVERIFY(window.document()->edges().isEmpty());
+    QVERIFY(!picker->active());
+    QCOMPARE(window.document()->undoStack()->count(),1);
+    window.action("Undo");
+    QCOMPARE(window.document()->snapshot(),baseline);
   }
 };
 QTEST_MAIN(CompatiblePickerHostTest)

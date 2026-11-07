@@ -96,18 +96,33 @@ class ServerSyncHostTest final : public QObject {
       if (widget->source().fileName() == "StatusBar.qml") return widget;
     return nullptr;
   }
-  static void click(QQuickWidget *widget, const char *name) {
-    auto *control = item(widget, name); QVERIFY(control); QVERIFY(control->isVisible()); QVERIFY(control->isEnabled());
-    for (auto *ancestor = control->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
-      if (ancestor->metaObject()->indexOfProperty("contentY") >= 0) {
-        const auto y = control->mapToItem(ancestor, QPointF()).y();
-        ancestor->setProperty("contentY", ancestor->property("contentY").toDouble() + y - 30); break;
-      }
+    static void polish(QQuickItem *root) {
+        root->ensurePolished();
+        for (auto *child : root->childItems()) {
+            polish(child);
+        }
     }
-    QCoreApplication::processEvents();
-    QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier,
-      control->mapToScene(QPointF(control->width() / 2, control->height() / 2)).toPoint());
-  }
+    static void click(QQuickWidget *widget, const char *name) {
+        QCoreApplication::processEvents();
+        polish(widget->quickWindow()->contentItem());
+        auto *control = item(widget, name);
+        QVERIFY(control);
+        QVERIFY(control->isVisible());
+        QVERIFY(control->isEnabled());
+        for (auto *ancestor = control->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+            if (ancestor->metaObject()->indexOfProperty("contentY") >= 0) {
+                const auto y = control->mapToItem(ancestor, QPointF()).y();
+                ancestor->setProperty("contentY", ancestor->property("contentY").toDouble() + y - 30);
+                break;
+            }
+        }
+        QCoreApplication::processEvents();
+        // Comparison text changes the layout when the remote response arrives.
+        // Settle it before measuring a mouse target.
+        polish(widget->quickWindow()->contentItem());
+        QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier,
+            control->mapToScene(QPointF(control->width() / 2, control->height() / 2)).toPoint());
+    }
   static bool addComment(EditorWindow &window, const QString &id) {
     return bool(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", id},
       {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", id}}},
@@ -144,8 +159,9 @@ private slots:
     click(widget, "server-sync-later"); QTRY_VERIFY(!window.findChild<QDialog *>("server-sync-dialog") || !window.findChild<QDialog *>("server-sync-dialog")->isVisible());
     QVERIFY(window.session()->dirty()); QVERIFY(window.session()->conflictPending());
     QCOMPARE(window.document()->snapshot(), local); QCOMPARE(window.document()->undoStack()->index(), undo);
-    auto *statusWidget = status(window); QVERIFY(statusWidget); QTRY_VERIFY(item(statusWidget, "status-server-sync")); QTRY_VERIFY(item(statusWidget, "status-server-sync")->isVisible());
-    click(statusWidget, "status-server-sync"); QTRY_VERIFY(panel(window)); widget = panel(window);
+    auto *statusWidget = status(window); QVERIFY(statusWidget);
+    QVERIFY(!item(statusWidget, "status-server-sync"));
+    window.action("Server sync"); QTRY_VERIFY(panel(window)); widget = panel(window);
     QTRY_VERIFY(window.findChild<QDialog *>("server-sync-dialog")->isVisible());
     http.status = 200; QTRY_VERIFY(item(widget, "server-sync-keep-local")->isEnabled()); click(widget, "server-sync-keep-local"); QTRY_VERIFY(!window.session()->saving()); QTRY_VERIFY(!window.session()->dirty());
     QCOMPARE(http.writes.size(), 2); QCOMPARE(http.writes.last()["expected_updated_at"].toString(), QString("external1"));
@@ -187,9 +203,9 @@ private slots:
     QVERIFY(window.serverSyncNeedsAttention()); QVERIFY(window.hasUnsavedChanges());
     QCOMPARE(window.serverSaveState(), QString("Server deleted"));
     QVERIFY(window.localFilePath().isEmpty());
-    auto *statusWidget = status(window); QVERIFY(statusWidget); auto *serverStatus = item(statusWidget, "status-server-sync"); QVERIFY(serverStatus);
-    QVERIFY(serverStatus->isVisible()); QCOMPARE(serverStatus->property("text").toString(), QString("Server deleted"));
-    QCOMPARE(serverStatus->property("variant").toInt(), 0); // Outlined attention treatment.
+    auto *statusWidget = status(window); QVERIFY(statusWidget);
+    QVERIFY(!item(statusWidget, "status-server-sync"));
+    QCOMPARE(window.saveState(), QString("Server deleted"));
     QVERIFY(http.writes.isEmpty());
     QPointer<QDialog> oldDialog = window.findChild<QDialog *>("server-sync-dialog");
     QPointer<QQuickItem> oldKeep = item(widget, "server-sync-keep-local");

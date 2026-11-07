@@ -389,6 +389,10 @@ inline QVariantList propertyFields(const QJsonObject& rawNode, const QJsonObject
             {"dataType", propertyEditorType(p).toVariantMap()}, {"kind", kind}, {"value", value.toVariant()}, {"editable", conditionSatisfied && (!connected || appendStatic) && kind != "unsupported"}, {"conditionalUnavailable", !conditionSatisfied}, {"appendStatic", appendStatic}, {"connected", connected},
             {"required", p.value("required").toBool()}, {"nullable", propertyNullable(p)},
             {"hasValue", data.contains(name)}, {"hasDefault", p.contains("default")}, {"defaultValue", p.value("default").toVariant()},
+            // The web resets only a property with a non-null default, and marks it changed once its
+            // stored value differs. A null default has nothing to reset to.
+            {"hasResetDefault", !p.value("default").isNull() && !p.value("default").isUndefined()},
+            {"changed", data.contains(name) && !p.value("default").isNull() && !p.value("default").isUndefined() && data.value(name) != p.value("default")},
             {"options", options}, {"storage", storage}, {"error", !conditionSatisfied ? QStringLiteral("Unavailable for the selected settings") : connected && !appendStatic ? QStringLiteral("Value supplied by a connected input") : (kind == "unsupported" ? QStringLiteral("Preserved. Edit this value in the web editor.") : (value.isUndefined() ? QString{} : validatePropertyValue(p, value)))},
             {"step", kind == "integer" ? 1.0 : 0.1}};
         for (const auto& bound : {QStringLiteral("min"), QStringLiteral("max")}) {

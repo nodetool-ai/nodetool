@@ -113,9 +113,10 @@ Rectangle {
                     }
                 }
                 Repeater {
-                    model: runOutput ? runOutput.entries : []
+                    model: runOutput ? runOutput.richEntries : null
                     ColumnLayout {
-                        required property var modelData
+                        required property var richEntry
+                        property var modelData: richEntry
                         Layout.fillWidth: true
                         spacing: Ui.Metrics.xs
                         Ui.Text {

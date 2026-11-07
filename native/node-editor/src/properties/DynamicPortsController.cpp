@@ -38,10 +38,23 @@ QVariantList DynamicPortsController::rows(bool output) const {
         const auto edge = value.toObject();
         if (edge.value(output ? "source" : "target") == selectedNode_) { connected.insert(edge.value(output ? "sourceHandle" : "targetHandle").toString()); }
     }
+    // The web offers the type chip only on an unconnected input of a node whose
+    // inputs the user owns (PropertyInput.tsx:530-535, dynamicSlotTypes.ts:88-111).
+    const auto nodeType = node.value("type").toString();
+    const auto data = node.value("data").toObject();
+    const bool schemaDriven = nodeType.startsWith("fal.") || nodeType.startsWith("kie.") || nodeType.startsWith("replicate.") || nodeType.startsWith("comfy.")
+        || nodeType == "nodetool.workflows.workflow_node.Workflow" || nodeType == "nodetool.workflows.subgraph.Subgraph"
+        || data.contains("endpoint_id") || data.contains("model_id");
     for (auto it = ports.begin(); it != ports.end(); ++it) {
-        const auto declaration = it.value().toObject();
-        const auto type = declaration.value("type").isObject() ? declaration.value("type").toObject().value("type").toString() : declaration.value("type").toString();
-        result.append(QVariantMap{{"name", it.key()}, {"type", type.isEmpty() ? "any" : type}, {"connected", connected.contains(it.key())}});
+        const auto raw = it.value().isObject() ? it.value().toObject().value("type") : QJsonValue{};
+        auto declared = raw.isObject() ? raw.toObject() : QJsonObject{{"type", raw.isString() ? raw.toString() : QString()}};
+        if (output || it.value().isString()) { declared = it.value().isObject() ? it.value().toObject() : QJsonObject{{"type", it.value().toString()}}; }
+        const auto type = declared.value("type").toString();
+        const auto args = declared.value("type_args").toArray();
+        const auto key = type == "list" && args.size() == 1 ? "list[" + args[0].toObject().value("type").toString() + "]" : type;
+        const bool isConnected = connected.contains(it.key());
+        result.append(QVariantMap{{"name", it.key()}, {"type", type.isEmpty() ? "any" : type}, {"typeKey", key.isEmpty() ? "any" : key},
+                                  {"connected", isConnected}, {"retypable", !output && !isConnected && !schemaDriven}});
     }
     return result;
 }
@@ -92,6 +105,17 @@ bool DynamicPortsController::addPort(bool output, const QString& name, const QSt
 }
 bool DynamicPortsController::renamePort(bool output, const QString& name, const QString& newName) {
     return apply({{"op", output ? "renameDynamicOutput" : "renameDynamicInput"}, {"name", name}, {"newName", newName.trimmed()}});
+}
+bool DynamicPortsController::setPortType(const QString& name, const QString& type) {
+    for (const auto& entry : inputTypes()) {
+        const auto row = entry.toMap();
+        if (row.value("value").toString() == type) {
+            return apply({{"op", "setDynamicInputType"}, {"name", name}, {"type", QJsonObject::fromVariantMap(row.value("metadata").toMap())}});
+        }
+    }
+    error_ = "Choose a supported port type";
+    emit changed();
+    return false;
 }
 bool DynamicPortsController::removePort(bool output, const QString& name) {
     return apply({{"op", output ? "removeDynamicOutput" : "removeDynamicInput"}, {"name", name}});

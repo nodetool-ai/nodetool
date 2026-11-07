@@ -37,6 +37,7 @@ public:
     // Canonical NodeMetadata entries (node_type, properties, outputs). Session state,
     // outside undo. Missing metadata refuses new connections, preserving imports.
     void setNodeMetadata(const QJsonArray& metadata);
+    void applyPropertyDefaults(const QHash<QString, QJsonObject>& defaults);
     [[nodiscard]] EditResult load(const QJsonObject& workflow);
     void reconcileMetadata(const QJsonObject& workflow);
     [[nodiscard]] EditResult loadJson(const QByteArray& json);

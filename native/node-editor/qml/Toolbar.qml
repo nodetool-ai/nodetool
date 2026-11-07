@@ -10,7 +10,7 @@ Item {
     EditorRoles { id: roles }
     function syncTheme() {
         if (!editor) return
-        editor.presentation({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, sans: Ui.Typography.sansFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion})
+        editor.presentation({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion})
     }
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
@@ -49,74 +49,164 @@ Item {
         if (job && !job.terminal) return runLabel + " (click to queue another entire workflow run)"
         return "Run workflow (" + (Qt.platform.os === "osx" ? "Cmd" : "Ctrl") + "+Enter)"
     }
+    // The web counts the clock from the moment the run reports running.
+    // See web/src/hooks/useRunningTime.ts and web/src/utils/timeFormat.ts.
+    readonly property bool workflowRunning: currentJob !== null && !currentJob.terminal && currentJob.status === "running"
+    property double runStartedAt: 0
+    property int elapsedSeconds: 0
+    readonly property string elapsedText: {
+        const hours = Math.floor(elapsedSeconds / 3600)
+        const minutes = Math.floor((elapsedSeconds % 3600) / 60)
+        const seconds = String(elapsedSeconds % 60).padStart(2, "0")
+        if (hours > 0) {
+            return hours + ":" + String(minutes).padStart(2, "0") + ":" + seconds
+        }
+        return minutes + ":" + seconds
+    }
+    onWorkflowRunningChanged: {
+        runStartedAt = workflowRunning ? Date.now() : 0
+        elapsedSeconds = 0
+    }
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.workflowRunning
+        onTriggered: root.elapsedSeconds = Math.floor((Date.now() - root.runStartedAt) / 1000)
+    }
     implicitWidth: frame.implicitWidth
     implicitHeight: frame.implicitHeight
+    // The web toolbar: Add node and Auto layout on the left, then Stop while a
+    // run is active, Run and the workflow menu. See web/src/components/panels/FloatingToolBar.tsx.
     component ActionButton: PanelRow {
         id: action
         property string glyph: ""
-        property string primitiveGlyph: ""
-        implicitWidth: Ui.Metrics.comfortable
-        implicitHeight: Ui.Metrics.comfortable
-        enabled: editor && (!editor.readOnly || !["Run", "Add node"].includes(text))
+        property string tooltip: text
+        implicitWidth: Ui.Metrics.compact
+        implicitHeight: Ui.Metrics.compact
+        enabled: editor && (!editor.readOnly || !["Run", "Add node", "Auto layout"].includes(text))
         objectName: "toolbar-" + text.toLowerCase().split(" ").join("-")
+        accessibleName: text
         onClicked: editor.action(text)
-        HoverHandler { onHoveredChanged: if (hovered && editor) editor.showToolTip(action.text); else if (editor) editor.showToolTip("") }
-        TypeIcon { anchors.centerIn: parent; visible: action.glyph !== ""; name: action.glyph; size: Ui.Metrics.iconMd; ink: action.enabled ? Ui.Theme.textSecondary : Ui.Theme.textDisabled }
-        Ui.Icon { anchors.centerIn: parent; visible: action.primitiveGlyph !== ""; name: action.primitiveGlyph; size: Ui.Metrics.iconMd; tone: action.enabled ? Ui.Text.Secondary : Ui.Text.Disabled }
+        HoverHandler {
+            onHoveredChanged: {
+                if (editor) {
+                    editor.showToolTip(hovered ? action.tooltip : "")
+                }
+            }
+        }
+        Ui.Icon {
+            anchors.centerIn: parent
+            name: action.glyph
+            size: Ui.Metrics.iconSm
+            tone: action.enabled ? Ui.Text.Secondary : Ui.Text.Disabled
+        }
     }
     Rectangle {
         id: frame
         anchors.fill: parent
         color: roles.overlay
-        radius: Ui.Metrics.lg
+        radius: Ui.Metrics.radiusOverlay
         border.width: Ui.Metrics.border
         border.color: roles.divider
-        implicitWidth: row.implicitWidth + Ui.Metrics.sm * 2
-        implicitHeight: row.implicitHeight + Ui.Metrics.sm * 2
+        implicitWidth: row.implicitWidth + (Ui.Metrics.xs + Ui.Metrics.border) * 2
+        implicitHeight: row.implicitHeight + (Ui.Metrics.xs + Ui.Metrics.border) * 2
         RowLayout {
             id: row
             anchors.centerIn: parent
-            spacing: Ui.Metrics.xs
-            ActionButton { text: "Add node"; glyph: "addCircle" }
-            ActionButton { visible: !root.compact; text: "Undo"; primitiveGlyph: "undo" }
-            ActionButton { visible: !root.compact; text: "Redo"; primitiveGlyph: "redo" }
-            ActionButton { visible: !root.compact; text: "Open"; glyph: "folderOpen" }
-            ActionButton { visible: !root.compact; text: "Save"; glyph: "save" }
-            Item { Layout.preferredWidth: Ui.Metrics.md }
-            PanelRow {
-                id: runButton
-                objectName: "run-workflow"
-                readonly property string actionName: "Run"
-                text: actionName
-                accessibleName: "Run entire workflow"
-                enabled: editor && !editor.readOnly && workflowSession.connected && root.runLabel !== "Stopping"
-                implicitHeight: Ui.Metrics.comfortable
-                implicitWidth: runRow.implicitWidth + Ui.Metrics.lg * 2
-                onClicked: editor.action(actionName)
-                HoverHandler {
-                    onHoveredChanged: if (editor) editor.showToolTip(hovered ? root.runTooltip : "")
+            spacing: Ui.Metrics.md
+            Row {
+                spacing: Ui.Metrics.xs
+                ActionButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Add node"
+                    glyph: "addCircle"
+                    tooltip: "Add node (Space)"
                 }
-                background: Rectangle {
-                    radius: height / 2
-                    color: !runButton.enabled ? Ui.Theme.actionDisabled : runButton.hovered ? Ui.Theme.accentHover : Ui.Theme.accentPrimary
-                    border.width: runButton.visualFocus ? Ui.Metrics.focus : 0
-                    border.color: Ui.Theme.textOnAccent
-                }
-                Row {
-                    id: runRow
-                    anchors.centerIn: parent
-                    spacing: Ui.Metrics.xs
-                    Ui.Icon { anchors.verticalCenter: parent.verticalCenter; name: "playArrow"; size: Ui.Metrics.iconMd; tone: Ui.Text.OnAccent }
-                    Ui.Text { anchors.verticalCenter: parent.verticalCenter; visible: !root.compact; text: root.runLabel; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.OnAccent; lineHeight: 1 }
+                // A phone keeps Auto layout in the workflow menu, as the web does.
+                ActionButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !root.compact
+                    text: "Auto layout"
+                    glyph: "autoFixHigh"
                 }
             }
-            Ui.ToolbarIconButton {
-                objectName: "toggleEditorChat"
-                text: qsTr("Conversation")
-                iconName: "forum"
-                onClicked: editor.toggleChat()
+            Row {
+                spacing: Ui.Metrics.xs
+                ActionButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.runActive
+                    text: "Stop"
+                    glyph: "stop"
+                    accessibleName: root.runLabel === "Stopping" ? "Stopping workflow" : "Stop workflow"
+                    tooltip: "Stop workflow (Esc)"
+                    enabled: root.runLabel !== "Stopping"
+                }
+                PanelRow {
+                    id: runButton
+                    objectName: "run-workflow"
+                    readonly property string actionName: "Run"
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: actionName
+                    accessibleName: root.runActive ? root.runLabel + " (click to queue another entire workflow run)" : root.runLabel
+                    enabled: editor && !editor.readOnly && workflowSession.connected && root.runLabel !== "Stopping"
+                    implicitHeight: Ui.Metrics.comfortable
+                    implicitWidth: Math.ceil(Math.max(Ui.Metrics.comfortable, runRow.implicitWidth + Ui.Metrics.lg * 2))
+                    onClicked: editor.action(actionName)
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (editor) {
+                                editor.showToolTip(hovered ? root.runTooltip : "")
+                            }
+                        }
+                    }
+                    // A running workflow turns the pill to the panel surface.
+                    background: Rectangle {
+                        radius: height / 2
+                        color: root.runActive ? (runButton.hovered ? Ui.Theme.actionHover : Ui.Theme.surfacePanel)
+                            : !runButton.enabled ? Ui.Theme.actionDisabled
+                            : runButton.hovered ? Ui.Theme.accentHover : Ui.Theme.accentPrimary
+                        border.width: runButton.visualFocus ? Ui.Metrics.focus : 0
+                        border.color: root.runActive ? Ui.Theme.borderFocus : Ui.Theme.textOnAccent
+                    }
+                    Row {
+                        id: runRow
+                        anchors.centerIn: parent
+                        spacing: Ui.Metrics.xs
+                        Ui.Icon {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !root.runActive || root.runLabel === "Error · Retry"
+                            name: "playArrow"
+                            size: Ui.Metrics.iconMd
+                            tone: Ui.Text.OnAccent
+                        }
+                        Ui.Text {
+                            objectName: "run-elapsed"
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: root.workflowRunning
+                            text: root.elapsedText
+                            role: Ui.Typography.MonoCaption
+                            font.weight: Font.DemiBold
+                            lineHeight: 1
+                        }
+                        Ui.Text {
+                            objectName: "run-label"
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !root.compact
+                            text: root.runLabel
+                            role: Ui.Typography.SansLabel
+                            font.weight: Font.Normal
+                            tone: root.runActive ? Ui.Text.Primary : Ui.Text.OnAccent
+                            lineHeight: 1
+                        }
+                    }
+                }
+                ActionButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "More"
+                    glyph: "moreVert"
+                    tooltip: "Workflow actions"
+                }
             }
-            ActionButton { text: "More"; primitiveGlyph: "moreVert" }
         }
     }
 }

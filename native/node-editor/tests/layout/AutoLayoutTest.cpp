@@ -61,6 +61,50 @@ private slots:
     LayoutOptions options; options.selection=QStringList{"missing"}; QVERIFY(!autoLayoutCommand(graph,{},options).ok);
     graph["nodes"]=QJsonArray{node("a","b"),node("b","a")}; QVERIFY(!autoLayoutCommand(graph).ok);
  }
+ // Web: NodeStore.autoLayout moves the laid out top-level nodes back so their top left stays where it was.
+ void wholeGraphKeepsTheTopLeftOfTopLevelNodes() {
+    const QJsonObject graph{{"nodes",QJsonArray{node("a"),node("b")}},{"edges",QJsonArray{edge("a","b")}}};
+    const auto r=autoLayoutCommand(graph,{{"a",{200,100}},{"b",{200,100}}}); QVERIFY(r.ok);
+    QCOMPARE(position(r,"a"),QPointF(400,200)); QCOMPARE(position(r,"b"),QPointF(400+200+30,200));
+ }
+ // Web: core/graph.ts resizes a group to its children's extent plus 50 after laying them out.
+ void groupsReportTheirFittedSize() {
+    const QJsonObject graph{{"nodes",QJsonArray{node("g"),node("a","g"),node("b","g")}},{"edges",QJsonArray{edge("a","b")}}};
+    const auto r=autoLayoutCommand(graph,{{"g",{900,900}},{"a",{200,100}},{"b",{200,100}}}); QVERIFY(r.ok);
+    QVERIFY(r.groupSizes.contains("g"));
+    QCOMPARE(r.groupSizes.value("g"),QSizeF(position(r,"b").x()+200+50,position(r,"b").y()+100+50));
+    LayoutOptions options; options.selection=QStringList{"g","a"};
+    QVERIFY(autoLayoutCommand(graph,{},options).groupSizes.isEmpty());
+ }
+ // Web: orderByUpstreamHandles keeps siblings of one source in that source's output order.
+ void siblingsFollowTheirSourceOutputOrder() {
+    QJsonObject first=edge("s","t1"); first["sourceHandle"]="second";
+    QJsonObject second=edge("s","t2"); second["sourceHandle"]="first";
+    const QJsonObject graph{{"nodes",QJsonArray{node("s"),node("t1"),node("t2")}},{"edges",QJsonArray{first,second}}};
+    QVERIFY(position(autoLayoutCommand(graph),"t1").y()<position(autoLayoutCommand(graph),"t2").y());
+    LayoutOptions options; options.outputOrder.insert("s",QStringList{"first","second"});
+    const auto r=autoLayoutCommand(graph,{},options); QVERIFY(r.ok);
+    QVERIFY(position(r,"t2").y()<position(r,"t1").y());
+ }
+ // Web: orderForControlPlacement puts a controlled node directly after its controller.
+ void controlledNodeFollowsItsController() {
+    const QJsonObject graph{{"nodes",QJsonArray{node("c"),node("o"),node("d")}},{"edges",QJsonArray{edge("c","d","control")}}};
+    const auto r=autoLayoutCommand(graph,{{"c",{200,100}},{"o",{200,100}},{"d",{200,100}}}); QVERIFY(r.ok);
+    QCOMPARE(position(r,"c").x(),position(r,"d").x()); QCOMPARE(position(r,"d").y(),position(r,"c").y()+100+50); QVERIFY(position(r,"o").y()>position(r,"d").y());
+ }
+ // Each node and edge is visited a bounded number of times, so growth stays linear.
+ void largeGraphsStayLinear() {
+    const auto build=[](int count,qint64* elapsed) {
+        QJsonArray nodes,edges;
+        for (int i=0;i<count;++i) { nodes.append(node(QString::number(i))); if (i) { edges.append(edge(QString::number(i-1),QString::number(i))); } if (i>1) { edges.append(edge(QString::number(i-2),QString::number(i))); } if (i%7==0 && i>20) { edges.append(edge(QString::number(i-20),QString::number(i))); } }
+        QElapsedTimer timer; timer.start(); const auto r=autoLayoutCommand({{"nodes",nodes},{"edges",edges}}); *elapsed=timer.elapsed();
+        QVERIFY(r.ok); QCOMPARE(r.stats.nodes,count);
+    };
+    qint64 small=0,medium=0,large=0; build(2000,&medium); build(500,&small); build(20000,&large);
+    qInfo()<<"500 nodes:"<<small<<"ms, 2000 nodes:"<<medium<<"ms, 20000 nodes:"<<large<<"ms";
+    QVERIFY2(medium<1000,"2,000 node layout must finish within a second");
+    QVERIFY2(large<20000,"20,000 node layout must not grow quadratically");
+ }
  void largeGraphMeasured() {
     QJsonArray nodes,edges;
     for (int i=0;i<1000;++i) { nodes.append(node(QString::number(i))); if (i) { edges.append(edge(QString::number(i-1),QString::number(i))); } if (i>1) { edges.append(edge(QString::number(i-2),QString::number(i))); } }

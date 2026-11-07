@@ -13,9 +13,24 @@ Item {
     property bool fullscreen: false
     property bool compact: false
     property bool fillPreview: false
+    property bool interactiveImage: false
+    signal imageActivated()
+    property real imageZoom: 1
+    property real imagePanX: 0
+    property real imagePanY: 0
+    function fitImage() { imageZoom = 1; imagePanX = 0; imagePanY = 0 }
+    function zoomImage(value, x, y) {
+        const next = Math.max(1, Math.min(16, value))
+        const ratio = next / imageZoom
+        imagePanX += (x - image.width / 2 - imagePanX) * (1 - ratio)
+        imagePanY += (y - image.height / 2 - imagePanY) * (1 - ratio)
+        imageZoom = next
+        if (next === 1) fitImage()
+    }
     property real compactPreviewHeight: mediaKind === "audio" ? Ui.Metrics.xxxl * 2 + Ui.Metrics.lg : Ui.Metrics.comfortable * 2
     property string filename: locator && typeof locator === "object" ? String(locator.filename || locator.name || "") : ""
     property bool showFilename: true
+    property bool showDownload: mediaKind !== "image"
     property real zoom: 1
     property real waveScroll: 0
     readonly property real viewFraction: Math.min(1, waveform.width / Math.max(1, player.duration / 1000 * zoom))
@@ -25,7 +40,7 @@ Item {
     function download() {
         if (!mediaResolver || !resolvedSource.toString().length) return
         downloadStatus = ""
-        downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + mediaResolver.suggestedFilename(requestKey, filename, mediaKind)
+        downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + mediaResolver.suggestedFilename(resolverKey, filename, mediaKind)
         downloadDialog.open()
     }
     function toggleFullscreen() {
@@ -38,6 +53,7 @@ Item {
     required property string mediaKind
     required property var locator
     property string requestKey: "preview-" + String(root)
+    property string resolverKey: ""
     property url resolvedSource: ""
     property string failure: ""
     property bool resolving: false
@@ -46,12 +62,21 @@ Item {
     readonly property int position: player.position
     readonly property int duration: player.duration
     readonly property bool seekable: player.seekable
-    function reset() { downloadDialog.close(); downloadStatus = ""; zoom = 1; waveScroll = 0; exitFullscreen(); if (mediaResolver) mediaResolver.cancel(requestKey); player.stop(); player.source = ""; video.clearFrame(); resolvedSource = ""; if (mediaResolver) mediaResolver.release(requestKey); failure = ""; resolving = false }
+    function reset() {
+        const previousKey = resolverKey
+        resolverKey = ""
+        fitImage(); downloadDialog.close(); downloadStatus = ""; zoom = 1; waveScroll = 0; exitFullscreen()
+        if (mediaResolver && previousKey) mediaResolver.cancel(previousKey)
+        player.stop(); player.source = ""; video.clearFrame(); resolvedSource = ""
+        if (mediaResolver && previousKey) mediaResolver.release(previousKey)
+        failure = ""; resolving = false
+    }
     function resolve() {
         reset()
         if (!locator || !mediaResolver) return
+        resolverKey = requestKey
         resolving = true
-        mediaResolver.resolve(requestKey, locator)
+        mediaResolver.resolve(resolverKey, locator)
     }
     function time(ms) {
         const s = Math.max(0, Math.floor(ms / 1000))
@@ -61,6 +86,7 @@ Item {
     }
     function togglePlayback() { if (playing) player.pause(); else player.play() }
     function seek(ms) { if (player.seekable) player.position = Math.max(0, Math.min(player.duration, ms)) }
+    onRequestKeyChanged: resolve()
     onLocatorChanged: resolve()
     onMediaKindChanged: resolve()
     onVisibleChanged: if (!visible) { exitFullscreen(); player.stop() }
@@ -69,15 +95,15 @@ Item {
     Connections {
         target: mediaResolver
         function onResolved(key, url) {
-            if (key !== root.requestKey) return
+            if (key !== root.resolverKey) return
             root.resolving = false
             root.resolvedSource = url
             if (root.mediaKind !== "image") player.source = url
         }
-        function onFailed(key, message) { if (key === root.requestKey) { root.reset(); root.failure = message } }
+        function onFailed(key, message) { if (key === root.resolverKey) { root.reset(); root.failure = message } }
         function onCleared() { root.reset() }
-        function onSaved(key, destination) { if (key === root.requestKey) root.downloadStatus = "Saved media" }
-        function onSaveFailed(key, message) { if (key === root.requestKey) root.downloadStatus = message }
+        function onSaved(key, destination) { if (key === root.resolverKey) root.downloadStatus = "Saved media" }
+        function onSaveFailed(key, message) { if (key === root.resolverKey) root.downloadStatus = message }
     }
     MediaPlayer {
         id: player
@@ -99,10 +125,11 @@ Item {
     FileDialog {
         id: downloadDialog
         objectName: "preview-download-dialog"
+        parentWindow: root.Window.window
         title: "Save media"
         fileMode: FileDialog.SaveFile
         currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
-        onAccepted: { if (mediaResolver) mediaResolver.saveResolved(root.requestKey, selectedFile) }
+        onAccepted: { if (mediaResolver) mediaResolver.saveResolved(root.resolverKey, selectedFile) }
     }
     Window {
         id: fullscreenWindow
@@ -117,7 +144,7 @@ Item {
         anchors.fill: parent
         spacing: Ui.Metrics.xs
         focus: root.fullscreen
-        Keys.onEscapePressed: event => { root.exitFullscreen(); event.accepted = true }
+        Keys.onEscapePressed: event => { if (root.fullscreen) { root.exitFullscreen(); event.accepted = true } else event.accepted = false }
         Ui.Text {
             objectName: "preview-filename"
             Layout.fillWidth: true
@@ -130,6 +157,7 @@ Item {
         Layout.fillWidth: true
         Layout.fillHeight: root.fullscreen || root.fillPreview
         Layout.preferredHeight: root.compact && !root.fullscreen ? root.compactPreviewHeight : root.mediaKind === "audio" ? Ui.Metrics.comfortable : Math.min(width * 9 / 16, Ui.Metrics.comfortable * 5)
+        clip: true
         Image {
             id: image
             objectName: "preview-image"
@@ -138,7 +166,39 @@ Item {
             source: visible ? root.resolvedSource : ""
             fillMode: Image.PreserveAspectFit
             asynchronous: true
+            scale: root.imageZoom
+            transform: Translate { x: root.imagePanX; y: root.imagePanY }
             onStatusChanged: if (status === Image.Error) root.failure = "Unable to display image"
+        }
+        MouseArea {
+            objectName: "preview-image-interaction"
+            anchors.fill: parent
+            visible: root.mediaKind === "image"
+            acceptedButtons: Qt.LeftButton | (root.interactiveImage ? Qt.RightButton : Qt.NoButton)
+            property point previous
+            cursorShape: root.interactiveImage ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor) : Qt.PointingHandCursor
+            onPressed: mouse => { previous = Qt.point(mouse.x, mouse.y); if (mouse.button === Qt.RightButton) root.fitImage() }
+            onPositionChanged: mouse => {
+                if (!root.interactiveImage || !(mouse.buttons & Qt.LeftButton)) return
+                root.imagePanX = Math.max(-image.width * root.imageZoom / 2, Math.min(image.width * root.imageZoom / 2, root.imagePanX + mouse.x - previous.x))
+                root.imagePanY = Math.max(-image.height * root.imageZoom / 2, Math.min(image.height * root.imageZoom / 2, root.imagePanY + mouse.y - previous.y))
+                previous = Qt.point(mouse.x, mouse.y)
+            }
+            onDoubleClicked: mouse => {
+                if (root.interactiveImage) root.zoomImage(root.imageZoom * 2, mouse.x, mouse.y)
+                else root.imageActivated()
+            }
+            onWheel: wheel => {
+                if (!root.interactiveImage) { wheel.accepted = false; return }
+                root.zoomImage(root.imageZoom + wheel.angleDelta.y * 0.003, wheel.x, wheel.y)
+                wheel.accepted = true
+            }
+            activeFocusOnTab: !root.interactiveImage
+            Accessible.role: Accessible.Button
+            Accessible.name: root.interactiveImage ? "Zoom and pan image" : "Open image viewer"
+            Accessible.onPressAction: if (!root.interactiveImage) root.imageActivated()
+            Keys.onReturnPressed: if (!root.interactiveImage) root.imageActivated()
+            Keys.onSpacePressed: if (!root.interactiveImage) root.imageActivated()
         }
         VideoFrameView {
             id: video
@@ -225,12 +285,15 @@ Item {
     Flow {
         Layout.fillWidth: true
         spacing: Ui.Metrics.sm
-        visible: root.mediaKind !== "image"
+        visible: root.mediaKind !== "image" || root.showDownload
+        NodeButton { objectName: "preview-open-image"; visible: root.mediaKind === "image" && !root.interactiveImage; text: "Open"; accessibleName: "Open image viewer"; variant: NodeButton.Flat; onClicked: root.imageActivated() }
+        NodeButton { objectName: "preview-image-fit"; visible: root.interactiveImage; text: "Fit"; accessibleName: "Fit image"; variant: NodeButton.Flat; onClicked: root.fitImage() }
+        Ui.Text { objectName: "preview-image-dimensions"; visible: root.interactiveImage; text: image.sourceSize.width + " × " + image.sourceSize.height; role: Ui.Typography.MonoCaption; height: Ui.Metrics.standard; verticalAlignment: Text.AlignVCenter }
         NodeButton { objectName: "preview-compact-play"; visible: root.compact && root.mediaKind === "audio"; text: root.playing ? "Pause" : "Play"; accessibleName: text; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.togglePlayback() }
         Ui.Text { visible: root.compact && root.mediaKind === "audio"; text: root.time(player.position) + " / " + root.time(player.duration); role: Ui.Typography.MonoCaption; height: Ui.Metrics.standard; verticalAlignment: Text.AlignVCenter }
         Ui.Select {
             objectName: "preview-speed"
-            visible: !root.compact || root.mediaKind !== "audio"
+            visible: root.mediaKind !== "image" && (!root.compact || root.mediaKind !== "audio")
             accessibleName: "Playback speed"
             value: player.playbackRate
             options: [{ label: "0.5×", value: 0.5 }, { label: "1×", value: 1 }, { label: "1.5×", value: 1.5 }, { label: "2×", value: 2 }]
@@ -265,9 +328,9 @@ Item {
             variant: NodeButton.Flat
             onClicked: root.toggleFullscreen()
         }
-        NodeButton { objectName: "preview-mute"; checkable: true; checked: audio.muted; text: audio.muted ? "Unmute" : "Mute"; accessibleName: text; variant: NodeButton.Flat; onClicked: audio.muted = !audio.muted }
-        Ui.Slider { objectName: "preview-volume"; visible: !root.compact || root.mediaKind !== "audio"; width: Ui.Metrics.xxxl * 3; accessibleName: "Volume"; from: 0; to: 1; value: audio.volume; onValueCommitted: value => audio.volume = value }
-        NodeButton { objectName: "preview-download"; text: "Download"; accessibleName: "Download media"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.download() }
+        NodeButton { objectName: "preview-mute"; visible: root.mediaKind !== "image"; checkable: true; checked: audio.muted; text: audio.muted ? "Unmute" : "Mute"; accessibleName: text; variant: NodeButton.Flat; onClicked: audio.muted = !audio.muted }
+        Ui.Slider { objectName: "preview-volume"; visible: root.mediaKind !== "image" && (!root.compact || root.mediaKind !== "audio"); width: Ui.Metrics.xxxl * 3; accessibleName: "Volume"; from: 0; to: 1; value: audio.volume; onValueCommitted: value => audio.volume = value }
+        NodeButton { objectName: "preview-download"; visible: root.showDownload; text: "Download"; accessibleName: "Download media"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.download() }
     }
 }
 }

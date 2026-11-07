@@ -18,11 +18,11 @@ namespace {
 QJsonArray catalog() {
   const QJsonObject str{{"type", "str"}};
   return {
-      QJsonObject{{"node_type", "t.Source"}, {"title", "Source"},
+      QJsonObject{{"node_type", "t.Source"}, {"title", "Source"}, {"inline_fields", QJsonArray{"text"}},
                   {"properties", QJsonArray{QJsonObject{{"name", "text"}, {"type", str}, {"default", "hello"}}}},
                   {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", str}}}},
                   {"supports_dynamic_outputs", true}},
-      QJsonObject{{"node_type", "t.Sink"}, {"title", "Sink"},
+      QJsonObject{{"node_type", "t.Sink"}, {"title", "Sink"}, {"inline_fields", QJsonArray{"value", "note"}},
                   {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", str}}, QJsonObject{{"name", "note"}, {"type", str}}}},
                   {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", str}}}}}};
 }

@@ -71,7 +71,8 @@ void EditorWindow::syncChatContext() {
     // Panel changes arrive in a later pass than askRunAgent. The run it attached
     // stays in the context while that run is still selected.
     const auto run = chat_.property("hostContext").toMap()["ui_context"].toMap()["run"].toMap();
-    if (!run.isEmpty() && run["run_id"].toString() == runOutput_.selectedRunId()) {
+    if (!run.isEmpty() && (run["run_id"].toString() == runOutput_.selectedRunId()
+        || run["run_id"].toString() == runTrace_.selectedRunId())) {
         ui["run"] = QJsonObject::fromVariantMap(run);
     }
     chat_.setProperty("hostContext", QJsonObject{{"workflow_id", workflow["id"]}, {"ui_context", ui}}.toVariantMap());
@@ -85,6 +86,7 @@ void EditorWindow::toggleChat() {
     chatVisible_ = !chatVisible_;
     QSettings().setValue("canvas-chat-dock/collapsed", !chatVisible_);
     layoutOverlays();
+    schedulePanelChanged();
 }
 
 void EditorWindow::askAgent(const QString &message) {
@@ -94,6 +96,7 @@ void EditorWindow::askAgent(const QString &message) {
     }
     chatVisible_ = true;
     QSettings().setValue("canvas-chat-dock/collapsed", false);
+    schedulePanelChanged();
     ensureChatConnected();
     if (chat_.selectedThreadId().isEmpty()) {
         chat_.createThread(message);
@@ -102,21 +105,24 @@ void EditorWindow::askAgent(const QString &message) {
     }
     layoutOverlays();
 }
-void EditorWindow::askRunAgent(const QString &runId) {
+void EditorWindow::askRunAgent(const QString &runId, const QString &spanId) {
     if (activeEditor() != this) {
-        activeEditor()->askRunAgent(runId);
+        activeEditor()->askRunAgent(runId, spanId);
         return;
     }
     chatVisible_ = true;
     QSettings().setValue("canvas-chat-dock/collapsed", false);
+    schedulePanelChanged();
     ensureChatConnected();
     syncChatContext();
     auto context = chat_.property("hostContext").toMap();
     auto ui = context["ui_context"].toMap();
-    ui["run"] = QVariantMap{{"run_id", runId}};
+    QVariantMap reference{{"run_id", runId}};
+    if (!spanId.isEmpty()) { reference["span_id"] = spanId; }
+    ui["run"] = reference;
     context["ui_context"] = ui;
     chat_.setProperty("hostContext", context);
-    chat_.createThread("Help me diagnose the selected run.");
+    chat_.createThread(spanId.isEmpty() ? "Help me diagnose the selected run." : "Help me diagnose the selected span.");
     layoutOverlays();
 }
 void EditorWindow::layoutChat(const QSize &available) {

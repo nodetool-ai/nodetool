@@ -335,8 +335,11 @@ class EditorChatToolsTest final : public QObject {
         nodetool::EditorWindow window;
         setup(window, server);
         const auto empty = call(window, server, "ui_get_graph", {});
-        QCOMPARE(empty["result"].toObject()["document_revision"].toString(),
-                 QString("graph:63bd93e0491115b56d3b03469951767b8bccae38ba5d599d57d547782b99920e"));
+        const auto emptyRevision = empty["result"].toObject()["document_revision"].toString();
+        // The web manifest constrains based_on_revision to this form.
+        QVERIFY(QRegularExpression("^graph:[a-f0-9]{64}$").match(emptyRevision).hasMatch());
+        QCOMPARE(call(window, server, "ui_get_graph", {})["result"].toObject()["document_revision"].toString(),
+                 emptyRevision);
         auto metadata = catalog();
         metadata.append(QJsonObject{
             {"node_type", "nodetool.code.Code"},
@@ -472,6 +475,157 @@ class EditorChatToolsTest final : public QObject {
         }
         QVERIFY(window.document()->nodes().isEmpty());
         QCOMPARE(window.document()->undoStack()->count(), 0);
+    }
+    // generateLargeDataset in web/src/utils/__tests__/nodeSearch.test.ts.
+    static QJsonArray generatedCatalog(int count) {
+        const QStringList namespaces{"math", "string", "image", "audio", "video", "data", "ai", "ml"};
+        const QStringList operations{"add", "subtract", "multiply", "divide", "process", "transform", "convert", "analyze"};
+        QJsonArray nodes;
+        for (int i = 0; i < count; ++i) {
+            auto nameSpace = namespaces[i % namespaces.size()];
+            if (i % 3 == 0) {
+                nameSpace += ".sub" + QString::number(i / 10);
+            }
+            const auto operation = operations[i % operations.size()];
+            nodes.append(QJsonObject{
+                {"namespace", nameSpace},
+                {"node_type", nameSpace + "." + operation + QString::number(i)},
+                {"title", operation.left(1).toUpper() + operation.mid(1) + " " + QString::number(i)},
+                {"description", "Description for " + operation + " operation number " + QString::number(i)},
+                {"properties", QJsonArray{}},
+                {"outputs", QJsonArray{}}});
+        }
+        return nodes;
+    }
+    void manifestMatchesWeb() {
+        // tool-manifest.json is FrontendToolRegistry.getManifest() output for the
+        // tools this host implements, from scripts/generate-chat-web-fixtures.mjs.
+        QFile file(QFINDTESTDATA("../../resources/chat/tool-manifest.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QHash<QString, QJsonObject> web;
+        for (const auto &entry : QJsonDocument::fromJson(file.readAll()).array()) {
+            web.insert(entry.toObject()["name"].toString(), entry.toObject());
+        }
+        const QStringList implemented{"ui_get_graph",      "ui_add_node",         "ui_connect_nodes",
+                                      "ui_move_node",      "ui_set_node_title",   "ui_delete_node",
+                                      "ui_delete_edge",    "ui_update_node_data", "ui_search_nodes",
+                                      "ui_search_models",  "ui_switch_tab",       "ui_copy",
+                                      "ui_paste",          "ui_open_workflow",    "ui_run_workflow",
+                                      "ui_open_document"};
+        QCOMPARE(web.size(), implemented.size());
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QJsonArray advertised;
+        for (const auto &frame : server.frames) {
+            if (frame["type"] == "client_tools_manifest") {
+                advertised = frame["tools"].toArray();
+            }
+        }
+        QCOMPARE(advertised.size(), implemented.size());
+        for (const auto &entry : advertised) {
+            const auto tool = entry.toObject();
+            const auto name = tool["name"].toString();
+            QVERIFY2(implemented.contains(name), qPrintable(name));
+            QVERIFY2(web.contains(name), qPrintable(name));
+            QCOMPARE(tool, web[name]);
+            QVERIFY(!tool["description"].toString().isEmpty());
+            QCOMPARE(tool["parameters"].toObject()["type"].toString(), QString("object"));
+        }
+        // An advertised tool reaches its handler rather than the unknown-tool path.
+        for (const auto &name : implemented) {
+            const auto result = call(window, server, name, {});
+            QVERIFY2(!result["result"].toObject()["error"].toString().startsWith("Unknown tool"), qPrintable(name));
+        }
+    }
+    void searchRankingMatchesWeb() {
+        // ChatSearchFixture.json holds web ui_search_nodes results for the query
+        // sets of the web ranking tests. scripts/generate-chat-web-fixtures.mjs
+        // writes it by executing the web tool.
+        QFile file(QFINDTESTDATA("ChatSearchFixture.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        const auto catalogs = fixture["catalogs"].toObject();
+        const auto cases = fixture["cases"].toArray();
+        QVERIFY(cases.size() >= 40);
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QString loaded;
+        int nonEmpty = 0;
+        for (const auto &value : cases) {
+            const auto spec = value.toObject();
+            const auto name = spec["catalog"].toString();
+            if (name != loaded) {
+                window.setCatalog(name.startsWith("generated-") ? generatedCatalog(name.mid(10).toInt())
+                                                                : catalogs[name].toArray());
+                loaded = name;
+            }
+            const auto frame = call(window, server, "ui_search_nodes", spec["args"].toObject());
+            const auto label = name + " " + QString::fromUtf8(QJsonDocument(spec["args"].toObject()).toJson(QJsonDocument::Compact));
+            QVERIFY2(frame["ok"].toBool(), qPrintable(label));
+            const auto actual = frame["result"].toObject();
+            const auto expected = spec["result"].toObject();
+            if (actual != expected) {
+                QStringList actualTypes;
+                QStringList expectedTypes;
+                for (const auto &entry : actual["results"].toArray()) {
+                    actualTypes.append(entry.toObject()["node_type"].toString());
+                }
+                for (const auto &entry : expected["results"].toArray()) {
+                    expectedTypes.append(entry.toObject()["node_type"].toString());
+                }
+                QFAIL(qPrintable(label + "\nnative " + QString::number(actual["total_matches"].toInt()) + " " +
+                                 actualTypes.join(", ") + "\nweb    " +
+                                 QString::number(expected["total_matches"].toInt()) + " " + expectedTypes.join(", ")));
+            }
+            nonEmpty += expected["results"].toArray().isEmpty() ? 0 : 1;
+        }
+        QVERIFY(nonEmpty >= 30);
+    }
+    void revisionCost() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QList<double> costs;
+        for (const int count : {250, 500, 1000, 2000}) {
+            QJsonArray nodes;
+            for (int i = 0; i < count; ++i) {
+                nodes.append(QJsonObject{
+                    {"id", QString("n%1").arg(i)},
+                    {"type", "fixture.Text"},
+                    {"data", QJsonObject{{"text", QString("value %1").arg(i)}}},
+                    {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", i * 300}, {"y", 0}}}}}});
+            }
+            QVERIFY(window.document()->load(
+                {{"id", "workflow-tools"},
+                 {"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}}}));
+            QCoreApplication::processEvents();
+            constexpr int calls = 20;
+            // The fastest of three batches discounts load from other processes.
+            double best = 0;
+            for (int batch = 0; batch < 3; ++batch) {
+                QElapsedTimer timer;
+                timer.start();
+                // Dispatch, the edit and its result revision run synchronously in applyEvent.
+                // Canvas projection waits for the event loop and is not timed.
+                for (int i = 0; i < calls; ++i) {
+                    window.chatSession()->applyEvent(
+                        {{"type", "tool_call"},
+                         {"thread_id", ThreadId},
+                         {"tool_call_id", QString("cost-%1-%2-%3").arg(count).arg(batch).arg(i)},
+                         {"name", "ui_move_node"},
+                         {"args", QJsonObject{{"node_id", "n0"},
+                                              {"position", QJsonObject{{"x", i}, {"y", batch}}}}}});
+                }
+                const double cost = double(timer.nsecsElapsed()) / calls / 1000;
+                best = batch == 0 ? cost : std::min(best, cost);
+                QCoreApplication::processEvents();
+            }
+            costs.append(best);
+            qInfo().nospace() << "N=" << count << " ui_move_node_us=" << costs.last();
+        }
+        QVERIFY2(costs.last() < costs.first() * 3, "Per-call chat edit cost grew with graph size");
     }
     void twoThousandNodes() {
         ChatServer server;

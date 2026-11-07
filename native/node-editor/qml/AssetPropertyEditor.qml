@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import NodeTool.UiPrimitives as Ui
@@ -289,6 +290,7 @@ ColumnLayout {
     Timer { id: previewRestart; interval: 0; onTriggered: root.previewReady = true }
     FileDialog {
         id: picker
+        parentWindow: root.Window.window
         title: "Upload " + root.mediaKind
         fileMode: root.multipleFiles ? FileDialog.OpenFiles : FileDialog.OpenFile
         nameFilters: root.mediaKind === "image" ? ["Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.svg)"]

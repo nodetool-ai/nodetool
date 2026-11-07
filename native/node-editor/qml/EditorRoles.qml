@@ -27,5 +27,13 @@ QtObject {
     readonly property color disabledOutline: dark ? "#1affffff" : "#141a1a1a"
     readonly property real railWidth: 50
     readonly property real tabHeight: 40
+    // web/src/components/workspace/WorkspaceTabBar.tsx and WorkspaceTabItem.tsx
+    readonly property real tabMinWidth: 120 * Ui.Theme.uiScale
+    readonly property real tabMaxWidth: 220 * Ui.Theme.uiScale
+    readonly property int tabTitleTooltipDelay: 150
+    // web/src/components/projects/projectIdentity.ts: info.light
+    readonly property color projectAccent: dark ? "#67e8f9" : "#22a5c4"
     readonly property real statusHeight: 32
+    // web/src/components/ui_primitives/DocumentBar.tsx: DOCUMENT_BAR_HEIGHT
+    readonly property real headerHeight: 40 * Ui.Theme.uiScale
 }

@@ -3,6 +3,11 @@
 #include "EditorWindow.h"
 #include "document/GroupIntoSubgraph.h"
 #include "MiniMap.h"
+#include "InspectorClearance.h"
+#include <QAbstractAnimation>
+#include <QEasingCurve>
+#include <QVariantAnimation>
+#include "graph/CatalogCategories.h"
 #include "layout/AutoLayout.h"
 #include "layout/SelectionLayout.h"
 #include <QMap>
@@ -22,6 +27,7 @@
 #include "graph/CanvasDropController.h"
 #include "graph/NodeCreation.h"
 #include "graph/CompatibleNodePicker.h"
+#include "graph/CompatibleNodePlacement.h"
 #include "graph/LineageLayer.h"
 #include "properties/PropertyFields.h"
 #include <QApplication>
@@ -48,8 +54,10 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QScopedValueRollback>
 #include <QSaveFile>
 #include <QSettings>
+#include <QScreen>
 #include <QStackedWidget>
 #include <QScrollBar>
 #include <QSignalBlocker>
@@ -62,6 +70,8 @@
 #include <QWheelEvent>
 #include <QtNodes/ConnectionStyle>
 #include <algorithm>
+#include <cmath>
+#include <utility>
 #include <QtNodes/NodeStyle>
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -115,6 +125,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
     newTab();
+    installTabShortcuts();
     return;
   }
   setWindowTitle(tr("NodeTool Workflow[*]"));
@@ -123,7 +134,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   node_editor::registerCodeHighlighter();
   connect(&document_, &node_editor::WorkflowDocument::replaced, this, [this] {
     model_.resetOnNextProjection();
+    documentReplaced_ = true;
     ++documentEpoch_;
+    runTrace_.setWorkflow(document_.snapshot().value("id").toString(), document_.snapshot().value("name").toString());
+    QTimer::singleShot(0, this, [this] { modelPicker_.fillWorkflowDefaults(&document_, metadata_); });
     if (!childSyncing_) {
         closeChildSurfaces();
     }
@@ -132,7 +146,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     guideDismissed_ = false;
     emit documentEpochChanged();
     QTimer::singleShot(0, this, &EditorWindow::refreshChildReferences);
-    session_.setSnapshot(document_.snapshot());
   });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &setup_, &node_editor::SetupController::configure);
     connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this,
@@ -157,7 +170,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     session_.openWorkflow(workflow["id"].toString());
     if (setupDialog_) { setupDialog_->close(); }
   });
-  connect(&setup_, &node_editor::SetupController::changed, this, [this] { refresh(); });
+    setup_.setInstallScope(tabOwner_ ? tabOwner_ : this);
+    connect(&setup_, &node_editor::SetupController::runtimeOfferRequested, this, [this] {
+        QTimer::singleShot(0, this, [this] { setupAction("runtime-offer"); });
+    });
+    connect(&setup_, &node_editor::SetupController::changed, this, [this] {
+        refresh();
+        setup_.offerWorkflow(document_.snapshot(), metadata_);
+    });
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -213,6 +233,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
   });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &mediaResolver_, &node_editor::MediaResolver::configure);
+  connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &runTrace_, &node_editor::RunTraceController::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &modelPicker_, &node_editor::ModelPickerController::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &assetPicker_, &node_editor::AssetPickerController::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &resourcePicker_, &node_editor::ResourcePickerController::configure);
@@ -255,11 +276,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     apply({{"op", "removeLink"}, {"id", id}});
   });
   connect(lineage_, &node_editor::LineageLayer::contextMenuRequested, this, [this](const QString &id, const QPoint &position) {
-    auto menu = new QMenu(this);
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-    auto remove = menu->addAction(tr("Delete link"), this, [this, id] { apply({{"op", "removeLink"}, {"id", id}}); });
-    remove->setEnabled(!readOnly());
-    menu->popup(position);
+    showContextMenu("link", position, {}, id);
   });
     connect(scene_, &EditorScene::outputFormRequested, this, [this](const QString &id) {
         if (readOnly() || !selectNode(id)) { return; }
@@ -278,6 +295,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         connect(this, &EditorWindow::credentialsEpochChanged, dialog, &QDialog::close);
         dialog->show();
     });
+    connect(scene_, &EditorScene::dynamicPortFormRequested, this, &EditorWindow::showDynamicPortDialog);
     connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }
     });
@@ -288,38 +306,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   });
   connect(scene_, &EditorScene::dataEdgeContextMenuRequested, this,
           [this](const QString &id, const QPointF &position, const QPoint &screenPosition) {
-    if (readOnly()) { return; }
-    QJsonObject original;
-    for (const auto &value : document_.edges()) {
-      const auto edge = value.toObject();
-      if (edge["id"].toString() == id) { original = edge; break; }
-    }
-    if (original.isEmpty()) { return; }
-    const auto documentEpoch = documentEpoch_, credentialsEpoch = credentialsEpoch_;
-    auto *menu = new QMenu(this);
-    menu->setObjectName("data-edge-menu");
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-    auto *insert = menu->addAction(tr("Insert reroute"), this,
-        [this, id, position, original, documentEpoch, credentialsEpoch] {
-      if (documentEpoch != documentEpoch_ || credentialsEpoch != credentialsEpoch_ || readOnly()) { return; }
-      for (const auto &value : document_.edges()) {
-        if (value.toObject() == original) {
-          apply({{"op", "insertReroute"}, {"id", id},
-                 {"position", QJsonObject{{"x", position.x()}, {"y", position.y()}}}});
-          return;
-        }
-      }
-    });
-    auto *remove = menu->addAction(tr("Delete edge"), this, [this, id, original, documentEpoch, credentialsEpoch] {
-      if (documentEpoch != documentEpoch_ || credentialsEpoch != credentialsEpoch_ || readOnly()) { return; }
-      for (const auto &value : document_.edges()) { if (value.toObject() == original) { apply({{"op", "removeEdge"}, {"id", id}}); return; } }
-    });
-    remove->setObjectName("delete-edge");
-    insert->setObjectName("insert-reroute");
-    insert->setEnabled(knownNodeType("nodetool.control.Reroute"));
-    connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
-    connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
-    menu->popup(screenPosition);
+    showContextMenu("edge", screenPosition, {}, id, position);
   });
   // Plain QGraphicsView deliberately avoids QtNodes' clipboard and undo
   // actions.
@@ -341,13 +328,38 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   inlinePresenter_->commitProperty = [this](const QString &id, const QString &name, const QVariant &value) {
     return commitProperty(id, name, value);
   };
+  inlinePresenter_->commitCommand = [this](const QJsonObject &command) { return apply(command); };
   connect(this, &EditorWindow::zoomChanged, inlinePresenter_, &InlinePropertyPresenter::reposition);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(this, &EditorWindow::documentEpochChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   inlineTitle_ = new InlineTitlePresenter(model_, *scene_, *view_, engine_, this);
-  inlineTitle_->availableViewport = [this] { return unobstructedViewport(); };
+  inlineTitle_->availableViewport = [this] {
+    auto area = unobstructedViewport();
+    // A tall note editor stays clear of a toolbar floating over its card.
+    if (selectionOverlay_ && selectionOverlay_->isVisible() && selectionToolbarFloating_) {
+      area.setTop(std::max(area.top(), selectionOverlay_->geometry().bottom() + 8.0));
+    }
+    return area;
+  };
   inlineTitle_->commitTitle = [this](const QString &id, const QString &text) {
-    return apply({{"op", "renameNode"}, {"id", id}, {"title", text}});
+    if (!document_.node(id)["type"].toString().endsWith(".Comment")) {
+      return apply({{"op", "renameNode"}, {"id", id}, {"title", text}});
+    }
+    // handleScaleToFit in CommentNode.tsx: a changed comment grows or shrinks
+    // its card to the text, and text and size share one undo step.
+    QJsonArray commands{QJsonObject{{"op", "setComment"}, {"id", id}, {"value", text}}};
+    for (const auto graphId : model_.allNodeIds()) {
+      if (model_.resourceId(graphId) != id) { continue; }
+      auto ui = model_.uiProperties(graphId);
+      const auto size = model_.layout(graphId).size;
+      const auto height = std::max<double>(commentMinimumHeight, std::ceil(scene_->commentContentHeight(text, size.width())));
+      if (height != size.height()) {
+        ui["height"] = height;
+        commands.append(QJsonObject{{"op", "setNodeField"}, {"id", id}, {"field", "ui_properties"}, {"value", ui}});
+      }
+      break;
+    }
+    return apply({{"op", "batch"}, {"commands", commands}});
   };
   connect(this, &EditorWindow::zoomChanged, inlineTitle_, &InlineTitlePresenter::reposition);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlineTitle_, &InlineTitlePresenter::cancel);
@@ -386,6 +398,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   });
   connect(canvasDrops_, &CanvasDropController::errorOccurred, this, [this](const QString &error) {
     message_ = error; schedulePanelChanged(); showCanvasDrops();
+  });
+  connect(canvasDrops_, &CanvasDropController::workflowFileDropped, this, [this](const QString &path) {
+    // Opening a tab replaces surfaces, so it waits until the drop event returns.
+    QTimer::singleShot(0, this, [this, path] { openFileInTab(path); });
   });
   connect(canvasDrops_, &CanvasDropController::nodeCreated, this, [this](const QString &id) {
     const auto documentEpoch = documentEpoch_, credentialsEpoch = credentialsEpoch_;
@@ -429,6 +445,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     auto canvasLayout = new QVBoxLayout(canvasColumn);
     canvasLayout->setContentsMargins(0, 0, 0, 0);
     canvasLayout->setSpacing(0);
+    // The web document bar sits above the subgraph strip and the canvas.
+    // See web/src/components/workspace/WorkflowDocumentBar.tsx.
+    auto headerRow = panel("HeaderRow");
+    headerRow->setFixedHeight(qCeil(headerRow->rootObject()->implicitHeight()));
+    canvasLayout->addWidget(headerRow);
     auto canvasTabs = panel("CanvasTabStrip");
     const auto resizeCanvasTabs = [canvasTabs] {
         canvasTabs->setFixedHeight(qCeil(canvasTabs->rootObject()->implicitHeight()));
@@ -457,6 +478,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   outputDock_->setAllowedAreas(Qt::BottomDockWidgetArea);
   outputDock_->hide();
   inspectorDock_->hide();
+  // The web opens with its side panels closed. See web/src/stores/PanelStore.ts.
+  catalogDock_->hide();
   auto rail = panel("Rail");
   rail->setFixedWidth(rail->initialSize().width());
   auto tabs = panel("TabBar");
@@ -500,6 +523,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(queueOverlay_->rootObject(), SIGNAL(presentedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(contentHeightChanged()), this, SLOT(layoutOverlays()));
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { layoutOverlays(); });
+  connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
   selectionOverlay_ = overlay("SelectionToolbar");
   viewportOverlay_ = overlay("ViewportIndicator");
   setupGuide_ = overlay("SetupGuide");
@@ -508,16 +532,42 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   miniMap->navigated = [this] { fitActive_ = false; };
   miniMap->zoomed = [this] { emit zoomChanged(); };
   connect(this, &EditorWindow::zoomChanged, miniMap, [miniMap] { miniMap->update(); });
+  // The web hides the mini-map until the user turns it on and remembers the choice.
+  miniMapVisible_ = QSettings().value("minimap/visible", false).toBool();
   miniMap->show();
   toolbarOverlay_->show();
   viewportOverlay_->show();
   layoutOverlays();
+  // The card toolbar follows its card through pan, zoom, resize, move and drag.
+  const auto followCard = [this] { positionSelectionToolbar(); };
+  connect(view_->horizontalScrollBar(), &QScrollBar::valueChanged, this, followCard);
+  connect(view_->verticalScrollBar(), &QScrollBar::valueChanged, this, followCard);
+  connect(this, &EditorWindow::zoomChanged, this, followCard);
+  connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
+  connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
+  connect(scene_, &EditorScene::nodeDragChanged, this, followCard);
   connect(catalogDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
           [this] { schedulePanelChanged(); });
   connect(scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); }
+  });
+  connect(scene_, &EditorScene::headerDoubleClicked, this, [this](QtNodes::NodeId id) {
+    if (readOnly()) { return; }
+    // A Code node's header title is editable, so a double-click renames it.
+    if (model_.nodeSnapshot(id)["type"].toString() == "nodetool.code.Code") { inlineTitle_->activate(id); }
+    else { action("Toggle collapse"); }
+  });
+  connect(scene_, &EditorScene::paneDoubleClicked, this, [this](const QPointF &position) {
+    if (readOnly()) { return; }
+    armCatalogPlacement(position);
+    action("Add node");
+  });
+  connect(this, &EditorWindow::documentEpochChanged, this, [this] { cancelCatalogPlacement(); });
+  connect(scene_, &EditorScene::connectionRefused, this, [this] {
+    message_ = tr("Cannot connect these handles");
+    schedulePanelChanged();
   });
   const auto selectionSettled = [this] {
     const auto ids = selectedIds();
@@ -543,20 +593,28 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     setWindowModified(!clean);
     schedulePanelChanged();
   });
-  connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
-    historyWorkflowStale_ = true;
-    if (!refreshPending_) {
-      refreshPending_ = true;
-      QTimer::singleShot(0, this, [this] {
-        syncPackSetup();
-        if (refreshPending_) { refresh(); }
-      });
-      // The panel emit runs the queued projection, so panels follow an edit in the next pass.
-      schedulePanelChanged();
-    }
-    // A synchronous session refresh also satisfies this queued projection.
-    session_.setSnapshot(document_.snapshot());
-  });
+    // The document bar's Undo and Redo follow the history.
+    connect(document_.undoStack(), &QUndoStack::canUndoChanged, this, &EditorWindow::schedulePanelChanged);
+    connect(document_.undoStack(), &QUndoStack::canRedoChanged, this, &EditorWindow::schedulePanelChanged);
+    session_.setSnapshotProvider([this] { return document_.snapshot(); });
+    connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
+        // GenerationHistory copies the document on the next inspector sync.
+        historyWorkflowStale_ = true;
+        const bool replaced = std::exchange(documentReplaced_, false);
+        if (!syncingSession_) {
+            if (replaced) {
+                session_.setSnapshot(document_.snapshot());
+            } else {
+                session_.documentChanged();
+            }
+        }
+        requestRefresh();
+        if (replaced && !syncingSession_) {
+            ensureProjected();
+        }
+        // Title targets must stop accepting stale commits before projection.
+        inlineTitle_->validateDocument(document_);
+    });
   connect(&session_, &node_editor::WorkflowSession::catalogChanged, this,
           [this] {
             auto c = session_.catalog();
@@ -568,22 +626,24 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
           });
   connect(&session_, &node_editor::WorkflowSession::workflowChanged, this,
           [this] {
-            if (session_.workflow().isEmpty()) {
-              return;
+            const auto workflow = session_.workflow();
+            if (workflow.isEmpty()) {
+                return;
             }
-            if (session_.workflow()["graph"] == document_.snapshot()["graph"]) {
-              document_.reconcileMetadata(session_.workflow());
-              refresh();
-              return;
+            const QScopedValueRollback syncing(syncingSession_, true);
+            if (workflow["graph"] == document_.snapshot()["graph"]) {
+                document_.reconcileMetadata(workflow);
+                return;
             }
-            auto r = document_.load(session_.workflow());
-            if (!r) {
-              message_ = r.error;
+            auto result = document_.load(workflow);
+            if (!result) {
+                message_ = result.error;
             }
             refresh();
           });
   connect(&session_, &node_editor::WorkflowSession::workflowOpened, this,
           [this] {
+            const QScopedValueRollback syncing(syncingSession_, true);
             if (serverSyncDialog_) { serverSyncDialog_->close(); }
             runOutput_.reset();
             lineage_->setSelectedLinkIds({});
@@ -594,7 +654,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             if (result) {
               file_.clear();
               fitActive_ = true;
-              scheduleViewportSettle();
+              scheduleViewportSettle(true);
               message_ = tr("Opened server workflow");
             } else {
               message_ = result.error;
@@ -623,6 +683,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
           });
   connect(&session_, &node_editor::WorkflowSession::runEvent, this,
           [this](const QString &id, const QJsonObject &event) {
+            ensureProjected();
+            const auto detail = event["error_detail"].toObject();
+            if (detail["missing_runtime"].isObject()) {
+                setup_.missingRuntime(detail["missing_runtime"].toObject());
+            }
             runtime_.ingest(id, event);
             runOutput_.ingest(id, event);
             const auto status = event["status"].toString();
@@ -671,6 +736,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(this, &EditorWindow::panelChanged, this, &EditorWindow::notifyTabs);
 }
 EditorWindow::~EditorWindow() {
+    // Popups retain callbacks into their Quick children and the inspector.
+    // Cancel every generation before panels or scene selection are destroyed.
+    clearDynamicPortDialogs();
     disconnect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChatContext);
     disconnect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
   if (!tabOwner_) {
@@ -752,6 +820,12 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
     content->setResizeMode(QQuickWidget::SizeRootObjectToView);
     content->setInitialProperties({{"controller", QVariant::fromValue(&versions_)}});
     content->setSource(QUrl("qrc:/editor/VersionHistoryPanel.qml"));
+    // The dock never narrows below the width where every control keeps its label on one line.
+    // The panel's minimum follows the UI scale and the panel reports each change, so the dock follows it.
+    content->setMinimumWidth(qCeil(content->rootObject()->property("minimumWidth").toReal()));
+    connect(&versions_, &node_editor::WorkflowVersions::panelMinimumWidthChanged, content, [content](qreal width) {
+        content->setMinimumWidth(qCeil(width));
+    });
     dock->setWidget(content);
     connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close()));
     dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
@@ -773,6 +847,37 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
   connect(this, &EditorWindow::credentialsEpochChanged, dialog, &QDialog::close);
   dialog->resize(std::min(640, width()), std::min(680, height()));
   versions_.load(kind); dialog->show();
+}
+void EditorWindow::showRunTrace() {
+  for (auto *dock : findChildren<QDockWidget *>("run-trace-dock")) {
+    dock->show();
+    dock->raise();
+    return;
+  }
+  auto *dock = new QDockWidget(tr("Run trace"), dockHost_);
+  dock->setObjectName("run-trace-dock");
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  dock->setTitleBarWidget(new QWidget(dock));
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"controller", QVariant::fromValue(&runTrace_)}});
+  content->setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+  dock->setWidget(content);
+  if (content->rootObject()) {
+    connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close()));
+    connect(content->rootObject(), SIGNAL(askAgentRequested(QString,QString)), this, SLOT(askRunAgent(QString,QString)));
+  }
+  connect(dock, &QDockWidget::visibilityChanged, &runTrace_, &node_editor::RunTraceController::setActive);
+  connect(this, &EditorWindow::documentEpochChanged, dock, &QDockWidget::close);
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  connect(dock, &QObject::destroyed, &runTrace_, [this] { runTrace_.setActive(false); });
+  runTrace_.setWorkflow(document_.snapshot().value("id").toString(), document_.snapshot().value("name").toString());
+  outputDock_->hide();
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+  runTrace_.refresh();
 }
 void EditorWindow::showServerSync() {
   if (serverSyncDialog_) {
@@ -966,6 +1071,65 @@ QString EditorWindow::workflowName() const {
   if (!tabOwner_) { return activeEditor_->workflowName(); }
   return document_.snapshot()["name"].toString(tr("Untitled workflow"));
 }
+bool EditorWindow::canUndo() const {
+    if (!tabOwner_) {
+        return activeEditor_->canUndo();
+    }
+    return menuActionEnabled(QStringLiteral("Undo"));
+}
+bool EditorWindow::canRedo() const {
+    if (!tabOwner_) {
+        return activeEditor_->canRedo();
+    }
+    return menuActionEnabled(QStringLiteral("Redo"));
+}
+QString EditorWindow::documentSaveStatus() const {
+    if (!tabOwner_) {
+        return activeEditor_->documentSaveStatus();
+    }
+    if (inlineChild_ && childParent_) {
+        return childParent_->documentSaveStatus();
+    }
+    if (readOnly()) {
+        return QStringLiteral("readOnly");
+    }
+    if (session_.autosaveState() == "deleted") {
+        return QStringLiteral("deleted");
+    }
+    if (session_.conflictPending()) {
+        return QStringLiteral("conflict");
+    }
+    if (session_.saving()) {
+        return QStringLiteral("saving");
+    }
+    if (session_.autosaveState() == "error") {
+        return QStringLiteral("error");
+    }
+    const bool dirty = session_.serverBound() ? session_.dirty() : !document_.undoStack()->isClean();
+    return dirty ? QStringLiteral("dirty") : QStringLiteral("saved");
+}
+bool EditorWindow::workflowRenamable() const {
+    if (!tabOwner_) {
+        return activeEditor_->workflowRenamable();
+    }
+    return !childParent_ && !readOnly();
+}
+void EditorWindow::renameWorkflow(const QString &name) {
+    if (!tabOwner_) {
+        activeEditor_->renameWorkflow(name);
+        return;
+    }
+    if (!workflowRenamable()) {
+        return;
+    }
+    renameTab(tabOwner_->visibleTabs().indexOf(this), name);
+}
+bool EditorWindow::chatVisible() const {
+    if (!tabOwner_) {
+        return activeEditor_->chatVisible();
+    }
+    return chatVisible_;
+}
 QString EditorWindow::graphSummary() const {
   if (!tabOwner_) { return activeEditor_->graphSummary(); }
   return tr("%1 nodes  ·  %2 edges").arg(document_.nodes().size()).arg(document_.edges().size());
@@ -992,7 +1156,8 @@ QVariantMap EditorWindow::selectionInfo() const {
   };
   const auto &layout = model_.layout(graphId);
   const auto type = node["type"].toString();
-  return {{"childGraph", node_editor::isChildNode(node)}, {"title", model_.isComment(graphId) ? QString("Comment") : model_.isGroup(graphId) ? node["data"].toObject()["headline"].toString("Group") : layout.title}, {"icon", layout.icon},
+  const char *kind = model_.isGroup(graphId) ? "group" : model_.isComment(graphId) ? "comment" : model_.isReroute(graphId) ? "reroute" : "node";
+  return {{"kind", kind}, {"childGraph", node_editor::isChildNode(node)}, {"title", model_.isComment(graphId) ? QString("Comment") : model_.isGroup(graphId) ? node["data"].toObject()["headline"].toString("Group") : layout.title}, {"icon", layout.icon},
           {"namespace", metadata["namespace"].toString(type.section('.', 0, -2))},
           {"description", metadata["description"].toString()},
           {"inputs", ports(QtNodes::PortType::In)}, {"outputs", ports(QtNodes::PortType::Out)}};
@@ -1026,19 +1191,106 @@ void EditorWindow::syncInspector() {
     catalogDock_->show();
   }
 }
+// useDragHandlers.ts and useAddToGroup.ts: a card dropped on a group joins it
+// and the group grows to hold it, and Alt or a shake takes cards out of theirs.
+// Positions are the absolute ones the drag ends with.
+QJsonArray EditorWindow::dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId groupId, bool detach) {
+  QJsonArray commands;
+  if (readOnly() || (!detach && groupId == QtNodes::InvalidNodeId)) { return commands; }
+  QStringList dragged;
+  for (const auto &id : selectedIds()) {
+    const auto parent = document_.node(id)["parent_id"].toString();
+    if (positions.contains(id) && !(positions.contains(parent) && !parent.isEmpty())) { dragged.append(id); }
+  }
+  const auto isGroupType = [](const QJsonObject &node) { return node["type"].toString().endsWith(".Group"); };
+  QStringList detached;
+  if (detach) {
+    for (const auto &id : dragged) {
+      const auto node = document_.node(id);
+      if (!node["parent_id"].toString().isEmpty() && !isGroupType(node)) { detached.append(id); }
+    }
+    if (!detached.isEmpty()) { commands.append(QJsonObject{{"op", "detachNodes"}, {"ids", QJsonArray::fromStringList(detached)}}); }
+  }
+  if (groupId == QtNodes::InvalidNodeId || !model_.nodeExists(groupId)) { return commands; }
+  const auto group = model_.resourceId(groupId);
+  QStringList joining;
+  for (const auto &id : dragged) {
+    const auto node = document_.node(id);
+    if (id == group || isGroupType(node)) { continue; }
+    if (!node["parent_id"].toString().isEmpty() && !detached.contains(id)) { continue; }
+    joining.append(id);
+  }
+  if (joining.isEmpty()) { return commands; }
+  const auto groupAt = [&](const QString &id) {
+    const auto moved = positions.value(id).toObject();
+    return moved.isEmpty() ? model_.nodeData(groupId, QtNodes::NodeRole::Position).toPointF() : QPointF(moved["x"].toDouble(), moved["y"].toDouble());
+  };
+  const auto origin = groupAt(group);
+  double right = 0, bottom = 0;
+  for (const auto id : model_.allNodeIds()) {
+    const auto resource = model_.resourceId(id);
+    const bool joins = joining.contains(resource);
+    if (!joins && model_.nodeSnapshot(id)["parent_id"].toString() != group) { continue; }
+    const auto moved = positions.value(resource).toObject();
+    const auto at = moved.isEmpty() ? model_.nodeData(id, QtNodes::NodeRole::Position).toPointF() : QPointF(moved["x"].toDouble(), moved["y"].toDouble());
+    const auto relative = at - origin;
+    right = std::max(right, relative.x() + model_.layout(id).size.width());
+    bottom = std::max(bottom, relative.y() + model_.layout(id).size.height());
+  }
+  for (const auto &id : joining) { commands.append(QJsonObject{{"op", "setNodeField"}, {"id", id}, {"field", "parent_id"}, {"value", group}}); }
+  // addToGroup pads the grown frame by 25 px on the right and 50 px below.
+  const auto size = model_.layout(groupId).size;
+  const auto width = std::max<double>(size.width(), right + 25);
+  const auto height = std::max<double>(size.height(), bottom + 50);
+  if (width > size.width() || height > size.height()) {
+    auto ui = model_.uiProperties(groupId);
+    ui["width"] = width;
+    ui["height"] = height;
+    commands.append(QJsonObject{{"op", "setNodeField"}, {"id", group}, {"field", "ui_properties"}, {"value", ui}});
+  }
+  return commands;
+}
+
+void EditorWindow::positionSelectionToolbar() {
+  if (!selectionOverlay_ || !view_) { return; }
+  const auto area = view_->rect();
+  const auto selection = selectionOverlay_->sizeHint();
+  QPoint origin(std::max(0, (area.width() - selection.width()) / 2), 30);
+  bool visible = selectedCount() > 0 && !browserVisible();
+  selectionToolbarFloating_ = false;
+  // NodeSelectionToolbar.tsx shows the card toolbar only for one selected card
+  // that is not being dragged, centered above it with an 8 px gap.
+  const auto ids = selectedIds();
+  if (visible && ids.size() == 1) {
+    for (const auto id : model_.allNodeIds()) {
+      if (model_.resourceId(id) != ids.first()) { continue; }
+      if (model_.isGroup(id) || model_.isComment(id) || model_.isReroute(id)) { break; }
+      const auto *item = scene_->nodeGraphicsObject(id);
+      if (!item) { break; }
+      const auto card = view_->mapFromScene(QRectF(item->scenePos(), model_.layout(id).size)).boundingRect().translated(view_->viewport()->pos());
+      constexpr int cardToolbarGap = 8;
+      if (!QRect(QPoint(), area.size()).intersects(card) || scene_->nodeDragActive()) { visible = false; break; }
+      const int x = card.center().x() - selection.width() / 2;
+      const int y = card.top() - cardToolbarGap - selection.height();
+      origin = QPoint(std::clamp(x, 0, std::max(0, area.width() - selection.width())), std::clamp(y, 0, std::max(0, area.height() - selection.height())));
+      selectionToolbarFloating_ = true;
+      break;
+    }
+  }
+  selectionOverlay_->setGeometry(origin.x(), origin.y(), selection.width(), selection.height());
+  selectionOverlay_->setVisible(visible);
+}
 void EditorWindow::layoutOverlays() {
   if (!toolbarOverlay_ || !viewportOverlay_) { return; }
   const auto area = view_->rect();
   if (setupGuide_ && setupGuide_->rootObject()) {
+    // The web guide sizes to its content inside the canvas. Cap it the same way here.
+    setupGuide_->rootObject()->setProperty("maximumWidth", std::max(0, area.width() - 2 * 16));
     const auto size = setupGuide_->sizeHint();
     setupGuide_->setGeometry(std::max(0, (area.width() - size.width()) / 2), setupGuide_->rootObject()->property("topInset").toInt(), size.width(), size.height());
     setupGuide_->setVisible(guideVisible());
   }
-  if (selectionOverlay_) {
-    const auto selection = selectionOverlay_->sizeHint();
-    selectionOverlay_->setGeometry(std::max(0, (area.width() - selection.width()) / 2), 30, selection.width(), selection.height());
-    selectionOverlay_->setVisible(selectedCount() > 0 && !browserVisible());
-  }
+  positionSelectionToolbar();
   if (auto root = toolbarOverlay_->rootObject()) { root->setProperty("compact", area.width() < compactToolbarWidth); }
   const auto toolbar = toolbarOverlay_->sizeHint();
     if (chatOverlay_) {
@@ -1067,7 +1319,7 @@ void EditorWindow::layoutOverlays() {
     viewportOverlay_->setGeometry(std::max(0, area.width()-corner.width()-16), std::max(0, area.height()-corner.height()-statusBottom), corner.width(), corner.height());
     viewportOverlay_->show();
     miniMap->move(std::max(0, area.width()-miniMap->width()-20), std::max(70, viewportOverlay_->y()-miniMap->height()-16));
-    miniMap->setVisible(beside);
+    miniMap->setVisible(beside && miniMapVisible_);
     viewportOverlay_->setVisible(beside);
     miniMap->raise(); viewportOverlay_->raise();
   }
@@ -1080,8 +1332,110 @@ void EditorWindow::layoutOverlays() {
     compatiblePicker_->widget()->raise();
   }
 }
+namespace {
+class DynamicPortPopup final : public QDialog {
+public:
+    explicit DynamicPortPopup(QWidget *parent) : QDialog(parent, Qt::Popup) {}
+    QPointer<QQuickItem> form;
+    bool renaming = false;
+    void reject() override {
+        if (renaming && form && !form->property("finished").toBool()) {
+            QMetaObject::invokeMethod(form, "submit");
+            return;
+        }
+        QDialog::reject();
+    }
+};
+}
+
+void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor) {
+    if (readOnly()) { return; }
+    if (dynamicPortDialog_) {
+        if (auto *quick = dynamicPortDialog_->findChild<QQuickWidget *>()) {
+            if (quick->rootObject()) { quick->rootObject()->setProperty("finished", true); }
+        }
+        dynamicPortDialog_->close();
+    }
+    if (!selectNode(id)) { return; }
+    auto *dialog = new DynamicPortPopup(this);
+    dynamicPortDialog_ = dialog;
+    dialog->setObjectName("dynamic-port-dialog");
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    auto *controller = new node_editor::DynamicPortsController(&document_, dialog);
+    controller->setNodeMetadata(metadata_);
+    controller->setSelectedNode(id);
+    if (controller->readOnly() || (output ? !controller->supportsOutputs() : !controller->supportsInputs())) {
+        dialog->deleteLater();
+        return;
+    }
+    auto *quick = new QQuickWidget(engine_, dialog);
+    // QQuickWidget destroys its root before its QObject children. Keep the
+    // controller alive while the root's bindings and focus handlers tear down.
+    controller->setParent(quick);
+    quick->setObjectName("dynamic-port-dialog-host");
+    quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    quick->setInitialProperties({{"controller", QVariant::fromValue(controller)}, {"nodeId", id}, {"output", output}, {"originalName", name}});
+    quick->setSource(QUrl("qrc:/editor/DynamicPortDialog.qml"));
+    if (!quick->rootObject()) { dialog->deleteLater(); return; }
+    dialog->form = quick->rootObject();
+    dialog->renaming = !name.isEmpty();
+    auto *layout = new QVBoxLayout(dialog);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(quick);
+    const QPointer<QQuickWidget> guardedQuick(quick);
+    const QPointer<QDialog> guardedDialog(dialog);
+    const auto cancel = [guardedDialog, guardedQuick] {
+        if (guardedQuick && guardedQuick->rootObject()) { guardedQuick->rootObject()->setProperty("finished", true); }
+        if (guardedDialog) { guardedDialog->close(); }
+    };
+    connect(this, &EditorWindow::documentEpochChanged, quick, cancel);
+    connect(this, &EditorWindow::credentialsEpochChanged, quick, cancel);
+    connect(&dynamicPorts_, &node_editor::DynamicPortsController::changed, quick, [this, id, cancel] {
+        if (dynamicPorts_.selectedNode() != id) { cancel(); }
+    });
+    connect(controller, &node_editor::DynamicPortsController::changed, quick, [controller = QPointer<node_editor::DynamicPortsController>(controller), cancel] {
+        if (controller && controller->readOnly()) { cancel(); }
+    });
+    connect(quick->rootObject(), SIGNAL(completed()), dialog, SLOT(accept()));
+    const auto place = [this, guardedDialog, guardedQuick, sceneAnchor] {
+        if (!guardedDialog || !guardedQuick) { return; }
+        auto *dialog = guardedDialog.data();
+        auto *quick = guardedQuick.data();
+        auto area = QRect(mapToGlobal(QPoint()), size());
+        if (screen()) { area = area.intersected(screen()->availableGeometry()); }
+        if (area.isEmpty() || !quick->rootObject()) { return; }
+        dialog->resize(std::min(area.width(), int(std::ceil(quick->rootObject()->implicitWidth()))),
+                       std::min(area.height(), int(std::ceil(quick->rootObject()->implicitHeight()))));
+        auto anchor = view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft()));
+        anchor.setX(std::clamp(anchor.x(), area.left(), std::max(area.left(), area.right() - dialog->width())));
+        anchor.setY(std::clamp(anchor.y(), area.top(), std::max(area.top(), area.bottom() - dialog->height())));
+        dialog->move(anchor);
+    };
+    connect(quick->rootObject(), &QQuickItem::implicitHeightChanged, dialog, [dialog, place] { QTimer::singleShot(0, dialog, place); });
+    place();
+    dialog->show();
+    quick->setFocus(Qt::MouseFocusReason);
+    QMetaObject::invokeMethod(quick->rootObject(), "activate");
+    connect(dialog, &QDialog::finished, view_, [view = QPointer<QGraphicsView>(view_)] {
+        if (view) { view->setFocus(Qt::OtherFocusReason); }
+    });
+}
+
+void EditorWindow::clearDynamicPortDialogs() {
+    // Include closed popups awaiting deferred deletion and popups in owned tabs.
+    const auto dialogs = findChildren<QDialog *>(QStringLiteral("dynamic-port-dialog"));
+    for (auto *dialog : dialogs) {
+        if (auto *quick = dialog->findChild<QQuickWidget *>()) {
+            if (quick->rootObject()) { quick->rootObject()->setProperty("finished", true); }
+        }
+        delete dialog;
+    }
+    dynamicPortDialog_.clear();
+}
+
 bool EditorWindow::selectNode(const QString &resourceId) {
   if (!tabOwner_) { return activeEditor_->selectNode(resourceId); }
+    ensureProjected();
   for (auto id : model_.allNodeIds()) {
     if (model_.resourceId(id) != resourceId) { continue; }
     lineage_->setSelectedLinkIds({});
@@ -1090,6 +1444,8 @@ bool EditorWindow::selectNode(const QString &resourceId) {
     scene_->clearSelection();
     selectingNode_ = false;
     scene_->nodeGraphicsObject(id)->setSelected(true);
+    // A programmatic selection may be off screen. A click is not, so it never asks.
+    revealPending_ = true;
     inspectNode(resourceId);
     return true;
   }
@@ -1197,10 +1553,7 @@ bool EditorWindow::apply(const QJsonObject &c) {
   }
     const auto op = c.value("op").toString();
     if (r && op != "addNode" && op != "addEdge" && op != "moveNodes") {
-        session_.setSnapshot(document_.snapshot());
-        if (refreshPending_) {
-            refresh();
-        }
+        ensureProjected();
     }
   return r.ok;
 }
@@ -1214,11 +1567,13 @@ void EditorWindow::setCatalog(const QJsonArray &metadata) {
   canvasDrops_->setCatalog(metadata);
   session_.setNodeMetadata(metadata);
   document_.setNodeMetadata(metadata_);
+  modelPicker_.fillWorkflowDefaults(&document_, metadata_);
   dynamicPorts_.setNodeMetadata(metadata_);
   refresh();
   // New descriptors must reach the fields before a commit queued for the old ones runs.
   flushPanelChanged();
-  scheduleViewportSettle();
+  // New descriptors change card sizes, so fit mode fits again.
+  scheduleViewportSettle(true);
 }
 void EditorWindow::invalidateGesture() {
   ++gestureEpoch_;
@@ -1227,6 +1582,7 @@ void EditorWindow::invalidateGesture() {
   gesturePositions_.clear();
 }
 void EditorWindow::refresh() {
+    setup_.offerWorkflow(document_.snapshot(), metadata_);
   refreshPending_ = false;
   if (setupGuide_) setupGuide_->setVisible(guideVisible());
   if (canvasDrops_) canvasDrops_->setWorkflowId(session_.serverBound() ? session_.workflow()["id"].toString() : QString{});
@@ -1240,9 +1596,15 @@ void EditorWindow::refresh() {
       const auto runtime = value.toString();
       if (setup_.statuses().contains(runtime) && !setup_.statuses()[runtime].toBool()) missing.append(runtime);
     }
-    entry["native_dependency_warning"] = missing.isEmpty() ? QString{} : tr("Requires %1 — install on server").arg(missing.join(", "));
+    entry["native_dependency_warning"] = missing.isEmpty() ? QString{} : tr("Requires %1").arg(missing.join(", "));
     presentationMetadata[i] = entry;
   }
+  QSet<QString> liveAudioNodes;
+  for (const auto &value : document_.nodes()) {
+    const auto node = value.toObject();
+    if (node["type"] == "nodetool.audio.realtime.AudioOutput") { liveAudioNodes.insert(node["id"].toString()); }
+  }
+  runOutput_.setLiveNodes(liveAudioNodes);
   model_.project(document_.snapshot(), presentationMetadata, readOnly());
   for (auto id : model_.allNodeIds()) {
     if (selected.contains(model_.resourceId(id))) {
@@ -1278,17 +1640,70 @@ QVariantList EditorWindow::catalog() const {
   QVariantList r;
   for (auto v : metadata_) {
     auto m = v.toObject();
+    // Hidden nodes stay runnable but never appear in the web node library.
+    if (m["hidden"].toBool()) { continue; }
     auto type = m["node_type"].toString(m["type"].toString());
     const auto ns = m["namespace"].toString(type.section('.', 0, -2));
     const auto outputs = m["outputs"].toArray();
     const auto output = outputs.isEmpty() ? QJsonValue{} : outputs[0].toObject()["type"];
     const auto outputType = output.isString() ? output.toString() : output.toObject()["type"].toString();
     r.append(QVariantMap{{"type", type}, {"label", m["title"].toString(type)},
-                         {"namespace", ns}, {"category", displayName(ns.section('.', -1))},
+                         {"namespace", ns}, {"categories", catalogCategoryIds(m)},
                          {"description", m["description"].toString()},
+                         {"deprecated", m["deprecated"].toBool()},
+                         {"provider", catalogProviderId(ns)}, {"providerName", catalogProviderName(catalogProviderId(ns))},
                          {"icon", typeIcon(outputType)}, {"color", typeColor(outputType)}});
   }
   return r;
+}
+QVariantList EditorWindow::catalogCategories() const {
+    return nodetool::catalogCategories();
+}
+bool EditorWindow::miniMapVisible() const {
+    if (!tabOwner_) { return activeEditor_->miniMapVisible(); }
+    return miniMapVisible_;
+}
+void EditorWindow::setMiniMapVisible(bool visible) {
+    if (!tabOwner_) { activeEditor_->setMiniMapVisible(visible); return; }
+    QSettings().setValue("minimap/visible", visible);
+    // The choice holds for every workflow tab, as in the web store.
+    for (auto tab : tabOwner_->tabs_) {
+        tab->miniMapVisible_ = visible;
+        tab->layoutOverlays();
+        tab->schedulePanelChanged();
+    }
+}
+QVariantMap EditorWindow::systemStats() const {
+    if (!tabOwner_) { return activeEditor_->systemStats(); }
+    return session_.systemStats();
+}
+QString EditorWindow::connectionStatus() const {
+    if (!tabOwner_) { return activeEditor_->connectionStatus(); }
+    if (session_.connected()) { return QStringLiteral("connected"); }
+    return session_.serverUrl().isEmpty() ? QStringLiteral("idle") : QStringLiteral("offline");
+}
+int EditorWindow::nodeCount() const {
+    if (!tabOwner_) { return activeEditor_->nodeCount(); }
+    return document_.nodes().size();
+}
+int EditorWindow::edgeCount() const {
+    if (!tabOwner_) { return activeEditor_->edgeCount(); }
+    return document_.edges().size();
+}
+int EditorWindow::queuedCount() const {
+    if (!tabOwner_) { return activeEditor_->queuedCount(); }
+    int count = 0;
+    for (const auto &value : session_.queue()) {
+        if (value.toMap()["status"].toString() == "queued") { ++count; }
+    }
+    return count;
+}
+bool EditorWindow::queueAvailable() const {
+    if (!tabOwner_) { return activeEditor_->queueAvailable(); }
+    for (const auto &value : session_.queue()) {
+        if (!value.toMap()["terminal"].toBool()) { return true; }
+    }
+    return false;
 }
 QString EditorWindow::pinnedGeneration() const {
   if (!tabOwner_) { return activeEditor_->pinnedGeneration(); }
@@ -1353,20 +1768,79 @@ bool EditorWindow::knownNodeType(const QString &type) const {
     return node["node_type"].toString(node["type"].toString()) == type;
   });
 }
-bool EditorWindow::addNodeAt(const QString &type, const QPointF &position) {
+bool EditorWindow::addNodeAt(const QString &type, const QPointF &position, bool clearOverlap) {
   if (!knownNodeType(type) || !std::isfinite(position.x()) || !std::isfinite(position.y())) { return false; }
   for (const auto &entry : metadata_) {
     const auto metadata = entry.toObject();
     if (metadata["node_type"].toString(metadata["type"].toString()) != type) continue;
     NodeCreationOptions options; options.paletteStarters = true;
-    return apply({{"op", "addNode"}, {"node", createNativeNode(metadata, position, document_.nodes(), {}, options)}});
+    auto node = createNativeNode(metadata, position, document_.nodes(), {}, options);
+    if (clearOverlap) {
+      // The card's real size is known before it is added, so one pass replaces
+      // the web's estimate and its post-measure correction.
+      WorkflowGraphModel preview;
+      preview.project(QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}, QJsonArray{metadata});
+      const auto size = preview.allNodeIds().empty() ? QSizeF(280, 140) : QSizeF(preview.layout(*preview.allNodeIds().begin()).size);
+      QVector<QRectF> obstacles;
+      for (const auto id : model_.allNodeIds()) {
+        if (!model_.nodeSnapshot(id)["parent_id"].toString().isEmpty()) { continue; }
+        obstacles.append(QRectF(model_.nodeData(id, QtNodes::NodeRole::Position).toPointF(), QSizeF(model_.layout(id).size)));
+      }
+      auto ui = node["ui_properties"].toObject();
+      ui["position"] = QJsonObject{{"x", position.x()}, {"y", compatibleNodeY(QRectF(position, size), obstacles)}};
+      node["ui_properties"] = ui;
+    }
+    const bool added = apply({{"op", "addNode"}, {"node", node}});
+    if (added) { rememberRecentNode(type); }
+    return added;
   }
   return false;
 }
+QStringList EditorWindow::catalogRecent() const {
+    return QSettings().value("catalog/recentNodes").toStringList();
+}
+// Up to 12 node types, most recent first, as the web RecentNodesStore keeps them.
+void EditorWindow::rememberRecentNode(const QString &type) {
+    auto recent = catalogRecent();
+    recent.removeAll(type);
+    recent.prepend(type);
+    while (recent.size() > 12) { recent.removeLast(); }
+    QSettings().setValue("catalog/recentNodes", recent);
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    for (auto tab : owner->tabs_) { emit tab->catalogRecentChanged(); }
+    emit owner->catalogRecentChanged();
+}
 void EditorWindow::addNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->addNode(type); return; }
-  if (knownNodeType(type)) { addNodeAt(type, view_->mapToScene(unobstructedViewport().center().toPoint())); }
+  // An armed pointer point places one node there, as the web menu's clickPosition
+  // does (hooks/useCreateNode.ts). Otherwise the node lands in the visible center.
+  const auto point = catalogPoint_;
+  if (point && knownNodeType(type)) { cancelCatalogPlacement(); }
+  if (knownNodeType(type)) { addNodeAt(type, point ? *point : view_->mapToScene(unobstructedViewport().center().toPoint()), true); }
   else { model_.addNode(type); }
+  // The web menu closes after an add, which returns the keyboard to the canvas.
+  if (point) { focusCanvas(); }
+}
+void EditorWindow::focusCanvas() {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->focusCanvas(); }
+        return;
+    }
+    view_->setFocus(Qt::ShortcutFocusReason);
+}
+void EditorWindow::armCatalogPlacement(const QPointF &scenePosition) {
+    if (!std::isfinite(scenePosition.x()) || !std::isfinite(scenePosition.y())) { return; }
+    catalogPoint_ = scenePosition;
+    emit catalogPlacementChanged();
+}
+void EditorWindow::cancelCatalogPlacement() {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->cancelCatalogPlacement(); }
+        return;
+    }
+    if (!catalogPoint_) { return; }
+    catalogPoint_.reset();
+    emit catalogPlacementChanged();
 }
 void EditorWindow::dragNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->dragNode(type); return; }
@@ -1389,10 +1863,25 @@ void EditorWindow::autoLayout(bool selectedOnly) {
   for (const auto id : model_.allNodeIds()) {
     const auto item = scene_->nodeGraphicsObject(id);
     if (item) { sizes.insert(model_.resourceId(id), item->boundingRect().size().expandedTo(QSizeF(model_.layout(id).size))); }
+    QStringList outputs;
+    for (const auto &port : model_.ports(id, QtNodes::PortType::Out)) { outputs.append(port.toObject()["name"].toString()); }
+    options.outputOrder.insert(model_.resourceId(id), outputs);
   }
   const auto result = node_editor::layout::autoLayoutCommand(document_.graph(), sizes, options);
   if (!result.ok) { message_ = result.error; schedulePanelChanged(); return; }
-  if (apply(result.command)) {
+  // The web resizes a group to fit the children it laid out, in the same undo step.
+  QJsonObject command = result.command;
+  if (!result.groupSizes.isEmpty()) {
+    QJsonArray commands{result.command};
+    for (auto it = result.groupSizes.cbegin(); it != result.groupSizes.cend(); ++it) {
+      auto ui = document_.node(it.key())["ui_properties"].toObject();
+      ui["width"] = it.value().width();
+      ui["height"] = it.value().height();
+      commands.append(QJsonObject{{"op", "setNodeField"}, {"id", it.key()}, {"field", "ui_properties"}, {"value", ui}});
+    }
+    command = {{"op", "batch"}, {"commands", commands}};
+  }
+  if (apply(command)) {
     message_ = selectedOnly ? tr("Selection arranged") : tr("Workflow arranged");
     QTimer::singleShot(0, this, &EditorWindow::fit);
     schedulePanelChanged();
@@ -1462,6 +1951,7 @@ QStringList EditorWindow::selectedIds() const {
 }
 void EditorWindow::fit() {
   if (!tabOwner_) { activeEditor_->fit(); return; }
+    ensureProjected();
   fitActive_ = true;
   applyFit();
   emit zoomChanged();
@@ -1469,7 +1959,8 @@ void EditorWindow::fit() {
 QRectF EditorWindow::unobstructedViewport() const {
   if (!tabOwner_) { return activeEditor_->unobstructedViewport(); }
   QRectF area = view_->viewport()->rect();
-  if (selectionOverlay_ && selectionOverlay_->isVisible()) {
+  // A toolbar floating over its card covers only that card, so it takes nothing from the canvas.
+  if (selectionOverlay_ && selectionOverlay_->isVisible() && !selectionToolbarFloating_) {
     const auto bottom = selectionOverlay_->geometry().bottom() + 8.0;
     if (bottom < area.height() / 2) { area.setTop(bottom); }
   }
@@ -1517,15 +2008,95 @@ void EditorWindow::revealSelection() {
   view_->horizontalScrollBar()->setValue(view_->horizontalScrollBar()->value() + delta(rect.left(), rect.right(), area.left(), area.right()));
   view_->verticalScrollBar()->setValue(view_->verticalScrollBar()->value() + delta(rect.top(), rect.bottom(), area.top(), area.bottom()));
 }
-void EditorWindow::scheduleViewportSettle() {
+int EditorWindow::inspectorInset() const {
+  if (!inspectorDock_ || inspectorDock_->isHidden() || inspectorDock_->isFloating()) { return 0; }
+  return inspectorDock_->width();
+}
+void EditorWindow::clearInspectorOverlap(int inset, bool instant) {
+  const auto toRect = [&](QtNodes::NodeId id) {
+    const auto item = scene_->nodeGraphicsObject(id);
+    const auto rect = view_->viewportTransform().mapRect(item->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model_.layout(id).size))));
+    return ::node_editor::ScreenRect{rect.left(), rect.right()};
+  };
+  std::vector<::node_editor::ScreenRect> nodes;
+  std::vector<::node_editor::ScreenRect> selected;
+  for (const auto id : model_.allNodeIds()) {
+    if (!scene_->nodeGraphicsObject(id)) { continue; }
+    nodes.push_back(toRect(id));
+    if (scene_->nodeGraphicsObject(id)->isSelected()) { selected.push_back(nodes.back()); }
+  }
+  // The canvas was this much wider before the inspector took its share.
+  const auto dx = ::node_editor::inspectorClearancePan(nodes, selected, view_->viewport()->width() + inset, inset);
+  if (dx == 0) { return; }
+  fitActive_ = false;
+  auto *bar = view_->horizontalScrollBar();
+  const int from = bar->value();
+  const int to = from - int(std::lround(dx));
+  const auto animation = qobject_cast<QAbstractAnimation *>(viewAnimation_.data());
+  // A find or locate move already owns the viewport.
+  if (animation && animation->state() == QAbstractAnimation::Running) { return; }
+  if (viewAnimation_) { viewAnimation_->deleteLater(); }
+  if (instant || canvasReducedMotion_) {
+    bar->setValue(to);
+    emit zoomChanged();
+    return;
+  }
+  // The web pans over 200 ms with React Flow's default cubic ease.
+  auto *pan = new QVariantAnimation(this);
+  viewAnimation_ = pan;
+  pan->setObjectName("inspector-pan-animation");
+  pan->setDuration(200);
+  pan->setEasingCurve(QEasingCurve::InOutCubic);
+  pan->setStartValue(from);
+  pan->setEndValue(to);
+  connect(pan, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
+    view_->horizontalScrollBar()->setValue(value.toInt());
+    emit zoomChanged();
+  });
+  connect(pan, &QVariantAnimation::finished, pan, &QObject::deleteLater);
+  pan->start();
+}
+void EditorWindow::scheduleViewportSettle(bool refit) {
+  refitRequested_ = refitRequested_ || refit;
   if (settlePending_) { return; }
   settlePending_ = true;
   // Runs after a dock change has laid out and resized the canvas.
   QMetaObject::invokeMethod(this, [this] {
     settlePending_ = false;
     layoutOverlays();
-    if (fitActive_) { applyFit(); emit zoomChanged(); } else { revealSelection(); }
+    // A background tab keeps its viewport. Showing it again is not a dock change.
+    if (!isVisible()) { return; }
+    const auto size = view_->viewport()->size();
+    const bool resized = size != settledViewport_;
+    settledViewport_ = size;
+    const auto inset = inspectorInset();
+    const bool opened = inset > settledInspectorInset_;
+    settledInspectorInset_ = inset;
+    // Selecting a node never refits. The viewport follows a dock or window
+    // resize, or an explicit request, and only while fit mode is on.
+    const bool refitNow = fitActive_ && (refitRequested_ || (resized && !opened));
+    refitRequested_ = false;
+    if (refitNow) {
+      applyFit();
+      emit zoomChanged();
+    }
+    const bool programmatic = revealPending_;
+    if (revealPending_) {
+      revealPending_ = false;
+      if (!fitActive_) { revealSelection(); }
+    }
+    // The web overlays the inspector and pans only when it covers a node.
+    if (opened && !refitNow) { clearInspectorOverlap(inset, programmatic); }
   }, Qt::QueuedConnection);
+}
+void EditorWindow::openFileInTab(const QString &path) {
+    if (!tabOwner_) { activeEditor_->openFileInTab(path); return; }
+    auto owner = tabOwner_;
+    for (int i = 0; i < owner->tabs_.size(); ++i) {
+        if (QFileInfo(owner->tabs_[i]->file_).absoluteFilePath() == QFileInfo(path).absoluteFilePath()) { owner->activateSurface(i); return; }
+    }
+    if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) owner->newTab();
+    owner->activeEditor_->openFile(path);
 }
 bool EditorWindow::openFile(const QString &path) {
   if (!tabOwner_) { return activeEditor_->openFile(path); }
@@ -1586,6 +2157,7 @@ bool EditorWindow::saveFile(const QString &path) {
 }
 void EditorWindow::authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials) {
   if (!tabOwner_) { activeEditor_->authoredAction(id, command, epoch, credentials); return; }
+    ensureProjected();
   if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || readOnly() || document_.node(id).isEmpty()) return;
   const auto node = document_.node(id);
   if (command.startsWith("color:")) {
@@ -1610,6 +2182,28 @@ void EditorWindow::authoredAction(const QString &id, const QString &command, qui
 
 void EditorWindow::action(const QString &name) {
   if (!tabOwner_) { activeEditor_->action(name); return; }
+    ensureProjected();
+  if (contextAction(name)) { return; }
+  if (name == "Chat about node") { chatAboutSelection(); return; }
+  if (name == "Toggle collapse") {
+    // useToggleCollapse.ts: the first card's next state drives the whole selection, in one undo step.
+    if (readOnly()) { return; }
+    QStringList cards;
+    for (const auto &id : selectedIds()) {
+      const auto type = document_.node(id)["type"].toString();
+      if (!type.endsWith(".Group") && !type.endsWith(".Comment") && !type.endsWith(".Reroute")) { cards.append(id); }
+    }
+    if (cards.isEmpty()) { return; }
+    const bool next = !document_.node(cards.first())["ui_properties"].toObject()["collapsed"].toBool();
+    QJsonArray commands;
+    for (const auto &id : cards) {
+      auto ui = document_.node(id)["ui_properties"].toObject();
+      if (next) { ui["collapsed"] = true; } else { ui.remove("collapsed"); }
+      commands.append(QJsonObject{{"op", "setNodeField"}, {"id", id}, {"field", "ui_properties"}, {"value", ui}});
+    }
+    apply({{"op", "batch"}, {"commands", commands}});
+    return;
+  }
   if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", view_->viewport()->mapToGlobal(unobstructedViewport().center().toPoint())); return; }
   if (name == "Disable toggle") { action(selectionDisabled() ? "Enable selected" : "Disable selected"); return; }
   if (name == "Select all") {
@@ -1645,6 +2239,7 @@ void EditorWindow::action(const QString &name) {
   if (name == "Open child") { openChild(); return; }
   if (name == "Linked workflows") { showLinkedWorkflows(); return; }
   if (name == "Server sync") { showServerSync(); return; }
+  if (name == "Run trace") { showRunTrace(); return; }
   if (name == "Canvas uploads") { showCanvasDrops(); return; }
   if (name == "Save local copy as") { saveLocalCopyAs(); return; }
   if (name == "Arrange selection") {
@@ -1709,41 +2304,7 @@ void EditorWindow::action(const QString &name) {
     if (!result.command["positions"].toObject().isEmpty() && apply(result.command)) { fitActive_ = false; }
     return;
   }
-  if (name == "Find node") {
-    QMap<QString, QString> matches;
-    for (const auto id : model_.allNodeIds()) {
-      const auto resource = model_.resourceId(id);
-      const auto type = document_.node(resource)["type"].toString();
-      matches.insert(QStringLiteral("%1 (%2) [%3]").arg(model_.layout(id).title, type, resource), resource);
-    }
-    if (matches.isEmpty()) { message_ = tr("No nodes to find."); schedulePanelChanged(); return; }
-    QInputDialog dialog(this);
-    dialog.setWindowTitle(tr("Find node"));
-    dialog.setLabelText(tr("Search by title, type, or ID"));
-    dialog.setComboBoxEditable(true);
-    dialog.setComboBoxItems(matches.keys());
-    dialog.setTextValue({});
-    if (auto combo = dialog.findChild<QComboBox *>()) {
-      auto completer = new QCompleter(matches.keys(), combo);
-      completer->setCaseSensitivity(Qt::CaseInsensitive);
-      completer->setFilterMode(Qt::MatchContains);
-      combo->setCompleter(completer);
-    }
-    while (dialog.exec() == QDialog::Accepted) {
-      const auto query = dialog.textValue().trimmed();
-      auto id = matches.value(query);
-      if (id.isEmpty() && !query.isEmpty()) {
-        QStringList found;
-        for (auto it = matches.cbegin(); it != matches.cend(); ++it) {
-          if (it.key().contains(query, Qt::CaseInsensitive)) { found.append(it.value()); }
-        }
-        if (found.size() == 1) { id = found.first(); }
-      }
-      if (!id.isEmpty()) { fitActive_ = false; selectNode(id); return; }
-      dialog.setLabelText(tr("Choose one matching node, or narrow your search."));
-    }
-    return;
-  }
+  if (name == "Find node") { showFindPanel(); return; }
   if (name == "Group selection" || name == "Ungroup" || name == "Remove from group") {
     const auto ids = selectedIds();
     if (ids.isEmpty()) { message_ = tr("Select nodes first."); schedulePanelChanged(); return; }
@@ -1768,7 +2329,6 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Edit note" || name == "Rename group") {
-    if (refreshPending_) { refresh(); }
     if (readOnly()) { message_ = readOnlyReason(); schedulePanelChanged(); return; }
     const auto ids = selectedIds();
     if (ids.size() != 1) { message_ = tr("Select one node first."); schedulePanelChanged(); return; }
@@ -1800,8 +2360,10 @@ void EditorWindow::action(const QString &name) {
       if (type != "nodetool.workflows.base_node.Comment" && type != "nodetool.workflows.Comment") { message_ = tr("Select a comment node."); schedulePanelChanged(); return; }
       const QJsonValue value = node["data"].toObject()["comment"];
       if (value.isObject()) { message_ = tr("Rich-text comments can be viewed here. Edit their formatting in the web editor."); schedulePanelChanged(); return; }
-      const auto text = QInputDialog::getMultiLineText(this, tr("Edit comment"), tr("Comment (Markdown)"), value.toString(), &accepted);
-      if (accepted) { apply({{"op", "setComment"}, {"id", id}, {"value", text}}); }
+      // CommentNode.tsx edits the text in place on the card.
+      for (const auto graphId : model_.allNodeIds()) {
+        if (model_.resourceId(graphId) == id) { inlineTitle_->activate(graphId); break; }
+      }
     }
     return;
   }
@@ -1829,6 +2391,27 @@ void EditorWindow::action(const QString &name) {
   if (name == "Refresh workflows") { loadBrowser(); return; }
   if (name == "Output") {
     outputDock_->setVisible(!outputVisible());
+    return;
+  }
+  if (name == "Toggle panel") {
+    // The web rail's last entry opens or closes the left panel.
+    if (browserVisible()) {
+      showBrowser(false);
+      return;
+    }
+    action("Toggle nodes");
+    return;
+  }
+  if (name == "Toggle mini-map") {
+    setMiniMapVisible(!miniMapVisible());
+    return;
+  }
+  if (name == "Queue") {
+    if (queueAvailable() && queueOverlay_ && queueOverlay_->rootObject()) {
+      auto *queue = queueOverlay_->rootObject();
+      queue->setProperty("expanded", !queue->property("expanded").toBool());
+      layoutOverlays();
+    }
     return;
   }
   if (name == "Toggle nodes") {
@@ -1943,7 +2526,6 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Server Save") {
-    session_.setSnapshot(document_.snapshot());
     session_.save();
     return;
   }
@@ -1955,20 +2537,17 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Undo") {
     document_.undo();
+        ensureProjected();
   } else if (name == "Redo") {
     document_.redo();
+        ensureProjected();
   } else if (name == "Fit") {
     fit();
   } else if (name == "Open file") {
     auto p = QFileDialog::getOpenFileName(this, tr("Open workflow"), {},
                                           tr("Workflow (*.json)"));
     if (!p.isEmpty()) {
-      auto owner = tabOwner_;
-      for (int i = 0; i < owner->tabs_.size(); ++i) {
-        if (QFileInfo(owner->tabs_[i]->file_).absoluteFilePath() == QFileInfo(p).absoluteFilePath()) { owner->activateSurface(i); return; }
-      }
-      if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) owner->newTab();
-      owner->activeEditor_->openFile(p);
+      openFileInTab(p);
     }
   } else if (name == "Save") {
     auto p = file_.isEmpty()
@@ -1979,8 +2558,13 @@ void EditorWindow::action(const QString &name) {
       saveFile(p);
     }
   } else if (name == "Run") {
-    const auto id = session_.run(document_.snapshot());
-    if (!id.isEmpty()) { run_ = id; }
+    // The web saves a "Before execution" checkpoint and waits for its reply before it runs
+    // (useFloatingToolbarActions.ts handleRun). The run reads the document after that wait.
+    session_.checkpointBeforeRun([this](bool documentUnchanged) {
+      if (!documentUnchanged) { return; }
+      const auto id = session_.run(document_.snapshot());
+      if (!id.isEmpty()) { run_ = id; }
+    });
   } else if (name == "Stop") {
     QString latest;
     double order = -1;
@@ -2102,6 +2686,8 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   if (event->type() == QEvent::MouseButtonPress &&
       object == view_->viewport()) {
     auto mouse = static_cast<QMouseEvent *>(event);
+    // A pane press closes the web node menu (usePaneEvents.ts handlePaneClick).
+    cancelCatalogPlacement();
     if (mouse->button() == Qt::LeftButton && !mouse->modifiers().testAnyFlags(Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier)) {
       lineage_->setSelectedLinkIds({});
     }
@@ -2111,6 +2697,12 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     if (mouse->button() == Qt::MiddleButton) {
       const auto hit = view_->itemAt(mouse->position().toPoint());
       if (hit && hit->toGraphicsObject() && hit->toGraphicsObject()->parent() == lineage_) { return false; }
+      // A middle click on a wire deletes it (web hooks/handlers/useEdgeHandlers.ts:116-126).
+      middleEdge_.clear();
+      if (auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(hit); wire && !wire->connectionState().requiresPort() && !readOnly()) {
+        middleEdge_ = model_.edge(wire->connectionId())["id"].toString();
+        middlePress_ = mouse->position().toPoint();
+      }
       panning_ = true;
       fitActive_ = false;
       panPosition_ = mouse->position().toPoint();
@@ -2129,6 +2721,11 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   }
   if (event->type() == QEvent::MouseButtonRelease && panning_) {
     panning_ = false;
+    const auto mouse = static_cast<QMouseEvent *>(event);
+    const auto edge = std::exchange(middleEdge_, QString());
+    if (!edge.isEmpty() && mouse->button() == Qt::MiddleButton && (mouse->position().toPoint() - middlePress_).manhattanLength() < QApplication::startDragDistance()) {
+      apply({{"op", "removeEdge"}, {"id", edge}});
+    }
     return true;
   }
   if (event->type() == QEvent::MouseButtonPress &&
@@ -2155,8 +2752,11 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
               QJsonObject{{"x", p.x()}, {"y", p.y()}};
         }
       }
+      const auto outcome = scene_->takeDragOutcome();
       if (!positions.isEmpty()) {
         fitActive_ = false;
+        // The drag's group changes and its new positions are one undo step.
+        for (const auto &command : dragGroupCommands(positions, outcome.group, outcome.detach)) { gestureCommands_.append(command); }
         gestureCommands_.append(
             QJsonObject{{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}});
       }
@@ -2213,6 +2813,11 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     if (QApplication::activePopupWidget()) { return false; }
     command = shortcutCommand(key->key(), key->modifiers());
+    if (command == "Add node" && !readOnly()) {
+      // Space opens the node menu where the pointer is (web useNodeEditorShortcuts.ts).
+      const auto pointer = view_->viewport()->mapFromGlobal(QCursor::pos());
+      if (view_->viewport()->rect().contains(pointer)) { armCatalogPlacement(view_->mapToScene(pointer)); }
+    }
     if (!command.isEmpty()) {
       action(command);
       return true;
@@ -2273,10 +2878,22 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   theme.field = color("field");
   theme.checker = color("checker");
   theme.primary = color("primary");
+  if (color("progress").isValid()) {
+      theme.progress = color("progress");
+  }
+  if (color("warning").isValid()) {
+      theme.warning = color("warning");
+  }
+  if (color("success").isValid()) {
+      theme.success = color("success");
+  }
   theme.selectionShadow = color("shadow");
   theme.textPrimary = color("text");
   theme.textSecondary = color("secondary");
   theme.sansFamily = roles.value("sans").toString();
+  if (roles.contains("mono")) {
+      theme.monoFamily = roles.value("mono").toString();
+  }
   QJsonObject style{{"NormalBoundaryColor", theme.divider.name(QColor::HexArgb)},
                     {"SelectedBoundaryColor", color("focus").name()},
                     {"FontColor", theme.textPrimary.name()},
@@ -2393,6 +3010,9 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
         fit();
         return;
     }
+    if (name == "runtimes") {
+        setup_.showAllRuntimes();
+    }
     if (setupDialog_) {
         setupDialog_->show();
         setupDialog_->raise();
@@ -2426,6 +3046,31 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
     } else {
         setup_.refresh();
     }
+}
+
+// Projection is coalesced to once per turn. Imperative entry points that read the
+// scene in the same turn as a document command project first. QML property
+// getters do not, so bindings re-evaluated per command cannot force projection.
+void nodetool::EditorWindow::ensureProjected() const {
+    if (refreshPending_ && tabOwner_) {
+        const_cast<EditorWindow *>(this)->refresh();
+    }
+}
+
+void nodetool::EditorWindow::requestRefresh() {
+    if (refreshPending_) {
+        return;
+    }
+    refreshPending_ = true;
+    QTimer::singleShot(0, this, [this] {
+        syncPackSetup();
+        if (refreshPending_) {
+            refresh();
+        }
+    });
+    // The panel flush runs a still pending projection first, so panels follow
+    // an edit in the next pass with one emit.
+    schedulePanelChanged();
 }
 
 QVariantList nodetool::EditorWindow::guideReadiness() const {

@@ -2,6 +2,7 @@
 #include <QJsonArray>
 #include <QNetworkAccessManager>
 #include <QObject>
+#include <QSet>
 #include <QUrl>
 #include <functional>
 
@@ -56,6 +57,7 @@ private:
   QUrl m_origin;
   QString m_token, m_user, m_project, m_search, m_next, m_error;
   QJsonArray m_rows, m_projects;
+  QSet<QString> m_pageCursors;
   quint64 m_epoch = 0;
   bool m_loading = false, m_busy = false, m_projectsLoading = false;
 };

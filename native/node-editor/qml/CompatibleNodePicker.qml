@@ -46,6 +46,15 @@ Rectangle {
                 onClicked: root.cancel()
             }
         }
+        Ui.EditorButton {
+            objectName: "compatible-delete-output"
+            Layout.fillWidth: true
+            visible: root.picker.canDeleteOutput && root.picker.query === ""
+            text: "Delete output"
+            variant: Ui.EditorButton.Flat
+            density: Ui.EditorButton.Compact
+            onClicked: root.picker.deleteOutput(root.activationToken)
+        }
         Ui.TextField {
             id: search
             objectName: "compatible-search"

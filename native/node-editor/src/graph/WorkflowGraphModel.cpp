@@ -1,9 +1,14 @@
 #include "properties/CodeInference.h"
 #include "WorkflowGraphModel.h"
+#include "CardBodies.h"
 #include "document/ChildPorts.h"
 #include "document/ConnectionTypes.h"
 #include "properties/PropertyFields.h"
+#include "ModelLabels.h"
+#include <QFont>
+#include <QFontMetricsF>
 #include <QJsonArray>
+#include <QUrl>
 #include <QSet>
 #include <QUuid>
 #include <QtNodes/NodeData>
@@ -17,6 +22,38 @@ QString WorkflowGraphModel::resourceId(NodeId id) const {
   return nodes_.value(id)["id"].toString();
 }
 namespace {
+// A card shows only the metadata's inline fields as rows, as web NodeContent.tsx
+// and resolveInlineFieldNames do. Metadata without inline_fields shows none. Other
+// properties stay in the inspector until an edge targets them, which retains
+// their canonical endpoint. Body policy separately decides whether to draw it.
+// Model properties show a
+// model chip instead, as web resolveModelChipNames does.
+bool cardField(const QJsonObject &metadata, const QJsonObject &ui, const QJsonObject &declaration) {
+    const auto name = declaration["name"];
+    return metadata["inline_fields"].toArray().contains(name) || ui["exposed_inputs_labeled"].toArray().contains(name);
+}
+QString contentInputLabel(const QJsonObject &metadata) {
+    // getDynamicInputLabel in web/src/components/node_types/contentCardRegistry.ts.
+    static const QSet<QString> templates{
+        QStringLiteral("nodetool.agents.Agent"), QStringLiteral("nodetool.agents.Summarizer"),
+        QStringLiteral("nodetool.agents.Extractor"), QStringLiteral("nodetool.agents.Classifier"),
+        QStringLiteral("openai.agents.RealtimeAgent"), QStringLiteral("mistral.text.ChatComplete")};
+    if (templates.contains(metadata["node_type"].toString())) { return QObject::tr("Add another variable"); }
+    const auto outputs = metadata["outputs"].toArray();
+    auto primary = outputs.first().toObject();
+    const auto named = metadata["primary_output"].toString();
+    for (const auto &entry : outputs) {
+        if (!named.isEmpty() && entry.toObject()["name"] == named) { primary = entry.toObject(); break; }
+    }
+    const auto type = primary["type"].toObject();
+    auto name = type["type"].toString();
+    if (name == "list" && type["type_args"].toArray().first().toObject()["type"] == "image") { name = "image"; }
+    if (name == "image" || name == "image_mask" || name == "mask") { return QObject::tr("Add another image input"); }
+    if (name == "video") { return QObject::tr("Add another video input"); }
+    if (name == "audio") { return QObject::tr("Add another audio input"); }
+    if (name == "str" || name == "text") { return QObject::tr("Add another text input"); }
+    return QObject::tr("Add another input");
+}
 // Position alone moves an item. Every other field can change the card.
 bool samePresentation(QJsonObject before, QJsonObject after) {
   if (before == after) { return true; }
@@ -133,6 +170,10 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
   emit projectionChanged();
 }
 void WorkflowGraphModel::deriveProjection(const QJsonArray &rawNodes) {
+  stackingOrder_.clear();
+  for (int i = 0; i < rawNodes.size(); ++i) {
+    stackingOrder_.insert(ids_.value(rawNodes[i].toObject()["id"].toString()), i);
+  }
   adjacency_.clear();
   edgeByConnection_.clear();
   positions_.clear();
@@ -222,6 +263,15 @@ void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &
   emit runtimeChanged();
 }
 QImage WorkflowGraphModel::runtimePreview(NodeId id) const { return previews_.value(resourceId(id)); }
+bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
+    const auto state = runtimeState(id);
+    for (const auto *key : {"error", "text"}) {
+        if (!state[key].toString().isEmpty()) {
+            return true;
+        }
+    }
+    return state["result"].isObject() || previews_.contains(resourceId(id));
+}
 void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
   if (canvasMediaNodes_ == nodes) { return; }
   const auto affected = canvasMediaNodes_ | nodes;
@@ -229,11 +279,25 @@ void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
   for (const auto &id : affected) { refreshRuntimeNode(id); }
 }
 QRectF WorkflowGraphModel::canvasPlaybackRect(NodeId id) const {
-  if (!canvasMediaNodes_.contains(resourceId(id))) { return {}; }
+  if (!canvasMediaNodes_.contains(resourceId(id)) || collapsed(id)) { return {}; }
   const auto size = layout(id).size;
   constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
   return QRectF(inset, size.height() - node_metrics::playbackHeight - node_metrics::rowHeight,
                 size.width() - 2 * inset, node_metrics::playbackHeight);
+}
+QRectF WorkflowGraphModel::canvasResultRect(NodeId id) const {
+  if (!nodeExists(id) || collapsed(id) || isGroup(id) || isComment(id) || isReroute(id)) { return {}; }
+  const auto playback = canvasPlaybackRect(id);
+  if (!playback.isEmpty()) { return playback; }
+  const auto &card = layout(id);
+  constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
+  if (!card.resultRect.isEmpty()) {
+    return card.resultRect.adjusted(node_metrics::padding, node_metrics::padding,
+                                   -node_metrics::padding, -node_metrics::padding);
+  }
+  const auto bottomBand = card.progressBand ? node_metrics::progressHeight : 0;
+  return QRectF(inset, card.size.height() - bottomBand - node_metrics::previewHeight - node_metrics::rowHeight,
+                card.size.width() - 2 * inset, node_metrics::previewHeight - node_metrics::padding);
 }
 QJsonObject WorkflowGraphModel::runtimeState(NodeId id) const {
   return runtime_ ? runtime_->nodeState(resourceId(id)) : QJsonObject{};
@@ -241,7 +305,49 @@ QJsonObject WorkflowGraphModel::runtimeState(NodeId id) const {
 QJsonObject WorkflowGraphModel::runtimeEdgeState(ConnectionId id) const {
   return runtime_ ? runtime_->edgeState(edge(id)["id"].toString()) : QJsonObject{};
 }
+bool WorkflowGraphModel::isControlWire(ConnectionId id) const {
+  const auto original = edge(id);
+  return original["edge_type"] == "control" || original["type"] == "control" || original["data"].toObject()["edge_type"] == "control";
+}
+bool WorkflowGraphModel::runtimeWireFlowing(ConnectionId id) const {
+  if (isControlWire(id)) { return false; }
+  const auto source = runtimeState(id.outNodeId)["status"].toString();
+  return runtimeEdgeState(id)["status"] == "message_sent" || source == "running" || source == "starting" || source == "booting";
+}
+node_editor::UntakenBranch WorkflowGraphModel::untakenBranch() const {
+  if (!runtime_) { return {}; }
+  QHash<QString, QString> types;
+  for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) { types.insert(it.value()["id"].toString(), it.value()["type"].toString()); }
+  return node_editor::findUntakenBranch(types, edges_, [this](const QString &edgeId) { return runtime_->edgeState(edgeId); });
+}
 bool WorkflowGraphModel::runtimeConnected() const { return !runtime_ || runtime_->connected(); }
+namespace {
+// collapsed.css: a collapsed card is a 40 px strip as wide as its header, at
+// least 140 px and never wider than the expanded card. Sockets sit on the
+// strip's midline and nothing else draws.
+NodeLayout collapsedLayout(NodeLayout layout, const QJsonObject &ui) {
+  namespace nm = node_metrics;
+  QFont font(QStringLiteral("Inter"));
+  font.setPixelSize(nm::fontTitle);
+  const double inset = nm::borderWidth + nm::padding;
+  const double badge = ui["bypassed"].toBool() ? nm::disabledBadgeWidth : 0;
+  const double natural = 2 * inset + nm::titleOffset + QFontMetricsF(font).horizontalAdvance(layout.title) + badge;
+  const int width = int(std::ceil(std::min<double>(layout.size.width(), std::max<double>(nm::collapsedMinimumWidth, natural))));
+  layout.collapsed = true;
+  layout.size = QSize(width, nm::collapsedHeight);
+  layout.minimumSize = layout.size;
+  layout.rows.clear();
+  layout.resultRect = {};
+  layout.body = CardBody::Generic;
+  layout.subgraph = false;
+  layout.addOutput = false;
+  layout.runningProgress = false;
+  layout.progressBand = false;
+  layout.inputY.fill(nm::collapsedHeight / 2.0);
+  layout.outputY.fill(nm::collapsedHeight / 2.0);
+  return layout;
+}
+}
 const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   namespace nm = node_metrics;
   if (const auto cached = layouts_.constFind(id); cached != layouts_.cend()) { return *cached; }
@@ -276,11 +382,23 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   const auto type = node["type"].toString();
   // Ordinary ui titles are below-card notes in the web editor. Code nodes use
   // the same field as their header title and have no note surface.
-  result.title = type == "nodetool.code.Code" ? ui["title"].toString(meta["title"].toString(type.section('.', -1)))
-      : meta["title"].toString(type.section('.', -1));
+  result.title = meta["title"].toString(type.section('.', -1));
+  // A blank stored title follows the metadata, as resolveCodeNodeTitle does.
+  if (type == "nodetool.code.Code" && !ui["title"].toString().trimmed().isEmpty()) { result.title = ui["title"].toString(); }
+  // Input nodes show their input name, as web resolveNodeHeaderTitle does.
+  if (type.startsWith("nodetool.input.")) {
+      const auto name = node["data"].toObject()["name"].toString().trimmed();
+      if (!name.isEmpty()) {
+          result.title = name;
+      }
+  }
   const auto outputs = ports(id, PortType::Out);
   const auto primary = outputs.isEmpty() ? QString{} : typeOf(outputs[0].toObject());
-  result.icon = typeIcon(primary);
+  result.body = cardBodyFor(type, meta);
+  // The header icon follows the metadata types, as BaseNode, OutputNode and PreviewNode choose iconType.
+  const auto iconType = meta.isEmpty() ? primary : headerIconType(result.body, meta);
+  result.typeIcon = webTypeIcon(iconType);
+  result.icon = typeIcon(iconType);
   result.accent = typeColor(primary);
     result.subgraph = type == "nodetool.workflows.subgraph.Subgraph";
     if (result.subgraph) {
@@ -309,8 +427,62 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   for (const auto &key : {"exposed_inputs_hidden", "exposed_inputs_labeled"}) {
     for (const auto &name : ui[key].toArray()) { handleOnly.remove(name.toString()); }
   }
+  for (const auto &port : meta["properties"].toArray()) {
+      if (!cardField(meta, ui, port.toObject())) {
+          handleOnly.insert(port.toObject()["name"].toString());
+      }
+  }
   const auto inputs = ports(id, PortType::In);
   result.inputY.resize(inputs.size());
+  const auto width = ui["width"].toDouble();
+  const auto addRenameControls = [&] {
+      if (!meta["supports_dynamic_inputs"].toBool()) { return; }
+      const auto values = node["dynamic_properties"].toObject();
+      const auto declarations = node["dynamic_inputs"].toObject();
+      QSet<QString> staticInputs;
+      for (const auto &entry : meta["properties"].toArray()) { staticInputs.insert(entry.toObject()["name"].toString()); }
+      QFont font(QStringLiteral("Inter"));
+      font.setPixelSize(nm::fontLabel);
+      const QFontMetricsF metrics(font);
+      for (auto &row : result.rows) {
+          if (row.port < 0 || row.port >= inputs.size() || row.bare || !portVisible(id, PortType::In, row.port)) { continue; }
+          const auto name = inputs[row.port].toObject()["name"].toString();
+          if (!values.contains(name) && !declarations.contains(name)) { continue; }
+          if (staticInputs.contains(name)) { continue; }
+          row.propertyName = name;
+          const auto top = row.kind == NodeRowKind::Handle ? row.y - nm::rowHeight / 2.0 : row.y;
+          const auto left = nm::borderWidth + nm::padding;
+          const auto labelWidth = std::min(metrics.horizontalAdvance(row.label), (result.size.width() - 2 * left) / 2.0);
+          row.renameLabelRect = QRectF(left, top, labelWidth, nm::rowHeight);
+          row.renameButtonRect = QRectF(row.renameLabelRect.right() + nm::micro, top, nm::iconSize, nm::rowHeight);
+      }
+  };
+  if (!result.unknown && drawsOwnHandles(result.body)) {
+      result.outputY.resize(outputs.size());
+      for (int i = 0; i < outputs.size(); ++i) {
+          result.outputY[i] = nm::contentTop + nm::rowHeight / 2.0 + i * nm::handleRowStep;
+      }
+      for (auto &position : result.inputY) {
+          position = nm::contentTop + nm::rowHeight / 2.0;
+      }
+      result.size.setWidth(width > 0 ? int(width) : nm::defaultWidth);
+      layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id))});
+      if (canvasMediaNodes_.contains(resourceId(id))) {
+          result.size.rheight() += nm::playbackHeight + nm::rowHeight;
+      } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
+          result.size.rheight() += nm::previewHeight + nm::rowHeight;
+      }
+      result.progressBand = runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
+      if (result.progressBand) {
+          result.size.rheight() += nm::progressHeight;
+      }
+      // A Preview card resizes freely above the web's 80 px minimum. Other bodies keep their controls.
+      result.minimumSize = QSize(150, result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height());
+      result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+      addRenameControls();
+      if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
+      return *layouts_.insert(id, result);
+  }
   double y = nm::contentTop;
   const auto warning = result.unknown ? tr("Node metadata unavailable. Check runtimes and packs.") : meta["native_dependency_warning"].toString();
   if (!warning.isEmpty()) {
@@ -326,7 +498,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   bool anyHandle = false;
   for (int i = 0; i < inputs.size(); ++i) {
     const auto port = inputs[i].toObject();
-    if (!handleOnly.contains(port["name"].toString())) { continue; }
+    if (!handleOnly.contains(port["name"].toString()) || !portVisible(id, PortType::In, i)) { continue; }
     NodeRow row;
     row.kind = NodeRowKind::Handle;
     row.label = titleOf(port);
@@ -343,21 +515,105 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   if (contentCard) {
     NodeRow row;
     row.kind = NodeRowKind::Preview;
-    row.value = tr("Run to generate");
-    row.y = nm::contentTop;
-    row.height = std::max<double>(nm::previewHeight, y - nm::contentTop);
+    // The empty state follows the primary output, as getContentCardVariant does.
+    QString variant;
+    const auto primaryName = meta["primary_output"].toString();
+    for (const auto &value : meta["outputs"].toArray()) {
+        const auto output = value.toObject();
+        if (primaryName.isEmpty() || output["name"] == primaryName) {
+            const auto declared = output["type"].toObject();
+            variant = declared["type"].toString();
+            if (variant == "list" && declared["type_args"].toArray().first().toObject()["type"] == "image") {
+                variant = "image";
+            }
+            break;
+        }
+    }
+    if (variant == "image") {
+        row.icon = "image";
+        row.value = tr("Run to generate");
+    } else if (variant == "video") {
+        row.icon = "movie";
+        row.value = tr("Run to generate video");
+    } else if (variant == "str" || variant == "text") {
+        row.icon = "textFields";
+        row.value = tr("Run to generate text");
+    } else if (variant == "audio") {
+        row.icon = "equalizer";
+        row.value = tr("Run to generate audio");
+    } else if (variant == "model_3d" || variant == "asset_3d") {
+        row.icon = "none";
+        row.value = tr("Run to generate 3D");
+    } else {
+        row.icon = "none";
+        row.value = tr("Run model");
+    }
+    row.y = nm::contentPreviewTop;
+    row.height = std::max<double>(nm::previewHeight - (nm::contentPreviewTop - nm::contentTop), y - row.y);
     result.rows.append(row);
     y = row.y + row.height + nm::micro;
-    end = y - nm::micro;
+    // The content card body pads 4 px below its preview, inside the card border.
+    end = y + nm::micro + nm::borderWidth;
   } else if (anyHandle) {
     y += nm::padding + nm::borderWidth;
     end = y;
+  }
+  const auto cardWidth = width > 0 ? width : double(nm::defaultWidth);
+  const auto inset = double(nm::borderWidth + nm::padding);
+  // Model chips sit under a content card's preview and after a generic card's rows.
+  const auto chipNames = modelChipNames(meta, ui);
+  const auto addModelChips = [&] {
+      for (const auto &name : chipNames) {
+          const auto field = fields.value(name);
+          if (field.isEmpty() || field["connected"].toBool()) {
+              continue;
+          }
+          NodeRow chip;
+          chip.kind = NodeRowKind::ModelChip;
+          chip.propertyName = name;
+          chip.label = field["label"].toString();
+          // One chip drops its label, as NodeModelChips does.
+          chip.bare = chipNames.size() == 1;
+          if (!chip.bare) {
+              chip.y = y;
+              y += nm::rowHeight;
+          }
+          chip.rect = QRectF(inset, y, cardWidth - 2 * inset, nm::modelChipHeight);
+          chip.y = chip.bare ? y : chip.y;
+          chip.fieldY = y;
+          chip.height = nm::modelChipHeight;
+          // The field's button text from ModelProperty.tsx: the model name and
+          // its provider's display name. The stored value stands in for the
+          // catalog entry, which the card does not load.
+          const auto model = field["value"].toMap();
+          auto provider = model.value("provider").toString();
+          if (provider == "empty") {
+              provider.clear();
+          }
+          const auto allowed = field["allowedProviders"].toStringList();
+          if (provider.isEmpty() && field["value"].typeId() == QMetaType::QString && !allowed.isEmpty()) {
+              provider = allowed.first();
+          }
+          const auto details = model.value("name").toString().isEmpty() ? QVariantMap{} : model;
+          const auto text = nt::modelpicker::fieldLabel(field["modelType"].toString(), field["value"], details, provider);
+          chip.value = text.label;
+          chip.typeName = text.secondary;
+          chip.placeholder = !text.active;
+          result.rows.append(chip);
+          y = chip.rect.bottom();
+          end = y + nm::micro + nm::borderWidth;
+      }
+  };
+  if (contentCard) {
+      addModelChips();
   }
   bool first = true;
   for (int i = 0; i < inputs.size(); ++i) {
     const auto port = inputs[i].toObject();
     const auto name = port["name"].toString();
     if (handleOnly.contains(name)) { continue; }
+    // The control handle sits at the top center of the card and has no row.
+    if (name == "__control__") { continue; }
     if (!first) { y += nm::inlineRowGap; }
     first = false;
     const auto field = fields.value(name);
@@ -388,33 +644,90 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     } else if (!connected && (kind == "number" || kind == "integer")) {
       row.kind = NodeRowKind::Number;
       row.value = hasValue ? value.toString() : tr("Not set");
+      if (type == QStringLiteral("nodetool.input.IntegerInput")) {
+        row.kind = NodeRowKind::Field;
+        row.fieldY = y;
+        row.height = nm::integerFieldHeight;
+        y += row.height + nm::integerFieldBottomGap;
+      }
     } else if (!connected && kind == "boolean") {
       row.kind = NodeRowKind::Toggle;
       row.checked = value.toBool();
+    } else if (!connected && kind == "media") {
+      // A media value is a drop zone, as the web image, audio and video properties.
+      row.kind = NodeRowKind::DropZone;
+      row.typeName = field["mediaType"].toString();
+      const auto reference = value.toMap();
+      const auto uri = reference.value("uri").toString();
+      row.placeholder = uri.isEmpty() && reference.value("asset_id").toString().isEmpty();
+      row.value = row.placeholder ? tr("Click or drop %1").arg(row.typeName.isEmpty() ? tr("file") : row.typeName).toUpper()
+          : QUrl(uri).fileName().isEmpty() ? reference.value("asset_id").toString() : QUrl(uri).fileName();
+      row.icon = row.typeName == "audio" ? "equalizer" : row.typeName == "video" ? "movie" : "image";
+      row.rect = QRectF(inset, y + nm::dropZoneGap, cardWidth - 2 * inset, nm::dropZoneHeight);
+      row.fieldY = row.rect.y();
+      row.height = row.rect.height();
+      y = row.rect.bottom() + nm::inlineRowGap;
     }
     if (row.conditionalUnavailable) { y += nm::rowHeight; }
     result.rows.append(row);
     end = y;
   }
-  result.outputY.resize(outputs.size());
-  for (int i = 0; i < outputs.size(); ++i) {
-    result.outputY[i] = nm::contentTop + nm::rowHeight / 2.0 + i * nm::handleRowStep;
-    end = std::max(end, result.outputY[i] + nm::rowHeight / 2.0 + (i == outputs.size() - 1 ? nm::padding + nm::borderWidth : 0));
+  if (!contentCard) {
+      if (!chipNames.isEmpty() && !first) {
+          y += nm::inlineRowGap;
+      }
+      addModelChips();
   }
-  const auto width = ui["width"].toDouble();
+  // NodePropertyForm on generic cards and the content card's footer strip.
+  const auto addAction = [&](const QString &action, const QString &label, bool right) {
+      NodeRow add;
+      add.kind = NodeRowKind::Action;
+      add.action = action;
+      add.label = label;
+      QFont font(QStringLiteral("Inter"));
+      font.setPixelSize(nm::fontLabel);
+      const auto buttonWidth = QFontMetricsF(font).horizontalAdvance(add.label) + nm::iconSize + 4 * nm::chipPadding;
+      const auto x = !contentCard && right ? cardWidth - inset - buttonWidth : inset;
+      add.rect = QRectF(x, y + nm::actionGap, buttonWidth, nm::actionHeight);
+      add.y = add.rect.y();
+      add.height = add.rect.height();
+      result.rows.append(add);
+      y = add.rect.bottom();
+      end = y + nm::micro + nm::borderWidth;
+  };
+  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph) {
+      addAction(contentCard ? QStringLiteral("addContentInput") : QStringLiteral("addInput"), contentCard ? contentInputLabel(meta) : tr("Add input"), false);
+  }
+  if (!result.unknown && meta["supports_dynamic_outputs"].toBool() && !result.subgraph) {
+      addAction(QStringLiteral("addOutput"), tr("Add output"), true);
+  }
+  result.outputY.resize(outputs.size());
+  // The control handle sits at the bottom center of the card, so it takes no output row.
+  int slot = 0;
+  for (int i = 0; i < outputs.size(); ++i) {
+    if (outputs[i].toObject()["name"] == "__control__") { continue; }
+    result.outputY[i] = nm::contentTop + nm::rowHeight / 2.0 + slot++ * nm::handleRowStep;
+
+  }
   // A card without a body row keeps the header and one empty handle row.
   const auto minimum = nm::contentTop + nm::rowHeight + nm::padding + nm::borderWidth;
   result.size = QSize(width > 0 ? int(width) : nm::defaultWidth,
                       int(std::ceil(std::max<double>(end, minimum) + nm::padding)));
   if (canvasMediaNodes_.contains(resourceId(id))) { result.size.rheight() += nm::playbackHeight + nm::rowHeight; }
-  else if (!runtimeState(id).isEmpty()) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
+  else if (hasRuntimeOutput(id)) { result.size.rheight() += nm::previewHeight + nm::rowHeight; }
     result.runningProgress = result.subgraph && runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
     if (result.runningProgress) { result.size.rheight() += nm::handleRowStep; }
+    result.progressBand = !result.subgraph && runtimeState(id)["status"] == "running" && runtimeState(id)["total"].toDouble() > 0;
+    if (result.progressBand) {
+        result.size.rheight() += nm::progressHeight;
+    }
     result.addOutput = result.subgraph && meta["supports_dynamic_outputs"].toBool();
     if (result.addOutput) { result.size.rheight() += nm::handleRowStep; }
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
   result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+  addRenameControls();
+  if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
   return *layouts_.insert(id, result);
 }
 std::unordered_set<NodeId> WorkflowGraphModel::allNodeIds() const {
@@ -459,8 +772,15 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
         const auto ui = n["ui_properties"].toObject();
         const bool handleOnly = (metadata["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)) &&
             !ui["exposed_inputs_hidden"].toArray().contains(name) && !ui["exposed_inputs_labeled"].toArray().contains(name);
-        if (type == PortType::In && !handleOnly && !connectedInputs.contains(name.toString()) &&
-            !node_editor::propertyConditionSatisfied(declaration, n["data"].toObject())) {
+        // A bespoke body draws its own fixed handles and controls, as rendersExposedInputHandles.
+        const auto body = cardBodyFor(n["type"].toString(), metadata);
+        const bool bespoke = drawsOwnHandles(body);
+        if (type == PortType::In && bespoke && !bespokeHandle(body, metadata, name.toString()) && !connectedInputs.contains(name.toString())) {
+          names.insert(declaration["name"].toString());
+          continue;
+        }
+        if (type == PortType::In && !bespoke && !handleOnly && !connectedInputs.contains(name.toString()) &&
+            (!cardField(metadata, ui, declaration) || !node_editor::propertyConditionSatisfied(declaration, n["data"].toObject()))) {
           names.insert(declaration["name"].toString());
           continue;
         }
@@ -613,15 +933,102 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
     const auto field = value.toMap();
     if (field["name"].toString() != name || !field["editable"].toBool() || field["connected"].toBool()) { continue; }
     const auto kind = field["kind"].toString();
-    if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean") { return field; }
+    if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean" || kind == "model") { return field; }
   }
   return {};
 }
+void WorkflowGraphModel::setDimensionsLinked(NodeId id, bool linked) {
+    const auto resource = resourceId(id);
+    if (resource.isEmpty() || dimensionsLinked(id) == linked) {
+        return;
+    }
+    const auto data = nodes_.value(id)["data"].toObject();
+    const auto meta = metadata(id);
+    double width = 0;
+    double height = 0;
+    for (const auto &value : meta["properties"].toArray()) {
+        const auto property = value.toObject();
+        if (property["name"] == "width") {
+            width = data.value("width").toDouble(property["default"].toDouble());
+        } else if (property["name"] == "height") {
+            height = data.value("height").toDouble(property["default"].toDouble());
+        }
+    }
+    // ResizeImageBody records the ratio when the lock closes and only while both sides are set.
+    if (linked) {
+        dimensionLinks_.insert(resource, width > 0 && height > 0 ? width / height : 0.0);
+    } else {
+        dimensionLinks_.remove(resource);
+    }
+    refreshRuntimeNode(resource);
+}
+QJsonObject WorkflowGraphModel::propertyCommand(NodeId id, const QString &name, const QJsonValue &value) const {
+    const auto resource = resourceId(id);
+    QJsonObject command{{"op", "setProperty"}, {"id", resource}, {"name", name}, {"value", value}};
+    const auto aspect = dimensionLinks_.value(resource);
+    if (aspect <= 0 || (name != "width" && name != "height") || !value.isDouble()
+        || layout(id).body != CardBody::ResizeImage) {
+        return command;
+    }
+    const auto mode = nodes_.value(id)["data"].toObject().value("mode").toString(QStringLiteral("dimensions"));
+    const auto minimum = mode == QStringLiteral("dimensions") ? 0.0 : 1.0;
+    const auto entered = std::max(minimum, std::round(value.toDouble()));
+    const auto other = std::max(minimum, std::round(name == "width" ? entered / aspect : entered * aspect));
+    const auto otherName = name == "width" ? QStringLiteral("height") : QStringLiteral("width");
+    return {{"op", "batch"}, {"commands", QJsonArray{
+        QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", name}, {"value", entered}},
+        QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", otherName}, {"value", other}}}}};
+}
+int WorkflowGraphModel::dropZoneAt(NodeId id, const QPointF &point) const {
+    if (readOnly_ || !nodeExists(id)) {
+        return -1;
+    }
+    const auto &rows = layout(id).rows;
+    for (int i = 0; i < rows.size(); ++i) {
+        if (rows[i].kind == NodeRowKind::DropZone && rows[i].rect.contains(point)) {
+            return i;
+        }
+    }
+    return -1;
+}
+bool WorkflowGraphModel::portVisible(NodeId id, PortType side, PortIndex index) const {
+  if (side == PortType::None) { return false; }
+  const auto declarations = ports(id, side);
+  if (index >= unsigned(declarations.size())) { return false; }
+  const auto name = declarations[int(index)].toObject()["name"].toString();
+  if (name == "__control__" || isReroute(id)) { return true; }
+  const auto node = nodes_.value(id);
+  const auto meta = metadata(id);
+  const auto body = cardBodyFor(node["type"].toString(), meta);
+  if (side == PortType::Out) { return body != CardBody::Output; }
+  if (drawsOwnHandles(body)) {
+    return bespokeHandle(body, meta, name)
+        || (body == CardBody::Prompt && (node["dynamic_properties"].toObject().contains(name)
+            || node["dynamic_inputs"].toObject().contains(name)));
+  }
+  if (body == CardBody::Content) {
+    const auto ui = node["ui_properties"].toObject();
+    if (ui["exposed_inputs_hidden"].toArray().contains(name)) { return false; }
+    return cardField(meta, ui, declarations[int(index)].toObject())
+        || meta["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)
+        || node["dynamic_inputs"].toObject().contains(name) || node["dynamic_properties"].toObject().contains(name);
+  }
+  return true;
+}
+
+bool WorkflowGraphModel::wireVisible(ConnectionId id) const {
+  return (id.outNodeId == InvalidNodeId || portVisible(id.outNodeId, PortType::Out, id.outPortIndex))
+      && (id.inNodeId == InvalidNodeId || portVisible(id.inNodeId, PortType::In, id.inPortIndex));
+}
+
 QRectF WorkflowGraphModel::inlineFieldRect(NodeId id, const QString &name) const {
   const auto &card = layout(id);
   const auto inset = node_metrics::borderWidth + node_metrics::padding;
   for (const auto &row : card.rows) {
     if (row.propertyName != name || name.isEmpty()) { continue; }
+    // Bespoke controls carry their bounds. Sliders, mode switches and drop zones take pointer input on the canvas.
+    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone) { return {}; }
+    if (!row.rect.isEmpty()) { return row.rect; }
     if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) { return QRectF(inset, row.fieldY, card.size.width() - 2 * inset, row.height); }
     if (row.kind == NodeRowKind::Number) { return QRectF(card.size.width() / 2.0, row.y, card.size.width() / 2.0 - inset, node_metrics::rowHeight); }
     if (row.kind == NodeRowKind::Toggle) { return QRectF(card.size.width() - inset - 32, row.y, 32, node_metrics::rowHeight); }
@@ -665,6 +1072,9 @@ void WorkflowGraphModel::moveDescendants(const QHash<NodeId, QPointF> &before) {
 QJsonValue WorkflowGraphModel::comment(NodeId id) const { return nodes_.value(id)["data"].toObject()["comment"]; }
 bool WorkflowGraphModel::bypassed(NodeId id) const {
   return nodes_.value(id)["ui_properties"].toObject()["bypassed"].toBool();
+}
+bool WorkflowGraphModel::collapsed(NodeId id) const {
+  return !isGroup(id) && !isComment(id) && !isReroute(id) && nodes_.value(id)["ui_properties"].toObject()["collapsed"].toBool();
 }
 QVariant WorkflowGraphModel::nodeData(NodeId id, NodeRole r) const {
   auto n = nodes_.value(id);

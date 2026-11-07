@@ -82,7 +82,7 @@ private slots:
         auto* select = find(root, "asset-select-value");
         QTRY_VERIFY(select->isEnabled());
         click(view, select);
-        QTest::keyClick(&view, Qt::Key_Home);
+        QTest::keyClick(&view, Qt::Key_Down);
         QTest::keyClick(&view, Qt::Key_Return);
         QTRY_COMPARE(commits.count(), 1);
         const auto selected = QJsonValue::fromVariant(unwrap(commits.first().first())).toObject();
@@ -180,7 +180,7 @@ private slots:
             QTest::qWait(80);
             click(view, find(view.contentItem(), "entity-card-0"));
         } else {
-            QTest::keyClick(&view, Qt::Key_Home);
+            QTest::keyClick(&view, Qt::Key_Down);
             QTest::keyClick(&view, Qt::Key_Return);
         }
         QTRY_COMPARE(commits.count(), 1);
@@ -195,29 +195,27 @@ private slots:
         root->setProperty("value", selected.toVariant());
         QTRY_VERIFY(root->property("loaded").toBool());
         select->forceActiveFocus();
-        QTest::keyClick(&view, Qt::Key_Return);
         if (entity) {
+            QTest::keyClick(&view, Qt::Key_Return);
             auto* card = find(view.contentItem(), "entity-card-0");
             QVERIFY(card);
             card->forceActiveFocus();
             QTest::keyClick(&view, Qt::Key_Return);
         } else {
             QTest::keyClick(&view, Qt::Key_Home);
-            QTest::keyClick(&view, Qt::Key_Return);
         }
         QCOMPARE(commits.count(), 1);
         root->setProperty("value", initial.toVariant());
         QTRY_VERIFY(root->property("loaded").toBool());
         select->forceActiveFocus();
-        QTest::keyClick(&view, Qt::Key_Return);
         if (entity) {
+            QTest::keyClick(&view, Qt::Key_Return);
             auto* card = find(view.contentItem(), "entity-card-0");
             QVERIFY(card);
             card->forceActiveFocus();
             QTest::keyClick(&view, Qt::Key_Space);
         } else {
             QTest::keyClick(&view, Qt::Key_Home);
-            QTest::keyClick(&view, Qt::Key_Return);
         }
         QTRY_COMPARE(commits.count(), 2);
         QCOMPARE(QJsonValue::fromVariant(unwrap(commits.last().first())), selected);
@@ -249,7 +247,7 @@ private slots:
             }
         }
         delay = true;
-        click(view, find(root, "remaining-refresh-value"));
+        root->setProperty("value", initial.toVariant());
         QTRY_VERIFY(pending);
         controller.configure(origin, "new-token", "new-owner");
         if (pending && pending->state() == QAbstractSocket::ConnectedState) {
@@ -258,6 +256,9 @@ private slots:
         QTest::qWait(50);
         QVERIFY(!root->property("loaded").toBool());
         QCOMPARE(unwrap(root->property("resources")).toList().size(), 0);
+        QCOMPARE(commits.count(), 2);
+        QCOMPARE(document.node("n").value("data").toObject().value("value"), selected);
+        QCOMPARE(document.undoStack()->count(), 1);
         root->setProperty("writable", false);
         QVERIFY(!select->isEnabled());
     }

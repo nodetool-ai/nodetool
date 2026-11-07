@@ -148,6 +148,37 @@ private slots:
     QTRY_COMPARE(deleted.count(), 1);
     QTRY_VERIFY(!browser.loading());
   }
+  void paginationCycleStopsAndRefreshRecovers() {
+    Fixture server;
+    server.respond = [](QByteArray request) {
+      if (request.contains("cursor=second")) {
+        return QByteArray(R"({"workflows":[{"id":"c","name":"Gamma"}],"next":"first"})");
+      }
+      if (request.contains("cursor=first")) {
+        return QByteArray(R"({"workflows":[{"id":"b","name":"Beta"}],"next":"second"})");
+      }
+      return QByteArray(R"({"workflows":[{"id":"a","name":"Alpha"}],"next":"first"})");
+    };
+    WorkflowBrowser browser;
+    browser.configure(server.url());
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    browser.loadNext();
+    QTRY_COMPARE(browser.rows().size(), 2);
+    browser.loadNext();
+    QTRY_VERIFY(!browser.loading());
+    QVERIFY(browser.error().contains("pagination cursor"));
+    QCOMPARE(browser.rows().size(), 2);
+    QVERIFY(!browser.hasNext());
+    const auto requestCount = server.requests.size();
+    browser.loadNext();
+    QCOMPARE(server.requests.size(), requestCount);
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    QVERIFY(browser.error().isEmpty());
+    QCOMPARE(browser.rows().size(), 1);
+    QVERIFY(browser.hasNext());
+  }
   void switchingServerCancelsStaleReply() {
     Fixture oldServer, newServer;
     oldServer.respond = [](QByteArray) { return QByteArray(); };

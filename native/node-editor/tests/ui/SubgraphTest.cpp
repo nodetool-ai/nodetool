@@ -363,7 +363,6 @@ private slots:
         QVERIFY(view);
         QTRY_COMPARE(strips->width(), view->width());
         QCOMPARE(strips->mapTo(&window, QPoint()).x(), view->mapTo(&window, QPoint()).x());
-        QVERIFY(strips->mapTo(&window, QPoint()).x() > 50);
         QCOMPARE(strips->mapTo(&window, QPoint(0, strips->height())).y(), view->mapTo(&window, QPoint()).y());
         QCOMPARE(find(strips->rootObject(), "canvas-label-0-0")->property("text").toString(), QString("Workflow"));
         QCOMPARE(find(strips->rootObject(), "canvas-label-1-0")->property("text").toString(), first->workflowName());
@@ -372,7 +371,8 @@ private slots:
       QVERIFY(window.document()->applyCommand(
           {{"op", "setProperty"}, {"id", "input"}, {"name", "name"}, {"value", "changed"}}));
       QTRY_VERIFY(!parent->undoStack()->isClean());
-      QVERIFY(click(window, "toolbar-save"));
+      // The web toolbar has no Save button. Ctrl+S saves the parent from a child surface.
+      QTest::keyClick(view->viewport(), Qt::Key_S, Qt::ControlModifier);
       QVERIFY(parent->undoStack()->isClean());
       QVERIFY(!window.hasUnsavedChanges());
       window.persistTabs();

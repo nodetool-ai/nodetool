@@ -162,13 +162,25 @@ ColumnLayout {
                 required property var modelData
                 required property int index
                 text: modelData.name || modelData.id || "Untitled entity"
-                iconName: root.kindIcon(modelData.kind)
                 trailingIconName: "closeOutlined"
                 circular: true
                 density: Ui.EditorButton.Compact
+                contentAlignment: Qt.AlignLeft
+                leftPadding: Ui.Metrics.md + Ui.Metrics.sm + Ui.Metrics.xs
+                rightPadding: Ui.Metrics.lg
                 enabled: root.writable
                 accessibleName: "Remove " + text
                 onClicked: root.removeAt(index)
+                Rectangle {
+                    objectName: "entity-kind-dot-" + index
+                    x: Ui.Metrics.md
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Ui.Metrics.sm
+                    height: Ui.Metrics.sm
+                    radius: Ui.Metrics.radiusPill
+                    color: root.kindColor(modelData.kind)
+                    Accessible.ignored: true
+                }
             }
         }
         Ui.EditorButton {
@@ -185,6 +197,10 @@ ColumnLayout {
     }
     function kindIcon(kind) {
         return kind === "character" ? "personOutline" : kind === "location" ? "placeOutlined" : kind === "style" ? "paletteOutlined" : "categoryOutlined"
+    }
+    // web/src/components/entities/entityKind.ts ENTITY_KIND_COLOR: primary, info, secondary, success.
+    function kindColor(kind) {
+        return kind === "location" ? Ui.Theme.statusInfo : kind === "prop" ? Ui.Theme.statusSuccess : kind === "style" ? Ui.Theme.accentSecondary : Ui.Theme.accentPrimary
     }
     Ui.Dialog {
         id: entityPicker
@@ -231,7 +247,7 @@ ColumnLayout {
                             objectName: "entity-card-" + index
                             text: modelData.name || "Untitled entity"
                             subtitle: modelData.kind || "Entity"
-                            badgeInk: modelData.kind === "location" ? Ui.Theme.statusInfo : modelData.kind === "prop" ? Ui.Theme.statusSuccess : modelData.kind === "style" ? Ui.Theme.textSecondary : Ui.Theme.accentPrimary
+                            badgeInk: root.kindColor(modelData.kind)
                             placeholderIcon: root.kindIcon(modelData.kind)
                             checked: root.selected.some(item => item.id === modelData.id)
                             enabled: root.writable
@@ -314,13 +330,6 @@ ColumnLayout {
                 }
             }
         }
-    }
-    Ui.ToolbarIconButton {
-        iconName: "refresh"
-        objectName: "remaining-refresh-" + root.descriptor.name
-        accessibleName: "Refresh " + root.kind.replace("_list", "")
-        enabled: root.writable && root.controller && !root.loading
-        onClicked: root.refresh()
     }
     Ui.Text {
         Layout.fillWidth: true

@@ -10,7 +10,7 @@ private slots:
  void conditionalPortsPreserveValuesAndConnections() {
   WorkflowDocument document;
   const QJsonObject field{{"name", "detail"}, {"type", "str"}, {"json_schema_extra", QJsonObject{{"visible_when", QJsonObject{{"property", "enabled"}, {"equals", true}}}}}};
-  const QJsonArray catalog{QJsonObject{{"node_type", "test"}, {"properties", QJsonArray{QJsonObject{{"name", "enabled"}, {"type", "bool"}}, field}}}};
+  const QJsonArray catalog{QJsonObject{{"node_type", "test"}, {"inline_fields", QJsonArray{"enabled", "detail"}}, {"properties", QJsonArray{QJsonObject{{"name", "enabled"}, {"type", "bool"}}, field}}}};
   document.setNodeMetadata(catalog);
   QVERIFY(document.load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "n"}, {"type", "test"}, {"data", QJsonObject{{"enabled", false}, {"detail", "keep"}}}}}}, {"edges", QJsonArray{}}}}}));
   const auto before = document.snapshot();
@@ -59,7 +59,7 @@ private slots:
     {"dynamic_inputs",QJsonObject{{"extra",QJsonObject{{"type",QJsonObject{{"type","str"}}}}},{"static",QJsonObject{{"type","float"}}}}},
     {"dynamic_properties",QJsonObject{{"extra","hello"},{"fallback",7}}},
     {"dynamic_outputs",QJsonObject{{"answer",QJsonObject{{"type","int"}}}}}};
-  const QJsonArray catalog{QJsonObject{{"node_type","test"},{"properties",QJsonArray{QJsonObject{{"name","static"},{"type","bool"}}}},{"outputs",QJsonArray{}}}};
+  const QJsonArray catalog{QJsonObject{{"node_type","test"},{"inline_fields",QJsonArray{"static"}},{"properties",QJsonArray{QJsonObject{{"name","static"},{"type","bool"}}}},{"outputs",QJsonArray{}}}};
   QVERIFY(document.load({{"graph",QJsonObject{{"nodes",QJsonArray{node}},{"edges",QJsonArray{}}}}}));
   const auto before = document.snapshot();
   WorkflowGraphModel graph; graph.project(before,catalog);

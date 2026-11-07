@@ -5,11 +5,12 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <unordered_map>
 #include <vector>
 namespace nodetool::node_editor::layout {
 namespace {
 struct Node { QString id; int parent = -1; QPointF position, absolute; QSizeF size; bool comment = false; };
-struct Edge { int source, target; bool control; };
+struct Edge { int source, target; bool control; QString handle; };
 struct Union {
     std::vector<int> parent;
     explicit Union(int n) : parent(n) { std::iota(parent.begin(), parent.end(),0); }
@@ -57,12 +58,17 @@ void place(const std::vector<int>& members, const std::vector<Edge>& edges,
         ++count;
     }
     for (int i=0;i<n;++i) { component[i]=component[unions.root(i)]; }
-    std::vector<std::vector<int>> successors(count), incoming(n);
+    std::vector<std::vector<int>> successors(count);
+    std::vector<std::vector<std::pair<int,double>>> incoming(n);
     std::vector<int> degree(count,0),rank(count,0);
     for (const auto& e : edges) {
         if (e.control) { continue; }
         const int a=local.value(e.source),b=local.value(e.target), ca=component[a],cb=component[b];
-        if (ca != cb) { successors[ca].push_back(cb); ++degree[cb]; incoming[b].push_back(a); }
+        if (ca != cb) {
+            successors[ca].push_back(cb); ++degree[cb];
+            const auto handle=options.outputOrder.value(nodes[members[a]].id).indexOf(e.handle);
+            incoming[b].push_back({a,handle<0 ? 0.0 : handle/1000.0});
+        }
     }
     std::vector<int> queue;
     for (int c=0;c<count;++c) { if (degree[c]==0) { queue.push_back(c); } }
@@ -74,15 +80,31 @@ void place(const std::vector<int>& members, const std::vector<Edge>& edges,
     for (int i=0;i<n;++i) { maxRank=std::max(maxRank,rank[component[i]]); }
     std::vector<std::vector<int>> layers(maxRank+1);
     for (int i=0;i<n;++i) { layers[rank[component[i]]].push_back(i); }
+    std::unordered_map<int,std::vector<int>> controlled;
+    for (const auto& e : edges) { if (e.control) { controlled[local.value(e.source)].push_back(local.value(e.target)); } }
     std::vector<double> order(n,0),keys(n,0),width(maxRank+1,0),height(maxRank+1,0);
     for (int layer=0;layer<=maxRank;++layer) {
         auto& row=layers[layer];
         for (const int v : row) {
             double sum=0;
-            for (const int pred : incoming[v]) { sum+=order[pred]; }
+            for (const auto& [pred,handle] : incoming[v]) { sum+=order[pred]+handle; }
             keys[v]=incoming[v].empty() ? static_cast<double>(v) : sum/incoming[v].size();
         }
         std::stable_sort(row.begin(),row.end(),[&](int a,int b) { return keys[a]<keys[b]; });
+        if (!controlled.empty()) {
+            // A controlled node sits directly after its controller.
+            std::vector<int> placed; placed.reserve(row.size());
+            std::vector<bool> taken(n,false),inRow(n,false);
+            for (const int v : row) { inRow[v]=true; }
+            for (const int v : row) {
+                if (taken[v]) { continue; }
+                placed.push_back(v); taken[v]=true;
+                const auto found=controlled.find(v);
+                if (found==controlled.end()) { continue; }
+                for (const int next : found->second) { if (inRow[next] && !taken[next]) { placed.push_back(next); taken[next]=true; } }
+            }
+            row=std::move(placed);
+        }
         for (qsizetype i=0;i<static_cast<qsizetype>(row.size());++i) {
             const auto& size=nodes[members[row[i]]].size;
             order[row[i]]=static_cast<double>(i);
@@ -157,30 +179,32 @@ LayoutResult autoLayoutCommand(const QJsonObject& graph,const QHash<QString,QSiz
         const int a=byId.value(source), b=byId.value(target);
         if (bucket[a]<0 || bucket[a]!=bucket[b]) { continue; }
         if (edge.value("edge_type")=="lineage" || edge.value("type")=="lineage") { continue; }
-        edges[bucket[a]].push_back({a,b,edge.value("edge_type")=="control" || edge.value("type")=="control"});
+        edges[bucket[a]].push_back({a,b,edge.value("edge_type")=="control" || edge.value("type")=="control",edge.value("sourceHandle").toString()});
     }
     QHash<int,QPointF> positions;
     std::vector<int> groupOrder(groups.size()); std::iota(groupOrder.begin(),groupOrder.end(),0);
     std::stable_sort(groupOrder.begin(),groupOrder.end(),[&](int a,int b) { return depth[groups[a][0]]>depth[groups[b][0]]; });
     for (const int g : groupOrder) {
         QPointF origin(options.padding,options.padding);
-        if (options.selection && !groups[g].empty()) {
+        const bool topLevel=!groups[g].empty() && nodes[groups[g][0]].parent<0;
+        if ((options.selection || topLevel) && !groups[g].empty()) {
             origin=nodes[groups[g][0]].absolute;
             for (const int v : groups[g]) { origin.setX(std::min(origin.x(),nodes[v].absolute.x())); origin.setY(std::min(origin.y(),nodes[v].absolute.y())); }
         }
         place(groups[g],edges[g],nodes,origin,options,positions,result.stats);
-        // Reserve the children's full footprint when placing a group alongside
-        // its siblings, without changing stored group dimensions or geometry.
+        // The web resizes a group to its children's extent plus padding. The
+        // siblings of that group are placed with the new size.
         if (!options.selection) {
             const int parent=nodes[groups[g][0]].parent;
             if (parent>=0) {
-                double width=nodes[parent].size.width(),height=nodes[parent].size.height();
+                double width=0,height=0;
                 for (const int v : groups[g]) {
                     const auto p=positions.value(v);
                     width=std::max(width,p.x()+nodes[v].size.width()+options.padding);
                     height=std::max(height,p.y()+nodes[v].size.height()+options.padding);
                 }
                 nodes[parent].size=QSizeF(width,height);
+                result.groupSizes.insert(nodes[parent].id,nodes[parent].size);
             }
         }
     }

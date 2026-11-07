@@ -1,6 +1,8 @@
 #include "document/WorkflowDocument.h"
 #include <QJsonDocument>
+#include <QElapsedTimer>
 #include <QSignalSpy>
+#include <QSet>
 #include <QtTest>
 #include <limits>
 using namespace nodetool::node_editor;
@@ -431,6 +433,163 @@ private slots:
         QVERIFY(connect(QJsonObject{{"type", "union"}, {"type_args", QJsonArray{type("str"), type("int")}}}, type("int")));
         d.undo();
         QVERIFY(connect(type("any"), type("image")));
+    }
+    void modelDefaultsMatchWebEmptiness() {
+        const QJsonObject empty{{"null", QJsonValue::Null}, {"false", false}, {"zero", 0}, {"string", ""},
+            {"sentinel", QJsonObject{{"provider", "empty"}}}, {"provider", QJsonObject{{"provider", ""}}},
+            {"id", QJsonObject{{"id", ""}}}};
+        const QJsonObject occupied{{"true", true}, {"number", 7}, {"text", "saved"}, {"object", QJsonObject{}},
+            {"partial", QJsonObject{{"id", "saved"}}}, {"array", QJsonArray{}}};
+        auto data = empty;
+        QJsonObject values{{"missing", "default"}};
+        for (auto it = occupied.cbegin(); it != occupied.cend(); ++it) { data.insert(it.key(), it.value()); }
+        for (auto it = data.cbegin(); it != data.cend(); ++it) { values.insert(it.key(), "default"); }
+        WorkflowDocument document;
+        QVERIFY(document.load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{
+            {"id", "a"}, {"type", "Node"}, {"data", data}}}}, {"edges", QJsonArray{}}}}}));
+        document.applyPropertyDefaults({{"a", values}});
+        const auto updated = document.node("a")["data"].toObject();
+        QCOMPARE(updated["missing"].toString(), "default");
+        for (auto it = empty.cbegin(); it != empty.cend(); ++it) { QCOMPARE(updated[it.key()].toString(), "default"); }
+        for (auto it = occupied.cbegin(); it != occupied.cend(); ++it) { QCOMPARE(updated[it.key()], it.value()); }
+        QCOMPARE(document.undoStack()->count(), 0);
+    }
+    void modelDefaultsRetainHistoryAndLaterClears() {
+        WorkflowDocument document;
+        QVERIFY(document.loadJson(R"({"id":"workflow","graph":{"nodes":[{"id":"a","type":"Node","data":{"model":{"provider":"empty"},"existing":{"id":"chosen","provider":"user"},"future":42}},{"id":"b","type":"Node"}],"edges":[]}})"));
+        QVERIFY(document.applyCommand({{"op", "renameNode"}, {"id", "a"}, {"title", "Before defaults"}}));
+        QVERIFY(document.applyCommand({{"op", "moveNodes"}, {"positions", QJsonObject{{"a", QJsonObject{{"x", 2}, {"y", 3}}}}}}));
+        const QJsonObject model{{"id", "default-model"}, {"provider", "fixture"}};
+        const QHash<QString, QJsonObject> defaults{{"a", QJsonObject{{"model", model}, {"existing", model}}},
+            {"missing", QJsonObject{{"model", model}}}};
+        const auto count = document.undoStack()->count();
+        QSignalSpy replaced(&document, &WorkflowDocument::replaced);
+        document.applyPropertyDefaults(defaults);
+        QCOMPARE(document.undoStack()->count(), count);
+        QVERIFY(!document.undoStack()->isClean());
+        QCOMPARE(replaced.count(), 0);
+        QCOMPARE(document.node("a")["data"].toObject()["model"].toObject(), model);
+        QCOMPARE(document.node("a")["data"].toObject()["existing"].toObject()["id"].toString(), "chosen");
+        QCOMPARE(document.node("a")["data"].toObject()["future"].toInt(), 42);
+        document.undo(); document.undo();
+        QCOMPARE(document.node("a")["data"].toObject()["model"].toObject(), model);
+        document.redo(); document.redo();
+        const QJsonObject type{{"type", "language_model"}, {"optional", true}};
+        document.setNodeMetadata({QJsonObject{{"node_type", "Node"}, {"properties", QJsonArray{
+            QJsonObject{{"name", "model"}, {"type", type}}}}}});
+        QVERIFY(document.applyCommand({{"op", "setProperty"}, {"id", "a"}, {"name", "model"}, {"value", QJsonValue::Null}}));
+        QVERIFY(document.node("a")["data"].toObject()["model"].isNull());
+        document.undo();
+        QCOMPARE(document.node("a")["data"].toObject()["model"].toObject(), model);
+        document.redo();
+        QVERIFY(document.node("a")["data"].toObject()["model"].isNull());
+    }
+    void pastedCycleChecksIncludePreservedPaths() {
+        const QJsonObject type{{"type", "str"}};
+        const auto edge = [](const QString& id, const QString& source, const QString& target) {
+            return QJsonObject{{"id", id}, {"source", source}, {"target", target}, {"sourceHandle", "out"}, {"targetHandle", "in"}};
+        };
+        QJsonArray nodes;
+        for (const auto& id : {"a", "b", "c", "d", "e"}) { nodes.append(QJsonObject{{"id", id}, {"type", "Node"}}); }
+        const QJsonArray preserved{edge("ab", "a", "b"), edge("ba", "b", "a"), edge("bc", "b", "c"), edge("cd", "c", "d")};
+        WorkflowDocument document;
+        document.setNodeMetadata({QJsonObject{{"node_type", "Node"},
+            {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", type}}}},
+            {"properties", QJsonArray{QJsonObject{{"name", "in"}, {"type", type}}}}}});
+        QVERIFY(document.load({{"graph", QJsonObject{{"nodes", nodes}, {"edges", preserved}}}}));
+        const auto before = document.snapshot();
+        auto fragment = document.graph();
+        auto edges = preserved; edges.append(edge("ce", "c", "e")); fragment["edges"] = edges;
+        QVERIFY(document.applyCommand({{"op", "paste"}, {"fragment", fragment}}));
+        document.undo(); QCOMPARE(document.snapshot(), before);
+        edges = preserved; edges.append(edge("da", "d", "a")); fragment["edges"] = edges;
+        const auto rejected = document.applyCommand({{"op", "paste"}, {"fragment", fragment}});
+        QVERIFY(!rejected); QCOMPARE(rejected.error, "Connection creates a cycle");
+        QCOMPARE(document.snapshot(), before); QCOMPARE(document.undoStack()->index(), 0);
+        edges = preserved; edges.append(edge("duplicate", "a", "b")); fragment["edges"] = edges;
+        const auto duplicate = document.applyCommand({{"op", "paste"}, {"fragment", fragment}});
+        QVERIFY(!duplicate); QCOMPARE(duplicate.error, "Duplicate pasted connection");
+        QCOMPARE(document.snapshot(), before);
+    }
+    void pastedLoopFeedbackAndSelfConnections() {
+        WorkflowDocument document;
+        const QJsonObject type{{"type", "str"}};
+        QJsonArray catalog;
+        for (const auto& name : {"Node", "nodetool.control.Loop"}) {
+            catalog.append(QJsonObject{{"node_type", name},
+                {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", type}}}},
+                {"properties", QJsonArray{QJsonObject{{"name", "next"}, {"type", type}}}}});
+        }
+        document.setNodeMetadata(catalog);
+        const QJsonArray nodes{QJsonObject{{"id", "a"}, {"type", "Node"}}, QJsonObject{{"id", "loop"}, {"type", "nodetool.control.Loop"}}};
+        QJsonObject forward{{"source", "a"}, {"target", "loop"}, {"sourceHandle", "out"}, {"targetHandle", "next"}};
+        const QJsonObject reverse{{"source", "loop"}, {"target", "a"}, {"sourceHandle", "out"}, {"targetHandle", "next"}};
+        QJsonObject fragment{{"nodes", nodes}, {"edges", QJsonArray{forward, reverse}}};
+        QVERIFY(document.applyCommand({{"op", "paste"}, {"fragment", fragment}}));
+        document.undo();
+        forward["source"] = "loop";
+        fragment["edges"] = QJsonArray{forward};
+        const auto before = document.snapshot();
+        const auto result = document.applyCommand({{"op", "paste"}, {"fragment", fragment}});
+        QVERIFY(!result); QCOMPARE(result.error, "Self connections are unsupported");
+        QCOMPARE(document.snapshot(), before);
+    }
+    void pasteScaling_data() {
+        QTest::addColumn<int>("size");
+        QTest::addColumn<bool>("preserved");
+        for (const int size : {250, 1000, 4000}) {
+            QTest::newRow(qPrintable(QString("external-%1").arg(size))) << size << false;
+            QTest::newRow(qPrintable(QString("preserved-%1").arg(size))) << size << true;
+        }
+    }
+    void pasteScaling() {
+        QFETCH(int, size);
+        QFETCH(bool, preserved);
+        QJsonArray nodes, edges;
+        for (int i = 0; i < size; ++i) {
+            nodes.append(QJsonObject{{"id", QString::number(i)}, {"type", "Node"}});
+            if (i > 0) {
+                edges.append(QJsonObject{{"id", QString("edge-%1").arg(i)},
+                    {"source", QString::number(i - 1)}, {"target", QString::number(i)},
+                    {"sourceHandle", "out"}, {"targetHandle", "in"}, {"future", 42}});
+            }
+        }
+        const QJsonObject fragment{{"nodes", nodes}, {"edges", edges}};
+        WorkflowDocument document;
+        const QJsonObject type{{"type", "str"}};
+        document.setNodeMetadata({QJsonObject{{"node_type", "Node"},
+            {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", type}}}},
+            {"properties", QJsonArray{QJsonObject{{"name", "in"}, {"type", type}}}}}});
+        if (preserved) { QVERIFY(document.load({{"graph", fragment}})); }
+        const auto before = document.snapshot();
+        QElapsedTimer timer;
+        timer.start();
+        const auto result = document.applyCommand({{"op", "paste"}, {"fragment", fragment}});
+        const double elapsed = timer.nsecsElapsed() / 1000000.0;
+        QVERIFY2(result, qPrintable(result.error));
+        qInfo().nospace() << "paste N=" << size << " E=" << edges.size()
+            << " preserved=" << preserved << " elapsed_ms=" << elapsed;
+        QCOMPARE(result.idMap.size(), size);
+        QCOMPARE(document.undoStack()->count(), 1);
+        QCOMPARE(document.nodes().size(), preserved ? size * 2 : size);
+        const auto after = document.snapshot();
+        const auto pastedEdges = document.edges();
+        QSet<QString> ids;
+        for (const auto &entry : pastedEdges) {
+            const auto edge = entry.toObject();
+            QVERIFY(!ids.contains(edge["id"].toString()));
+            ids.insert(edge["id"].toString());
+            QCOMPARE(edge["future"].toInt(), 42);
+        }
+        const qsizetype offset = preserved ? edges.size() : 0;
+        for (qsizetype i = 0; i < edges.size(); ++i) {
+            const auto original = edges.at(i).toObject();
+            const auto pasted = pastedEdges.at(offset + i).toObject();
+            QCOMPARE(pasted["source"], result.idMap[original["source"].toString()]);
+            QCOMPARE(pasted["target"], result.idMap[original["target"].toString()]);
+        }
+        document.undo(); QCOMPARE(document.snapshot(), before);
+        document.redo(); QCOMPARE(document.snapshot(), after);
     }
     void externalPasteValidation() {
         WorkflowDocument d; QVERIFY(d.load(fixture()));

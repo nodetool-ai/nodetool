@@ -12,6 +12,7 @@
 #include <QImage>
 #include <QSet>
 #include "../run/NodeRuntimeModel.h"
+#include "../run/UntakenBranch.h"
 #include <QtNodes/AbstractGraphModel>
 #include <functional>
 namespace nodetool {
@@ -34,10 +35,27 @@ public:
   QJsonObject runtimeState(QtNodes::NodeId id) const;
   bool runtimeConnected() const;
   QJsonObject runtimeEdgeState(QtNodes::ConnectionId id) const;
+  // The web's flow animation: the edge reported message_sent or its source node
+  // is starting or running. Control edges never animate.
+  bool runtimeWireFlowing(QtNodes::ConnectionId id) const;
+  // An Agent control edge (ControlEdge.tsx): drawn amber and dashed from the bottom of
+  // the controller to the top of the controlled node.
+  bool isControlWire(QtNodes::ConnectionId id) const;
+  // Canonical ports and connections survive even when their body renders no handle.
+  bool portVisible(QtNodes::NodeId id, QtNodes::PortType side, QtNodes::PortIndex index) const;
+  bool wireVisible(QtNodes::ConnectionId id) const;
+  int stackingOrder(QtNodes::NodeId id) const { return stackingOrder_.value(id); }
+  // Items an If or Switch left unexecuted in the selected run, from edge updates.
+  node_editor::UntakenBranch untakenBranch() const;
   void setRuntimePreview(const QString &nodeId, const QImage &image);
   QImage runtimePreview(QtNodes::NodeId id) const;
+  // A status alone changes no card size. The web shows no status text on a card.
+  bool hasRuntimeOutput(QtNodes::NodeId id) const;
   void setCanvasMediaNodes(const QSet<QString> &nodes);
   QRectF canvasPlaybackRect(QtNodes::NodeId id) const;
+  // Card-local result bounds used by the raster/text painter, before image
+  // aspect fitting. Empty for invalid, collapsed, group, comment or reroute nodes.
+  QRectF canvasResultRect(QtNodes::NodeId id) const;
   // Card layouts built since construction; unchanged cards reuse theirs.
   quint64 layoutBuildCount() const { return layoutBuilds_; }
 signals:
@@ -64,12 +82,23 @@ public:
   QJsonArray edgeSnapshot() const { return edges_; }
   QVariantMap inlineDescriptor(QtNodes::NodeId id, const QString &name) const;
   QRectF inlineFieldRect(QtNodes::NodeId id, const QString &name) const;
+  // The Resize Image lock links width and height. Like the web's lock it is view
+  // state: it stores the aspect ratio at the moment it closes and never enters
+  // the document.
+  bool dimensionsLinked(QtNodes::NodeId id) const { return dimensionLinks_.contains(resourceId(id)); }
+  void setDimensionsLinked(QtNodes::NodeId id, bool linked);
+  // The command that writes a property, with the linked other dimension in the
+  // same batch so one undo step reverts both.
+  QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
+  // The media drop zone row under a card-local point, or -1.
+  int dropZoneAt(QtNodes::NodeId id, const QPointF &point) const;
   bool readOnly() const { return readOnly_; }
   QJsonObject uiProperties(QtNodes::NodeId id) const { return nodes_.value(id)["ui_properties"].toObject(); }
   QVector<QtNodes::NodeId> descendants(QtNodes::NodeId id) const;
   void moveDescendants(const QHash<QtNodes::NodeId, QPointF> &before);
   QJsonValue comment(QtNodes::NodeId id) const;
   bool bypassed(QtNodes::NodeId id) const;
+  bool collapsed(QtNodes::NodeId id) const;
   using QtNodes::AbstractGraphModel::portData;
   QtNodes::NodeId newNodeId() override;
   std::unordered_set<QtNodes::NodeId> allNodeIds() const override;
@@ -97,6 +126,7 @@ public:
   QJsonArray ports(QtNodes::NodeId, QtNodes::PortType) const;
 
 private:
+  QHash<QtNodes::NodeId, int> stackingOrder_;
   void deriveProjection(const QJsonArray &nodes);
   void invalidateNode(QtNodes::NodeId id);
   QHash<QtNodes::NodeId, QJsonObject> nodes_;
@@ -115,6 +145,7 @@ private:
   QSet<QString> canvasMediaNodes_;
   QString runtimeJob_;
   void refreshRuntimeNode(const QString &id);
+  QHash<QString, double> dimensionLinks_;
   QHash<QtNodes::NodeId, QPointF> positions_;
   QHash<QtNodes::NodeId, int> depths_;
   QHash<QtNodes::NodeId, QVector<QtNodes::NodeId>> children_;

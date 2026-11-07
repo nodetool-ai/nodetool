@@ -1,4 +1,5 @@
 #pragma once
+#include <QJsonObject>
 #include <QObject>
 #include <QPointer>
 #include <QRectF>
@@ -34,6 +35,8 @@ public:
   bool active() const { return !descriptor_.isEmpty(); }
   QQuickWidget *editorWidget() const;
   std::function<bool(const QString &, const QString &, const QVariant &)> commitProperty;
+  // Applies a batch, such as a linked width and height, as one undo step.
+  std::function<bool(const QJsonObject &)> commitCommand;
 public slots:
   void activate(QtNodes::NodeId id, const QString &name);
   void cancel();

@@ -2,10 +2,104 @@
 #include <QTest>
 #include <QJsonArray>
 #include <QSignalSpy>
+#include <QPersistentModelIndex>
 using namespace nodetool::node_editor;
 class RunOutputModelTests : public QObject {
  Q_OBJECT
 private slots:
+ void collectionSparseChangesPreserveRetainedMediaIndexes() {
+  OutputCollectionModel model;
+  auto group = [](QString key) {
+   const QVariantMap locator{{"uri", "asset://" + key}};
+   const QVariantMap item{{"kind", "image"}, {"locator", locator}};
+   return QVariantMap{{"key", key}, {"items", QVariantList{item}}};
+  };
+  model.setGroups("media", {group("a"), group("b"), group("c")});
+  QPersistentModelIndex first(model.index(0)), third(model.index(2));
+  const auto firstItems = model.data(first, Qt::UserRole + 1), thirdItems = model.data(third, Qt::UserRole + 1);
+  QSignalSpy resets(&model, &QAbstractItemModel::modelReset);
+  model.setGroups("media", {group("new"), group("a"), group("c"), group("tail")});
+  QVERIFY(first.isValid()); QVERIFY(third.isValid()); QCOMPARE(first.row(), 1); QCOMPARE(third.row(), 2);
+  QCOMPARE(model.data(first, Qt::UserRole + 1), firstItems); QCOMPARE(model.data(third, Qt::UserRole + 1), thirdItems); QCOMPARE(resets.count(), 0);
+  model.setGroups("media", {group("c"), group("a")}); QVERIFY(!first.isValid()); QCOMPARE(resets.count(), 1);
+  QPersistentModelIndex scoped(model.index(0)); model.setGroups("other", {group("c"), group("a")}); QVERIFY(!scoped.isValid()); QCOMPARE(resets.count(), 2);
+ }
+ void collectionLargeRangeUpdatesRemainIncremental() {
+  OutputCollectionModel model; QVariantList before, after;
+  for (int i = 0; i < 20000; ++i) { before.append(QVariantMap{{"key", QString::number(i)}}); }
+  model.setGroups("large", before); QPersistentModelIndex retained(model.index(15000));
+  QSignalSpy resets(&model, &QAbstractItemModel::modelReset);
+  for (int i = 10000; i < 30000; ++i) { after.append(QVariantMap{{"key", QString::number(i)}}); }
+  model.setGroups("large", after); QVERIFY(retained.isValid()); QCOMPARE(retained.row(), 5000); QCOMPARE(resets.count(), 0); QCOMPARE(model.rowCount(), 20000);
+ }
+ void cancellationRemovesRichRolesBeforeControllerDestruction() {
+  RunOutputModel model; model.beginRun("lifetime");
+  model.ingest("lifetime", {{"job_id", "lifetime"}, {"type", "output_update"}, {"node_id", "file"}, {"output_name", "image"}, {"value", QJsonObject{{"type", "image"}, {"uri", "asset://retained"}}}});
+  auto media = model.collections(); QPersistentModelIndex file(media->index(0, 0)); QVERIFY(file.isValid());
+  const auto fileKey = media->data(file, Qt::UserRole);
+  for (const auto &output : {"left", "right"}) {
+   model.ingest("lifetime", {{"job_id", "lifetime"}, {"type", "output_update"}, {"node_id", "speaker"}, {"output_name", output}, {"value", QJsonObject{{"type", "chunk"}, {"content_type", "audio"}, {"content", "AAAAAA=="}}}});
+  }
+  auto rows = model.richEntries(); QCOMPARE(rows->rowCount(), 3);
+  auto child = model.pcmFor("speaker", "right"); QVERIFY(child);
+  bool observed = false, noControllerRoles = false, filePreserved = false;
+  QObject observerContext;
+  connect(child, &QObject::destroyed, &observerContext, [&] {
+   observed = true;
+   bool rawController = false;
+   for (int row = 0; row < rows->rowCount(); ++row) {
+    const auto entry = rows->data(rows->index(row, 0), Qt::UserRole + 4).toMap();
+    rawController = rawController || entry["pcmController"].value<QObject *>();
+   }
+   const auto emptyRole = rows->data(rows->index(0, 0), Qt::UserRole + 4);
+   noControllerRoles = !rawController && rows->rowCount() == 0 && !emptyRole.isValid();
+   filePreserved = file.isValid() && media->data(file, Qt::UserRole) == fileKey;
+  });
+  QSignalSpy mediaResets(media, &QAbstractItemModel::modelReset);
+  model.ingest("lifetime", {{"job_id", "lifetime"}, {"type", "job_update"}, {"status", "cancelled"}});
+  QVERIFY(observed); QVERIFY(noControllerRoles); QVERIFY(filePreserved); QVERIFY(file.isValid()); QCOMPARE(mediaResets.count(), 0);
+ }
+ void richRowsSurviveStreamingAndSiblingArrival() {
+  RunOutputModel model; model.beginRun("stable");
+  auto event = [](QString output, QString content) { return QJsonObject{{"job_id", "stable"}, {"type", "output_update"}, {"node_id", "speaker"}, {"output_name", output}, {"value", QJsonObject{{"type", "chunk"}, {"content_type", "audio"}, {"content", content}}}}; };
+  model.ingest("stable", event("left", "AAAAAA=="));
+  auto rows = model.richEntries(); QPersistentModelIndex first(rows->index(0, 0)); QVERIFY(first.isValid());
+  const auto key = rows->data(first, Qt::UserRole); const auto controller = model.pcmFor("speaker", "left"); QVERIFY(controller);
+  QSignalSpy resets(rows, &QAbstractItemModel::modelReset), removals(rows, &QAbstractItemModel::rowsRemoved), insertions(rows, &QAbstractItemModel::rowsInserted);
+  model.ingest("stable", event("left", "AID/fw==")); model.ingest("stable", event("right", "AAAAAA=="));
+  QVERIFY(first.isValid()); QCOMPARE(rows->data(first, Qt::UserRole), key);
+  QCOMPARE(rows->data(first, Qt::UserRole + 4).toMap()["pcmController"].value<QObject *>(), controller);
+  QCOMPARE(resets.count(), 0); QCOMPARE(removals.count(), 0); QCOMPARE(insertions.count(), 1); QCOMPARE(rows->rowCount(), 2);
+  auto replacement = event("left", "AAAAAA=="); replacement["disposition"] = "replace"; model.ingest("stable", replacement);
+  QVERIFY(first.isValid()); QCOMPARE(rows->data(first, Qt::UserRole), key); QCOMPARE(resets.count(), 0);
+ }
+ void pcmWireEncoding() {
+  PcmBuffer buffer; buffer.reset("run");
+  QVERIFY(buffer.append("run", {{"content", "AID/fw=="}, {"content_metadata", QJsonObject{{"encoding", "pcm16le"}}}}));
+ }
+ void pcmEmptyDone() {
+  PcmBuffer buffer; buffer.reset("run");
+  QVERIFY(buffer.append("run", {{"content", ""}, {"done", true}}));
+ }
+ void pcmConsumedStorageDoesNotBlockLiveInput() {
+  PcmBuffer buffer; buffer.reset("run", true);
+  QJsonObject block{{"content", QString::fromLatin1(QByteArray(4096, '\0').toBase64())}};
+  for (int i = 0; i < 1024; ++i) {
+   QVERIFY2(buffer.append("run", block), "Consumed samples must not exhaust sustained monitoring storage");
+   buffer.consume(buffer.pending().size());
+  }
+ }
+ void pcmOutputIsolation() {
+  RunOutputModel model; model.beginRun("run");
+  for (const auto &node : {"a", "b"}) {
+   model.ingest("run", {{"job_id", "run"}, {"type", "output_update"}, {"node_id", node}, {"output_name", "audio"},
+    {"value", QJsonObject{{"type", "chunk"}, {"content_type", "audio"}, {"content", "AAAAAA=="}}}});
+  }
+  const auto entries = model.entries(); QCOMPARE(entries.size(), 2);
+  const auto a = entries[0].toMap()["pcmController"].value<QObject *>();
+  const auto b = entries[1].toMap()["pcmController"].value<QObject *>();
+  QVERIFY(a); QVERIFY(b); QVERIFY(a != b);
+ }
  void toolCallDispatch() {
    RunOutputModel model; model.beginRun("tool");
    model.ingest("tool", {{"job_id", "tool"}, {"type", "output_update"}, {"node_id", "node"},

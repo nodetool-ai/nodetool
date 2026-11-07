@@ -1,4 +1,5 @@
 #include "ui/EditorWindow.h"
+#include <QDir>
 #include <QFile>
 #include <QDesktopServices>
 #include <QJsonDocument>
@@ -243,7 +244,7 @@ private slots:
             click(window, browse);
             QTRY_VERIFY(item(window, "workflow-select-value") && item(window, "workflow-select-value")->isEnabled());
             click(window, item(window, "workflow-select-value"));
-            QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Home);
+            QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Down);
             QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Return);
         } else if (kind == "collection" || kind == "image_size") {
             const auto selectName = kind == "collection" ? "collection-select-value" : "image-size-preset-value";
@@ -275,13 +276,13 @@ private slots:
         } else if (kind != "document") {
             QTRY_VERIFY(editor->property("loaded").toBool());
             click(window, item(window, "remaining-select-value"));
-            QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Home);
+            QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Down);
             QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Return);
         } else {
             click(window, item(window, "asset-refresh-value"));
             QTRY_VERIFY(item(window, "asset-select-value")->isEnabled());
             click(window, item(window, "asset-select-value"));
-            QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Home);
+            QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Down);
             QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Return);
         }
         QTRY_COMPARE(window.document()->undoStack()->count(), before + 1);
@@ -440,17 +441,238 @@ private slots:
     }
     void closingTabAbortsNetwork() {
         Server server;
+        server.delay = true;
         EditorWindow window;
         window.session()->connectToServer(server.url(), "secret", "owner");
         setup(window, "folder");
-        QTRY_VERIFY(item(window, "remaining-resource-value") && item(window, "remaining-resource-value")->property("loaded").toBool());
-        server.delay = true;
-        click(window, item(window, "remaining-refresh-value"));
+        QTRY_VERIFY(item(window, "remaining-resource-value"));
         QTRY_VERIFY(!server.pending.isEmpty());
         const auto socket = server.pending.last();
+        QVERIFY(socket && socket->state() == QAbstractSocket::ConnectedState);
         window.newTab();
         QVERIFY(window.closeTab(0));
         QTRY_VERIFY(!socket || socket->state() == QAbstractSocket::UnconnectedState);
+    }
+    // web/src/components/node/PropertyInput.tsx lines 323-328 and 556-640: a property resets only when
+    // it has a non-null default, it is marked and resettable once its value differs, and a reset
+    // undoes as one step.
+private:
+    // Whole-window captures in both themes, kept when NODETOOL_VISIBILITY_CAPTURE names a directory.
+    static void capture(EditorWindow& window, const QString& name) {
+        const auto directory = qEnvironmentVariable("NODETOOL_VISIBILITY_CAPTURE");
+        if (directory.isEmpty()) {
+            return;
+        }
+        QVERIFY(QDir().mkpath(directory));
+        for (const bool dark : {true, false}) {
+            window.setDarkTheme(dark);
+            QTest::qWait(150);
+            QVERIFY(window.grab().save(directory + "/" + name + (dark ? "-dark.png" : "-light.png")));
+        }
+    }
+    static void resetSetup(EditorWindow& window, const QJsonValue& stored, const QJsonValue& fallback, bool storedPresent = true) {
+        QJsonObject property{{"name", "Count"}, {"title", "Count"}, {"type", QJsonObject{{"type", "int"}}}, {"required", false}};
+        if (!fallback.isUndefined()) {
+            property["default"] = fallback;
+        }
+        window.setCatalog({QJsonObject{{"node_type", "Fixture"}, {"properties", QJsonArray{property}}}});
+        QJsonObject data;
+        if (storedPresent) {
+            data["Count"] = stored;
+        }
+        QVERIFY(window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "n"}, {"type", "Fixture"}, {"data", data}}}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1300, 1000);
+        window.show();
+        QVERIFY(window.selectNode("n"));
+        QTRY_VERIFY(item(window, "changed-marker"));
+    }
+    static void secondaryClick(EditorWindow& window, QQuickItem* target, Qt::KeyboardModifiers modifiers) {
+        QTest::mouseClick(inspector(window)->quickWindow(), Qt::RightButton, modifiers, target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint());
+    }
+private slots:
+    void changedValueIsMarkedAndResetsInOneUndoStep() {
+        EditorWindow window;
+        resetSetup(window, 5, 2);
+        auto* marker = item(window, "changed-marker");
+        auto* reset = item(window, "reset-default");
+        QVERIFY(marker->isVisible());
+        QVERIFY(reset && reset->isVisible() && reset->isEnabled());
+        capture(window, "changed");
+        click(window, reset);
+        QTRY_VERIFY(!window.document()->node("n")["data"].toObject().contains("Count"));
+        QTRY_VERIFY(!item(window, "changed-marker")->isVisible());
+        QVERIFY(!item(window, "reset-default")->isVisible());
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+        window.document()->undo();
+        QCOMPARE(window.document()->node("n")["data"].toObject()["Count"].toInt(), 5);
+        QTRY_VERIFY(item(window, "changed-marker")->isVisible());
+    }
+    void valueEqualToDefaultIsNotChanged() {
+        EditorWindow window;
+        resetSetup(window, 2, 2);
+        QVERIFY(!item(window, "changed-marker")->isVisible());
+        // A value at its default shows no reset action, as W19 records.
+        auto* reset = item(window, "reset-default");
+        QVERIFY(!reset || !reset->isVisible());
+        QCOMPARE(window.document()->undoStack()->count(), 0);
+        QCOMPARE(window.document()->node("n")["data"].toObject()["Count"].toInt(), 2);
+    }
+    void nullDefaultHasNothingToResetTo() {
+        EditorWindow window;
+        resetSetup(window, 5, QJsonValue::Null);
+        QVERIFY(!item(window, "changed-marker")->isVisible());
+        QVERIFY(!item(window, "reset-default") || !item(window, "reset-default")->isVisible());
+        QVERIFY(window.document()->node("n")["data"].toObject().contains("Count"));
+    }
+    void controlRightClickResetsAChangedProperty() {
+        EditorWindow window;
+        resetSetup(window, 5, 2);
+        auto* marker = item(window, "changed-marker");
+        QVERIFY(marker);
+        // A plain right click does nothing, as the web opens its context menu instead.
+        secondaryClick(window, marker, Qt::NoModifier);
+        QTest::qWait(30);
+        QCOMPARE(window.document()->node("n")["data"].toObject()["Count"].toInt(), 5);
+        secondaryClick(window, marker, Qt::ControlModifier);
+        QTRY_VERIFY(!window.document()->node("n")["data"].toObject().contains("Count"));
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+        // A value at its default ignores the shortcut, as the web's isChanged guard.
+        secondaryClick(window, item(window, "changed-marker"), Qt::ControlModifier);
+        QTest::qWait(30);
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+    }
+    // web/src/components/properties/{ListProperty,DictProperty,JSONProperty,RecordTypeProperty}.tsx:
+    // every committed edit is one document write, unknown fields survive, and text that is not valid
+    // never reaches the document.
+private:
+    static QJsonObject listOf(const char* entry) {
+        return {{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", entry}}}}};
+    }
+    static void structuredSetup(EditorWindow& window, const QJsonObject& type, const QJsonValue& value) {
+        window.setCatalog({QJsonObject{{"node_type", "Fixture"}, {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", type}, {"required", false}}}}}});
+        QVERIFY(window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "n"}, {"type", "Fixture"}, {"data", QJsonObject{{"value", value}}}}}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1300, 1000);
+        window.show();
+        QVERIFY(window.selectNode("n"));
+        QTRY_VERIFY(item(window, "structured-editor"));
+    }
+    static QJsonValue stored(EditorWindow& window) {
+        return window.document()->node("n")["data"].toObject()["value"];
+    }
+    static void type(EditorWindow& window, const QString& text) {
+        QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_A, Qt::ControlModifier);
+        for (const auto character : text.toLatin1()) {
+            QTest::keyClick(inspector(window)->quickWindow(), character);
+        }
+    }
+private slots:
+    void listEditsUseOneUndoStepEach() {
+        EditorWindow window;
+        structuredSetup(window, listOf("int"), QJsonArray{1, 2});
+        click(window, item(window, "structured-add"));
+        QTRY_COMPARE(stored(window).toArray(), (QJsonArray{1, 2, 0}));
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+        click(window, item(window, "structured-down-0"));
+        QTRY_COMPARE(stored(window).toArray(), (QJsonArray{2, 1, 0}));
+        click(window, item(window, "structured-remove-1"));
+        QTRY_COMPARE(stored(window).toArray(), (QJsonArray{2, 0}));
+        QCOMPARE(window.document()->undoStack()->count(), 3);
+        window.document()->undo();
+        QCOMPARE(stored(window).toArray(), (QJsonArray{2, 1, 0}));
+        window.document()->undo();
+        window.document()->undo();
+        QCOMPARE(stored(window).toArray(), (QJsonArray{1, 2}));
+    }
+    void nestedEntriesEditAsJsonAndKeepInvalidDraftsOut() {
+        EditorWindow window;
+        const QJsonArray original{QJsonObject{{"a", 1}, {"unknown", true}}, QJsonArray{1, 2}};
+        structuredSetup(window, listOf("any"), original);
+        QTRY_VERIFY(item(window, "structured-nested-0") && item(window, "structured-nested-1"));
+        capture(window, "structured");
+        click(window, item(window, "structured-nested-0"));
+        type(window, "{\"a\": ");
+        click(window, item(window, "structured-nested-1"));
+        QTRY_VERIFY(item(window, "structured-editor")->property("error").toString().contains("valid JSON"));
+        QCOMPARE(stored(window).toArray(), original);
+        QCOMPARE(window.document()->undoStack()->count(), 0);
+        click(window, item(window, "structured-nested-0"));
+        type(window, "{\"a\": 2, \"unknown\": true, \"nested\": {\"b\": [3]}}");
+        click(window, item(window, "structured-nested-1"));
+        QTRY_COMPARE(window.document()->undoStack()->count(), 1);
+        const auto result = stored(window).toArray();
+        QCOMPARE(result.at(0).toObject(), (QJsonObject{{"a", 2}, {"unknown", true}, {"nested", QJsonObject{{"b", QJsonArray{3}}}}}));
+        QCOMPARE(result.at(1), original.at(1));
+        QVERIFY(item(window, "structured-editor")->property("error").toString().isEmpty());
+        // Escape cancels a draft without writing.
+        click(window, item(window, "structured-nested-1"));
+        type(window, "[9]");
+        QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Escape);
+        QTest::qWait(30);
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+        QCOMPARE(stored(window).toArray().at(1), original.at(1));
+    }
+    void nestedContainerTypeIsEnforced() {
+        EditorWindow window;
+        const QJsonArray original{QJsonArray{1}, QJsonArray{2}};
+        structuredSetup(window, QJsonObject{{"type", "list"}, {"type_args", QJsonArray{listOf("int")}}}, original);
+        QTRY_VERIFY(item(window, "structured-nested-0") && item(window, "structured-nested-1"));
+        click(window, item(window, "structured-nested-0"));
+        type(window, "{\"a\": 1}");
+        click(window, item(window, "structured-nested-1"));
+        QTRY_COMPARE(item(window, "structured-editor")->property("error").toString(), QString("Enter a JSON list"));
+        QCOMPARE(stored(window).toArray(), original);
+        QCOMPARE(window.document()->undoStack()->count(), 0);
+    }
+    void jsonResourceKeepsUnknownFieldsAndRejectsBadText() {
+        EditorWindow window;
+        structuredSetup(window, QJsonObject{{"type", "json"}}, QJsonObject{{"type", "json"}, {"data", "{}"}, {"future", 7}});
+        click(window, item(window, "structured-json"));
+        type(window, "{\"a\": ");
+        click(window, item(window, "structured-apply-json"));
+        QTRY_VERIFY(!item(window, "structured-editor")->property("error").toString().isEmpty());
+        QCOMPARE(stored(window).toObject()["data"].toString(), QString("{}"));
+        QCOMPARE(window.document()->undoStack()->count(), 0);
+        click(window, item(window, "structured-json"));
+        type(window, "{\"a\": [1, 2]}");
+        click(window, item(window, "structured-apply-json"));
+        QTRY_COMPARE(window.document()->undoStack()->count(), 1);
+        QCOMPARE(stored(window).toObject()["data"].toString(), QString("{\"a\": [1, 2]}"));
+        QCOMPARE(stored(window).toObject()["future"].toInt(), 7);
+        // Blank text clears the resource without an error, as the web does.
+        click(window, item(window, "structured-json"));
+        type(window, "");
+        QTest::keyClick(inspector(window)->quickWindow(), Qt::Key_Delete);
+        click(window, item(window, "structured-apply-json"));
+        QTRY_COMPARE(stored(window).toObject()["data"].toString(), QString());
+        QVERIFY(item(window, "structured-editor")->property("error").toString().isEmpty());
+        window.document()->undo();
+        QCOMPARE(stored(window).toObject()["data"].toString(), QString("{\"a\": [1, 2]}"));
+    }
+    void dictionaryKeysStayUnique() {
+        EditorWindow window;
+        structuredSetup(window, QJsonObject{{"type", "dict"}, {"type_args", QJsonArray{QJsonObject{{"type", "str"}}, QJsonObject{{"type", "int"}}}}}, QJsonObject{{"first", 1}, {"second", 2}});
+        click(window, item(window, "structured-key-0"));
+        type(window, "second");
+        click(window, item(window, "structured-key-1"));
+        QTRY_VERIFY(!item(window, "structured-editor")->property("error").toString().isEmpty());
+        QCOMPARE(stored(window).toObject(), (QJsonObject{{"first", 1}, {"second", 2}}));
+        QCOMPARE(window.document()->undoStack()->count(), 0);
+        click(window, item(window, "structured-add"));
+        QTRY_COMPARE(stored(window).toObject().size(), 3);
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+    }
+    void recordColumnsKeepRowsAndUnknownFields() {
+        EditorWindow window;
+        const QJsonObject original{{"type", "record_type"}, {"columns", QJsonArray{QJsonObject{{"name", "Column 1"}, {"data_type", "string"}, {"description", ""}, {"future", 8}}}}, {"data", QJsonArray{QJsonArray{"x"}}}, {"future", 9}};
+        structuredSetup(window, QJsonObject{{"type", "record_type"}}, original);
+        click(window, item(window, "structured-add"));
+        QTRY_COMPARE(stored(window).toObject()["columns"].toArray().size(), 2);
+        const auto result = stored(window).toObject();
+        QCOMPARE(result["columns"].toArray().at(1).toObject()["name"].toString(), QString("Column 2"));
+        QCOMPARE(result["columns"].toArray().at(0).toObject()["future"].toInt(), 8);
+        QCOMPARE(result["data"], original["data"]);
+        QCOMPARE(result["future"].toInt(), 9);
+        QCOMPARE(window.document()->undoStack()->count(), 1);
     }
 };
 QTEST_MAIN(PropertyBehaviorTest)

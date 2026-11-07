@@ -59,13 +59,20 @@ class SubgraphCardTest : public QObject {
         QTest::mouseClick(view(w)->viewport(), Qt::LeftButton, modifiers, view(w)->mapFromScene(point));
         QCoreApplication::processEvents();
     }
-    static QMenu *context(EditorWindow &w, QString id) {
+    static QQuickWidget *context(EditorWindow &w, QString id) {
         const auto item = w.scene()->nodeGraphicsObject(graphId(w, id));
         const auto point = view(w)->mapFromScene(item->scenePos() + QPointF(90, 18));
         QContextMenuEvent event(QContextMenuEvent::Mouse, point, view(w)->viewport()->mapToGlobal(point));
         QApplication::sendEvent(view(w)->viewport(), &event);
-        QCoreApplication::processEvents();
-        return w.activeEditor()->findChild<QMenu *>();
+        QTest::qWait(60);
+        return w.activeEditor()->findChild<QQuickWidget *>("context-menu-host");
+    }
+    // The context menu is a Quick popup; the entry is found by its id.
+    static QQuickItem *groupItem(QQuickWidget *menu) {
+        if (!menu || !menu->rootObject()) { return nullptr; }
+        QVariant result;
+        QMetaObject::invokeMethod(menu->rootObject(), "itemFor", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, QString("group-into-subgraph")));
+        return qobject_cast<QQuickItem *>(result.value<QObject *>());
     }
     static QAction *groupAction(QMenu *menu) {
         if (!menu) { return nullptr; }
@@ -180,17 +187,17 @@ private slots:
         w.fit();
         QTest::qWait(100);
         clickNode(w, "a");
-        auto menu = context(w, "a");
-        auto action = groupAction(menu);
-        QVERIFY(action);
-        QVERIFY(!action->isEnabled());
-        menu->close();
+        auto *contextMenu = context(w, "a");
+        auto *entry = groupItem(contextMenu);
+        QVERIFY(entry);
+        QVERIFY(!entry->isEnabled());
+        QTest::keyClick(contextMenu, Qt::Key_Escape);
         w.setCatalog(catalog());
         w.scene()->clearSelection();
         QVERIFY(clickQuick(w, "toolbar-more"));
         QCoreApplication::processEvents();
-        menu = w.activeEditor()->findChild<QMenu *>("more-menu");
-        action = groupAction(menu);
+        auto menu = w.activeEditor()->findChild<QMenu *>("more-menu");
+        auto action = groupAction(menu);
         QVERIFY(action);
         QVERIFY(!action->isEnabled());
         menu->close();
@@ -209,11 +216,14 @@ private slots:
         clickNode(w, "b", Qt::ControlModifier);
         QCOMPARE(w.selectedCount(), 2);
         const auto before = QJsonDocument(w.document()->snapshot()).toJson();
-        auto menu = context(w, "a");
-        auto action = groupAction(menu);
-        QVERIFY(action);
-        QVERIFY(action->isEnabled());
-        QTest::mouseClick(menu, Qt::LeftButton, {}, menu->actionGeometry(action).center());
+        auto *menu = context(w, "a");
+        auto *entry = groupItem(menu);
+        QVERIFY(entry);
+        QVERIFY(entry->isEnabled());
+        const auto target = entry->mapToScene(QPointF(entry->width() / 2, entry->height() / 2)).toPoint();
+        QTest::mouseMove(menu, target);
+        QTest::qWait(30);
+        QTest::mouseClick(menu, Qt::LeftButton, {}, target);
         QTRY_COMPARE(w.document()->nodes().size(), 3);
         QJsonObject sub;
         for (const auto &value : w.document()->nodes()) {

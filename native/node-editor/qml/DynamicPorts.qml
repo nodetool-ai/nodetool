@@ -18,7 +18,9 @@ ColumnLayout {
         spacing: Ui.Metrics.xs
         visible: output ? root.controller.supportsOutputs : !root.outputsOnly && root.controller.supportsInputs
         Layout.fillWidth: true
-        function cancelDraft() { nameField.text = ""; typeField.value = typeField.options.length ? typeField.options[0].value : ""; draftNode = root.controller.selectedNode }
+        // A new output starts as str, as AddDynamicOutputDialog.tsx:37 does.
+        function defaultType() { return output && typeField.options.some(option => option.value === "str") ? "str" : typeField.options.length ? typeField.options[0].value : "" }
+        function cancelDraft() { nameField.text = ""; typeField.value = defaultType(); draftNode = root.controller.selectedNode }
         Connections { target: root.controller; function onChanged() { if (direction.draftNode !== root.controller.selectedNode) direction.cancelDraft() } }
         Ui.Text { text: direction.output ? "Dynamic outputs" : "Dynamic inputs"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
         Repeater {
@@ -30,7 +32,21 @@ ColumnLayout {
                 Component.onCompleted: editNode = root.controller.selectedNode
                 Layout.fillWidth: true
                 spacing: Ui.Metrics.xs
-                Ui.Text { text: port.modelData.type + (port.modelData.connected ? " · Connected" : ""); role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
+                Ui.Text { visible: !port.modelData.retypable; text: port.modelData.type + (port.modelData.connected ? " · Connected" : ""); role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
+                // The web type chip of an unconnected dynamic input (DynamicSlotTypePicker.tsx).
+                Ui.Select {
+                    objectName: "input-type-" + port.modelData.name
+                    visible: port.modelData.retypable
+                    Layout.fillWidth: true
+                    accessibleName: "Type of input " + port.modelData.name
+                    value: port.modelData.typeKey
+                    options: root.controller.inputTypes
+                    enabled: !root.controller.readOnly
+                    onValueCommitted: value => {
+                        if (port.editNode === root.controller.selectedNode && value !== port.modelData.typeKey)
+                            root.controller.setPortType(port.modelData.name, value)
+                    }
+                }
                 Ui.TextField {
                     id: renameField
                     objectName: (direction.output ? "output-name-" : "input-name-") + port.modelData.name
@@ -39,6 +55,10 @@ ColumnLayout {
                     accessibleName: "Rename " + (direction.output ? "output " : "input ") + port.modelData.name
                     enabled: !root.controller.readOnly
                     background: Rectangle { color: roles.field; radius: Ui.Metrics.radiusControl }
+                    // Enter renames, as PropertyInput.tsx:478-486 does. Leaving the field
+                    // keeps the draft for the Rename and Cancel buttons. Escape restores
+                    // the name through the field's own cancel.
+                    onAccepted: if (port.editNode === root.controller.selectedNode && text.trim() !== "" && text !== port.modelData.name) root.controller.renamePort(direction.output, port.modelData.name, text)
                 }
                 RowLayout {
                     Ui.EditorButton {
@@ -67,13 +87,15 @@ ColumnLayout {
             placeholderText: accessibleName
             enabled: !root.controller.readOnly
             background: Rectangle { color: roles.field; radius: Ui.Metrics.radiusControl }
+            // Enter adds, as the web add dialogs do (NodePropertyForm.tsx:163-168, AddDynamicOutputDialog.tsx:78-94).
+            onAccepted: if (direction.draftNode === root.controller.selectedNode && text.trim() !== "" && root.controller.addPort(direction.output, text, typeField.value)) direction.cancelDraft()
         }
         Ui.Select {
             id: typeField
             objectName: direction.output ? "new-output-type" : "new-input-type"
             Layout.fillWidth: true
             accessibleName: direction.output ? "New output type" : "New input type"
-            value: options.length ? options[0].value : ""
+            value: direction.defaultType()
             options: direction.output ? root.controller.outputTypes : root.controller.inputTypes
             enabled: !root.controller.readOnly
             onValueCommitted: value => typeField.value = value

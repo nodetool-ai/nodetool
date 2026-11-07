@@ -29,8 +29,15 @@ class WorkflowSession final : public QObject {
 public:
   Q_PROPERTY(QVariantList queue READ queue NOTIFY stateChanged)
   QVariantList queue() const;
+  // The server's latest `system_stats` sample: cpu_percent, memory_percent and memory_used_gb.
+  QVariantMap systemStats() const { return m_systemStats; }
   explicit WorkflowSession(QObject *parent = nullptr);
-  QJsonObject workflow() const { return m_workflow; }
+    QJsonObject workflow() const;
+    // The host invalidates synchronously. Only a snapshot reader serializes.
+    void setSnapshotProvider(std::function<QJsonObject()> provider);
+    void documentChanged();
+    // Emits a pending documentChanged() notification now instead of in its queued turn.
+    void flushDocumentNotification();
   QJsonObject catalog() const { return m_catalog; }
   bool dirty() const { return m_dirty; }
   bool saving() const { return m_saving; }
@@ -45,6 +52,10 @@ public:
   void setVersionRestoreBusy(bool busy) { m_saving = busy; emit stateChanged(); if (!busy) { refreshRemoteWorkflow(); } }
   void acknowledgeRestoredVersion(const QJsonObject &response);
   Q_INVOKABLE void flushAutosave();
+  // Saves a "Before execution" checkpoint version, then calls done(true). Calls done(false) when
+  // the document changed meanwhile, so the caller must not run it. Runs that need no checkpoint
+  // (no server binding, no nodes, a conflict, a failed request) call done(true) at once or after the reply.
+  void checkpointBeforeRun(std::function<void(bool)> done);
   Q_INVOKABLE void detachServerWorkflow();
   Q_INVOKABLE void refreshRemoteWorkflow();
   Q_INVOKABLE void reloadRemoteWorkflow();
@@ -79,13 +90,12 @@ signals:
   void catalogChanged();
   void stateChanged();
   void credentialsChanged(QUrl server, QString token, QString userId);
-  // Hosts that coalesce document snapshots flush them before the session reads or replaces its workflow.
-  void snapshotRequested();
   void errorOccurred(QString message);
   void saveConflict(QString workflowId);
   void saved(QString workflowId);
   void runEvent(QString jobId, QJsonObject event);
   void runSubmitted(QString jobId);
+  void systemStatsChanged();
 
 private:
   QSharedPointer<AccountJobs> m_accountJobs;
@@ -93,11 +103,15 @@ private:
                     const QJsonObject &fullSnapshot, const QJsonArray &metadata,
                     const QStringList &executed);
   void clearConflict();
+  void submitAutosave(bool checkpoint, std::function<void(bool)> done);
   void externalWorkflowChange(const QJsonObject &event);
   WorkflowAutosave m_autosave;
   QString m_autosaveState = "saved";
   QJsonObject m_remoteWorkflow;
   bool m_conflictPending = false, m_remoteLoading = false, m_remoteAgain = false, m_flushAgain = false;
+  // The compared server revision a deferred Keep local applies to.
+  QString m_keepLocalRevision;
+  void resumeKeepLocal();
   quint64 m_remoteEpoch = 0;
   ExecutionGenerationStore m_generations;
   GenerationHistory m_history;
@@ -112,9 +126,14 @@ private:
   QWebSocket m_socket;
   QUrl m_base;
   QString m_token, m_userId, m_id, m_revision;
-  QJsonObject m_workflow, m_catalog, m_persistedWorkflow;
+    std::function<QJsonObject()> m_snapshotProvider;
+    mutable QJsonObject m_workflow;
+    mutable quint64 m_snapshotEdit = 0;
+    bool m_documentNotificationPending = false;
+    QJsonObject m_catalog, m_persistedWorkflow;
   QHash<QString, QJsonObject> m_runs;
   quint64 m_queueOrder = 0;
+  QVariantMap m_systemStats;
   quint64 m_epoch = 0, m_documentEpoch = 0, m_loadEpoch = 0, m_edit = 0;
   bool m_connected = false, m_dirty = false, m_saving = false;
   bool m_reconnecting = false;

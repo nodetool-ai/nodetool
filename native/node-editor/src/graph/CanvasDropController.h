@@ -31,11 +31,14 @@ signals:
   void changed();
   void errorOccurred(QString message);
   void nodeCreated(QString id);
+  void workflowFileDropped(QString path);
 protected:
   bool eventFilter(QObject *, QEvent *) override;
 private:
   struct Transfer {
     QString key, name, kind, assetId, state, error;
+    // A drop on a card's media drop zone sets that property instead of adding a node.
+    QString targetNode, targetProperty, targetKind;
     QUrl file;
     QPointF position;
     QJsonValue value;
@@ -60,6 +63,8 @@ private:
   void downloadText(const QString &, const QUrl &);
   void finish(const QString &, const QJsonValue &);
   bool accepts(const QMimeData *) const;
-  void drop(const QMimeData *, const QPointF &);
+  // The node, property and media type of the drop zone under a viewport point.
+  QStringList dropZone(const QPoint &viewportPosition) const;
+  void drop(const QMimeData *, const QPointF &, const QStringList &zone);
 };
 }

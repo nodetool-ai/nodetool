@@ -1,9 +1,14 @@
 #include "ui/EditorWindow.h"
 #include "media/VideoFrameView.h"
 #include <QApplication>
+#include <QDockWidget>
+#include <QtEndian>
 #include <QBuffer>
 #include <QImage>
 #include <QQuickTextDocument>
+#include <QQmlEngine>
+#include <QJSValue>
+#include <QEvent>
 #include <QTextBlock>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -18,9 +23,133 @@ static QQuickItem *visualItem(QQuickItem *root, const QString &name) {
  for (auto child : root->childItems()) { if (auto found = visualItem(child, name)) { return found; } }
  return nullptr;
 }
+struct PcmUiRecord { QByteArray bytes; int stops = 0; };
+class PcmUiSink final : public node_editor::PcmSink {
+public:
+ explicit PcmUiSink(std::shared_ptr<PcmUiRecord> record) : record(std::move(record)) {}
+ QAudioFormat preferredFormat() const override { QAudioFormat format; format.setSampleRate(24000); format.setChannelCount(1); format.setSampleFormat(QAudioFormat::Float); return format; }
+ bool supports(const QAudioFormat &format) const override { return format == preferredFormat(); }
+ bool start(const QAudioFormat &) override { return true; }
+ qsizetype capacityBytes() const override { return 9600; }
+ qint64 write(QByteArrayView bytes) override { record->bytes.append(bytes.data(), bytes.size()); return bytes.size(); }
+ bool drained() const override { return false; }
+ bool failed() const override { return false; }
+ void stop() override { ++record->stops; }
+ std::shared_ptr<PcmUiRecord> record;
+};
+static QJsonObject pcmUiEvent(const QString &output) {
+ QByteArray bytes(2048, Qt::Uninitialized);
+ for (int i = 0; i < 1024; ++i) { qToLittleEndian<qint16>(i % 48 < 24 ? 4096 : -4096, bytes.data() + i * 2); }
+ return {{"job_id", "pcm-ui"}, {"type", "output_update"}, {"node_id", "speaker"}, {"output_name", output}, {"value", QJsonObject{{"type", "chunk"}, {"content_type", "audio"}, {"content", QString::fromLatin1(bytes.toBase64())}, {"content_metadata", QJsonObject{{"encoding", "pcm16le"}, {"sample_rate", 24000}, {"channels", 1}}}}}};
+}
+static QQuickItem *pcmUiControl(QQuickItem *root, const QString &name, QObject *controller) {
+ if (root->objectName() == name && root->isVisible()) {
+  for (auto parent = root->parentItem(); parent; parent = parent->parentItem()) {
+   if (parent->property("controller").value<QObject *>() == controller) { return root; }
+  }
+ }
+ for (auto child : root->childItems()) { if (auto found = pcmUiControl(child, name, controller)) { return found; } }
+ return nullptr;
+}
+static QQuickWidget *pcmUiPanel(EditorWindow &window) {
+ for (auto widget : window.findChildren<QQuickWidget *>()) { if (widget->source().fileName() == "RunOutput.qml") { return widget; } }
+ return nullptr;
+}
 class RichOutputHostTest final : public QObject {
  Q_OBJECT
 private slots:
+ void pcmInvokableResultsRemainNativelyOwned() {
+  EditorWindow window; window.resize(1400, 1000); window.show(); window.action("Output");
+  window.runOutput()->setPcmSinkFactory([] { return std::make_unique<PcmUiSink>(std::make_shared<PcmUiRecord>()); });
+  window.runOutput()->beginRun("pcm-ui"); window.runOutput()->ingest("pcm-ui", pcmUiEvent("left")); window.runOutput()->ingest("pcm-ui", pcmUiEvent("right"));
+  auto panel = pcmUiPanel(window); QVERIFY(panel); QTRY_COMPARE(panel->status(), QQuickWidget::Ready);
+  QPointer<QObject> left = window.runOutput()->pcmFor("speaker", "left"), right = window.runOutput()->pcmFor("speaker", "right"); QVERIFY(left); QVERIFY(right);
+  auto engine = panel->engine();
+  QQmlEngine::setObjectOwnership(window.runOutput(), QQmlEngine::CppOwnership);
+  auto api = engine->newQObject(window.runOutput()); auto lookup = api.property("pcmFor");
+  auto leftHandle = lookup.callWithInstance(api, {QJSValue(QStringLiteral("speaker")), QJSValue(QStringLiteral("left"))});
+  auto rightHandle = lookup.callWithInstance(api, {QJSValue(QStringLiteral("speaker")), QJSValue(QStringLiteral("right"))});
+  QCOMPARE(leftHandle.toQObject(), left.data()); QCOMPARE(rightHandle.toQObject(), right.data());
+  const bool nativeParents = left->parent() == window.runOutput() && right->parent() == window.runOutput();
+  if (!nativeParents) {
+   // Keep an invalid member-ownership regression from deleting a C++ member
+   // when the test releases the JavaScript return values.
+   QQmlEngine::setObjectOwnership(left, QQmlEngine::CppOwnership); QQmlEngine::setObjectOwnership(right, QQmlEngine::CppOwnership);
+   QFAIL("Invokable-returned PCM controllers must remain parented to RunOutputModel");
+  }
+  leftHandle = QJSValue(); rightHandle = QJSValue(); api = QJSValue(); lookup = QJSValue(); engine->collectGarbage(); QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete); QCoreApplication::processEvents();
+  QVERIFY(left); QVERIFY(right); QCOMPARE(window.runOutput()->pcmFor("speaker", "left"), left.data());
+  window.runOutput()->reset(); engine->collectGarbage(); QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete); QCoreApplication::processEvents();
+  QVERIFY(left); QVERIFY(!right); QCOMPARE(left->parent(), static_cast<QObject *>(window.runOutput()));
+ }
+ void pcmPerOutputFifoControls() {
+  EditorWindow window; window.resize(1400, 1200); window.show(); window.action("Output");
+  if (auto dock = window.findChild<QDockWidget *>("run-output-dock")) { dock->setMinimumHeight(600); }
+  const auto snapshot = window.document()->snapshot(); const auto undo = window.document()->undoStack()->count();
+  auto records = std::make_shared<QList<std::shared_ptr<PcmUiRecord>>>();
+  window.runOutput()->setPcmSinkFactory([records] { auto record = std::make_shared<PcmUiRecord>(); records->append(record); return std::make_unique<PcmUiSink>(record); });
+  window.runOutput()->beginRun("pcm-ui"); window.runOutput()->ingest("pcm-ui", pcmUiEvent("left")); window.runOutput()->ingest("pcm-ui", pcmUiEvent("right"));
+  auto left = qobject_cast<node_editor::PcmStream *>(window.runOutput()->pcmFor("speaker", "left"));
+  auto right = qobject_cast<node_editor::PcmStream *>(window.runOutput()->pcmFor("speaker", "right"));
+  QVERIFY(left); QVERIFY(right); QVERIFY(left != right); QVERIFY(right->queued());
+  auto panel = pcmUiPanel(window); QVERIFY(panel); QTRY_COMPARE(panel->status(), QQuickWidget::Ready);
+  QTRY_VERIFY(pcmUiControl(panel->rootObject(), "pcm-start-stop", left));
+  QTRY_VERIFY(panel->isVisible()); QTest::qWait(150);
+  auto click = [panel](QQuickItem *item) {
+   QVERIFY(item); const auto position = item->mapToScene(QPointF(item->width()/2, item->height()/2)).toPoint();
+   auto scroll = visualItem(panel->rootObject(), "run-output-scroll"); QVERIFY(scroll);
+   QVERIFY(panel->rect().contains(position)); QVERIFY(scroll->contains(scroll->mapFromScene(position)));
+   QSignalSpy clicked(item, SIGNAL(clicked())); QVERIFY(clicked.isValid());
+   QTest::mousePress(panel, Qt::LeftButton, Qt::NoModifier, position);
+   const bool pressed = item->property("pressed").toBool();
+   QTest::mouseRelease(panel, Qt::LeftButton, Qt::NoModifier, position);
+   QVERIFY(pressed); QCOMPARE(clicked.count(), 1);
+  };
+  QCOMPARE(records->size(), 1); QVERIFY(!records->first()->bytes.isEmpty());
+  click(pcmUiControl(panel->rootObject(), "pcm-start-stop", left)); QTRY_VERIFY(!left->playing()); QTRY_VERIFY(right->playing() && !right->queued());
+  QCOMPARE(records->size(), 2); QVERIFY(!records->at(1)->bytes.isEmpty()); QCOMPARE(records->first()->stops, 1);
+  auto restart = pcmUiControl(panel->rootObject(), "pcm-restart", left); QVERIFY(restart); click(restart); QTRY_VERIFY(left->queued());
+  auto stop = pcmUiControl(panel->rootObject(), "pcm-start-stop", right); QVERIFY(stop); click(stop); QTRY_VERIFY(left->playing() && !left->queued());
+  QCOMPARE(records->size(), 3); QVERIFY(!records->at(2)->bytes.isEmpty());
+  auto start = pcmUiControl(panel->rootObject(), "pcm-start-stop", right); QVERIFY(start); QCOMPARE(start->property("text").toString(), "Start");
+  click(start); QTRY_VERIFY(right->queued()); QVERIFY(left->playing() && !left->queued());
+  click(pcmUiControl(panel->rootObject(), "pcm-start-stop", right)); QTRY_VERIFY(!right->playing()); QCOMPARE(records->size(), 3);
+  QCOMPARE(window.runOutput()->pcmFor("speaker", "left"), static_cast<QObject *>(left));
+  QCOMPARE(window.document()->snapshot(), snapshot); QCOMPARE(window.document()->undoStack()->count(), undo);
+ }
+ void pcmPressSurvivesChunkUpdate_data() {
+  QTest::addColumn<bool>("newSibling");
+  QTest::newRow("append-existing-output") << false;
+  QTest::newRow("first-sibling-output") << true;
+ }
+ void pcmPressSurvivesChunkUpdate() {
+  QFETCH(bool, newSibling);
+  EditorWindow window; window.resize(1400, 1200); window.show(); window.action("Output");
+  if (auto dock = window.findChild<QDockWidget *>("run-output-dock")) { dock->setMinimumHeight(600); }
+  window.runOutput()->setPcmSinkFactory([] { return std::make_unique<PcmUiSink>(std::make_shared<PcmUiRecord>()); });
+  window.runOutput()->beginRun("pcm-ui"); window.runOutput()->ingest("pcm-ui", pcmUiEvent("left"));
+  if (!newSibling) { window.runOutput()->ingest("pcm-ui", pcmUiEvent("right")); }
+  auto left = qobject_cast<node_editor::PcmStream *>(window.runOutput()->pcmFor("speaker", "left"));
+  auto right = qobject_cast<node_editor::PcmStream *>(window.runOutput()->pcmFor("speaker", "right")); QVERIFY(left); if (!newSibling) { QVERIFY(right); }
+  auto panel = pcmUiPanel(window); QVERIFY(panel); QTRY_COMPARE(panel->status(), QQuickWidget::Ready);
+  QTRY_VERIFY(pcmUiControl(panel->rootObject(), "pcm-start-stop", left));
+  QTRY_VERIFY(panel->isVisible()); QTest::qWait(150);
+  QPointer<QQuickItem> control = pcmUiControl(panel->rootObject(), "pcm-start-stop", left);
+  panel->setFocus(); control->forceActiveFocus(); QTRY_VERIFY(control->hasActiveFocus());
+  const auto position = control->mapToScene(QPointF(control->width()/2, control->height()/2)).toPoint();
+  auto scroll = visualItem(panel->rootObject(), "run-output-scroll"); QVERIFY(scroll);
+  QVERIFY(panel->rect().contains(position)); QVERIFY(scroll->contains(scroll->mapFromScene(position)));
+  QTest::mousePress(panel, Qt::LeftButton, Qt::NoModifier, position);
+  if (!control->property("pressed").toBool()) { QTest::mouseRelease(panel, Qt::LeftButton, Qt::NoModifier, position); QFAIL("The settled Stop target did not receive mouse press"); }
+  window.runOutput()->ingest("pcm-ui", pcmUiEvent(newSibling ? "right" : "left")); QCoreApplication::processEvents();
+  if (newSibling) { right = qobject_cast<node_editor::PcmStream *>(window.runOutput()->pcmFor("speaker", "right")); QVERIFY(right); }
+  const bool retained = control && pcmUiControl(panel->rootObject(), "pcm-start-stop", left) == control.data();
+  const bool focused = control && control->hasActiveFocus();
+  QTest::mouseRelease(panel, Qt::LeftButton, Qt::NoModifier, position);
+  QVERIFY2(retained, "A PCM update must preserve the pressed Stop control identity"); QVERIFY(focused);
+  QTRY_VERIFY(!left->playing()); QTRY_VERIFY(right->playing() && !right->queued());
+  QCOMPARE(window.runOutput()->pcmFor("speaker", "left"), static_cast<QObject *>(left));
+ }
  void textReferenceRetryAndLinks() {
    QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
    int attempts = 0;

@@ -30,6 +30,8 @@ add_library(node_editor_core STATIC
  src/server/MsgPack.cpp src/server/WorkflowSession.cpp src/server/WorkflowSession.h
  src/graph/WorkflowGraphModel.cpp src/graph/WorkflowGraphModel.h
  src/graph/NodeLayout.cpp src/graph/NodeLayout.h
+ src/graph/CardBodies.cpp src/graph/CardBodies.h
+ src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h
@@ -39,7 +41,9 @@ add_library(node_editor_core STATIC
  src/graph/CompatibleNodePicker.cpp src/graph/CompatibleNodePicker.h
  src/graph/BodyConnectionRules.cpp src/graph/BodyConnectionRules.h
  src/graph/NodeCreation.cpp src/graph/NodeCreation.h
+ src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/RerouteTypes.cpp src/graph/RerouteTypes.h
+ src/run/RunTraceController.cpp src/run/RunTraceController.h
  src/run/GenerationHistory.cpp src/run/GenerationHistory.h
  src/run/PartialRunPlanner.cpp src/run/PartialRunPlanner.h
  src/run/RunOutputModel.cpp src/run/RunOutputModel.h
@@ -47,24 +51,38 @@ add_library(node_editor_core STATIC
  src/run/NodeRuntimeModel.cpp src/run/NodeRuntimeModel.h
  src/media/MediaResolver.cpp src/media/MediaResolver.h
  src/media/PcmStream.cpp src/media/PcmStream.h
+ src/media/AudioVisualAnalysis.h
+ src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
  src/media/AudioWaveform.cpp src/media/AudioWaveform.h
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
- src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp
+ src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
-qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/EditorChat.qml qml/QueueOverlay.qml qml/SetupGuide.qml qml/SetupPanel.qml qml/CodeSyntax.qml qml/VersionHistoryPanel.qml qml/VersionGraphPreview.qml qml/WorkflowDetails.qml qml/ActionPanel.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/CanvasTabStrip.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/Toolbar.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/OptionalPacksSection.qml qml/Catalog.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/WorkflowBrowser.qml qml/PropertyField.qml qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/CodePropertyEditor.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/MediaGallery.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
+qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/EditorChat.qml qml/QueueOverlay.qml qml/SetupGuide.qml qml/SetupPanel.qml qml/CodeSyntax.qml qml/VersionHistoryPanel.qml qml/VersionGraphPreview.qml qml/WorkflowDetails.qml qml/ActionPanel.qml qml/ContextMenuPanel.qml qml/FindPanel.qml qml/ShortcutKeyboard.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/CanvasTabStrip.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/Toolbar.qml qml/HeaderRow.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/OptionalPacksSection.qml qml/Catalog.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/DynamicPortDialog.qml qml/WorkflowBrowser.qml qml/PropertyField.qml qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/CodePropertyEditor.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RunTracePanel.qml qml/TraceSpanLane.qml qml/TraceAttributeList.qml qml/TraceSpanDetails.qml qml/TraceLogDetails.qml qml/TraceLogList.qml qml/TraceSpanPicker.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/MediaGallery.qml qml/ImageViewer.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
+# The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.
+qt_add_resources(node_editor_core editor_type_icons PREFIX /editor/data_types BASE resources/data_types FILES resources/data_types/any.svg resources/data_types/asset.svg resources/data_types/assistant.svg resources/data_types/audio.svg resources/data_types/bool.svg resources/data_types/chunk.svg resources/data_types/database.svg resources/data_types/dataframe.svg resources/data_types/date.svg resources/data_types/datetime.svg resources/data_types/dict.svg resources/data_types/document.svg resources/data_types/enum.svg resources/data_types/file.svg resources/data_types/float.svg resources/data_types/flow.svg resources/data_types/folder.svg resources/data_types/help.svg resources/data_types/image_model.svg resources/data_types/image.svg resources/data_types/int.svg resources/data_types/language_model.svg resources/data_types/list.svg resources/data_types/model_3d.svg resources/data_types/model.svg resources/data_types/notype.svg resources/data_types/np_array.svg resources/data_types/preview.svg resources/data_types/star.svg resources/data_types/string.svg resources/data_types/str.svg resources/data_types/task.svg resources/data_types/tensor.svg resources/data_types/text.svg resources/data_types/thread_message.svg resources/data_types/thread.svg resources/data_types/union.svg resources/data_types/video.svg)
 if(BUILD_TESTING)
+    qt_add_executable(node_editor_run_trace_tests tests/ui/RunTraceTest.cpp)
+    target_link_libraries(node_editor_run_trace_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_run_trace_tests)
+    add_test(NAME node_editor_run_trace COMMAND node_editor_run_trace_tests)
+    set_tests_properties(node_editor_run_trace PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(node_editor_large_graph_tests tests/perf/LargeGraphTest.cpp)
     target_link_libraries(node_editor_large_graph_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_large_graph_tests)
     add_test(NAME node_editor_large_graph COMMAND node_editor_large_graph_tests)
     set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_dynamic_card_tests tests/ui/DynamicCardTest.cpp)
+    target_link_libraries(node_editor_dynamic_card_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_dynamic_card_tests)
+    add_test(NAME node_editor_dynamic_card COMMAND node_editor_dynamic_card_tests)
+    set_tests_properties(node_editor_dynamic_card PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(node_editor_chat_tools_tests tests/ui/EditorChatToolsTest.cpp)
     target_link_libraries(node_editor_chat_tools_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_chat_tools_tests)
@@ -77,6 +95,8 @@ if(BUILD_TESTING)
         src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
         src/media/AudioWaveform.cpp src/media/AudioWaveform.h
         src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+        src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+        src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
         src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
     node_editor_use_code_inference(node_editor_remaining_property_tests)
     target_include_directories(node_editor_remaining_property_tests PRIVATE src)
@@ -93,6 +113,11 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_workflow_tabs_tests)
  add_test(NAME node_editor_workflow_tabs COMMAND node_editor_workflow_tabs_tests)
  set_tests_properties(node_editor_workflow_tabs PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ qt_add_executable(node_editor_workflow_tabs_drag_tests tests/ui/WorkflowTabsDragTest.cpp)
+ target_link_libraries(node_editor_workflow_tabs_drag_tests PRIVATE node_editor_core Qt6::Test Qt6::WebSockets)
+ nodetool_use_ui_primitives(node_editor_workflow_tabs_drag_tests)
+ add_test(NAME node_editor_workflow_tabs_drag COMMAND node_editor_workflow_tabs_drag_tests)
+ set_tests_properties(node_editor_workflow_tabs_drag PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  qt_add_executable(node_editor_viewport_navigator_tests tests/ui/ViewportNavigatorTest.cpp)
  target_link_libraries(node_editor_viewport_navigator_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_viewport_navigator_tests)
@@ -144,6 +169,11 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_group_authoring_tests)
  add_test(NAME node_editor_group_authoring COMMAND node_editor_group_authoring_tests)
  set_tests_properties(node_editor_group_authoring PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ qt_add_executable(node_editor_node_actions_tests tests/ui/NodeActionsTest.cpp)
+ target_link_libraries(node_editor_node_actions_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_node_actions_tests)
+ add_test(NAME node_editor_node_actions COMMAND node_editor_node_actions_tests)
+ set_tests_properties(node_editor_node_actions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  qt_add_executable(node_editor_group_presentation_tests tests/graph/GroupPresentationTest.cpp)
  target_link_libraries(node_editor_group_presentation_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_group_presentation_tests)
@@ -224,6 +254,14 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_canvas_authoring_tests)
  add_test(NAME node_editor_canvas_authoring COMMAND node_editor_canvas_authoring_tests)
  set_tests_properties(node_editor_canvas_authoring PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_catalog_tests tests/ui/CatalogTest.cpp)
+ target_link_libraries(node_editor_catalog_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_catalog_tests)
+ add_test(NAME node_editor_catalog COMMAND node_editor_catalog_tests)
+ set_tests_properties(node_editor_catalog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)
@@ -321,7 +359,16 @@ if(BUILD_TESTING)
  add_test(NAME node_editor_pcm COMMAND node_editor_pcm_tests)
 endif()
 
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_live_audio_visualizer_tests tests/media/LiveAudioVisualizerTest.cpp)
+ target_link_libraries(node_editor_live_audio_visualizer_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_live_audio_visualizer_tests)
+ add_test(NAME node_editor_live_audio_visualizer COMMAND node_editor_live_audio_visualizer_tests)
+ set_tests_properties(node_editor_live_audio_visualizer PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
 qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js)
+qt_add_resources(node_editor_core chat_tool_manifest PREFIX /editor/chat BASE resources/chat FILES resources/chat/tool-manifest.json)
 
 if(BUILD_TESTING)
  qt_add_executable(node_editor_versions_tests tests/server/WorkflowVersionsTests.cpp)
@@ -345,6 +392,14 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_versions_host_tests)
  add_test(NAME node_editor_versions_host COMMAND node_editor_versions_host_tests)
  set_tests_properties(node_editor_versions_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_version_history_polish_tests tests/ui/VersionHistoryPolishTest.cpp)
+ target_link_libraries(node_editor_version_history_polish_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_version_history_polish_tests)
+ add_test(NAME node_editor_version_history_polish COMMAND node_editor_version_history_polish_tests)
+ set_tests_properties(node_editor_version_history_polish PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)
@@ -419,4 +474,61 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_property_behavior_tests)
     add_test(NAME node_editor_property_behavior COMMAND node_editor_property_behavior_tests)
     set_tests_properties(node_editor_property_behavior PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_runtime_fake tests/ui/RuntimeInstallFake.cpp)
+    target_link_libraries(node_editor_runtime_fake PRIVATE Qt6::Core)
+    qt_add_executable(node_editor_runtime_install_tests tests/ui/RuntimeInstallTest.cpp)
+    target_link_libraries(node_editor_runtime_install_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_runtime_install_tests)
+    add_dependencies(node_editor_runtime_install_tests node_editor_runtime_fake)
+    add_test(NAME node_editor_runtime_install COMMAND node_editor_runtime_install_tests)
+    set_tests_properties(node_editor_runtime_install PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_window_parity_tests tests/ui/WindowParityTest.cpp)
+    target_link_libraries(node_editor_window_parity_tests PRIVATE node_editor_core Qt6::Test)
+    target_compile_definitions(node_editor_window_parity_tests PRIVATE
+        WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
+    nodetool_use_ui_primitives(node_editor_window_parity_tests)
+    add_test(NAME node_editor_window_parity COMMAND node_editor_window_parity_tests)
+    set_tests_properties(node_editor_window_parity PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_card_bodies_tests tests/ui/CardBodiesTest.cpp)
+    target_link_libraries(node_editor_card_bodies_tests PRIVATE node_editor_core Qt6::Test)
+    target_compile_definitions(node_editor_card_bodies_tests PRIVATE
+        WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
+    nodetool_use_ui_primitives(node_editor_card_bodies_tests)
+    add_test(NAME node_editor_card_bodies COMMAND node_editor_card_bodies_tests)
+    set_tests_properties(node_editor_card_bodies PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_header_row_tests tests/ui/HeaderRowTest.cpp)
+    target_link_libraries(node_editor_header_row_tests PRIVATE node_editor_core Qt6::Test Qt6::WebSockets)
+    target_compile_definitions(node_editor_header_row_tests PRIVATE
+        WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
+    nodetool_use_ui_primitives(node_editor_header_row_tests)
+    add_test(NAME node_editor_header_row COMMAND node_editor_header_row_tests)
+    set_tests_properties(node_editor_header_row PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_chrome_parity_tests tests/ui/ChromeParityTest.cpp)
+    target_link_libraries(node_editor_chrome_parity_tests PRIVATE node_editor_core Qt6::Test)
+    target_compile_definitions(node_editor_chrome_parity_tests PRIVATE
+        WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
+    nodetool_use_ui_primitives(node_editor_chrome_parity_tests)
+    add_test(NAME node_editor_chrome_parity COMMAND node_editor_chrome_parity_tests)
+    set_tests_properties(node_editor_chrome_parity PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+    qt_add_executable(node_editor_selection_presentation_tests tests/ui/SelectionPresentationTest.cpp)
+    target_link_libraries(node_editor_selection_presentation_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_selection_presentation_tests)
+    add_test(NAME node_editor_selection_presentation COMMAND node_editor_selection_presentation_tests)
+    set_tests_properties(node_editor_selection_presentation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # Each test binary writes its settings to a private temporary directory.
+    get_property(node_editor_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(test_target IN LISTS node_editor_test_targets)
+        if(test_target MATCHES "_tests$")
+            target_sources(${test_target} PRIVATE tests/support/SettingsIsolation.cpp)
+        endif()
+    endforeach()
 endif()

@@ -28,6 +28,12 @@ class InlineTitleTest final : public QObject {
       QJsonObject{{"id", "comment"}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Comment body"}}}, {"ui_properties", QJsonObject{{"title", "Not a separate note"}, {"position", QJsonObject{{"x", 600}, {"y", 300}}}}}}
     }}, {"edges", QJsonArray{}}}}};
   }
+  // The edge context menu is a Quick popup; an entry is found by its id.
+  static QQuickItem *menuEntry(QQuickWidget *menu, const QString &id) {
+    QVariant result;
+    QMetaObject::invokeMethod(menu->rootObject(), "itemFor", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, id));
+    return qobject_cast<QQuickItem *>(result.value<QObject *>());
+  }
   static QtNodes::NodeId nodeId(EditorWindow &window, const QString &resource) {
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     for (const auto id : model.allNodeIds()) if (model.resourceId(id) == resource) return id;
@@ -79,10 +85,14 @@ private slots:
     QVERIFY(viewport->viewport()->rect().contains(pixel));
     QContextMenuEvent context(QContextMenuEvent::Mouse, pixel, viewport->viewport()->mapToGlobal(pixel));
     QApplication::sendEvent(viewport->viewport(), &context);
-    QTRY_VERIFY(window.findChild<QMenu *>("data-edge-menu"));
-    auto *menu = window.findChild<QMenu *>("data-edge-menu");
-    auto *insert = menu->findChild<QAction *>("insert-reroute"); QVERIFY(insert); QVERIFY(insert->isEnabled());
-    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(insert).center());
+    QTRY_VERIFY(window.findChild<QQuickWidget *>("context-menu-host"));
+    auto *menu = window.findChild<QQuickWidget *>("context-menu-host");
+    QTest::qWait(60);
+    auto *insert = menuEntry(menu, "insert-reroute"); QVERIFY(insert); QVERIFY(insert->isEnabled());
+    const auto target = insert->mapToScene(QPointF(insert->width() / 2, insert->height() / 2)).toPoint();
+    QTest::mouseMove(menu, target);
+    QTest::qWait(30);
+    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, target);
     QTRY_COMPARE(window.document()->nodes().size(), 3);
     QString reroute;
     for (const auto &value : window.document()->nodes()) {
@@ -125,11 +135,11 @@ private slots:
     QTRY_COMPARE(model.allNodeIds().size(), size_t(2));
     QContextMenuEvent stale(QContextMenuEvent::Mouse, pixel, viewport->viewport()->mapToGlobal(pixel));
     QApplication::sendEvent(viewport->viewport(), &stale);
-    QTRY_VERIFY(window.findChild<QMenu *>("data-edge-menu"));
-    QPointer<QAction> staleAction = window.findChild<QMenu *>("data-edge-menu")->findChild<QAction *>("insert-reroute");
-    QVERIFY(staleAction);
+    QTRY_VERIFY(window.findChild<QQuickWidget *>("context-menu-host"));
+    QPointer<QQuickWidget> staleMenu = window.findChild<QQuickWidget *>("context-menu-host");
+    QVERIFY(staleMenu);
     QVERIFY(window.document()->load(initial));
-    if (staleAction) { staleAction->trigger(); }
+    QTRY_VERIFY(!staleMenu || !staleMenu->isVisible());
     QCoreApplication::processEvents();
     QCOMPARE(window.document()->snapshot(), initial);
     QCOMPARE(window.document()->undoStack()->index(), 0);
@@ -181,8 +191,63 @@ private slots:
     QCOMPARE(window.document()->undoStack()->index(), 2);
     QVERIFY(!note(window, "group")); QVERIFY(!note(window, "comment"));
     const auto comment = window.scene()->nodeGraphicsObject(nodeId(window, "comment")); QVERIFY(comment); view->centerOn(comment);
+    // A comment's ui title is not a note, but its text edits in place on the card.
     QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(comment->scenePos() + QPointF(80, 40)));
-    QVERIFY(!overlay(window)); QCOMPARE(window.document()->node("comment")["data"].toObject()["comment"].toString(), QString("Comment body"));
+    QTRY_VERIFY(overlay(window)); QTest::keyClick(overlay(window), Qt::Key_Escape); QTRY_VERIFY(!overlay(window));
+    QCOMPARE(window.document()->node("comment")["data"].toObject()["comment"].toString(), QString("Comment body"));
+    QCOMPARE(window.document()->node("comment")["ui_properties"].toObject()["title"].toString(), QString("Not a separate note"));
+  }
+  static void openComment(EditorWindow &window) {
+    auto *view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    const auto *card = window.scene()->nodeGraphicsObject(nodeId(window, "comment")); QVERIFY(card);
+    view->centerOn(card); QTest::qWait(20);
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(card->scenePos() + QPointF(80, 40)));
+  }
+  // CommentNode.tsx: the text edits on the card. Enter adds a line, Ctrl+Enter or a
+  // blur stores it, Escape discards, and a changed text refits the card height.
+  void commentEditsInPlaceAndRefitsTheCard() {
+    EditorWindow window; setup(window); auto *presenter = window.findChild<InlineTitlePresenter *>(); QVERIFY(presenter);
+    const auto baseline = window.document()->snapshot();
+    const auto height = [&] { return window.document()->node("comment")["ui_properties"].toObject()["height"]; };
+    openComment(window); QTRY_VERIFY(overlay(window)); auto *widget = overlay(window);
+    QVERIFY(presenter->comment()); QVERIFY(!presenter->singleLine());
+    auto *field = widget->rootObject()->findChild<QQuickItem *>("inline-title-text"); QVERIFY(field);
+    QCOMPARE(field->property("text").toString(), QString("Comment body"));
+    QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier); QTest::keyClicks(widget, "First line");
+    QTest::keyClick(widget, Qt::Key_Return); QTest::keyClicks(widget, "Second line");
+    // Enter only adds a line. Nothing is stored yet.
+    QVERIFY(presenter->active()); QCOMPARE(window.document()->undoStack()->index(), 0);
+    QTest::keyClick(widget, Qt::Key_Return, Qt::ControlModifier);
+    QTRY_COMPARE(window.document()->node("comment")["data"].toObject()["comment"].toString(), QString("First line\nSecond line"));
+    QCOMPARE(window.document()->undoStack()->index(), 1);
+    // The card refits to two lines of text, in the same undo step.
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto fitted = std::ceil(window.scene()->commentContentHeight("First line\nSecond line", 300));
+    QCOMPARE(height().toDouble(), fitted); QVERIFY(fitted < 160 && fitted >= commentMinimumHeight);
+    QCOMPARE(model.layout(nodeId(window, "comment")).size.height(), int(fitted));
+    window.action("Undo"); QCOMPARE(window.document()->snapshot(), baseline);
+    // Escape discards, and an unchanged text stores nothing.
+    openComment(window); QTRY_VERIFY(overlay(window)); widget = overlay(window); QTest::keyClicks(widget, " draft"); QTest::keyClick(widget, Qt::Key_Escape);
+    QTRY_VERIFY(!presenter->active()); QCOMPARE(window.document()->snapshot(), baseline);
+    openComment(window); QTRY_VERIFY(overlay(window)); widget = overlay(window); QTest::keyClick(widget, Qt::Key_Return, Qt::ControlModifier);
+    QTRY_VERIFY(!presenter->active()); QCOMPARE(window.document()->undoStack()->index(), 0);
+    // A blur stores the text, as the web editor does.
+    openComment(window); QTRY_VERIFY(overlay(window)); widget = overlay(window); QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier); QTest::keyClicks(widget, "Blurred");
+    auto *view = window.findChild<QGraphicsView *>(); QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, 20));
+    QTRY_COMPARE(window.document()->node("comment")["data"].toObject()["comment"].toString(), QString("Blurred"));
+    QCOMPARE(window.document()->undoStack()->index(), 1);
+  }
+  // Rich-text comments keep their Lexical formatting, so the native editor leaves them view-only.
+  void richTextCommentStaysViewOnly() {
+    EditorWindow window; setup(window);
+    const QJsonObject lexical{{"root", QJsonObject{{"type", "root"}, {"children", QJsonArray{QJsonObject{{"type", "paragraph"}, {"children", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Bold"}, {"format", 1}}}}}}}}}};
+    QVERIFY(window.document()->applyCommand({{"op", "setComment"}, {"id", "comment"}, {"value", lexical}}));
+    QTest::qWait(60);
+    const auto snapshot = window.document()->snapshot();
+    openComment(window); QTest::qWait(150);
+    QVERIFY(!overlay(window)); QCOMPARE(window.document()->snapshot(), snapshot);
+    window.selectNode("comment"); window.action("Edit comment"); QTest::qWait(100);
+    QVERIFY(!overlay(window)); QCOMPARE(window.document()->snapshot(), snapshot);
   }
   void shortcutAndStaleScopeGuards() {
     EditorWindow window; setup(window); QTRY_VERIFY(note(window, "normal")); auto *presenter = window.findChild<InlineTitlePresenter *>(); QVERIFY(presenter);

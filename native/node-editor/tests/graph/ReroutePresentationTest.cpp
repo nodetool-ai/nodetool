@@ -104,7 +104,8 @@ private slots:
       ConnectionId connection{id(model,"r1"),0,id(model,"r2"),0};auto *wire=scene.connectionGraphicsObject(connection);QVERIFY(wire);
       const auto point=wire->mapToScene(wireCurve(wire->endPoint(PortType::Out),wire->endPoint(PortType::In)).pointAtPercent(0.5));
       QSignalSpy request(&scene,&EditorScene::dataEdgeContextMenuRequested);QGraphicsSceneContextMenuEvent event(QEvent::GraphicsSceneContextMenu);event.setScenePos(point);event.setScreenPos({123,456});event.setWidget(view.viewport());QApplication::sendEvent(&scene,&event);
-      QCOMPARE(request.count(),kind=="data" ? 1:0);
+      // Control edges open the edge menu without its reroute entry, as in EdgeContextMenu.tsx.
+      QCOMPARE(request.count(),kind=="data" || kind=="control" ? 1:0);
       if (kind=="data") { QCOMPARE(request[0][0].toString(),QString("second"));QCOMPARE(request[0][1].toPointF(),point);QCOMPARE(request[0][2].toPoint(),QPoint(123,456)); }
     }
   }

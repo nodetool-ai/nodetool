@@ -17,6 +17,7 @@
 #include <QSet>
 #include <QTimer>
 #include <QUuid>
+#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <algorithm>
 namespace nodetool {
 namespace {
@@ -43,6 +44,7 @@ CompatibleNodePicker::CompatibleNodePicker(WorkflowGraphModel &model,
     : QObject(parent),model_(model),scene_(scene),view_(view),engine_(engine) {
   connect(&scene_,&EditorScene::looseWireDropped,this,&CompatibleNodePicker::open);
   connect(&scene_,&EditorScene::wireBodyDropped,this,&CompatibleNodePicker::openBody);
+  connect(&scene_,&EditorScene::handleContextMenuRequested,this,&CompatibleNodePicker::open);
   connect(&model_,&WorkflowGraphModel::projectionAboutToChange,this,&CompatibleNodePicker::cancel);
   qApp->installEventFilter(this);
 }
@@ -169,6 +171,15 @@ void CompatibleNodePicker::openBody(QtNodes::NodeId node,QtNodes::PortType port,
   if (type=="nodetool.control.Reroute") { applyBody(forward ? "input_value":"output"); return; }
   if (forward && type=="nodetool.workflows.base_node.Preview") { applyBody("value"); return; }
   if (forward && handle_=="__control__") { applyBody("__control__"); return; }
+  if (forward && metadata["supports_dynamic_inputs"].toBool() && !schemaOnlyInputs(type)) {
+    const auto *item = scene_.nodeGraphicsObject(target);
+    const auto local = item ? item->mapFromScene(position) : QPointF{};
+    for (const auto &row : model_.layout(target).rows) {
+      if ((row.action == "addInput" || row.action == "addContentInput") && row.rect.contains(local)) {
+        dynamic(false); return;
+      }
+    }
+  }
   for (const auto &candidate:bodyPorts(snapshot,metadata,!forward)) {
     const bool compatible=forward ? node_editor::connectionTypesCompatible(type_,candidate.type)
         : node_editor::connectionTypesCompatible(candidate.type,type_);
@@ -251,6 +262,18 @@ void CompatibleNodePicker::choose(const QString &key, int generation) {
 }
 void CompatibleNodePicker::search(const QString &query,int generation) { if (generation==generation_ && current()) { setQuery(query); } }
 void CompatibleNodePicker::dismiss(int generation) { if (generation==generation_) { cancel(); } }
+bool CompatibleNodePicker::canDeleteOutput() const {
+    if (!active_ || body_!=QtNodes::InvalidNodeId || port_!=QtNodes::PortType::Out || model_.readOnly()) { return false; }
+    if (!model_.metadata(node_)["supports_dynamic_outputs"].toBool()) { return false; }
+    return model_.nodeSnapshot(node_)["dynamic_outputs"].toObject().contains(handle_);
+}
+void CompatibleNodePicker::deleteOutput(int generation) {
+    if (generation!=generation_ || !current() || !canDeleteOutput()) { return; }
+    const QJsonObject command{{"op","removeDynamicOutput"},{"id",resource_},{"name",handle_}};
+    // Close before document projection destroys any scene items or Quick objects.
+    cancel();
+    if (applyCommand) { applyCommand(command); }
+}
 void CompatibleNodePicker::cancel() {
   scene_.resetDraftConnection();
   ++generation_;

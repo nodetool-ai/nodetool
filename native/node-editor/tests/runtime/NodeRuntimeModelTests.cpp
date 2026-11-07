@@ -1,4 +1,5 @@
 #include "../../src/run/NodeRuntimeModel.h"
+#include "../../src/run/UntakenBranch.h"
 #include <QtTest>
 #include <QJsonDocument>
 using namespace nodetool::node_editor;
@@ -85,6 +86,37 @@ private slots:
   model.ingest("a",event); model.ingest("a",event); QCOMPARE(changed.size(),1);
   event["job_id"]="b"; event["progress"]=2; model.ingest("a",event);
   QCOMPARE(model.nodeState("n")["progress"].toDouble(),1.0);
+ }
+ // The canvas keeps marking the untaken branch after the run ends, so edge reports outlive the job.
+ void edgeReportsOutliveTheFinishedRun() {
+  NodeRuntimeModel model; model.beginRun("a");
+  model.ingest("a",{{"type","edge_update"},{"job_id","a"},{"job_seq",1},{"edge_id","e"},{"status","completed"}});
+  model.ingest("a",{{"type","job_update"},{"job_id","a"},{"job_seq",2},{"status","completed"}});
+  QCOMPARE(model.edgeState("e")["status"].toString(),"completed");
+  model.ingest("a",{{"type","edge_update"},{"job_id","a"},{"job_seq",3},{"edge_id","late"},{"status","active"}});
+  QVERIFY(model.edgeState("late").isEmpty());
+ }
+ // web/src/utils/__tests__/untakenBranches.test.ts shapes: a branch output that completed without a
+ // message is dead, death cascades only through nodes whose data inputs are all dead, and control
+ // edges and non-branch sources never start it.
+ void untakenBranchFollowsTheWebRules() {
+  const QHash<QString,QString> types{{"if","nodetool.control.If"},{"sw","nodetool.control.Switch"},{"a","x"},{"b","x"},{"c","x"},{"d","x"},{"e","x"}};
+  const auto edge=[](const char *id,const char *from,const char *to,const char *kind="data") { return QJsonObject{{"id",id},{"source",from},{"target",to},{"edge_type",kind}}; };
+  const QJsonArray edges{edge("ia","if","a"),edge("ib","if","b"),edge("bc","b","c"),edge("ad","a","d"),edge("bd","b","d"),edge("sd","sw","e"),edge("ctl","b","e","control")};
+  QHash<QString,QJsonObject> states{{"ia",{{"status","completed"},{"counter",1}}},{"ib",{{"status","completed"}}},{"sd",{{"status","active"}}}};
+  const auto found=findUntakenBranch(types,edges,[&](const QString &id) { return states.value(id); });
+  QCOMPARE(found.nodeIds,(QSet<QString>{"b","c"}));
+  QCOMPARE(found.edgeIds,(QSet<QString>{"ib","bc","bd"}));
+  QVERIFY(!found.nodeIds.contains("d"));
+  // A source that is not an If or Switch never marks its edges, whatever they report.
+  states["bc"]={{"status","completed"}};
+  QCOMPARE(findUntakenBranch(types,edges,[&](const QString &id) { return states.value(id); }),found);
+  // Nothing reported yet means nothing is dead.
+  QVERIFY(findUntakenBranch(types,edges,[](const QString &) { return QJsonObject{}; }).empty());
+  // When both outputs are dead the shared target dies as well.
+  states["ia"]={{"status","completed"}};
+  const auto both=findUntakenBranch(types,edges,[&](const QString &id) { return states.value(id); });
+  QVERIFY(both.nodeIds.contains("a")); QVERIFY(both.nodeIds.contains("d"));
  }
 };
 QTEST_GUILESS_MAIN(NodeRuntimeModelTests)

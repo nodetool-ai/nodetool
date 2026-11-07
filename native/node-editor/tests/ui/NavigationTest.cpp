@@ -235,15 +235,14 @@ private slots:
     QVERIFY(window.selectNode("first"));
     const auto snapshot = window.document()->snapshot();
     const auto undo = window.document()->undoStack()->index();
-    QTimer::singleShot(0, &window, [] {
-      auto dialog = qobject_cast<QInputDialog *>(QApplication::activeModalWidget());
-      QVERIFY(dialog);
-      dialog->setTextValue("SECOND");
-      dialog->accept();
-    });
     auto view = window.findChild<QGraphicsView *>();
     QVERIFY(view);
     QTest::keyClick(view, Qt::Key_F, Qt::ControlModifier);
+    QTRY_VERIFY(window.findChild<QQuickWidget *>("find-panel"));
+    auto *panel = window.findChild<QQuickWidget *>("find-panel");
+    QTest::keyClicks(panel, "SECOND");
+    QTest::keyClick(panel, Qt::Key_Return);
+    QTRY_VERIFY(!window.findChild<QQuickWidget *>("find-panel") || !window.findChild<QQuickWidget *>("find-panel")->isVisible());
     QCOMPARE(window.selection(), QString("second"));
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeGraphicsObject *found = nullptr;
@@ -254,21 +253,27 @@ private slots:
     QTRY_VERIFY(window.unobstructedViewport().contains(view->mapFromScene(found->scenePos() + QPointF(140, 30))));
     QCOMPARE(window.document()->snapshot(), snapshot);
     QCOMPARE(window.document()->undoStack()->index(), undo);
-    QTimer::singleShot(0, &window, [] {
-      auto dialog = qobject_cast<QInputDialog *>(QApplication::activeModalWidget());
-      QVERIFY(dialog);
-      dialog->setTextValue("first");
-      dialog->reject();
-    });
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     window.action("Find node");
+    QTRY_VERIFY(window.findChild<QQuickWidget *>("find-panel"));
+    panel = window.findChild<QQuickWidget *>("find-panel");
+    QTest::keyClicks(panel, "first");
+    QTest::keyClick(panel, Qt::Key_Escape);
+    QTRY_VERIFY(!window.findChild<QQuickWidget *>("find-panel") || !window.findChild<QQuickWidget *>("find-panel")->isVisible());
     QCOMPARE(window.selection(), QString("second"));
     QCOMPARE(window.document()->snapshot(), snapshot);
   }
-  void emptyGraphDoesNotOpenDialog() {
+  void emptyGraphOpensPanelWithoutResults() {
     EditorWindow window;
+    window.show();
     window.action("Find node");
-    QCOMPARE(window.message(), QString("No nodes to find."));
-    QVERIFY(!QApplication::activeModalWidget());
+    QTRY_VERIFY(window.findChild<QQuickWidget *>("find-panel"));
+    auto *panel = window.findChild<QQuickWidget *>("find-panel");
+    auto *controller = qvariant_cast<QObject *>(panel->rootObject()->property("controller"));
+    QCOMPARE(controller->property("status").toString(), QString("Type to search nodes"));
+    QTest::keyClicks(panel, "anything");
+    QTRY_COMPARE(controller->property("status").toString(), QString("No nodes found"));
+    QVERIFY(window.selection().isEmpty());
   }
 };
 QTEST_MAIN(NavigationTest)

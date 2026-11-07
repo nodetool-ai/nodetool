@@ -2,19 +2,39 @@ import QtQuick
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor.Media 1.0
 
 ColumnLayout {
     id: richOutput
     required property var modelData
     spacing: Ui.Metrics.xs
     ColumnLayout {
+        id: pcmOutput
+        property var controller: modelData.pcmController || null
         visible: modelData.renderer === "pcm"
         Layout.fillWidth: true
         RowLayout {
-            NodeButton { objectName: "pcm-start-stop"; text: runOutput.pcm.playing ? "Stop" : "Start"; accessibleName: text + " streaming audio"; onClicked: runOutput.pcm.playing ? runOutput.pcm.stop() : runOutput.pcm.start() }
-            NodeButton { objectName: "pcm-restart"; text: "Restart"; accessibleName: "Restart streaming audio"; onClicked: runOutput.pcm.restart() }
+            NodeButton { objectName: "pcm-start-stop"; text: pcmOutput.controller && pcmOutput.controller.playing ? "Stop" : "Start"; accessibleName: text + " streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.playing ? pcmOutput.controller.stop() : pcmOutput.controller.start() }
+            NodeButton { objectName: "pcm-restart"; text: "Restart"; accessibleName: "Restart streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.restart() }
         }
-        Ui.Text { objectName: "pcm-state"; text: runOutput.pcm.state; role: Ui.Typography.SansCaption; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        LiveAudioVisualizer {
+            objectName: "pcm-visualizer"
+            visible: !!pcmOutput.controller
+            Layout.fillWidth: true
+            Layout.preferredHeight: Ui.Metrics.standard * 2
+            controller: pcmOutput.controller
+            reducedMotion: Ui.Theme.reducedMotion
+            waveColor: Ui.Theme.textPrimary
+            firstColor: Ui.Theme.accentSecondary
+            secondColor: Ui.Theme.statusWarning
+            middleColor: Ui.Theme.statusSuccess
+            fourthColor: Ui.Theme.statusInfo
+            lastColor: Ui.Theme.accentPrimary
+            strokeWidth: Ui.Metrics.focus
+            Accessible.role: Accessible.Graphic
+            Accessible.name: "Streaming audio visualization"
+        }
+        Ui.Text { objectName: "pcm-state"; text: pcmOutput.controller ? pcmOutput.controller.state : "Streaming audio is no longer retained"; role: Ui.Typography.SansCaption; wrapMode: Text.Wrap; Layout.fillWidth: true }
     }
     function likelyMarkdown(text) {
         if (!text || text.length < 6) { return false }

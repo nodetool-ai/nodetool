@@ -9,6 +9,7 @@
 #include <QDockWidget>
 #include <QDir>
 #include <QApplication>
+#include <QClipboard>
 class Fixture final : public QTcpServer {
 public:
   QList<QByteArray> requests;
@@ -47,7 +48,8 @@ using namespace nodetool;
 class HostTest : public QObject {
  Q_OBJECT
  static QQuickWidget *panel(EditorWindow &window) {
-  for (auto *widget : window.findChildren<QQuickWidget *>()) if ((widget->source().fileName() == "WorkflowDetails.qml" || widget->source().fileName() == "VersionHistoryPanel.qml")) return widget;
+  // A closed dock's panel stays alive until deferred deletion, so only a visible panel counts.
+  for (auto *widget : window.findChildren<QQuickWidget *>()) if ((widget->source().fileName() == "WorkflowDetails.qml" || widget->source().fileName() == "VersionHistoryPanel.qml") && widget->isVisible()) return widget;
   return nullptr;
  }
  static QQuickItem *find(QQuickItem *item, const QString &name) {
@@ -100,9 +102,16 @@ private slots:
   QVERIFY(find(widget->rootObject(), "version-graph-preview")->property("graph").toMap()["nodes"].toList().size() == 2);
   auto *controller = widget->rootObject()->property("controller").value<QObject *>();
   QCOMPARE(controller->property("comparison").toMap()["addedNodes"].toList().size(), 2);
-  click(widget,"version-compare-1");
+  // Compare mode picks the second version with a row click. The lower version is the older side,
+  // as in the web panel, so version 1 (two nodes) against version 2 (none) removes both nodes.
+  click(widget,"compare-toggle"); QTest::qWait(100);
+  click(widget,"version-row-1");
   QCOMPARE(controller->property("compareIndex").toInt(), 1);
-  QCOMPARE(controller->property("comparison").toMap()["addedNodes"].toList().size(), 2);
+  QCOMPARE(controller->property("selectedIndex").toInt(), 0);
+  QCOMPARE(controller->property("comparison").toMap()["removedNodes"].toList().size(), 2);
+  QCOMPARE(controller->property("comparison").toMap()["addedNodes"].toList().size(), 0);
+  click(widget,"compare-toggle");
+  QCOMPARE(controller->property("compareIndex").toInt(), -1);
   QCOMPARE(window.document()->snapshot(), before);
   QCOMPARE(window.document()->undoStack()->index(), beforeIndex); QCOMPARE(window.session()->dirty(), beforeDirty);
   auto graph = window.document()->graph(); graph.insert("draft_marker", "local");
@@ -115,8 +124,8 @@ private slots:
   QTRY_VERIFY(!window.session()->saving());
   QCOMPARE(window.document()->undoStack()->index(), index + 1);
   QQuickWidget *toolbar = nullptr;
-  for (auto *candidate : window.findChildren<QQuickWidget *>()) { if (candidate->source().fileName() == "Toolbar.qml") { toolbar = candidate; break; } }
-  QVERIFY(toolbar); click(toolbar,"toolbar-undo"); QCOMPARE(window.document()->graph(), dirty["graph"].toObject());
+  for (auto *candidate : window.findChildren<QQuickWidget *>()) { if (candidate->source().fileName() == "HeaderRow.qml") { toolbar = candidate; break; } }
+  QVERIFY(toolbar); click(toolbar,"header-undo"); QCOMPARE(window.document()->graph(), dirty["graph"].toObject());
   click(widget,"delete-selected-version"); click(widget,"cancel-delete-version"); QVERIFY(!deleted);
   click(widget,"delete-selected-version"); click(widget,"confirm-delete-version");
   QTRY_VERIFY(deleted); QTRY_COMPARE(controller->property("rows").toList().size(), 0);
@@ -125,7 +134,7 @@ private slots:
   window.action("Share workflow"); QTRY_VERIFY(panel(window));
   QTRY_VERIFY(find(panel(window)->rootObject(), "versions-error")->property("text").toString().contains("Permission denied"));
   shareAllowed = true; click(panel(window), "create-share-viewer");
-  QTRY_VERIFY(find(panel(window)->rootObject(), "version-preview")->property("text").toString().contains("/share/test-token"));
+  QTRY_VERIFY(QGuiApplication::clipboard()->text().contains("/share/test-token"));
   if (!capture.isEmpty()) { for (const auto &scheme : {QString("dark"),QString("light")}) { window.setDarkTheme(scheme == "dark"); panel(window)->rootObject()->forceActiveFocus(); resetScroll(panel(window)->rootObject()); QTest::qWait(80); QVERIFY(panel(window)->grab().save(capture + "/sharing-" + scheme + ".png")); } }
   window.findChild<QDialog *>("workflow-details-dialog")->close(); QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
   window.action("Workflow metadata"); QTRY_VERIFY(panel(window)); widget = panel(window);

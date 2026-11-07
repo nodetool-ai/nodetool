@@ -159,7 +159,8 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
         it.value()["status"] = event["status"];
       }
     }
-    run.edges.clear();
+    // Edge reports stay for the finished run: the canvas still marks the
+    // untaken branch of an If or Switch after the run ends.
     if (selected_ == jobId) { emit projectionChanged(); }
     return;
   }

@@ -67,7 +67,7 @@ private slots:
   }
   void successfulTargetReconnectPreservesEdge() {
     const QJsonObject prior{{"id","original"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"},{"future",QJsonObject{{"label","keep"}}}};
-    Host h(workflow("Sink",QJsonArray{prior},QJsonArray{body_fixture::node("next","Sink",500,350)}));
+    Host h(workflow("Sink",QJsonArray{prior},QJsonArray{body_fixture::node("next","SinkHandle",500,350)}));
     const auto before=h.window.document()->snapshot();
     drag(*h.view,h.port("target",PortType::In),h.port("next",PortType::In));
     QTRY_COMPARE(h.window.document()->edges().size(),1);
@@ -221,6 +221,94 @@ private slots:
     QTest::keyClick(h.view->viewport(),Qt::Key_Escape);
     QTest::mouseRelease(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.view->viewport()->rect().center());
     QCoreApplication::processEvents(); QCOMPARE(h.window.document()->snapshot(),before); QCOMPARE(h.window.document()->undoStack()->index(),0);
+  }
+  // F03: while a wire is dragged each handle shows whether it accepts it, and
+  // the styling ends with the drag (web NodeOutput.tsx:105-122,
+  // PropertyField.tsx:148-158, styles/handle_edge_tooltip.css:62-78, :121-126).
+  void dragMarksConnectableHandles() {
+    Host h(workflow("SinkHandle",{},QJsonArray{body_fixture::node("float","FloatOnly",500,350)}));
+    auto scene=h.window.scene();
+    // No selection, so branch dimming does not mask the handle styling.
+    scene->clearSelection();
+    QTest::qWait(20);
+    const auto origin=picker_fixture::id(*h.model,"origin");
+    const auto target=picker_fixture::id(*h.model,"target");
+    const auto number=picker_fixture::id(*h.model,"float");
+    QCOMPARE(scene->handleConnectable(target,PortType::In,0),0);
+    const auto start=h.port("origin",PortType::Out);
+    const auto pane=h.view->mapFromScene(QPointF(300,700));
+    QTest::mousePress(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,start);
+    QMouseEvent move(QEvent::MouseMove,QPointF(pane),QPointF(h.view->viewport()->mapToGlobal(pane)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+    QApplication::sendEvent(h.view->viewport(),&move);
+    QCOMPARE(scene->draftEnd().node,origin);
+    QCOMPARE(scene->handleConnectable(origin,PortType::Out,0),1);
+    QCOMPARE(scene->handleConnectable(target,PortType::In,0),1);
+    QCOMPARE(scene->handleConnectable(number,PortType::In,0),-1);
+    QCOMPARE(scene->handleConnectable(origin,PortType::In,0),-1);
+    QCOMPARE(scene->handleConnectable(target,PortType::Out,0),-1);
+    const auto capture=qEnvironmentVariable("NODETOOL_RECONNECT_CAPTURE");
+    if (!capture.isEmpty()) {
+      QVERIFY(QDir().mkpath(capture));
+      h.view->viewport()->repaint();
+      QTest::qWait(40);
+      QVERIFY(h.window.grab().save(QDir(capture).filePath("connecting-dark.png")));
+      h.window.setDarkTheme(false);
+      h.view->viewport()->repaint();
+      QTest::qWait(40);
+      QVERIFY(h.window.grab().save(QDir(capture).filePath("connecting-light.png")));
+      h.window.setDarkTheme(true);
+    }
+    QTest::mouseRelease(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,pane);
+    QTRY_VERIFY(h.picker->active());
+    QCOMPARE(scene->handleConnectable(target,PortType::In,0),0);
+    h.picker->cancel();
+    QCOMPARE(h.window.document()->undoStack()->count(),0);
+  }
+  // A wire released on a handle that rejects it reports the refusal and adds
+  // nothing (web useConnectionHandlers.ts:333-352).
+  void refusedHandleReleaseReportsAndAddsNothing() {
+    Host h(workflow("SinkHandle",{},QJsonArray{body_fixture::node("float","FloatOnly",500,350)}));
+    const auto before=h.window.document()->snapshot();
+    QSignalSpy refused(h.window.scene(),&EditorScene::connectionRefused);
+    QSignalSpy body(h.window.scene(),&EditorScene::wireBodyDropped);
+    drag(*h.view,h.port("origin",PortType::Out),h.port("float",PortType::In));
+    QApplication::processEvents();
+    QCOMPARE(refused.count(),1);
+    QCOMPARE(body.count(),0);
+    QCOMPARE(h.window.message(),QString("Cannot connect these handles"));
+    QVERIFY(!h.picker->active());
+    QCOMPARE(h.window.document()->snapshot(),before);
+    QCOMPARE(h.window.document()->undoStack()->count(),0);
+    drag(*h.view,h.port("origin",PortType::Out),h.port("target",PortType::In));
+    QTRY_COMPARE(h.window.document()->edges().size(),1);
+    QCOMPARE(refused.count(),1);
+  }
+  // A middle click on a wire deletes it with one undo entry. A middle drag
+  // that starts on the wire pans and keeps it (web useEdgeHandlers.ts:116-126).
+  void middleClickDeletesWire() {
+    const QJsonObject edge{{"id","wire"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"}};
+    Host h(workflow("SinkHandle",QJsonArray{edge}));
+    const auto before=h.window.document()->snapshot();
+    const auto midpoint=[&] {
+      const auto source=picker_fixture::id(*h.model,"origin");
+      const auto target=picker_fixture::id(*h.model,"target");
+      const auto out=h.window.scene()->nodeGraphicsObject(source)->scenePos()+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
+      const auto in=h.window.scene()->nodeGraphicsObject(target)->scenePos()+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
+      return h.view->mapFromScene(wireCurve(out,in).pointAtPercent(.5));
+    };
+    auto point=midpoint();
+    QTest::mousePress(h.view->viewport(),Qt::MiddleButton,Qt::NoModifier,point);
+    const auto moved=point+QPoint(40,30);
+    QMouseEvent pan(QEvent::MouseMove,QPointF(moved),QPointF(h.view->viewport()->mapToGlobal(moved)),Qt::NoButton,Qt::MiddleButton,Qt::NoModifier);
+    QApplication::sendEvent(h.view->viewport(),&pan);
+    QTest::mouseRelease(h.view->viewport(),Qt::MiddleButton,Qt::NoModifier,moved);
+    QCOMPARE(h.window.document()->edges().size(),1);
+    point=midpoint();
+    QTest::mouseClick(h.view->viewport(),Qt::MiddleButton,Qt::NoModifier,point);
+    QTRY_VERIFY(h.window.document()->edges().isEmpty());
+    QCOMPARE(h.window.document()->undoStack()->count(),1);
+    h.window.action("Undo");
+    QCOMPARE(h.window.document()->snapshot(),before);
   }
 };
 QTEST_MAIN(BodyDropHostTest)

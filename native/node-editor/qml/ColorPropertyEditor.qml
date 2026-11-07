@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import NodeTool.UiPrimitives as Ui
@@ -94,6 +95,7 @@ ColumnLayout {
     ColorDialog {
         id: custom
         objectName: "color-dialog-" + root.descriptor.name
+        parentWindow: root.Window.window
         title: "Choose color"
         options: ColorDialog.ShowAlphaChannel
         onAccepted: if (root.writable && root.dialogGeneration === root.generation) root.choose(root.customColor(selectedColor))

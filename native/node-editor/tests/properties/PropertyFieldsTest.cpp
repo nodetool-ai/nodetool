@@ -23,6 +23,33 @@ private slots:
   for (const auto &v : QJsonArray{false, 0, "", QJsonValue::Null}) { QVERIFY(!check(QJsonObject{{"property", "v"}}, {{"v", v}})); }
   for (const auto &v : QJsonArray{true, 1, "false", QJsonArray{}, QJsonObject{}}) { QVERIFY(check(QJsonObject{{"property", "v"}}, {{"v", v}})); }
  }
+ // web PropertyInput.tsx: a property resets only with a non-null default, and counts as changed once
+ // its stored value differs from that default. A value that is absent follows the default.
+ void changedAndResettableState() {
+  const auto field=[](const QJsonObject &property,const QJsonObject &data,const QString &storage="data") {
+    QJsonObject node{{"id","n"},{"data",storage=="data" ? data : QJsonObject{}}};
+    if (storage!="data") { node["dynamic_properties"]=data; node["dynamic_inputs"]=QJsonObject{{property["name"].toString(),property}}; }
+    for (const auto &row : propertyFields(node,QJsonObject{{"properties",storage=="data" ? QJsonArray{property} : QJsonArray{}}},{})) { if (row.toMap()["name"]==property["name"].toString()) { return row.toMap(); } }
+    return QVariantMap{};
+  };
+  const QJsonObject count{{"name","Count"},{"type",QJsonObject{{"type","int"}}},{"default",2}};
+  auto row=field(count,{{"Count",5}});
+  QVERIFY(row["hasResetDefault"].toBool()); QVERIFY(row["changed"].toBool());
+  row=field(count,{{"Count",2}}); QVERIFY(row["hasResetDefault"].toBool()); QVERIFY(!row["changed"].toBool());
+  row=field(count,{{"Count",2.0}}); QVERIFY(!row["changed"].toBool());
+  row=field(count,{}); QVERIFY(row["hasResetDefault"].toBool()); QVERIFY(!row["changed"].toBool());
+  // Stored null differs from a real default, so it stays resettable and is distinct from the default.
+  row=field(count,{{"Count",QJsonValue::Null}}); QVERIFY(row["changed"].toBool());
+  // A null default has nothing to reset to, as the web's `property.default != null` guard.
+  const QJsonObject nullable{{"name","Note"},{"type",QJsonObject{{"type","str"},{"optional",true}}},{"default",QJsonValue::Null}};
+  row=field(nullable,{{"Note","x"}}); QVERIFY(!row["hasResetDefault"].toBool()); QVERIFY(!row["changed"].toBool());
+  const QJsonObject missing{{"name","Note"},{"type",QJsonObject{{"type","str"}}}};
+  row=field(missing,{{"Note","x"}}); QVERIFY(!row["hasResetDefault"].toBool());
+  // A dynamic input resets to the default its own declaration carries.
+  const QJsonObject dynamic{{"name","Slot"},{"type",QJsonObject{{"type","int"}}},{"default",7}};
+  row=field(dynamic,{{"Slot",1}},"dynamic_properties"); QVERIFY(row["hasResetDefault"].toBool()); QVERIFY(row["changed"].toBool());
+  row=field(dynamic,{{"Slot",7}},"dynamic_properties"); QVERIFY(!row["changed"].toBool());
+ }
  void conditionalVisibility() {
   const QJsonObject field{{"name", "folder"}, {"type", "str"}, {"json_schema_extra", QJsonObject{{"visible_when", QJsonObject{{"property", "workspace"}, {"equals", false}}}}}};
   const QJsonObject metadata{{"properties", QJsonArray{field}}};

@@ -5,23 +5,31 @@
 #include <QSet>
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace nodetool::node_editor {
 namespace {
 constexpr qsizetype MaxRuns = 20;
 constexpr qsizetype MaxEntries = 500;
+constexpr qsizetype MaxPcmStreams = 64;
+static_assert(MaxEntries > MaxPcmStreams + 1);
 constexpr qsizetype MaxText = 65536;
 constexpr qsizetype MaxRunText = 4 * 1024 * 1024;
 QString display(const QJsonValue &value) {
   if (value.isString()) {
     return value.toString();
   }
+  const auto object = value.toObject();
+  if (object["type"] == "chunk" && object["content_type"] == "audio") { return "Streaming PCM audio"; }
   const auto wrapped = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
   return QString::fromUtf8(wrapped.mid(1, wrapped.size() - 2));
 }
 QVariantMap renderTree(const QJsonValue &value, int &budget, int depth = 0) {
   if (--budget < 0 || depth >= 8) { return {{"renderer", "text"}, {"text", "[Preview truncated]"}}; }
   const auto object = value.toObject();
+  if (object["type"] == "chunk" && object["content_type"] == "audio") {
+    return {{"renderer", "pcm"}, {"text", "Streaming PCM audio"}};
+  }
   if (value.isArray() || (value.isObject() && object["type"].toString().isEmpty())) {
     QVariantList fields, children;
     if (value.isArray()) {
@@ -167,17 +175,62 @@ bool terminal(const QString &status) {
   return status == "completed" || status == "finished" || status == "failed" || status == "cancelled";
 }
 }
-RunOutputModel::RunOutputModel(QObject *parent) : QObject(parent), m_collections(this) {}
+RunOutputModel::RunOutputModel(QObject *parent, PcmQueue *queue)
+  : QObject(parent), m_audioQueue(queue ? queue : PcmQueue::applicationQueue()), m_pcm(this, m_audioQueue), m_collections(this), m_richEntries(this) {}
+RunOutputModel::~RunOutputModel() { resetAudio(); }
+void RunOutputModel::setPcmSinkFactory(PcmStream::SinkFactory factory) {
+  m_sinkFactory = std::move(factory);
+  for (const auto &stream : m_streams) { if (stream) { stream->setSinkFactory(m_sinkFactory); } }
+}
+namespace {
+QString streamKey(const QString &nodeId, const QString &outputName) {
+  return QString::fromUtf8(QJsonDocument(QJsonArray{nodeId, outputName}).toJson(QJsonDocument::Compact));
+}
+}
+QObject *RunOutputModel::pcmFor(QString nodeId, QString outputName) const {
+  return m_streams.value(streamKey(nodeId, outputName));
+}
+PcmStream *RunOutputModel::streamFor(const QString &nodeId, const QString &outputName) {
+  const auto key = streamKey(nodeId, outputName);
+  if (const auto existing = m_streams.value(key)) { return existing; }
+  if (m_streams.size() >= MaxPcmStreams) { return nullptr; }
+  auto *stream = m_streams.isEmpty() ? &m_pcm : new PcmStream(this, m_audioQueue);
+  stream->reset(QString::number(m_audioGeneration) + ':' + m_selected + ':' + key, m_liveNodes.contains(nodeId));
+  if (m_sinkFactory) { stream->setSinkFactory(m_sinkFactory); }
+  m_streams.insert(key, stream);
+  return stream;
+}
+void RunOutputModel::resetAudio() {
+  QList<PcmStream *> streams{&m_pcm};
+  for (const auto &stream : m_streams) { if (stream && stream != &m_pcm) { streams.append(stream); } }
+  if (m_audioQueue) { m_audioQueue->stopStreams(streams); }
+  m_richEntries.setGroups(m_selected, {});
+  for (auto *stream : streams) { if (stream != &m_pcm) { delete stream; } }
+  m_streams.clear(); ++m_audioGeneration; m_pcm.reset();
+  for (auto &run : m_runs) {
+    for (auto &value : run.entries) {
+      auto entry = value.toMap(); entry.remove("pcmController");
+      auto children = entry["children"].toList();
+      for (auto &child : children) { auto output = child.toMap(); output.remove("pcmController"); child = output; }
+      if (entry.contains("children")) { entry["children"] = children; }
+      if (entry["renderer"] == "pcm") { entry["text"] = "Streaming audio is no longer retained"; }
+      value = entry;
+    }
+  }
+}
 void RunOutputModel::publish() {
-  QVariantList groups;
+  QVariantList groups, richGroups;
   for (const auto &value : entries()) {
     const auto entry = value.toMap();
+    const auto richKey = QJsonDocument::fromVariant(QVariantList{entry["kind"], entry["nodeId"], entry["outputName"], entry["rowKey"]}).toJson(QJsonDocument::Compact);
+    richGroups.append(QVariantMap{{"key", QString::fromUtf8(richKey)}, {"entry", entry}});
     if (entry.value("items").toList().isEmpty()) { continue; }
     const auto key = QJsonDocument::fromVariant(QVariantList{entry["kind"], entry["nodeId"], entry["outputName"]}).toJson(QJsonDocument::Compact);
     groups.append(QVariantMap{{"key", m_selected + ':' + QString::fromUtf8(key)}, {"items", entry["items"]},
       {"title", (entry["nodeName"].toString().isEmpty() ? entry["nodeId"].toString() : entry["nodeName"].toString()) + " · " + entry["outputName"].toString()}, {"notice", entry["previewNotice"].toString()}});
   }
   m_collections.setGroups(m_selected, groups);
+  m_richEntries.setGroups(m_selected, richGroups);
   emit changed();
 }
 QVariantList RunOutputModel::runs() const {
@@ -214,7 +267,7 @@ void RunOutputModel::beginRun(QString jobId) {
   run.id = jobId;
   m_runs.append(run);
   m_selected = jobId;
-  m_pcm.reset(jobId);
+  resetAudio();
   publish();
 }
 void RunOutputModel::selectRun(QString jobId) {
@@ -224,20 +277,20 @@ void RunOutputModel::selectRun(QString jobId) {
   for (const auto &run : m_runs) {
     if (run.id == jobId) {
       m_selected = jobId;
-      m_pcm.reset(jobId);
+      resetAudio();
       publish();
       return;
     }
   }
 }
 void RunOutputModel::reset() {
-  m_pcm.reset();
+  resetAudio();
   m_runs.clear();
   m_selected.clear();
   publish();
 }
 void RunOutputModel::clear() {
-  m_pcm.reset(m_selected);
+  resetAudio();
   m_runs.removeIf([](const Run &run) { return run.terminal; });
   bool selectedRemains = false;
   for (auto &run : m_runs) {
@@ -283,7 +336,12 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
       run.status = status;
       run.terminal = terminal(status);
     }
-    if (jobId == m_selected && (status == "failed" || status == "cancelled")) { m_pcm.stop(); }
+    if (jobId == m_selected) {
+      QList<PcmStream *> streams;
+      for (const auto &stream : m_streams) { if (stream) { streams.append(stream); } }
+      if (status == "failed" || status == "cancelled") { resetAudio(); }
+      else if (run.terminal) { for (auto *stream : streams) { stream->finish(); } }
+    }
     entry["kind"] = "job";
     entry["status"] = run.status;
     entry["text"] = event["error"].toString(event["message"].toString());
@@ -301,7 +359,22 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
   } else if (type == "output_update" && !nodeId.isEmpty() && event.contains("value")) {
     entry["kind"] = "output";
     entry["outputName"] = event["output_name"].toString();
-    entry["text"] = display(event["value"]);
+    if (jobId == m_selected && event["disposition"] == "replace") {
+      const auto key = streamKey(nodeId, entry["outputName"].toString());
+      if (const auto stream = m_streams.value(key)) {
+        stream->replace(QString::number(m_audioGeneration) + ':' + m_selected + ':' + key, m_liveNodes.contains(nodeId));
+      }
+    }
+    const auto outputValue = event["value"];
+    const auto outputObject = outputValue.toObject();
+    bool audioValue = outputObject["type"] == "chunk" && outputObject["content_type"] == "audio";
+    if (outputValue.isArray()) {
+      for (const auto &part : outputValue.toArray()) {
+        const auto chunk = part.toObject();
+        if (chunk["type"] == "chunk" && chunk["content_type"] == "audio") { audioValue = true; break; }
+      }
+    }
+    entry["text"] = audioValue ? QString("Streaming PCM audio") : display(outputValue);
     entry["done"] = event["done"].toBool();
     replace = true;
   } else if (type == "log_update" && event["content"].isString()) {
@@ -391,7 +464,20 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
     if (!audioChunks.isEmpty()) {
       if (!value.isArray() || audioChunks.size() == value.toArray().size()) { renderer = "pcm"; }
       if (jobId == m_selected && !run.terminal) {
-        for (const auto &part : audioChunks) { m_pcm.append(jobId, part.toObject()); }
+        if (auto *stream = streamFor(nodeId, entry["outputName"].toString())) {
+          const auto key = streamKey(nodeId, entry["outputName"].toString());
+          const auto scope = QString::number(m_audioGeneration) + ':' + m_selected + ':' + key;
+          for (const auto &part : audioChunks) { stream->append(scope, part.toObject()); }
+          if (event["done"].toBool()) { stream->finish(); }
+          stream->autoplay();
+          entry["pcmController"] = QVariant::fromValue(static_cast<QObject *>(stream));
+          auto children = entry["children"].toList();
+          for (auto &child : children) {
+            auto output = child.toMap();
+            if (output["renderer"] == "pcm") { output["pcmController"] = entry["pcmController"]; child = output; }
+          }
+          entry["children"] = children;
+        }
       }
       entry["text"] = "Streaming PCM audio";
     }
@@ -476,11 +562,32 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
     entry["truncated"] = true;
     run.truncated = true;
   }
+  auto pinned = [this, &run](const QVariant &value) {
+    const auto candidate = value.toMap();
+    if (run.id != m_selected || !candidate.contains("pcmController")) { return false; }
+    const auto stream = m_streams.value(streamKey(candidate["nodeId"].toString(), candidate["outputName"].toString()));
+    return stream && stream->playing();
+  };
+  auto removeHistory = [&run, &pinned]() -> std::optional<qsizetype> {
+    // Prefer diagnostics over output previews, and retain the truncation notice.
+    for (const bool diagnosticsOnly : {true, false}) {
+      for (qsizetype i = 0; i < run.entries.size(); ++i) {
+        const auto candidate = run.entries[i].toMap();
+        if (candidate["kind"] == "notice" || pinned(run.entries[i])) { continue; }
+        if (diagnosticsOnly && candidate["kind"] == "output") { continue; }
+        const auto bytes = entrySize(run.entries[i]);
+        run.entries.removeAt(i); return bytes;
+      }
+    }
+    return std::nullopt;
+  };
   if (index >= 0) {
+    entry["rowKey"] = run.entries[index].toMap().value("rowKey");
     run.entries[index] = entry;
   } else {
+    entry["rowKey"] = QString::number(++run.nextEntry);
     if (run.entries.size() >= MaxEntries) {
-      run.entries.removeFirst();
+      removeHistory();
       run.truncated = true;
     }
     run.entries.append(entry);
@@ -489,17 +596,36 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
   for (const auto &value : run.entries) {
     textSize += entrySize(value);
   }
-  while (textSize > MaxRunText && run.entries.size() > 1) {
-    textSize -= entrySize(run.entries.first());
-    run.entries.removeFirst();
+  const auto noticeText = QStringLiteral("Run output truncated to display limits");
+  if (textSize > MaxRunText) { run.truncated = true; }
+  const auto byteLimit = MaxRunText - (run.truncated && run.entries.first().toMap()["kind"] != "notice" ? noticeText.size() : 0);
+  while (textSize > byteLimit && run.entries.size() > 1) {
+    const auto removed = removeHistory();
+    if (removed) { textSize -= *removed; }
+    else {
+      // A mixed media/PCM output can exceed preview bytes on its own. Keep
+      // its controls while omitting the media preview at the existing bound.
+      bool compacted = false;
+      for (qsizetype i = 0; i < run.entries.size(); ++i) {
+        const auto candidate = run.entries[i].toMap();
+        if (!pinned(run.entries[i]) || candidate["media"].toList().isEmpty()) { continue; }
+        QVariantMap compact;
+        for (const auto key : {"kind", "nodeId", "nodeName", "outputName", "status", "severity", "done", "rowKey", "pcmController"}) {
+          compact[key] = candidate.value(key);
+        }
+        compact["renderer"] = "pcm"; compact["text"] = "Streaming PCM audio"; compact["truncated"] = true;
+        compact["media"] = QVariantList{};
+        textSize -= entrySize(run.entries[i]) - entrySize(compact);
+        run.entries[i] = compact; compacted = true; break;
+      }
+      if (!compacted) { break; }
+    }
     run.truncated = true;
   }
   if (run.truncated) {
     if (run.entries.first().toMap()["kind"] != "notice") {
-      if (run.entries.size() >= MaxEntries) {
-        run.entries.removeFirst();
-      }
-      run.entries.prepend(QVariantMap{{"kind", "notice"}, {"text", "Run output truncated to display limits"}, {"truncated", true}});
+      if (run.entries.size() >= MaxEntries) { removeHistory(); }
+      run.entries.prepend(QVariantMap{{"kind", "notice"}, {"text", noticeText}, {"truncated", true}});
     }
   }
   publish();

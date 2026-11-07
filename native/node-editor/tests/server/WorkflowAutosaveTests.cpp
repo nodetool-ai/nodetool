@@ -192,6 +192,29 @@ private slots:
     QVERIFY(session.conflictWorkflow().isEmpty()); session.keepLocalWorkflow(); session.flushAutosave(); session.save();
     QTest::qWait(20); QVERIFY(http.writes.isEmpty()); QCOMPARE(session.workflow(), draft);
   }
+  void keepLocalWaitsForRemoteComparison() {
+    for (const bool newerRemote : {false, true}) {
+      Http http; WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
+      session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound()); QTRY_VERIFY(http.peer);
+      QTest::qWait(50);
+      auto draft = session.workflow(); draft["graph"] = graphValue("local"); session.setSnapshot(draft);
+      http.status = 409; http.remote["updated_at"] = "external"; http.remote["graph"] = graphValue("remote");
+      session.flushAutosave(); QTRY_VERIFY(session.conflictPending()); QTRY_VERIFY(!session.conflictWorkflow().isEmpty());
+      QTRY_VERIFY(!session.remoteLoading()); const auto writes = http.writes.size();
+      // A second comparison is in flight when the user keeps the local copy.
+      http.status = 200; http.delayReads = true; session.refreshRemoteWorkflow(); QTRY_VERIFY(http.pendingRead);
+      session.keepLocalWorkflow(); QTest::qWait(20); QCOMPARE(http.writes.size(), writes);
+      if (newerRemote) { http.remote["updated_at"] = "external2"; }
+      http.delayReads = false; http.reply(http.pendingRead, http.remote);
+      if (newerRemote) {
+        // The compared copy changed, so the earlier choice does not apply to it.
+        QTest::qWait(100); QCOMPARE(http.writes.size(), writes); QVERIFY(session.conflictPending());
+      } else {
+        QTRY_COMPARE(http.writes.size(), writes + 1); QTRY_VERIFY(!session.dirty());
+        QCOMPARE(http.writes.last()["expected_updated_at"].toString(), QString("external"));
+      }
+    }
+  }
   void flushWaitsForRemoteComparison() {
     Http http; WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
     session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound()); QTRY_VERIFY(http.peer);

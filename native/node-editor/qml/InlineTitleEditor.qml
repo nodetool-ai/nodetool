@@ -61,8 +61,8 @@ Item {
                 width: scroller.width
                 height: root.presenter.singleLine ? scroller.height : Math.max(scroller.height, implicitHeight)
                 value: root.presenter.text
-                accessibleName: root.presenter.group ? "Group headline" : root.presenter.reroute ? "Reroute label" : "Note text"
-                role: root.presenter.group ? Ui.Typography.SansBody : Ui.Typography.SansCaption
+                accessibleName: root.presenter.group ? "Group headline" : root.presenter.reroute ? "Reroute label" : root.presenter.comment ? "Comment text" : root.presenter.header ? "Node title" : "Note text"
+                role: root.presenter.group || root.presenter.comment ? Ui.Typography.SansBody : root.presenter.header ? Ui.Typography.SansLabel : Ui.Typography.SansCaption
                 font.weight: root.presenter.group ? Font.Medium : Font.Normal
                 padding: root.presenter.singleLine ? Ui.Metrics.xs : Ui.Metrics.md
                 horizontalAlignment: root.presenter.reroute ? TextEdit.AlignHCenter : TextEdit.AlignLeft
@@ -84,7 +84,9 @@ Item {
                         root.finished = true
                         root.presenter.cancel()
                         event.accepted = true
-                    } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (root.presenter.singleLine || !(event.modifiers & Qt.ShiftModifier))) {
+                    } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                               && (root.presenter.comment ? (event.modifiers & (Qt.ControlModifier | Qt.MetaModifier))
+                                   : (root.presenter.singleLine || !(event.modifiers & Qt.ShiftModifier)))) {
                         root.finish()
                         event.accepted = true
                     }

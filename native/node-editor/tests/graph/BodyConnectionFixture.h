@@ -8,8 +8,10 @@ inline QJsonArray catalog() {
   result.append(QJsonObject{{"node_type","ListFixed"},{"input_fields",QJsonArray{"in"}},
     {"properties",QJsonArray{picker_fixture::slot("in",list)}},{"outputs",QJsonArray{picker_fixture::slot("out",list)}}});
   result.append(QJsonObject{{"node_type","Sink"},{"properties",QJsonArray{picker_fixture::slot("message",str)}},{"outputs",out}});
+  // A Sink whose message is a handle, for drags that end on a physical port.
+  result.append(QJsonObject{{"node_type","SinkHandle"},{"input_fields",QJsonArray{"message"}},{"properties",QJsonArray{picker_fixture::slot("message",str)}},{"outputs",out}});
   result.append(QJsonObject{{"node_type","Collect"},{"properties",QJsonArray{picker_fixture::slot("message",QJsonObject{{"type","list"},{"type_args",QJsonArray{str}}})}},{"outputs",out}});
-  result.append(QJsonObject{{"node_type","DynamicIn"},{"supports_dynamic_inputs",true},{"properties",QJsonArray{picker_fixture::slot("Fixed",boolean)}},{"outputs",out}});
+  result.append(QJsonObject{{"node_type","DynamicIn"},{"supports_dynamic_inputs",true},{"inline_fields",QJsonArray{"Fixed"}},{"properties",QJsonArray{picker_fixture::slot("Fixed",boolean)}},{"outputs",out}});
   result.append(QJsonObject{{"node_type","DynamicOut"},{"supports_dynamic_outputs",true},{"properties",QJsonArray{}},{"outputs",QJsonArray{picker_fixture::slot("Fixed",str)}}});
   result.append(QJsonObject{{"node_type","Legacy"},{"properties",QJsonArray{}},{"outputs",QJsonArray{}}});
   for (const auto &name:{"fal.dynamic.FalDynamic","fal.DynamicFal","kie.dynamic_schema.KieAI","kie.DynamicKie"}) {

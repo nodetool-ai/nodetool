@@ -26,10 +26,15 @@ private:
  }
  static void typeInto(QQuickWidget* panel, QQuickItem* field, const QString& value) {
   const auto name = field->objectName();
+  panel->window()->activateWindow();
+  panel->quickWindow()->requestActivate();
   panel->setFocus(); QCoreApplication::processEvents();
-  field = findItem(panel->rootObject(), name); QVERIFY(field); field->forceActiveFocus();
+  field = findItem(panel->rootObject(), name); QVERIFY(field);
+  field->forceActiveFocus();
+  QTRY_VERIFY(field->hasActiveFocus());
   QTest::keyClick(panel->quickWindow(), Qt::Key_A, Qt::ControlModifier);
-  QTest::keyClicks(panel, value);
+  for (const auto character : value.toLatin1()) { QTest::keyClick(panel->quickWindow(), character); }
+  QTRY_COMPARE(field->property("text").toString(), value);
   QTest::keyClick(panel->quickWindow(), Qt::Key_Return);
  }
 private slots:
@@ -54,10 +59,22 @@ private slots:
   auto* customButton = findItem(panel->rootObject(), "color-custom-value"); QVERIFY(customButton);
   auto clickCustom = [&] { const auto position = customButton->mapToScene(QPointF(customButton->width() / 2, customButton->height() / 2)); QTest::mouseClick(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier, position.toPoint()); };
   clickCustom(); QTRY_VERIFY(dialog->property("visible").toBool());
-  dialog->setProperty("selectedColor", QColor::fromRgbF(1, 0, 0, 0.5)); QVERIFY(QMetaObject::invokeMethod(dialog, "reject")); QCOMPARE(window.document()->undoStack()->count(), 1);
+  QCOMPARE(dialog->property("parentWindow").value<QObject*>(), panel->quickWindow());
+  const auto beforeCancel = window.document()->snapshot();
+  dialog->setProperty("selectedColor", QColor::fromRgbF(1, 0, 0, 0.5)); QVERIFY(QMetaObject::invokeMethod(dialog, "reject"));
+  QTRY_VERIFY(!dialog->property("visible").toBool());
+  QCOMPARE(window.document()->snapshot(), beforeCancel);
+  QCOMPARE(window.document()->undoStack()->count(), 1);
   clickCustom(); QTRY_VERIFY(dialog->property("visible").toBool()); dialog->setProperty("selectedColor", QColor::fromRgbF(1, 0, 0, 0.5)); QVERIFY(QMetaObject::invokeMethod(dialog, "accept"));
   QTRY_COMPARE(window.document()->node("color").value("data").toObject().value("value").toObject().value("value").toString(), "#ff000080");
   QCOMPARE(window.document()->undoStack()->count(), 2);
+  QTRY_VERIFY(!dialog->property("visible").toBool());
+  window.document()->undo();
+  QTRY_COMPARE(window.document()->node("color").value("data").toObject().value("value").toObject().value("value").toString(), "#12345680");
+  QTRY_VERIFY(findItem(panel->rootObject(), "color-hex-value") && findItem(panel->rootObject(), "color-hex-value")->property("value").toString() == "#12345680");
+  window.document()->redo();
+  QTRY_COMPARE(window.document()->node("color").value("data").toObject().value("value").toObject().value("value").toString(), "#ff000080");
+  QTRY_VERIFY(findItem(panel->rootObject(), "color-hex-value") && findItem(panel->rootObject(), "color-hex-value")->property("value").toString() == "#ff000080");
   hex = findItem(panel->rootObject(), "color-hex-value"); QVERIFY(hex);
   typeInto(panel, hex, "invalid"); QCOMPARE(window.document()->undoStack()->count(), 2); QTest::keyClick(panel->quickWindow(), Qt::Key_Escape);
   QVERIFY(window.selectNode("size")); QCoreApplication::processEvents(); QTRY_VERIFY(findItem(panel->rootObject(), "image-width-value"));
@@ -95,6 +112,35 @@ private slots:
   for (const auto& family : {QString("color"), QString("size")}) { QVERIFY(window.selectNode(family)); const auto name = family == "color" ? "color-editor-value" : "image-size-editor-value"; QTRY_VERIFY(findItem(panel->rootObject(), name) && !findItem(panel->rootObject(), name)->property("writable").toBool()); }
   graph = snapshot.value("graph").toObject(); graph.insert("edges", QJsonArray{QJsonObject{{"source", "missing"}, {"sourceHandle", "out"}, {"target", "color"}, {"targetHandle", "value"}}}); QVERIFY(window.document()->load({{"graph", graph}})); QVERIFY(window.readOnly());
   QVERIFY(window.selectNode("size")); QCoreApplication::processEvents(); QTRY_VERIFY(findItem(panel->rootObject(), "image-size-editor-value")); QVERIFY(!findItem(panel->rootObject(), "image-size-editor-value")->property("writable").toBool());
+ }
+ void assetAndPathDialogsOpenAndCancel_data() {
+  QTest::addColumn<QString>("kind");
+  for (const auto& kind : {QString("asset"), QString("file_path"), QString("folder_path")}) { QTest::newRow(qPrintable(kind)) << kind; }
+ }
+ void assetAndPathDialogsOpenAndCancel() {
+  QFETCH(QString, kind);
+  EditorWindow window;
+  window.setCatalog({QJsonObject{{"node_type", "fixture.Dialog"}, {"title", "Dialog"}, {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", kind}}}}}}}});
+  QVERIFY(window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "dialog"}, {"type", "fixture.Dialog"}, {"data", QJsonObject{}}}}}, {"edges", QJsonArray{}}}}}));
+  window.resize(1460, 1000); window.show(); QVERIFY(window.selectNode("dialog"));
+  auto* panel = inspector(window); QVERIFY(panel);
+  const auto buttonName = kind == "asset" ? "asset-upload-value" : "path-browse-value";
+  QQuickItem* button = nullptr;
+  QTRY_VERIFY((button = findItem(panel->rootObject(), buttonName)) && button->isVisible() && button->isEnabled());
+  const auto before = window.document()->snapshot();
+  const auto expectedTitle = kind == "asset" ? "Upload asset" : kind == "file_path" ? "Select file" : "Select folder";
+  QObject* dialog = nullptr;
+  auto* editor = findItem(panel->rootObject(), kind == "asset" ? "asset-editor-value" : "path-editor-value");
+  QVERIFY(editor);
+  for (auto* object : editor->findChildren<QObject*>()) { if (object->property("title").toString() == expectedTitle && object->metaObject()->indexOfProperty("visible") >= 0) { dialog = object; break; } }
+  QVERIFY(dialog);
+  QTest::mouseClick(panel, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+  QTRY_VERIFY(dialog->property("visible").toBool());
+  QCOMPARE(dialog->property("parentWindow").value<QObject*>(), panel->quickWindow());
+  QVERIFY(QMetaObject::invokeMethod(dialog, "reject"));
+  QTRY_VERIFY(!dialog->property("visible").toBool());
+  QCOMPARE(window.document()->snapshot(), before);
+  QCOMPARE(window.document()->undoStack()->count(), 0);
  }
  void stableSlotsAndCredentialIsolation() {
   EditorWindow window;

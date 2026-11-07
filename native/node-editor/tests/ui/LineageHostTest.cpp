@@ -1,5 +1,6 @@
 #include "graph/EditorScene.h"
 #include "graph/LineageLayer.h"
+#include "graph/NodeLayout.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
 #include <QGraphicsView>
@@ -10,6 +11,8 @@
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
+#include <QtNodes/internal/ConnectionState.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -345,6 +348,146 @@ private slots:
     auto *layer = window.findChild<LineageLayer *>();
     QVERIFY(layer);
     QTRY_VERIFY(layer->linkItem("ab"));
+  }
+  // web/src/components/node_editor/ControlEdge.tsx and BaseNode.tsx lines 756 and 840: an Agent
+  // control edge leaves the bottom center of the controller, enters the top center of the controlled
+  // node, and is drawn amber and dashed. Selection, deletion and the edge menu are the wire's own.
+  void controlEdgesDrawSelectAndDelete() {
+    EditorWindow window;
+    const auto text = QJsonObject{{"type", "str"}};
+    window.setCatalog({QJsonObject{{"node_type", "fixture.Node"}, {"title", "Fixture"}, {"input_fields", QJsonArray{"in"}},
+        {"properties", QJsonArray{QJsonObject{{"name", "in"}, {"type", text}}}}, {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", text}}}}}});
+    auto workflow = fixture(false);
+    auto graph = workflow["graph"].toObject();
+    graph["edges"] = QJsonArray{QJsonObject{{"id", "ctl"}, {"source", "a"}, {"target", "d"}, {"sourceHandle", "__control__"},
+                                            {"targetHandle", "__control__"}, {"edge_type", "control"}, {"future", 5}}};
+    workflow["graph"] = graph;
+    QVERIFY(window.document()->load(workflow));
+    window.show();
+    window.fit();
+    QTRY_VERIFY(!window.readOnly());
+    QTest::qWait(60);
+    auto *scene = window.scene();
+    auto &model = static_cast<WorkflowGraphModel &>(scene->graphModel());
+    const auto wire = [&]() -> QtNodes::ConnectionGraphicsObject * {
+      for (const auto id : model.allNodeIds()) {
+        for (const auto &connection : model.allConnectionIds(id)) {
+          if (model.edge(connection)["id"] == "ctl") { return scene->connectionGraphicsObject(connection); }
+        }
+      }
+      return nullptr;
+    };
+    QTRY_VERIFY(wire());
+    const auto original = window.document()->snapshot();
+    // Bottom center of the controller to top center of the controlled node.
+    const auto out = wire()->endPoint(QtNodes::PortType::Out);
+    const auto in = wire()->endPoint(QtNodes::PortType::In);
+    const auto nodeId = [&](const QString &resource) {
+      for (const auto id : model.allNodeIds()) {
+        if (model.resourceId(id) == resource) { return id; }
+      }
+      return QtNodes::InvalidNodeId;
+    };
+    const auto source = model.layout(nodeId("a")).size;
+    const auto target = model.layout(nodeId("d")).size;
+    QCOMPARE(out, item(window, "a")->pos() + QPointF(source.width() / 2.0, source.height()));
+    QCOMPARE(in, item(window, "d")->pos() + QPointF(target.width() / 2.0, 0));
+    // The stroke is amber and dashed, so a dash gap leaves the canvas visible.
+    const auto curve = controlWireCurve(out, in);
+    const QRectF region = curve.boundingRect().adjusted(-8, -8, 8, 8);
+    QImage image(region.size().toSize() * 2, QImage::Format_ARGB32);
+    image.fill(Qt::transparent);
+    { QPainter painter(&image); scene->render(&painter, QRectF(QPointF(), QSizeF(image.size())), region); }
+    int amber = 0;
+    for (int y = 0; y < image.height(); ++y) {
+      for (int x = 0; x < image.width(); ++x) {
+        const auto c = image.pixelColor(x, y);
+        amber += c.alpha() > 100 && c.red() > 150 && c.green() > 80 && c.green() < 190 && c.blue() < 90;
+      }
+    }
+    QVERIFY2(amber > 100, qPrintable(QString::number(amber)));
+    auto *view = window.findChild<QGraphicsView *>();
+    QVERIFY(view);
+    const auto middle = [&] { return view->mapFromScene(controlWireCurve(wire()->endPoint(QtNodes::PortType::Out), wire()->endPoint(QtNodes::PortType::In)).pointAtPercent(.5)); };
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, middle());
+    QTRY_VERIFY(wire() && wire()->isSelected());
+    QTest::keyClick(view, Qt::Key_Delete);
+    QTRY_COMPARE(window.document()->graph()["edges"].toArray().size(), 0);
+    QCOMPARE(window.document()->nodes().size(), 4);
+    QCOMPARE(window.document()->undoStack()->count(), 1);
+    window.action("Undo");
+    QCOMPARE(window.document()->snapshot(), original);
+    QTRY_VERIFY(wire());
+    // Middle click deletes, as the web's edge handler does.
+    QTest::mouseClick(view->viewport(), Qt::MiddleButton, Qt::NoModifier, middle());
+    QTRY_COMPARE(window.document()->graph()["edges"].toArray().size(), 0);
+    window.action("Undo");
+    QCOMPARE(window.document()->snapshot(), original);
+    // The edge menu names the control edge.
+    QTRY_VERIFY(wire());
+    QSignalSpy menu(scene, &EditorScene::dataEdgeContextMenuRequested);
+    QContextMenuEvent request(QContextMenuEvent::Mouse, middle(), view->viewport()->mapToGlobal(middle()));
+    QApplication::sendEvent(view->viewport(), &request);
+    QTRY_COMPARE(menu.size(), 1);
+    QCOMPARE(menu.first()[0].toString(), QString("ctl"));
+  }
+  // A run reports edge counts and the untaken side of an If. The canvas shows a flowing wire from the
+  // running node, a count pill, the not-run fade and the control edge together.
+  void executionStateCapture() {
+    EditorWindow window;
+    const auto text = QJsonObject{{"type", "str"}};
+    const auto port = [&](const char *name) { return QJsonObject{{"name", name}, {"type", text}}; };
+    window.setCatalog({QJsonObject{{"node_type", "fixture.Node"}, {"title", "Step"}, {"input_fields", QJsonArray{"in", "in2"}},
+                                   {"properties", QJsonArray{port("in"), port("in2")}}, {"outputs", QJsonArray{port("out")}}},
+                       QJsonObject{{"node_type", "nodetool.control.If"}, {"title", "If"}, {"input_fields", QJsonArray{"in"}},
+                                   {"properties", QJsonArray{port("in")}}, {"outputs", QJsonArray{port("if_true"), port("if_false")}}}});
+    const auto wire = [](const char *id, const char *from, const char *out, const char *to, const char *in) {
+      return QJsonObject{{"id", id}, {"source", from}, {"sourceHandle", out}, {"target", to}, {"targetHandle", in}};
+    };
+    QJsonObject control = wire("ctl", "x", "__control__", "c", "__control__");
+    control["edge_type"] = "control";
+    QJsonObject workflow{{"graph", QJsonObject{
+        {"nodes", QJsonArray{node("i", 0, 0, {}, "nodetool.control.If"), node("a", 450, 0), node("b", 450, 260), node("c", 900, 260),
+                             node("d", 900, 0), node("x", 0, 260)}},
+        {"edges", QJsonArray{wire("ia", "i", "if_true", "a", "in"), wire("ib", "i", "if_false", "b", "in"), wire("bc", "b", "out", "c", "in"),
+                             wire("ad", "a", "out", "d", "in"), wire("bd", "b", "out", "d", "in2"), control}}}}};
+    QVERIFY(window.document()->load(workflow));
+    window.resize(1500, 900);
+    window.show();
+    window.fit();
+    QTRY_VERIFY(!window.readOnly());
+    QTest::qWait(80);
+    emit window.session()->runSubmitted("run");
+    const auto send = [&](QJsonObject event, int sequence) {
+      event["job_id"] = "run";
+      event["job_seq"] = sequence;
+      emit window.session()->runEvent("run", event);
+    };
+    send({{"type", "edge_update"}, {"edge_id", "ia"}, {"status", "completed"}, {"counter", 1}}, 1);
+    send({{"type", "edge_update"}, {"edge_id", "ib"}, {"status", "completed"}}, 2);
+    send({{"type", "edge_update"}, {"edge_id", "ad"}, {"status", "active"}, {"counter", 12}}, 3);
+    send({{"type", "node_update"}, {"node_id", "a"}, {"status", "running"}}, 4);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto opacityOf = [&](const QString &resource) {
+      for (const auto id : model.allNodeIds()) {
+        if (model.resourceId(id) == resource) { return window.scene()->nodeGraphicsObject(id)->opacity(); }
+      }
+      return -1.0;
+    };
+    QTRY_COMPARE(opacityOf("b"), node_metrics::notRunOpacity);
+    QCOMPARE(opacityOf("c"), node_metrics::notRunOpacity);
+    QCOMPARE(opacityOf("a"), 1.0);
+    QCOMPARE(opacityOf("d"), 1.0);
+    const auto capture = qEnvironmentVariable("NODETOOL_LINEAGE_CAPTURE_DIR");
+    if (!capture.isEmpty()) {
+      QVERIFY(QDir().mkpath(capture));
+      for (const bool dark : {true, false}) {
+        window.setDarkTheme(dark);
+        window.fit();
+        QTest::qWait(120);
+        QVERIFY(window.grab().save(capture + (dark ? "/execution-dark.png" : "/execution-light.png")));
+      }
+    }
   }
 };
 QTEST_MAIN(LineageHostTest)
