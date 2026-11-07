@@ -152,7 +152,7 @@ target_link_libraries(gr_kernel PUBLIC nlohmann_json::nlohmann_json gr_host_gpu)
 
 # The library hosts link: one worker thread with a loaded guest. Its public
 # header (include/nodetool/graph_runner.h) exposes no engine or JSON types.
-add_library(nodetool_graph_runner STATIC src/graph_runner.cpp)
+add_library(nodetool_graph_runner STATIC src/graph_runner.cpp src/provider_jobs.cpp)
 target_include_directories(nodetool_graph_runner PUBLIC include)
 target_link_libraries(nodetool_graph_runner PRIVATE gr_kernel gr_js Threads::Threads)
 
@@ -265,6 +265,15 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(gr_context_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
   add_dependencies(gr_context_tests gr_context_test_bundle)
   add_test(NAME gr_context_tests COMMAND gr_context_tests "${GR_CONTEXT_TEST}")
+  set(GR_PROVIDER_JOBS_TEST "${CMAKE_CURRENT_BINARY_DIR}/provider-jobs-test.mjs")
+  add_custom_target(gr_provider_jobs_test_bundle ALL
+    COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-context.mjs" "${GR_PROVIDER_JOBS_TEST}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/unittests/provider-jobs.test.mjs"
+    VERBATIM)
+  add_executable(gr_provider_jobs_tests unittests/provider_jobs.cpp)
+  target_link_libraries(gr_provider_jobs_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
+  add_dependencies(gr_provider_jobs_tests gr_provider_jobs_test_bundle)
+  add_test(NAME gr_provider_jobs_tests COMMAND gr_provider_jobs_tests "${GR_PROVIDER_JOBS_TEST}")
   set(GR_CONTEXT_MESSAGE_TEST "${CMAKE_CURRENT_BINARY_DIR}/context-message-test.mjs")
   add_custom_target(gr_context_message_test_bundle ALL
     COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-context-messages.mjs" "${GR_CONTEXT_MESSAGE_TEST}"

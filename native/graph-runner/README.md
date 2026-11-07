@@ -399,12 +399,32 @@ cancellation predicate. Provider cursor cleanup remains callable after cancellat
 | `provider:<id>:webSearch` | A provider's search method. Native server search in the message loop additionally reads `supportsNativeWebSearch` from an optional `provider:<id>:metadata` callback. |
 | `provider:<id>:postModel`, `getVideoOperation`, `mediaHeaders` | Gemini-compatible endpoint methods. Response callbacks return `{status, headers?, body, url?}`. The guest exposes real text, JSON and byte readers over that response. |
 | `prediction:<id>:<capability>` | Capability-specific media generation and its bookkeeping. `generate_message` uses the provider message adapter directly. |
+| `provider:<id>:jobs:put`, `start`, `poll`, `close` | Endpoint calls (`context.callProviderEndpoint`, `uploadProviderMedia`, `downloadProviderMedia`) as host jobs. Grant them with [`ProviderJobs`](include/nodetool/provider_jobs.h). See [Provider endpoint jobs](#provider-endpoint-jobs). |
 | `toolDefinitionsJson` and `tool:<name>` | Advertised tool metadata paired with an executable callback. The callback receives `{userId, jobId, args}`. No server-wide tool catalog is granted. |
 | `permission:request` | Optional decisions for actionable tools through the existing permission gate. Receives the approval request and run identity, and returns `allow`, `allow_for_chat` or `deny`. Without this grant, calls beyond the default read permissions are denied. |
 | `sandboxModuleResolutionJson` | A host-authorized module resolution for the exact static package imports. No package discovery or ambient module loader is used. |
 | `modelOptionsJson` | Explicit persistence options, including `databasePath`. A file database also needs its directory grant. No default database opens. Asset creation needs both persistence and `assetDir`; `assetRoot` enables authorized local asset paths. |
 | `ocrDataDirectory` | A directory containing explicitly supplied Tesseract language resources such as `eng.traineddata`. Empty disables OCR. Resource symlinks escaping the directory are rejected. |
 | `http:request` | Optional host HTTP transport. Its callback owns URL, redirect and credential policy. Without it, the native public-HTTPS GET capability still requires `allowHttpFetch`. |
+
+### Provider endpoint jobs
+
+Provider node packs call vendors through `context.callProviderEndpoint`,
+`uploadProviderMedia` and `downloadProviderMedia`. A vendor call can take
+minutes, and a context callback blocks the runner's only thread, so these run
+as jobs instead. [`ProviderJobs`](include/nodetool/provider_jobs.h) runs each
+call on its own thread. The embedder supplies one worker function that
+performs `callEndpoint`, `uploadMedia` or `downloadMedia` for a provider, for
+example by forwarding it to a NodeTool server, and reports progress.
+
+The guest starts a job and polls it on a timer that backs off from 10 ms to
+500 ms, so other nodes and timers run while it waits. Progress events reach
+the node's `onProgress`. Requests and results larger than one part (256 KiB
+by default) travel as consecutive parts, so the 1 MiB payload limit does not
+cap media. Aborting the run closes the job, which sets the worker's
+`cancelled()` and waits for it to return. With no jobs granted for a
+provider, the context falls back to the resolved provider's own
+`callEndpoint`, which is what an injected provider resolver supplies.
 
 The run owner comes from `userId`. `environmentJson` seeds only the virtual
 process environment at the run boundary. Neither field reads ambient host

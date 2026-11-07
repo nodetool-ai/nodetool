@@ -5,6 +5,7 @@ import { installCryptoGlobals } from "./crypto.mjs";
 import { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/permission-gate.js";
 import { BaseProvider } from "guest-real:@nodetool-ai/runtime/providers/base-provider.js";
 import { fromJson, toJson } from "../values.mjs";
+import { hasProviderJobs, runProviderJob } from "./provider-jobs.mjs";
 
 export function contextCall(context, name, args) {
   context.signal.throwIfAborted();
@@ -131,6 +132,20 @@ export function hostSignal() {
   };
 }
 
+// The run's abort signal combined with a caller's, as provider jobs check it.
+function runSignal(context, signal) {
+  if (!signal || signal === context.signal) return context.signal;
+  return {
+    get aborted() {
+      return context.signal.aborted || signal.aborted;
+    },
+    throwIfAborted() {
+      context.signal.throwIfAborted();
+      signal.throwIfAborted();
+    }
+  };
+}
+
 export function nativeProvider(context, provider) {
   const invoke = (method, args) =>
     contextCall(context, `provider:${provider}:${method}`, args);
@@ -174,6 +189,16 @@ export function nativeProvider(context, provider) {
     mediaHeaders: (uri) => invoke("mediaHeaders", { uri })
   });
   const host = globalThis.__host.context;
+  if (hasProviderJobs(provider)) {
+    const job = (method, { signal, onProgress, ...args }) =>
+      runProviderJob({ provider, method, args, signal: runSignal(context, signal), onProgress });
+    Object.assign(adapter, {
+      supportsEndpointCalls: () => true,
+      callEndpoint: (request) => job("callEndpoint", request),
+      uploadMedia: (upload) => job("uploadMedia", upload),
+      downloadMedia: (url, signal) => job("downloadMedia", { url, signal })
+    });
+  }
   if (host.has(`provider:${provider}:webSearch`))
     adapter.webSearch = (args) => invoke("webSearch", args);
   Object.defineProperty(adapter, "supportsNativeWebSearch", {
@@ -281,7 +306,8 @@ export class ContextServices {
               "generateText",
               "generateObject",
               "postModel",
-              "webSearch"
+              "webSearch",
+              "jobs:start"
             ].some((method) =>
               globalThis.__host?.context?.has(`provider:${id}:${method}`)
             )
@@ -302,11 +328,45 @@ export class ContextServices {
       this._providerPromises.delete(id);
     }
   }
+  /**
+   * A vendor endpoint call. With provider jobs granted it runs as a host job,
+   * and the embedder records the generation. Otherwise it goes to the
+   * resolved provider's callEndpoint.
+   */
+  async callProviderEndpoint({ provider, capability, model, input, route, nodeId, onProgress, signal }) {
+    const args = { capability, model, input };
+    if (route !== undefined) args.route = route;
+    if (nodeId !== undefined) args.nodeId = nodeId;
+    if (hasProviderJobs(provider)) {
+      return runProviderJob({ provider, method: "callEndpoint", args, signal: runSignal(this, signal), onProgress });
+    }
+    const resolved = await this.getProvider(provider);
+    if (!resolved.supportsEndpointCalls?.()) {
+      throw new Error(`${provider} does not support endpoint calls`);
+    }
+    const request = { model, input, signal: signal ?? this.signal };
+    if (route !== undefined) request.route = route;
+    if (onProgress) request.onProgress = onProgress;
+    return resolved.callEndpoint(request);
+  }
+  async uploadProviderMedia({ provider, signal, ...upload }) {
+    if (hasProviderJobs(provider)) {
+      return runProviderJob({ provider, method: "uploadMedia", args: upload, signal: runSignal(this, signal) });
+    }
+    return (await this.getProvider(provider)).uploadMedia({ ...upload, signal: signal ?? this.signal });
+  }
+  async downloadProviderMedia({ provider, url, signal }) {
+    if (hasProviderJobs(provider)) {
+      return runProviderJob({ provider, method: "downloadMedia", args: { url }, signal: runSignal(this, signal) });
+    }
+    return (await this.getProvider(provider)).downloadMedia(url, signal ?? this.signal);
+  }
   async isProviderConfigured(id) {
     return (
       this._providers.has(id) ||
       !!this._providerResolver ||
-      !!globalThis.__host?.context?.has(`provider:${id}:open`)
+      !!globalThis.__host?.context?.has(`provider:${id}:open`) ||
+      hasProviderJobs(id)
     );
   }
   setInjectedTools(tools) {
