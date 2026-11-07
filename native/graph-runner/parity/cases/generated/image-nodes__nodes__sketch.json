@@ -1,0 +1,120 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/sketch",
+ "cases": [
+  {
+   "id": "nodetool.sketch.RenderSketch#default",
+   "node": "nodetool.sketch.RenderSketch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.sketch.RenderSketch",
+      "properties": {}
+     },
+     {
+      "id": "out_image",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "image"
+      }
+     },
+     {
+      "id": "out_mask",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "mask"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_image",
+      "source": "n",
+      "sourceHandle": "image",
+      "target": "out_image",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_mask",
+      "source": "n",
+      "sourceHandle": "mask",
+      "target": "out_mask",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.sketch.SketchLayers#default",
+   "node": "nodetool.sketch.SketchLayers",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.sketch.SketchLayers",
+      "properties": {}
+     },
+     {
+      "id": "out_layers",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "layers"
+      }
+     },
+     {
+      "id": "out_names",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "names"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_layers",
+      "source": "n",
+      "sourceHandle": "layers",
+      "target": "out_layers",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_names",
+      "source": "n",
+      "sourceHandle": "names",
+      "target": "out_names",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.sketch.CreateSketch#default",
+   "node": "nodetool.sketch.CreateSketch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.sketch.CreateSketch",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

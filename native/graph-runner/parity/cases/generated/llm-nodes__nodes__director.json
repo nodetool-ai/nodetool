@@ -1,0 +1,190 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/director",
+ "cases": [
+  {
+   "id": "nodetool.creative.Director#default",
+   "node": "nodetool.creative.Director",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.creative.Director",
+      "properties": {}
+     },
+     {
+      "id": "out_screenplay",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "screenplay"
+      }
+     },
+     {
+      "id": "out_narration",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "narration"
+      }
+     },
+     {
+      "id": "out_music_prompt",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "music_prompt"
+      }
+     },
+     {
+      "id": "out_title",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "title"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_screenplay",
+      "source": "n",
+      "sourceHandle": "screenplay",
+      "target": "out_screenplay",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_narration",
+      "source": "n",
+      "sourceHandle": "narration",
+      "target": "out_narration",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_music_prompt",
+      "source": "n",
+      "sourceHandle": "music_prompt",
+      "target": "out_music_prompt",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_title",
+      "source": "n",
+      "sourceHandle": "title",
+      "target": "out_title",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.creative.ScreenplayShots#default",
+   "node": "nodetool.creative.ScreenplayShots",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.creative.ScreenplayShots",
+      "properties": {}
+     },
+     {
+      "id": "out_shot",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shot"
+      }
+     },
+     {
+      "id": "out_shot_prompt",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shot_prompt"
+      }
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_shot",
+      "source": "n",
+      "sourceHandle": "shot",
+      "target": "out_shot",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_shot_prompt",
+      "source": "n",
+      "sourceHandle": "shot_prompt",
+      "target": "out_shot_prompt",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_index",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "out_index",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.creative.ApplyEntities#default",
+   "node": "nodetool.creative.ApplyEntities",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.creative.ApplyEntities",
+      "properties": {}
+     },
+     {
+      "id": "out_prompt",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "prompt"
+      }
+     },
+     {
+      "id": "out_reference_images",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "reference_images"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_prompt",
+      "source": "n",
+      "sourceHandle": "prompt",
+      "target": "out_prompt",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_reference_images",
+      "source": "n",
+      "sourceHandle": "reference_images",
+      "target": "out_reference_images",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

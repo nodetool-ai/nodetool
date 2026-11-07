@@ -1,0 +1,62 @@
+{
+ "module": "@nodetool-ai/integration-nodes/nodes/stable-diffusion-cpp",
+ "cases": [
+  {
+   "id": "lib.stable_diffusion_cpp.GenerateImage#default",
+   "node": "lib.stable_diffusion_cpp.GenerateImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.stable_diffusion_cpp.GenerateImage",
+      "properties": {}
+     },
+     {
+      "id": "in_prompt",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_images",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "images"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_in_prompt",
+      "source": "in_prompt",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "prompt"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_images",
+      "source": "n",
+      "sourceHandle": "images",
+      "target": "out_images",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

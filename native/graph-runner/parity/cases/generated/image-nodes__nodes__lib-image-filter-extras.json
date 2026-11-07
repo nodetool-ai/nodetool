@@ -1,0 +1,150 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-filter-extras",
+ "cases": [
+  {
+   "id": "lib.image.filter.Threshold#default",
+   "node": "lib.image.filter.Threshold",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Threshold",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Pixelate#default",
+   "node": "lib.image.filter.Pixelate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Pixelate",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.GaussianBlur#default",
+   "node": "lib.image.filter.GaussianBlur",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.GaussianBlur",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.UnsharpMask#default",
+   "node": "lib.image.filter.UnsharpMask",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.UnsharpMask",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Vignette#default",
+   "node": "lib.image.filter.Vignette",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Vignette",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

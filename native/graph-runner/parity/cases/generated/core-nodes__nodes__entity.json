@@ -1,0 +1,190 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/entity",
+ "cases": [
+  {
+   "id": "nodetool.entity.LoadEntity#default",
+   "node": "nodetool.entity.LoadEntity",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.entity.LoadEntity",
+      "properties": {}
+     },
+     {
+      "id": "out_entity",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "entity"
+      }
+     },
+     {
+      "id": "out_descriptor",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "descriptor"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_kind",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "kind"
+      }
+     },
+     {
+      "id": "out_reference_image",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "reference_image"
+      }
+     },
+     {
+      "id": "out_voice_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "voice_id"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_entity",
+      "source": "n",
+      "sourceHandle": "entity",
+      "target": "out_entity",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_descriptor",
+      "source": "n",
+      "sourceHandle": "descriptor",
+      "target": "out_descriptor",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_kind",
+      "source": "n",
+      "sourceHandle": "kind",
+      "target": "out_kind",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_reference_image",
+      "source": "n",
+      "sourceHandle": "reference_image",
+      "target": "out_reference_image",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_voice_id",
+      "source": "n",
+      "sourceHandle": "voice_id",
+      "target": "out_voice_id",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.entity.ListEntities#default",
+   "node": "nodetool.entity.ListEntities",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.entity.ListEntities",
+      "properties": {}
+     },
+     {
+      "id": "out_entity",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "entity"
+      }
+     },
+     {
+      "id": "out_entities",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "entities"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_entity",
+      "source": "n",
+      "sourceHandle": "entity",
+      "target": "out_entity",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_entities",
+      "source": "n",
+      "sourceHandle": "entities",
+      "target": "out_entities",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.entity.CreateEntity#default",
+   "node": "nodetool.entity.CreateEntity",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.entity.CreateEntity",
+      "properties": {}
+     },
+     {
+      "id": "out_entity",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "entity"
+      }
+     },
+     {
+      "id": "out_created",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "created"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_entity",
+      "source": "n",
+      "sourceHandle": "entity",
+      "target": "out_entity",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_created",
+      "source": "n",
+      "sourceHandle": "created",
+      "target": "out_created",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

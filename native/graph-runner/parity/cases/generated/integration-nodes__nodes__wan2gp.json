@@ -1,0 +1,135 @@
+{
+ "module": "@nodetool-ai/integration-nodes/nodes/wan2gp",
+ "cases": [
+  {
+   "id": "lib.wan2gp.TextToVideo#default",
+   "node": "lib.wan2gp.TextToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.wan2gp.TextToVideo",
+      "properties": {}
+     },
+     {
+      "id": "in_prompt",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_in_prompt",
+      "source": "in_prompt",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "prompt"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.wan2gp.ImageToVideo#default",
+   "node": "lib.wan2gp.ImageToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.wan2gp.ImageToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.wan2gp.Generate#default",
+   "node": "lib.wan2gp.Generate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.wan2gp.Generate",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.wan2gp.ListModels#default",
+   "node": "lib.wan2gp.ListModels",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.wan2gp.ListModels",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

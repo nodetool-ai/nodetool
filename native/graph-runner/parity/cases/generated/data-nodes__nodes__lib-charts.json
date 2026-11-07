@@ -1,0 +1,34 @@
+{
+ "module": "@nodetool-ai/data-nodes/nodes/lib-charts",
+ "cases": [
+  {
+   "id": "lib.charts.ChartRenderer#default",
+   "node": "lib.charts.ChartRenderer",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.charts.ChartRenderer",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

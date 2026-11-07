@@ -1,0 +1,91 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/anthropic",
+ "cases": [
+  {
+   "id": "anthropic.text.WebSearch#default",
+   "node": "anthropic.text.WebSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "anthropic.text.WebSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_sources",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sources"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_sources",
+      "source": "n",
+      "sourceHandle": "sources",
+      "target": "out_sources",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "claude_code.text.WebSearch#default",
+   "node": "claude_code.text.WebSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "claude_code.text.WebSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_sources",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sources"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_sources",
+      "source": "n",
+      "sourceHandle": "sources",
+      "target": "out_sources",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

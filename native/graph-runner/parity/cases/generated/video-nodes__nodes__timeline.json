@@ -1,0 +1,220 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/timeline",
+ "cases": [
+  {
+   "id": "nodetool.timeline.RenderTimeline#default",
+   "node": "nodetool.timeline.RenderTimeline",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.timeline.RenderTimeline",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_frames",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "frames"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_frames",
+      "source": "n",
+      "sourceHandle": "frames",
+      "target": "out_frames",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.timeline.Transcript#default",
+   "node": "nodetool.timeline.Transcript",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.timeline.Transcript",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_lines",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "lines"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_lines",
+      "source": "n",
+      "sourceHandle": "lines",
+      "target": "out_lines",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.timeline.AddClips#default",
+   "node": "nodetool.timeline.AddClips",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.timeline.AddClips",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.timeline.FillTimelineText#default",
+   "node": "nodetool.timeline.FillTimelineText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.timeline.FillTimelineText",
+      "properties": {}
+     },
+     {
+      "id": "out_timeline",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timeline"
+      }
+     },
+     {
+      "id": "out_filled",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "filled"
+      }
+     },
+     {
+      "id": "out_unresolved",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "unresolved"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_timeline",
+      "source": "n",
+      "sourceHandle": "timeline",
+      "target": "out_timeline",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_filled",
+      "source": "n",
+      "sourceHandle": "filled",
+      "target": "out_filled",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_unresolved",
+      "source": "n",
+      "sourceHandle": "unresolved",
+      "target": "out_unresolved",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.timeline.RetargetTimeline#default",
+   "node": "nodetool.timeline.RetargetTimeline",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.timeline.RetargetTimeline",
+      "properties": {}
+     },
+     {
+      "id": "out_timeline",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timeline"
+      }
+     },
+     {
+      "id": "out_cropped",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cropped"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_timeline",
+      "source": "n",
+      "sourceHandle": "timeline",
+      "target": "out_timeline",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_cropped",
+      "source": "n",
+      "sourceHandle": "cropped",
+      "target": "out_cropped",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

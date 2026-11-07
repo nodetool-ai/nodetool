@@ -1,0 +1,1726 @@
+{
+ "cases": [
+  {
+   "id": "vector.Collection#create",
+   "node": "vector.Collection",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-collection",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "collection",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "collection"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "collection",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.IndexEmbedding#list",
+   "node": "vector.IndexEmbedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-index-embedding",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "i",
+      "type": "vector.IndexEmbedding",
+      "properties": {
+       "index_id": [
+        "a",
+        "b",
+        "c"
+       ],
+       "embedding": [
+        [
+         1,
+         0,
+         0.5
+        ],
+        [
+         0,
+         1,
+         -0.25
+        ],
+        [
+         0.125,
+         0.5,
+         1
+        ]
+       ],
+       "metadata": [
+        {
+         "k": "a",
+         "n": 1
+        },
+        {
+         "k": "b",
+         "n": 2.5
+        },
+        {
+         "k": "c",
+         "ok": true
+        }
+       ]
+      }
+     },
+     {
+      "id": "w",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "vector.Count",
+      "properties": {}
+     },
+     {
+      "id": "count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "count"
+      }
+     },
+     {
+      "id": "p",
+      "type": "vector.Peek",
+      "properties": {}
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "i",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "i",
+      "sourceHandle": "output",
+      "target": "w",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w",
+      "sourceHandle": "if_false",
+      "target": "n",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "count",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e6",
+      "source": "w",
+      "sourceHandle": "if_false",
+      "target": "p",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e7",
+      "source": "p",
+      "sourceHandle": "output",
+      "target": "documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.IndexEmbedding#single",
+   "node": "vector.IndexEmbedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-index-embedding-one",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "i",
+      "type": "vector.IndexEmbedding",
+      "properties": {
+       "index_id": "only",
+       "embedding": [
+        0.5,
+        -0.5,
+        0.25,
+        4
+       ],
+       "metadata": {
+        "source": "parity",
+        "nested": {
+         "x": 1
+        }
+       }
+      }
+     },
+     {
+      "id": "w",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "vector.Count",
+      "properties": {}
+     },
+     {
+      "id": "count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "i",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "i",
+      "sourceHandle": "output",
+      "target": "w",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w",
+      "sourceHandle": "if_false",
+      "target": "n",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.Count#three",
+   "node": "vector.Count",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-count",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s2",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d3",
+       "text": "quick quick turtle naps",
+       "metadata": {
+        "lang": "en",
+        "n": 3
+       }
+      }
+     },
+     {
+      "id": "w2",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "vector.Count",
+      "properties": {}
+     },
+     {
+      "id": "count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "s2",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "s2",
+      "sourceHandle": "output",
+      "target": "w2",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e9",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "w2",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e10",
+      "source": "w2",
+      "sourceHandle": "if_false",
+      "target": "n",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e11",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.IndexString#two",
+   "node": "vector.IndexString",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-index-string",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "p",
+      "type": "vector.Peek",
+      "properties": {}
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "p",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "p",
+      "sourceHandle": "output",
+      "target": "documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.IndexTextChunk#two",
+   "node": "vector.IndexTextChunk",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-index-text-chunk",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexTextChunk",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexTextChunk",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "p",
+      "type": "vector.GetDocuments",
+      "properties": {}
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "p",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "p",
+      "sourceHandle": "output",
+      "target": "documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.GetDocuments#ids",
+   "node": "vector.GetDocuments",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-get-documents",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s2",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d3",
+       "text": "quick quick turtle naps",
+       "metadata": {
+        "lang": "en",
+        "n": 3
+       }
+      }
+     },
+     {
+      "id": "w2",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "p",
+      "type": "vector.GetDocuments",
+      "properties": {
+       "ids": [
+        "d3",
+        "d1"
+       ],
+       "limit": 10,
+       "offset": 0
+      }
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "s2",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "s2",
+      "sourceHandle": "output",
+      "target": "w2",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e9",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "w2",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e10",
+      "source": "w2",
+      "sourceHandle": "if_false",
+      "target": "p",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e11",
+      "source": "p",
+      "sourceHandle": "output",
+      "target": "documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.GetDocuments#page",
+   "node": "vector.GetDocuments",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-get-documents-page",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s2",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d3",
+       "text": "quick quick turtle naps",
+       "metadata": {
+        "lang": "en",
+        "n": 3
+       }
+      }
+     },
+     {
+      "id": "w2",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "p",
+      "type": "vector.GetDocuments",
+      "properties": {
+       "limit": 2,
+       "offset": 1
+      }
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "s2",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "s2",
+      "sourceHandle": "output",
+      "target": "w2",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e9",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "w2",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e10",
+      "source": "w2",
+      "sourceHandle": "if_false",
+      "target": "p",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e11",
+      "source": "p",
+      "sourceHandle": "output",
+      "target": "documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.Peek#limit",
+   "node": "vector.Peek",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-peek",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s2",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d3",
+       "text": "quick quick turtle naps",
+       "metadata": {
+        "lang": "en",
+        "n": 3
+       }
+      }
+     },
+     {
+      "id": "w2",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "p",
+      "type": "vector.Peek",
+      "properties": {
+       "limit": 2
+      }
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "s2",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "s2",
+      "sourceHandle": "output",
+      "target": "w2",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e9",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "w2",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e10",
+      "source": "w2",
+      "sourceHandle": "if_false",
+      "target": "p",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e11",
+      "source": "p",
+      "sourceHandle": "output",
+      "target": "documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.QueryText#keyword",
+   "node": "vector.QueryText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-query-text",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s2",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d3",
+       "text": "quick quick turtle naps",
+       "metadata": {
+        "lang": "en",
+        "n": 3
+       }
+      }
+     },
+     {
+      "id": "w2",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "q",
+      "type": "vector.QueryText",
+      "properties": {
+       "text": "quick turtle",
+       "n_results": 3
+      }
+     },
+     {
+      "id": "ids",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "ids"
+      }
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     },
+     {
+      "id": "metadatas",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "metadatas"
+      }
+     },
+     {
+      "id": "distances",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "distances"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "s2",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "s2",
+      "sourceHandle": "output",
+      "target": "w2",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e9",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "w2",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e10",
+      "source": "w2",
+      "sourceHandle": "if_false",
+      "target": "q",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e11",
+      "source": "q",
+      "sourceHandle": "ids",
+      "target": "ids",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e12",
+      "source": "q",
+      "sourceHandle": "documents",
+      "target": "documents",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e13",
+      "source": "q",
+      "sourceHandle": "metadatas",
+      "target": "metadatas",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e14",
+      "source": "q",
+      "sourceHandle": "distances",
+      "target": "distances",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.HybridSearch#keyword",
+   "node": "vector.HybridSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-hybrid-search",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "s0",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d1",
+       "text": "the quick brown fox jumps",
+       "metadata": {
+        "lang": "en",
+        "n": 1
+       }
+      }
+     },
+     {
+      "id": "w0",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s1",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d2",
+       "text": "a slow green turtle walks",
+       "metadata": {
+        "lang": "en",
+        "n": 2
+       }
+      }
+     },
+     {
+      "id": "w1",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "s2",
+      "type": "vector.IndexString",
+      "properties": {
+       "document_id": "d3",
+       "text": "quick quick turtle naps",
+       "metadata": {
+        "lang": "en",
+        "n": 3
+       }
+      }
+     },
+     {
+      "id": "w2",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "q",
+      "type": "vector.HybridSearch",
+      "properties": {
+       "text": "quick",
+       "n_results": 2
+      }
+     },
+     {
+      "id": "ids",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "ids"
+      }
+     },
+     {
+      "id": "documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     },
+     {
+      "id": "metadatas",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "metadatas"
+      }
+     },
+     {
+      "id": "distances",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "distances"
+      }
+     },
+     {
+      "id": "scores",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "scores"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "s0",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "s0",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w0",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "s1",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "s1",
+      "sourceHandle": "output",
+      "target": "w1",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e6",
+      "source": "w0",
+      "sourceHandle": "if_false",
+      "target": "w1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "s2",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e8",
+      "source": "s2",
+      "sourceHandle": "output",
+      "target": "w2",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e9",
+      "source": "w1",
+      "sourceHandle": "if_false",
+      "target": "w2",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e10",
+      "source": "w2",
+      "sourceHandle": "if_false",
+      "target": "q",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e11",
+      "source": "q",
+      "sourceHandle": "ids",
+      "target": "ids",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e12",
+      "source": "q",
+      "sourceHandle": "documents",
+      "target": "documents",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e13",
+      "source": "q",
+      "sourceHandle": "metadatas",
+      "target": "metadatas",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e14",
+      "source": "q",
+      "sourceHandle": "distances",
+      "target": "distances",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e15",
+      "source": "q",
+      "sourceHandle": "scores",
+      "target": "scores",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.IndexImage#uri",
+   "node": "vector.IndexImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "c",
+      "type": "vector.Collection",
+      "properties": {
+       "name": "parity-index-image",
+       "embedding_model": {
+        "type": "llama_model",
+        "provider": "ollama",
+        "id": "parity-no-embedding",
+        "name": "parity-no-embedding",
+        "repo_id": ""
+       }
+      }
+     },
+     {
+      "id": "i",
+      "type": "vector.IndexImage",
+      "properties": {
+       "image": {
+        "type": "image",
+        "uri": "https://example.com/parity.png",
+        "asset_id": null,
+        "data": null,
+        "metadata": null
+       },
+       "index_id": "img-1",
+       "metadata": {
+        "kind": "image"
+       }
+      }
+     },
+     {
+      "id": "w",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "vector.Count",
+      "properties": {}
+     },
+     {
+      "id": "count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "i",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e2",
+      "source": "i",
+      "sourceHandle": "output",
+      "target": "w",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e3",
+      "source": "c",
+      "sourceHandle": "output",
+      "target": "w",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "w",
+      "sourceHandle": "if_false",
+      "target": "n",
+      "targetHandle": "collection"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,179 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-enhance",
+ "cases": [
+  {
+   "id": "lib.image.enhance.AdaptiveContrast#default",
+   "node": "lib.image.enhance.AdaptiveContrast",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.enhance.AdaptiveContrast",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.enhance.AutoContrast#default",
+   "node": "lib.image.enhance.AutoContrast",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.enhance.AutoContrast",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.enhance.Detail#default",
+   "node": "lib.image.enhance.Detail",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.enhance.Detail",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.enhance.EdgeEnhance#default",
+   "node": "lib.image.enhance.EdgeEnhance",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.enhance.EdgeEnhance",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.enhance.Equalize#default",
+   "node": "lib.image.enhance.Equalize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.enhance.Equalize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.enhance.RankFilter#default",
+   "node": "lib.image.enhance.RankFilter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.enhance.RankFilter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

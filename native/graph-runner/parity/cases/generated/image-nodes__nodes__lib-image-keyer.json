@@ -1,0 +1,63 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-keyer",
+ "cases": [
+  {
+   "id": "lib.image.keyer.ChromaKey#default",
+   "node": "lib.image.keyer.ChromaKey",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.keyer.ChromaKey",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.keyer.LumaKey#default",
+   "node": "lib.image.keyer.LumaKey",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.keyer.LumaKey",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

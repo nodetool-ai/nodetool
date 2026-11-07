@@ -1,0 +1,1986 @@
+{
+ "cases": [
+  {
+   "id": "nodetool.control.If#false-branch",
+   "node": "nodetool.control.If",
+   "graph": {
+    "nodes": [
+     {
+      "id": "cond",
+      "type": "nodetool.constant.Bool",
+      "properties": {
+       "value": false
+      }
+     },
+     {
+      "id": "payload",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+       "value": 5
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.If",
+      "properties": {}
+     },
+     {
+      "id": "t",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "if_true"
+      }
+     },
+     {
+      "id": "f",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "if_false"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "cond",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "condition"
+     },
+     {
+      "id": "e2",
+      "source": "payload",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "if_true",
+      "target": "t",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "n",
+      "sourceHandle": "if_false",
+      "target": "f",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.ForEach#list",
+   "node": "nodetool.control.ForEach",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        "two",
+        {
+         "three": 3
+        }
+       ]
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "c1",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "c2",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "o1",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "o2",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "c1",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "c2",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "c1",
+      "sourceHandle": "output",
+      "target": "o1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e5",
+      "source": "c2",
+      "sourceHandle": "output",
+      "target": "o2",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.ForEach#limit",
+   "node": "nodetool.control.ForEach",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3,
+        4
+       ]
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.ForEach",
+      "properties": {
+       "limit": 2
+      }
+     },
+     {
+      "id": "c1",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "o1",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "c1",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "c1",
+      "sourceHandle": "output",
+      "target": "o1",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Collection#items",
+   "node": "nodetool.control.Collection",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.control.Collection",
+      "properties": {
+       "items": [
+        "a",
+        "b",
+        "c"
+       ]
+      }
+     },
+     {
+      "id": "c1",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "c2",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "o1",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "o2",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "c1",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e2",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "c2",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "c1",
+      "sourceHandle": "output",
+      "target": "o1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "c2",
+      "sourceHandle": "output",
+      "target": "o2",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.RepeatCount#3",
+   "node": "nodetool.control.RepeatCount",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.control.RepeatCount",
+      "properties": {
+       "count": 3
+      }
+     },
+     {
+      "id": "c1",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "c2",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "o1",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "o2",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "c1",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e2",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "c2",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "c1",
+      "sourceHandle": "output",
+      "target": "o1",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "c2",
+      "sourceHandle": "output",
+      "target": "o2",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.RepeatValue#3",
+   "node": "nodetool.control.RepeatValue",
+   "graph": {
+    "nodes": [
+     {
+      "id": "v",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "v"
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.RepeatValue",
+      "properties": {
+       "count": 3
+      }
+     },
+     {
+      "id": "c1",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "o1",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "v",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e2",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "c1",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "c1",
+      "sourceHandle": "output",
+      "target": "o1",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Take#2",
+   "node": "nodetool.control.Take",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Take",
+      "properties": {
+       "n": 2
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "collect_index",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "collect_index",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e6",
+      "source": "collect_index",
+      "sourceHandle": "output",
+      "target": "out_index",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Drop#2",
+   "node": "nodetool.control.Drop",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Drop",
+      "properties": {
+       "n": 2
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "collect_index",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "collect_index",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e6",
+      "source": "collect_index",
+      "sourceHandle": "output",
+      "target": "out_index",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.TakeWhile#lt3",
+   "node": "nodetool.control.TakeWhile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3,
+        1
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.TakeWhile",
+      "properties": {
+       "predicate": "item < 3"
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.DropWhile#lt3",
+   "node": "nodetool.control.DropWhile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3,
+        1
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.DropWhile",
+      "properties": {
+       "predicate": "item < 3"
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.FilterEqual#a",
+   "node": "nodetool.control.FilterEqual",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "a",
+        "b",
+        "a",
+        "c"
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.FilterEqual",
+      "properties": {
+       "value": "a"
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.FilterEqual#invert",
+   "node": "nodetool.control.FilterEqual",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "a",
+        "b",
+        "a",
+        "c"
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.FilterEqual",
+      "properties": {
+       "value": "a",
+       "invert": true
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.FilterCode#score",
+   "node": "nodetool.control.FilterCode",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        {
+         "score": 0.2
+        },
+        {
+         "score": 0.9
+        },
+        {
+         "score": 0.6
+        }
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.FilterCode",
+      "properties": {
+       "predicate": "item.score > 0.5"
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Chunk#2",
+   "node": "nodetool.control.Chunk",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Chunk",
+      "properties": {
+       "size": 2
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "collect_index",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "collect_index",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e6",
+      "source": "collect_index",
+      "sourceHandle": "output",
+      "target": "out_index",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Last#stream",
+   "node": "nodetool.control.Last",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "x",
+        "y",
+        "z"
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Last",
+      "properties": {}
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Count#stream",
+   "node": "nodetool.control.Count",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "x",
+        "y",
+        "z",
+        "w"
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Count",
+      "properties": {}
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Distinct#values",
+   "node": "nodetool.control.Distinct",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        1,
+        2,
+        3,
+        3,
+        1
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Distinct",
+      "properties": {}
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Distinct#key",
+   "node": "nodetool.control.Distinct",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        {
+         "k": 1,
+         "v": "a"
+        },
+        {
+         "k": 1,
+         "v": "b"
+        },
+        {
+         "k": 2,
+         "v": "c"
+        }
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Distinct",
+      "properties": {
+       "key": "item.k"
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Tap#stream",
+   "node": "nodetool.control.Tap",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2,
+        3
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Tap",
+      "properties": {
+       "label": "seen"
+      }
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Collect#stream",
+   "node": "nodetool.control.Collect",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        true,
+        null,
+        3.5,
+        "s"
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Reroute",
+      "properties": {}
+     },
+     {
+      "id": "collect_output",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_value"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "collect_output",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e4",
+      "source": "collect_output",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Reroute#value",
+   "node": "nodetool.control.Reroute",
+   "graph": {
+    "nodes": [
+     {
+      "id": "v",
+      "type": "nodetool.constant.Dict",
+      "properties": {
+       "value": {
+        "a": [
+         1,
+         2
+        ]
+       }
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Reroute",
+      "properties": {}
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "v",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input_value"
+     },
+     {
+      "id": "e2",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Switch#no-match",
+   "node": "nodetool.control.Switch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "key",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "q"
+      }
+     },
+     {
+      "id": "cases",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "a",
+        "b"
+       ]
+      }
+     },
+     {
+      "id": "payload",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+       "value": 1
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Switch",
+      "properties": {}
+     },
+     {
+      "id": "m",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "matched"
+      }
+     },
+     {
+      "id": "d",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "default"
+      }
+     },
+     {
+      "id": "i",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "key",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e2",
+      "source": "cases",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "cases"
+     },
+     {
+      "id": "e3",
+      "source": "payload",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "input"
+     },
+     {
+      "id": "e4",
+      "source": "n",
+      "sourceHandle": "matched",
+      "target": "m",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "default",
+      "target": "d",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e6",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "i",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.TryCatch#value",
+   "node": "nodetool.control.TryCatch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "v",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "ok"
+      }
+     },
+     {
+      "id": "fb",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "fallback"
+      }
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.TryCatch",
+      "properties": {}
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "e",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "error"
+      }
+     },
+     {
+      "id": "h",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "has_error"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "v",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e2",
+      "source": "fb",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "fallback"
+     },
+     {
+      "id": "e3",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e4",
+      "source": "n",
+      "sourceHandle": "error",
+      "target": "e",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "has_error",
+      "target": "h",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Zip#siblings",
+   "node": "nodetool.control.Zip",
+   "graph": {
+    "nodes": [
+     {
+      "id": "items",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "a",
+        "b",
+        "c"
+       ]
+      }
+     },
+     {
+      "id": "each",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Zip",
+      "properties": {}
+     },
+     {
+      "id": "cl",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "cr",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "ol",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "left"
+      }
+     },
+     {
+      "id": "or",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "right"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "items",
+      "sourceHandle": "output",
+      "target": "each",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "each",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "left"
+     },
+     {
+      "id": "e3",
+      "source": "each",
+      "sourceHandle": "index",
+      "target": "n",
+      "targetHandle": "right"
+     },
+     {
+      "id": "e4",
+      "source": "n",
+      "sourceHandle": "left",
+      "target": "cl",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "right",
+      "target": "cr",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e6",
+      "source": "cl",
+      "sourceHandle": "output",
+      "target": "ol",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e7",
+      "source": "cr",
+      "sourceHandle": "output",
+      "target": "or",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.control.Cross#two-lists",
+   "node": "nodetool.control.Cross",
+   "graph": {
+    "nodes": [
+     {
+      "id": "a",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        2
+       ]
+      }
+     },
+     {
+      "id": "b",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "x",
+        "y"
+       ]
+      }
+     },
+     {
+      "id": "ea",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "eb",
+      "type": "nodetool.control.ForEach",
+      "properties": {}
+     },
+     {
+      "id": "n",
+      "type": "nodetool.control.Cross",
+      "properties": {}
+     },
+     {
+      "id": "cl",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "cr",
+      "type": "nodetool.control.Collect",
+      "properties": {}
+     },
+     {
+      "id": "ol",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "left"
+      }
+     },
+     {
+      "id": "or",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "right"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "a",
+      "sourceHandle": "output",
+      "target": "ea",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e2",
+      "source": "b",
+      "sourceHandle": "output",
+      "target": "eb",
+      "targetHandle": "input_list"
+     },
+     {
+      "id": "e3",
+      "source": "ea",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "left"
+     },
+     {
+      "id": "e4",
+      "source": "eb",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "right"
+     },
+     {
+      "id": "e5",
+      "source": "n",
+      "sourceHandle": "left",
+      "target": "cl",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e6",
+      "source": "n",
+      "sourceHandle": "right",
+      "target": "cr",
+      "targetHandle": "input_item"
+     },
+     {
+      "id": "e7",
+      "source": "cl",
+      "sourceHandle": "output",
+      "target": "ol",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e8",
+      "source": "cr",
+      "sourceHandle": "output",
+      "target": "or",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

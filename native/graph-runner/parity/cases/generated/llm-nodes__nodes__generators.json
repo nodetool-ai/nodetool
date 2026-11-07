@@ -1,0 +1,191 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/generators",
+ "cases": [
+  {
+   "id": "nodetool.generators.StructuredOutputGenerator#default",
+   "node": "nodetool.generators.StructuredOutputGenerator",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.generators.StructuredOutputGenerator",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "nodetool.generators.DataGenerator#default",
+   "node": "nodetool.generators.DataGenerator",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.generators.DataGenerator",
+      "properties": {}
+     },
+     {
+      "id": "out_record",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "record"
+      }
+     },
+     {
+      "id": "out_dataframe",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "dataframe"
+      }
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_record",
+      "source": "n",
+      "sourceHandle": "record",
+      "target": "out_record",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_dataframe",
+      "source": "n",
+      "sourceHandle": "dataframe",
+      "target": "out_dataframe",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_index",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "out_index",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.generators.ListGenerator#default",
+   "node": "nodetool.generators.ListGenerator",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.generators.ListGenerator",
+      "properties": {}
+     },
+     {
+      "id": "out_item",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "item"
+      }
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_item",
+      "source": "n",
+      "sourceHandle": "item",
+      "target": "out_item",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_index",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "out_index",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.generators.ChartGenerator#default",
+   "node": "nodetool.generators.ChartGenerator",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.generators.ChartGenerator",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.generators.SVGGenerator#default",
+   "node": "nodetool.generators.SVGGenerator",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.generators.SVGGenerator",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

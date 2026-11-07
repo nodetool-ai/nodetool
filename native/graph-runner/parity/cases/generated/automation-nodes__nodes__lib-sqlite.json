@@ -1,0 +1,34 @@
+{
+ "module": "@nodetool-ai/automation-nodes/nodes/lib-sqlite",
+ "cases": [
+  {
+   "id": "lib.sqlite.GetDatabasePath#default",
+   "node": "lib.sqlite.GetDatabasePath",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.sqlite.GetDatabasePath",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

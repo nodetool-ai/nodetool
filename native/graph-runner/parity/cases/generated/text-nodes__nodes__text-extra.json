@@ -1,0 +1,494 @@
+{
+ "module": "@nodetool-ai/text-nodes/nodes/text-extra",
+ "cases": [
+  {
+   "id": "nodetool.text.AutomaticSpeechRecognition#default",
+   "node": "nodetool.text.AutomaticSpeechRecognition",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.AutomaticSpeechRecognition",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.Embedding#default",
+   "node": "nodetool.text.Embedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.Embedding",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.Rerank#default",
+   "node": "nodetool.text.Rerank",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.Rerank",
+      "properties": {}
+     },
+     {
+      "id": "out_documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     },
+     {
+      "id": "out_scores",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "scores"
+      }
+     },
+     {
+      "id": "out_indices",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "indices"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_documents",
+      "source": "n",
+      "sourceHandle": "documents",
+      "target": "out_documents",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_scores",
+      "source": "n",
+      "sourceHandle": "scores",
+      "target": "out_scores",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_indices",
+      "source": "n",
+      "sourceHandle": "indices",
+      "target": "out_indices",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.SaveTextFile#default",
+   "node": "nodetool.text.SaveTextFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.SaveTextFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.SaveText#default",
+   "node": "nodetool.text.SaveText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.SaveText",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.LoadTextFolder#default",
+   "node": "nodetool.text.LoadTextFolder",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.LoadTextFolder",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
+     },
+     {
+      "id": "out_texts",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "texts"
+      }
+     },
+     {
+      "id": "out_paths",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "paths"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_texts",
+      "source": "n",
+      "sourceHandle": "texts",
+      "target": "out_texts",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_paths",
+      "source": "n",
+      "sourceHandle": "paths",
+      "target": "out_paths",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.LoadTextAssets#default",
+   "node": "nodetool.text.LoadTextAssets",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.LoadTextAssets",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_texts",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "texts"
+      }
+     },
+     {
+      "id": "out_names",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "names"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_texts",
+      "source": "n",
+      "sourceHandle": "texts",
+      "target": "out_texts",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_names",
+      "source": "n",
+      "sourceHandle": "names",
+      "target": "out_names",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.FilterString#default",
+   "node": "nodetool.text.FilterString",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.FilterString",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.FilterRegexString#default",
+   "node": "nodetool.text.FilterRegexString",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.FilterRegexString",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.Concat#default",
+   "node": "nodetool.text.Concat",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.Concat",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.Collect#default",
+   "node": "nodetool.text.Collect",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.Collect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.Prompt#default",
+   "node": "nodetool.text.Prompt",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.Prompt",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.text.Template#default",
+   "node": "nodetool.text.Template",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.text.Template",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

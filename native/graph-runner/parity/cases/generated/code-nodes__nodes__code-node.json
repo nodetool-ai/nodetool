@@ -1,0 +1,19 @@
+{
+ "module": "@nodetool-ai/code-nodes/nodes/code-node",
+ "cases": [
+  {
+   "id": "nodetool.code.Code#default",
+   "node": "nodetool.code.Code",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.code.Code",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  }
+ ]
+}

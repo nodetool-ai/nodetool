@@ -1,0 +1,150 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-generators",
+ "cases": [
+  {
+   "id": "lib.image.draw.LinearGradient#default",
+   "node": "lib.image.draw.LinearGradient",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.LinearGradient",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.draw.RadialGradient#default",
+   "node": "lib.image.draw.RadialGradient",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.RadialGradient",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.draw.AngularGradient#default",
+   "node": "lib.image.draw.AngularGradient",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.AngularGradient",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.draw.DiamondGradient#default",
+   "node": "lib.image.draw.DiamondGradient",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.DiamondGradient",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.draw.Checkerboard#default",
+   "node": "lib.image.draw.Checkerboard",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.Checkerboard",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

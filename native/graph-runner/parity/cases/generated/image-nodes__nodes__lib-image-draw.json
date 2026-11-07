@@ -1,0 +1,121 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-draw",
+ "cases": [
+  {
+   "id": "lib.image.draw.Background#default",
+   "node": "lib.image.draw.Background",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.Background",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.draw.GaussianNoise#default",
+   "node": "lib.image.draw.GaussianNoise",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.GaussianNoise",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.draw.RenderText#default",
+   "node": "lib.image.draw.RenderText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.draw.RenderText",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.Mask#default",
+   "node": "lib.image.Mask",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.Mask",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

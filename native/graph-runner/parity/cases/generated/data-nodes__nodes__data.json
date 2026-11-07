@@ -1,0 +1,119 @@
+{
+ "module": "@nodetool-ai/data-nodes/nodes/data",
+ "cases": [
+  {
+   "id": "nodetool.data.ForEachRow#default",
+   "node": "nodetool.data.ForEachRow",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.data.ForEachRow",
+      "properties": {}
+     },
+     {
+      "id": "out_row",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "row"
+      }
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_row",
+      "source": "n",
+      "sourceHandle": "row",
+      "target": "out_row",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_index",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "out_index",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.data.LoadCSVAssets#default",
+   "node": "nodetool.data.LoadCSVAssets",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.data.LoadCSVAssets",
+      "properties": {}
+     },
+     {
+      "id": "out_dataframe",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "dataframe"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_dataframes",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "dataframes"
+      }
+     },
+     {
+      "id": "out_names",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "names"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_dataframe",
+      "source": "n",
+      "sourceHandle": "dataframe",
+      "target": "out_dataframe",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_dataframes",
+      "source": "n",
+      "sourceHandle": "dataframes",
+      "target": "out_dataframes",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_names",
+      "source": "n",
+      "sourceHandle": "names",
+      "target": "out_names",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

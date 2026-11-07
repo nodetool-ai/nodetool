@@ -1,0 +1,63 @@
+{
+ "module": "@nodetool-ai/text-nodes/nodes/lib-svg",
+ "cases": [
+  {
+   "id": "lib.svg.Document#default",
+   "node": "lib.svg.Document",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.svg.Document",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.svg.SVGToImage#default",
+   "node": "lib.svg.SVGToImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.svg.SVGToImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

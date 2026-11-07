@@ -1,0 +1,56 @@
+{
+ "cases": [
+  {
+   "id": "nodetool.variable.SetVariable#get",
+   "node": "nodetool.variable.SetVariable",
+   "graph": {
+    "nodes": [
+     {
+      "id": "v",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "shared"
+      }
+     },
+     {
+      "id": "set",
+      "type": "nodetool.variable.SetVariable",
+      "properties": {
+       "name": "x"
+      }
+     },
+     {
+      "id": "get",
+      "type": "nodetool.variable.GetVariable",
+      "properties": {
+       "name": "x"
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "v",
+      "sourceHandle": "output",
+      "target": "set",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e2",
+      "source": "get",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

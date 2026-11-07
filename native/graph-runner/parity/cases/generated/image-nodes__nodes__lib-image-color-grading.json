@@ -1,0 +1,295 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-color-grading",
+ "cases": [
+  {
+   "id": "lib.image.color_grading.CDL#default",
+   "node": "lib.image.color_grading.CDL",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.CDL",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.ColorBalance#default",
+   "node": "lib.image.color_grading.ColorBalance",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.ColorBalance",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.Curves#default",
+   "node": "lib.image.color_grading.Curves",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.Curves",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.Exposure#default",
+   "node": "lib.image.color_grading.Exposure",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.Exposure",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.FilmLook#default",
+   "node": "lib.image.color_grading.FilmLook",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.FilmLook",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.HSLAdjust#default",
+   "node": "lib.image.color_grading.HSLAdjust",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.HSLAdjust",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.LiftGammaGain#default",
+   "node": "lib.image.color_grading.LiftGammaGain",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.LiftGammaGain",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.SaturationVibrance#default",
+   "node": "lib.image.color_grading.SaturationVibrance",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.SaturationVibrance",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.SplitToning#default",
+   "node": "lib.image.color_grading.SplitToning",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.SplitToning",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color_grading.Vignette#default",
+   "node": "lib.image.color_grading.Vignette",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color_grading.Vignette",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

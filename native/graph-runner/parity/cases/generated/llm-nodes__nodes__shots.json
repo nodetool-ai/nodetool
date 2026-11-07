@@ -1,0 +1,63 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/shots",
+ "cases": [
+  {
+   "id": "nodetool.creative.ShotBatch#default",
+   "node": "nodetool.creative.ShotBatch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.creative.ShotBatch",
+      "properties": {}
+     },
+     {
+      "id": "out_shots",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shots"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_shots",
+      "source": "n",
+      "sourceHandle": "shots",
+      "target": "out_shots",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.creative.ShotChain#default",
+   "node": "nodetool.creative.ShotChain",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.creative.ShotChain",
+      "properties": {}
+     },
+     {
+      "id": "out_videos",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "videos"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_videos",
+      "source": "n",
+      "sourceHandle": "videos",
+      "target": "out_videos",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

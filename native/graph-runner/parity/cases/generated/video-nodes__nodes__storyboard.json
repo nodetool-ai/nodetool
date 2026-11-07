@@ -1,0 +1,600 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/storyboard",
+ "cases": [
+  {
+   "id": "nodetool.storyboard.LoadStoryboard#default",
+   "node": "nodetool.storyboard.LoadStoryboard",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.LoadStoryboard",
+      "properties": {}
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_shots",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shots"
+      }
+     },
+     {
+      "id": "out_entities",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "entities"
+      }
+     },
+     {
+      "id": "out_style",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "style"
+      }
+     },
+     {
+      "id": "out_aspect_ratio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "aspect_ratio"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_image_model",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "image_model"
+      }
+     },
+     {
+      "id": "out_video_model",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video_model"
+      }
+     },
+     {
+      "id": "out_shot_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shot_count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_shots",
+      "source": "n",
+      "sourceHandle": "shots",
+      "target": "out_shots",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_entities",
+      "source": "n",
+      "sourceHandle": "entities",
+      "target": "out_entities",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_style",
+      "source": "n",
+      "sourceHandle": "style",
+      "target": "out_style",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_aspect_ratio",
+      "source": "n",
+      "sourceHandle": "aspect_ratio",
+      "target": "out_aspect_ratio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_image_model",
+      "source": "n",
+      "sourceHandle": "image_model",
+      "target": "out_image_model",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_video_model",
+      "source": "n",
+      "sourceHandle": "video_model",
+      "target": "out_video_model",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_shot_count",
+      "source": "n",
+      "sourceHandle": "shot_count",
+      "target": "out_shot_count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.storyboard.StoryboardShots#default",
+   "node": "nodetool.storyboard.StoryboardShots",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.StoryboardShots",
+      "properties": {}
+     },
+     {
+      "id": "out_shot",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shot"
+      }
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     },
+     {
+      "id": "out_slug",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "slug"
+      }
+     },
+     {
+      "id": "out_keyframe",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "keyframe"
+      }
+     },
+     {
+      "id": "out_clip",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "clip"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_shot",
+      "source": "n",
+      "sourceHandle": "shot",
+      "target": "out_shot",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_index",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "out_index",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_slug",
+      "source": "n",
+      "sourceHandle": "slug",
+      "target": "out_slug",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_keyframe",
+      "source": "n",
+      "sourceHandle": "keyframe",
+      "target": "out_keyframe",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_clip",
+      "source": "n",
+      "sourceHandle": "clip",
+      "target": "out_clip",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.storyboard.CreateStoryboard#default",
+   "node": "nodetool.storyboard.CreateStoryboard",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.CreateStoryboard",
+      "properties": {}
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_shots",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shots"
+      }
+     },
+     {
+      "id": "out_shot_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "shot_count"
+      }
+     },
+     {
+      "id": "out_created",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "created"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_shots",
+      "source": "n",
+      "sourceHandle": "shots",
+      "target": "out_shots",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_shot_count",
+      "source": "n",
+      "sourceHandle": "shot_count",
+      "target": "out_shot_count",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_created",
+      "source": "n",
+      "sourceHandle": "created",
+      "target": "out_created",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.storyboard.RecastStoryboard#default",
+   "node": "nodetool.storyboard.RecastStoryboard",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.RecastStoryboard",
+      "properties": {}
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_invalidated",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "invalidated"
+      }
+     },
+     {
+      "id": "out_kept",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "kept"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_invalidated",
+      "source": "n",
+      "sourceHandle": "invalidated",
+      "target": "out_invalidated",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_kept",
+      "source": "n",
+      "sourceHandle": "kept",
+      "target": "out_kept",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.storyboard.RenderStills#default",
+   "node": "nodetool.storyboard.RenderStills",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.RenderStills",
+      "properties": {}
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_keyframes",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "keyframes"
+      }
+     },
+     {
+      "id": "out_rendered",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "rendered"
+      }
+     },
+     {
+      "id": "out_skipped",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "skipped"
+      }
+     },
+     {
+      "id": "out_failed",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "failed"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_keyframes",
+      "source": "n",
+      "sourceHandle": "keyframes",
+      "target": "out_keyframes",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_rendered",
+      "source": "n",
+      "sourceHandle": "rendered",
+      "target": "out_rendered",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_skipped",
+      "source": "n",
+      "sourceHandle": "skipped",
+      "target": "out_skipped",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_failed",
+      "source": "n",
+      "sourceHandle": "failed",
+      "target": "out_failed",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.storyboard.RenderClips#default",
+   "node": "nodetool.storyboard.RenderClips",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.RenderClips",
+      "properties": {}
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_clips",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "clips"
+      }
+     },
+     {
+      "id": "out_rendered",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "rendered"
+      }
+     },
+     {
+      "id": "out_skipped",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "skipped"
+      }
+     },
+     {
+      "id": "out_failed",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "failed"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_clips",
+      "source": "n",
+      "sourceHandle": "clips",
+      "target": "out_clips",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_rendered",
+      "source": "n",
+      "sourceHandle": "rendered",
+      "target": "out_rendered",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_skipped",
+      "source": "n",
+      "sourceHandle": "skipped",
+      "target": "out_skipped",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_failed",
+      "source": "n",
+      "sourceHandle": "failed",
+      "target": "out_failed",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.storyboard.AssembleTimeline#default",
+   "node": "nodetool.storyboard.AssembleTimeline",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.storyboard.AssembleTimeline",
+      "properties": {}
+     },
+     {
+      "id": "out_timeline",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timeline"
+      }
+     },
+     {
+      "id": "out_skipped_shots",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "skipped_shots"
+      }
+     },
+     {
+      "id": "out_retimed",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "retimed"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_timeline",
+      "source": "n",
+      "sourceHandle": "timeline",
+      "target": "out_timeline",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_skipped_shots",
+      "source": "n",
+      "sourceHandle": "skipped_shots",
+      "target": "out_skipped_shots",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_retimed",
+      "source": "n",
+      "sourceHandle": "retimed",
+      "target": "out_retimed",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

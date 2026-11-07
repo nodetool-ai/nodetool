@@ -1,0 +1,208 @@
+{
+ "module": "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp",
+ "cases": [
+  {
+   "id": "lib.audio.Gain#default",
+   "node": "lib.audio.Gain",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.Gain",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.Delay#default",
+   "node": "lib.audio.Delay",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.Delay",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.HighPassFilter#default",
+   "node": "lib.audio.HighPassFilter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.HighPassFilter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.LowPassFilter#default",
+   "node": "lib.audio.LowPassFilter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.LowPassFilter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.HighShelfFilter#default",
+   "node": "lib.audio.HighShelfFilter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.HighShelfFilter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.LowShelfFilter#default",
+   "node": "lib.audio.LowShelfFilter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.LowShelfFilter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.PeakFilter#default",
+   "node": "lib.audio.PeakFilter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.PeakFilter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

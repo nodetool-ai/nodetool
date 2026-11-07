@@ -1,0 +1,150 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/mistral",
+ "cases": [
+  {
+   "id": "mistral.text.ChatComplete#default",
+   "node": "mistral.text.ChatComplete",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "mistral.text.ChatComplete",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "mistral.text.CodeComplete#default",
+   "node": "mistral.text.CodeComplete",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "mistral.text.CodeComplete",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "mistral.embeddings.Embedding#default",
+   "node": "mistral.embeddings.Embedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "mistral.embeddings.Embedding",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "mistral.vision.ImageToText#default",
+   "node": "mistral.vision.ImageToText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "mistral.vision.ImageToText",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "mistral.vision.OCR#default",
+   "node": "mistral.vision.OCR",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "mistral.vision.OCR",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

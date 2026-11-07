@@ -1,0 +1,1089 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/input",
+ "cases": [
+  {
+   "id": "nodetool.input.ValueInput#default",
+   "node": "nodetool.input.ValueInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ValueInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.FloatInput#default",
+   "node": "nodetool.input.FloatInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.FloatInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.BooleanInput#default",
+   "node": "nodetool.input.BooleanInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.BooleanInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.IntegerInput#default",
+   "node": "nodetool.input.IntegerInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.IntegerInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.StringInput#default",
+   "node": "nodetool.input.StringInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.StringInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.SelectInput#default",
+   "node": "nodetool.input.SelectInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.SelectInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.StringListInput#default",
+   "node": "nodetool.input.StringListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.StringListInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.FolderPathInput#default",
+   "node": "nodetool.input.FolderPathInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.FolderPathInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.HuggingFaceModelInput#default",
+   "node": "nodetool.input.HuggingFaceModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.HuggingFaceModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.ColorInput#default",
+   "node": "nodetool.input.ColorInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ColorInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.ImageSizeInput#default",
+   "node": "nodetool.input.ImageSizeInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ImageSizeInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.LanguageModelInput#default",
+   "node": "nodetool.input.LanguageModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.LanguageModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.ImageModelInput#default",
+   "node": "nodetool.input.ImageModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ImageModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.VideoModelInput#default",
+   "node": "nodetool.input.VideoModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.VideoModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.TTSModelInput#default",
+   "node": "nodetool.input.TTSModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.TTSModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.ASRModelInput#default",
+   "node": "nodetool.input.ASRModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ASRModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.EmbeddingModelInput#default",
+   "node": "nodetool.input.EmbeddingModelInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.EmbeddingModelInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.DataframeInput#default",
+   "node": "nodetool.input.DataframeInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.DataframeInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.DocumentInput#default",
+   "node": "nodetool.input.DocumentInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.DocumentInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.ImageInput#default",
+   "node": "nodetool.input.ImageInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ImageInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.ImageListInput#default",
+   "node": "nodetool.input.ImageListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ImageListInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.VideoListInput#default",
+   "node": "nodetool.input.VideoListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.VideoListInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.AudioListInput#default",
+   "node": "nodetool.input.AudioListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.AudioListInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.TextListInput#default",
+   "node": "nodetool.input.TextListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.TextListInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.VideoInput#default",
+   "node": "nodetool.input.VideoInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.VideoInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.AudioInput#default",
+   "node": "nodetool.input.AudioInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.AudioInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.Model3DInput#default",
+   "node": "nodetool.input.Model3DInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.Model3DInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.RealtimeAudioInput#default",
+   "node": "nodetool.input.RealtimeAudioInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.RealtimeAudioInput",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.AssetFolderInput#default",
+   "node": "nodetool.input.AssetFolderInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.AssetFolderInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.FilePathInput#default",
+   "node": "nodetool.input.FilePathInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.FilePathInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.DocumentFileInput#default",
+   "node": "nodetool.input.DocumentFileInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.DocumentFileInput",
+      "properties": {}
+     },
+     {
+      "id": "out_document",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "document"
+      }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_document",
+      "source": "n",
+      "sourceHandle": "document",
+      "target": "out_document",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.MessageInput#default",
+   "node": "nodetool.input.MessageInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.MessageInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.MessageListInput#default",
+   "node": "nodetool.input.MessageListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.MessageListInput",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.MessageDeconstructor#default",
+   "node": "nodetool.input.MessageDeconstructor",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.MessageDeconstructor",
+      "properties": {}
+     },
+     {
+      "id": "out_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "id"
+      }
+     },
+     {
+      "id": "out_thread_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "thread_id"
+      }
+     },
+     {
+      "id": "out_role",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "role"
+      }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_image",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "image"
+      }
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_model",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "model"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_id",
+      "source": "n",
+      "sourceHandle": "id",
+      "target": "out_id",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_thread_id",
+      "source": "n",
+      "sourceHandle": "thread_id",
+      "target": "out_thread_id",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_role",
+      "source": "n",
+      "sourceHandle": "role",
+      "target": "out_role",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_image",
+      "source": "n",
+      "sourceHandle": "image",
+      "target": "out_image",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_model",
+      "source": "n",
+      "sourceHandle": "model",
+      "target": "out_model",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,295 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-filter",
+ "cases": [
+  {
+   "id": "lib.image.filter.Canny#default",
+   "node": "lib.image.filter.Canny",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Canny",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Contour#default",
+   "node": "lib.image.filter.Contour",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Contour",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.ConvertToGrayscale#default",
+   "node": "lib.image.filter.ConvertToGrayscale",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.ConvertToGrayscale",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Emboss#default",
+   "node": "lib.image.filter.Emboss",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Emboss",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Expand#default",
+   "node": "lib.image.filter.Expand",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Expand",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.FindEdges#default",
+   "node": "lib.image.filter.FindEdges",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.FindEdges",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Invert#default",
+   "node": "lib.image.filter.Invert",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Invert",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Posterize#default",
+   "node": "lib.image.filter.Posterize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Posterize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Smooth#default",
+   "node": "lib.image.filter.Smooth",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Smooth",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.filter.Solarize#default",
+   "node": "lib.image.filter.Solarize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.filter.Solarize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

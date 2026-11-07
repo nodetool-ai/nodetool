@@ -1,0 +1,62 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/compare",
+ "cases": [
+  {
+   "id": "nodetool.compare.CompareImages#default",
+   "node": "nodetool.compare.CompareImages",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.compare.CompareImages",
+      "properties": {}
+     },
+     {
+      "id": "out_comparison",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "comparison"
+      }
+     },
+     {
+      "id": "out_score",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "score"
+      }
+     },
+     {
+      "id": "out_equal",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "equal"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_comparison",
+      "source": "n",
+      "sourceHandle": "comparison",
+      "target": "out_comparison",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_score",
+      "source": "n",
+      "sourceHandle": "score",
+      "target": "out_score",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_equal",
+      "source": "n",
+      "sourceHandle": "equal",
+      "target": "out_equal",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

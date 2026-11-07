@@ -1,0 +1,262 @@
+{
+ "cases": [
+  {
+   "id": "nodetool.input.StringInput#param",
+   "node": "nodetool.input.StringInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.StringInput",
+      "properties": {
+       "name": "s",
+       "value": "default"
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "s"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "s": "from params"
+   }
+  },
+  {
+   "id": "nodetool.input.IntegerInput#param",
+   "node": "nodetool.input.IntegerInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.IntegerInput",
+      "properties": {
+       "name": "i",
+       "value": 1,
+       "min": 0,
+       "max": 100
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "i"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "i": 42
+   }
+  },
+  {
+   "id": "nodetool.input.FloatInput#param",
+   "node": "nodetool.input.FloatInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.FloatInput",
+      "properties": {
+       "name": "f",
+       "value": 0.5,
+       "min": 0,
+       "max": 10
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "f"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "f": 2.75
+   }
+  },
+  {
+   "id": "nodetool.input.BooleanInput#param",
+   "node": "nodetool.input.BooleanInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.BooleanInput",
+      "properties": {
+       "name": "b",
+       "value": false
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "b"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "b": true
+   }
+  },
+  {
+   "id": "nodetool.input.StringListInput#param",
+   "node": "nodetool.input.StringListInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.StringListInput",
+      "properties": {
+       "name": "l",
+       "value": []
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "l"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "l": [
+     "p",
+     "q"
+    ]
+   }
+  },
+  {
+   "id": "nodetool.input.SelectInput#param",
+   "node": "nodetool.input.SelectInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.SelectInput",
+      "properties": {
+       "name": "sel",
+       "value": "a",
+       "options": [
+        "a",
+        "b"
+       ]
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sel"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "sel": "b"
+   }
+  },
+  {
+   "id": "nodetool.input.ColorInput#param",
+   "node": "nodetool.input.ColorInput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.input.ColorInput",
+      "properties": {
+       "name": "c"
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "c"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   },
+   "params": {
+    "c": {
+     "type": "color",
+     "value": "#ff0000"
+    }
+   }
+  }
+ ]
+}

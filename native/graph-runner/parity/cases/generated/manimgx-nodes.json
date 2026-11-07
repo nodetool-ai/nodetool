@@ -1,0 +1,260 @@
+{
+ "module": "@nodetool-ai/manimgx-nodes",
+ "cases": [
+  {
+   "id": "nodetool.manimgx.RenderScene#default",
+   "node": "nodetool.manimgx.RenderScene",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.manimgx.RenderScene",
+      "properties": {}
+     },
+     {
+      "id": "out_video",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video"
+      }
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_report",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "report"
+      }
+     },
+     {
+      "id": "out_subtitles",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "subtitles"
+      }
+     },
+     {
+      "id": "out_duration",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "duration"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_video",
+      "source": "n",
+      "sourceHandle": "video",
+      "target": "out_video",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_report",
+      "source": "n",
+      "sourceHandle": "report",
+      "target": "out_report",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_subtitles",
+      "source": "n",
+      "sourceHandle": "subtitles",
+      "target": "out_subtitles",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_duration",
+      "source": "n",
+      "sourceHandle": "duration",
+      "target": "out_duration",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.manimgx.InspectScene#default",
+   "node": "nodetool.manimgx.InspectScene",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.manimgx.InspectScene",
+      "properties": {}
+     },
+     {
+      "id": "out_ok",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "ok"
+      }
+     },
+     {
+      "id": "out_problems",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "problems"
+      }
+     },
+     {
+      "id": "out_report",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "report"
+      }
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_duration",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "duration"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_ok",
+      "source": "n",
+      "sourceHandle": "ok",
+      "target": "out_ok",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_problems",
+      "source": "n",
+      "sourceHandle": "problems",
+      "target": "out_problems",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_report",
+      "source": "n",
+      "sourceHandle": "report",
+      "target": "out_report",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_duration",
+      "source": "n",
+      "sourceHandle": "duration",
+      "target": "out_duration",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.manimgx.GenerateScene#default",
+   "node": "nodetool.manimgx.GenerateScene",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.manimgx.GenerateScene",
+      "properties": {}
+     },
+     {
+      "id": "out_video",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video"
+      }
+     },
+     {
+      "id": "out_code",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "code"
+      }
+     },
+     {
+      "id": "out_storyboard",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "storyboard"
+      }
+     },
+     {
+      "id": "out_report",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "report"
+      }
+     },
+     {
+      "id": "out_attempts",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "attempts"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_video",
+      "source": "n",
+      "sourceHandle": "video",
+      "target": "out_video",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_code",
+      "source": "n",
+      "sourceHandle": "code",
+      "target": "out_code",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_storyboard",
+      "source": "n",
+      "sourceHandle": "storyboard",
+      "target": "out_storyboard",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_report",
+      "source": "n",
+      "sourceHandle": "report",
+      "target": "out_report",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_attempts",
+      "source": "n",
+      "sourceHandle": "attempts",
+      "target": "out_attempts",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

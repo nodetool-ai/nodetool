@@ -1,0 +1,63 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-channel",
+ "cases": [
+  {
+   "id": "lib.image.channel.Shuffle#default",
+   "node": "lib.image.channel.Shuffle",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.channel.Shuffle",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.channel.Merge#default",
+   "node": "lib.image.channel.Merge",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.channel.Merge",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

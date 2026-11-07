@@ -1,0 +1,447 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/vector",
+ "cases": [
+  {
+   "id": "vector.Collection#default",
+   "node": "vector.Collection",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.Collection",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.Count#default",
+   "node": "vector.Count",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.Count",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.GetDocuments#default",
+   "node": "vector.GetDocuments",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.GetDocuments",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.Peek#default",
+   "node": "vector.Peek",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.Peek",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.IndexImage#default",
+   "node": "vector.IndexImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.IndexImage",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "vector.IndexEmbedding#default",
+   "node": "vector.IndexEmbedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.IndexEmbedding",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "vector.IndexTextChunk#default",
+   "node": "vector.IndexTextChunk",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.IndexTextChunk",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "vector.IndexAggregatedText#default",
+   "node": "vector.IndexAggregatedText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.IndexAggregatedText",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "vector.IndexString#default",
+   "node": "vector.IndexString",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.IndexString",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "vector.QueryImage#default",
+   "node": "vector.QueryImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.QueryImage",
+      "properties": {}
+     },
+     {
+      "id": "out_ids",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "ids"
+      }
+     },
+     {
+      "id": "out_documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     },
+     {
+      "id": "out_metadatas",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "metadatas"
+      }
+     },
+     {
+      "id": "out_distances",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "distances"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_ids",
+      "source": "n",
+      "sourceHandle": "ids",
+      "target": "out_ids",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_documents",
+      "source": "n",
+      "sourceHandle": "documents",
+      "target": "out_documents",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_metadatas",
+      "source": "n",
+      "sourceHandle": "metadatas",
+      "target": "out_metadatas",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_distances",
+      "source": "n",
+      "sourceHandle": "distances",
+      "target": "out_distances",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.QueryText#default",
+   "node": "vector.QueryText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.QueryText",
+      "properties": {}
+     },
+     {
+      "id": "out_ids",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "ids"
+      }
+     },
+     {
+      "id": "out_documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     },
+     {
+      "id": "out_metadatas",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "metadatas"
+      }
+     },
+     {
+      "id": "out_distances",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "distances"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_ids",
+      "source": "n",
+      "sourceHandle": "ids",
+      "target": "out_ids",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_documents",
+      "source": "n",
+      "sourceHandle": "documents",
+      "target": "out_documents",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_metadatas",
+      "source": "n",
+      "sourceHandle": "metadatas",
+      "target": "out_metadatas",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_distances",
+      "source": "n",
+      "sourceHandle": "distances",
+      "target": "out_distances",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.RemoveOverlap#default",
+   "node": "vector.RemoveOverlap",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.RemoveOverlap",
+      "properties": {}
+     },
+     {
+      "id": "out_documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_documents",
+      "source": "n",
+      "sourceHandle": "documents",
+      "target": "out_documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vector.HybridSearch#default",
+   "node": "vector.HybridSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vector.HybridSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_ids",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "ids"
+      }
+     },
+     {
+      "id": "out_documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     },
+     {
+      "id": "out_metadatas",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "metadatas"
+      }
+     },
+     {
+      "id": "out_distances",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "distances"
+      }
+     },
+     {
+      "id": "out_scores",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "scores"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_ids",
+      "source": "n",
+      "sourceHandle": "ids",
+      "target": "out_ids",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_documents",
+      "source": "n",
+      "sourceHandle": "documents",
+      "target": "out_documents",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_metadatas",
+      "source": "n",
+      "sourceHandle": "metadatas",
+      "target": "out_metadatas",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_distances",
+      "source": "n",
+      "sourceHandle": "distances",
+      "target": "out_distances",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_scores",
+      "source": "n",
+      "sourceHandle": "scores",
+      "target": "out_scores",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

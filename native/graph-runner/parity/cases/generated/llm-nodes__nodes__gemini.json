@@ -1,0 +1,467 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/gemini",
+ "cases": [
+  {
+   "id": "gemini.text.GroundedSearch#default",
+   "node": "gemini.text.GroundedSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.text.GroundedSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_results",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "results"
+      }
+     },
+     {
+      "id": "out_sources",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sources"
+      }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_results",
+      "source": "n",
+      "sourceHandle": "results",
+      "target": "out_results",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_sources",
+      "source": "n",
+      "sourceHandle": "sources",
+      "target": "out_sources",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gemini.text.Embedding#default",
+   "node": "gemini.text.Embedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.text.Embedding",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gemini.image.ImageGeneration#default",
+   "node": "gemini.image.ImageGeneration",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.image.ImageGeneration",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gemini.video.TextToVideo#default",
+   "node": "gemini.video.TextToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.video.TextToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gemini.video.ImageToVideo#default",
+   "node": "gemini.video.ImageToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.video.ImageToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gemini.audio.TextToSpeech#default",
+   "node": "gemini.audio.TextToSpeech",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.audio.TextToSpeech",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "gemini.audio.Transcribe#default",
+   "node": "gemini.audio.Transcribe",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "gemini.audio.Transcribe",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.text.GroundedSearch#default",
+   "node": "vertex.text.GroundedSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.text.GroundedSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_results",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "results"
+      }
+     },
+     {
+      "id": "out_sources",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sources"
+      }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_results",
+      "source": "n",
+      "sourceHandle": "results",
+      "target": "out_results",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_sources",
+      "source": "n",
+      "sourceHandle": "sources",
+      "target": "out_sources",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.text.Embedding#default",
+   "node": "vertex.text.Embedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.text.Embedding",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.image.ImageGeneration#default",
+   "node": "vertex.image.ImageGeneration",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.image.ImageGeneration",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.video.TextToVideo#default",
+   "node": "vertex.video.TextToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.video.TextToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.video.ImageToVideo#default",
+   "node": "vertex.video.ImageToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.video.ImageToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.audio.TextToSpeech#default",
+   "node": "vertex.audio.TextToSpeech",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.audio.TextToSpeech",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "vertex.audio.Transcribe#default",
+   "node": "vertex.audio.Transcribe",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "vertex.audio.Transcribe",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

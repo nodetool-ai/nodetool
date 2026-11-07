@@ -1,0 +1,266 @@
+{
+ "module": "@nodetool-ai/audio-nodes/nodes/synthesis",
+ "cases": [
+  {
+   "id": "nodetool.audio.synth.Oscillator#default",
+   "node": "nodetool.audio.synth.Oscillator",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.Oscillator",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.LFO#default",
+   "node": "nodetool.audio.synth.LFO",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.LFO",
+      "properties": {}
+     },
+     {
+      "id": "out_cv",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cv"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_cv",
+      "source": "n",
+      "sourceHandle": "cv",
+      "target": "out_cv",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.ADSR#default",
+   "node": "nodetool.audio.synth.ADSR",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.ADSR",
+      "properties": {}
+     },
+     {
+      "id": "out_cv",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cv"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_cv",
+      "source": "n",
+      "sourceHandle": "cv",
+      "target": "out_cv",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.Gate#default",
+   "node": "nodetool.audio.synth.Gate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.Gate",
+      "properties": {}
+     },
+     {
+      "id": "out_cv",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cv"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_cv",
+      "source": "n",
+      "sourceHandle": "cv",
+      "target": "out_cv",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.VCA#default",
+   "node": "nodetool.audio.synth.VCA",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.VCA",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.VCF#default",
+   "node": "nodetool.audio.synth.VCF",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.VCF",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.Attenuverter#default",
+   "node": "nodetool.audio.synth.Attenuverter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.Attenuverter",
+      "properties": {}
+     },
+     {
+      "id": "out_cv",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cv"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_cv",
+      "source": "n",
+      "sourceHandle": "cv",
+      "target": "out_cv",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.SampleHold#default",
+   "node": "nodetool.audio.synth.SampleHold",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.SampleHold",
+      "properties": {}
+     },
+     {
+      "id": "out_cv",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cv"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_cv",
+      "source": "n",
+      "sourceHandle": "cv",
+      "target": "out_cv",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.Mixer#default",
+   "node": "nodetool.audio.synth.Mixer",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.Mixer",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

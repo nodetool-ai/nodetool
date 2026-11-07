@@ -1,0 +1,150 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-effects",
+ "cases": [
+  {
+   "id": "lib.image.effects.ColorOverlay#default",
+   "node": "lib.image.effects.ColorOverlay",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.effects.ColorOverlay",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.effects.Outline#default",
+   "node": "lib.image.effects.Outline",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.effects.Outline",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.effects.DropShadow#default",
+   "node": "lib.image.effects.DropShadow",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.effects.DropShadow",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.effects.Glow#default",
+   "node": "lib.image.effects.Glow",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.effects.Glow",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.effects.Add#default",
+   "node": "lib.image.effects.Add",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.effects.Add",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

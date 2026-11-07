@@ -1,0 +1,34 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-grid",
+ "cases": [
+  {
+   "id": "lib.grid.SliceImageGrid#default",
+   "node": "lib.grid.SliceImageGrid",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.grid.SliceImageGrid",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

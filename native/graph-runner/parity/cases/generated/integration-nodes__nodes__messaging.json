@@ -1,0 +1,329 @@
+{
+ "module": "@nodetool-ai/integration-nodes/nodes/messaging",
+ "cases": [
+  {
+   "id": "messaging.discord.DiscordBotTrigger#default",
+   "node": "messaging.discord.DiscordBotTrigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "messaging.discord.DiscordBotTrigger",
+      "properties": {}
+     },
+     {
+      "id": "out_message_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "message_id"
+      }
+     },
+     {
+      "id": "out_content",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "content"
+      }
+     },
+     {
+      "id": "out_author",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "author"
+      }
+     },
+     {
+      "id": "out_channel",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "channel"
+      }
+     },
+     {
+      "id": "out_guild",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "guild"
+      }
+     },
+     {
+      "id": "out_attachments",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "attachments"
+      }
+     },
+     {
+      "id": "out_timestamp",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timestamp"
+      }
+     },
+     {
+      "id": "out_source",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "source"
+      }
+     },
+     {
+      "id": "out_event_type",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "event_type"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_message_id",
+      "source": "n",
+      "sourceHandle": "message_id",
+      "target": "out_message_id",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_content",
+      "source": "n",
+      "sourceHandle": "content",
+      "target": "out_content",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_author",
+      "source": "n",
+      "sourceHandle": "author",
+      "target": "out_author",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_channel",
+      "source": "n",
+      "sourceHandle": "channel",
+      "target": "out_channel",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_guild",
+      "source": "n",
+      "sourceHandle": "guild",
+      "target": "out_guild",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_attachments",
+      "source": "n",
+      "sourceHandle": "attachments",
+      "target": "out_attachments",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_timestamp",
+      "source": "n",
+      "sourceHandle": "timestamp",
+      "target": "out_timestamp",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_source",
+      "source": "n",
+      "sourceHandle": "source",
+      "target": "out_source",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_event_type",
+      "source": "n",
+      "sourceHandle": "event_type",
+      "target": "out_event_type",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "messaging.telegram.TelegramBotTrigger#default",
+   "node": "messaging.telegram.TelegramBotTrigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "messaging.telegram.TelegramBotTrigger",
+      "properties": {}
+     },
+     {
+      "id": "out_update_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "update_id"
+      }
+     },
+     {
+      "id": "out_update_type",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "update_type"
+      }
+     },
+     {
+      "id": "out_message_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "message_id"
+      }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_caption",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "caption"
+      }
+     },
+     {
+      "id": "out_entities",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "entities"
+      }
+     },
+     {
+      "id": "out_chat",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chat"
+      }
+     },
+     {
+      "id": "out_from_user",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "from_user"
+      }
+     },
+     {
+      "id": "out_attachments",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "attachments"
+      }
+     },
+     {
+      "id": "out_timestamp",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timestamp"
+      }
+     },
+     {
+      "id": "out_source",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "source"
+      }
+     },
+     {
+      "id": "out_event_type",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "event_type"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_update_id",
+      "source": "n",
+      "sourceHandle": "update_id",
+      "target": "out_update_id",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_update_type",
+      "source": "n",
+      "sourceHandle": "update_type",
+      "target": "out_update_type",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_message_id",
+      "source": "n",
+      "sourceHandle": "message_id",
+      "target": "out_message_id",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_caption",
+      "source": "n",
+      "sourceHandle": "caption",
+      "target": "out_caption",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_entities",
+      "source": "n",
+      "sourceHandle": "entities",
+      "target": "out_entities",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_chat",
+      "source": "n",
+      "sourceHandle": "chat",
+      "target": "out_chat",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_from_user",
+      "source": "n",
+      "sourceHandle": "from_user",
+      "target": "out_from_user",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_attachments",
+      "source": "n",
+      "sourceHandle": "attachments",
+      "target": "out_attachments",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_timestamp",
+      "source": "n",
+      "sourceHandle": "timestamp",
+      "target": "out_timestamp",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_source",
+      "source": "n",
+      "sourceHandle": "source",
+      "target": "out_source",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_event_type",
+      "source": "n",
+      "sourceHandle": "event_type",
+      "target": "out_event_type",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

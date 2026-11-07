@@ -1,0 +1,191 @@
+{
+ "module": "@nodetool-ai/integration-nodes/nodes/comfy",
+ "cases": [
+  {
+   "id": "lib.comfy.RunWorkflow#default",
+   "node": "lib.comfy.RunWorkflow",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.comfy.RunWorkflow",
+      "properties": {}
+     },
+     {
+      "id": "in_endpoint",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "in_workflow",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_in_endpoint",
+      "source": "in_endpoint",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "endpoint"
+     },
+     {
+      "id": "e_in_workflow",
+      "source": "in_workflow",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "workflow"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.comfy.RunWorkflowOnWorker#default",
+   "node": "lib.comfy.RunWorkflowOnWorker",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.comfy.RunWorkflowOnWorker",
+      "properties": {}
+     },
+     {
+      "id": "in_worker_url",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "in_workflow",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_in_worker_url",
+      "source": "in_worker_url",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "worker_url"
+     },
+     {
+      "id": "e_in_workflow",
+      "source": "in_workflow",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "workflow"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.comfy.RunWorkflowOnCloud#default",
+   "node": "lib.comfy.RunWorkflowOnCloud",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.comfy.RunWorkflowOnCloud",
+      "properties": {}
+     },
+     {
+      "id": "in_workflow",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "parity"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_in_workflow",
+      "source": "in_workflow",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "workflow"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.comfy.RunComfyGraphOnCloud#default",
+   "node": "lib.comfy.RunComfyGraphOnCloud",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.comfy.RunComfyGraphOnCloud",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

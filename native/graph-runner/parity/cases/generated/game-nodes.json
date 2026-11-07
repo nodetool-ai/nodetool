@@ -1,0 +1,246 @@
+{
+ "module": "@nodetool-ai/game-nodes",
+ "cases": [
+  {
+   "id": "nodetool.game.LoadGameTemplate#default",
+   "node": "nodetool.game.LoadGameTemplate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.game.LoadGameTemplate",
+      "properties": {}
+     },
+     {
+      "id": "out_manifest",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "manifest"
+      }
+     },
+     {
+      "id": "out_slots",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "slots"
+      }
+     },
+     {
+      "id": "out_slot",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "slot"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_manifest",
+      "source": "n",
+      "sourceHandle": "manifest",
+      "target": "out_manifest",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_slots",
+      "source": "n",
+      "sourceHandle": "slots",
+      "target": "out_slots",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_slot",
+      "source": "n",
+      "sourceHandle": "slot",
+      "target": "out_slot",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.game.SlotPrompt#default",
+   "node": "nodetool.game.SlotPrompt",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.game.SlotPrompt",
+      "properties": {}
+     },
+     {
+      "id": "out_prompt",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "prompt"
+      }
+     },
+     {
+      "id": "out_width",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "width"
+      }
+     },
+     {
+      "id": "out_height",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "height"
+      }
+     },
+     {
+      "id": "out_kind",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "kind"
+      }
+     },
+     {
+      "id": "out_checker",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "checker"
+      }
+     },
+     {
+      "id": "out_seconds",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "seconds"
+      }
+     },
+     {
+      "id": "out_reference_images",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "reference_images"
+      }
+     },
+     {
+      "id": "out_reference_asset_id",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "reference_asset_id"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_prompt",
+      "source": "n",
+      "sourceHandle": "prompt",
+      "target": "out_prompt",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_width",
+      "source": "n",
+      "sourceHandle": "width",
+      "target": "out_width",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_height",
+      "source": "n",
+      "sourceHandle": "height",
+      "target": "out_height",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_kind",
+      "source": "n",
+      "sourceHandle": "kind",
+      "target": "out_kind",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_checker",
+      "source": "n",
+      "sourceHandle": "checker",
+      "target": "out_checker",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_seconds",
+      "source": "n",
+      "sourceHandle": "seconds",
+      "target": "out_seconds",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_reference_images",
+      "source": "n",
+      "sourceHandle": "reference_images",
+      "target": "out_reference_images",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_reference_asset_id",
+      "source": "n",
+      "sourceHandle": "reference_asset_id",
+      "target": "out_reference_asset_id",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.game.StageGameAssets#default",
+   "node": "nodetool.game.StageGameAssets",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.game.StageGameAssets",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_bindings",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "bindings"
+      }
+     },
+     {
+      "id": "out_paths",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "paths"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_bindings",
+      "source": "n",
+      "sourceHandle": "bindings",
+      "target": "out_bindings",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_paths",
+      "source": "n",
+      "sourceHandle": "paths",
+      "target": "out_paths",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

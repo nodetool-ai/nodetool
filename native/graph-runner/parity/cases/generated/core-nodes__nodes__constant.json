@@ -1,0 +1,1020 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/constant",
+ "cases": [
+  {
+   "id": "nodetool.constant.Bool#default",
+   "node": "nodetool.constant.Bool",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Bool",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Integer#default",
+   "node": "nodetool.constant.Integer",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Integer",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Float#default",
+   "node": "nodetool.constant.Float",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Float",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.String#default",
+   "node": "nodetool.constant.String",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.String",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.List#default",
+   "node": "nodetool.constant.List",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.List",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.TextList#default",
+   "node": "nodetool.constant.TextList",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.TextList",
+      "properties": {}
+     },
+     {
+      "id": "in_value",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        "a",
+        "b"
+       ]
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_in_value",
+      "source": "in_value",
+      "sourceHandle": "output",
+      "target": "n",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Dict#default",
+   "node": "nodetool.constant.Dict",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Dict",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Audio#default",
+   "node": "nodetool.constant.Audio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Audio",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Image#default",
+   "node": "nodetool.constant.Image",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Image",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Video#default",
+   "node": "nodetool.constant.Video",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Video",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Document#default",
+   "node": "nodetool.constant.Document",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Document",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Sketch#default",
+   "node": "nodetool.constant.Sketch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Sketch",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_image",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "image"
+      }
+     },
+     {
+      "id": "out_mask",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "mask"
+      }
+     },
+     {
+      "id": "out_layers",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "layers"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_image",
+      "source": "n",
+      "sourceHandle": "image",
+      "target": "out_image",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_mask",
+      "source": "n",
+      "sourceHandle": "mask",
+      "target": "out_mask",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_layers",
+      "source": "n",
+      "sourceHandle": "layers",
+      "target": "out_layers",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Timeline#default",
+   "node": "nodetool.constant.Timeline",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Timeline",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Script#default",
+   "node": "nodetool.constant.Script",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Script",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Storyboard#default",
+   "node": "nodetool.constant.Storyboard",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Storyboard",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Entity#default",
+   "node": "nodetool.constant.Entity",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Entity",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.JSON#default",
+   "node": "nodetool.constant.JSON",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.JSON",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Model3D#default",
+   "node": "nodetool.constant.Model3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Model3D",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.DataFrame#default",
+   "node": "nodetool.constant.DataFrame",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.DataFrame",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.AudioList#default",
+   "node": "nodetool.constant.AudioList",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.AudioList",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.ImageList#default",
+   "node": "nodetool.constant.ImageList",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.ImageList",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.VideoList#default",
+   "node": "nodetool.constant.VideoList",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.VideoList",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Select#default",
+   "node": "nodetool.constant.Select",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Select",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.ImageSize#default",
+   "node": "nodetool.constant.ImageSize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.ImageSize",
+      "properties": {}
+     },
+     {
+      "id": "out_image_size",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "image_size"
+      }
+     },
+     {
+      "id": "out_width",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "width"
+      }
+     },
+     {
+      "id": "out_height",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "height"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_image_size",
+      "source": "n",
+      "sourceHandle": "image_size",
+      "target": "out_image_size",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_width",
+      "source": "n",
+      "sourceHandle": "width",
+      "target": "out_width",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_height",
+      "source": "n",
+      "sourceHandle": "height",
+      "target": "out_height",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Date#default",
+   "node": "nodetool.constant.Date",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Date",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.DateTime#default",
+   "node": "nodetool.constant.DateTime",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.DateTime",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.ASRModelConstant#default",
+   "node": "nodetool.constant.ASRModelConstant",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.ASRModelConstant",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.EmbeddingModelConstant#default",
+   "node": "nodetool.constant.EmbeddingModelConstant",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.EmbeddingModelConstant",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.ImageModelConstant#default",
+   "node": "nodetool.constant.ImageModelConstant",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.ImageModelConstant",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.LanguageModelConstant#default",
+   "node": "nodetool.constant.LanguageModelConstant",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.LanguageModelConstant",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.TTSModelConstant#default",
+   "node": "nodetool.constant.TTSModelConstant",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.TTSModelConstant",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.VideoModelConstant#default",
+   "node": "nodetool.constant.VideoModelConstant",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.VideoModelConstant",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

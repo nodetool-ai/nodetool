@@ -1,0 +1,19 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/app",
+ "cases": [
+  {
+   "id": "nodetool.workflows.app_node.App#default",
+   "node": "nodetool.workflows.app_node.App",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.workflows.app_node.App",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  }
+ ]
+}

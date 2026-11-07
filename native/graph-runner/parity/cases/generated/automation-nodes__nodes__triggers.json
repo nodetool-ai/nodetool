@@ -1,0 +1,444 @@
+{
+ "module": "@nodetool-ai/automation-nodes/nodes/triggers",
+ "cases": [
+  {
+   "id": "nodetool.triggers.Wait#default",
+   "node": "nodetool.triggers.Wait",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.triggers.Wait",
+      "properties": {}
+     },
+     {
+      "id": "out_data",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "data"
+      }
+     },
+     {
+      "id": "out_resumed_at",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "resumed_at"
+      }
+     },
+     {
+      "id": "out_waited_seconds",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "waited_seconds"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_data",
+      "source": "n",
+      "sourceHandle": "data",
+      "target": "out_data",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_resumed_at",
+      "source": "n",
+      "sourceHandle": "resumed_at",
+      "target": "out_resumed_at",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_waited_seconds",
+      "source": "n",
+      "sourceHandle": "waited_seconds",
+      "target": "out_waited_seconds",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.triggers.ManualTrigger#default",
+   "node": "nodetool.triggers.ManualTrigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.triggers.ManualTrigger",
+      "properties": {}
+     },
+     {
+      "id": "out_data",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "data"
+      }
+     },
+     {
+      "id": "out_timestamp",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timestamp"
+      }
+     },
+     {
+      "id": "out_source",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "source"
+      }
+     },
+     {
+      "id": "out_event_type",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "event_type"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_data",
+      "source": "n",
+      "sourceHandle": "data",
+      "target": "out_data",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_timestamp",
+      "source": "n",
+      "sourceHandle": "timestamp",
+      "target": "out_timestamp",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_source",
+      "source": "n",
+      "sourceHandle": "source",
+      "target": "out_source",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_event_type",
+      "source": "n",
+      "sourceHandle": "event_type",
+      "target": "out_event_type",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.triggers.IntervalTrigger#default",
+   "node": "nodetool.triggers.IntervalTrigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.triggers.IntervalTrigger",
+      "properties": {}
+     },
+     {
+      "id": "out_tick",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "tick"
+      }
+     },
+     {
+      "id": "out_elapsed_seconds",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "elapsed_seconds"
+      }
+     },
+     {
+      "id": "out_interval_seconds",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "interval_seconds"
+      }
+     },
+     {
+      "id": "out_timestamp",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timestamp"
+      }
+     },
+     {
+      "id": "out_source",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "source"
+      }
+     },
+     {
+      "id": "out_event_type",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "event_type"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_tick",
+      "source": "n",
+      "sourceHandle": "tick",
+      "target": "out_tick",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_elapsed_seconds",
+      "source": "n",
+      "sourceHandle": "elapsed_seconds",
+      "target": "out_elapsed_seconds",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_interval_seconds",
+      "source": "n",
+      "sourceHandle": "interval_seconds",
+      "target": "out_interval_seconds",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_timestamp",
+      "source": "n",
+      "sourceHandle": "timestamp",
+      "target": "out_timestamp",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_source",
+      "source": "n",
+      "sourceHandle": "source",
+      "target": "out_source",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_event_type",
+      "source": "n",
+      "sourceHandle": "event_type",
+      "target": "out_event_type",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.triggers.WebhookTrigger#default",
+   "node": "nodetool.triggers.WebhookTrigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.triggers.WebhookTrigger",
+      "properties": {}
+     },
+     {
+      "id": "out_body",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "body"
+      }
+     },
+     {
+      "id": "out_headers",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "headers"
+      }
+     },
+     {
+      "id": "out_query",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "query"
+      }
+     },
+     {
+      "id": "out_method",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "method"
+      }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
+     },
+     {
+      "id": "out_timestamp",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timestamp"
+      }
+     },
+     {
+      "id": "out_source",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "source"
+      }
+     },
+     {
+      "id": "out_event_type",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "event_type"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_body",
+      "source": "n",
+      "sourceHandle": "body",
+      "target": "out_body",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_headers",
+      "source": "n",
+      "sourceHandle": "headers",
+      "target": "out_headers",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_query",
+      "source": "n",
+      "sourceHandle": "query",
+      "target": "out_query",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_method",
+      "source": "n",
+      "sourceHandle": "method",
+      "target": "out_method",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_timestamp",
+      "source": "n",
+      "sourceHandle": "timestamp",
+      "target": "out_timestamp",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_source",
+      "source": "n",
+      "sourceHandle": "source",
+      "target": "out_source",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_event_type",
+      "source": "n",
+      "sourceHandle": "event_type",
+      "target": "out_event_type",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.triggers.FileWatchTrigger#default",
+   "node": "nodetool.triggers.FileWatchTrigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.triggers.FileWatchTrigger",
+      "properties": {}
+     },
+     {
+      "id": "out_event",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "event"
+      }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
+     },
+     {
+      "id": "out_dest_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "dest_path"
+      }
+     },
+     {
+      "id": "out_is_directory",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "is_directory"
+      }
+     },
+     {
+      "id": "out_timestamp",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "timestamp"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_event",
+      "source": "n",
+      "sourceHandle": "event",
+      "target": "out_event",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_dest_path",
+      "source": "n",
+      "sourceHandle": "dest_path",
+      "target": "out_dest_path",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_is_directory",
+      "source": "n",
+      "sourceHandle": "is_directory",
+      "target": "out_is_directory",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_timestamp",
+      "source": "n",
+      "sourceHandle": "timestamp",
+      "target": "out_timestamp",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}
