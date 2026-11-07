@@ -7,7 +7,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
-import { useToggleCollapse } from "../../hooks/nodes/useToggleCollapse";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -182,20 +181,6 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [id, updateNode]);
 
-  const toggleCollapse = useToggleCollapse();
-  const toggleCollapsed = useCallback(() => {
-    toggleCollapse([id]);
-  }, [toggleCollapse, id]);
-
-  const handleIconDoubleClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      event.stopPropagation();
-      event.preventDefault();
-      toggleCollapsed();
-    },
-    [toggleCollapsed]
-  );
-
   const handleOpenLogsDialog = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setLogsDialogOpen(true);
@@ -222,13 +207,9 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
       if (isTitleEditable) {
         event.stopPropagation();
         setIsEditingTitle(true);
-        return;
       }
-      event.stopPropagation();
-      event.preventDefault();
-      toggleCollapsed();
     },
-    [isTitleEditable, toggleCollapsed]
+    [isTitleEditable]
   );
 
   const handleTitleKeyDown = useCallback(
@@ -280,7 +261,6 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
           <div
             className="node-icon node-drag-handle"
             style={ICON_BACKGROUND_STYLE}
-            onDoubleClick={handleIconDoubleClick}
           >
             <IconForType
               iconName={iconType!}

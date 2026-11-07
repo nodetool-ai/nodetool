@@ -29,7 +29,7 @@ These apply to **every** deployment, regardless of environment:
 > substitute for real auth** — enable Supabase mode instead. See
 > [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).
 
-- **Enforce auth on any network-accessible deployment.** The server enforces authentication only when it is in Supabase mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
+- **Enforce auth on any network-accessible deployment.** The server enforces authentication only in Supabase mode (**both** `SUPABASE_URL` and `SUPABASE_KEY` set) or SSO mode (**both** `OIDC_ISSUER` and `OIDC_CLIENT_ID` set). Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
 - **Lock down localhost trust.** Behind a reverse proxy or in a container, set `NODETOOL_TRUST_LOCALHOST=false` (it already defaults off when auth is enforced) and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`, so a proxy connecting from loopback cannot silently bypass auth.
 - **Keep `NODETOOL_TRUST_LOCAL_NETWORKS` tight.** Trust the smallest range that works (the Docker bridge, not `0.0.0.0/0`), and firewall the published port. It is ignored in Supabase mode.
 - **Rotate keys regularly**: set calendar reminders to rotate Supabase service-role keys.

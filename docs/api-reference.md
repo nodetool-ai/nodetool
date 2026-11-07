@@ -945,7 +945,10 @@ sequence that Premiere imports through **File > Import**, the active asset of
 every exported clip under `media/`, and `export-report.txt`, which lists each
 clip that needs baking or was left out. The XML points at its media with
 relative `media/<file>` paths. The response carries
-`x-nodetool-export-warnings` with the number of report entries, and is named
+`x-nodetool-export-warnings` with the number of report entries,
+`x-nodetool-export-report` with the clip count and the report messages as
+percent-encoded JSON (`clipsExported`, `warnings`, and `omitted` for messages
+that did not fit the header, which stay in `export-report.txt`), and is named
 `<timeline name>-premiere.zip` by the same rule as above.
 
 `GET /api/timelines/{id}/export-media` packs only the media: the original file
@@ -963,7 +966,9 @@ had no NodeTool counterpart, such as transitions or nested sequences).
 
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`
-overrides the name in the bundle:
+overrides the name in the bundle. A `json` field holding
+`{"project_id": "...", "name": "..."}` sets the same two values, for clients
+that send their metadata that way:
 
 ```bash
 curl -X POST "http://localhost:7777/api/timelines/import-zip" \
@@ -2615,6 +2620,7 @@ curl "http://localhost:7777/api/config"
   "supabaseUrl": null,
   "supabaseAnonKey": null,
   "authRedirectUrl": null,
+  "ssoProviderName": null,
   "googleWorkspace": false,
   "googleScopes": [],
   "version": "0.7.0-rc.38"
@@ -2622,12 +2628,14 @@ curl "http://localhost:7777/api/config"
 ```
 
 `authMode` is `"supabase"` when both `SUPABASE_URL` and `SUPABASE_KEY` are set,
-and `"local"` otherwise — the same choice the server's own auth hook makes, so a
+`"oidc"` when both `OIDC_ISSUER` and `OIDC_CLIENT_ID` are set, and `"local"`
+otherwise — the same choice the server's own auth hook makes, so a
 client never has to guess it from the other fields. `supabaseUrl`,
 `supabaseAnonKey` and `authRedirectUrl` mirror `SUPABASE_URL`,
 `SUPABASE_ANON_KEY` and `AUTH_REDIRECT_URL`; each is `null` when unset. Note the
 anon key is the public one — the service key (`SUPABASE_KEY`) is never in this
-response.
+response. `ssoProviderName` is the sign-in button label from
+`OIDC_PROVIDER_NAME` (default `"SSO"`) in SSO mode, and `null` otherwise.
 
 `googleWorkspace` says whether the Google Workspace capability is on (see
 `NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,

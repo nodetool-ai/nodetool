@@ -1,0 +1,13 @@
+{
+  "targetHz": 60,
+  "cpuMs.p95": 8,
+  "cpuCopies": 0,
+  "frameError.max": 1,
+  "frameErrorZeroFraction": 0.95,
+  "missingMediaFrames": 0,
+  "cutMisses": 0,
+  "decoderCloseMs": 1000,
+  "frameRefCloseMs": 1000,
+  "skippedSubmitsFraction": 0.01,
+  "framesReleasedInFlight": 0
+}

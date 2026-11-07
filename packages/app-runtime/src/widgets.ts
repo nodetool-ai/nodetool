@@ -405,11 +405,14 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     mode: "write",
     trigger: "change",
     commits: true,
+    bindingProps: [{ prop: "placeholderFieldsBinding", mode: "read" }],
     fields: {
       binding: "custom",
       label: "text",
       placeholder: "text",
       hint: "text",
+      placeholderFieldsBinding: "custom",
+      cameraPresets: "radio",
       multiline: "radio",
       events: "array"
     }

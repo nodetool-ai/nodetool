@@ -1883,6 +1883,10 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
           markCapabilityCompleted();
         }
       });
+      // Allow real renderer startup before pausing the provider. The ten-second
+      // script budget matches A91 cold-preview qualification; the test still
+      // advances exactly to that deadline and retains its 12-second wall limit.
+      const deadlineSeconds = 10;
       vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
       try {
         const invocation = runCodeBody(context, {
@@ -1897,13 +1901,13 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
             model: { provider: "fake", id: "vision" }
           },
           secrets: [],
-          timeoutSeconds: 2,
+          timeoutSeconds: deadlineSeconds,
           withToolbelt: true
         });
         await providerStarted;
         expect(provider.requests.length).toBeGreaterThan(0);
         expect(invocationSignal?.aborted).toBe(false);
-        await vi.advanceTimersByTimeAsync(2000);
+        await vi.advanceTimersByTimeAsync(deadlineSeconds * 1000);
         const result = await invocation;
         expect(result.ok).toBe(false);
         expect(invocationSignal?.aborted).toBe(true);

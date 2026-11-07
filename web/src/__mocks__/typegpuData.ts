@@ -20,3 +20,5 @@ export const f32 = { scalar: "f32" };
 export const u32 = { scalar: "u32" };
 export const i32 = { scalar: "i32" };
 export const bool = { scalar: "bool" };
+
+export const arrayOf = (element: unknown, length: number) => ({ element, length });

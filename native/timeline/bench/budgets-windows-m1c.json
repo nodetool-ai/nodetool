@@ -1,0 +1,23 @@
+{
+  "_machine": {
+    "name": null,
+    "cpu": null,
+    "gpu": null,
+    "os": null,
+    "displayHz": 60,
+    "decoder": "d3d11va",
+    "status": "not measured: fill in the reference machine and run the M1b and M1c benches on it (PLAN M6)"
+  },
+  "_note": "Same measurements as budgets/m1c.json (macOS). The correctness budgets (frame error, held frames, cut misses, missing media) are the same on every platform; the timing budgets belong to this machine.",
+  "targetHz": 60,
+  "cpuMs.p95": 8,
+  "cpuCopies": 0,
+  "frameError.max": 1,
+  "frameErrorZeroFraction": 0.95,
+  "missingMediaFrames": 0,
+  "cutMisses": 0,
+  "decoderCloseMs": 1000,
+  "frameRefCloseMs": 1000,
+  "skippedSubmitsFraction": 0.01,
+  "framesReleasedInFlight": 0
+}

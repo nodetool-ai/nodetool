@@ -1,0 +1,394 @@
+{
+  "id": "seq-overlaps",
+  "projectId": "native-prototype",
+  "name": "Overlaps and cuts",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 10000,
+  "tracks": [
+    {
+      "id": "track-top",
+      "name": "Top",
+      "type": "overlay",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-cuts",
+      "name": "Cuts",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-hidden",
+      "name": "Hidden track",
+      "type": "video",
+      "index": 2,
+      "visible": false,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-audio",
+      "name": "Audio",
+      "type": "audio",
+      "index": 3,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "cut-a",
+      "trackId": "track-cuts",
+      "name": "Cut A",
+      "startMs": 0,
+      "durationMs": 4000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "fadeInMs": 500,
+      "fadeInShape": "sCurve"
+    },
+    {
+      "id": "cut-b",
+      "trackId": "track-cuts",
+      "name": "Cut B (auto dissolve)",
+      "startMs": 3000,
+      "durationMs": 4000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1280,
+      "height": 720,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.8,
+          "y": 0.8
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "speedMultiplier": 2
+    },
+    {
+      "id": "cut-x",
+      "trackId": "track-cuts",
+      "name": "Cut X (triple overlap)",
+      "startMs": 3500,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 800,
+      "height": 800,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": -300,
+          "y": 120
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "cut-c",
+      "trackId": "track-cuts",
+      "name": "Cut C (400 ms crossfade)",
+      "startMs": 6000,
+      "durationMs": 4000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "transitionIn": {
+        "type": "crossfade",
+        "durationMs": 400
+      },
+      "fadeInMs": 3000,
+      "fadeOutMs": 3000,
+      "fadeInShape": "plus3dB",
+      "fadeOutShape": "linear"
+    },
+    {
+      "id": "top-1",
+      "trackId": "track-top",
+      "name": "Top 1 (image, corner anchor)",
+      "startMs": 0,
+      "durationMs": 5000,
+      "inPointMs": 0,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 600,
+      "height": 900,
+      "opacity": 0.9,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 200,
+          "y": -100
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0.4,
+        "anchor": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      }
+    },
+    {
+      "id": "top-2",
+      "trackId": "track-top",
+      "name": "Top 2 (dip to colour)",
+      "startMs": 4000,
+      "durationMs": 5000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1200,
+      "height": 300,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.8
+        },
+        "rotation": -0.2,
+        "anchor": {
+          "x": 1.0,
+          "y": 1.0
+        }
+      },
+      "transitionIn": {
+        "type": "dipToColor",
+        "durationMs": 1000,
+        "color": "#000000"
+      }
+    },
+    {
+      "id": "top-3",
+      "trackId": "track-top",
+      "name": "Top 3 (hard cut)",
+      "startMs": 8000,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1000,
+      "height": 1000,
+      "opacity": 1.4,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 500,
+          "y": 250
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "transitionIn": {
+        "type": "crossfade",
+        "durationMs": 0
+      },
+      "fadeOutMs": 800,
+      "fadeOutShape": "minus3dB"
+    },
+    {
+      "id": "hidden-1",
+      "trackId": "track-top",
+      "name": "Hidden clip",
+      "startMs": 1000,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "hidden": true,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "on-hidden-track",
+      "trackId": "track-hidden",
+      "name": "On a hidden track",
+      "startMs": 0,
+      "durationMs": 10000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "audio-1",
+      "trackId": "track-audio",
+      "name": "Audio",
+      "startMs": 0,
+      "durationMs": 10000,
+      "inPointMs": 0,
+      "mediaType": "audio",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "hidden": false,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

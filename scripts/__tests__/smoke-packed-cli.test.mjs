@@ -139,6 +139,32 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("mesa-vulkan-drivers");
 });
 
+it("keeps the bucket exit status when Chromium diagnostics run", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs.verification.steps;
+  const prepare = steps.find(step => step.name === "Prepare Chromium crash capture");
+  expect(prepare.if).toBe("matrix.task == 'test-packages-game'");
+  const script = prepare.run.split("<<'SH'\n")[1].split("\nSH")[0];
+  const root = mkdtempSync(join(tmpdir(), "chromium-diagnostics-"));
+  try {
+    mkdirSync(join(root, "chromium-crashes"));
+    const bashEnv = join(root, "bash-env");
+    writeFileSync(bashEnv, script);
+    for (const status of [0, 23]) {
+      const result = spawnSync("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", `exit ${status}`], {
+        env: { ...process.env, RUNNER_TEMP: root, BASH_ENV: bashEnv },
+        encoding: "utf8",
+        timeout: 5000
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.status, result.stderr).toBe(status);
+      expect(result.stdout).toContain("Core limit: unlimited");
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 it("bounds verification test concurrency without changing build scheduling", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const job = workflow.jobs.verification;

@@ -2272,7 +2272,10 @@
       "title": "NodeTool 클라우드에 로그인",
       "description": "당신이 원하는 것을 설명하십시오. 에이전트가 이를 구축하고 어느 단계에서나 인계받을 수 있습니다.",
       "ownKeys": "자체 API 키를 사용하고 공급자의 정가로 공급자에게 비용을 지불하세요.",
-      "cloudAlphaNotice": "클라우드는 알파 버전입니다. 생산 작업에는 다음을 사용하십시오."
+      "cloudAlphaNotice": "클라우드는 알파 버전입니다. 생산 작업에는 다음을 사용하십시오.",
+      "ssoTitle": "NodeTool에 로그인",
+      "ssoSignIn": "{{provider}}(으)로 로그인",
+      "ssoFailed": "로그인하지 못했습니다({{reason}}). 다시 시도하거나 관리자에게 액세스를 요청하세요."
     },
     "inspector": {
       "params": "매개변수",
@@ -12760,7 +12763,7 @@
       "disableAll": "모든 노드 비활성화",
       "color": "그룹 색상",
       "removeNodesHeading": "그룹에서 노드 제거",
-      "dragOutModifier": "CTRL을 누른 상태에서 드래그 | ⌘ 키",
+      "dragOutModifier": "Alt(Mac에서는 Option ⌥)를 누른 채 밖으로 드래그하세요",
       "shakeToRemove": "빠르게 흔든 후 드래그하세요."
     }
   },

@@ -102,9 +102,10 @@ const RGB_RE = /\.rgb\b/;
 // `[^=\n]+` keeps the optional type annotation from chewing across newlines —
 // without the `\n` exclusion, `var source: texture_2d<f32>;` would greedily
 // match past intervening lines until it found a later `= textureSample(...)`,
-// polluting the sample-variable set with binding-declaration names.
+// polluting the sample-variable set with binding-declaration names. It also
+// takes the spaces after `:`; a separate `\s*` there made long lines quadratic.
 const SAMPLE_DECL_RE =
-  /\b(?:let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^=\n]+)?=\s*(?:textureSample|textureLoad)\b/g;
+  /\b(?:let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=\n]+)?=\s*(?:textureSample|textureLoad)\b/g;
 
 interface LinearityValidationResult {
   ok: boolean;
@@ -159,7 +160,10 @@ function findSampleVariables(wgsl: string): Set<string> {
  */
 function lineReadsSampleRgb(line: string, samples: Set<string>): boolean {
   // Direct textureSample(...).rgb / textureLoad(...).rgb.
-  if (/\btexture(?:Sample|Load)\b[\s\S]*\)\s*\.rgb\b/.test(line)) {
+  // Two linear scans: one pattern spanning both took quadratic time on a line
+  // that repeats the call name.
+  const call = /\btexture(?:Sample|Load)\b/.exec(line);
+  if (call && /\)\s*\.rgb\b/.test(line.slice(call.index))) {
     return true;
   }
   for (const name of samples) {

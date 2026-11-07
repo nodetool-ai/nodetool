@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
 import { STAGE_COSTS } from "../data/stageCosts";
+import { useNearViewport } from "../lib/useNearViewport";
 
 interface Surface {
   id: string;
@@ -145,6 +146,9 @@ export default function SurfaceShowcase({
   const autoAdvance = rotating && !reducedMotion && surfaces.length > 1;
   const progressRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
+  // Chromium starts `loading="lazy"` images up to 2,500 px early, so the
+  // poster loaded with the page on a phone. Wait until the section is near.
+  const postersNear = useNearViewport(sectionRef);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -356,16 +360,19 @@ export default function SurfaceShowcase({
             hidden={i !== active}
           >
             <div className="relative overflow-hidden rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/${surface.asset}-poster.webp`}
-                alt={`${surface.label} editor`}
-                width={1920}
-                height={1080}
-                decoding="async"
-                loading="lazy"
-                className="block h-auto w-full"
-              />
+              {postersNear ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/${surface.asset}-poster.webp`}
+                  alt={`${surface.label} editor`}
+                  width={1920}
+                  height={1080}
+                  decoding="async"
+                  className="block h-auto w-full"
+                />
+              ) : (
+                <div role="img" aria-label={`${surface.label} editor`} className="aspect-video w-full" />
+              )}
               {inView && (
                 <video
                   ref={(el) => {

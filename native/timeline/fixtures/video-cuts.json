@@ -1,0 +1,153 @@
+{
+  "id": "seq-video-cuts",
+  "projectId": "native-prototype",
+  "name": "Hard cuts, full frame",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 8000,
+  "tracks": [
+    {
+      "id": "track-cuts",
+      "name": "Cuts",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "cut-a",
+      "trackId": "track-cuts",
+      "name": "A",
+      "startMs": 0,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-a-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "cut-b",
+      "trackId": "track-cuts",
+      "name": "B from 5 s",
+      "startMs": 2000,
+      "durationMs": 2000,
+      "inPointMs": 5000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-b-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "cut-c",
+      "trackId": "track-cuts",
+      "name": "C from 1 s",
+      "startMs": 4000,
+      "durationMs": 2000,
+      "inPointMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-c-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "cut-a2",
+      "trackId": "track-cuts",
+      "name": "A from 15 s",
+      "startMs": 6000,
+      "durationMs": 2000,
+      "inPointMs": 15000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-a-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 
 import { useInstallExampleApp } from "../../hooks/useInstallExampleApp";
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
@@ -41,26 +41,30 @@ interface ExampleAppSurfaceProps {
 const ExampleAppSurface = ({ slug, title, tab }: ExampleAppSurfaceProps) => {
   const install = useInstallExampleApp();
   const installing = install.isPending;
+  const [runActionsHost, setRunActionsHost] = useState<HTMLElement | null>(null);
   return (
     <>
       <WorkspaceDocumentBar
         tab={tab}
         status={<SaveStatus state="readOnly" />}
         actions={
-          <EditorButton
-            variant="contained"
-            density="normal"
-            loading={installing}
-            onClick={() => install.mutate({ slug, name: title })}
-          >
-            {installing ? "Installing…" : "Edit app"}
-          </EditorButton>
+          <>
+            <Box ref={setRunActionsHost} sx={{ display: "contents" }} />
+            <EditorButton
+              variant="contained"
+              density="normal"
+              loading={installing}
+              onClick={() => install.mutate({ slug, name: title })}
+            >
+              {installing ? "Installing…" : "Edit app"}
+            </EditorButton>
+          </>
         }
       />
       <FlexColumn sx={{ ...COLUMN_SX, flex: 1, paddingTop: SPACING.sm }}>
         <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
           <Suspense fallback={<LoadingSpinner text="Loading app" />}>
-            <ExampleAppUseView slug={slug} />
+            <ExampleAppUseView slug={slug} runActionsHost={runActionsHost} />
           </Suspense>
         </Box>
       </FlexColumn>

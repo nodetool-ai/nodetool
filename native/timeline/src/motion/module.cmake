@@ -1,0 +1,7 @@
+function(nt_motion_tests)
+    qt_add_executable(tst_motion src/motion/tst_motion.cpp)
+    target_link_libraries(tst_motion PRIVATE timeline_core Qt6::Test)
+    add_test(NAME tst_motion COMMAND tst_motion)
+    add_test(NAME motion_oracle COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/oracle.mjs" $<TARGET_FILE:tst_motion>)
+endfunction()
+nt_tests(nt_motion_tests)

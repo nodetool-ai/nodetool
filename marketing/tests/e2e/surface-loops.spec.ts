@@ -68,6 +68,8 @@ test("a surface loop that will not play shows its poster, not a black frame", as
 
   await page.goto("/", { waitUntil: "load" });
   await page.locator("#surfaces").scrollIntoViewIfNeeded();
+  // The poster mounts once the section nears the viewport.
+  await expect(page.locator(`${PANEL} img`)).toBeAttached();
 
   // Let the storyboard loop run, so its currentTime leaves 0 and the poster
   // attribute would no longer cover the element.

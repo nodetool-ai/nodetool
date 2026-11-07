@@ -4,7 +4,8 @@ import type { ComfyApiPrompt } from "@nodetool-ai/protocol";
 import type { ComfyApiGraph } from "./comfy-workflow-models.js";
 import { COMFY_RESTRICTED_MODELS_ENV } from "./comfy-workflow-models.js";
 import { COMFY_TEMPLATES } from "./comfy-template-graphs.js";
-import { fetchWithRetry } from "./http-transport.js";
+import { comfyCloudFetch } from "./comfy-fetch.js";
+import { comfyJobError } from "./comfy-gpu-models.js";
 
 type Binding = readonly [node: string, input: string];
 
@@ -124,15 +125,17 @@ export async function runComfyTemplate(
   const client = new Comfy({
     apiKey,
     clientInfo: "nodetool-templates",
-    fetch: (request, init) => fetchWithRetry(
-      request instanceof Request ? request.url : String(request),
-      init,
-      { fetchImpl: (_url, retryInit) => fetch(request, retryInit) }
-    )
+    fetch: comfyCloudFetch(apiKey)
   });
   const workflow = client.workflows.fromJson(comfyTemplateGraph(template, input));
   // No automatic resubmission: a submitted job may already have incurred a charge.
-  const job = await client.submit(workflow, { signal });
+  // The key also authenticates partner nodes inside the graph.
+  let job: Awaited<ReturnType<typeof client.submit>>;
+  try {
+    job = await client.submit(workflow, { signal, apiKey });
+  } catch (error) {
+    throw comfyJobError(template.name, undefined, error);
+  }
   const cancel = (): void => {
     void job.cancel().catch(() => {
       // Cancellation can race a terminal job state.
@@ -140,21 +143,33 @@ export async function runComfyTemplate(
   };
   signal.addEventListener("abort", cancel, { once: true });
   try {
-    if (signal.aborted) {
-      cancel();
-      signal.throwIfAborted();
-    }
-    await job.wait(timeout * 1000, signal);
-    if (job.status !== "succeeded") {
-      throw new Error(`Comfy job ${job.id} ended ${job.status}${job.error ? `: ${job.error.message}` : ""}`);
-    }
-    const kind = template.task === "text_to_image" ? "image/" : "video/";
-    const output = job.getOutputs(template.output).find((file) => file.contentType.startsWith(kind));
-    if (!output) {
-      throw new Error(`Comfy job ${job.id} finished without the template's ${kind} output`);
-    }
-    return new Uint8Array(await output.toBytes({ signal }));
+    return await readTemplateOutput(job, template, timeout, signal, cancel);
+  } catch (error) {
+    throw comfyJobError(template.name, job.id, error);
   } finally {
     signal.removeEventListener("abort", cancel);
   }
+}
+
+async function readTemplateOutput(
+  job: Awaited<ReturnType<Comfy["submit"]>>,
+  template: ComfyTemplate,
+  timeout: number,
+  signal: AbortSignal,
+  cancel: () => void
+): Promise<Uint8Array> {
+  if (signal.aborted) {
+    cancel();
+    signal.throwIfAborted();
+  }
+  await job.wait(timeout * 1000, signal);
+  if (job.status !== "succeeded") {
+    throw new Error(job.error?.message ?? `ended ${job.status}`);
+  }
+  const kind = template.task === "text_to_image" ? "image/" : "video/";
+  const output = job.getOutputs(template.output).find((file) => file.contentType.startsWith(kind));
+  if (!output) {
+    throw new Error(`finished without the template's ${kind} output`);
+  }
+  return new Uint8Array(await output.toBytes({ signal }));
 }

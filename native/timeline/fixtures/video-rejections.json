@@ -1,0 +1,221 @@
+{
+  "id": "seq-video-rejections",
+  "projectId": "native-prototype",
+  "name": "D10a rejections",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 3000,
+  "tracks": [
+    {
+      "id": "track-1",
+      "name": "Rotation",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-2",
+      "name": "Pixel aspect",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-3",
+      "name": "Alpha",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-4",
+      "name": "HDR",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-5",
+      "name": "Usable",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "rotation",
+      "trackId": "track-1",
+      "name": "Rotation",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1280,
+      "height": 720,
+      "opacity": 1.0,
+      "mediaPath": "media/reject-rotation.mp4",
+      "transform": {
+        "position": {
+          "x": -480,
+          "y": -270
+        },
+        "scale": {
+          "x": 0.45,
+          "y": 0.45
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "pixel-aspect",
+      "trackId": "track-2",
+      "name": "Pixel aspect",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1440,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/reject-pixel-aspect.mp4",
+      "transform": {
+        "position": {
+          "x": 480,
+          "y": -270
+        },
+        "scale": {
+          "x": 0.45,
+          "y": 0.45
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "alpha",
+      "trackId": "track-3",
+      "name": "Alpha",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 640,
+      "height": 360,
+      "opacity": 1.0,
+      "mediaPath": "media/reject-alpha.mov",
+      "transform": {
+        "position": {
+          "x": -480,
+          "y": 270
+        },
+        "scale": {
+          "x": 0.45,
+          "y": 0.45
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "hdr",
+      "trackId": "track-4",
+      "name": "HDR",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1280,
+      "height": 720,
+      "opacity": 1.0,
+      "mediaPath": "media/reject-hdr.mp4",
+      "transform": {
+        "position": {
+          "x": 480,
+          "y": 270
+        },
+        "scale": {
+          "x": 0.45,
+          "y": 0.45
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "usable",
+      "trackId": "track-5",
+      "name": "Usable",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 640,
+      "height": 360,
+      "opacity": 1.0,
+      "mediaPath": "media/seek-360p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.35,
+          "y": 0.35
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

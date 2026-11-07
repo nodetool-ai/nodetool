@@ -1,0 +1,983 @@
+{
+  "add": {
+    "script": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "empty",
+                "text": "",
+                "takes": []
+              },
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Hello",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": []
+          }
+        ]
+      }
+    },
+    "payload": {
+      "lineId": "line_loyw3v28_0"
+    },
+    "expected": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "empty",
+                "text": "",
+                "takes": []
+              },
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Hello",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": [
+              {
+                "id": "line_loyw3v28_0",
+                "text": "",
+                "takes": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "patch": {
+    "script": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "empty",
+                "text": "",
+                "takes": []
+              },
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Hello",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": []
+          }
+        ]
+      }
+    },
+    "payload": {
+      "lineId": "voiced",
+      "text": "Revised"
+    },
+    "expected": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "empty",
+                "text": "",
+                "takes": []
+              },
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Revised",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": []
+          }
+        ]
+      }
+    }
+  },
+  "remove": {
+    "script": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "empty",
+                "text": "",
+                "takes": []
+              },
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Hello",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": []
+          }
+        ]
+      }
+    },
+    "payload": {
+      "lineId": "empty"
+    },
+    "expected": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Hello",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": []
+          }
+        ]
+      }
+    }
+  },
+  "addEmpty": {
+    "script": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": []
+      }
+    },
+    "payload": {
+      "lineId": "line_loyw3v28_1",
+      "newSectionId": "sec_loyw3v28_2"
+    },
+    "expected": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "sec_loyw3v28_2",
+            "lines": [
+              {
+                "id": "line_loyw3v28_1",
+                "text": "",
+                "takes": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "rows": {
+    "script": {
+      "id": "script",
+      "name": "Demo script",
+      "updatedAt": "revision",
+      "projectId": "project",
+      "document": {
+        "custom": "preserved",
+        "cast": [
+          {
+            "id": "alice",
+            "name": "Alice",
+            "color": "#112233",
+            "voice": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            }
+          },
+          {
+            "id": "bob",
+            "name": "Bob",
+            "voice": null
+          }
+        ],
+        "setup": {
+          "pace": "slow"
+        },
+        "sections": [
+          {
+            "id": "first",
+            "title": "Intro",
+            "lines": [
+              {
+                "id": "empty",
+                "text": "",
+                "takes": []
+              },
+              {
+                "id": "spaces",
+                "text": " ",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "last",
+            "title": "",
+            "lines": [
+              {
+                "id": "voiced",
+                "speakerId": "alice",
+                "text": "Hello",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Hello",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date",
+                    "speedSnapshot": 0.85
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "stale",
+                "speakerId": "alice",
+                "text": "New words",
+                "takes": [
+                  {
+                    "id": "take",
+                    "assetId": "asset",
+                    "durationMs": 1000,
+                    "words": [],
+                    "textSnapshot": "Old words",
+                    "voiceSnapshot": {
+                      "provider": "openai",
+                      "model": "tts-1",
+                      "voice": "alloy"
+                    },
+                    "createdAt": "date"
+                  }
+                ],
+                "currentTakeId": "take"
+              },
+              {
+                "id": "bob-line",
+                "speakerId": "bob",
+                "text": "Words",
+                "takes": []
+              }
+            ]
+          },
+          {
+            "id": "empty-section",
+            "title": "Closing",
+            "lines": []
+          }
+        ]
+      }
+    },
+    "timeline": {
+      "clips": [
+        {
+          "id": "unrelated",
+          "scriptId": "other",
+          "scriptLineId": "voiced",
+          "startMs": 1
+        },
+        {
+          "id": "clip-voiced",
+          "scriptId": "script",
+          "scriptLineId": "voiced",
+          "startMs": 500
+        },
+        {
+          "id": "second-match",
+          "scriptId": "script",
+          "scriptLineId": "voiced",
+          "startMs": 900
+        }
+      ]
+    },
+    "expected": [
+      {
+        "kind": "section",
+        "id": "first",
+        "title": "Intro"
+      },
+      {
+        "id": "empty",
+        "text": "",
+        "takes": [],
+        "kind": "line",
+        "sectionId": "first",
+        "showSpeaker": false,
+        "speakerName": "",
+        "status": "draft",
+        "hasVoice": false,
+        "canVoice": false,
+        "clipId": null
+      },
+      {
+        "id": "spaces",
+        "text": " ",
+        "takes": [],
+        "kind": "line",
+        "sectionId": "first",
+        "showSpeaker": false,
+        "speakerName": "",
+        "status": "draft",
+        "hasVoice": false,
+        "canVoice": false,
+        "clipId": null
+      },
+      {
+        "id": "voiced",
+        "speakerId": "alice",
+        "text": "Hello",
+        "takes": [
+          {
+            "id": "take",
+            "assetId": "asset",
+            "durationMs": 1000,
+            "words": [],
+            "textSnapshot": "Hello",
+            "voiceSnapshot": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            },
+            "createdAt": "date",
+            "speedSnapshot": 0.85
+          }
+        ],
+        "currentTakeId": "take",
+        "kind": "line",
+        "sectionId": "last",
+        "showSpeaker": true,
+        "speakerName": "Alice",
+        "speakerColor": "#112233",
+        "status": "voiced",
+        "hasVoice": true,
+        "canVoice": false,
+        "clipId": "clip-voiced",
+        "clipStartMs": 500
+      },
+      {
+        "id": "stale",
+        "speakerId": "alice",
+        "text": "New words",
+        "takes": [
+          {
+            "id": "take",
+            "assetId": "asset",
+            "durationMs": 1000,
+            "words": [],
+            "textSnapshot": "Old words",
+            "voiceSnapshot": {
+              "provider": "openai",
+              "model": "tts-1",
+              "voice": "alloy"
+            },
+            "createdAt": "date"
+          }
+        ],
+        "currentTakeId": "take",
+        "kind": "line",
+        "sectionId": "last",
+        "showSpeaker": false,
+        "speakerName": "Alice",
+        "speakerColor": "#112233",
+        "status": "stale",
+        "hasVoice": true,
+        "canVoice": true,
+        "clipId": null
+      },
+      {
+        "id": "bob-line",
+        "speakerId": "bob",
+        "text": "Words",
+        "takes": [],
+        "kind": "line",
+        "sectionId": "last",
+        "showSpeaker": true,
+        "speakerName": "Bob",
+        "status": "draft",
+        "hasVoice": false,
+        "canVoice": true,
+        "clipId": null
+      },
+      {
+        "kind": "section",
+        "id": "empty-section",
+        "title": "Closing"
+      }
+    ]
+  }
+}

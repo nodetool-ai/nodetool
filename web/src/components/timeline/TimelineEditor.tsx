@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { timelineColorSpaceError } from "@nodetool-ai/timeline";
+import { UnsupportedTimeline } from "./UnsupportedTimeline";
 /**
  * TimelineEditor — top-level page shell for the timeline route.
  *
@@ -1472,14 +1474,18 @@ TimelineEditorBody.displayName = "TimelineEditorBody";
  * autosave hooks run inside the body, under the provider, so they bind to this
  * instance's stores rather than a shared singleton.
  */
-export const TimelineEditor: React.FC<TimelineEditorProps> = ({
-  active = true,
-  ...bodyProps
-}) => (
-  <TimelineProvider active={active}>
-    <TimelineEditorBody {...bodyProps} active={active} />
-  </TimelineProvider>
-);
+export const TimelineEditor: React.FC<TimelineEditorProps> = ({ active = true, ...bodyProps }) => {
+  const { sequenceId: routeId } = useParams<{ sequenceId: string }>();
+  const { data: sequence } = useTimeline(bodyProps.sequenceId ?? routeId);
+  if (sequence && timelineColorSpaceError(sequence)) {
+    return <UnsupportedTimeline sequence={sequence} />;
+  }
+  return (
+    <TimelineProvider active={active}>
+      <TimelineEditorBody {...bodyProps} active={active} />
+    </TimelineProvider>
+  );
+};
 
 TimelineEditor.displayName = "TimelineEditor";
 

@@ -2272,7 +2272,10 @@
       "title": "登录 NodeTool Cloud",
       "description": "描述你的需求。智能体会为你构建，你可以随时接手。",
       "ownKeys": "使用你自己的 API 密钥，并按服务商标价付费。",
-      "cloudAlphaNotice": "Cloud 尚处于测试阶段。生产工作请使用"
+      "cloudAlphaNotice": "Cloud 尚处于测试阶段。生产工作请使用",
+      "ssoTitle": "登录 NodeTool",
+      "ssoSignIn": "使用 {{provider}} 登录",
+      "ssoFailed": "登录失败（{{reason}}）。请重试，或向管理员申请访问权限。"
     },
     "inspector": {
       "params": "参数",
@@ -12760,7 +12763,7 @@
       "disableAll": "禁用所有节点",
       "color": "分组颜色",
       "removeNodesHeading": "从分组中移除节点",
-      "dragOutModifier": "按住 CTRL | ⌘ 键并拖出",
+      "dragOutModifier": "按住 Alt（Mac 上的 Option ⌥）并拖出",
       "shakeToRemove": "快速晃动，然后拖出"
     }
   },

@@ -13,7 +13,7 @@
  * `lib/timeline-media-export.ts`.
  */
 
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, open, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import type { FastifyPluginAsync } from "fastify";
@@ -28,6 +28,7 @@ import {
 import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { resolveAssetExportSource } from "../lib/asset-export.js";
+import { IMAGE_HEADER_BYTES, readImageSize } from "../lib/image-size.js";
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
 import {
   importTimelineBundle,
@@ -43,6 +44,7 @@ import {
 import { planMediaExport, writeMediaExport } from "../lib/timeline-media-export.js";
 import {
   planPremiereExport,
+  premiereReportHeader,
   writePremiereExport,
   type PremiereFetchedAsset,
   type PremiereMediaInfo
@@ -92,15 +94,33 @@ async function fetchOwnedAsset(
   return fetched;
 }
 
+/** The first bytes of a source, enough to read an image header. */
+async function readHeader(source: ExportSource): Promise<Uint8Array> {
+  if (!isLocalFileSource(source)) return source.subarray(0, IMAGE_HEADER_BYTES);
+  const file = await open(source.path, "r");
+  try {
+    const buffer = new Uint8Array(IMAGE_HEADER_BYTES);
+    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    return buffer.subarray(0, bytesRead);
+  } finally {
+    await file.close();
+  }
+}
+
 /**
- * Duration and audio presence of one export source. Bytes from a store with
- * no local file are probed from a temporary copy. A file the probe cannot
- * read leaves both unknown, and the export report says what that left out.
+ * Duration, audio presence and picture size of one export source. Bytes from
+ * a store with no local file are probed from a temporary copy. A file the
+ * probe cannot read leaves them unknown, and the export report says what that
+ * left out.
  */
 async function probeExportSource(
   source: ExportSource,
   contentType: string
 ): Promise<PremiereMediaInfo> {
+  if (contentType.startsWith("image/")) {
+    const size = readImageSize(await readHeader(source));
+    return size ? { width: size.width, height: size.height } : {};
+  }
   const isVideo = contentType.startsWith("video/");
   if (!isVideo && !contentType.startsWith("audio/")) return {};
   let dir: string | null = null;
@@ -114,10 +134,17 @@ async function probeExportSource(
       await writeFile(path, source);
     }
     const info: PremiereMediaInfo = {};
-    const { probeDurationSec, probeHasAudio } = await loadMediaModule();
+    const { probeDurationSec, probeHasAudio, probeVideoStream } = await loadMediaModule();
     const durationSec = await probeDurationSec(path);
     if (durationSec !== null) info.durationMs = Math.round(durationSec * 1000);
-    if (isVideo) info.hasAudio = await probeHasAudio(path);
+    if (isVideo) {
+      info.hasAudio = await probeHasAudio(path);
+      const video = await probeVideoStream(path);
+      if (video && video.displayWidth > 0 && video.displayHeight > 0) {
+        info.width = video.displayWidth;
+        info.height = video.displayHeight;
+      }
+    }
     return info;
   } finally {
     if (dir) await rm(dir, { recursive: true, force: true });
@@ -190,8 +217,21 @@ async function readImportUpload(
   if (!(file instanceof File)) {
     return jsonError(400, "A timeline bundle file is required");
   }
-  const projectId = form.get("project_id");
-  const name = form.get("name");
+  // The native editor sends these two in a `json` field, as its asset upload does.
+  let fields: Record<string, unknown> = {};
+  const meta = form.get("json");
+  if (typeof meta === "string") {
+    try {
+      const parsed: unknown = JSON.parse(meta);
+      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+        fields = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Not JSON: the plain form fields still apply.
+    }
+  }
+  const projectId = form.get("project_id") ?? fields.project_id;
+  const name = form.get("name") ?? fields.name;
   const upload: ImportUpload = {
     zipBytes: new Uint8Array(await file.arrayBuffer()),
     projectId:
@@ -426,7 +466,8 @@ const timelinesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
           "content-type": "application/zip",
           "content-disposition": `attachment; filename="${downloadName(seq.name)}-premiere.zip"`,
           "cache-control": "no-store",
-          "x-nodetool-export-warnings": String(plan.report.warnings.length)
+          "x-nodetool-export-warnings": String(plan.report.warnings.length),
+          "x-nodetool-export-report": premiereReportHeader(plan.report)
         }
       });
     });

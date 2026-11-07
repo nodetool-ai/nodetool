@@ -1,0 +1,106 @@
+{
+  "id": "crop-static",
+  "projectId": "native-prototype",
+  "name": "Static crops",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 3000,
+  "tracks": [
+    {
+      "id": "v",
+      "name": "Crop",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "crop-0",
+      "trackId": "v",
+      "name": "video crop 0",
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "versions": [],
+      "startMs": 0,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "crop": {
+        "left": 0.25,
+        "right": 0.125,
+        "top": 0.125,
+        "bottom": 0.375
+      },
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4",
+      "locked": false
+    },
+    {
+      "id": "crop-1",
+      "trackId": "v",
+      "name": "image crop 1",
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "versions": [],
+      "startMs": 1000,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "crop": {
+        "left": 0.375,
+        "right": 0.125,
+        "top": 0.25,
+        "bottom": 0.25
+      },
+      "mediaPath": "../../../../fixtures/media/rgb-bars-png.mov",
+      "locked": false
+    },
+    {
+      "id": "crop-2",
+      "trackId": "v",
+      "name": "video crop 2",
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "versions": [],
+      "startMs": 2000,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "crop": {
+        "left": 0.125,
+        "right": 0.375,
+        "top": 0.25,
+        "bottom": 0.125
+      },
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4",
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": 40
+        },
+        "scale": {
+          "x": 0.75,
+          "y": 0.75
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "locked": false
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

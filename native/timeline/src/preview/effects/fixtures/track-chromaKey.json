@@ -1,0 +1,121 @@
+{
+  "id": "seq-track-chromaKey",
+  "projectId": "native-prototype",
+  "name": "track-chromaKey",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "effects": [
+        {
+          "id": "chromaKey",
+          "type": "chromaKey",
+          "enabled": true,
+          "keyColor": "#c02040",
+          "tolerance": 0.15,
+          "softness": 0.1,
+          "spill": 0.7
+        },
+        {
+          "id": "disabled",
+          "type": "chromaKey",
+          "enabled": false,
+          "keyColor": "#c02040",
+          "tolerance": 0.15,
+          "softness": 0.1,
+          "spill": 0.7
+        },
+        {
+          "id": "gain",
+          "type": "gain",
+          "enabled": true,
+          "gainDb": 12
+        }
+      ]
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "picture",
+      "trackId": "t0",
+      "name": "chromaKey-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": []
+    },
+    {
+      "id": "background-0",
+      "trackId": "t4",
+      "name": "background-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/pip-a-720p.mp4"
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J track video track-chromaKey, PSNR >= 40 dB"
+    }
+  ]
+}

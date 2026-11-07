@@ -118,6 +118,7 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
+          package-manager-cache: false
 
       # Which legs the diff needs: `scripts/ci-plan.mjs` applies the same
       # workspace mapping as `npm run test:affected`. The base is the PR base,

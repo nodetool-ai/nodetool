@@ -1,0 +1,86 @@
+{
+  "id": "seq-clip-exposure",
+  "projectId": "native-prototype",
+  "name": "clip-exposure",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "exposure-0",
+      "trackId": "t0",
+      "name": "Exposure 1",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "e0",
+          "type": "exposure",
+          "enabled": true,
+          "exposure": 1,
+          "rolloff": 0.7,
+          "whites": -0.5
+        }
+      ]
+    },
+    {
+      "id": "exposure-1",
+      "trackId": "t0",
+      "name": "Exposure 2",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "e1",
+          "type": "exposure",
+          "enabled": true,
+          "exposure": -1,
+          "rolloff": 0,
+          "whites": 0.5
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "F51 clip exposure and highlight roll-off, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "F51 clip exposure and highlight roll-off, PSNR >= 40 dB"
+    }
+  ]
+}

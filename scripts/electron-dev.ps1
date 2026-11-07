@@ -32,7 +32,7 @@ if ($env:CONDA_PREFIX) {
 }
 
 Write-Host "Building stale backend workspaces..."
-npm run build-stale-backend
+node scripts/build-stale-websocket-workspaces.mjs --electron
 if ($LASTEXITCODE -ne 0) {
     Write-Error "ERROR: Backend workspace build failed."
     exit 1

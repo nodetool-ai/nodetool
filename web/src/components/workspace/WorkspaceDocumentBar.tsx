@@ -27,6 +27,7 @@ export const SUPPORTS_BOTH_MODES = {
   skill: true,
   model3d: true,
   text: true,
+  document: false,
   audio: true,
   "workspace-file": true,
   chat: false,

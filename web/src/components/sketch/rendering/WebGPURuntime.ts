@@ -10,7 +10,8 @@
  * Device loss triggers automatic fallback to Canvas2D.
  *
  * Layer content is still authored on CPU Canvas2D. The runtime uploads dirty
- * layer canvases to GPU textures, then composites them on the GPU for display.
+ * layer canvases to GPU textures, runs affine layer effects on those textures,
+ * and composites them on the GPU for display.
  *
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
@@ -38,6 +39,7 @@ import {
   type SketchDocument
 } from "../types";
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
+import { SketchLayerEffects } from "./SketchLayerEffects";
 import { checkerboardDocumentCellPx } from "../drawingUtils";
 import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 import {
@@ -154,9 +156,7 @@ export class WebGPURuntime implements SketchRuntime {
   /** Per-op uniform buffer (16 bytes — single vec4f). */
   private maskBlurUniformBuffer: GPUBuffer | null = null;
 
-  // ── FX evaluation ────────────────────────────────────────────────────
-  /** Temp GPU texture for uploading FX-evaluated layer content. */
-  private fxTempTexture: GPUTexture | null = null;
+  private readonly layerEffects: SketchLayerEffects;
 
   // ── Quad transform pre-rasterization ────────────────────────────────
   /**
@@ -241,6 +241,7 @@ export class WebGPURuntime implements SketchRuntime {
     this.presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     this.layerCanvases = layerCanvases ?? new Map();
     this.cpuRuntime = new Canvas2DRuntime(this.layerCanvases);
+    this.layerEffects = new SketchLayerEffects(device);
     this._onDeviceLost = onDeviceLost;
 
     // Register device loss handler
@@ -602,6 +603,8 @@ export class WebGPURuntime implements SketchRuntime {
 
   private markLayerDirty(layerId: string): void {
     this.dirtyLayers.add(layerId);
+    this.layerEffects.invalidate(layerId);
+    this.cpuRuntime.invalidateLayer(layerId);
   }
 
   // ─── Selection mask texture ──────────────────────────────────────────
@@ -1136,6 +1139,7 @@ export class WebGPURuntime implements SketchRuntime {
       this.layerTextures.delete(layerId);
     }
     this.dirtyLayers.delete(layerId);
+    this.layerEffects.delete(layerId);
     // Release any pre-baked quad transform texture / canvas for this layer.
     this.quadBakeTextures.get(layerId)?.destroy();
     this.quadBakeTextures.delete(layerId);
@@ -1336,27 +1340,9 @@ export class WebGPURuntime implements SketchRuntime {
         continue;
       }
 
-      // Stroke merge preview overrides the layer texture for the active stroke layer
-      if (mergeTex && activeStroke && layer.id === activeStroke.layerId) {
-        srcTex = mergeTex;
-      }
-
-      // Resolve the source CPU canvas after FX evaluation. The quad
-      // pre-rasterization path needs the FX-evaluated bitmap as its source,
-      // not the raw layer canvas, so we compute it once and share with the
-      // GPU FX upload below.
-      const rawCanvas = this.layerCanvases.get(layer.id) ?? null;
-      const fxActive =
-        rawCanvas != null &&
-        layer.effects.length > 0 &&
-        layer.effects.some((e) => e.enabled);
-      const fxSurface = fxActive
-        ? this.cpuRuntime.evaluateLayerEffects(layer.id, rawCanvas!, layer.effects).surface
-        : rawCanvas;
-
-      // FX evaluation: if FX produced a different surface, upload it.
-      if (fxActive && fxSurface && fxSurface !== rawCanvas) {
-        srcTex = this.uploadFxTempTexture(fxSurface);
+      const strokeTexture = activeStroke?.layerId === layer.id ? mergeTex : null;
+      if (strokeTexture) {
+        srcTex = strokeTexture;
       }
 
       const opacityScale = getAncestorGroupOpacityProduct(
@@ -1369,8 +1355,22 @@ export class WebGPURuntime implements SketchRuntime {
       // before the GPU blends them. Raster affine layers sample directly.
       let invAffine: InverseAffine;
       if (layer.transform.kind === "affine" && layer.type !== "vector") {
+        srcTex = this.layerEffects.encode(
+          encoder,
+          layer.id,
+          srcTex,
+          layer.effects,
+          strokeTexture !== null
+        );
         invAffine = this.computeInverseAffine(layer, srcTex.width, srcTex.height);
       } else {
+        // Geometry baking still needs a Canvas 2D source so filtering happens
+        // before resampling, as it does in export.
+        this.layerEffects.delete(layer.id);
+        const rawCanvas = this.layerCanvases.get(layer.id);
+        const fxSurface = rawCanvas
+          ? this.cpuRuntime.evaluateLayerEffects(layer.id, rawCanvas, layer.effects).surface
+          : null;
         const baked = fxSurface
           ? this.bakeLayerToDocCanvas(
               layer.id,
@@ -1508,36 +1508,6 @@ export class WebGPURuntime implements SketchRuntime {
       c, d,
       ty: -c * csx - d * csy + texH / 2
     };
-  }
-
-  /**
-   * Upload an FX-evaluated canvas to a temporary GPU texture for compositing.
-   * Reuses the texture across layers within the same frame.
-   */
-  private uploadFxTempTexture(canvas: HTMLCanvasElement): GPUTexture {
-    const w = canvas.width;
-    const h = canvas.height;
-    if (
-      !this.fxTempTexture ||
-      this.fxTempTexture.width !== w ||
-      this.fxTempTexture.height !== h
-    ) {
-      this.fxTempTexture?.destroy();
-      this.fxTempTexture = this.device.createTexture({
-        label: "fx-temp",
-        size: { width: Math.max(1, w), height: Math.max(1, h) },
-        format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-      });
-    }
-    if (canvas.getContext("2d")) {
-      this.device.queue.copyExternalImageToTexture(
-        { source: canvas, flipY: false },
-        { texture: this.fxTempTexture },
-        { width: w, height: h }
-      );
-    }
-    return this.fxTempTexture;
   }
 
   /**
@@ -1886,8 +1856,7 @@ export class WebGPURuntime implements SketchRuntime {
     this.currentSelection = null;
     this.compositor?.dispose();
     this.compositor = null;
-    this.fxTempTexture?.destroy();
-    this.fxTempTexture = null;
+    this.layerEffects.dispose();
     this.cpuRuntime.dispose();
     this.dirtyLayers.clear();
     this.context = null;

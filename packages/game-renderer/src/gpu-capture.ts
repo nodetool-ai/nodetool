@@ -103,7 +103,8 @@ export async function applyGpuEffects(rgba: Uint8ClampedArray, width: number, he
           params: { brightness: effect.brightness, contrast: effect.contrast }, dispatch: { kind: "fragment" } });
       } else if (effect.kind === "bloom") {
         runner.encode({ ctx, module: filtersGlowV1, registry, executor, encoder, inputs: { source: input }, output,
-          params: { threshold: effect.threshold, softness: effect.softness, radius: effect.radius, intensity: effect.intensity } });
+          params: { threshold: effect.threshold, softness: effect.softness, radius: effect.radius, intensity: effect.intensity,
+            tint: filtersGlowV1.paramDefaults.tint } });
       } else {
         if (!srgbSource || !srgbTarget) throw new Error("LUT capture targets are missing");
         let lutPixels: Uint8ClampedArray;

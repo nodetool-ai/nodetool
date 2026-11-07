@@ -79,6 +79,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: node scripts/provider-model-gaps.mjs --out provider-gaps-report.json || true
 
+      - name: Warn when the Comfy Router manifest has drifted
+        continue-on-error: true
+        env:
+          COMFY_API_KEY: ${{ secrets.COMFY_API_KEY }}
+        run: node scripts/generate-comfy-router-manifest.mjs --check || echo "::warning::Run npm run generate:comfy-manifest and review the diff."
+
       - name: Open one issue per provider with models we never added
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:

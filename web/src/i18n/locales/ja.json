@@ -2272,7 +2272,10 @@
       "title": "NodeTool クラウドにサインインする",
       "description": "何が欲しいのか説明してください。エージェントがそれを構築し、いつでも引き継ぐことができます。",
       "ownKeys": "独自の API キーを使用し、プロバイダーに定価で支払います。",
-      "cloudAlphaNotice": "クラウドはアルファ版です。制作作業の場合は、"
+      "cloudAlphaNotice": "クラウドはアルファ版です。制作作業の場合は、",
+      "ssoTitle": "NodeTool にサインイン",
+      "ssoSignIn": "{{provider}} でサインイン",
+      "ssoFailed": "サインインに失敗しました ({{reason}})。もう一度試すか、管理者にアクセスを依頼してください。"
     },
     "inspector": {
       "params": "パラメータ",
@@ -12760,7 +12763,7 @@
       "disableAll": "すべてのノードを無効にする",
       "color": "グループカラー",
       "removeNodesHeading": "グループからノードを削除",
-      "dragOutModifier": "CTRL | を押しながらドラッグします。 ⌘キー",
+      "dragOutModifier": "Alt（MacではOption ⌥）を押しながら外にドラッグ",
       "shakeToRemove": "素早く振ってから引きずり出します"
     }
   },

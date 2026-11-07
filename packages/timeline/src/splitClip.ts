@@ -6,7 +6,8 @@ import {
 } from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
 import { isKeyframeAnimation, sliceKeyframeAnimation } from "./keyframes.js";
-import { assertNotTimeRemapped } from "./timeRemap.js";
+import { sliceParamCurves } from "./paramCurves.js";
+import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
 import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
 
@@ -44,7 +45,8 @@ function splitAnimations(
   splitMs: number,
   source: {
     inPointMs: number;
-    cutPointMs: number;
+    leftOutMs: number;
+    rightInMs: number;
     outPointMs: number;
     leftDurationMs: number;
     rightDurationMs: number;
@@ -58,14 +60,14 @@ function splitAnimations(
         sliceSourceAnimation(
           anim,
           source.inPointMs,
-          source.cutPointMs,
+          source.leftOutMs,
           source.leftDurationMs
         )
       );
       right.push({
         ...sliceSourceAnimation(
           anim,
-          source.cutPointMs,
+          source.rightInMs,
           source.outPointMs,
           source.rightDurationMs
         ),
@@ -161,7 +163,7 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     );
   }
 
-  // A remap is a curve over this clip's window; two windows would resample it
+  // A nonconstant remap is a curve over this window; two windows resample it
   // and move every frame both halves show (D13).
   assertNotTimeRemapped(clip, "splitClip");
 
@@ -193,7 +195,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   const animations = clip.animations
     ? splitAnimations(clip.animations, leftDurationMs, {
         inPointMs,
-        cutPointMs,
+        // Both halves of a hold show the same source window, so each keeps the whole curve.
+        leftOutMs: isHoldRemap(clip) ? outPointMs : cutPointMs,
+        rightInMs: isHoldRemap(clip) ? inPointMs : cutPointMs,
         outPointMs,
         leftDurationMs,
         rightDurationMs
@@ -204,15 +208,20 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     ...clip,
     id: createTimeOrderedUuid(),
     durationMs: leftDurationMs,
-    inPointMs,
-    outPointMs: cutPointMs,
     versions: sharedVersions
   };
+  if (!isHoldRemap(clip)) {
+    leftClip.inPointMs = inPointMs;
+    leftClip.outPointMs = cutPointMs;
+  }
   // The left half's end is now an interior cut — drop the outgoing fade.
   delete leftClip.fadeOutMs;
   delete leftClip.fadeOutShape;
   if (captions) {
     leftClip.caption = { ...clip.caption, words: captions.left };
+  }
+  if (clip.paramCurves) {
+    leftClip.paramCurves = sliceParamCurves(clip.paramCurves, 0, leftDurationMs / clip.durationMs, clip.durationMs);
   }
   if (animations) {
     leftClip.animations = animations.left;
@@ -223,10 +232,12 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     id: createTimeOrderedUuid(),
     startMs: atMs,
     durationMs: rightDurationMs,
-    inPointMs: cutPointMs,
-    outPointMs,
     versions: sharedVersions
   };
+  if (!isHoldRemap(clip)) {
+    rightClip.inPointMs = cutPointMs;
+    rightClip.outPointMs = outPointMs;
+  }
   // The right half's start is now an interior cut — drop the incoming fade and
   // the incoming transition (the boundary with the left half is a hard cut).
   delete rightClip.fadeInMs;
@@ -234,6 +245,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   delete rightClip.transitionIn;
   if (captions) {
     rightClip.caption = { ...clip.caption, words: captions.right };
+  }
+  if (clip.paramCurves) {
+    rightClip.paramCurves = sliceParamCurves(clip.paramCurves, leftDurationMs / clip.durationMs, 1, clip.durationMs);
   }
   if (animations) {
     rightClip.animations = animations.right;

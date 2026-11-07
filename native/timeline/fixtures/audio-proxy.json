@@ -1,0 +1,70 @@
+{
+  "id": "seq-audio-proxy",
+  "projectId": "native-prototype",
+  "name": "Proxy picture, original audio (M5a server open)",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 6000,
+  "tracks": [
+    {
+      "id": "v",
+      "name": "Picture",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "a",
+      "name": "Sound",
+      "type": "audio",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "proxied",
+      "trackId": "v",
+      "name": "picture from a proxy with no audio, sound from the original",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 500,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "mediaPath": "media/numbered-a-1080p30.mp4",
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "audioPath": "media/tone-lr-48k-stereo.wav",
+      "volumeDb": -3,
+      "fadeInMs": 200
+    },
+    {
+      "id": "audio-only",
+      "trackId": "a",
+      "name": "an audio clip whose file is only in audioPath",
+      "startMs": 2500,
+      "durationMs": 3000,
+      "inPointMs": 1000,
+      "mediaType": "audio",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "audioPath": "media/tone-220-48k-mono.wav",
+      "fadeOutMs": 400,
+      "fadeOutShape": "sCurve"
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

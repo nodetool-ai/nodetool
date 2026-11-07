@@ -13,7 +13,8 @@ import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
 
 export const AddParams = d.struct({
-  gain: d.f32
+  gain: d.f32,
+  tint: d.vec3f
 });
 
 const layout = tgpu.bindGroupLayout({
@@ -31,6 +32,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const mixerAddV1 = defineModule({
+  precision: { "source": "working", "over": "working", "output": "working" },
   id: "mixer.add",
   version: 1,
   surface: "internal",
@@ -38,7 +40,7 @@ export const mixerAddV1 = defineModule({
   linearity: "linear-in-rgb",
   kind: "fragment",
   params: AddParams,
-  paramDefaults: { gain: 1 },
+  paramDefaults: { gain: 1, tint: d.vec3f(1, 1, 1) },
   paramUi: {
     gain: { min: 0, max: 4, step: 0.01, label: "Gain" }
   },
@@ -50,24 +52,24 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let s = textureSample(layout.$.source, layout.$.samp, uv);
   let o = textureSample(layout.$.over, layout.$.samp, uv);
   let g = layout.$.params.gain;
-  return clamp(s + o * g, vec4f(0.0), vec4f(1.0));
+  return clamp(s + o * vec4f(layout.$.params.tint, 1.0) * g, vec4f(0.0), vec4f(1.0));
 }
 `,
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       },
       over: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

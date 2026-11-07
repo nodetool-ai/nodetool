@@ -1,0 +1,57 @@
+{
+  "id": "seq-scrub-intra",
+  "projectId": "native-prototype",
+  "name": "Scrub all-intra proxy",
+  "fps": 30,
+  "width": 960,
+  "height": 540,
+  "durationMs": 20000,
+  "tracks": [
+    {
+      "id": "track-scrub",
+      "name": "Scrub",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "scrub",
+      "trackId": "track-scrub",
+      "name": "Scrub all-intra proxy",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 960,
+      "height": 540,
+      "opacity": 1,
+      "mediaPath": "media/numbered-a-proxy-960-intra.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

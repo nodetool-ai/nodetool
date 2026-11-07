@@ -26,6 +26,9 @@ import { isRecord, isString } from "../predicates.js";
 import { withKeyRemedies } from "../zod-schema.js";
 import {
   captionStyle,
+  secondaryCurvePoints,
+  clipDeflickerAnalysis,
+  clipStabilizeAnalysis,
   clipModel3DAnimation,
   clipModel3DCamera,
   clipModel3DStyle,
@@ -1192,6 +1195,12 @@ const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 const EFFECT_PARAMETER_FIELDS: Record<
   typeof KNOWN_CLIP_EFFECT_TYPE_LIST[number], readonly string[]
 > = {
+  denoise: ["lumaStrength", "chromaStrength", "temporalStrength", "radius"],
+  stabilize: ["strength", "windowMs", "maxZoom", "analysis"],
+  deflicker: ["strength", "windowMs", "maxCorrection", "analysis"],
+  deband: ["strength", "range", "threshold", "dither"],
+  secondaryColor: ["hueCenter", "hueWidth", "hueSoftness", "rangeSoftness", "saturationMin", "saturationMax", "lightnessMin", "lightnessMax", "hueShift", "saturation", "lightness", "hueCurve", "saturationCurve"],
+  exposure: ["exposure", "rolloff", "whites"],
   color: ["brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
   blur: ["radius"],
   pixelate: ["cellSize"],
@@ -1203,7 +1212,7 @@ const EFFECT_PARAMETER_FIELDS: Record<
   lut: ["cube", "intensity"],
   glow: ["radius", "intensity", "color"],
   dropShadow: ["offsetX", "offsetY", "blur", "radius", "color", "opacity"],
-  vignette: ["amount", "softness"],
+  vignette: ["amount", "softness", "radius", "centerX", "centerY", "roundness"],
   sharpen: ["amount", "radius"],
   chromaKey: ["color", "tolerance", "softness", "spill"],
   grain: ["amount", "size", "colorAmount", "roughness", "softness", "seed", "animate"],
@@ -1222,6 +1231,33 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
+  lumaStrength: z.number().min(0).max(1).optional().describe("denoise: luminance noise reduction, 0..1, default 0."),
+  chromaStrength: z.number().min(0).max(1).optional().describe("denoise: chroma noise reduction, 0..1, default 0."),
+  temporalStrength: z.number().min(0).max(1).optional().describe("denoise: motion-compensated neighboring-frame strength, 0..1, default 0. Video only."),
+  strength: z.number().min(0).max(1).optional().describe("deband/deflicker/stabilize: effect strength, 0..1. Deband defaults to 0, the analysis effects to 1."),
+  windowMs: z.number().min(0).max(2000).optional().describe("deflicker/stabilize: symmetric analysis window in milliseconds, default 500."),
+  maxCorrection: z.number().min(0).max(3).optional().describe("deflicker: maximum correction in exposure stops, default 1."),
+  maxZoom: z.number().min(1).max(1.5).optional().describe("stabilize: maximum fixed zoom, default 1.1. Limits correction to avoid exposed borders."),
+  analysis: z.union([clipDeflickerAnalysis, clipStabilizeAnalysis]).optional().describe("Saved deflicker or stabilization source analysis. Neutral until matching analysis is available."),
+  range: z.number().int().min(1).max(64).optional().describe("deband: neighborhood range in source pixels, default 16."),
+  threshold: z.number().min(0).max(0.1).optional().describe("deband: maximum encoded RGB difference for smoothing, default 0.02."),
+  dither: z.number().min(0).max(1).optional().describe("deband: fixed monochrome dither, up to one output byte level peak to peak, default 0.5."),
+  hueCenter: z.number().min(0).max(360).optional().describe("secondaryColor: hueCenter, 0..360, default 0."),
+  hueWidth: z.number().min(0).max(180).optional().describe("secondaryColor: hueWidth, 0..180, default 180."),
+  hueSoftness: z.number().min(0).max(180).optional().describe("secondaryColor: hueSoftness, 0..180, default 15."),
+  rangeSoftness: z.number().min(0).max(1).optional().describe("secondaryColor: rangeSoftness, 0..1, default 0.1."),
+  saturationMin: z.number().min(0).max(1).optional().describe("secondaryColor: saturationMin, 0..1, default 0."),
+  saturationMax: z.number().min(0).max(1).optional().describe("secondaryColor: saturationMax, 0..1, default 1."),
+  lightnessMin: z.number().min(0).max(1).optional().describe("secondaryColor: lightnessMin, 0..1, default 0."),
+  lightnessMax: z.number().min(0).max(1).optional().describe("secondaryColor: lightnessMax, 0..1, default 1."),
+  hueShift: z.number().min(-180).max(180).optional().describe("secondaryColor: hueShift, -180..180, default 0."),
+  lightness: z.number().min(-1).max(1).optional().describe("secondaryColor: lightness, -1..1, default 0."),
+  hueCurve: secondaryCurvePoints.optional().describe("secondaryColor: periodic hue-input curve, neutral output 0.5."),
+  saturationCurve: secondaryCurvePoints.optional().describe("secondaryColor: periodic hue-input curve, neutral output 0.5."),
+
+  exposure: z.number().min(-5).max(5).optional().describe("exposure: linear-light stops, -5..5."),
+  rolloff: z.number().min(0).max(1).optional().describe("exposure: highlight shoulder strength, 0..1."),
+  whites: z.number().min(-2).max(2).optional().describe("exposure: highlight-weighted stops, -2..2."),
   type: z.enum(KNOWN_CLIP_EFFECT_TYPE_LIST),
   brightness: z.number().optional().describe("color: -1..1, 0 is unchanged."),
   contrast: z.number().optional().describe("color: 0..4, 1 is unchanged."),
@@ -1234,7 +1270,10 @@ export const effectParams = z.object({
   radius: z
     .number()
     .optional()
-    .describe("blur, glow and sharpen: radius in the clip's own pixels."),
+    .describe("blur, glow and sharpen: radius in source pixels. vignette: normalized outer radius, 0.1..1.5."),
+  centerX: z.number().min(0).max(1).optional().describe("vignette: horizontal center, 0..1, default 0.5."),
+  centerY: z.number().min(0).max(1).optional().describe("vignette: vertical center, 0..1, default 0.5."),
+  roundness: z.number().min(0).max(1).optional().describe("vignette: 0 is a frame-shaped oval, 1 a circle."),
   cellSize: z.number().optional().describe("pixelate: square cell width in source pixels."),
   levels: z.number().optional().describe("posterize: number of channel levels."),
   angle: z.number().optional().describe("directionalBlur and visual effects: angle in degrees."),
@@ -1314,6 +1353,12 @@ export const effectParams = z.object({
   // issue, which would never name the type's actual allowed fields.
   .passthrough()
   .superRefine((input, context) => {
+    if (input.type === "denoise" && input.radius !== undefined && (!Number.isInteger(input.radius) || input.radius < 1 || input.radius > 4)) {
+      context.addIssue({code: "custom", path: ["radius"], message: "Noise reduction radius must be an integer from 1 to 4."});
+    }
+    if (input.analysis && ((input.type === "stabilize") !== ("kind" in input.analysis))) {
+      context.addIssue({code: "custom", path: ["analysis"], message: "Analysis must match the effect type."});
+    }
     if (input.type === "grain" && input.softness !== undefined &&
         (input.softness < 0 || input.softness > 1)) {
       context.addIssue({
@@ -1321,6 +1366,9 @@ export const effectParams = z.object({
         path: ["softness"],
         message: "grain softness must be between 0 and 1."
       });
+    }
+    if (input.type === "secondaryColor" && input.saturation !== undefined && (input.saturation < 0 || input.saturation > 4)) {
+      context.addIssue({code: "custom", path: ["saturation"], message: "Secondary saturation must be between 0 and 4."});
     }
     const allowed = EFFECT_PARAMETER_FIELDS[input.type];
     for (const [field, value] of Object.entries(input)) {
@@ -1348,6 +1396,42 @@ export function buildEffect(
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
+    case "denoise":
+      return {...base, type: "denoise", lumaStrength: input.lumaStrength ?? 0, chromaStrength: input.chromaStrength ?? 0, temporalStrength: input.temporalStrength ?? 0, radius: input.radius ?? 2};
+    case "stabilize": {
+      const effect: Extract<KnownClipEffect, { type: "stabilize" }> = {...base, type: "stabilize", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxZoom: input.maxZoom ?? 1.1};
+      if (input.analysis && "kind" in input.analysis) {
+        effect.analysis = input.analysis;
+      }
+      return effect;
+    }
+    case "deflicker": {
+      const effect: Extract<KnownClipEffect, { type: "deflicker" }> = {...base, type: "deflicker", strength: input.strength ?? 1, windowMs: input.windowMs ?? 500, maxCorrection: input.maxCorrection ?? 1};
+      if (input.analysis && !("kind" in input.analysis)) {
+        effect.analysis = input.analysis;
+      }
+      return effect;
+    }
+    case "deband":
+      return {...base, type: "deband", strength: input.strength ?? 0, range: input.range ?? 16, threshold: input.threshold ?? 0.02, dither: input.dither ?? 0.5};
+    case "secondaryColor":
+      return { ...base, type: "secondaryColor",
+        hueCenter: input.hueCenter ?? 0,
+        hueWidth: input.hueWidth ?? 180,
+        hueSoftness: input.hueSoftness ?? 15,
+        rangeSoftness: input.rangeSoftness ?? 0.1,
+        saturationMin: input.saturationMin ?? 0,
+        saturationMax: input.saturationMax ?? 1,
+        lightnessMin: input.lightnessMin ?? 0,
+        lightnessMax: input.lightnessMax ?? 1,
+        hueShift: input.hueShift ?? 0,
+        saturation: input.saturation ?? 1,
+        lightness: input.lightness ?? 0,
+        hueCurve: input.hueCurve,
+        saturationCurve: input.saturationCurve,
+      };
+    case "exposure":
+      return { ...base, type: "exposure", exposure: input.exposure ?? 0, rolloff: input.rolloff ?? 0, whites: input.whites ?? 0 };
     case "color":
       return {
         ...base,
@@ -1409,7 +1493,11 @@ export function buildEffect(
         ...base,
         type: "vignette",
         amount: input.amount ?? 0.5,
-        softness: input.softness ?? 0.5
+        softness: input.softness ?? 0.5,
+        radius: input.radius,
+        centerX: input.centerX,
+        centerY: input.centerY,
+        roundness: input.roundness
       };
     case "sharpen":
       return {

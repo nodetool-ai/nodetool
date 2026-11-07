@@ -4,6 +4,7 @@
  * Port of Python's `nodetool.models.asset`.
  */
 
+import { isDeepStrictEqual } from "node:util";
 import { eq, and, or, like, desc, isNull, lt, inArray } from "drizzle-orm";
 import { isShortResourceId, isSystemEntityMetadata } from "@nodetool-ai/protocol";
 import {
@@ -83,8 +84,19 @@ export class Asset extends DBModel {
     this.beforeSave();
     const connection = getDatabase();
     const table = connection.schema.assets;
-    const condition = and(eq(table.id, this.id), eq(table.user_id, this.user_id),
-      expectedMetadata ? eq(table.metadata, expectedMetadata) : isNull(table.metadata));
+    const owner = and(eq(table.id, this.id), eq(table.user_id, this.user_id));
+    const current = connection.dialect === "sqlite"
+      ? await connection.db.select({ metadata: connection.schema.assets.metadata })
+        .from(connection.schema.assets).where(owner).limit(1)
+      : await connection.db.select({ metadata: connection.schema.assets.metadata })
+        .from(connection.schema.assets).where(owner).limit(1);
+    if (!current[0] || !isDeepStrictEqual(current[0].metadata, expectedMetadata)) {
+      return false;
+    }
+    // Guard with the stored key order so an intervening write still loses the CAS.
+    const stored = current[0].metadata;
+    const condition = and(owner,
+      stored === null ? isNull(table.metadata) : eq(table.metadata, stored));
     const row = this.toRow();
     const updated = connection.dialect === "sqlite"
       ? await connection.db.update(connection.schema.assets).set(row)

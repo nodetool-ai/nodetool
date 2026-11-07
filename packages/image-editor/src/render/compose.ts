@@ -268,17 +268,19 @@ export function hasEnabledEffects(
   return !!effects && effects.some((effect) => effect.enabled);
 }
 
-/**
- * The CSS filter chain that evaluates a layer's effect stack, or null when no
- * enabled effect changes anything.
- */
-export function layerEffectsFilter(
+type LayerColorFilter = readonly [
+  kind: "brightness" | "contrast" | "hue-rotate" | "saturate",
+  amount: number
+];
+
+/** The ordered sRGB filter operations shared by Canvas 2D and WebGPU. */
+export function layerColorFilters(
   effects: readonly RenderLayerEffect[] | null | undefined
-): string | null {
+): LayerColorFilter[] {
   if (!effects) {
-    return null;
+    return [];
   }
-  const parts: string[] = [];
+  const filters: LayerColorFilter[] = [];
   for (const effect of effects) {
     if (!effect.enabled) {
       continue;
@@ -287,34 +289,45 @@ export function layerEffectsFilter(
       case "brightness_contrast": {
         const { brightness, contrast } = effect.params;
         if (brightness !== 0) {
-          parts.push(`brightness(${1 + brightness})`);
+          filters.push(["brightness", 1 + brightness]);
         }
         if (contrast !== 0) {
-          parts.push(`contrast(${1 + contrast})`);
+          filters.push(["contrast", 1 + contrast]);
         }
         break;
       }
       case "hue_saturation": {
         const { hueDegrees, saturation, lightness } = effect.params;
         if (hueDegrees !== 0) {
-          parts.push(`hue-rotate(${hueDegrees}deg)`);
+          filters.push(["hue-rotate", hueDegrees]);
         }
         if (saturation !== 0) {
-          parts.push(`saturate(${1 + saturation})`);
+          filters.push(["saturate", 1 + saturation]);
         }
         if (lightness !== 0) {
-          parts.push(`brightness(${1 + lightness})`);
+          filters.push(["brightness", 1 + lightness]);
         }
         break;
       }
       case "exposure": {
         const { exposureStops } = effect.params;
         if (exposureStops !== 0) {
-          parts.push(`brightness(${Math.pow(2, exposureStops)})`);
+          filters.push(["brightness", Math.pow(2, exposureStops)]);
         }
         break;
       }
     }
   }
-  return parts.length > 0 ? parts.join(" ") : null;
+  return filters;
+}
+
+/** The CSS filter chain for Canvas 2D, or null for an identity stack. */
+export function layerEffectsFilter(
+  effects: readonly RenderLayerEffect[] | null | undefined
+): string | null {
+  const filters = layerColorFilters(effects);
+  if (!filters.length) return null;
+  return filters.map(([kind, amount]) =>
+    `${kind}(${amount}${kind === "hue-rotate" ? "deg" : ""})`
+  ).join(" ");
 }

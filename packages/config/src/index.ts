@@ -17,7 +17,11 @@ export {
 
 export { getByteLimitEnv } from "./byte-limits.js";
 
-export { isAuthEnforced } from "./deployment.js";
+export {
+  isAuthEnforced,
+  isSupabaseAuthConfigured,
+  isOidcAuthConfigured
+} from "./deployment.js";
 
 export {
   CREDIT_MODELS_ENV,

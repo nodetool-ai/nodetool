@@ -283,6 +283,9 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         id,
         type: "colorCorrection",
         enabled: true,
+        exposure: 0,
+        rolloff: 0,
+        whites: 0,
         brightness: 0,
         contrast: 1,
         saturation: 1,
@@ -314,7 +317,10 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         enabled: true,
         intensity: 0.4,
         radius: 0.9,
-        softness: 0.5
+        softness: 0.5,
+        centerX: 0.5,
+        centerY: 0.5,
+        roundness: 0
       } satisfies TrackVignetteEffect;
     case "chromaKey":
       return {

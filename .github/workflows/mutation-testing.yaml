@@ -58,6 +58,8 @@ jobs:
       - name: Set up Node, install deps, build packages
         if: steps.wanted.outputs.run == 'true'
         uses: ./.github/actions/setup-build
+        with:
+          extra-apt: mesa-vulkan-drivers
 
       - name: Restore the previous snapshots
         if: steps.wanted.outputs.run == 'true' && github.event.inputs.mutate_all != 'true'

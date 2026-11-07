@@ -516,6 +516,7 @@ the cause named ("this server has no Blender installed...").
 |---|---|---|
 | `BLENDER_PATH` | env, settings catalog (Stage 1) | unset |
 | `NODETOOL_BLENDER_CONCURRENCY` | env, the `render` class cap | 1 |
+| `NODETOOL_TIMELINE_RENDER_CONCURRENCY` | env, independent in-process timeline class cap (Node/Dawn and browser) | unlimited |
 | `NODETOOL_HOST_BINARY_CONCURRENCY` | env, existing, the default class | 2 |
 | `NODETOOL_WORKER_URL`, `NODETOOL_WORKER_TOKEN` | env, existing | unset |
 | `MAX_OUTPUT_BYTES`, `MAX_TOTAL_OUTPUT_BYTES`, `MAX_OUTPUT_COUNT` | constants in `runner.ts`, overridable per call | 512 MiB, 1 GiB, 32 |
@@ -855,3 +856,8 @@ implementation can keep.
   Mitigation: the timeout, and a follow-up that watches the scratch
   directory's total size while the child runs, which `runHostBinary`'s
   watchdog can be extended to do.
+
+`NODETOOL_TIMELINE_RENDER_CONCURRENCY` accepts positive numbers rounded down to
+whole jobs. Unset, invalid and non-positive values leave timeline concurrency
+unlimited. It is read at runtime through bracket notation for packaged builds.
+It does not consume Blender or ManimGX slots. A50 owns any future default cap.

@@ -165,6 +165,20 @@
     "workflows": 3
   },
   {
+    "slug": "catalog-motion",
+    "name": "Catalog Motion",
+    "emoji": "🛍️",
+    "featured": true,
+    "workflows": 2
+  },
+  {
+    "slug": "catalog-motion-references",
+    "name": "Catalog Motion with References",
+    "emoji": "🛍️",
+    "featured": false,
+    "workflows": 2
+  },
+  {
     "slug": "trailer-room",
     "name": "Trailer Room",
     "emoji": "🎞️",

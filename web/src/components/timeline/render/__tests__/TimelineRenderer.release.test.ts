@@ -147,4 +147,24 @@ describe("renderTimeline decoder release", () => {
       ])
     );
   });
+  it("decodes and retires temporal neighbors at source time",async()=>{
+    const track=makeTrack({id:"v",type:"video",index:0});
+    const clip=makeClip({id:"noise",trackId:"v",mediaType:"video",status:"generated",sourceType:"imported",currentAssetId:"asset",
+      startMs:0,durationMs:500,inPointMs:200,effects:[{id:"d",type:"denoise",enabled:true,temporalStrength:1}]});
+    await renderTimeline({tracks:[track],clips:[clip],width:64,height:36,fps:4,durationMs:1000,resolveUrl:async()=>"blob:video"});
+    expect(mockSeekVideo.mock.calls.some(([id,,time])=>id==="noise#denoise-before"&&Math.abs(time-.2)<.00001)).toBe(true);
+    expect(mockSeekVideo.mock.calls.some(([id,,time])=>id==="noise#denoise-after"&&Math.abs(time-(.2+1/30))<.00001)).toBe(true);
+    const layers=mockSetLayers.mock.calls.flatMap(([layers])=>layers);
+    expect(layers.some(layer=>layer.temporalSources?.before&&layer.temporalSources?.after)).toBe(true);
+    expect(mockRelease).toHaveBeenCalledWith("noise#denoise-before");expect(mockRelease).toHaveBeenCalledWith("noise#denoise-after");
+  });
+
+});
+
+it.each([2, 3])("refuses working color space %s before rendering", async (workingColorSpaceVersion) => {
+  const options = { workingColorSpaceVersion, tracks: [], clips: [], width: 32, height: 32, fps: 30, durationMs: 1000, resolveUrl: jest.fn() };
+  const saved = JSON.stringify(options);
+  await expect(renderTimeline(options)).rejects.toThrow(`Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.`);
+  expect(options.resolveUrl).not.toHaveBeenCalled();
+  expect(JSON.stringify(options)).toBe(saved);
 });

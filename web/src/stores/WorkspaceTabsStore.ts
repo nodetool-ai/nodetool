@@ -31,6 +31,8 @@ export type WorkspaceTabType =
   | "model3d"
   | "audio"
   | "text"
+  // Uploaded or external documents. `ref` is a durable media locator.
+  | "document"
   // Mini apps. `ref` is an application id (trpc.applications.*).
   | "application"
   // A shipped example app, run without installing it. `ref` is its slug.

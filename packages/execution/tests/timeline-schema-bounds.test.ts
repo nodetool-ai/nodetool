@@ -11,10 +11,14 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { clipAnimation } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import {
+  clipAnimation,
+  timelineClip
+} from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
   MAX_CUSTOM_CURVES,
-  MAX_CUSTOM_KEYFRAMES
+  MAX_CUSTOM_KEYFRAMES,
+  MAX_PARAM_CURVES
 } from "@nodetool-ai/timeline";
 
 const keyframes = (count: number) =>
@@ -57,6 +61,40 @@ describe("clipAnimation.custom bounds mirror the baker's limits", () => {
       clipAnimation.safeParse(
         animation({ curves: curves(1, MAX_CUSTOM_KEYFRAMES + 1) })
       ).success
+    ).toBe(false);
+  });
+});
+
+describe("timelineClip.paramCurves bounds", () => {
+  const clip = (paramCurves: unknown) => ({
+    id: "c1",
+    trackId: "t1",
+    name: "Clip",
+    startMs: 0,
+    durationMs: 1000,
+    mediaType: "video",
+    sourceType: "imported",
+    status: "generated",
+    locked: false,
+    versions: [],
+    paramCurves
+  });
+
+  it("accepts exactly MAX_PARAM_CURVES curves and refuses one more", () => {
+    expect(timelineClip.safeParse(clip(curves(MAX_PARAM_CURVES))).success).toBe(
+      true
+    );
+    expect(
+      timelineClip.safeParse(clip(curves(MAX_PARAM_CURVES + 1))).success
+    ).toBe(false);
+  });
+
+  it("accepts exactly MAX_CUSTOM_KEYFRAMES per curve and refuses one more", () => {
+    expect(
+      timelineClip.safeParse(clip(curves(1, MAX_CUSTOM_KEYFRAMES))).success
+    ).toBe(true);
+    expect(
+      timelineClip.safeParse(clip(curves(1, MAX_CUSTOM_KEYFRAMES + 1))).success
     ).toBe(false);
   });
 });
