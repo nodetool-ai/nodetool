@@ -2,12 +2,14 @@
 #include "../run/PartialRunPlanner.h"
 #include "WorkflowAutosave.h"
 #include "AccountJobs.h"
+#include "ReconnectPolicy.h"
 #include "../run/GenerationHistory.h"
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QStringList>
 #include <QNetworkAccessManager>
 #include <QObject>
+#include <QTimer>
 #include <QWebSocket>
 #include <functional>
 namespace nodetool::node_editor {
@@ -33,6 +35,7 @@ public:
   // The server's latest `system_stats` sample: cpu_percent, memory_percent and memory_used_gb.
   QVariantMap systemStats() const { return m_systemStats; }
   explicit WorkflowSession(QObject *parent = nullptr);
+  ~WorkflowSession() override;
     QJsonObject workflow() const;
     // The host invalidates synchronously. Only a snapshot reader serializes.
     void setSnapshotProvider(std::function<QJsonObject()> provider);
@@ -90,7 +93,21 @@ public:
   Q_INVOKABLE void stop(const QString &jobId);
   Q_INVOKABLE void cancelJob(const QString &jobId);
   Q_INVOKABLE void reconnectRuns();
+  // Retries the socket now, like the web's retryNow: a pending wait is cancelled, the attempt count
+  // restarts and a session that gave up tries again. Does nothing while a socket is open or opening.
   Q_INVOKABLE void reconnectTransport();
+  // How the status bar reads the socket, named as the web does: idle (no server chosen), connecting,
+  // connected or offline.
+  QString connectionState() const;
+  // The text beside the state: "Reconnecting… (attempt N)" while retries continue, "Connection failed"
+  // after the session gave up, and nothing otherwise.
+  QString connectionDetail() const;
+  // Consecutive attempts since the last open socket. Zero while connected.
+  int reconnectAttempt() const { return m_reconnectAttempt; }
+  // True once the policy's limit or a close code that retrying cannot fix ended the retries.
+  bool gaveUp() const { return m_gaveUp; }
+  // The schedule of automatic reconnects. The default is the web's.
+  void setReconnectPolicy(const ReconnectPolicy &policy) { m_reconnectPolicy = policy; }
   // Static preflight of the stored workflow (POST /api/sdk/v1/preflight). done gets
   // the summary's cost object, or an error. Needs a server-bound workflow.
   void preflightCost(std::function<void(QJsonObject, QString)> done);
@@ -107,12 +124,17 @@ signals:
   void runEvent(QString jobId, QJsonObject event);
   void runSubmitted(QString jobId);
   void systemStatsChanged();
+  // An automatic reconnect was queued as attempt number `attempt`, to start after `delayMs`.
+  void reconnectScheduled(int attempt, int delayMs);
 
 private:
   QSharedPointer<AccountJobs> m_accountJobs;
   QString submitRun(const QJsonObject &snapshot, const QJsonObject &params,
                     const QJsonObject &fullSnapshot, const QJsonArray &metadata,
                     const QStringList &executed);
+  void openSocket();
+  void socketClosed();
+  void scheduleReconnect();
   void clearConflict();
   void submitAutosave(bool checkpoint, std::function<void(bool)> done);
   void externalWorkflowChange(const QJsonObject &event);
@@ -155,5 +177,10 @@ private:
   quint64 m_epoch = 0, m_documentEpoch = 0, m_loadEpoch = 0, m_edit = 0;
   bool m_connected = false, m_dirty = false, m_saving = false;
   bool m_reconnecting = false;
+  // Retries run only while a server is chosen and the user has not closed it.
+  bool m_autoReconnect = false, m_gaveUp = false, m_opened = false;
+  int m_reconnectAttempt = 0;
+  ReconnectPolicy m_reconnectPolicy;
+  QTimer m_reconnectTimer;
 };
 } // namespace nodetool::node_editor

@@ -2078,11 +2078,16 @@ Instant Update execution. F24 remains partial.
 ### F27 reconnect and live-running states
 
 The web contracts are `resumeInFlightJobs`, `handleJobResumed`, `settleLostRun`
-and `isJobHalted` in `web/src/stores/workflowUpdates.ts`. F27 is implemented
-with acceptance pending.
+and `isJobHalted` in `web/src/stores/workflowUpdates.ts`. The socket policy is
+`WebSocketManager.ts` in `web/src/lib/websocket/`, configured by
+`GlobalWebSocketManager.ts`. F27 is implemented with acceptance pending.
 
 | Behavior | Web | Native | Test |
 | --- | --- | --- | --- |
+| Automatic reconnect | Any close that the client did not ask for schedules a retry. The wait is 1000 ms times 1.5 per failed attempt, capped at 30 s and scaled by a random 0.5 to 1.0. The attempt limit is unlimited. A successful open resets the count. Closes with code 1008, 1009, 1010, 4000, 4001 or 4003 end the retries (`getReconnectDelay`, `shouldReconnect`). | Same schedule in `ReconnectPolicy.h`, applied by `WorkflowSession`. A connect that never opens retries too. The same close codes end the retries, and an optional attempt limit is available to callers. A deliberate disconnect, a server change and teardown cancel any pending retry. | `RunReconnectTest::droppedSocketReconnectsByItself`, `RunReconnectTest::policyFollowsTheWebLadder`, `RunReconnectTest::backoffGrowsAndSuccessResetsIt`, `RunReconnectTest::terminalCloseCodeStopsTheRetries`, `RunReconnectTest::givesUpAfterTheAttemptLimitAndManualReconnectRecovers`, `RunReconnectTest::deliberateDisconnectDoesNotReconnect`, `RunReconnectTest::serverChangeCancelsThePendingRetry`, `RunReconnectTest::teardownDuringBackoffOpensNothing` |
+| Manual retry | `retryNow` cancels the pending wait, sets the attempt count to 1 and connects at once. | More → Reconnect and the status bar Reconnect button do the same. A session that gave up starts again from zero. | `RunReconnectTest::manualReconnectResetsTheBackoff` |
+| Connection status | The status bar reads Connected, Connecting (during an attempt), Offline (between attempts) or Idle (nothing started). The chat store words a retry "Reconnecting... (attempt N)". | The status bar shows the same four states. A caption beside them reads "Reconnecting… (attempt N)" during retries and "Connection failed" after the session gave up. A failed retry reports no session error, so panels that show the last error, such as Versions, keep their text. Giving up reports one. | `RunReconnectTest::statusNamesTheAttempt`, `RunReconnectTest::windowShowsTheReconnectState`, `RunReconnectTest::failedRetriesReportOneErrorWhenTheSessionGivesUp` |
+| Run resumes after a retry | `resumeInFlightJobs` runs on every open. | The automatic open runs the same `reconnectRuns` path, so in-flight runs resume by job ID and last sequence. | `RunReconnectTest::inFlightRunResumesAfterAutomaticReconnect` |
 | Disconnect mid-run | The server keeps the run while the socket is down, and the socket reconnects with backoff. | Runs become uncertain and new runs are refused until the server answers. The running ring holds still and the card reads Disconnected. | `RunReconnectTest::reconnectedRunTakesItsReplayedOutcome`, `RuntimeUiTest::projectionPreservesEditingAndItems` |
 | Reconcile without resubmitting | Each run still queued or running sends `reconnect_job` with its job ID and last `job_seq`. Nothing is submitted again. | Same. Finished runs are not resumed. | `RunReconnectTest::reconnectResumesOnlyActiveRunsWithoutResubmitting` |
 | Finished during the gap | A `job_resumed` "finished" reply with frames to replay waits for the replayed `job_update`. With nothing to replay, the reply settles the run. | Same in the session and the canvas projection. | `RunReconnectTest::reconnectedRunTakesItsReplayedOutcome`, `RunReconnectTest::runFinishedDuringTheGapSettlesTheCanvas`, `NodeRuntimeModelTests::resumedFinishedRunWaitsForItsReplayedOutcome` |
@@ -2091,9 +2096,10 @@ with acceptance pending.
 | Server change | Stores are keyed by workflow and job, and a new connection starts with no runs. | The session, output panel and canvas projection forget the previous server's runs. No running state returns when the new connection opens. | `RunReconnectTest::serverChangeDropsTheOldRun`, `NodeRuntimeModelTests::selectingNoRunClearsTheProjection` |
 | Running animation | Animations follow running nodes and edges that carry messages. Reduced motion stops the flowing-edge animation (`handle_edge_tooltip.css`). | The animation timer runs only while a node is running or a wire flows, the socket is connected, and reduced motion is off. | `RuntimeUiTest::projectionPreservesEditingAndItems`, `RuntimeUiTest::wiresFlowFromRunningSourcesOnly` |
 
-Differences: the web socket reconnects by itself with backoff. Native reconnects
-when the user chooses More → Reconnect. A lost run keeps
-the local status failed even when the server row later reports another outcome.
+Differences: the native session has no connection timeout for an attempt that
+hangs, no liveness ping that detects a half-open socket, and no retry on network
+or window focus events. A lost run keeps the local status failed even when the
+server row later reports another outcome.
 Run the suite with `ctest --test-dir <build> -R '^node_editor_run_reconnect$'
 --output-on-failure`.
 

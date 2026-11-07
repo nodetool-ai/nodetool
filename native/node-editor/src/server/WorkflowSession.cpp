@@ -14,10 +14,20 @@ namespace nodetool::node_editor {
 WorkflowSession::WorkflowSession(QObject *parent)
     : QObject(parent), m_autosave(this, [this] { flushAutosave(); }), m_history(&m_generations, this), m_network(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this) {
+  m_reconnectTimer.setSingleShot(true);
+  connect(&m_reconnectTimer, &QTimer::timeout, this, [this] {
+    if (m_autoReconnect && !m_base.isEmpty() && m_socket.state() == QAbstractSocket::UnconnectedState) {
+      openSocket();
+    }
+  });
   connect(&m_history, &GenerationHistory::changed, this, &WorkflowSession::generationsChanged);
   m_socket.setMaxAllowedIncomingMessageSize(32 * 1024 * 1024);
   connect(&m_socket, &QWebSocket::connected, this, [this] {
     m_connected = true;
+    m_opened = true;
+    m_reconnectTimer.stop();
+    m_reconnectAttempt = 0;
+    m_gaveUp = false;
     emit stateChanged();
     reconnectRuns();
     if (m_accountJobs) {
@@ -37,13 +47,83 @@ WorkflowSession::WorkflowSession(QObject *parent)
       }
     }
     emit stateChanged();
+    socketClosed();
   });
   connect(&m_socket, &QWebSocket::binaryMessageReceived, this,
           &WorkflowSession::receive);
   connect(&m_socket, &QWebSocket::errorOccurred, this,
           [this](QAbstractSocket::SocketError) {
-            emit errorOccurred(m_socket.errorString());
+            // A failed retry shows as the status bar's attempt count. Panels such as Versions show
+            // the last session error, so only the first failure and giving up report one.
+            if (m_reconnectAttempt == 0) {
+              emit errorOccurred(m_socket.errorString());
+            }
+            // A connect that never opened may report only the error.
+            if (m_socket.state() == QAbstractSocket::UnconnectedState) {
+              socketClosed();
+            }
           });
+}
+WorkflowSession::~WorkflowSession() {
+  // A closing socket must not schedule a retry into a session that is being destroyed.
+  m_autoReconnect = false;
+  m_reconnectTimer.stop();
+  disconnect(&m_socket, nullptr, this, nullptr);
+}
+QString WorkflowSession::connectionState() const {
+  if (m_connected) {
+    return QStringLiteral("connected");
+  }
+  if (m_base.isEmpty()) {
+    return QStringLiteral("idle");
+  }
+  return m_socket.state() == QAbstractSocket::UnconnectedState ? QStringLiteral("offline")
+                                                                : QStringLiteral("connecting");
+}
+QString WorkflowSession::connectionDetail() const {
+  if (m_connected || m_base.isEmpty()) {
+    return {};
+  }
+  if (m_gaveUp) {
+    return QStringLiteral("Connection failed");
+  }
+  return m_reconnectAttempt > 0 ? QString::fromUtf8("Reconnecting\u2026 (attempt %1)").arg(m_reconnectAttempt) : QString{};
+}
+// The socket closed or a connect failed. Source: handleClose and shouldReconnect in
+// web/src/lib/websocket/WebSocketManager.ts. Every close the user did not ask for retries.
+void WorkflowSession::socketClosed() {
+  if (!m_autoReconnect || m_gaveUp || m_base.isEmpty() || m_reconnectTimer.isActive()) {
+    return;
+  }
+  // A close code belongs to this attempt only when the socket opened. Otherwise it is left over.
+  const bool terminal = m_opened && ReconnectPolicy::terminalCloseCode(static_cast<int>(m_socket.closeCode()));
+  if (terminal || !m_reconnectPolicy.allows(m_reconnectAttempt)) {
+    m_gaveUp = true;
+    emit stateChanged();
+    if (m_reconnectAttempt > 0) {
+      const auto reason = m_socket.errorString();
+      emit errorOccurred(reason.isEmpty() ? QStringLiteral("Connection failed") : reason);
+    }
+    return;
+  }
+  scheduleReconnect();
+}
+void WorkflowSession::scheduleReconnect() {
+  const int delay = m_reconnectPolicy.delayMs(m_reconnectAttempt);
+  ++m_reconnectAttempt;
+  m_reconnectTimer.start(delay);
+  emit reconnectScheduled(m_reconnectAttempt, delay);
+  emit stateChanged();
+}
+void WorkflowSession::openSocket() {
+  auto url = m_base;
+  url.setScheme(m_base.scheme() == "https" ? "wss" : "ws");
+  url.setPath("/ws");
+  QNetworkRequest request(url);
+  request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
+  m_opened = false;
+  m_socket.open(request);
+  emit stateChanged();
 }
 void WorkflowSession::setSnapshotProvider(std::function<QJsonObject()> provider) {
     m_snapshotProvider = std::move(provider);
@@ -133,6 +213,11 @@ void WorkflowSession::disconnectFromServer() {
   m_runMetadata = {};
   ++m_epoch;
   ++m_documentEpoch;
+  // Closing on purpose is not a drop. Stop retries before the socket reports its close.
+  m_autoReconnect = false;
+  m_gaveUp = false;
+  m_reconnectAttempt = 0;
+  m_reconnectTimer.stop();
   for (auto *r : m_network.findChildren<QNetworkReply *>()) {
     r->abort();
   }
@@ -221,12 +306,8 @@ void WorkflowSession::connectToServer(const QUrl &base, const QString &token,
     m_accountJobs->refresh(true);
   m_history.configure(m_base, m_token, m_userId);
   emit credentialsChanged(m_base, m_token, m_userId);
-  auto ws = base;
-  ws.setScheme(base.scheme() == "https" ? "wss" : "ws");
-  ws.setPath("/ws");
-  QNetworkRequest req(ws);
-  req.setRawHeader("Authorization", "Bearer " + token.toUtf8());
-  m_socket.open(req);
+  m_autoReconnect = true;
+  openSocket();
   loadCatalog();
 }
 void WorkflowSession::request(const QByteArray &method, const QString &path,
@@ -930,12 +1011,13 @@ void WorkflowSession::reconnectTransport() {
   if (m_socket.state() != QAbstractSocket::UnconnectedState) {
     return;
   }
-  auto url = m_base;
-  url.setScheme(m_base.scheme() == "https" ? "wss" : "ws");
-  url.setPath("/ws");
-  QNetworkRequest request(url);
-  request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8());
-  m_socket.open(request);
+  // The web's retryNow counts the attempt it starts, so the next failure waits the second rung.
+  // A session that gave up starts from the first.
+  m_reconnectTimer.stop();
+  m_reconnectAttempt = m_gaveUp ? 0 : 1;
+  m_gaveUp = false;
+  m_autoReconnect = true;
+  openSocket();
 }
 void WorkflowSession::reconnectRuns() {
   for (auto i = m_runs.begin(); i != m_runs.end(); ++i) {

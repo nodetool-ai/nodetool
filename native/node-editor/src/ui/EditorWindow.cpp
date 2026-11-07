@@ -1778,8 +1778,11 @@ QVariantMap EditorWindow::systemStats() const {
 }
 QString EditorWindow::connectionStatus() const {
     if (!tabOwner_) { return activeEditor_->connectionStatus(); }
-    if (session_.connected()) { return QStringLiteral("connected"); }
-    return session_.serverUrl().isEmpty() ? QStringLiteral("idle") : QStringLiteral("offline");
+    return session_.connectionState();
+}
+QString EditorWindow::connectionDetail() const {
+    if (!tabOwner_) { return activeEditor_->connectionDetail(); }
+    return session_.connectionDetail();
 }
 int EditorWindow::nodeCount() const {
     if (!tabOwner_) { return activeEditor_->nodeCount(); }

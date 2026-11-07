@@ -105,7 +105,23 @@ Rectangle {
                 font.weight: Font.Normal
                 lineHeight: 1
             }
-            NodeButton { objectName: "status-reconnect"; visible: !root.connected; text: "Connect"; variant: NodeButton.Flat; implicitHeight: Ui.Metrics.small; onClicked: editor.action("Connect") }
+            Ui.Text {
+                objectName: "status-connection-detail"
+                visible: text !== ""
+                text: editor ? editor.connectionDetail : ""
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Disabled
+                lineHeight: 1
+            }
+            // A server that was chosen retries by itself. The button retries now, like the web's retryNow.
+            NodeButton {
+                objectName: "status-reconnect"
+                visible: !root.connected
+                text: root.connection === "offline" ? "Reconnect" : "Connect"
+                variant: NodeButton.Flat
+                implicitHeight: Ui.Metrics.small
+                onClicked: editor.action(root.connection === "offline" ? "Reconnect" : "Connect")
+            }
         }
         StatusTab {
             objectName: "status-logs"

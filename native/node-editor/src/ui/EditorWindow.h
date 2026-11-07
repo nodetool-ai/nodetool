@@ -96,6 +96,7 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool zoomIsPreset READ zoomIsPreset NOTIFY zoomChanged)
   Q_PROPERTY(QVariantMap systemStats READ systemStats NOTIFY panelChanged)
   Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY panelChanged)
+  Q_PROPERTY(QString connectionDetail READ connectionDetail NOTIFY panelChanged)
   Q_PROPERTY(int nodeCount READ nodeCount NOTIFY panelChanged)
   Q_PROPERTY(int edgeCount READ edgeCount NOTIFY panelChanged)
   Q_PROPERTY(int queuedCount READ queuedCount NOTIFY panelChanged)
@@ -201,8 +202,10 @@ public:
   Q_INVOKABLE void closeMiniMapPopup();
   bool zoomIsPreset() const;
   QVariantMap systemStats() const;
-  // The connection as the web status bar names it: connected, offline or idle.
+  // The connection as the web status bar names it: connected, connecting, offline or idle.
   QString connectionStatus() const;
+  // "Reconnecting… (attempt N)" while the session retries and "Connection failed" after it gave up.
+  QString connectionDetail() const;
   int nodeCount() const;
   int edgeCount() const;
   int queuedCount() const;
