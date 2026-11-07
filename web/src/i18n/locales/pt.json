@@ -16228,7 +16228,8 @@
         "memory": "Memória",
         "settings": "Configurações",
         "effects": "Efeitos",
-        "lipsync": "Sincronização labial"
+        "lipsync": "Sincronização labial",
+        "admin": "Administração"
       }
     },
     "script": {
@@ -19980,5 +19981,59 @@
     "description": "Descrição",
     "autoHint": "Nenhuma etapa definida. O widget mostra cada nó generativo.",
     "chooseNode": "Escolha um nó"
+  },
+  "admin": {
+    "page": {
+      "title": "Administração",
+      "subtitle": "Gerencie as pessoas que entram neste servidor.",
+      "deniedTitle": "Acesso de administrador necessário",
+      "deniedDescription": "Apenas administradores deste servidor podem abrir esta página."
+    },
+    "users": {
+      "searchPlaceholder": "Pesquisar por nome, e-mail ou ID de usuário",
+      "filter": {
+        "label": "Status",
+        "all": "Todos",
+        "active": "Ativos",
+        "disabled": "Desativados"
+      },
+      "columns": {
+        "person": "Pessoa",
+        "role": "Função",
+        "status": "Status",
+        "lastSeen": "Visto por último",
+        "actions": "Ações"
+      },
+      "role": {
+        "admin": "Administrador",
+        "member": "Membro",
+        "viaGroup": "Por um grupo ou configuração do servidor"
+      },
+      "status": {
+        "active": "Ativo",
+        "disabled": "Desativado"
+      },
+      "never": "Nunca",
+      "actions": {
+        "makeAdmin": "Tornar administrador",
+        "removeAdmin": "Remover administrador",
+        "disable": "Desativar",
+        "enable": "Ativar"
+      },
+      "loadFailed": "Não foi possível carregar os usuários",
+      "retry": "Tentar novamente",
+      "noMatches": "Nenhum usuário corresponde à pesquisa",
+      "emptyTitle": "Ainda não há usuários",
+      "emptyDescription": "As pessoas aparecem aqui depois do primeiro login único.",
+      "range": "{{first}}–{{last}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Próxima",
+      "updateFailed": "Não foi possível atualizar o usuário.",
+      "disableDialog": {
+        "title": "Desativar {{name}}?",
+        "body": "A pessoa é desconectada de todos os lugares na hora e não pode entrar de novo até você ativar a conta. O trabalho dela continua no servidor.",
+        "cancel": "Cancelar"
+      }
+    }
   }
 }

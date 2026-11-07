@@ -15949,7 +15949,8 @@
         "memory": "Minne",
         "settings": "Innstillinger",
         "effects": "Effekter",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Administrasjon"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "Beskrivelse",
     "autoHint": "Ingen steg er satt. Widgeten viser hver generative node.",
     "chooseNode": "Velg en node"
+  },
+  "admin": {
+    "page": {
+      "title": "Administrasjon",
+      "subtitle": "Administrer personene som logger på denne serveren.",
+      "deniedTitle": "Administratortilgang kreves",
+      "deniedDescription": "Bare administratorer for denne serveren kan åpne siden."
+    },
+    "users": {
+      "searchPlaceholder": "Søk etter navn, e-post eller bruker-ID",
+      "filter": {
+        "label": "Status",
+        "all": "Alle",
+        "active": "Aktive",
+        "disabled": "Deaktiverte"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Rolle",
+        "status": "Status",
+        "lastSeen": "Sist sett",
+        "actions": "Handlinger"
+      },
+      "role": {
+        "admin": "Administrator",
+        "member": "Medlem",
+        "viaGroup": "Via en gruppe eller serverinnstilling"
+      },
+      "status": {
+        "active": "Aktiv",
+        "disabled": "Deaktivert"
+      },
+      "never": "Aldri",
+      "actions": {
+        "makeAdmin": "Gjør til administrator",
+        "removeAdmin": "Fjern administrator",
+        "disable": "Deaktiver",
+        "enable": "Aktiver"
+      },
+      "loadFailed": "Kunne ikke laste inn brukere",
+      "retry": "Prøv igjen",
+      "noMatches": "Ingen brukere samsvarer med søket",
+      "emptyTitle": "Ingen brukere ennå",
+      "emptyDescription": "Personer vises her etter første pålogging med enkel pålogging.",
+      "range": "{{first}}–{{last}} av {{total}}",
+      "previous": "Forrige",
+      "next": "Neste",
+      "updateFailed": "Kunne ikke oppdatere brukeren.",
+      "disableDialog": {
+        "title": "Deaktivere {{name}}?",
+        "body": "Personen logges ut overalt med en gang og kan ikke logge på igjen før du aktiverer kontoen. Arbeidet blir liggende på serveren.",
+        "cancel": "Avbryt"
+      }
+    }
   }
 }

@@ -15949,7 +15949,8 @@
         "memory": "记忆",
         "settings": "设置",
         "effects": "特效",
-        "lipsync": "口型同步"
+        "lipsync": "口型同步",
+        "admin": "管理"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "描述",
     "autoHint": "未设置步骤。组件会显示每个生成节点。",
     "chooseNode": "选择节点"
+  },
+  "admin": {
+    "page": {
+      "title": "管理",
+      "subtitle": "管理登录此服务器的用户。",
+      "deniedTitle": "需要管理员权限",
+      "deniedDescription": "只有此服务器的管理员可以打开此页面。"
+    },
+    "users": {
+      "searchPlaceholder": "按姓名、邮箱或用户 ID 搜索",
+      "filter": {
+        "label": "状态",
+        "all": "全部",
+        "active": "活跃",
+        "disabled": "已停用"
+      },
+      "columns": {
+        "person": "用户",
+        "role": "角色",
+        "status": "状态",
+        "lastSeen": "最近活动",
+        "actions": "操作"
+      },
+      "role": {
+        "admin": "管理员",
+        "member": "成员",
+        "viaGroup": "通过组或服务器设置"
+      },
+      "status": {
+        "active": "活跃",
+        "disabled": "已停用"
+      },
+      "never": "从未",
+      "actions": {
+        "makeAdmin": "设为管理员",
+        "removeAdmin": "取消管理员",
+        "disable": "停用",
+        "enable": "启用"
+      },
+      "loadFailed": "无法加载用户",
+      "retry": "重试",
+      "noMatches": "没有符合搜索的用户",
+      "emptyTitle": "暂无用户",
+      "emptyDescription": "用户首次通过单点登录登录后会显示在这里。",
+      "range": "第 {{first}}–{{last}} 个，共 {{total}} 个",
+      "previous": "上一页",
+      "next": "下一页",
+      "updateFailed": "无法更新该用户。",
+      "disableDialog": {
+        "title": "停用 {{name}}？",
+        "body": "该用户会立即在所有地方退出登录，在你重新启用账户之前无法再次登录。其作品仍保留在服务器上。",
+        "cancel": "取消"
+      }
+    }
   }
 }

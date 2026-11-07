@@ -16228,7 +16228,8 @@
         "memory": "Memoria",
         "settings": "Configuración",
         "effects": "Efectos",
-        "lipsync": "sincronización de labios"
+        "lipsync": "sincronización de labios",
+        "admin": "Administración"
       }
     },
     "script": {
@@ -19980,5 +19981,59 @@
     "description": "Descripción",
     "autoHint": "No hay pasos. El widget muestra cada nodo generativo.",
     "chooseNode": "Elige un nodo"
+  },
+  "admin": {
+    "page": {
+      "title": "Administración",
+      "subtitle": "Gestiona a las personas que inician sesión en este servidor.",
+      "deniedTitle": "Se requiere acceso de administrador",
+      "deniedDescription": "Solo los administradores de este servidor pueden abrir esta página."
+    },
+    "users": {
+      "searchPlaceholder": "Buscar por nombre, correo o ID de usuario",
+      "filter": {
+        "label": "Estado",
+        "all": "Todos",
+        "active": "Activos",
+        "disabled": "Desactivados"
+      },
+      "columns": {
+        "person": "Persona",
+        "role": "Rol",
+        "status": "Estado",
+        "lastSeen": "Última actividad",
+        "actions": "Acciones"
+      },
+      "role": {
+        "admin": "Administrador",
+        "member": "Miembro",
+        "viaGroup": "Mediante un grupo o ajuste del servidor"
+      },
+      "status": {
+        "active": "Activo",
+        "disabled": "Desactivado"
+      },
+      "never": "Nunca",
+      "actions": {
+        "makeAdmin": "Hacer administrador",
+        "removeAdmin": "Quitar administrador",
+        "disable": "Desactivar",
+        "enable": "Activar"
+      },
+      "loadFailed": "No se pudieron cargar los usuarios",
+      "retry": "Reintentar",
+      "noMatches": "Ningún usuario coincide con la búsqueda",
+      "emptyTitle": "Aún no hay usuarios",
+      "emptyDescription": "Las personas aparecen aquí tras su primer inicio de sesión único.",
+      "range": "{{first}}–{{last}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "updateFailed": "No se pudo actualizar el usuario.",
+      "disableDialog": {
+        "title": "¿Desactivar a {{name}}?",
+        "body": "Se cerrará su sesión en todas partes al instante y no podrá volver a entrar hasta que actives la cuenta. Su trabajo se queda en el servidor.",
+        "cancel": "Cancelar"
+      }
+    }
   }
 }

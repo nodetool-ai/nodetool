@@ -15949,7 +15949,8 @@
         "memory": "Minne",
         "settings": "Inställningar",
         "effects": "Effekter",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Administration"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "Beskrivning",
     "autoHint": "Inga steg angivna. Widgeten visar varje generativ nod.",
     "chooseNode": "Välj en nod"
+  },
+  "admin": {
+    "page": {
+      "title": "Administration",
+      "subtitle": "Hantera personerna som loggar in på den här servern.",
+      "deniedTitle": "Administratörsbehörighet krävs",
+      "deniedDescription": "Bara administratörer för den här servern kan öppna sidan."
+    },
+    "users": {
+      "searchPlaceholder": "Sök på namn, e-post eller användar-ID",
+      "filter": {
+        "label": "Status",
+        "all": "Alla",
+        "active": "Aktiva",
+        "disabled": "Inaktiverade"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Roll",
+        "status": "Status",
+        "lastSeen": "Senast sedd",
+        "actions": "Åtgärder"
+      },
+      "role": {
+        "admin": "Administratör",
+        "member": "Medlem",
+        "viaGroup": "Via en grupp eller serverinställning"
+      },
+      "status": {
+        "active": "Aktiv",
+        "disabled": "Inaktiverad"
+      },
+      "never": "Aldrig",
+      "actions": {
+        "makeAdmin": "Gör till administratör",
+        "removeAdmin": "Ta bort administratör",
+        "disable": "Inaktivera",
+        "enable": "Aktivera"
+      },
+      "loadFailed": "Det gick inte att läsa in användare",
+      "retry": "Försök igen",
+      "noMatches": "Inga användare matchar sökningen",
+      "emptyTitle": "Inga användare än",
+      "emptyDescription": "Personer visas här efter sin första inloggning med enkel inloggning.",
+      "range": "{{first}}–{{last}} av {{total}}",
+      "previous": "Föregående",
+      "next": "Nästa",
+      "updateFailed": "Det gick inte att uppdatera användaren.",
+      "disableDialog": {
+        "title": "Inaktivera {{name}}?",
+        "body": "Personen loggas ut överallt direkt och kan inte logga in igen förrän du aktiverar kontot. Arbetet finns kvar på servern.",
+        "cancel": "Avbryt"
+      }
+    }
   }
 }

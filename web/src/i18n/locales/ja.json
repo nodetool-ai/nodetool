@@ -15949,7 +15949,8 @@
         "memory": "記憶",
         "settings": "設定",
         "effects": "効果",
-        "lipsync": "リップシンク"
+        "lipsync": "リップシンク",
+        "admin": "管理"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "説明",
     "autoHint": "ステップが未設定です。ウィジェットはすべての生成ノードを表示します。",
     "chooseNode": "ノードを選択"
+  },
+  "admin": {
+    "page": {
+      "title": "管理",
+      "subtitle": "このサーバーにサインインするユーザーを管理します。",
+      "deniedTitle": "管理者権限が必要です",
+      "deniedDescription": "このページを開けるのはこのサーバーの管理者だけです。"
+    },
+    "users": {
+      "searchPlaceholder": "名前、メール、ユーザー ID で検索",
+      "filter": {
+        "label": "状態",
+        "all": "すべて",
+        "active": "有効",
+        "disabled": "無効"
+      },
+      "columns": {
+        "person": "ユーザー",
+        "role": "ロール",
+        "status": "状態",
+        "lastSeen": "最終アクセス",
+        "actions": "操作"
+      },
+      "role": {
+        "admin": "管理者",
+        "member": "メンバー",
+        "viaGroup": "グループまたはサーバー設定による"
+      },
+      "status": {
+        "active": "有効",
+        "disabled": "無効"
+      },
+      "never": "なし",
+      "actions": {
+        "makeAdmin": "管理者にする",
+        "removeAdmin": "管理者を解除",
+        "disable": "無効にする",
+        "enable": "有効にする"
+      },
+      "loadFailed": "ユーザーを読み込めませんでした",
+      "retry": "再試行",
+      "noMatches": "検索に一致するユーザーはいません",
+      "emptyTitle": "まだユーザーはいません",
+      "emptyDescription": "シングルサインオンで初めてサインインすると、ここに表示されます。",
+      "range": "{{total}} 件中 {{first}}–{{last}} 件",
+      "previous": "前へ",
+      "next": "次へ",
+      "updateFailed": "ユーザーを更新できませんでした。",
+      "disableDialog": {
+        "title": "{{name}} を無効にしますか？",
+        "body": "すべての場所ですぐにサインアウトされ、アカウントを再び有効にするまでサインインできません。作業内容はサーバーに残ります。",
+        "cancel": "キャンセル"
+      }
+    }
   }
 }

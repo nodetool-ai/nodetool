@@ -15949,7 +15949,8 @@
         "memory": "메모리",
         "settings": "설정",
         "effects": "효과",
-        "lipsync": "립싱크"
+        "lipsync": "립싱크",
+        "admin": "관리"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "설명",
     "autoHint": "설정된 단계가 없습니다. 위젯이 모든 생성 노드를 표시합니다.",
     "chooseNode": "노드 선택"
+  },
+  "admin": {
+    "page": {
+      "title": "관리",
+      "subtitle": "이 서버에 로그인하는 사람들을 관리합니다.",
+      "deniedTitle": "관리자 권한이 필요합니다",
+      "deniedDescription": "이 서버의 관리자만 이 페이지를 열 수 있습니다."
+    },
+    "users": {
+      "searchPlaceholder": "이름, 이메일 또는 사용자 ID로 검색",
+      "filter": {
+        "label": "상태",
+        "all": "전체",
+        "active": "활성",
+        "disabled": "비활성"
+      },
+      "columns": {
+        "person": "사용자",
+        "role": "역할",
+        "status": "상태",
+        "lastSeen": "마지막 활동",
+        "actions": "작업"
+      },
+      "role": {
+        "admin": "관리자",
+        "member": "멤버",
+        "viaGroup": "그룹 또는 서버 설정을 통해"
+      },
+      "status": {
+        "active": "활성",
+        "disabled": "비활성"
+      },
+      "never": "없음",
+      "actions": {
+        "makeAdmin": "관리자로 지정",
+        "removeAdmin": "관리자 해제",
+        "disable": "비활성화",
+        "enable": "활성화"
+      },
+      "loadFailed": "사용자를 불러오지 못했습니다",
+      "retry": "다시 시도",
+      "noMatches": "검색과 일치하는 사용자가 없습니다",
+      "emptyTitle": "아직 사용자가 없습니다",
+      "emptyDescription": "사용자는 싱글 사인온으로 처음 로그인한 후 여기에 표시됩니다.",
+      "range": "{{total}}명 중 {{first}}–{{last}}",
+      "previous": "이전",
+      "next": "다음",
+      "updateFailed": "사용자를 업데이트하지 못했습니다.",
+      "disableDialog": {
+        "title": "{{name}}을(를) 비활성화할까요?",
+        "body": "모든 곳에서 즉시 로그아웃되며 계정을 다시 활성화할 때까지 로그인할 수 없습니다. 작업은 서버에 그대로 남습니다.",
+        "cancel": "취소"
+      }
+    }
   }
 }

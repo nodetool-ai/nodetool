@@ -16228,7 +16228,8 @@
         "memory": "Memoria",
         "settings": "Impostazioni",
         "effects": "Effetti",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Amministrazione"
       }
     },
     "script": {
@@ -19980,5 +19981,59 @@
     "description": "Descrizione",
     "autoHint": "Nessun passo impostato. Il widget mostra ogni nodo generativo.",
     "chooseNode": "Scegli un nodo"
+  },
+  "admin": {
+    "page": {
+      "title": "Amministrazione",
+      "subtitle": "Gestisci le persone che accedono a questo server.",
+      "deniedTitle": "Accesso da amministratore richiesto",
+      "deniedDescription": "Solo gli amministratori di questo server possono aprire questa pagina."
+    },
+    "users": {
+      "searchPlaceholder": "Cerca per nome, e-mail o ID utente",
+      "filter": {
+        "label": "Stato",
+        "all": "Tutti",
+        "active": "Attivi",
+        "disabled": "Disattivati"
+      },
+      "columns": {
+        "person": "Persona",
+        "role": "Ruolo",
+        "status": "Stato",
+        "lastSeen": "Ultima attività",
+        "actions": "Azioni"
+      },
+      "role": {
+        "admin": "Amministratore",
+        "member": "Membro",
+        "viaGroup": "Tramite un gruppo o un’impostazione del server"
+      },
+      "status": {
+        "active": "Attivo",
+        "disabled": "Disattivato"
+      },
+      "never": "Mai",
+      "actions": {
+        "makeAdmin": "Rendi amministratore",
+        "removeAdmin": "Rimuovi amministratore",
+        "disable": "Disattiva",
+        "enable": "Attiva"
+      },
+      "loadFailed": "Impossibile caricare gli utenti",
+      "retry": "Riprova",
+      "noMatches": "Nessun utente corrisponde alla ricerca",
+      "emptyTitle": "Ancora nessun utente",
+      "emptyDescription": "Le persone compaiono qui dopo il primo accesso con single sign-on.",
+      "range": "{{first}}–{{last}} di {{total}}",
+      "previous": "Precedente",
+      "next": "Successiva",
+      "updateFailed": "Impossibile aggiornare l’utente.",
+      "disableDialog": {
+        "title": "Disattivare {{name}}?",
+        "body": "La persona viene disconnessa ovunque subito e non può accedere finché non riattivi l’account. Il suo lavoro resta sul server.",
+        "cancel": "Annulla"
+      }
+    }
   }
 }

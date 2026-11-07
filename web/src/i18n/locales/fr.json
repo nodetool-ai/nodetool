@@ -16228,7 +16228,8 @@
         "memory": "Mémoire",
         "settings": "Paramètres",
         "effects": "Effets",
-        "lipsync": "Synchronisation labiale"
+        "lipsync": "Synchronisation labiale",
+        "admin": "Administration"
       }
     },
     "script": {
@@ -19980,5 +19981,59 @@
     "description": "Description",
     "autoHint": "Aucune étape définie. Le widget montre chaque nœud génératif.",
     "chooseNode": "Choisir un nœud"
+  },
+  "admin": {
+    "page": {
+      "title": "Administration",
+      "subtitle": "Gérez les personnes qui se connectent à ce serveur.",
+      "deniedTitle": "Accès administrateur requis",
+      "deniedDescription": "Seuls les administrateurs de ce serveur peuvent ouvrir cette page."
+    },
+    "users": {
+      "searchPlaceholder": "Rechercher par nom, e-mail ou ID utilisateur",
+      "filter": {
+        "label": "Statut",
+        "all": "Tous",
+        "active": "Actifs",
+        "disabled": "Désactivés"
+      },
+      "columns": {
+        "person": "Personne",
+        "role": "Rôle",
+        "status": "Statut",
+        "lastSeen": "Dernière activité",
+        "actions": "Actions"
+      },
+      "role": {
+        "admin": "Administrateur",
+        "member": "Membre",
+        "viaGroup": "Via un groupe ou un réglage du serveur"
+      },
+      "status": {
+        "active": "Actif",
+        "disabled": "Désactivé"
+      },
+      "never": "Jamais",
+      "actions": {
+        "makeAdmin": "Nommer administrateur",
+        "removeAdmin": "Retirer les droits d’administrateur",
+        "disable": "Désactiver",
+        "enable": "Activer"
+      },
+      "loadFailed": "Impossible de charger les utilisateurs",
+      "retry": "Réessayer",
+      "noMatches": "Aucun utilisateur ne correspond à la recherche",
+      "emptyTitle": "Aucun utilisateur pour l’instant",
+      "emptyDescription": "Les personnes apparaissent ici après leur première connexion par authentification unique.",
+      "range": "{{first}}–{{last}} sur {{total}}",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "updateFailed": "Impossible de modifier l’utilisateur.",
+      "disableDialog": {
+        "title": "Désactiver {{name}} ?",
+        "body": "La personne est déconnectée partout immédiatement et ne peut plus se connecter tant que vous n’avez pas réactivé le compte. Son travail reste sur le serveur.",
+        "cancel": "Annuler"
+      }
+    }
   }
 }
