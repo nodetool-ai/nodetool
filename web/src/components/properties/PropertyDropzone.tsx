@@ -32,6 +32,17 @@ interface PropertyDropzoneProps {
   showRecorder?: boolean;
 }
 
+/** The last path segment of a document URI, without its query. */
+const documentFileName = (uri: string | undefined): string => {
+  const path = (uri ?? "").split(/[?#]/)[0];
+  const last = path.slice(path.lastIndexOf("/") + 1);
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+};
+
 const PropertyDropzone = ({
   asset,
   uri,
@@ -252,7 +263,7 @@ const PropertyDropzone = ({
       case "video":
         return "video/*,.mp4,.avi,.mov,.wmv,.flv,.webm,.mkv";
       case "document":
-        return ".pdf,.doc,.docx,.txt,.html";
+        return ".pdf,.doc,.docx,.txt,.html,.csv,.tsv";
       default:
         return "*/*";
     }
@@ -299,7 +310,7 @@ const PropertyDropzone = ({
             ];
           case "document":
             return [
-              { name: t("propertyDropzone.documents"), extensions: ["pdf", "doc", "docx", "txt", "html"] }
+              { name: t("propertyDropzone.documents"), extensions: ["pdf", "doc", "docx", "txt", "html", "csv", "tsv"] }
             ];
           default:
             return undefined;
@@ -477,7 +488,9 @@ const PropertyDropzone = ({
           );
         }
 
-        return <pre>{asset?.name}</pre>;
+        // A document with no asset row (a package:// sample, a URL) still
+        // names its file, so the picker never looks empty.
+        return <pre>{asset?.name || documentFileName(uri)}</pre>;
       }
       default:
         return null;

@@ -33,12 +33,13 @@
 // accordion.
 //
 // Control kinds: input, text, model, number, slider, select, image, video, audio,
-// switch, color, run, note. Result kinds: progress, activity, transcript, error, show, showVar,
+// document, switch, color, run, note. Result kinds: progress, activity, transcript, error, show, showVar,
 // heading, note, and textVar for an editable variable under the run that fills it.
 // `text`, `model`, `select` and `slider` take an input name or `{ node, prop }` to drive
 // a node property inside the graph; `default` seeds the preview value. `model` also
-// takes `{ variable }`: one picker for a model that several operations read.
-// `image`, `video`, and `audio` take a variable id or `{ input }`.
+// takes `{ variable }`: one picker for a model that several operations read, and
+// `number` and `select` take `{ variable }` the same way.
+// `image`, `video`, `audio`, and `document` take a variable id or `{ input }`.
 // See buildControl() in the builder for the exact props each one emits.
 
 import { PRODUCT_PRICE_DROP_BUNDLE, PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS } from "./product-price-drop.mjs";
@@ -46,6 +47,7 @@ import { AD_LIBRARY_APPS } from "./ad-library-recipes.mjs";
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
 import { PODCAST_PRODUCTION_DESK_APP } from "./podcast-production-desk.mjs";
 import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
+import { CATALOG_MOTION_APP } from "./catalog-motion.mjs";
 import { VIDEO_POST_HOUSE_APP } from "./video-post-house.mjs";
 
 const SLIDERS_IMAGE_ENHANCE = [
@@ -1004,6 +1006,8 @@ export const EXAMPLE_APPS = [
   },
 
   UGC_PRODUCT_VIDEO_APP,
+
+  CATALOG_MOTION_APP,
 
   // ── 22 ─────────────────────────────────────────────────────────────────────
   // The four apps below each bind one shipped recipe

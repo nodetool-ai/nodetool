@@ -2574,7 +2574,9 @@ export class WorkflowRunner {
    * `nodetool.output.` keeps other terminal sinks keyed by id.
    */
   private _outputCollectionKey(node: NodeDescriptor): string {
-    if (isString(node.name) && node.name.trim()) return node.name;
+    // The property wins over the descriptor name, as on the input side: a
+    // graph loaded from a saved workflow carries the type title ("Output") as
+    // the descriptor name, so two Output nodes collapsed into one key.
     if (node.type.startsWith("nodetool.output.")) {
       const properties = isObjectValue(node.properties) ? node.properties : {};
       const propertyName = isString(properties.name)
@@ -2582,6 +2584,7 @@ export class WorkflowRunner {
         : "";
       if (propertyName) return propertyName;
     }
+    if (isString(node.name) && node.name.trim()) return node.name;
     return node.id;
   }
 

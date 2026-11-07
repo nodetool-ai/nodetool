@@ -439,11 +439,22 @@ export class JobExecutionManager {
   ): { id: string; name: string } | null {
     let fallback: { id: string; name: string } | null = null;
     for (const raw of active.graph.nodes) {
-      const node = raw as { id?: unknown; name?: unknown; type?: unknown };
+      const node = raw as {
+        id?: unknown;
+        name?: unknown;
+        type?: unknown;
+        properties?: unknown;
+      };
       const id = isString(node.id) ? node.id : null;
       if (!id) continue;
       const name = isString(node.name) ? node.name : id;
       const type = isString(node.type) ? node.type : "";
+      // The runner keys an Output node's values by its `name` property.
+      const properties = isObjectLike(node.properties)
+        ? (node.properties as Record<string, unknown>)
+        : {};
+      const outputName = isString(properties.name) ? properties.name.trim() : "";
+      if (outputName && outputName === outputKey) return { id, name: outputName };
       if (name === outputKey || id === outputKey) return { id, name };
       if (type === "nodetool.output.Output" && !fallback)
         fallback = { id, name };
