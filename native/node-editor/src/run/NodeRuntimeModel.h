@@ -14,7 +14,10 @@ public:
   bool connected() const { return connected_; }
 public slots:
   void beginRun(QString jobId);
+  // An unknown or empty ID selects no run.
   void selectRun(QString jobId);
+  // Forgets every run, for a server change.
+  void reset();
   void ingest(QString jobId, QJsonObject event);
   void setConnected(bool connected);
 signals:

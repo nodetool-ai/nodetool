@@ -857,6 +857,10 @@ void WorkflowSession::reconnectTransport() {
 }
 void WorkflowSession::reconnectRuns() {
   for (auto i = m_runs.begin(); i != m_runs.end(); ++i) {
+    // Like resumeInFlightJobs on the web, only runs still in flight resume.
+    if (i.value().value("terminal").toBool()) {
+      continue;
+    }
     QJsonObject d{{"workflow_id", i.value()["workflow_id"]},
                   {"last_seq", i.value()["last_seq"]},
                   {"job_id", i.key()}};
@@ -900,31 +904,48 @@ void WorkflowSession::receive(const QByteArray &bytes) {
   }
   auto &run = m_runs[id];
   const auto type = event["type"].toString();
-  const auto seq = event["job_seq"].toDouble();
+  // value() keeps a missing sequence missing in the event the runtime receives.
+  const auto seq = event.value("job_seq").toDouble();
   if (seq > 0 && seq <= run["last_seq"].toDouble()) {
     return;
   }
-  if (type == "job_resumed" && event["status"] == "unknown") {
-    emit errorOccurred(
-        "Server no longer knows this run. Confirm its outcome before retrying");
+  const bool lifecycle = type == "job_update" || type == "job_resumed";
+  const auto reported = event.value("status").toString();
+  const bool settles = QStringList{"completed", "failed", "cancelled", "finished", "error"}.contains(reported);
+  // A late lifecycle frame never reopens a finished run.
+  if (lifecycle && run.value("terminal").toBool() && !settles) {
+    return;
+  }
+  if (type == "job_resumed" && reported == "unknown") {
+    // The server lost the run. Like settleLostRun in web/src/stores/workflowUpdates.ts,
+    // settle it as failed so it neither runs forever nor blocks the next run.
+    const auto message = tr("Lost track of this run after reconnecting. Check the job queue for its result.");
+    run.insert("uncertain", false);
+    run.insert("terminal", true);
+    run.insert("status", "failed");
+    run.insert("error", message);
+    if (m_accountJobs) {
+        m_accountJobs->refresh();
+    }
+    emit errorOccurred(message);
+    emit stateChanged();
     emit runEvent(id, event);
     return;
   }
-  if (seq > 0 || type == "job_resumed" || type == "job_update") {
+  if (seq > 0 || lifecycle) {
     run.insert("uncertain", false);
   }
-  if ((type == "job_update" || type == "job_resumed") &&
-      (event["status"] == "completed" || event["status"] == "failed" ||
-       event["status"] == "cancelled" || event["status"] == "finished")) {
+  // A "finished" reply with frames to replay leaves the outcome to the replayed job_update.
+  const bool awaitingReplay = type == "job_resumed" && reported == "finished" && event.value("replay_count").toDouble() > 0;
+  if (lifecycle && settles && !awaitingReplay) {
     run.insert("terminal", true);
   }
   if (seq > 0) {
-    if (seq <= run["last_seq"].toDouble()) {
-      return;
-    }
     run.insert("last_seq", seq);
   }
-  if (type == "job_update" || type == "job_resumed") {
+  if (awaitingReplay) {
+    emit stateChanged();
+  } else if (lifecycle) {
     auto status = event["status"].toString();
     if (status == "finished") status = "completed";
     if (status == "error") status = "failed";

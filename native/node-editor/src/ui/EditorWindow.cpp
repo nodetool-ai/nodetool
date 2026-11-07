@@ -211,6 +211,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     invalidateGesture();
     ++credentialsEpoch_;
     emit credentialsEpochChanged();
+    runtime_.reset();
     runOutput_.reset();
     if (serverSyncDialog_) { serverSyncDialog_->close(); }
     conflictPresented_ = false;
