@@ -49,7 +49,8 @@ import { storyboardZipResponse } from "./routes/storyboards.js";
 import {
   handleComfyImportGraph,
   handleComfyNodes,
-  handleComfyResolveWorkflow
+  handleComfyResolveWorkflow,
+  handleComfyServerStatus
 } from "./lib/comfy-api.js";
 import { initDb, initPostgresDb, migrateSqliteDb } from "@nodetool-ai/models";
 import {
@@ -1244,6 +1245,9 @@ export async function handleTestUiApiRequest(
   const userId = (): string => getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
   if (request.method === "GET" && pathname === "/api/comfy/nodes") {
     return handleComfyNodes(request, userId());
+  }
+  if (request.method === "GET" && pathname === "/api/comfy/server-status") {
+    return handleComfyServerStatus(request, userId());
   }
   if (request.method === "POST" && pathname === "/api/comfy/import-graph") {
     return handleComfyImportGraph(request, userId());

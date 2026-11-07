@@ -38,6 +38,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
+import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import MicNoneOutlinedIcon from "@mui/icons-material/MicNoneOutlined";
@@ -200,6 +201,8 @@ import {
   VISIBLE_STARTERS
 } from "./projectStarters";
 import { useSkills } from "../../hooks/skills/useSkills";
+import { useStartComfyWorkflow } from "../../hooks/useStartComfyWorkflow";
+import { useComfyServerUrl } from "../../serverState/useComfyServerStatus";
 /**
  * The kinds the start page leads with, in the order shown. Storyboard is one
  * of them because people who want a picture per scene took "Create video"
@@ -230,6 +233,13 @@ const MODEL_CARD_ID = "model3d";
  * "Explore all creation types" first, and the examples were not there.
  */
 const EXAMPLES_CARD_ID = "examples";
+
+/**
+ * The Comfy workflow card. It leads the row once the user has saved their own
+ * ComfyUI, because nothing else led from a connected ComfyUI to a picture
+ * (study-18-I3).
+ */
+const COMFY_CARD_ID = "comfy-workflow";
 
 const CREATION_ICONS: Record<EntryFlowId | typeof MODEL_CARD_ID, React.ReactNode> = {
   image: <ImageOutlinedIcon />,
@@ -1671,6 +1681,10 @@ const NewProjectSurface = ({
     }
   };
 
+  const comfyServerUrl = useComfyServerUrl();
+  const { start: startComfyWorkflow, starting: comfyStarting } =
+    useStartComfyWorkflow();
+
   // The chosen card says what it is doing; the other cards are off, because a
   // second flow started over the first would create an unwanted draft.
   const creationCards = useMemo<{
@@ -1742,17 +1756,46 @@ const NewProjectSurface = ({
       icon: <ExploreOutlinedIcon />,
       accent: "var(--palette-primary-main)"
     };
+    const comfyBusy = modelBusy || comfyStarting;
+    const comfyCard: CreationTypeCard = {
+      id: COMFY_CARD_ID,
+      title: "Comfy workflow",
+      description: comfyServerUrl
+        ? "Your ComfyUI's models as a node graph"
+        : "ComfyUI's own nodes, on Comfy Cloud or your own ComfyUI",
+      icon: <HubOutlinedIcon />,
+      accent: "var(--palette-info-main)",
+      disabled: comfyBusy,
+      disabledReason: comfyBusy
+        ? t("pass3_32.projects.home.disabled.waitForCurrentWork")
+        : undefined
+    };
+    const primary = PRIMARY_CREATION_IDS.map((id) => flowCard(id, true));
     return {
-      primary: PRIMARY_CREATION_IDS.map((id) => flowCard(id, true)),
+      primary: comfyServerUrl ? [...primary, comfyCard] : primary,
       more: [
         examplesCard,
         ...MORE_CREATION_IDS.map((id) => flowCard(id, false)),
-        modelCard
+        modelCard,
+        ...(comfyServerUrl ? [] : [comfyCard])
       ]
     };
-  }, [creating, gameDimension, isUploading, pendingFlow, starting, t]);
+  }, [
+    comfyServerUrl,
+    comfyStarting,
+    creating,
+    gameDimension,
+    isUploading,
+    pendingFlow,
+    starting,
+    t
+  ]);
 
   const handleCreationCard = (id: string): void => {
+    if (id === COMFY_CARD_ID) {
+      void startComfyWorkflow();
+      return;
+    }
     if (id === MODEL_CARD_ID) {
       void handleNewModel();
       return;

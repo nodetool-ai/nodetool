@@ -8,7 +8,7 @@ vi.mock("@nodetool-ai/models", async (importOriginal) => ({
   getSecret: async (key: string) => secrets[key] ?? null
 }));
 
-const { handleComfyNodes } = await import("../src/lib/comfy-api.js");
+const { handleComfyNodes, handleComfyServerStatus } = await import("../src/lib/comfy-api.js");
 
 const OBJECT_INFO = {
   CheckpointLoaderSimple: {
@@ -47,5 +47,39 @@ describe("GET /api/comfy/nodes handler", () => {
     const nodes = (await res.json()) as Array<{ node_type: string; required_settings: string[] }>;
     expect(nodes.map((n) => n.node_type)).toEqual(["comfy.CheckpointLoaderSimple"]);
     expect(nodes[0].required_settings).toEqual([]);
+  });
+});
+
+describe("GET /api/comfy/server-status handler", () => {
+  it("reports the saved server's version and checkpoints", async () => {
+    const server = createServer((req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(
+        JSON.stringify(
+          req.url === "/system_stats"
+            ? { system: { comfyui_version: "0.3.68" }, devices: [] }
+            : req.url === "/models/checkpoints"
+              ? ["sd_xl_base_1.0.safetensors"]
+              : []
+        )
+      );
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      secrets.COMFY_SERVER_URL = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+      const res = await handleComfyServerStatus(new Request("http://app/api/comfy/server-status"), "u1");
+      expect(res.status).toBe(200);
+      const status = (await res.json()) as { version: string; models: { checkpoints: string[] } };
+      expect(status.version).toBe("0.3.68");
+      expect(status.models.checkpoints).toEqual(["sd_xl_base_1.0.safetensors"]);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("answers 400 when no address is saved", async () => {
+    delete secrets.COMFY_SERVER_URL;
+    const res = await handleComfyServerStatus(new Request("http://app/api/comfy/server-status"), "u1");
+    expect(res.status).toBe(400);
   });
 });

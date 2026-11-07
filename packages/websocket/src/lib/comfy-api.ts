@@ -55,6 +55,36 @@ export async function handleComfyNodes(
 }
 
 /**
+ * `GET /api/comfy/server-status`: the version, GPU and model files of the
+ * ComfyUI saved in `COMFY_SERVER_URL`, so the user can see the app reached it.
+ * It only reads the saved address, never one from the request.
+ */
+export async function handleComfyServerStatus(
+  request: Request,
+  userId: string
+): Promise<Response> {
+  const serverUrl = (await getSecret("COMFY_SERVER_URL", userId))?.trim();
+  if (!serverUrl) {
+    return Response.json(
+      apiError(ApiErrorCode.INVALID_INPUT, "No ComfyUI address is saved."),
+      { status: 400 }
+    );
+  }
+  try {
+    const { fetchComfyServerStatus } = await importPack<IntegrationModule>("integration");
+    return Response.json(await fetchComfyServerStatus(serverUrl, { signal: request.signal }));
+  } catch (error) {
+    return Response.json(
+      apiError(
+        ApiErrorCode.SERVICE_UNAVAILABLE,
+        error instanceof Error ? error.message : String(error)
+      ),
+      { status: 502 }
+    );
+  }
+}
+
+/**
  * `POST /api/comfy/import-graph`: a ComfyUI API-format workflow as a Comfy
  * workflow graph of `comfy.*` nodes, laid out by dependency depth.
  */

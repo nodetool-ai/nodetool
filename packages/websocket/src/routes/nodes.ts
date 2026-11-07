@@ -8,7 +8,8 @@ import {
 import {
   handleComfyImportGraph,
   handleComfyNodes,
-  handleComfyResolveWorkflow
+  handleComfyResolveWorkflow,
+  handleComfyServerStatus
 } from "../lib/comfy-api.js";
 import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
 type IntegrationModule = typeof import("@nodetool-ai/integration-nodes");
@@ -94,6 +95,13 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.get("/api/comfy/nodes", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleComfyNodes(request, getUserId(request, apiOptions.userIdHeader ?? "x-user-id"))
+    );
+  });
+
+  /** The saved ComfyUI server's version, GPU and model files. */
+  app.get("/api/comfy/server-status", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleComfyServerStatus(request, getUserId(request, apiOptions.userIdHeader ?? "x-user-id"))
     );
   });
 
