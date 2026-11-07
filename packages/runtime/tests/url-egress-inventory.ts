@@ -1027,9 +1027,9 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   fixedHost(
     "packages/fal-nodes/src/fal-base.ts",
-    "FAL queue + upload",
-    "FAL_API_KEY",
-    "fal.run / fal.ai endpoints, plus a /api/storage/<key> read from the local server; workflow http(s) uris go through fetchExternalMedia."
+    "FAL node local storage read",
+    "none",
+    "A /api/storage/<key> read from the local server. Workflow http(s) uris go through fetchExternalMedia, and the FAL queue and upload run in the runtime provider."
   ),
   fixedHost(
     "packages/fal-nodes/src/fal-billing.ts",
@@ -1044,10 +1044,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "OpenAPI + model-info URLs built from a constant base."
   ),
   fixedHost(
-    "packages/fal-nodes/src/fal-provider.ts",
-    "FAL node provider bridge",
+    "packages/runtime/src/providers/fal-provider.ts",
+    "FAL queue + upload",
     "FAL_API_KEY",
-    "fal endpoints from a constant base."
+    "queue.fal.run submit, status and result, and the SDK storage upload, for capability calls and FAL node endpoint calls."
   ),
   fixedHost(
     "packages/huggingface/src/llama-cpp-download.ts",
