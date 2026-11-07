@@ -46,6 +46,12 @@ import {
 import { Readable } from "node:stream";
 import { createTestUiRunRoutes } from "./lib/test-ui-run-routes.js";
 import { storyboardZipResponse } from "./routes/storyboards.js";
+import {
+  handleComfyImportGraph,
+  handleComfyNodes,
+  handleComfyResolveWorkflow,
+  handleComfyServerStatus
+} from "./lib/comfy-api.js";
 import { initDb, initPostgresDb, migrateSqliteDb } from "@nodetool-ai/models";
 import {
   isNonEmptyString,
@@ -1236,6 +1242,19 @@ export async function handleTestUiApiRequest(
   apiOptions: HttpApiOptions
 ): Promise<Response> {
   const { pathname } = new URL(request.url);
+  const userId = (): string => getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
+  if (request.method === "GET" && pathname === "/api/comfy/nodes") {
+    return handleComfyNodes(request, userId());
+  }
+  if (request.method === "GET" && pathname === "/api/comfy/server-status") {
+    return handleComfyServerStatus(request, userId());
+  }
+  if (request.method === "POST" && pathname === "/api/comfy/import-graph") {
+    return handleComfyImportGraph(request, userId());
+  }
+  if (request.method === "POST" && pathname === "/api/comfy/resolve-workflow") {
+    return handleComfyResolveWorkflow(request);
+  }
   if (request.method === "POST") {
     const install = /^\/api\/applications\/examples\/([^/]+)\/install$/.exec(
       pathname

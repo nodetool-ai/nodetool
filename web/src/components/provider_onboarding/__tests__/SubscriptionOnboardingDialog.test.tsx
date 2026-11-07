@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { asMock, stub } from "../../../test-utils/doubles";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -85,12 +86,15 @@ beforeEach(() => {
   );
 });
 
-const renderDialog = () =>
-  render(
+const queryClient = new QueryClient();
+const dialog = (
+  <QueryClientProvider client={queryClient}>
     <ThemeProvider theme={mockTheme}>
       <SubscriptionOnboardingDialog />
     </ThemeProvider>
-  );
+  </QueryClientProvider>
+);
+const renderDialog = () => render(dialog);
 
 describe("subscriptionProviders", () => {
   it("lists ChatGPT and Claude as sign-ins only", () => {
@@ -139,6 +143,9 @@ describe("SubscriptionOnboardingDialog", () => {
       expect(screen.getByRole("article", { name })).toBeInTheDocument();
     }
     expect(screen.getByRole("link", { name: "Get Ollama" })).toBeInTheDocument();
+    // ComfyUI users looked here for their own ComfyUI (study-18-I1).
+    const comfy = screen.getByRole("article", { name: "ComfyUI on this computer" });
+    expect(within(comfy).getByRole("button", { name: "Connect" })).toBeInTheDocument();
   });
 
   it("finds and connects any other provider in place", async () => {
@@ -206,11 +213,7 @@ describe("SubscriptionOnboardingDialog", () => {
     act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
     const { rerender } = renderDialog();
     expect(install).toHaveBeenCalledTimes(1);
-    rerender(
-      <ThemeProvider theme={mockTheme}>
-        <SubscriptionOnboardingDialog />
-      </ThemeProvider>
-    );
+    rerender(dialog);
     expect(install).toHaveBeenCalledTimes(1);
   });
 
