@@ -1504,8 +1504,9 @@ void EditorWindow::zoomBy(double factor) {
 void EditorWindow::showMoreMenu() {
   showActionMenu("more", QCursor::pos());
 }
-bool EditorWindow::selectionDisabled() const {
-  if (!tabOwner_) { return activeEditor_->selectionDisabled(); }
+// The runnable cards a Disable or Run acts on: the selection with groups expanded to their
+// descendants, without comments and groups themselves. The bool is true when the card is disabled.
+QList<bool> EditorWindow::selectedRunnableStates() const {
   auto pending = selectedIds();
   QHash<QString, QJsonObject> nodes;
   QHash<QString, QStringList> children;
@@ -1516,7 +1517,7 @@ bool EditorWindow::selectionDisabled() const {
     children[node["parent_id"].toString()].append(id);
   }
   QSet<QString> visited;
-  bool anyRunnable = false;
+  QList<bool> states;
   for (qsizetype i = 0; i < pending.size(); ++i) {
     const auto id = pending[i];
     if (visited.contains(id)) { continue; }
@@ -1526,11 +1527,30 @@ bool EditorWindow::selectionDisabled() const {
     if (type == "nodetool.workflows.base_node.Group" || type == "nodetool.workflows.Group") {
       pending += children.value(id);
     } else if (!node.isEmpty() && type != "nodetool.workflows.base_node.Comment" && type != "nodetool.workflows.Comment") {
-      anyRunnable = true;
-      if (!node["ui_properties"].toObject()["bypassed"].toBool()) { return false; }
+      states.append(node["ui_properties"].toObject()["bypassed"].toBool());
     }
   }
-  return anyRunnable;
+  return states;
+}
+bool EditorWindow::selectionDisabled() const {
+  if (!tabOwner_) { return activeEditor_->selectionDisabled(); }
+  const auto states = selectedRunnableStates();
+  return !states.isEmpty() && std::all_of(states.cbegin(), states.cend(), [](bool disabled) { return disabled; });
+}
+// NodeStore.toggleBypassSelected enables when at least half of the cards are disabled and disables otherwise.
+bool EditorWindow::selectionMostlyDisabled() const {
+  if (!tabOwner_) { return activeEditor_->selectionMostlyDisabled(); }
+  const auto states = selectedRunnableStates();
+  return !states.isEmpty() && std::count(states.cbegin(), states.cend(), true) >= states.size() / 2.0;
+}
+// useRunFromHere.ts: Run node is its own job, so a running workflow never blocks it.
+// A group or comment selection is a Run selected.
+bool EditorWindow::singleRunnableCardSelected() const {
+  const auto ids = selectedIds();
+  if (ids.size() != 1) { return false; }
+  const auto type = document_.node(ids.first())["type"].toString();
+  return !type.isEmpty() && type != "nodetool.workflows.base_node.Group" && type != "nodetool.workflows.Group"
+      && type != "nodetool.workflows.base_node.Comment" && type != "nodetool.workflows.Comment";
 }
 QString EditorWindow::readOnlyReason() const {
   if (!tabOwner_) { return activeEditor_->readOnlyReason(); }
@@ -2210,7 +2230,7 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", view_->viewport()->mapToGlobal(unobstructedViewport().center().toPoint())); return; }
-  if (name == "Disable toggle") { action(selectionDisabled() ? "Enable selected" : "Disable selected"); return; }
+  if (name == "Disable toggle") { action(selectionMostlyDisabled() ? "Enable selected" : "Disable selected"); return; }
   if (name == "Select all") {
     // Each setSelected emits selectionChanged, and every listener does work
     // that grows with the graph. Notify once for the whole selection.
@@ -2377,7 +2397,7 @@ void EditorWindow::action(const QString &name) {
     const auto ids = selectedIds();
     if (ids.isEmpty()) { message_ = tr("Select nodes first."); schedulePanelChanged(); return; }
     if (name == "Run selected") {
-      if (runActive()) { message_ = tr("Stop the active workflow before running the selection."); schedulePanelChanged(); return; }
+      if (runActive() && !singleRunnableCardSelected()) { message_ = tr("Stop the active workflow before running the selection."); schedulePanelChanged(); return; }
       const auto id = session_.runSelected(document_.snapshot(), ids, metadata_);
       if (!id.isEmpty()) {
         run_ = id;

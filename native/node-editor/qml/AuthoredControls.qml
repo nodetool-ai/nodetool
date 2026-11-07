@@ -49,7 +49,9 @@ Row {
         objectName: "group-run"
         visible: root.group
         iconName: "playArrow"
-        accessibleName: "Run group"
+        // RunGroupButton.tsx: "Group is running" with a spinner while the workflow runs.
+        accessibleName: root.host.runActive ? "Group is running" : "Run group"
+        loading: root.host.runActive
         variant: Ui.EditorButton.Primary
         circular: true
         iconSize: Ui.Metrics.iconMd

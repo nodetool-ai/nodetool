@@ -323,7 +323,6 @@ public:
         const bool collapsed = ui["collapsed"].toBool() || node["data"].toObject()["collapsed"].toBool();
         const bool commented = !ui["title"].toString().trimmed().isEmpty();
         const bool inGroup = !node["parent_id"].toString().isEmpty();
-        const bool running = w.runActive();
         const auto locked = w.readOnlyReason();
         menu.item("chat-about-node", tr("Chat about node"), "forumOutlined", [this] { chatAbout(); }, {.tooltip = tr("Open the chat with this node in the prompt")});
         if (w.canvasMedia_ && w.canvasMedia_->canViewImage(nodeId_)) {
@@ -345,9 +344,10 @@ public:
         menu.item("duplicate-vertical", tr("Duplicate vertically"), "south", [this] { w.action("Duplicate vertical"); },
             {.shortcut = hint("Ctrl+Shift+D"), .reason = locked, .enabled = editable});
         const bool connected = w.session_.connected();
-        menu.item("run-node", running ? tr("Running…") : tr("Run node"), "playArrow", [this] { w.action("Run selected"); },
+        // useRunFromHere.ts reports isWorkflowRunning: false, so this entry never waits for another run.
+        menu.item("run-node", tr("Run node"), "playArrow", [this] { w.action("Run selected"); },
             {.tooltip = tr("Run this node as its own job, using previous results as inputs"),
-             .reason = !editable ? locked : tr("Connect to a server to run nodes"), .enabled = editable && connected && !running});
+             .reason = !editable ? locked : tr("Connect to a server to run nodes"), .enabled = editable && connected});
         menu.item("toggle-bypass", bypassed ? tr("Enable node") : tr("Disable node"), bypassed ? "power" : "block",
             [this, bypassed] { w.action(bypassed ? "Enable selected" : "Disable selected"); }, {.shortcut = hint("B"), .reason = locked, .enabled = editable});
         menu.item("toggle-collapsed", collapsed ? tr("Expand node") : tr("Collapse node"), collapsed ? "unfoldMore" : "unfoldLess", [this] { w.action("Toggle collapse"); },
@@ -535,7 +535,7 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
  if (name == "Copy") { return count > 0; }
  if (name == "Paste") { return !readOnly() && QJsonDocument::fromJson(QApplication::clipboard()->text().toUtf8()).isObject(); }
  if (name == "Run") { return !readOnly() && session_.connected(); }
- if (name == "Run selected") { return !readOnly() && count > 0 && !runActive() && session_.connected(); }
+ if (name == "Run selected") { return !readOnly() && count > 0 && (!runActive() || singleRunnableCardSelected()) && session_.connected(); }
  if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid" || name == "Layout selection" || name == "Arrange selection") { return !readOnly() && count >= 2; }
  if (name == "Delete" || name == "Cut" || name == "Duplicate" || name == "Duplicate vertical" || name == "Group selection" || name == "Disable toggle" || name == "Disable selected" || name == "Enable selected") { return !readOnly() && count > 0; }
  if (name == "Toggle collapse") {

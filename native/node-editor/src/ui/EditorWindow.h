@@ -53,6 +53,7 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(quint64 credentialsEpoch READ credentialsEpoch NOTIFY credentialsEpochChanged)
   Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
   Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
+  Q_PROPERTY(bool selectionMostlyDisabled READ selectionMostlyDisabled NOTIFY panelChanged)
   Q_PROPERTY(QVariantList catalog READ catalog NOTIFY catalogChanged)
   Q_PROPERTY(QVariantList properties READ properties NOTIFY panelChanged)
   Q_PROPERTY(bool readOnly READ readOnly NOTIFY panelChanged)
@@ -209,6 +210,7 @@ public:
   QString selection() const { return activeEditor() == this ? selected_ : activeEditor()->selection(); }
   int selectedCount() const { return activeEditor() == this ? selectedIds().size() : activeEditor()->selectedCount(); }
   bool selectionDisabled() const;
+  bool selectionMostlyDisabled() const;
   QVariantList catalog() const;
   QVariantList properties() const;
   QString saveState() const;
@@ -344,6 +346,8 @@ private:
   void loadBrowser();
   void syncRuntimePreviews();
   QStringList selectedIds() const;
+  QList<bool> selectedRunnableStates() const;
+  bool singleRunnableCardSelected() const;
   QQuickWidget *panel(const QString &file);
   Q_SLOT void layoutOverlays();
   void syncInspector();

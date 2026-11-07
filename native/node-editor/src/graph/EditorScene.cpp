@@ -143,6 +143,40 @@ void paintResizeHandle(QPainter *painter, const QSize &size, const QColor &color
   painter->restore();
 }
 
+// nodes.states.css `.bypassed .base-node`: repeating-linear-gradient(45deg, transparent 0 5px,
+// action-hover 5px 10px). The palette's hover tint is 2% white on dark and 4% ink on light.
+void paintBypassStripes(QPainter *painter, const QRectF &box, const CanvasTheme &theme) {
+  painter->save();
+  QPainterPath clip;
+  clip.addRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
+  painter->setClipPath(clip, Qt::IntersectClip);
+  auto tint = theme.textPrimary;
+  tint.setAlphaF(theme.node.lightness() < 128 ? 0.02 : 0.04);
+  painter->setPen(Qt::NoPen);
+  painter->setBrush(tint);
+  const double band = 5 * std::sqrt(2.0), pitch = 2 * band;
+  for (double c = -box.height() + std::fmod(box.height(), pitch) - pitch; c < box.width(); c += pitch) {
+    painter->drawPolygon(QPolygonF{{c + band, 0}, {c + 2 * band, 0}, {c + 2 * band + box.height(), box.height()}, {c + band + box.height(), box.height()}});
+  }
+  painter->restore();
+}
+
+// NodeHeader.tsx: the compact outlined warning MuiChip labelled Disabled. The theme's
+// MuiChip override fills it with the tone at 12 percent and edges it at 50 percent.
+void paintDisabledBadge(QPainter *painter, const QRectF &chip, const CanvasTheme &theme, const QFont &font, const QString &label) {
+  painter->save();
+  painter->setFont(font);
+  auto fill = theme.warning, border = theme.warning;
+  fill.setAlphaF(0.12);
+  border.setAlphaF(0.5);
+  painter->setPen(QPen(border, nm::borderWidth));
+  painter->setBrush(fill);
+  painter->drawRoundedRect(chip.adjusted(0.5, 0.5, -0.5, -0.5), chip.height() / 2, chip.height() / 2);
+  painter->setPen(theme.warning);
+  painter->drawText(chip, Qt::AlignCenter, label);
+  painter->restore();
+}
+
 QColor withOpacity(QColor color, double opacity);
 
 class NodePainter final : public AbstractNodePainter {
@@ -259,6 +293,7 @@ public:
     painter->setPen(QPen(item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : layout.accent) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
     painter->setBrush(theme.node);
     painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
+    if (disabled) { paintBypassStripes(painter, box, theme); }
 
     const auto inset = double(nm::borderWidth + nm::padding);
     auto iconColor = theme.textSecondary;
@@ -269,16 +304,19 @@ public:
     } else {
         paintCardIcon(painter, layout.typeIcon, layout.icon, iconBox, iconColor);
     }
+    const QRectF headerBox(inset, inset, layout.size.width() - 2 * inset, nm::headerHeight);
+    const auto chipFont = canvasFont(theme, nm::fontValue, QFont::Normal);
+    const auto chipLabel = QObject::tr("Disabled");
+    const auto chip = disabledChipRect(headerBox, QFontMetricsF(chipFont).horizontalAdvance(chipLabel));
     painter->setPen(theme.textPrimary);
     painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
-    const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? nm::disabledBadgeWidth : 0), nm::headerHeight);
+    // The chip keeps its 6 px left margin (nodes.states.css .bypass-badge).
+    const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? chip.width() + disabledChipMargin : 0), nm::headerHeight);
     painter->drawText(title, Qt::AlignLeft | Qt::AlignVCenter,
                       painter->fontMetrics().elidedText(layout.title, Qt::ElideRight, int(title.width())));
 
     if (disabled) {
-      painter->setPen(theme.textSecondary);
-      painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
-      painter->drawText(QRectF(box.width() - inset - nm::disabledBadgeWidth, inset, nm::disabledBadgeWidth, nm::headerHeight), Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("Disabled"));
+      paintDisabledBadge(painter, chip, theme, chipFont, chipLabel);
     }
     CardBodyPaintState bodyState;
     bodyState.hasResult = model.hasRuntimeOutput(item.nodeId());
@@ -669,6 +707,11 @@ double runningRingAngle(qint64 elapsedMs) {
 double groupLabelScale(double zoom) {
   const auto z = std::clamp(zoom, 0.08, 8.0);
   return z < 1 ? 1 / z : std::pow(1 / z, 0.8);
+}
+
+QRectF disabledChipRect(const QRectF &header, double textWidth) {
+  const double width = textWidth + 2 * disabledChipPadding + 2 * nm::borderWidth, height = disabledChipHeight;
+  return QRectF(header.right() - width, header.center().y() - height / 2, width, height);
 }
 
 QPainterPath wireCurve(const QPointF &out, const QPointF &in) {

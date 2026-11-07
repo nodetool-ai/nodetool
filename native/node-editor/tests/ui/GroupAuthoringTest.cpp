@@ -56,6 +56,8 @@ private slots:
     QVERIFY(runGeometry->height() <= 28);
     auto *button = controls->rootObject()->findChild<QQuickItem *>("group-run");
     QVERIFY(button); QTRY_VERIFY(button->isEnabled());
+    QCOMPARE(button->property("accessibleName").toString(), QString("Run group"));
+    QVERIFY(!button->property("loading").toBool());
     window.scene()->clearSelection();
     controls->show();
     QTest::mouseClick(controls, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
@@ -64,6 +66,9 @@ private slots:
     QCOMPARE(nodes.size(), 1);
     QCOMPARE(nodes.first().toObject()["id"].toString(), QString("source"));
     QTRY_VERIFY(!button->isEnabled());
+    // RunGroupButton.tsx: the label turns to "Group is running" and the button shows a spinner while the workflow runs.
+    QTRY_COMPARE(button->property("accessibleName").toString(), QString("Group is running"));
+    QVERIFY(button->property("loading").toBool());
   }
   void pointerColorIsBlockedAfterReadOnlyTransition() {
     EditorWindow window;

@@ -45,6 +45,13 @@ struct CanvasTheme {
 
 // The curve of a wire. Painting, hit testing, and the bounds margin all use it.
 double groupLabelScale(double zoom);
+// The Disabled chip of a bypassed card header: NodeHeader.tsx's compact outlined
+// MuiChip, 24 px high with 8 px of label padding and a 1 px border and a 6 px left
+// margin (.bypass-badge). It sits at the right end of the header, centered on it.
+inline constexpr double disabledChipHeight = 24;
+inline constexpr double disabledChipPadding = 8;
+inline constexpr double disabledChipMargin = 6;
+QRectF disabledChipRect(const QRectF &header, double textWidth);
 // The web's branch-dimmed opacity for a node or wire off the selected branch,
 // styles/nodes.zoomed.css. Related items keep full opacity.
 inline constexpr double branchDimmedOpacity = 0.2;

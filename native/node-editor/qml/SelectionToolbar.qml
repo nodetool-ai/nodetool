@@ -32,14 +32,15 @@ Ui.Surface {
                 command: "Run selected"
                 iconName: "playArrow"
                 variant: Ui.EditorButton.Primary
-                enabled: editor && !editor.readOnly && !editor.runActive && !editor.selectionDisabled
+                // useRunFromHere.ts: Run node is its own job, so a running workflow does not disable it.
+                enabled: editor && !editor.readOnly && !editor.selectionDisabled
             }
             Ui.Separator { orientation: Qt.Vertical; Layout.preferredHeight: Ui.Metrics.lg }
             Action { command: "Open child"; iconName: "layers"; visible: editor && editor.selectionInfo.childGraph === true }
             Action {
-                command: editor && editor.selectionDisabled ? "Enable selected" : "Disable selected"
+                command: editor && editor.selectionMostlyDisabled ? "Enable selected" : "Disable selected"
                 iconName: "powerSettingsNew"
-                active: editor && editor.selectionDisabled
+                active: editor && editor.selectionMostlyDisabled
             }
             Action { command: "Duplicate"; iconName: "copy" }
             Action { command: "Chat about node"; iconName: "forumOutlined"; enabled: true }
@@ -63,7 +64,7 @@ Ui.Surface {
             Action { command: "Duplicate"; iconName: "copy" }
             Action { command: "Group selection"; iconName: "layers"; enabled: editor && !editor.readOnly && editor.selectedCount >= 2 }
             Action { command: "Link selected"; iconName: "link"; enabled: editor && !editor.readOnly && editor.selectedCount === 2 }
-            Action { command: editor && editor.selectionDisabled ? "Enable selected" : "Disable selected"; iconName: "powerSettingsNew" }
+            Action { command: editor && editor.selectionMostlyDisabled ? "Enable selected" : "Disable selected"; iconName: "powerSettingsNew" }
             Ui.Separator { orientation: Qt.Vertical; Layout.preferredHeight: Ui.Metrics.lg }
             Action { command: "Delete"; iconName: "deleteOutline" }
         }

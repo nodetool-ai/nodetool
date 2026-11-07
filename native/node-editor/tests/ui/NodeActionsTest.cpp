@@ -11,7 +11,10 @@
 #include <QSettings>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
+#include <QWebSocket>
+#include <QWebSocketServer>
 #include <cmath>
+#include "server/MsgPack.h"
 
 using namespace nodetool;
 
@@ -426,6 +429,122 @@ private slots:
         window.action("Undo");
         window.action("Undo");
         QCOMPARE(window.document()->snapshot(), baseline);
+    }
+
+    // web NodeStore.toggleBypassSelected: shouldBypass = bypassedCount < selected / 2.
+    // B and the toolbar button follow that majority, so one disabled card out of
+    // two enables both, and one out of three disables all three.
+    void bKeyAndToolbarFollowTheBypassMajority() {
+        EditorWindow window;
+        load(window);
+        click(window, "a");
+        window.action("Disable selected");
+        QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
+        click(window, "a");
+        click(window, "b", Qt::ControlModifier);
+        QCOMPARE(window.selectedCount(), 2);
+        QTRY_VERIFY(button(window, "selection-enable-selected"));
+        QVERIFY(!button(window, "selection-disable-selected"));
+        QTest::keyClick(viewOf(window), Qt::Key_B);
+        QTRY_VERIFY(!ui(window, "a")["bypassed"].toBool());
+        QVERIFY(!ui(window, "b")["bypassed"].toBool());
+        click(window, "c");
+        window.action("Disable selected");
+        QTRY_VERIFY(ui(window, "c")["bypassed"].toBool());
+        click(window, "a");
+        click(window, "b", Qt::ControlModifier);
+        click(window, "c", Qt::ControlModifier);
+        QCOMPARE(window.selectedCount(), 3);
+        QTRY_VERIFY(button(window, "selection-disable-selected"));
+        QTest::keyClick(viewOf(window), Qt::Key_B);
+        QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
+        QVERIFY(ui(window, "b")["bypassed"].toBool());
+        QVERIFY(ui(window, "c")["bypassed"].toBool());
+    }
+
+    // web useRunFromHere returns isWorkflowRunning: false. Run node is an
+    // independent job that neither the toolbar nor the menu disables while
+    // another run is active. Run selected on several cards still waits.
+    void runNodeStartsAnIndependentJobDuringAnActiveRun() {
+        QWebSocketServer server("run node", QWebSocketServer::NonSecureMode);
+        QVERIFY(server.listen(QHostAddress::LocalHost));
+        QList<QJsonObject> requests;
+        connect(&server, &QWebSocketServer::newConnection, this, [&] {
+            auto *peer = server.nextPendingConnection();
+            peer->setParent(&server);
+            connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
+                const auto message = node_editor::decodeMsgPack(bytes);
+                QVERIFY(message);
+                requests.append(message->toObject());
+            });
+        });
+        EditorWindow window;
+        load(window);
+        window.session()->connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+        QTRY_VERIFY(window.session()->connected());
+        click(window, "a");
+        window.action("Run selected");
+        QTRY_COMPARE(requests.size(), 1);
+        QTRY_VERIFY(window.runActive());
+        click(window, "b");
+        QQuickItem *run = nullptr;
+        QTRY_VERIFY((run = button(window, "selection-run-selected")));
+        QVERIFY(run->isEnabled());
+        QTest::mouseClick(toolbar(window)->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(run));
+        QTRY_COMPARE(requests.size(), 2);
+        const auto nodes = requests.last()["data"].toObject()["graph"].toObject()["nodes"].toArray();
+        QCOMPARE(nodes.size(), 1);
+        QCOMPARE(nodes.first().toObject()["id"].toString(), QString("b"));
+        click(window, "a");
+        click(window, "b", Qt::ControlModifier);
+        QCOMPARE(window.selectedCount(), 2);
+        window.action("Run selected");
+        QTest::qWait(60);
+        QCOMPARE(requests.size(), 2);
+    }
+
+    // web nodes.states.css .bypassed .base-node: a dashed border over a 45 degree
+    // stripe of action-hover, and NodeHeader.tsx draws the Disabled chip in the
+    // warning tone.
+    void disabledCardPaintsStripesAndAWarningBadge() {
+        EditorWindow window;
+        load(window);
+        click(window, "a");
+        window.action("Disable selected");
+        QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
+        window.scene()->clearSelection();
+        window.action("Reset zoom");
+        QTest::qWait(80);
+        const auto image = window.grab().toImage();
+        const auto crop = [&](const QString &resource) {
+            const auto card = cardRect(window, resource);
+            const auto origin = window.mapFromGlobal(viewOf(window)->viewport()->mapToGlobal(viewOf(window)->viewport()->mapFrom(viewOf(window), card.topLeft())));
+            return image.copy(origin.x(), origin.y(), card.width(), card.height());
+        };
+        const auto disabled = crop("a");
+        const auto enabled = crop("b");
+        QCOMPARE(disabled.size(), enabled.size());
+        const auto distinct = [](const QImage &card, int fromX, int toX, int y) {
+            QSet<QRgb> colors;
+            for (int x = fromX; x < toX; ++x) { colors.insert(card.pixel(x, y)); }
+            return colors.size();
+        };
+        // A row inside the card's bottom padding, clear of text and sockets.
+        const int y = disabled.height() - 5;
+        QCOMPARE(distinct(enabled, 24, enabled.width() - 24, y), 1);
+        QVERIFY2(distinct(disabled, 24, disabled.width() - 24, y) >= 2, "a disabled card shows diagonal stripes");
+        const auto warm = [](const QImage &card) {
+            int count = 0;
+            for (int row = 4; row < 26; ++row) {
+                for (int x = card.width() - 80; x < card.width() - 6; ++x) {
+                    const auto c = card.pixelColor(x, row);
+                    count += c.red() > c.blue() + 15 ? 1 : 0;
+                }
+            }
+            return count;
+        };
+        QCOMPARE(warm(enabled), 0);
+        QVERIFY2(warm(disabled) > 10, "the Disabled badge uses the warning tone");
     }
 
     void captures() {

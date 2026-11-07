@@ -88,7 +88,13 @@ private slots:
   QCOMPARE(graph["edges"].toArray().size(), 1);
   QCOMPARE(window.runOutput()->runs().size(), 1);
   const auto job = commands.first()["data"].toObject()["job_id"].toString(); QVERIFY(!job.isEmpty());
+  // Several cards wait for the active run. A lone card is Run node, an independent job that the web never blocks
+  // (useRunFromHere.ts returns isWorkflowRunning: false), which NodeActionsTest covers.
+  auto authoringModel = window.findChild<WorkflowGraphModel *>(); QVERIFY(authoringModel);
+  for (const auto id : authoringModel->allNodeIds()) { if (authoringModel->resourceId(id) == "n0") { window.scene()->nodeGraphicsObject(id)->setSelected(true); } }
+  QCOMPARE(window.selectedCount(), 2);
   window.action("Run selected"); QTest::qWait(20); QCOMPARE(commands.size(), 1);
+  QVERIFY(window.selectNode("n1"));
   window.action("Stop"); QTRY_COMPARE(commands.size(), 2);
   QCOMPARE(commands[1]["command"].toString(), QString("cancel_job")); QCOMPARE(commands[1]["data"].toObject()["job_id"].toString(), job);
   window.session()->reconnectRuns(); QTRY_COMPARE(commands.size(), 3);
