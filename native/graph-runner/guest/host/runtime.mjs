@@ -79,3 +79,10 @@ export { decidePermission, headlessGate } from "guest-real:@nodetool-ai/runtime/
 export * from "./media-native.mjs";
 
 export { isBlockedIpLiteral, isSafePublicHttpsUrl } from "guest-real:@nodetool-ai/runtime/providers/safe-url.js";
+
+// The server caps concurrent timeline renders across jobs. The native runner
+// renders inside its own run, so the guest honours the signal and renders.
+export async function withTimelineRenderSlot(render, signal) {
+  signal?.throwIfAborted();
+  return await render();
+}

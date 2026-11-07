@@ -51,7 +51,28 @@ R"JS((acquire => {
         }
         keys(value,['r','g','b','a']); return value;
       };
+      // Resolves when the device is destroyed, as GPUDevice.lost does.
+      let markLost;
+      const lost = new Promise(resolve => { markLost = resolve; });
+      // gpu_device.cpp requests no limits or features, so the device has the
+      // WebGPU default limits and no optional features.
+      const limits = Object.freeze({
+        maxTextureDimension1D:8192, maxTextureDimension2D:8192, maxTextureDimension3D:2048,
+        maxTextureArrayLayers:256, maxBindGroups:4, maxBindingsPerBindGroup:1000,
+        maxDynamicUniformBuffersPerPipelineLayout:8, maxDynamicStorageBuffersPerPipelineLayout:4,
+        maxSampledTexturesPerShaderStage:16, maxSamplersPerShaderStage:16,
+        maxStorageBuffersPerShaderStage:8, maxStorageTexturesPerShaderStage:4,
+        maxUniformBuffersPerShaderStage:12, maxUniformBufferBindingSize:65536,
+        maxStorageBufferBindingSize:134217728, minUniformBufferOffsetAlignment:256,
+        minStorageBufferOffsetAlignment:256, maxVertexBuffers:8, maxBufferSize:268435456,
+        maxVertexAttributes:16, maxVertexBufferArrayStride:2048, maxInterStageShaderVariables:16,
+        maxColorAttachments:8, maxColorAttachmentBytesPerSample:32,
+        maxComputeWorkgroupStorageSize:16384, maxComputeInvocationsPerWorkgroup:256,
+        maxComputeWorkgroupSizeX:256, maxComputeWorkgroupSizeY:256, maxComputeWorkgroupSizeZ:64,
+        maxComputeWorkgroupsPerDimension:65535
+      });
       const device = {
+        lost, limits, features: new Set(),
         createBuffer(desc) {
           keys(desc,['label','size','usage','mappedAtCreation']);
           const h=call('buffer',desc);
@@ -176,7 +197,7 @@ R"JS((acquire => {
           submit(commands) {call('submit',commands.map(handle));},
           async onSubmittedWorkDone() {await call('done');}
         },
-        destroy() {call('destroyDevice');},
+        destroy() {call('destroyDevice'); markLost({reason:'destroyed', message:'Device destroyed'});},
         pushErrorScope:unsupported, popErrorScope:unsupported,
 
       };
