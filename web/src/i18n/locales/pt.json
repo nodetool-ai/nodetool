@@ -2292,7 +2292,10 @@
       "title": "Faça login no NodeTool Cloud",
       "description": "Descreva o que você deseja. O agente cria tudo e você pode assumir o controle em qualquer etapa.",
       "ownKeys": "Use suas próprias chaves de API e pague aos provedores de acordo com os preços de tabela.",
-      "cloudAlphaNotice": "A nuvem está em alfa. Para trabalho de produção, use"
+      "cloudAlphaNotice": "A nuvem está em alfa. Para trabalho de produção, use",
+      "ssoTitle": "Entrar no NodeTool",
+      "ssoSignIn": "Entrar com {{provider}}",
+      "ssoFailed": "Falha ao entrar ({{reason}}). Tente novamente ou peça acesso ao seu administrador."
     },
     "inspector": {
       "params": "Parâmetros",

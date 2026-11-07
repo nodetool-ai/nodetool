@@ -2272,7 +2272,10 @@
       "title": "Kirjaudu NodeTool Cloudiin",
       "description": "Kuvaile, mitä haluat. Agentti rakentaa sen, ja voit ottaa ohjat missä vaiheessa tahansa.",
       "ownKeys": "Käytä omia API-avaimiasi ja maksa palveluntarjoajille niiden listahinnat.",
-      "cloudAlphaNotice": "Pilvi on alfavaiheessa. Tuotantokäyttöön käytä"
+      "cloudAlphaNotice": "Pilvi on alfavaiheessa. Tuotantokäyttöön käytä",
+      "ssoTitle": "Kirjaudu NodeTooliin",
+      "ssoSignIn": "Kirjaudu palvelulla {{provider}}",
+      "ssoFailed": "Kirjautuminen epäonnistui ({{reason}}). Yritä uudelleen tai pyydä käyttöoikeutta ylläpitäjältä."
     },
     "inspector": {
       "params": "Parametrit",

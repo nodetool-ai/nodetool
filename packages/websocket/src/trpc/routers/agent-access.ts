@@ -28,6 +28,7 @@ import {
   type AccessTokenSummary
 } from "@nodetool-ai/protocol/api-schemas/agent-access.js";
 import { AccessToken, McpOauthGrant } from "@nodetool-ai/models";
+import { isAuthEnforced } from "@nodetool-ai/config";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -107,9 +108,7 @@ export const agentAccessRouter = router({
       // A server with no identity provider checks no credential — it trusts
       // loopback and whatever CIDRs it was told to. Saying "token" there
       // would be describing a check that does not happen.
-      const enforcesAuth = Boolean(
-        process.env["SUPABASE_URL"] && process.env["SUPABASE_KEY"]
-      );
+      const enforcesAuth = isAuthEnforced();
       return {
         enabled,
         url: enabled ? configuredMcpUrl() : null,

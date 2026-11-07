@@ -111,6 +111,11 @@ origin.
 
   Optionally set `AUTH_REDIRECT_URL` when serving behind a domain/proxy (it must
   be in the Supabase project's redirect allow list).
+- **Login through your own identity provider (SSO).** Set `OIDC_ISSUER`,
+  `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `NODETOOL_PUBLIC_URL` to switch to
+  **SSO mode**. Users sign in through Keycloak, Authentik, Okta, Entra ID,
+  Google Workspace, or any other OpenID Connect provider, with optional domain
+  and group allowlists. See [Single Sign-On](authentication.md#single-sign-on-oidc).
 
 `GET /api/config` returns `authMode`, `supabaseUrl`, `supabaseAnonKey`,
 `authRedirectUrl`, and `version` — never the service-role key. See

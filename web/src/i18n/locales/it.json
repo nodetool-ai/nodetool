@@ -2292,7 +2292,10 @@
       "title": "Accedi a NodeTool Cloud",
       "description": "Descrivi quello che vuoi. L'agente lo costruisce e tu puoi subentrare in qualsiasi momento.",
       "ownKeys": "Utilizza le tue chiavi API e paga i fornitori ai loro prezzi di listino.",
-      "cloudAlphaNotice": "Cloud è in alfa. Per lavori di produzione, utilizzare"
+      "cloudAlphaNotice": "Cloud è in alfa. Per lavori di produzione, utilizzare",
+      "ssoTitle": "Accedi a NodeTool",
+      "ssoSignIn": "Accedi con {{provider}}",
+      "ssoFailed": "Accesso non riuscito ({{reason}}). Riprova o chiedi l'accesso al tuo amministratore."
     },
     "inspector": {
       "params": "Param",

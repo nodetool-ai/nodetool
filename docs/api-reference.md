@@ -2620,6 +2620,7 @@ curl "http://localhost:7777/api/config"
   "supabaseUrl": null,
   "supabaseAnonKey": null,
   "authRedirectUrl": null,
+  "ssoProviderName": null,
   "googleWorkspace": false,
   "googleScopes": [],
   "version": "0.7.0-rc.38"
@@ -2627,12 +2628,14 @@ curl "http://localhost:7777/api/config"
 ```
 
 `authMode` is `"supabase"` when both `SUPABASE_URL` and `SUPABASE_KEY` are set,
-and `"local"` otherwise — the same choice the server's own auth hook makes, so a
+`"oidc"` when both `OIDC_ISSUER` and `OIDC_CLIENT_ID` are set, and `"local"`
+otherwise — the same choice the server's own auth hook makes, so a
 client never has to guess it from the other fields. `supabaseUrl`,
 `supabaseAnonKey` and `authRedirectUrl` mirror `SUPABASE_URL`,
 `SUPABASE_ANON_KEY` and `AUTH_REDIRECT_URL`; each is `null` when unset. Note the
 anon key is the public one — the service key (`SUPABASE_KEY`) is never in this
-response.
+response. `ssoProviderName` is the sign-in button label from
+`OIDC_PROVIDER_NAME` (default `"SSO"`) in SSO mode, and `null` otherwise.
 
 `googleWorkspace` says whether the Google Workspace capability is on (see
 `NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,
