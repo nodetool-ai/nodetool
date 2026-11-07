@@ -1193,9 +1193,41 @@ workflow. Optional `NODETOOL_MINIMAP_CAPTURE` captures the host in both themes
 and wide and narrow layouts. Run `ctest --test-dir <build> -R
 '^node_editor_viewport_navigator$' --output-on-failure`.
 
-Color-mode settings, the category legend, animated transitions and exact
-React Flow mask/drag geometry remain open. Port-label toggling is not exposed
-by the native host. Offscreen tests do not verify real-desktop input,
+The palette button above the mini-map's top right corner opens "Default colors"
+and "Color by type" (`qml/MiniMapControls.qml`, `qml/MiniMapPopups.qml`). Type
+mode colors each node by the category that `ColorUtils.ts` assigns and adds a
+legend button that opens the six-category legend. The choice is stored under
+`minimap/colorMode` and holds for every tab. The zoom readout is primary
+colored at every preset, not only 100%. Zoom steps clamp to 0.12 and 4 as React
+Flow does, so a step at the edge lands on the limit.
+
+Viewport moves go through `EditorWindow::moveViewTo`. `userAction` marks an
+action that the user started, from the status indicator, the command menu, the
+pane menu or the zoom presets menu. Those moves animate over
+`Metrics.motionNormal` with a cubic in-out ease. Find and Focus use 300 ms,
+which the web's `setCenter` calls use and which has no token. Reduced motion
+and `action()` move the view at once, so tests and harnesses read the final
+view. A wheel, a pan, a middle-button drag or a mini-map drag cancels a
+running move. The Focus button in the inspector Help tab, and the "Focus node"
+action, center the node's top left corner at 150% over 300 ms, as
+`NodeInfoPanel.tsx` does. The programmatic reveal of a selected card still
+lands at once.
+
+`ViewportNavigatorTest` covers the colors by pixels in both themes, the menu
+and legend through pointer clicks, the persisted mode, the preset highlight,
+the zoom clamp, every animated move with its duration and end state, reduced
+motion, cancellation by a wheel, Focus from the action and the inspector button,
+and the instant programmatic paths. Capture the popups with
+`NODETOOL_MINIMAP_CAPTURE`.
+
+Open: the status indicator's step buttons use 200 ms where the web uses 100 ms,
+the web's 400 ms and 800 ms fits and the "Show legend" store flag have no
+counterpart, the zoom keys and `F` are not bound natively, native fit pads by
+0.1 where the status indicator pads by 0.2, the web's reset-zoom shortcut goes
+to 50% while native goes to 100%, and exact React Flow mask and drag geometry
+is not matched (a mini-map press recenters instead of dragging by delta).
+Port-label toggling is not exposed
+by the native host. F40 acceptance is pending. Offscreen tests do not verify real-desktop input,
 accessibility or high-DPI behavior. Large-graph input-to-paint latency has not
 been measured.
 
@@ -3005,7 +3037,7 @@ is visible only on inspection.
 | W6 | Ports and wires | 12 px handles with a 2 px ring in the card color. Wires are 1.5 px in the source type color. | Same measurements. | Low | Matches. |
 | W7 | Grid | 25-unit crosses 3 units wide, which scale with zoom. | Same pattern. | Low | Matches. |
 | W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.2 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.2 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
-| W9 | Selection viewport | A canvas click never moves the viewport. The inspector slides over the canvas and `useClearInspectorOverlap` pans left over 200 ms only when it covers a node, and never past the point where the selected node is 16 px from the canvas edge. Find centers the node at 100% over 300 ms. The node info Focus button centers at 150%. The web editor has no outline. | A selection never refits. The docked inspector narrows the canvas, so native applies the same pan rule to the inspector width, animated over 200 ms and instant under reduced motion or for a programmatic selection. Find already centers at 100% over 300 ms. | Medium | Fixed in `EditorWindow.cpp`, `InspectorClearance.h`. Asserted by `SelectionPresentationTest`. `EditorTest::fitKeepsEveryNodeVisibleAcrossPanels` changed. Open: native has no node info panel, so no Focus button. Native pans 300 px in the capture where the web pans 371 px, because card sizes and positions still differ. The fit zoom before selection differs (web 71%, native 67%) and is not part of this row. |
+| W9 | Selection viewport | A canvas click never moves the viewport. The inspector slides over the canvas and `useClearInspectorOverlap` pans left over 200 ms only when it covers a node, and never past the point where the selected node is 16 px from the canvas edge. Find centers the node at 100% over 300 ms. The node info Focus button centers at 150%. The web editor has no outline. | A selection never refits. The docked inspector narrows the canvas, so native applies the same pan rule to the inspector width, animated over 200 ms and instant under reduced motion or for a programmatic selection. Find centers at 100% over 300 ms, and Focus in the inspector Help tab centers at 150% over 300 ms. | Medium | Fixed in `EditorWindow.cpp`, `InspectorClearance.h`. Asserted by `SelectionPresentationTest`. `EditorTest::fitKeepsEveryNodeVisibleAcrossPanels` changed. Open: native has no node info panel. Its Focus button sits in the inspector Help tab (`ViewportNavigatorTest::inspectorFocusButtonRunsFocus`). Native pans 300 px in the capture where the web pans 371 px, because card sizes and positions still differ. The fit zoom before selection differs (web 71%, native 67%) and is not part of this row. |
 | W10 | Running ring | Running cards draw a conic ring in their type colors. | Same ring. | Low | Matches. |
 | W11 | Run status on cards | A status changes no card and shows no text. | Every card with a status grew by 98 px and printed "completed" or "running 40%". | High | Fixed in `WorkflowGraphModel.cpp` and `EditorScene.cpp`. Errors and a lost connection keep a label. Asserted by `runStatusKeepsCardSizeAndShowsProgress`. |
 | W12 | Node progress | A running content card with a total adds a 47 px band with a "12 / 30" mono count and a 6 px bar in `secondary.main`. | Only subgraph cards showed progress. | High | Fixed in `EditorScene.cpp` with the new `Theme.accentSecondary` role. Asserted by `runStatusKeepsCardSizeAndShowsProgress`. |
@@ -3023,7 +3055,7 @@ is visible only on inspection.
 | W24 | Status bar | Connection, panel tabs from Logs to Trace, counts, CPU and memory. | Connection (Connected, Offline or Idle), Logs, Queue, Generations, Workers, Versions and Trace tabs, node and edge counts, and CPU and memory from the server's `system_stats`. Logs opens the Output dock, Queue expands the queue panel while jobs exist, and Versions opens version history. Generations, Workers and Trace are disabled with a reason. The save state button and the run message stay beside the readout. | Medium | Partly fixed in `StatusBar.qml` and `WorkflowSession.cpp` (`PanelBottom.tsx`). Asserted by `statusBarHasTheWebItemsInOrder`, `statusBarTabsOpenNativePanelsOrExplainWhyNot` and `statusBarShowsServerStatsAndTheQueue`. The gaps are in the table below. Not accepted. |
 | W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects, Library, Entities, Examples and More are disabled with a reason. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
 | W26 | Elevations | The toolbar, viewport control and Preview and Output cards cast shadows. | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. | Medium | Open. A design decision. |
-| W27 | Mini-map | Hidden by default behind a header toggle. The choice is stored. Its light-theme surface is `grey[100]`, which is dark. | Hidden by default. `editor.setMiniMapVisible` and the Command menu action "Toggle mini-map" change it for every tab and store it under `minimap/visible`. A new window starts as the user left it. Colors follow the web source, including the dark light-theme surface. | Medium | Fixed in `EditorWindow.cpp` (`web/src/stores/MiniMapStore.ts`). Asserted by `miniMapIsHiddenByDefaultAndTheChoiceIsRemembered`. The header toggle is in `HeaderRow.qml`, and `HeaderRowTest::togglesOpenPanels` clicks it. Not accepted. |
+| W27 | Mini-map | Hidden by default behind a header toggle. The choice is stored. Its light-theme surface is `grey[100]`, which is dark. | Hidden by default. `editor.setMiniMapVisible` and the Command menu action "Toggle mini-map" change it for every tab and store it under `minimap/visible`. A new window starts as the user left it. Colors follow the web source, including the dark light-theme surface. | Medium | Fixed in `EditorWindow.cpp` (`web/src/stores/MiniMapStore.ts`). Asserted by `miniMapIsHiddenByDefaultAndTheChoiceIsRemembered`. The color mode and legend are asserted by `ViewportNavigatorTest::miniMapColorsFollowTheColorMode` and `miniMapPaletteMenuAndLegend`. The header toggle is in `HeaderRow.qml`, and `HeaderRowTest::togglesOpenPanels` clicks it. Not accepted. |
 | W28 | Chat window | Opens by default on a wide window. | Closed by default. | Low | Open. The captures collapse the web window. |
 | W29 | Chain view | Graph and Chain switch the canvas and the linear chain editor in `WorkflowChainSurface.tsx`. | No chain view. Chain is disabled, and its tooltip says the chain view is not available in the native editor yet. | Medium | Open. A gap. `HeaderRowTest::togglesOpenPanels` asserts the disabled option and its tooltip. |
 | W30 | Disabled card | A bypassed card has `opacity: 0.8` and `filter: saturate(0.2)` over the whole node, handles included (`nodes.states.css` 38-41). | The card, its handles and the chip are painted into an image, desaturated with the CSS saturate matrix, and drawn at 0.8 (`NodePainter::paintDesaturated` in `EditorScene.cpp`). Wires are not filtered, as on the web. | Medium | Fixed. Asserted by `CanvasChromeTest::disabledCardIsDesaturated`, which reads the output handle pixel of a disabled and an enabled card. Acceptance pending. |

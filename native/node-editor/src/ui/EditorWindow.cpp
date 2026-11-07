@@ -530,14 +530,21 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
   selectionOverlay_ = overlay("SelectionToolbar");
   viewportOverlay_ = overlay("ViewportIndicator");
+  miniMapControls_ = overlay("MiniMapControls");
+  // The legend button joins the row in type mode, so the row keeps its right edge on the mini-map's.
+  if (auto *controls = miniMapControls_->rootObject()) {
+    connect(controls, SIGNAL(implicitWidthChanged()), this, SLOT(layoutOverlays()));
+  }
   setupGuide_ = overlay("SetupGuide");
   setupGuide_->show();
   auto miniMap = new MiniMap(model_, *scene_, *view_);
-  miniMap->navigated = [this] { fitActive_ = false; };
+  miniMap->navigated = [this] { fitActive_ = false; cancelViewAnimation(); };
+  miniMap->colorByType = [this] { return miniMapColorMode_ == "type"; };
   miniMap->zoomed = [this] { emit zoomChanged(); };
   connect(this, &EditorWindow::zoomChanged, miniMap, [miniMap] { miniMap->update(); });
   // The web hides the mini-map until the user turns it on and remembers the choice.
   miniMapVisible_ = QSettings().value("minimap/visible", false).toBool();
+  miniMapColorMode_ = QSettings().value("minimap/colorMode", "default").toString() == "type" ? "type" : "default";
   miniMap->show();
   toolbarOverlay_->show();
   viewportOverlay_->show();
@@ -1359,6 +1366,13 @@ void EditorWindow::layoutOverlays() {
     miniMap->setVisible(beside && miniMapVisible_);
     viewportOverlay_->setVisible(beside);
     miniMap->raise(); viewportOverlay_->raise();
+    if (miniMapControls_) {
+      // The palette and legend buttons sit above the mini-map's right edge, as the web's top -28px, right 0.
+      const auto buttons = miniMapControls_->sizeHint();
+      miniMapControls_->setGeometry(miniMap->geometry().right() + 1 - buttons.width(), miniMap->y() - buttons.height() - 4, buttons.width(), buttons.height());
+      miniMapControls_->setVisible(beside && miniMapVisible_);
+      miniMapControls_->raise();
+    }
   }
   toolbarOverlay_->raise();
     if (chatOverlay_ && chatVisible_) {
@@ -1516,22 +1530,20 @@ void EditorWindow::zoomUnderCursor(double factor) {
   const auto scale = view_->transform().m11() * factor;
   if (scale < 0.12 || scale > 4) { return; }
   fitActive_ = false;
+  cancelViewAnimation();
   view_->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
   view_->scale(factor, factor);
   emit zoomChanged();
 }
 void EditorWindow::panBy(QPoint delta) {
   fitActive_ = false;
+  cancelViewAnimation();
   view_->horizontalScrollBar()->setValue(view_->horizontalScrollBar()->value() - delta.x());
   view_->verticalScrollBar()->setValue(view_->verticalScrollBar()->value() - delta.y());
 }
 void EditorWindow::zoomBy(double factor) {
-  const auto scale = view_->transform().m11() * factor;
-  if (scale < 0.1 || scale > 5) { return; }
-  fitActive_ = false;
-  view_->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-  view_->scale(factor, factor);
-  emit zoomChanged();
+  // ViewportStatusIndicator.tsx steps from the zoom the view has now: zoomTo(getZoom() * 1.2).
+  zoomTo(view_->transform().m11() * factor);
 }
 void EditorWindow::showMoreMenu() {
   showActionMenu("more", QCursor::pos());
@@ -2037,25 +2049,22 @@ QRectF EditorWindow::unobstructedViewport() const {
   if (toolbarTop > area.top() + area.height() / 2) { area.setBottom(toolbarTop); }
   return area;
 }
-void EditorWindow::applyFit() {
+EditorWindow::ViewTarget EditorWindow::fitTarget() const {
   QRectF bounds;
   for (auto id : model_.allNodeIds()) {
     const auto margin = node_metrics::handleDiameter / 2;
     bounds |= scene_->nodeGraphicsObject(id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model_.layout(id).size))).adjusted(-margin, -margin, margin, margin);
   }
   const auto area = unobstructedViewport();
-  view_->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-  if (bounds.isEmpty() || area.isEmpty()) {
-    view_->resetTransform();
-    view_->centerOn(0, 0);
-    return;
-  }
+  if (bounds.isEmpty() || area.isEmpty()) { return {1.0, QPointF(0, 0)}; }
   // React Flow's fitView padding of 0.1. The native editor stops at 100%.
   const auto padded = bounds.size() * 1.1;
   const auto zoom = std::clamp(std::min(area.width() / padded.width(), area.height() / padded.height()), 0.12, 1.0);
-  view_->setTransform(QTransform::fromScale(zoom, zoom));
-  const auto offset = (QRectF(view_->viewport()->rect()).center() - area.center()) / zoom;
-  view_->centerOn(bounds.center() + offset);
+  return {zoom, centerOnArea(bounds.center(), zoom)};
+}
+void EditorWindow::applyFit() {
+  const auto target = fitTarget();
+  moveViewTo(target.zoom, target.center, 0);
 }
 void EditorWindow::revealSelection() {
   const auto modelId = [&]() -> std::optional<QtNodes::NodeId> {
@@ -2072,8 +2081,12 @@ void EditorWindow::revealSelection() {
     if (high - low > areaHigh - areaLow || low < areaLow) { return low - areaLow; }
     return high > areaHigh ? high - areaHigh : 0;
   };
-  view_->horizontalScrollBar()->setValue(view_->horizontalScrollBar()->value() + delta(rect.left(), rect.right(), area.left(), area.right()));
-  view_->verticalScrollBar()->setValue(view_->verticalScrollBar()->value() + delta(rect.top(), rect.bottom(), area.top(), area.bottom()));
+  const QPointF move(delta(rect.left(), rect.right(), area.left(), area.right()), delta(rect.top(), rect.bottom(), area.top(), area.bottom()));
+  if (move.isNull()) { return; }
+  const double zoom = view_->transform().m11();
+  const auto center = view_->viewportTransform().inverted().map(QRectF(view_->viewport()->rect()).center());
+  // A programmatic selection has no pointer gesture to follow, so the view lands at once.
+  moveViewTo(zoom, center + move / zoom, 0);
 }
 int EditorWindow::inspectorInset() const {
   if (!inspectorDock_ || inspectorDock_->isHidden() || inspectorDock_->isFloating()) { return 0; }
@@ -2108,11 +2121,11 @@ void EditorWindow::clearInspectorOverlap(int inset, bool instant) {
     emit zoomChanged();
     return;
   }
-  // The web pans over 200 ms with React Flow's default cubic ease.
+  // The web pans over 200 ms, the normal motion token, with React Flow's default cubic ease.
   auto *pan = new QVariantAnimation(this);
   viewAnimation_ = pan;
   pan->setObjectName("inspector-pan-animation");
-  pan->setDuration(200);
+  pan->setDuration(motionNormalMs_);
   pan->setEasingCurve(QEasingCurve::InOutCubic);
   pan->setStartValue(from);
   pan->setEndValue(to);
@@ -2525,27 +2538,24 @@ void EditorWindow::action(const QString &name) {
     for (double zoom : {0.25, 0.5, 0.75, 1., 1.5, 2.}) {
       auto entry = menu.addAction(QString::number(qRound(zoom * 100)) + "%");
       entry->setCheckable(true); entry->setChecked(std::abs(view_->transform().m11()-zoom) < .01);
-      connect(entry, &QAction::triggered, this, [this, zoom] { zoomBy(zoom / view_->transform().m11()); });
+      connect(entry, &QAction::triggered, this, [this, zoom] {
+        // The menu is a user surface, so the preset animates.
+        const QScopedValueRollback user(userViewInput_, true);
+        zoomTo(zoom);
+      });
     }
     menu.exec(viewportOverlay_->mapToGlobal(QPoint(0,0))); return;
   }
   if (name == "Fit selection") {
-    QRectF bounds;
-    for (auto id : model_.allNodeIds()) {
-      auto item = scene_->nodeGraphicsObject(id);
-      if (item && item->isSelected()) { bounds |= item->mapRectToScene(QRectF(QPointF(), model_.layout(id).size)); }
-    }
-    if (bounds.isEmpty()) { fit(); return; }
-    fitActive_ = false;
-    const auto area = unobstructedViewport();
-    const double zoom = std::clamp(std::min(area.width()/(bounds.width()*1.2), area.height()/(bounds.height()*1.2)), .1, 5.);
-    view_->setTransform(QTransform::fromScale(zoom,zoom)); view_->centerOn(bounds.center()); emit zoomChanged(); return;
+    fitSelection();
+    return;
+  }
+  if (name == "Focus node") {
+    focusSelectedNode();
+    return;
   }
   if (name == "Reset zoom") {
-    fitActive_ = false;
-    view_->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-    view_->resetTransform();
-    emit zoomChanged();
+    zoomTo(1.0);
     return;
   }
   if (name == "Add node") {
@@ -2609,7 +2619,7 @@ void EditorWindow::action(const QString &name) {
     document_.redo();
         ensureProjected();
   } else if (name == "Fit") {
-    fit();
+    fitView();
   } else if (name == "Open file") {
     auto p = QFileDialog::getOpenFileName(this, tr("Open workflow"), {},
                                           tr("Workflow (*.json)"));
@@ -2760,7 +2770,7 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     // Applied per press so that every open tab follows the one setting.
     view_->setDragMode(mouseNavigation() ? QGraphicsView::ScrollHandDrag : QGraphicsView::RubberBandDrag);
-    if (mouseNavigation() && mouse->button() == Qt::LeftButton && !view_->itemAt(mouse->position().toPoint())) { fitActive_ = false; }
+    if (mouseNavigation() && mouse->button() == Qt::LeftButton && !view_->itemAt(mouse->position().toPoint())) { fitActive_ = false; cancelViewAnimation(); }
     if (mouse->button() == Qt::MiddleButton) {
       const auto hit = view_->itemAt(mouse->position().toPoint());
       if (hit && hit->toGraphicsObject() && hit->toGraphicsObject()->parent() == lineage_) { return false; }
@@ -2772,6 +2782,7 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
       }
       panning_ = true;
       fitActive_ = false;
+      cancelViewAnimation();
       panPosition_ = mouse->position().toPoint();
       return true;
     }
@@ -2910,6 +2921,7 @@ bool EditorWindow::confirmOpen() {
 void EditorWindow::presentation(const QVariantMap &roles) {
   if (!tabOwner_) { activeEditor_->presentation(roles); return; }
     canvasReducedMotion_ = roles.value("reducedMotion").toBool();
+    motionNormalMs_ = roles.value("motionNormal", motionNormalMs_).toInt();
     scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_);
   auto color = [&](const char *name) {
     return roles.value(name).value<QColor>();

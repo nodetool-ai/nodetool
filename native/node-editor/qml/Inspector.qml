@@ -162,7 +162,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: helpText.implicitHeight + Ui.Metrics.lg * 2
+            contentHeight: helpText.implicitHeight + focusButton.height + Ui.Metrics.lg * 3
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
@@ -175,6 +175,16 @@ Rectangle {
                 text: root.info.description || "No help is available for this node."
                 role: Ui.Typography.SansBody
                 tone: Ui.Text.Secondary
+            }
+            // NodeInfoPanel.tsx: the Focus button centers the canvas on the node.
+            NodeButton {
+                id: focusButton
+                objectName: "inspector-focus"
+                x: Ui.Metrics.lg
+                y: helpText.y + helpText.implicitHeight + Ui.Metrics.lg
+                text: qsTr("Focus")
+                iconName: "myLocation"
+                onClicked: root.propertyHost.userAction("Focus node")
             }
         }
         Loader {

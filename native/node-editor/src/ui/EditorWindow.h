@@ -88,6 +88,10 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
   Q_PROPERTY(QVariantList catalogCategories READ catalogCategories CONSTANT)
   Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelChanged)
+  // "default" or "type", as MiniMapStore.ts colorMode.
+  Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
+  // True when the zoom matches a status indicator preset (ViewportStatusIndicator.tsx findZoomPreset).
+  Q_PROPERTY(bool zoomIsPreset READ zoomIsPreset NOTIFY zoomChanged)
   Q_PROPERTY(QVariantMap systemStats READ systemStats NOTIFY panelChanged)
   Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY panelChanged)
   Q_PROPERTY(int nodeCount READ nodeCount NOTIFY panelChanged)
@@ -177,6 +181,14 @@ public:
   // The web hides the mini-map until the user turns it on, and keeps the choice
   // for every workflow. See web/src/stores/MiniMapStore.ts.
   Q_INVOKABLE void setMiniMapVisible(bool visible);
+  QString miniMapColorMode() const;
+  // Accepts "default" and "type", keeps the choice for every workflow and remembers it.
+  Q_INVOKABLE void setMiniMapColorMode(const QString &mode);
+  // The color settings menu ("colors") or the node type legend ("legend"), below
+  // the given global point, which is the bottom right of the button that opened it.
+  Q_INVOKABLE void showMiniMapPopup(const QString &kind, const QPointF &anchorGlobal);
+  Q_INVOKABLE void closeMiniMapPopup();
+  bool zoomIsPreset() const;
   QVariantMap systemStats() const;
   // The connection as the web status bar names it: connected, offline or idle.
   QString connectionStatus() const;
@@ -247,6 +259,10 @@ public:
   Q_INVOKABLE bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
   Q_INVOKABLE bool removeProperty(const QString &nodeId, const QString &name);
   Q_INVOKABLE void action(const QString &name);
+  // An action that the user started from a button, menu or key. Zoom, fit and Focus
+  // moves then animate as the web does. action() alone moves the view at once, so
+  // harnesses and tests that read the result straight away see the final view.
+  Q_INVOKABLE void userAction(const QString &name);
   // The More button of the card toolbar opens the node context menu below it.
   Q_INVOKABLE void showNodeMenu(const QPointF &global);
   // Fits every node into the canvas area the floating toolbar leaves free, and
@@ -373,6 +389,25 @@ private:
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
+  // The view that fits every node, as the zoom and the scene point at the viewport center.
+  struct ViewTarget { double zoom = 1; QPointF center; };
+  ViewTarget fitTarget() const;
+  // Moves the view to the zoom and viewport-center scene point. It animates over
+  // durationMs with the web's cubic ease, and lands at once for a zero duration,
+  // reduced motion or a hidden window. Any earlier move is dropped.
+  void moveViewTo(double zoom, const QPointF &viewCenter, int durationMs);
+  void cancelViewAnimation();
+  // The viewport center that puts a scene point in the middle of the canvas the overlays leave free.
+  QPointF centerOnArea(const QPointF &scenePoint, double zoom) const;
+  void zoomTo(double zoom);
+  void fitView();
+  void fitSelection();
+  // The duration of a viewport move: the given one for an action that the user started, otherwise zero.
+  int viewMs(int durationMs) const { return userViewInput_ ? durationMs : 0; }
+  bool userViewInput_ = false;
+  void focusSelectedNode();
+  // ui_primitives Metrics.motionNormal, delivered with the presentation roles.
+  int motionNormalMs_ = 200;
   // Queues one pass after a dock or window resize. A refit request makes fit
   // mode fit again. A selection alone never changes the zoom.
   void scheduleViewportSettle(bool refit = false);
@@ -458,6 +493,9 @@ private:
   CanvasDropController *canvasDrops_ = nullptr;
   CompatibleNodePicker *compatiblePicker_ = nullptr;
   QQuickWidget *viewportOverlay_ = nullptr;
+  QQuickWidget *miniMapControls_ = nullptr;
+  QPointer<QQuickWidget> miniMapPopup_;
+  QString miniMapColorMode_ = "default";
   bool inspectorDismissed_ = false;
   bool catalogAutoHidden_ = false;
   bool miniMapVisible_ = false;

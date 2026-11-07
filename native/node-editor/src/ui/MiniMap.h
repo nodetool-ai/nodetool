@@ -8,10 +8,39 @@
 #include <QScrollBar>
 #include <QTimer>
 #include <QWidget>
+#include <QHash>
+#include <QPair>
+#include <QStringList>
+#include <functional>
 #include <cmath>
 #include <QWheelEvent>
 
 namespace nodetool {
+// The web node categories of utils/ColorUtils.ts getNodeTypeCategory, in the
+// order the mini-map legend lists them (MiniMapNavigator.tsx legendItems).
+inline const QStringList &miniMapCategories() {
+  static const QStringList categories{"input", "constant", "processing", "group", "comment", "output"};
+  return categories;
+}
+// getNodeTypeCategory: the checks run in this order, so a type that mentions
+// both "group" and "output" is a group.
+inline QString miniMapCategory(const QString &type) {
+  if (type.isEmpty()) { return "processing"; }
+  if (type.startsWith("nodetool.input.")) { return "input"; }
+  if (type.startsWith("nodetool.constant.")) { return "constant"; }
+  if (type.contains(".Group") || type.contains("group")) { return "group"; }
+  if (type.contains(".Comment") || type.contains("comment")) { return "comment"; }
+  if (type.contains("output") || type.contains("Output")) { return "output"; }
+  return "processing";
+}
+// getNodeCategoryColor, light and dark.
+inline QColor miniMapCategoryColor(const QString &category, bool dark) {
+  static const QHash<QString, QPair<QString, QString>> colors{
+      {"input", {"#3b82f6", "#60a5fa"}}, {"constant", {"#8b5cf6", "#a78bfa"}}, {"processing", {"#64748b", "#94a3b8"}},
+      {"group", {"#6366f1", "#818cf8"}}, {"comment", {"#22c55e", "#4ade80"}}, {"output", {"#f59e0b", "#fbbf24"}}};
+  const auto pair = colors.value(category, colors.value("processing"));
+  return QColor(dark ? pair.second : pair.first);
+}
 // Scene notifications coalesce geometry collection. Navigation changes only the
 // view scroll bars, never the graph model or document history.
 class MiniMap final : public QWidget {
@@ -26,6 +55,8 @@ public:
     connect(view.verticalScrollBar(), &QScrollBar::valueChanged, this, [this] { update(); });
     schedule();
   }
+  // True while the web "Color by type" mode is on (createMinimapNodeColorFn useTypeColors).
+  std::function<bool()> colorByType;
   std::function<void()> navigated;
   std::function<void()> zoomed;
   void schedule() {
@@ -37,7 +68,7 @@ public:
       for (auto id : model_.allNodeIds()) {
         if (auto item = scene_.nodeGraphicsObject(id)) {
           const auto rect = item->mapRectToScene(QRectF(QPointF(), model_.layout(id).size));
-          rects_.push_back({rect, item->isSelected(), model_.isGroup(id), model_.isComment(id)}); bounds_ |= rect;
+          rects_.push_back({rect, item->isSelected(), model_.isGroup(id), model_.isComment(id), model_.nodeSnapshot(id)["type"].toString()}); bounds_ |= rect;
         }
       }
       setProperty("nodeCount", rects_.size());
@@ -59,9 +90,14 @@ protected:
     scale_ = std::min(width() / std::max(1., world_.width()), height() / std::max(1., world_.height()));
     offset_ = QPointF(width()/2., height()/2.) - world_.center() * scale_;
     const auto mapped = [this](QRectF r) { return QRectF(r.topLeft()*scale_+offset_, r.size()*scale_); };
+    const bool byType = colorByType && colorByType();
     for (const auto &node : rects_) {
       painter.setPen(QPen(node.selected ? theme.primary : QColor(dark ? "#5c606a" : "#cdcdd3"), 2));
-      const QColor fill = node.selected ? theme.primary : node.group ? QColor(dark ? "#6366f1" : "#818cf8") : node.comment ? QColor("#22c55e") : QColor(dark ? "#94a3b8" : "#64748b");
+      // createMinimapNodeColorFn: the selection is always primary. The default mode
+      // colors only groups and notes apart, and "Color by type" colors every category.
+      const QColor fill = node.selected ? theme.primary
+          : byType ? miniMapCategoryColor(miniMapCategory(node.type), dark)
+          : node.group ? QColor(dark ? "#6366f1" : "#818cf8") : node.comment ? QColor("#22c55e") : QColor(dark ? "#94a3b8" : "#64748b");
       painter.setBrush(fill); painter.drawRoundedRect(mapped(node.rect), 8*scale_,8*scale_);
     }
     QPainterPath mask; mask.addRect(rect()); mask.addRect(mapped(viewport));
@@ -86,7 +122,7 @@ protected:
   }
 private:
   void navigate(QPointF point) { if (scale_ > 0) { if (navigated) { navigated(); } view_.centerOn((point-offset_)/scale_); } }
-  struct NodeRect { QRectF rect; bool selected; bool group; bool comment; };
+  struct NodeRect { QRectF rect; bool selected; bool group; bool comment; QString type; };
   WorkflowGraphModel &model_;
   EditorScene &scene_;
   QGraphicsView &view_;

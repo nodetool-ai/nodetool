@@ -265,7 +265,7 @@ public:
             w.pasteMenuPosition_ = global_;
             w.action("Paste");
         }, {.shortcut = hint("Ctrl+V"), .reason = editable ? tr("No valid node data in clipboard") : w.readOnlyReason(), .enabled = editable && clipboard});
-        menu.item("fit", tr("Fit screen"), "fitScreen", [this] { w.action("Fit"); }, {.shortcut = hint("F")});
+        menu.item("fit", tr("Fit screen"), "fitScreen", [this] { w.userAction("Fit"); }, {.shortcut = hint("F")});
         menu.separator();
         const auto group = [&](const QVariantList &options, const QString &prefix) {
             MenuBuilder children;
@@ -542,6 +542,7 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
         return !readOnly() && count > 0 && knownNodeType("nodetool.workflows.subgraph.Subgraph");
     }
  if (name == "Select all connected" || name == "Select inputs" || name == "Select outputs") { return count > 0; }
+ if (name == "Focus node") { return count == 1; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
  if (name == "Stop") { return runActive() && session_.connected(); }
@@ -810,37 +811,7 @@ void EditorWindow::revealFound(const QString &resourceId) {
         }
         const auto item = scene_->nodeGraphicsObject(*found);
         const auto target = item->mapRectToScene(QRectF(QPointF(), QSizeF(model_.layout(*found).size))).center();
-        const auto area = unobstructedViewport();
-        const auto viewportCenter = QRectF(view_->viewport()->rect()).center();
-        const auto offset = viewportCenter - area.center();
-        const double fromZoom = view_->transform().m11();
-        const auto fromCenter = view_->mapToScene(viewportCenter.toPoint());
-        view_->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-        const auto apply = [this, offset](double zoom, const QPointF &center) {
-            view_->setTransform(QTransform::fromScale(zoom, zoom));
-            view_->centerOn(center + offset / zoom);
-            emit zoomChanged();
-        };
-        if (viewAnimation_) {
-            viewAnimation_->deleteLater();
-        }
-        if (canvasReducedMotion_) {
-            apply(1.0, target);
-            return;
-        }
-        auto *animation = new QVariantAnimation(this);
-        viewAnimation_ = animation;
-        animation->setObjectName("find-view-animation");
-        animation->setDuration(300);
-        animation->setEasingCurve(QEasingCurve::InOutCubic);
-        animation->setStartValue(0.0);
-        animation->setEndValue(1.0);
-        connect(animation, &QVariantAnimation::valueChanged, this, [apply, fromZoom, fromCenter, target](const QVariant &value) {
-            const auto t = value.toDouble();
-            apply(fromZoom + (1.0 - fromZoom) * t, fromCenter + (target - fromCenter) * t);
-        });
-        connect(animation, &QVariantAnimation::finished, animation, &QObject::deleteLater);
-        animation->start();
+        moveViewTo(1.0, centerOnArea(target, 1.0), 300);
     }, Qt::QueuedConnection);
 }
 
@@ -946,7 +917,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    if (!panel->isVisible() || epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds()) { return; }
    if (name.isEmpty()) { panel->close(); return; }
    if (!menuActionEnabled(name)) { return; }
-   panel->close(); action(name);
+   panel->close(); userAction(name);
   };
   connect(this, &EditorWindow::documentEpochChanged, panel, &QDialog::close);
   connect(this, &EditorWindow::credentialsEpochChanged, panel, &QDialog::close);
@@ -959,12 +930,12 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    keys[name].append(QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText));
    combos[name].append(webKeys(QString::fromLatin1(entry.keys)));
   }
-  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Run trace", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
+  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Run trace", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
   names.removeDuplicates();
   const auto group = [](const QString &name) {
    if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid") { return QString("Layout & Alignment"); }
    if (name == "Output" || name == "Toggle nodes" || name == "Toggle inspector" || name == "Workflows") { return QString("Panels"); }
-   if (name.startsWith("Move") || name.startsWith("Fit") || name.startsWith("Zoom") || name.startsWith("Toggle") || name == "Workflows") { return QString("View"); }
+   if (name.startsWith("Move") || name.startsWith("Fit") || name.startsWith("Focus") || name.startsWith("Zoom") || name.startsWith("Toggle") || name == "Workflows") { return QString("View"); }
    if (name == "Run" || name == "Stop" || name == "Save" || name.startsWith("Open")) { return QString("Workflow"); }
    return QString("Edit");
   };
@@ -1007,7 +978,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    item->setEnabled(menuActionEnabled(name));
    connect(item, &QAction::triggered, this, [this, name, epoch, credentials, selection] {
     if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds() || !menuActionEnabled(name)) { return; }
-    action(name);
+    userAction(name);
    });
   }
  }
