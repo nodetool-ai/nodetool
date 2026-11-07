@@ -17,8 +17,10 @@ import type { LabeledTextureMeta } from "./texture.js";
 export interface GPUCapabilities {
   /** `texture_external` import supported (camera/video fast path). */
   textureExternal: boolean;
-  /** `float16` storage textures supported. */
+  /** Core rgba16float storage writes. Independent of shader-f16 arithmetic. */
   f16Storage: boolean;
+  /** Optional half-precision shader arithmetic feature enabled on the device. */
+  shaderF16?: boolean;
 }
 
 export type CachedPipeline = GPURenderPipeline | GPUComputePipeline;
@@ -123,7 +125,18 @@ const poolKeys = new WeakMap<LabeledTexture, string>();
  * `(format, usage, bucketW, bucketH)`; the caller sees only the requested
  * viewport, the underlying texture may be larger.
  */
-export function makeScratchPool(device: GPUDevice): ScratchPool {
+export function makeScratchPool(device: GPUDevice, options: { maxFreeBytes?: number } = {}): ScratchPool {
+  const maxFreeBytes = options.maxFreeBytes ?? Infinity;
+  if (maxFreeBytes < 0 || Number.isNaN(maxFreeBytes)) {
+    throw new Error("Scratch byte budget must be nonnegative");
+  }
+  let freeBytes = 0;
+  const byteSize = (texture: LabeledTexture): number => {
+    const components = texture.format.startsWith("rgba") || texture.format.startsWith("bgra") ? 4 : texture.format.startsWith("rg") ? 2 : 1;
+    const bits = /^(?:rgba|bgra|rg|r)(8|16|32)/.exec(texture.format)?.[1];
+    // Unaccounted formats are never retained under a finite byte budget.
+    return bits ? texture.width * texture.height * components * Number(bits) / 8 : Infinity;
+  };
   const free = new Map<string, LabeledTexture[]>();
   const live = new Set<LabeledTexture>();
 
@@ -140,7 +153,7 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
   // texture regardless of how it was requested.
   const bucketKey = (spec: ScratchSpec): string => {
     const { width, height } = dimsFor(spec);
-    return `${spec.format}:${spec.usage}:${width}x${height}`;
+    return `${spec.format}:${spec.usage}:${width}x${height}:${spec.meta?.colorSpace ?? "encoded-sdr"}:${spec.meta?.alpha ?? "premultiplied"}:${spec.meta?.bindingKind ?? "texture_2d"}`;
   };
 
   return {
@@ -149,6 +162,9 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
       const pooled = free.get(key);
       const reused = pooled?.pop();
       if (reused) {
+        if (Number.isFinite(maxFreeBytes)) {
+          freeBytes -= byteSize(reused);
+        }
         live.add(reused);
         return reused;
       }
@@ -174,6 +190,14 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
         texture.destroy();
         return;
       }
+      if (Number.isFinite(maxFreeBytes)) {
+        const bytes = byteSize(texture);
+        if (freeBytes + bytes > maxFreeBytes) {
+          texture.destroy();
+          return;
+        }
+        freeBytes += bytes;
+      }
       const pooled = free.get(key);
       if (pooled) {
         pooled.push(texture);
@@ -192,6 +216,7 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
         }
       }
       free.clear();
+      freeBytes = 0;
     }
   };
 }
@@ -233,7 +258,8 @@ function detectCapabilities(device: GPUDevice): GPUCapabilities {
   const features = device.features;
   return {
     textureExternal: true,
-    f16Storage: features.has("shader-f16")
+    f16Storage: true,
+    shaderF16: features.has("shader-f16")
   };
 }
 
@@ -277,7 +303,7 @@ function makeWhiteTextureProvider(
       height: 1,
       format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      meta: { colorSpace: "linear", alpha: "premultiplied" }
+      meta: { colorSpace: "data", alpha: "premultiplied" }
     });
     device.queue.writeTexture(
       { texture: tex.texture },

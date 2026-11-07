@@ -1,5 +1,6 @@
 #pragma once
 #include "model/TimelineTypes.h"
+#include "preview/WorkingFormat.h"
 #include <QImage>
 #include <QString>
 #include <QSize>
@@ -24,6 +25,9 @@ struct Options {
     double fps = 0;
     int videoBitrateKbps = 0;
     QString scaleMode = QStringLiteral("fit");
+    std::function<void(const QByteArray&)> videoFrameForTest = {}; // packed YUV420P, before encoding
+    std::function<void(const QImage&)> floatCanvasForTest = {}; // straight FP32, before resize
+    nt::WorkingFormat workingFormat = nt::WorkingFormat::Rgba8; // internal test selection only
 };
 struct Progress {
     QString phase;

@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <cstdio>
 #include <stop_token>
+#include <stdexcept>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
@@ -68,6 +69,33 @@ int exportCli(int argc, char** argv) {
     }
     Options options{parser.value("export"), parser.value("format"), parser.isSet("alpha"),
         parser.value("video-encoder"), parser.value("audio-encoder"), parser.value("staging-directory")};
+    if (qEnvironmentVariable("NT_TEST_EXPORT_FP16") == u"1") {
+        options.workingFormat = nt::WorkingFormat::Rgba16F;
+    }
+    const auto testFloatPath = qEnvironmentVariable("NT_TEST_EXPORT_FLOAT");
+    if (!testFloatPath.isEmpty()) {
+        options.floatCanvasForTest = [testFloatPath](const QImage& image) {
+            QFile file(testFloatPath);
+            if (!file.open(QIODevice::WriteOnly)) {
+                throw std::runtime_error("Cannot save test float canvas");
+            }
+            for (int y = 0; y < image.height(); ++y) {
+                const auto bytes = image.width() * 4 * qsizetype(sizeof(float));
+                if (file.write(reinterpret_cast<const char*>(image.constScanLine(y)), bytes) != bytes) {
+                    throw std::runtime_error("Cannot save test float canvas row");
+                }
+            }
+        };
+    }
+    const auto testYuvPath = qEnvironmentVariable("NT_TEST_EXPORT_YUV");
+    if (!testYuvPath.isEmpty()) {
+        options.videoFrameForTest = [testYuvPath](const QByteArray& bytes) {
+            QFile file(testYuvPath);
+            if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
+                throw std::runtime_error("Cannot save test YUV observation");
+            }
+        };
+    }
     const auto number = [&](const char* name, auto& target) {
         if (!parser.isSet(name)) return true;
         using Value = std::remove_reference_t<decltype(target)>;

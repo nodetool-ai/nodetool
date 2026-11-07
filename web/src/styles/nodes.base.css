@@ -37,12 +37,11 @@
     transform var(--motion-normal) ease, outline-color var(--motion-normal) ease;
 }
 
-/* When a NodesSelection rectangle is being dragged, ReactFlow moves all selected
-   nodes via the selection overlay — no individual node receives the `dragging`
-   class — so the transform transition on every selected node would otherwise
-   animate 180ms behind the cursor.  The JS drag handlers add/remove the
-   `nodesselection-dragging` class on the .react-flow container to signal this. */
-.react-flow.nodesselection-dragging .react-flow__node.selected {
+/* Group children move without receiving .dragging or .selected. Suppress
+   position tweening across the canvas during either kind of drag so they
+   stay aligned with their parent. Selection drags use the handler's class. */
+.react-flow:has(.react-flow__node.dragging) .react-flow__node,
+.react-flow.nodesselection-dragging .react-flow__node {
   transition: background-color var(--motion-fast) ease,
     box-shadow var(--motion-normal) ease-in-out,
     outline-color var(--motion-normal) ease;

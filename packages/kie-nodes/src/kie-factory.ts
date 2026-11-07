@@ -23,10 +23,8 @@ import type {
 } from "@nodetool-ai/runtime";
 import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
 import {
-  getApiKey,
-  kieExecuteTask,
-  kieExecuteOmniDirect,
-  kieExecuteSunoTask,
+  kieCapability,
+  kieExecute,
   kieImageRef,
   isRefSet,
   reportKieProviderCost,
@@ -34,6 +32,7 @@ import {
   uploadAudioInput,
   uploadVideoInput
 } from "./kie-base.js";
+import type { KieExecuteRequest } from "./kie-base.js";
 import { buildVideoClipsFromRefs } from "./video-clip.js";
 import {
   applyKieAccessoryParams,
@@ -107,7 +106,6 @@ export interface KieManifestEntry {
   sunoEndpoint?: string;
   useOmniDirect?: boolean;
   submitEndpoint?: string;
-  pollEndpoint?: string;
   responseIdKey?: string;
   resultObjectKey?: string;
   fields: KieFieldDef[];
@@ -230,7 +228,6 @@ function computeFieldClassification(fields: KieFieldDef[]) {
 function uploadFnForKind(
   kind: "image" | "audio" | "video"
 ): (
-  apiKey: string,
   ref: unknown,
   context?: Parameters<BaseNode["process"]>[0]
 ) => Promise<string> {
@@ -245,14 +242,10 @@ function uploadFnForKind(
 }
 
 async function buildVideoClips(
-  apiKey: string,
   value: unknown,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Array<{ url: string; start: number; ends: number }>> {
-  return buildVideoClipsFromRefs(
-    (ref) => uploadVideoInput(apiKey, ref, context),
-    value
-  );
+  return buildVideoClipsFromRefs((ref) => uploadVideoInput(ref, context), value);
 }
 
 /**
@@ -301,7 +294,6 @@ async function promptAssetOverrides(
 async function buildParams(
   instance: BaseNode,
   spec: KieManifestEntry,
-  apiKey: string,
   context?: Parameters<BaseNode["process"]>[0]
 ): Promise<Record<string, unknown>> {
   const params: Record<string, unknown> = {};
@@ -372,7 +364,7 @@ async function buildParams(
       const fn = uploadFnForKind(upload.kind);
 
       if (upload.isVideoClip) {
-        const clips = await buildVideoClips(apiKey, value, context);
+        const clips = await buildVideoClips(value, context);
         const paramName = upload.paramName ?? upload.field;
         if (clips.length) {
           params[paramName] = clips;
@@ -383,20 +375,20 @@ async function buildParams(
       if (upload.groupKey) {
         if (!groups.has(upload.groupKey)) groups.set(upload.groupKey, []);
         if (isRefSet(value)) {
-          const url = await fn(apiKey, value, context);
+          const url = await fn(value, context);
           groups.get(upload.groupKey)!.push(url);
         }
       } else if (upload.isList) {
         const list = Array.isArray(value) ? value : [];
         const urls: string[] = [];
         for (const item of list) {
-          if (isRefSet(item)) urls.push(await fn(apiKey, item, context));
+          if (isRefSet(item)) urls.push(await fn(item, context));
         }
         const paramName = upload.paramName ?? `${upload.field}_urls`;
         if (urls.length) params[paramName] = urls;
       } else {
         if (isRefSet(value)) {
-          const url = await fn(apiKey, value, context);
+          const url = await fn(value, context);
           const paramName = upload.paramName ?? `${upload.field}_url`;
           if (url) params[paramName] = url;
         }
@@ -420,7 +412,7 @@ async function buildParams(
     readValue,
     params,
     (name) => spec.paramNames?.[name] ?? name,
-    (kind, ref) => uploadFnForKind(kind)(apiKey, ref, context)
+    (kind, ref) => uploadFnForKind(kind)(ref, context)
   );
 
   return params;
@@ -447,12 +439,12 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
     return { output: { type: specRef.outputType, data: b64 } };
   };
 
+  const capability = kieCapability(spec.outputType, spec.useSuno);
+
   const executeTask = async (
     instance: BaseNode,
     context: Parameters<BaseNode["process"]>[0] | undefined
   ) => {
-    const apiKey = getApiKey(instance._secrets);
-
     if (specRef.validation) {
       for (const v of specRef.validation) {
         if (v.rule === "not_empty") {
@@ -464,7 +456,13 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
       }
     }
 
-    const params = await buildParams(instance, specRef, apiKey, context);
+    const params = await buildParams(instance, specRef, context);
+    const request: KieExecuteRequest = {
+      model: specRef.modelId,
+      input: params,
+      capability,
+      nodeId: instance.__node_id || nodeType
+    };
 
     if (specRef.useOmniDirect) {
       if (!specRef.submitEndpoint || !specRef.responseIdKey) {
@@ -472,35 +470,14 @@ export function createKieNodeClass(spec: KieManifestEntry): NodeClass {
           `Omni node ${specRef.className} missing submitEndpoint or responseIdKey`
         );
       }
-      return await kieExecuteOmniDirect(
-        apiKey,
-        specRef.submitEndpoint,
-        params,
-        specRef.responseIdKey,
-        context?.signal
-      );
+      request.directEndpoint = specRef.submitEndpoint;
+      request.responseIdKey = specRef.responseIdKey;
+    } else if (specRef.useSuno) {
+      request.sunoEndpoint = specRef.sunoEndpoint ?? "/api/v1/generate";
+    } else if (specRef.resultObjectKey) {
+      request.resultObjectKey = specRef.resultObjectKey;
     }
-    if (specRef.useSuno) {
-      return await kieExecuteSunoTask(
-        apiKey,
-        params,
-        specRef.pollInterval,
-        specRef.maxAttempts,
-        specRef.sunoEndpoint,
-        context?.signal
-      );
-    }
-    return await kieExecuteTask(
-      apiKey,
-      specRef.modelId,
-      params,
-      specRef.pollInterval,
-      specRef.maxAttempts,
-      specRef.submitEndpoint,
-      specRef.pollEndpoint,
-      specRef.resultObjectKey,
-      context?.signal
-    );
+    return await kieExecute(context, request);
   };
 
   const KieNodeClass = class extends BaseNode {

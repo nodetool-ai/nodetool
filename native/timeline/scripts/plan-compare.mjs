@@ -119,7 +119,7 @@ export function newestBinary(root) {
   }
   for (const d of dirs) {
     if (!d.isDirectory() || !d.name.startsWith("build")) continue;
-    const bin = path.join(root, d.name, "nodetool-timeline");
+    const bin = path.join(root, d.name, process.platform === "win32" ? "nodetool-timeline.exe" : "nodetool-timeline");
     let st;
     try {
       st = fs.statSync(bin);

@@ -1,4 +1,5 @@
 #include "export/ExportEngine.h"
+#include "export/DeliveryFrame.h"
 #include "assets/AssetMedia.h"
 #include "export/OffscreenFrames.h"
 #include "export/ExportCapabilities.h"
@@ -333,16 +334,26 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (!audioOnly) {
             TimelineModel model;
             model.setTimeline(pictureTimeline(timeline));
-            OffscreenFrames frames(model);
+            const bool fp16 = options.workingFormat == nt::WorkingFormat::Rgba16F;
+            OffscreenFrames frames(model, options.workingFormat);
             std::unique_ptr<SwsContext, ScaleDelete> scale;
             Frame output;
+            Frame wide;
             if (video) {
-                scale.reset(sws_getContext(explicitSize ? result.width : timeline.width, explicitSize ? result.height : timeline.height,
-                    AV_PIX_FMT_RGBA, video->width, video->height,
-                    AV_PIX_FMT_YUV420P, SWS_BICUBIC, nullptr, nullptr, nullptr));
+                scale.reset(sws_getContext((explicitSize || fp16) ? result.width : timeline.width, (explicitSize || fp16) ? result.height : timeline.height,
+                    fp16 ? AV_PIX_FMT_RGBA64 : AV_PIX_FMT_RGBA, video->width, video->height,
+                    fp16 ? AV_PIX_FMT_YUV420P16 : AV_PIX_FMT_YUV420P, SWS_BICUBIC, nullptr, nullptr, nullptr));
                 if (!scale) throw std::runtime_error("Cannot create export video conversion");
                 check(sws_setColorspaceDetails(scale.get(), sws_getCoefficients(SWS_CS_ITU709), 1,
                     sws_getCoefficients(SWS_CS_ITU709), 0, 0, 1 << 16, 1 << 16), "Set export color conversion");
+                if (fp16) {
+                    check(av_opt_set(scale.get(), "sws_dither", "none", 0), "Disable staging dither");
+                    wide = frame();
+                    wide->format = AV_PIX_FMT_YUV420P16;
+                    wide->width = video->width;
+                    wide->height = video->height;
+                    check(av_frame_get_buffer(wide.get(), 32), "Allocate wide export staging");
+                }
                 output = frame();
                 output->format = video->pix_fmt;
                 output->width = video->width;
@@ -352,10 +363,21 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                 check(av_frame_get_buffer(output.get(), 32), "Allocate export video frame");
             }
             for (qint64 i = 0; i < result.frames && !cancelled(); ++i) {
-                const QImage captured = frames.captureAt(result.startMs + static_cast<double>(i) * 1000.0 / result.fps, cancelled);
+                const double timeMs = result.startMs + static_cast<double>(i) * 1000.0 / result.fps;
+                const QImage captured = fp16 ? frames.captureWorkingAt(timeMs, cancelled)
+                                             : frames.captureAt(timeMs, cancelled);
                 if (cancelled()) break;
                 if (captured.isNull()) throw std::runtime_error("Empty export frame");
-                const QImage image = explicitSize ? fitFrame(captured, QSize(result.width, result.height), options.scaleMode) : captured;
+                QImage image;
+                if (fp16) {
+                    const auto straight = delivery::straightFloat(captured);
+                    if (options.floatCanvasForTest) { options.floatCanvasForTest(straight); }
+                    const auto resized = delivery::resample(straight,
+                        QSize(result.width, result.height), options.scaleMode, explicitSize);
+                    image = png ? delivery::rgba8(resized) : delivery::rgba64(resized);
+                } else {
+                    image = explicitSize ? fitFrame(captured, QSize(result.width, result.height), options.scaleMode) : captured;
+                }
                 if (png) {
                     QByteArray bytes;
                     QBuffer buffer(&bytes);
@@ -368,7 +390,27 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                     check(av_frame_make_writable(output.get()), "Make export frame writable");
                     const std::array<const uint8_t*, 4> data{image.constBits(), nullptr, nullptr, nullptr};
                     const std::array<int, 4> stride{static_cast<int>(image.bytesPerLine()), 0, 0, 0};
-                    check(sws_scale(scale.get(), data.data(), stride.data(), 0, image.height(), output->data, output->linesize), "Convert export video");
+                    auto* converted = fp16 ? wide.get() : output.get();
+                    check(sws_scale(scale.get(), data.data(), stride.data(), 0, image.height(), converted->data, converted->linesize), "Convert export video");
+                    if (fp16) {
+                        for (int plane = 0; plane < 3; ++plane) {
+                            delivery::quantizePlane(wide->data[plane], wide->linesize[plane],
+                                output->data[plane], output->linesize[plane],
+                                plane ? result.width / 2 : result.width,
+                                plane ? result.height / 2 : result.height);
+                        }
+                    }
+                    if (options.videoFrameForTest) {
+                        QByteArray packed;
+                        for (int plane = 0; plane < 3; ++plane) {
+                            const int width = plane ? result.width / 2 : result.width;
+                            const int height = plane ? result.height / 2 : result.height;
+                            for (int row = 0; row < height; ++row) {
+                                packed.append(reinterpret_cast<const char*>(output->data[plane] + row * output->linesize[plane]), width);
+                            }
+                        }
+                        options.videoFrameForTest(packed);
+                    }
                     output->pts = i;
                     output->duration = 1;
                     muxer->encode(*video, *videoStream, output.get());

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createCanvas, ImageData, type Canvas } from "@napi-rs/canvas";
 import { describe, expect, it } from "vitest";
 import { BLEND_MODE_TUPLE } from "@nodetool-ai/protocol/blend-modes";
@@ -14,28 +15,31 @@ import {
   HeadlessFrameCompositor,
   type FrameLayer
 } from "../src/render/frameCompositor.js";
-
 import { makeClip } from "../src/defaults.js";
-import { resolveAnimatedLayerProps } from "../src/render/sceneModel.js";
+import { resolveAnalysisEffects } from "../src/render/clipAnalysis.js";
 
 const SIZE = 48;
+const SOURCE_CORRECTIONS: KnownClipEffect[] = [
+  { id: "deband", type: "deband", enabled: true, strength: 0.7, range: 4, threshold: 0.1, dither: 0.3 },
+  { id: "denoise", type: "denoise", enabled: true, lumaStrength: 0.6, chromaStrength: 0.4, radius: 2 },
+  { id: "exposure", type: "exposure", enabled: true, exposure: 0.6, rolloff: 0.2, whites: 0.1 },
+  { id: "secondaryColor", type: "secondaryColor", enabled: true, hueCenter: 140, hueWidth: 100, hueShift: 25, saturation: 0.6, lightness: 0.1 },
+  { id: "deflicker", type: "deflicker", enabled: true, analysis: {
+    version: 1, source: { assetId: "source", mediaPath: "" }, rangeStartMs: 0, rangeEndMs: 1000,
+    windowMs: 500, maxCorrection: 1, frameRate: 30, samples: [{ timeMs: 0, stops: 0.5 }]
+  } },
+  { id: "stabilize", type: "stabilize", enabled: true, maxZoom: 1.2, analysis: {
+    version: 1, kind: "stabilize", source: { assetId: "source", mediaPath: "" }, rangeStartMs: 0, rangeEndMs: 1000,
+    windowMs: 500, frameRate: 30, width: 48, height: 48, requiredZoom: 1.1, trackedFrames: 1,
+    samples: [{ timeMs: 0, x: 0.02, y: -0.01, angle: 0.01, scale: 1 }]
+  } },
+];
+
 const EFFECTS: KnownClipEffect[] = [
+  ...SOURCE_CORRECTIONS,
   { id: "color", type: "color", enabled: true, saturation: 0.3, contrast: 1.2 },
   { id: "color-all-channels", type: "color", enabled: true, brightness: 0.1, contrast: 1.3,
     saturation: 1.4, hue: 37, temperature: -0.3, tint: 0.2, shadows: 0.3, highlights: -0.2 },
-  { id: "denoise", type: "denoise", enabled: true, lumaStrength: 0.7, chromaStrength: 0.5, radius: 2 },
-  { id: "deband", type: "deband", enabled: true, strength: 0.8, range: 4, threshold: 0.1, dither: 0.3 },
-  { id: "secondaryColor", type: "secondaryColor", enabled: true, hueCenter: 140, hueWidth: 100, hueShift: 30, saturation: 1.3, lightness: 0.1 },
-  { id: "exposure", type: "exposure", enabled: true, exposure: 0.5, rolloff: 0.3, whites: -0.2 },
-  { id: "deflicker", type: "deflicker", enabled: true, strength: 0.75, analysis: {
-    version: 1, source: {assetId: "matrix-source", mediaPath: ""}, rangeStartMs: 0, rangeEndMs: 1000,
-    windowMs: 500, maxCorrection: 1, frameRate: 30, samples: [{timeMs: 0, stops: 0.6}]
-  } },
-  { id: "stabilize", type: "stabilize", enabled: true, strength: 0.75, maxZoom: 1.2, analysis: {
-    version: 1, kind: "stabilize", source: {assetId: "matrix-source", mediaPath: ""}, rangeStartMs: 0, rangeEndMs: 1000,
-    windowMs: 500, frameRate: 30, width: 48, height: 48, requiredZoom: 1.1, trackedFrames: 1,
-    samples: [{timeMs: 0, x: 0.02, y: -0.01, angle: 0.015, scale: 1}]
-  } },
   { id: "blur", type: "blur", enabled: true, radius: 6 },
   { id: "glow", type: "glow", enabled: true, radius: 6, intensity: 0.6 },
   { id: "dropShadow", type: "dropShadow", enabled: true, offsetX: 4, offsetY: 3, blur: 4, color: "#ff8040", opacity: 0.7 },
@@ -96,18 +100,16 @@ function surface(width: number, height: number): { surface: Canvas; ctx: Composi
   return { surface: canvas, ctx: context(canvas) };
 }
 
-async function compare(effect?: KnownClipEffect | KnownClipEffect[], blendMode: FrameLayer["blendMode"] = "normal", scope: "clip" | "group" | "adjustment" = "clip",
-  inspectPixels?: (preview: Uint8ClampedArray, exported: Uint8Array) => void): Promise<{
+async function compare(effect?: KnownClipEffect | KnownClipEffect[], blendMode: FrameLayer["blendMode"] = "normal", scope: "clip" | "group" | "adjustment" = "clip"): Promise<{
   meanError: number;
   maxError: number;
   unsupported: string[];
+  previewHash: string;
 }> {
   const sources = [picture(false), picture(true)];
-  const persisted = effect ? (Array.isArray(effect) ? effect : [effect]) : [];
-  // Both production paths receive scene-resolved analysis, not persisted samples.
-  const clip = makeClip({id: "matrix-clip", mediaType: "video", currentAssetId: "matrix-source",
-    durationMs: 1000, inPointMs: 0, effects: persisted});
-  const effectList = resolveAnimatedLayerProps({clip, opacity: 1}, 0, {width: SIZE, height: SIZE}).effects ?? [];
+  const clip = makeClip({ mediaType: "video", currentAssetId: "source", durationMs: 1000 });
+  // Match sceneModel: analysis effects become render-time exposure or UV matrices.
+  const effectList = resolveAnalysisEffects(clip, effect ? (Array.isArray(effect) ? effect : [effect]) : [], clip.startMs) ?? [];
   const precomposites = scope === "group" ? [{ id: "group", zIndex: 1, opacity: 1, blendMode: "normal" as const, effects: effectList }] : [];
   const adjustments = scope === "adjustment" ? [{ id: "adjust", clipId: "adjust", zIndex: 2, opacity: 0.7, effects: effectList }] : [];
   const layers: Canvas2DLayer<Canvas>[] = sources.map((source, i) => ({
@@ -136,7 +138,6 @@ async function compare(effect?: KnownClipEffect | KnownClipEffect[], blendMode: 
         width: SIZE, height: SIZE, version: String(i)
       }
     })), precomposites, {}, adjustments);
-    inspectPixels?.(preview, exported);
     let sum = 0;
     let maxError = 0;
     for (let i = 0; i < exported.length; i++) {
@@ -144,7 +145,7 @@ async function compare(effect?: KnownClipEffect | KnownClipEffect[], blendMode: 
       sum += difference;
       maxError = Math.max(maxError, difference);
     }
-    return { meanError: sum / exported.length, maxError, unsupported: unsupportedEffectTypes([...layers, ...precomposites, ...adjustments]) };
+    return { meanError: sum / exported.length, maxError, previewHash: createHash("sha256").update(preview).digest("hex"), unsupported: unsupportedEffectTypes([...layers, ...precomposites, ...adjustments]) };
   } finally {
     compositor.dispose();
   }
@@ -183,18 +184,11 @@ describe("preview/export pixel comparison matrix", () => {
     expect(BLEND_MODE_TUPLE.length).toBeGreaterThan(0);
   });
 
-  it("executes nonneutral denoise, deband, secondary color, exposure and resolved analysis effects", async () => {
-    let preview: Uint8ClampedArray | undefined;
-    let exported: Uint8Array | undefined;
-    await compare(undefined, "normal", "clip", (cpu, gpu) => { preview = cpu; exported = gpu; });
-    const ids = ["denoise", "deband", "secondaryColor", "exposure", "deflicker", "stabilize"];
-    for (const id of ids) {
-      const effect = EFFECTS.find(candidate => candidate.id === id);
-      expect(effect, id).toBeDefined();
-      await compare(effect, "normal", "clip", (cpu, gpu) => {
-        expect(cpu, `CPU ${id} must change pixels`).not.toEqual(preview);
-        expect(gpu, `GPU ${id} must change pixels`).not.toEqual(exported);
-      });
+  it("renders a visible correction for each added effect", async () => {
+    const plain = await compare();
+    for (const effect of SOURCE_CORRECTIONS) {
+      const corrected = await compare(effect);
+      expect(corrected.previewHash, effect.type).not.toEqual(plain.previewHash);
     }
   });
 

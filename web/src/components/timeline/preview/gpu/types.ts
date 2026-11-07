@@ -25,7 +25,7 @@ export type { CompositorBlendMode };
  * an `ImageBitmap`. It is also the one member whose pixels change while its
  * size does not, which is what {@link isCanvasSource} exists for.
  *
- * `VideoFrame` is a frame from the WebCodecs preview decoder. Both backends
+ * `VideoFrame` is a frame from the WebCodecs preview or export decoder. Both backends
  * take it directly, so a decoded frame is never copied to an `ImageBitmap`.
  */
 export type CompositeSource =

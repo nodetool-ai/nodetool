@@ -61,12 +61,18 @@ Docker image and every fresh clone rather than on a developer's machine.
 missing again. Rerun the fix after any `npm install` under npm 10 that rewrites
 the lock, and commit the result.
 
-### Worktrees with cloned dependencies (macOS)
+### Worktrees with cloned dependencies (macOS and Linux)
 
-A full `npm install` in a new worktree takes minutes and several GB. On APFS,
+A full `npm install` in a new worktree takes minutes and several GB. On APFS
+(macOS) or a reflink-capable file system (Linux: btrfs, XFS with reflink),
 clone the dependency and build folders from an existing checkout instead.
-`cp -c` makes a copy-on-write clone: it takes seconds, uses almost no disk,
-and a later write in one tree does not change the other.
+A copy-on-write clone takes seconds, uses almost no disk, and a later write in
+one tree does not change the other. Set `CLONE` for your platform:
+
+```bash
+CLONE="cp -cR"                    # macOS (APFS)
+CLONE="cp -a --reflink=always"    # Linux (btrfs, XFS); fails if cloning is unsupported
+```
 
 Run `scripts/setup-agent-env.sh` inside a new worktree to do this
 automatically. It finds the main checkout through git, clones with `cp -cR` on
@@ -83,7 +89,7 @@ cd "$MAIN"
 { find . -name node_modules -type d -prune | grep -v '/node_modules/.*node_modules'
   find . -path ./node_modules -prune -o -name dist -type d -prune -print | grep -v node_modules
 } | sort -u | while read -r d; do
-  mkdir -p "$WT/$(dirname "$d")" && cp -cR "$d" "$WT/$d"
+  mkdir -p "$WT/$(dirname "$d")" && $CLONE "$d" "$WT/$d"
 done
 cd "$WT" && npm run build:packages        # the cloned dist/ is from the source branch
 ```
@@ -93,8 +99,12 @@ cd "$WT" && npm run build:packages        # the cloned dist/ is from the source 
 - The cloned `dist/` folders match the source checkout's branch. Run
   `npm run build:packages` before you trust a test or harness result.
 - `du` counts a clone at full size. Measure the space you get back with `df`.
-- On Linux, `cp --reflink=auto` does the same on btrfs and XFS. On other file
-  systems it makes a full copy, so run `npm ci` instead.
+- Use `--reflink=always`, not `auto`. `auto` silently makes a full copy on a
+  file system without reflinks, so run `npm ci` instead. Check the file system
+  with `findmnt -no FSTYPE -T "$MAIN"`. A clone cannot cross file systems, so
+  `$WT` must be on the same one as `$MAIN`.
+- Never use hardlinks (`cp -al`). npm modifies files in place and would
+  corrupt the source checkout.
 
 #### Change dependencies in a worktree
 
@@ -103,7 +113,7 @@ checkout does not change.
 
 - A failed root `postinstall` deletes the `better-sqlite3` binary it tried to
   rebuild. Clone it back with
-  `cp -cR "$MAIN/node_modules/better-sqlite3/build" node_modules/better-sqlite3/`,
+  `$CLONE "$MAIN/node_modules/better-sqlite3/build" node_modules/better-sqlite3/`,
   or install with `--ignore-scripts` and run `npm run rebuild:native`.
 - After `npm install` changes a version range, run `npm explain <package>`.
   npm can place the new version under `packages/<name>/node_modules/` instead

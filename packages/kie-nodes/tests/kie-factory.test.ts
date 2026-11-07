@@ -1,19 +1,7 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createKieNodeClass } from "../src/kie-factory.js";
 import type { KieManifestEntry } from "../src/kie-factory.js";
-
-vi.mock("../src/kie-base.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/kie-base.js")>();
-  return {
-    ...actual,
-    getApiKey: () => "test-key",
-    kieExecuteOmniDirect: vi.fn(),
-    kieExecuteTask: vi.fn(),
-    uploadVideoInput: vi.fn(async () => "https://cdn.example.com/source.mp4")
-  };
-});
-
-import { kieExecuteOmniDirect, kieExecuteTask, uploadVideoInput } from "../src/kie-base.js";
+import { scriptedKie } from "./scripted-kie.js";
 
 const audioSpec: KieManifestEntry = {
   className: "GeminiOmniAudio",
@@ -52,41 +40,28 @@ const videoSpec: KieManifestEntry = {
 };
 
 describe("createKieNodeClass omni chaining", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("returns plain string ID from omni audio node", async () => {
-    vi.mocked(kieExecuteOmniDirect).mockResolvedValue({
-      data: "audio_abc",
-      items: ["audio_abc"],
-      taskId: ""
+    const kie = scriptedKie({
+      endpoints: { "*": { output: { code: 200, data: { audioId: "audio_abc" } } } }
     });
 
     const NodeClass = createKieNodeClass(audioSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).name = "Test Voice";
     (node as unknown as Record<string, unknown>).audio_id = "achernar";
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
 
-    const result = await node.process();
+    const result = await node.process(kie.context);
     expect(result).toEqual({ output: "audio_abc" });
-    expect(kieExecuteOmniDirect).toHaveBeenCalledWith(
-      "test-key",
-      "/api/v1/omni/audio/create",
-      { audio_id: "achernar", name: "Test Voice" },
-      "audioId",
-      // The run's cancellation signal, threaded through to the poll loop.
-      undefined
-    );
+    expect(kie.provider.endpointCalls[0]).toMatchObject({
+      model: "gemini-omni-audio",
+      route: "direct:/api/v1/omni/audio/create",
+      input: { audio_id: "achernar", name: "Test Voice" },
+      // The run's cancellation signal, threaded through to the transport.
+      signal: expect.any(AbortSignal)
+    });
   });
 
   it("submits video_list clip trim metadata to createTask", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: Buffer.from("video-bytes").toString("base64"),
-      items: [Buffer.from("video-bytes").toString("base64")],
-      taskId: "task_clip"
-    });
 
     const clipVideoSpec: KieManifestEntry = {
       ...videoSpec,
@@ -112,90 +87,63 @@ describe("createKieNodeClass omni chaining", () => {
     (node as unknown as Record<string, unknown>).video_list = [
       {
         type: "video",
-        uri: "asset://clip.mp4",
+        uri: "",
+        data: new Uint8Array([0, 0, 0, 1]),
         metadata: { clipStart: 2, clipEnd: 7 }
       }
     ];
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    const kie = scriptedKie({
+      uploadUrl: () => "https://cdn.example.com/source.mp4"
+    });
 
-    await node.process();
+    await node.process(kie.context);
 
-    expect(uploadVideoInput).toHaveBeenCalled();
-    expect(kieExecuteTask).toHaveBeenCalledWith(
-      "test-key",
-      "gemini-omni-video",
-      expect.objectContaining({
+    expect(kie.provider.uploadCalls).toHaveLength(1);
+    expect(kie.provider.uploadCalls[0].mimeType).toBe("video/mp4");
+    expect(kie.provider.endpointCalls.at(-1)).toMatchObject({
+      model: "gemini-omni-video",
+      input: expect.objectContaining({
         video_list: [{ url: "https://cdn.example.com/source.mp4", start: 2, ends: 7 }]
-      }),
-      8000,
-      450,
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    );
+      })
+    });
   });
 
   it("submits wired audio_ids to video createTask", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: Buffer.from("video-bytes").toString("base64"),
-      items: [Buffer.from("video-bytes").toString("base64")],
-      taskId: "task_1"
-    });
 
     const NodeClass = createKieNodeClass(videoSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "Neon city";
     (node as unknown as Record<string, unknown>).duration = "8";
     (node as unknown as Record<string, unknown>).audio_ids = ["audio_abc"];
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    const kie = scriptedKie();
 
-    await node.process();
+    await node.process(kie.context);
 
-    expect(kieExecuteTask).toHaveBeenCalledWith(
-      "test-key",
-      "gemini-omni-video",
-      expect.objectContaining({
+    expect(kie.provider.endpointCalls.at(-1)).toMatchObject({
+      model: "gemini-omni-video",
+      input: expect.objectContaining({
         prompt: "Neon city",
         duration: "8",
         audio_ids: ["audio_abc"]
-      }),
-      8000,
-      450,
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    );
+      })
+    });
   });
 
   it("wraps single string into audio_ids list", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: Buffer.from("video-bytes").toString("base64"),
-      items: [Buffer.from("video-bytes").toString("base64")],
-      taskId: "task_1"
-    });
 
     const NodeClass = createKieNodeClass(videoSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "Neon city";
     (node as unknown as Record<string, unknown>).duration = "8";
     (node as unknown as Record<string, unknown>).audio_ids = "audio_abc";
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    const kie = scriptedKie();
 
-    await node.process();
+    await node.process(kie.context);
 
-    expect(kieExecuteTask).toHaveBeenCalledWith(
-      "test-key",
-      "gemini-omni-video",
-      expect.objectContaining({ audio_ids: ["audio_abc"] }),
-      8000,
-      450,
-      undefined,
-      undefined,
-      undefined,
-      undefined
-    );
+    expect(kie.provider.endpointCalls.at(-1)).toMatchObject({
+      model: "gemini-omni-video",
+      input: expect.objectContaining({ audio_ids: ["audio_abc"] })
+    });
   });
 
   it("exposes audio_ids as inputFields for graph wiring", () => {
@@ -208,29 +156,58 @@ describe("createKieNodeClass omni chaining", () => {
     });
   });
 
-  it("reports credits consumed via processing context", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: Buffer.from("video-bytes").toString("base64"),
-      items: [Buffer.from("video-bytes").toString("base64")],
-      taskId: "task_cost",
-      creditsConsumed: 9
+  it("reports the credits the provider returned, keyed by the task id", async () => {
+    const kie = scriptedKie();
+    kie.provider.scriptEndpoint("gemini-omni-video", {
+      output: {
+        code: 200,
+        data: {
+          state: "success",
+          resultJson: JSON.stringify({ resultUrls: ["https://kie.cdn.test/result.bin"] })
+        }
+      },
+      requestId: "task_cost",
+      metadata: { creditsConsumed: 9 }
     });
 
-    const setProviderCost = vi.fn();
     const NodeClass = createKieNodeClass(videoSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "Neon city";
     (node as unknown as Record<string, unknown>).duration = "8";
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
 
-    await node.process({ setProviderCost } as never);
+    await node.process(kie.context);
 
-    expect(setProviderCost).toHaveBeenCalledWith("kie", 0.045, "USD", {
+    expect(kie.context.getProviderCost()).toEqual({
+      provider: "kie",
+      amount: 0.045,
+      unit: "USD",
       billing_unit: "credits",
       quantity: 9,
       unit_price: 0.005,
       currency: "USD",
       provider_request_id: "task_cost"
+    });
+  });
+
+  it("runs through the generation seam and emits a kie prediction", async () => {
+    const kie = scriptedKie();
+    const NodeClass = createKieNodeClass(videoSpec);
+    const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
+    (node as unknown as Record<string, unknown>).prompt = "Neon city";
+    (node as unknown as Record<string, unknown>).duration = "8";
+    node.assign({ __node_id: "video-node" });
+
+    await node.process(kie.context);
+
+    const predictions = kie.context
+      .getMessages()
+      .filter((message) => message.type === "prediction");
+    expect(predictions.at(-1)).toMatchObject({
+      status: "completed",
+      provider: "kie",
+      capability: "text_to_video",
+      model: "gemini-omni-video",
+      node_id: "video-node"
     });
   });
 });
@@ -274,10 +251,6 @@ const imageSpecWithNativeNumImages: KieManifestEntry = {
 };
 
 describe("createKieNodeClass single-output", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("does not register num_images or num_outputs as declared properties", () => {
     const a = createKieNodeClass(imageSpec);
     const b = createKieNodeClass(imageSpecWithNativeNumImages);
@@ -293,39 +266,29 @@ describe("createKieNodeClass single-output", () => {
     expect(NodeClass.outputCorrelation).toBeUndefined();
   });
 
-  it("process() returns a single image and calls kieExecuteTask once", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: "AAAA",
-      items: ["AAAA", "BBBB", "CCCC"],
-      taskId: "t"
-    });
+  it("process() returns a single image from one endpoint call", async () => {
 
     const NodeClass = createKieNodeClass(imageSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "a cat";
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    const kie = scriptedKie();
 
-    const result = await node.process();
+    const result = await node.process(kie.context);
     expect((result as { output: { type: string } }).output.type).toBe("image");
-    expect(kieExecuteTask).toHaveBeenCalledTimes(1);
+    expect(kie.provider.endpointCalls).toHaveLength(1);
   });
 
   it("forces num_images=1 when the manifest defines a native num_images field", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: "AAAA",
-      items: ["AAAA"],
-      taskId: "t"
-    });
 
     const NodeClass = createKieNodeClass(imageSpecWithNativeNumImages);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "a cat";
     // Even if a stale value is set, the factory ignores it and pins to 1.
     (node as unknown as Record<string, unknown>).num_images = "4";
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    const kie = scriptedKie();
 
-    await node.process();
-    const params = vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<string, unknown>;
+    await node.process(kie.context);
+    const params = kie.provider.endpointCalls.at(-1)!.input;
     expect(params.num_images).toBe("1");
   });
 });
@@ -348,25 +311,16 @@ const valueListSpec: KieManifestEntry = {
 };
 
 describe("createKieNodeClass value lists", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   const runWith = async (values: Record<string, unknown>) => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: "AAAA",
-      items: ["AAAA"],
-      taskId: "t"
-    });
     const NodeClass = createKieNodeClass(valueListSpec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     Object.assign(node as unknown as Record<string, unknown>, {
       prompt: "a fox",
       ...values
     });
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
-    await node.process();
-    return vi.mocked(kieExecuteTask).mock.calls[0][2] as Record<string, unknown>;
+    const kie = scriptedKie();
+    await node.process(kie.context);
+    return kie.provider.endpointCalls.at(-1)!.input;
   };
 
   it("sends object and number lists by value instead of stringifying them", async () => {
@@ -411,11 +365,6 @@ describe("createKieNodeClass value lists", () => {
   });
 
   it("omits a zero its field's minimum forbids and keeps a zero it allows", async () => {
-    vi.mocked(kieExecuteTask).mockResolvedValue({
-      data: "AAAA",
-      items: ["AAAA"],
-      taskId: "t"
-    });
     const spec: KieManifestEntry = {
       className: "ZeroVideo",
       moduleName: "video",
@@ -434,11 +383,11 @@ describe("createKieNodeClass value lists", () => {
     const NodeClass = createKieNodeClass(spec);
     const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
     (node as unknown as Record<string, unknown>).prompt = "a red cube";
-    node.setDynamic("_secrets", { KIE_API_KEY: "test" });
+    const kie = scriptedKie();
 
-    await node.process();
+    await node.process(kie.context);
 
-    const params = vi.mocked(kieExecuteTask).mock.calls.at(-1)![2];
+    const params = kie.provider.endpointCalls.at(-1)!.input;
     expect(params).toEqual({ prompt: "a red cube", seed: 0 });
   });
 });

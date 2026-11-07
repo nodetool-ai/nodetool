@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
     const output = run('cmake', args);
     assert.doesNotMatch(output, /Warning \(dev\)/);
     const expected = [...readdirSync(path.join(directory, 'qml'), { recursive: true })
-      .filter(file => /\.(qml|js)$/.test(file) && !file.split(path.sep).includes('tests')).map(file => `qml/${file}`), 'src/app/PanelSlot.qml'].sort();
+      .filter(file => /\.(qml|js)$/.test(file) && !file.split(path.sep).includes('tests')).map(file => `qml/${file.split(path.sep).join("/")}`), 'src/app/PanelSlot.qml'].sort();
     // The shared module keeps the complete discovered resource list for every host.
     for (const target of ['timeline_qml']) {
       const resources = readFileSync(path.join(build, '.qt', 'rcc', `${target}_raw_qml_0.qrc`), 'utf8');
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
       assert.deepEqual(aliases, expected, `${target} resources must match discovery without duplicates`);
     }
     run('cmake', ['--build', build, '--target', 'qml_probe', '-j', '2']);
-    run(path.join(build, 'qml_probe'), []);
+    run(path.join(build, process.platform === 'win32' ? 'qml_probe.exe' : 'qml_probe'), []);
     writeFileSync(path.join(qml, 'UnlistedPanel.qml'), '// nt-panel: slot=unknown id=broken order=oops\nimport QtQuick\nItem {}\n');
     const malformed = spawnSync('cmake', args, { encoding: 'utf8' });
     assert.notEqual(malformed.status, 0);

@@ -62,6 +62,24 @@ private:
         QVERIFY2(actual == static_cast<qint64>(bytes), qPrintable(diagnostic));
     }
 
+    // Writes an interrupted download to disk without a request. makePartial's real
+    // dropped GET can be replayed by Qt after fetch() returns, which pollutes the
+    // request count of a test that goes on to check its restart or resume.
+    void seedPartial(const QByteArray& path, const QString& version, qint64 size, const QByteArray& bytes,
+                     qint64 total) {
+        const QString part = cache().pathFor(QStringLiteral("a1"), QStringLiteral("original"), remote(path, version, size)) +
+                             QStringLiteral(".part");
+        QVERIFY(QDir().mkpath(QFileInfo(part).absolutePath()));
+        QFile partial(part);
+        QVERIFY(partial.open(QIODevice::WriteOnly));
+        QCOMPARE(partial.write(bytes), qint64(bytes.size()));
+        partial.close();
+        QFile totalFile(part + QStringLiteral(".total"));
+        QVERIFY(totalFile.open(QIODevice::WriteOnly));
+        const QByteArray text = QByteArray::number(total);
+        QCOMPARE(totalFile.write(text), qint64(text.size()));
+    }
+
 private slots:
     void init() {
         QVERIFY(m_dir.isValid());
@@ -140,9 +158,8 @@ private slots:
     void resumesSameVersionWithRange() {
         const QByteArray data = pattern(300000, 5);
         m_http->setFile("/r.mp4", ServedFile{data});
-        makePartial("/r.mp4", QStringLiteral("v1"), data.size(), 100000);
+        seedPartial("/r.mp4", QStringLiteral("v1"), data.size(), data.left(100000), data.size());
         if (QTest::currentTestFailed()) return;
-        m_http->clearRequests();
         int rechecks = 0;
         const FetchResult r = cache().fetch(QStringLiteral("a1"), QStringLiteral("original"),
                                             remote("/r.mp4", QStringLiteral("v1"), data.size()), [&]() {
@@ -162,13 +179,11 @@ private slots:
 
     void resumeWithChangedSizeRestartsFromZero() {
         const QByteArray v1 = pattern(300000, 6);
-        m_http->setFile("/s.mp4", ServedFile{v1});
-        makePartial("/s.mp4", QStringLiteral("v1"), v1.size(), 120000);
+        seedPartial("/s.mp4", QStringLiteral("v1"), v1.size(), v1.left(120000), v1.size());
         if (QTest::currentTestFailed()) return;
         // The asset changed on the server: a new size, so a new version.
         const QByteArray v2 = pattern(250000, 7);
         m_http->setFile("/s.mp4", ServedFile{v2});
-        m_http->clearRequests();
         const FetchResult r = cache().fetch(QStringLiteral("a1"), QStringLiteral("original"),
                                             remote("/s.mp4", QStringLiteral("v1"), v1.size()), [&]() {
                                                 return std::optional<RemoteFile>(remote("/s.mp4", QStringLiteral("v2"), v2.size()));
@@ -186,10 +201,9 @@ private slots:
     void wrongContentRangeTotalRestartsFromZero() {
         const QByteArray data = pattern(200000, 8);
         m_http->setFile("/w.mp4", ServedFile{data});
-        makePartial("/w.mp4", QStringLiteral("v1"), data.size(), 50000);
+        seedPartial("/w.mp4", QStringLiteral("v1"), data.size(), data.left(50000), data.size());
         if (QTest::currentTestFailed()) return;
         m_http->file("/w.mp4").wrongTotal = true;
-        m_http->clearRequests();
         const FetchResult r = cache().fetch(QStringLiteral("a1"), QStringLiteral("original"),
                                             remote("/w.mp4", QStringLiteral("v1"), data.size()), [&]() {
                                                 return std::optional<RemoteFile>(remote("/w.mp4", QStringLiteral("v1"), data.size()));
@@ -249,10 +263,9 @@ private slots:
         // kept, and a resume must match it.
         const QByteArray data = pattern(180000, 10);
         m_http->setFile("/p.mp4", ServedFile{data});
-        makePartial("/p.mp4", QStringLiteral("pv"), -1, 60000);
+        seedPartial("/p.mp4", QStringLiteral("pv"), -1, data.left(60000), data.size());
         if (QTest::currentTestFailed()) return;
         m_http->file("/p.mp4").wrongTotal = true;
-        m_http->clearRequests();
         const FetchResult r = cache().fetch(QStringLiteral("a1"), QStringLiteral("original"), remote("/p.mp4", QStringLiteral("pv"), -1),
                                             [&]() { return std::optional<RemoteFile>(remote("/p.mp4", QStringLiteral("pv"), -1)); });
         QVERIFY2(r.ok(), qPrintable(r.error));

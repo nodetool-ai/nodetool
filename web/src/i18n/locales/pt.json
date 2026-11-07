@@ -2292,7 +2292,10 @@
       "title": "Faça login no NodeTool Cloud",
       "description": "Descreva o que você deseja. O agente cria tudo e você pode assumir o controle em qualquer etapa.",
       "ownKeys": "Use suas próprias chaves de API e pague aos provedores de acordo com os preços de tabela.",
-      "cloudAlphaNotice": "A nuvem está em alfa. Para trabalho de produção, use"
+      "cloudAlphaNotice": "A nuvem está em alfa. Para trabalho de produção, use",
+      "ssoTitle": "Entrar no NodeTool",
+      "ssoSignIn": "Entrar com {{provider}}",
+      "ssoFailed": "Falha ao entrar ({{reason}}). Tente novamente ou peça acesso ao seu administrador."
     },
     "inspector": {
       "params": "Parâmetros",
@@ -9185,6 +9188,10 @@
           "button": "Obtenha a chave da API Cheaper Inference",
           "tooltip": "Acesse a plataforma Cheaper Inference para obter sua chave API"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Obtenha a chave da API Runcrate",
+          "tooltip": "Acesse a plataforma Runcrate para obter sua chave API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Obtenha a chave de rota da API",
           "tooltip": "Vá para a página de chaves da API Route API"
@@ -12955,7 +12962,7 @@
       "disableAll": "Desabilitar todos os nós",
       "color": "Cor do grupo",
       "removeNodesHeading": "REMOVER NÓS DO GRUPO",
-      "dragOutModifier": "Arraste enquanto segura CTRL | ⌘ chave",
+      "dragOutModifier": "Arraste para fora segurando Alt (Option ⌥ no Mac)",
       "shakeToRemove": "Agite rapidamente e depois arraste"
     }
   },

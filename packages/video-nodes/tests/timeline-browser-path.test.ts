@@ -144,6 +144,7 @@ beforeEach(() => {
   posted = [];
   renderComposited.mockReset();
   renderComposited.mockResolvedValue({
+    adapter: "mesa / llvmpipe",
     totalFrames: 120,
     skippedClips: [],
     fontsUnavailable: []
@@ -214,6 +215,7 @@ describe("RenderTimeline — fallback to the Node compositor", () => {
 
     expect(renderComposited).toHaveBeenCalledTimes(1);
     expect(out.output.metadata).toMatchObject({ render_mode: "composited" });
+    expect(logs("info")).toContain("Node/Dawn WebGPU compositor (mesa / llvmpipe)");
     expect(logs("warning")).toContain("No Chromium could be launched");
     expect(logs("warning")).toContain("Node compositor");
   });
@@ -229,5 +231,6 @@ describe("RenderTimeline — fallback to the Node compositor", () => {
     const out = await render(sequence({ clips: [videoClip()] }));
     expect(renderInBrowser).not.toHaveBeenCalled();
     expect(out.output.metadata).toMatchObject({ render_mode: "composited" });
+    expect(logs("info")).toContain("Node/Dawn WebGPU compositor (mesa / llvmpipe)");
   });
 });

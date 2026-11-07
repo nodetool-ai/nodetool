@@ -44,9 +44,35 @@ try {
     run('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `color=c=${color}:size=64x64`, '-frames:v', '1', file]);
     return file;
   });
+  const compare = path.join(root, 'scripts/compare-frame-dirs.mjs');
+  const left = path.join(dir, 'left');
+  const right = path.join(dir, 'right');
+  fs.mkdirSync(left);
+  fs.mkdirSync(right);
+  fs.copyFileSync(pictures[0], path.join(left, 'frame_000000.png'));
+  fs.copyFileSync(pictures[0], path.join(right, 'frame_000000.png'));
+  const identicalDiff = path.join(dir, 'identical-diff');
+  assert.match(run(process.execPath, [compare, left, right, identicalDiff]).stdout, /PSNR Infinity/);
+  assert.ok(fs.existsSync(path.join(identicalDiff, 'frame_000000.png')));
+  fs.copyFileSync(pictures[1], path.join(right, 'frame_000000.png'));
+  const changedDiff = path.join(dir, 'changed-diff');
+  assert.doesNotMatch(run(process.execPath, [compare, left, right, changedDiff]).stdout, /Infinity/);
+  assert.notDeepEqual(fs.readFileSync(path.join(identicalDiff, 'frame_000000.png')),
+    fs.readFileSync(path.join(changedDiff, 'frame_000000.png')));
+  fs.unlinkSync(path.join(right, 'frame_000000.png'));
+  assert.throws(() => run(process.execPath, [compare, left, right, path.join(dir, 'missing-diff')]), /Missing counterpart/);
+  assert.throws(() => run(process.execPath, [compare, right, left, path.join(dir, 'empty-diff')]), /No PNGs/);
+  console.log('Directory comparison: identical and changed frames measured; missing and empty inputs rejected');
   const value = psnr(...pictures);
   assert.throws(() => requireFrames([{ fixture: 'deliberately shifted red/blue cut', frame: 0, psnr: value }]), /PSNR .* < 40 dB/);
   console.log(`Planted shifted frame rejected: PSNR ${value} < 40 dB`);
+  assert.throws(() => requireFrames([
+    { fixture: 'first.json', frame: 150, psnr: 37.66 },
+    { fixture: 'second.json', frame: 0, psnr: 38.94 }
+  ]), error => error.message.includes('first.json frame 150')
+    && error.message.includes('second.json frame 0'));
+  assert.equal(psnrYuv(pictures[0], pictures[0], 0, 64, 64, true), Infinity);
+  assert.ok(psnrYuv(pictures[0], pictures[1], 0, 64, 64, true) < 40);
   assert.throws(() => requireFrames([]), /Compared no frames/);
   assert.throws(() => psnr(pictures[0], path.join(dir, 'missing.png')), /Missing frame/);
   requireFrames([{ fixture: 'identical', frame: 0, psnr: psnr(pictures[0], pictures[0]) }]);

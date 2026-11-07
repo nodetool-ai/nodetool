@@ -1,0 +1,31 @@
+{
+  "threads": [
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "title": "code-execution"
+    }
+  ],
+  "events": [
+    {
+      "type": "tool_call_update",
+      "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tool_call_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "name": "execute_code",
+      "args": {
+        "title": "Count scenes",
+        "code": "const scenes = [\"Opening\", \"Finale\"];\nconsole.log(scenes.length);"
+      }
+    },
+    {
+      "type": "tool_result_update",
+      "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "node_id": "",
+      "tool_call_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "name": "execute_code",
+      "result": {
+        "stdout": "2\n",
+        "result": 2
+      }
+    }
+  ]
+}

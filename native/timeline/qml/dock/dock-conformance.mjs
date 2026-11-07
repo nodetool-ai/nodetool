@@ -1,8 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { build } from 'esbuild';
 
-const root = new URL('../../../../', import.meta.url).pathname;
+const root = fileURLToPath(new URL('../../../../', import.meta.url)).replaceAll('\\', '/');
 const bundled = await build({
   stdin: { contents: `export * from '${root}/web/src/stores/timeline/TimelineDockLayout.ts'; export * from '${root}/web/src/components/dock/dockTargets.ts';`, resolveDir: root },
   bundle: true, platform: 'node', format: 'esm', write: false

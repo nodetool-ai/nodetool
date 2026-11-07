@@ -72,3 +72,5 @@ export * from "./storyboardValidation.js";
 export { stableSerialize } from "./stableSerialize.js";
 
 export * from "./storyboardDesignFrame.js";
+
+export * from "./colorSpaceVersion.js";

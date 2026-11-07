@@ -2272,7 +2272,10 @@
       "title": "Logg på NodeTool Cloud",
       "description": "Beskriv hva du ønsker. Agenten bygger den, og du kan ta over når som helst.",
       "ownKeys": "Bruk dine egne API-nøkler og betal leverandører til deres listepriser.",
-      "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk"
+      "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk",
+      "ssoTitle": "Logg inn på NodeTool",
+      "ssoSignIn": "Logg inn med {{provider}}",
+      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang."
     },
     "inspector": {
       "params": "Params",
@@ -9041,6 +9044,10 @@
           "button": "Få Cheaper Inference API-nøkkel",
           "tooltip": "Gå til Cheaper Inference-plattformen for å få API-nøkkelen din"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Få Runcrate API-nøkkel",
+          "tooltip": "Gå til Runcrate-plattformen for å få API-nøkkelen din"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Få API-rutenøkkel",
           "tooltip": "Gå til API Route API-nøkler-siden"
@@ -12756,7 +12763,7 @@
       "disableAll": "Deaktiver alle noder",
       "color": "Gruppefarge",
       "removeNodesHeading": "FJERN NODER FRA GRUPPEN",
-      "dragOutModifier": "Dra ut mens du holder CTRL | ⌘-tasten",
+      "dragOutModifier": "Dra ut mens du holder Alt (Tilvalg ⌥ på Mac)",
       "shakeToRemove": "Rist raskt, og dra deretter ut"
     }
   },

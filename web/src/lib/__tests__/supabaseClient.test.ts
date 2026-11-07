@@ -25,6 +25,7 @@ const LOCAL_CONFIG: RuntimeConfig = {
   supabaseUrl: null,
   supabaseAnonKey: null,
   authRedirectUrl: null,
+  ssoProviderName: null,
   googleWorkspace: false,
   googleScopes: [],
   version: null,

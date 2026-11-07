@@ -2272,7 +2272,10 @@
       "title": "Meld u aan bij NodeTool Cloud",
       "description": "Beschrijf wat je wilt. De agent bouwt het en jij kunt het bij elke stap overnemen.",
       "ownKeys": "Gebruik uw eigen API-sleutels en betaal providers tegen hun catalogusprijzen.",
-      "cloudAlphaNotice": "Cloud bevindt zich in alfa. Gebruik voor productiewerk"
+      "cloudAlphaNotice": "Cloud bevindt zich in alfa. Gebruik voor productiewerk",
+      "ssoTitle": "Aanmelden bij NodeTool",
+      "ssoSignIn": "Aanmelden met {{provider}}",
+      "ssoFailed": "Aanmelden mislukt ({{reason}}). Probeer het opnieuw of vraag je beheerder om toegang."
     },
     "inspector": {
       "params": "Params",
@@ -9041,6 +9044,10 @@
           "button": "Verkrijg de Cheaper Inference API-sleutel",
           "tooltip": "Ga naar het Cheaper Inference-platform om uw API-sleutel op te halen"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Verkrijg de Runcrate API-sleutel",
+          "tooltip": "Ga naar het Runcrate-platform om uw API-sleutel op te halen"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-routesleutel ophalen",
           "tooltip": "Ga naar de pagina API Route API-sleutels"
@@ -12756,7 +12763,7 @@
       "disableAll": "Schakel alle knooppunten uit",
       "color": "Groepskleur",
       "removeNodesHeading": "VERWIJDER KNOPEN UIT DE GROEP",
-      "dragOutModifier": "Sleep uit terwijl u CTRL | ingedrukt houdt ⌘ sleutel",
+      "dragOutModifier": "Sleep naar buiten terwijl je Alt ingedrukt houdt (Option ⌥ op Mac)",
       "shakeToRemove": "Schud snel en sleep vervolgens naar buiten"
     }
   },

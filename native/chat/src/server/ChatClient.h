@@ -2,8 +2,10 @@
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QObject>
+#include <QTemporaryDir>
 #include <QWebSocket>
 #include <functional>
+#include <memory>
 namespace nt::chat {
 class ChatClient : public QObject {
   Q_OBJECT
@@ -16,6 +18,7 @@ public:
   void upload(const QString &id, const QUrl &, Callback,
               std::function<void(qint64, qint64)> progress);
   void cancelUpload(const QString &id);
+  void openMedia(const QUrl &, Callback);
   void fetchMedia(const QUrl &, Callback);
   bool send(const QJsonObject &);
   bool ready() const { return m_ready; }
@@ -28,6 +31,7 @@ signals:
   void errorOccurred(QString error);
 
 private:
+  std::unique_ptr<QTemporaryDir> m_mediaFiles;
   QNetworkAccessManager m_network;
   QWebSocket m_socket;
   QUrl m_base;

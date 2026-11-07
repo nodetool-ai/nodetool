@@ -38,10 +38,21 @@ pkg-config --exists lame openh264 opus vpx || {
 codec_cflags="$(pkg-config --cflags lame openh264 opus vpx) -I$(pkg-config --variable=includedir lame)"
 codec_ldflags=$(pkg-config --libs-only-L lame openh264 opus vpx)
 tarball="$root/ffmpeg-$version.tar.xz"
+# ffmpeg.org goes down at times. The checksum below holds for either source.
+sources=(
+    "https://ffmpeg.org/releases/ffmpeg-$version.tar.xz"
+    "https://ftp.osuosl.org/pub/blfs/conglomeration/ffmpeg/ffmpeg-$version.tar.xz"
+)
 if [[ ! -f "$tarball" ]]; then
-    curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 180 \
-        -o "$tarball.part" "https://ffmpeg.org/releases/ffmpeg-$version.tar.xz"
-    mv "$tarball.part" "$tarball"
+    for source in "${sources[@]}"; do
+        if curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 60 --connect-timeout 20 \
+            -o "$tarball.part" "$source"; then
+            mv "$tarball.part" "$tarball"
+            break
+        fi
+        echo "warning: could not download $source" >&2
+    done
+    [[ -f "$tarball" ]] || { echo "error: no FFmpeg source could be downloaded" >&2; exit 1; }
 fi
 echo "$sha256  $tarball" | shasum -a 256 -c -
 tar xf "$tarball" -C "$root/src"

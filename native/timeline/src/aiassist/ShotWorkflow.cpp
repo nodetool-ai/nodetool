@@ -107,7 +107,12 @@ QVariantList ShotWorkflow::candidates(const QJsonObject& board, const QString& s
 }
 bool ShotWorkflow::checkpoint() {
     if (!m_target || !QDir().mkpath(m_target->backupDir)) { return false; }
-    if (m_checkpoint.isEmpty()) { m_checkpoint = QDir(m_target->backupDir).filePath("shot-render-" + m_requestId + ".json"); }
+    if (m_checkpoint.isEmpty()) {
+        // Request identities contain colons. Keep the identity in the journal,
+        // and use a bounded, filesystem-safe digest for its filename.
+        const auto key = QCryptographicHash::hash(m_requestId.toUtf8(), QCryptographicHash::Sha256).toHex();
+        m_checkpoint = QDir(m_target->backupDir).filePath("shot-render-" + QString::fromLatin1(key) + ".json");
+    }
     QSaveFile file(m_checkpoint);
     const auto bytes = QJsonDocument(QJsonObject{{"board", m_board}, {"shotId", m_shotId}, {"kind", m_kind}, {"request", m_request}, {"renderInputs", m_renderInputs}, {"requestId", m_requestId}, {"candidate", m_candidate}, {"requests", m_requests}, {"productionCandidates", m_productionCandidates}, {"requestIndex", m_requestIndex}, {"dispatched", m_dispatched}, {"stopQueue", m_stopQueue}}).toJson(QJsonDocument::Compact);
     return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() && file.commit();

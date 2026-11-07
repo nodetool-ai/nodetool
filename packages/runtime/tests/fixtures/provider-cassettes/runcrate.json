@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "interactions": [
+    {
+      "hash": "be4a15aa921e9753a5ba59e51ee29c072e5c67209c7b1d44d15b2df46ea2c279",
+      "method": "generateMessages",
+      "request": {
+        "model": "contract-test-model",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Say hello in exactly one word."
+          }
+        ]
+      },
+      "response": [
+        {
+          "type": "chunk",
+          "content": "Hello",
+          "content_type": "text"
+        },
+        {
+          "type": "chunk",
+          "content": "",
+          "done": true,
+          "content_type": "text"
+        }
+      ],
+      "usage": {
+        "inputTokens": 12,
+        "outputTokens": 2,
+        "cachedTokens": 0
+      }
+    },
+    {
+      "hash": "2b2df92cde99f46dbd524bf9efbd8e56649f71fb9b0f41bfa4a74419da6e7a6a",
+      "method": "generateMessage",
+      "request": {
+        "model": "contract-test-model",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Say hello in exactly one word."
+          }
+        ]
+      },
+      "response": {
+        "role": "assistant",
+        "content": "Hello"
+      },
+      "usage": {
+        "inputTokens": 12,
+        "outputTokens": 2,
+        "cachedTokens": 0
+      }
+    },
+    {
+      "hash": "70f95fcfee608c7f0d4d76d2eb533c02e39e1603fd0d1f03c0546e42542987de",
+      "method": "generateMessages",
+      "request": {
+        "model": "contract-test-model-error-429",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Say hello in exactly one word."
+          }
+        ]
+      },
+      "response": [],
+      "error": {
+        "message": "429 Too Many Requests",
+        "status": 429
+      }
+    },
+    {
+      "hash": "a18556f55e88e5e15285a7192f4f32249caab8ae4071a94899537a11d2abc0c1",
+      "method": "generateMessages",
+      "request": {
+        "model": "contract-test-model-error-401",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Say hello in exactly one word."
+          }
+        ]
+      },
+      "response": [],
+      "error": {
+        "message": "401 Unauthorized",
+        "status": 401
+      }
+    }
+  ]
+}

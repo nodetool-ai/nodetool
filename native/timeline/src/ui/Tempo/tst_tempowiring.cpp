@@ -275,20 +275,23 @@ private slots:
         QTRY_VERIFY(!initialFrame.isEmpty());
         auto* toolbar = item("timelineToolbar");
         QVERIFY(toolbar);
-        const double overflow = qMax(
-            select->mapToItem(region, {select->width(), 0}).x() - region->width(),
-            toolbar->property("rowWidth").toDouble() - toolbar->property("available").toDouble());
-        if (overflow > 0) {
-            view->resize(view->width() + qCeil(overflow) + 100, view->height());
-        }
+        // Keep the production narrow layout: the tool row scrolls beside
+        // the fixed zoom controls when the window cannot fit every tool.
+        view->resize(1028, view->height());
         view->requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(view.get()));
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
         QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
         view->update();
         QTRY_VERIFY(!frame.isEmpty());
-        QVERIFY2(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble(),
-            "The popup fixture must fit both toolbar groups before clicking");
+        auto* viewport = item("timelineToolViewport");
+        QVERIFY(viewport);
+        QVERIFY(viewport->width() >= select->width());
+        const auto right = select->mapToItem(viewport, {select->width(), 0}).x();
+        const auto contentX = viewport->property("contentX").toDouble();
+        QVERIFY(viewport->setProperty("contentX", qMax(0.0, contentX + right - viewport->width())));
+        QTRY_VERIFY(select->mapToItem(viewport, {0, 0}).x() >= 0);
+        QTRY_VERIFY(select->mapToItem(viewport, {select->width(), 0}).x() <= viewport->width());
         const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
         for (auto* parent = select; parent; parent = parent->parentItem()) {
             if (parent->clip()) {

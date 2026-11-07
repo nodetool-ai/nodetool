@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "NodeTool Server Authentication"
-description: "How the NodeTool server decides who a request is: Supabase mode, Local mode, access tokens, and the trust settings for proxies and Docker."
+description: "How the NodeTool server decides who a request is: Supabase mode, SSO mode, Local mode, access tokens, and the trust settings for proxies and Docker."
 ---
 
 See [API Reference](api-reference.md) for a matrix of endpoints, auth requirements, and streaming behavior.
@@ -9,7 +9,7 @@ For environment variable defaults and precedence, see the [Configuration Guide](
 
 ## Quick Start
 
-The server picks its mode from the environment. When **both** `SUPABASE_URL` and `SUPABASE_KEY` are set, it runs in **Supabase mode** and enforces authentication on every non-public request. Otherwise it runs in **Local mode**: loopback connections are trusted and run as user `"1"`, and non-loopback requests are rejected with `401` unless they come from a network listed in `NODETOOL_TRUST_LOCAL_NETWORKS` or carry a valid access token.
+The server picks its mode from the environment. When **both** `SUPABASE_URL` and `SUPABASE_KEY` are set, it runs in **Supabase mode** and enforces authentication on every non-public request. When **both** `OIDC_ISSUER` and `OIDC_CLIENT_ID` are set, it runs in **SSO mode**: users sign in through your own OpenID Connect identity provider, and authentication is enforced the same way. The server refuses to start with both configured. Otherwise it runs in **Local mode**: loopback connections are trusted and run as user `"1"`, and non-loopback requests are rejected with `401` unless they come from a network listed in `NODETOOL_TRUST_LOCAL_NETWORKS` or carry a valid access token.
 
 ```bash
 # Local mode: loopback trusted
@@ -19,15 +19,23 @@ nodetool serve
 export SUPABASE_URL=https://your-project.supabase.co
 export SUPABASE_KEY=your-service-role-key
 nodetool serve
+
+# SSO mode: sign in through your identity provider
+export OIDC_ISSUER=https://idp.example.com/realms/acme
+export OIDC_CLIENT_ID=nodetool
+export OIDC_CLIENT_SECRET=...
+export NODETOOL_PUBLIC_URL=https://nodetool.example.com
+nodetool serve
 ```
 
 ---
 
 ## Authentication Modes
 
-The server does not read an `AUTH_PROVIDER` variable. The mode comes only from the presence of both Supabase variables (`packages/websocket/src/server.ts`).
+The server does not read an `AUTH_PROVIDER` variable. The mode comes only from the presence of both Supabase variables or both OIDC variables (`packages/websocket/src/server.ts`).
 
 - **Supabase mode.** The server validates a Supabase JWT on every non-public request, over HTTP and WebSocket.
+- **SSO mode.** The server runs the OpenID Connect sign-in itself and validates its own `nts_` session token on every non-public request. See [Single Sign-On (OIDC)](#single-sign-on-oidc).
 - **Local mode.** `LocalAuthProvider` maps requests to user `"1"`. Loopback connections bypass auth (gated by `NODETOOL_TRUST_LOCALHOST`). Other sources are rejected with `401` unless a trust rule, a valid access token, or the `SERVER_AUTH_TOKEN` bearer token applies.
 
 > `AUTH_PROVIDER` is only written into deployed-container environments by the `@nodetool-ai/deploy` tooling. The server itself never branches on it.
@@ -69,12 +77,13 @@ The server recognizes these credentials. Prefixed tokens are checked before the 
 | Token | Prefix | Works on | Notes |
 |---|---|---|---|
 | Supabase JWT | none | Everything | Supabase mode only. |
+| SSO session token | `nts_` | Everything | SSO mode only. Minted by the server after an OIDC sign-in. Expires after `OIDC_SESSION_TTL_SECONDS`. |
 | Access token | `ntk_` | Everything, in every mode | Minted by a signed-in person for an agent or MCP client. Revocable. A failed check falls through to the mode's rules. |
 | MCP OAuth access token | `nta_` | `/mcp` only | Issued by the MCP OAuth flow. Presented anywhere else, or after the server was rehosted, it is refused with `invalid_token`. See [MCP production](mcp-production.md). |
 | App session token | `nda_` | `/ws` only | Issued to a visitor of a deployed mini app. Confined to that one app. A failed check is refused, never retried against other providers. |
 | Delegated token | none | Everything, as the linked user | Used by messaging bridges. Enabled only when `NODETOOL_INTEGRATION_TOKEN` is set to 16 or more characters. |
 
-Delegated and app session tokens are signed with keys derived from the master key, so rotating `SECRETS_MASTER_KEY` revokes every outstanding one.
+Delegated, app session, and SSO session tokens are signed with keys derived from the master key, so rotating `SECRETS_MASTER_KEY` revokes every outstanding one.
 
 ---
 
@@ -88,6 +97,7 @@ These paths skip session auth. They are still covered by the per-IP rate limiter
 - `GET /api/assets/packages` and `/api/assets/packages/*`
 - `GET /api/workflows/public`, `/api/workflows/public/:id`, `/api/workflows/examples`, and `/api/workflows/examples/*`
 - `GET /api/oauth/hf/callback` and `GET /api/oauth/github/callback`
+- `GET /api/auth/oidc/login` and `GET /api/auth/oidc/callback`, the two browser hops of an SSO sign-in (SSO mode only)
 - `/api/webhooks/*`, `/api/kie/webhook*`, `POST /api/providers/fal/webhook/:token`, and `POST /api/providers/atlascloud/webhook`. These verify their own secret or signature.
 - `/api/integrations/*`. Each handler requires `NODETOOL_INTEGRATION_TOKEN`.
 - `GET /api/apps/:token` and `POST /api/apps/:token/session`, the deployed mini app routes (production only).
@@ -157,7 +167,74 @@ function saveAuthConfig(config: Record<string, unknown>): void;  // file mode 06
 
 The token is stored as `server_auth_token` in `~/.config/nodetool/deployment.yaml` (the path is built from the home directory on every platform, including Windows).
 
-**The running server does not call these helpers.** Setting `SERVER_AUTH_TOKEN` or creating `deployment.yaml` does not protect the API. The only gates are Supabase mode, the trust settings below, and `ntk_` access tokens. To protect a self-hosted server, use Supabase mode.
+**The running server does not call these helpers.** Setting `SERVER_AUTH_TOKEN` or creating `deployment.yaml` does not protect the API. The only gates are Supabase mode, SSO mode, the trust settings below, and `ntk_` access tokens. To protect a self-hosted server, use SSO mode or Supabase mode.
+
+---
+
+## Single Sign-On (OIDC)
+
+SSO mode lets a self-hosted server sign people in through an identity provider you already run: Keycloak, Authentik, Okta, Microsoft Entra ID, Google Workspace, Auth0, Dex, or any other OpenID Connect provider. Nobody needs a Supabase project.
+
+The server is the OIDC client. It uses the authorization code flow with PKCE and a nonce, verifies the ID token's signature against the provider's published keys (asymmetric algorithms only), and checks its issuer, audience, expiry, nonce, and `azp`. It then mints an `nts_` session token, which the web app sends as its bearer token on HTTP and WebSocket requests.
+
+SAML is not built in. Providers that only speak SAML can sit behind an OIDC bridge such as Keycloak or Dex.
+
+### Setting it up
+
+1. Register NodeTool as a client (an "application") in your identity provider. Use the authorization code grant. Set the redirect URI to `https://<your NodeTool address>/api/auth/oidc/callback`.
+2. Set the variables below on the NodeTool server and restart it.
+3. Open NodeTool. The login screen shows **Sign in with** followed by `OIDC_PROVIDER_NAME`.
+
+| Variable | Required | Effect |
+|---|---|---|
+| `OIDC_ISSUER` | yes | Issuer URL. The server reads `<issuer>/.well-known/openid-configuration`, and the `issuer` in that document must match. Must be `https`, except on `localhost`. |
+| `OIDC_CLIENT_ID` | yes | Client ID registered with the provider. ID tokens must name it as their audience. |
+| `OIDC_CLIENT_SECRET` | no | Client secret for a confidential client. Sent with `client_secret_basic`, or with `client_secret_post` when the provider supports only that. Unset, the server acts as a public client that relies on PKCE. |
+| `NODETOOL_PUBLIC_URL` | one of these two | The address users open NodeTool at. The redirect URI is this plus `/api/auth/oidc/callback`, and the browser lands on this address after sign-in. |
+| `OIDC_REDIRECT_URL` | one of these two | The full callback URL, when it cannot be derived from `NODETOOL_PUBLIC_URL`. |
+| `AUTH_REDIRECT_URL` | no | Where the browser lands after sign-in, when the web app is served from another address than the API, such as the Vite dev server. |
+| `OIDC_SCOPES` | no | Space- or comma-separated scopes. Default `openid email profile`. `openid` is always added. |
+| `OIDC_PROVIDER_NAME` | no | Label on the sign-in button. Default `SSO`. |
+| `OIDC_ALLOWED_DOMAINS` | no | Comma-separated email domains allowed to sign in. Requires an `email` claim whose `email_verified` is not `false`. |
+| `OIDC_ALLOWED_GROUPS` | no | Comma-separated groups allowed to sign in. A user needs at least one. |
+| `OIDC_GROUPS_CLAIM` | no | Claim holding the groups. Default `groups`. A dotted path reads a nested claim, such as `realm_access.roles` for Keycloak realm roles. Most providers include groups only when asked, through a scope or a client mapper. |
+| `OIDC_SESSION_TTL_SECONDS` | no | Session lifetime, from 300 to 2592000. Default 43200 (12 hours). |
+
+A partial or invalid configuration stops the server at boot with a message naming the missing variable, so a server meant to enforce SSO never comes up open.
+
+```bash
+# Keycloak realm "acme", only members of the nodetool-users realm role
+OIDC_ISSUER=https://keycloak.example.com/realms/acme
+OIDC_CLIENT_ID=nodetool
+OIDC_CLIENT_SECRET=...
+OIDC_PROVIDER_NAME=Acme SSO
+OIDC_ALLOWED_GROUPS=nodetool-users
+OIDC_GROUPS_CLAIM=realm_access.roles
+NODETOOL_PUBLIC_URL=https://nodetool.example.com
+```
+
+### Users, sessions, and admins
+
+Each person's NodeTool user ID is the first 32 hexadecimal characters of SHA-256 over the issuer and their `sub` claim. It stays the same across sign-ins and never changes when their email or name does. A different issuer gives the same person a different ID, so changing `OIDC_ISSUER` starts everyone with an empty library.
+
+The server logs `SSO sign-in` with the user ID and email at each sign-in. To make someone an admin, add that user ID to `ADMIN_USER_IDS`.
+
+A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt. A user removed from the identity provider keeps access until their session expires. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
+
+Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
+
+### Sign-in failures
+
+A refused sign-in returns to the login screen with a reason code. The server log holds the detail.
+
+| Code | Meaning |
+|---|---|
+| `not_allowed` | The user is outside `OIDC_ALLOWED_DOMAINS` or `OIDC_ALLOWED_GROUPS`. |
+| `access_denied` | The user or the provider declined the sign-in. |
+| `invalid_state` | The sign-in took longer than 10 minutes, or was finished in another browser or tab. Starting over fixes it. |
+| `invalid_id_token` | The ID token failed verification: wrong audience, issuer, nonce, or signature. Check `OIDC_CLIENT_ID` and `OIDC_ISSUER`. |
+| `token_exchange_failed` | The provider refused the authorization code. Check `OIDC_CLIENT_SECRET` and the registered redirect URI. |
+| `provider_unavailable` | The server could not reach the provider's discovery document or token endpoint. |
 
 ---
 
@@ -256,7 +333,7 @@ clients, scripts) are unaffected.
 
 ## Security Hardening
 
-- Production: enable Supabase mode by setting `SUPABASE_URL` and `SUPABASE_KEY`, terminate TLS in front of all non-public endpoints, and rotate Supabase service-role keys via your secrets manager.
+- Production: enable SSO mode (`OIDC_ISSUER` and `OIDC_CLIENT_ID`) or Supabase mode (`SUPABASE_URL` and `SUPABASE_KEY`), terminate TLS in front of all non-public endpoints, and rotate Supabase service-role keys via your secrets manager.
 - Localhost trust: keep `NODETOOL_TRUST_LOCALHOST` off in any reverse-proxied or containerized deployment, and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`.
 - Staging: keep asset buckets private or signed, and run workflows in subprocess or Docker isolation.
 - Development: restrict Local mode to isolated machines and avoid storing real secrets in `.env.development`.

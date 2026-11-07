@@ -16,8 +16,12 @@
         "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer",
-        "NT_SANITIZE": "address,undefined"
-      }
+        "NT_SANITIZE": "address,undefined",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -gline-tables-only -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -gline-tables-only -DNDEBUG"
+      },
+      "description": "Keep function names and source lines for sanitizer reports without full variable/type debug information."
     },
     {
       "name": "tsan",
@@ -29,8 +33,12 @@
         "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer",
-        "NT_SANITIZE": "thread"
-      }
+        "NT_SANITIZE": "thread",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_C_FLAGS_RELWITHDEBINFO": "-O2 -gline-tables-only -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -gline-tables-only -DNDEBUG"
+      },
+      "description": "Keep function names and source lines for sanitizer reports without full variable/type debug information."
     },
     {
       "name": "fuzz",

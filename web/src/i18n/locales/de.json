@@ -2272,7 +2272,10 @@
       "title": "Bei NodeTool Cloud anmelden",
       "description": "Beschreibe, was du möchtest. Der Agent erstellt es, und du kannst jederzeit übernehmen.",
       "ownKeys": "Verwende deine eigenen API-Schlüssel und zahle den Listenpreis der Anbieter.",
-      "cloudAlphaNotice": "Cloud befindet sich in der Alpha-Phase. Für den produktiven Einsatz verwende"
+      "cloudAlphaNotice": "Cloud befindet sich in der Alpha-Phase. Für den produktiven Einsatz verwende",
+      "ssoTitle": "Bei NodeTool anmelden",
+      "ssoSignIn": "Mit {{provider}} anmelden",
+      "ssoFailed": "Anmeldung fehlgeschlagen ({{reason}}). Versuche es erneut oder bitte deine Administration um Zugriff."
     },
     "inspector": {
       "params": "Parameter",
@@ -12760,7 +12763,7 @@
       "disableAll": "Alle Knoten deaktivieren",
       "color": "Gruppenfarbe",
       "removeNodesHeading": "KNOTEN AUS GRUPPE ENTFERNEN",
-      "dragOutModifier": "Mit gedrückter STRG- | ⌘-Taste herausziehen",
+      "dragOutModifier": "Zum Herausziehen Alt gedrückt halten (Option ⌥ auf dem Mac)",
       "shakeToRemove": "Schnell schütteln und dann herausziehen"
     }
   },

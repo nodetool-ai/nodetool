@@ -2292,7 +2292,10 @@
       "title": "Connectez-vous à NodeTool Cloud",
       "description": "Décrivez ce que vous voulez. L'agent le construit et vous pouvez prendre le relais à tout moment.",
       "ownKeys": "Utilisez vos propres clés API et payez les fournisseurs aux prix catalogue.",
-      "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez"
+      "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez",
+      "ssoTitle": "Connexion à NodeTool",
+      "ssoSignIn": "Se connecter avec {{provider}}",
+      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur."
     },
     "inspector": {
       "params": "Paramètres",
@@ -9185,6 +9188,10 @@
           "button": "Obtenir la clé API Cheaper Inference",
           "tooltip": "Accédez à la plateforme Cheaper Inference pour obtenir votre clé API"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Obtenir la clé API Runcrate",
+          "tooltip": "Accédez à la plateforme Runcrate pour obtenir votre clé API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Obtenir la clé de route API",
           "tooltip": "Accédez à la page Clés API API Route"
@@ -12955,7 +12962,7 @@
       "disableAll": "Désactiver tous les nœuds",
       "color": "Couleur du groupe",
       "removeNodesHeading": "SUPPRIMER LES NŒUDS DU GROUPE",
-      "dragOutModifier": "Faites glisser tout en maintenant CTRL | ⌘ clé",
+      "dragOutModifier": "Faites glisser hors du groupe en maintenant Alt (Option ⌥ sur Mac)",
       "shakeToRemove": "Secouez rapidement, puis faites glisser"
     }
   },

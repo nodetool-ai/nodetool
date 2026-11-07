@@ -2,7 +2,7 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
-#include "platform/SanitizerBuild.h"
+#include "platform/CpuUsage.h"
 #include <QFile>
 #include <QJSValue>
 #include <QQmlContext>
@@ -10,9 +10,6 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
-#include <algorithm>
-#include <ctime>
-#include <vector>
 #include <QtQuickTest/quicktest.h>
 
 class KeyframeUiSetup : public QObject {
@@ -46,27 +43,21 @@ class KeyframeUiSetup : public QObject {
         m_model.undoStack()->clear();
         m_clock.seek(0);
     }
-    // The median CPU time of `count` steps, each followed by a full frame: bindings, polish,
+    // The mean CPU time of `count` steps, each followed by a full frame: bindings, polish,
     // sync and a render into a read-back image, which is more than a frame on screen costs.
     // CPU time, because agents and CI share the machine, and wall time follows their load.
-    Q_INVOKABLE double medianFrameMs(QQuickItem* item, QJSValue step, int count) {
-        std::vector<double> samples;
+    // The mean, because Windows' clock moves in 15.6 ms ticks, so a median of short frames reads 0.
+    Q_INVOKABLE double meanFrameMs(QQuickItem* item, QJSValue step, int count) {
+        // MSVC std::clock measures elapsed time, including frame waits.
+        const auto start = nt::cpu::processNs();
         for (int i = 0; i < count; ++i) {
-            const auto start = std::clock();
             step.call({i});
             QCoreApplication::processEvents();
             item->window()->grabWindow();
-            samples.push_back(1000.0 * static_cast<double>(std::clock() - start) / CLOCKS_PER_SEC);
         }
-        std::nth_element(samples.begin(), samples.begin() + count / 2, samples.end());
-        return samples[static_cast<size_t>(count) / 2];
-    }
-    Q_INVOKABLE bool sanitized() const {
-#ifdef NT_SANITIZED
-        return true;
-#else
-        return false;
-#endif
+        const auto end = nt::cpu::processNs();
+        if (start < 0 || end < start) { qFatal("Cannot measure process CPU time"); }
+        return static_cast<double>(end - start) / 1000000.0 / count;
     }
     Q_INVOKABLE int undoCount() const { return m_model.undoStack()->count(); }
     Q_INVOKABLE QString documentJson() const { return QString::fromUtf8(m_model.documentJson()); }

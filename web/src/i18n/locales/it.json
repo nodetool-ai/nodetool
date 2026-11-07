@@ -2292,7 +2292,10 @@
       "title": "Accedi a NodeTool Cloud",
       "description": "Descrivi quello che vuoi. L'agente lo costruisce e tu puoi subentrare in qualsiasi momento.",
       "ownKeys": "Utilizza le tue chiavi API e paga i fornitori ai loro prezzi di listino.",
-      "cloudAlphaNotice": "Cloud è in alfa. Per lavori di produzione, utilizzare"
+      "cloudAlphaNotice": "Cloud è in alfa. Per lavori di produzione, utilizzare",
+      "ssoTitle": "Accedi a NodeTool",
+      "ssoSignIn": "Accedi con {{provider}}",
+      "ssoFailed": "Accesso non riuscito ({{reason}}). Riprova o chiedi l'accesso al tuo amministratore."
     },
     "inspector": {
       "params": "Param",
@@ -9185,6 +9188,10 @@
           "button": "Ottieni la chiave API Cheaper Inference",
           "tooltip": "Vai alla piattaforma Cheaper Inference per ottenere la tua chiave API"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Ottieni la chiave API Runcrate",
+          "tooltip": "Vai alla piattaforma Runcrate per ottenere la tua chiave API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Ottieni la chiave del percorso API",
           "tooltip": "Vai alla pagina delle chiavi API del percorso API"
@@ -12955,7 +12962,7 @@
       "disableAll": "Disabilita tutti i nodi",
       "color": "Colore del gruppo",
       "removeNodesHeading": "RIMUOVERE I NODI DAL GRUPPO",
-      "dragOutModifier": "Trascina verso l'esterno tenendo premuto CTRL | ⌘ chiave",
+      "dragOutModifier": "Trascina fuori tenendo premuto Alt (Opzione ⌥ su Mac)",
       "shakeToRemove": "Agitare rapidamente, quindi trascinare"
     }
   },

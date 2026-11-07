@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -67,7 +68,7 @@ export function psnr(a, b) {
 // own `timeline render` MP4 measures 34.9 dB against its RGB stills on
 // media-tracks frame 0). The golden still is therefore converted to that
 // format and compared plane by plane with the decoded frame.
-export function psnrYuv(still, movie, frame, width, height) {
+export function psnrYuv(still, movie, frame, width, height, movieIsStill = false) {
   assert.ok(fs.existsSync(still), `Missing frame ${still}`);
   const dir = fs.mkdtempSync(path.join(scratchBase, "nt-export-yuv-"));
   try {
@@ -75,7 +76,10 @@ export function psnrYuv(still, movie, frame, width, height) {
     const decoded = path.join(dir, "decoded.yuv");
     run("ffmpeg", ["-v", "error", "-y", "-i", still, "-vf",
       `scale=${width}:${height}:out_color_matrix=bt709:out_range=tv,format=yuv420p`, "-f", "rawvideo", golden]);
-    run("ffmpeg", ["-v", "error", "-y", "-i", movie, "-vf", `select=eq(n\\,${frame})`, "-frames:v", "1",
+    const decodedFilter = movieIsStill
+      ? `scale=${width}:${height}:out_color_matrix=bt709:out_range=tv,format=yuv420p`
+      : `select=eq(n\\,${frame})`;
+    run("ffmpeg", ["-v", "error", "-y", "-i", movie, "-vf", decodedFilter, "-frames:v", "1",
       "-f", "rawvideo", "-pix_fmt", "yuv420p", decoded]);
     assert.equal(fs.statSync(decoded).size, (width * height * 3) / 2, `Missing frame ${frame} in ${movie}`);
     const raw = ["-f", "rawvideo", "-pix_fmt", "yuv420p", "-s", `${width}x${height}`];
@@ -90,9 +94,9 @@ export function psnrYuv(still, movie, frame, width, height) {
 }
 export function requireFrames(rows) {
   assert.ok(rows.length > 0, "Compared no frames");
-  for (const row of rows) {
-    assert.ok(row.psnr >= 40, `${row.fixture} frame ${row.frame}: PSNR ${row.psnr} < 40 dB`);
-  }
+  const failed = rows.filter(row => !(row.psnr >= 40));
+  assert.equal(failed.length, 0, failed.map(row =>
+    `${row.fixture} frame ${row.frame}: PSNR ${row.psnr} < 40 dB`).join("\n"));
 }
 const knownUnsupported = {
   'video-rejections.json': 'D10a placeholders, preview stills also below 40 dB'
@@ -138,6 +142,7 @@ function golden() {
   const out = fs.mkdtempSync(path.join(scratchBase, "nt-export-golden-"));
   let goldOut = out;
   const rows = [];
+  let diagnostics;
   const unmet = [];
   try {
     const goldenBase = goldenOutputBase(bin);
@@ -162,7 +167,12 @@ function golden() {
         continue;
       }
       const movie = path.join(out, `${name}.mp4`);
-      exportFile(fixture, movie);
+      const exported = run(bin, [fixture, "--export", movie, "--format", "mp4", "--json"]);
+      const exportResult = JSON.parse(exported.stdout);
+      console.log(JSON.stringify({ fixture: name, export: exportResult }));
+      // Keep backend and encoder diagnostics that successful child runs used to discard.
+      process.stdout.write(exported.stderr.split("\n")
+        .filter(line => !line.startsWith("export-progress ")).join("\n"));
       const gold = path.join(goldOut, `${name}-gold`);
       const goldenResult = spawnSync("node", [path.join(root, "scripts/golden-import.mjs"), fixture,
         "--frames", frames.join(","), "--out", gold], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
@@ -170,6 +180,8 @@ function golden() {
         `${name}: golden-import failed\n${goldenResult.stderr}${goldenResult.error ?? ''}`);
       const probe = JSON.parse(run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_streams",
         "-of", "json", movie]).stdout).streams[0];
+      console.log(JSON.stringify({ fixture: name, stream: probe }));
+      const failedFrames = [];
       for (const frame of frames) {
         const index = frame + (args.includes("--shift-frame") ? 1 : 0);
         const still = path.join(gold, "stills", `frame_${String(frame).padStart(6, "0")}.png`);
@@ -177,6 +189,55 @@ function golden() {
         const row = { fixture: name, frame, psnr: value };
         console.log(JSON.stringify({ ...row, psnr: Number.isFinite(value) ? value : "inf" }));
         rows.push(row);
+        if (!(value >= 40)) { failedFrames.push(frame); }
+      }
+      if (failedFrames.length > 0) {
+        // Retain only failures, outside the temporary folders cleaned below.
+        const artifactBase = path.join(scratchBase, "export-golden-failures");
+        fs.mkdirSync(artifactBase, { recursive: true });
+        diagnostics ??= fs.mkdtempSync(path.join(artifactBase, "run-"));
+        const fixtureOut = path.join(diagnostics, path.basename(name, ".json"));
+        const retainedGolden = path.join(fixtureOut, "golden");
+        fs.mkdirSync(retainedGolden, { recursive: true });
+        for (const frame of failedFrames) {
+          const file = `frame_${String(frame).padStart(6, "0")}.png`;
+          fs.copyFileSync(path.join(gold, "stills", file), path.join(retainedGolden, file));
+        }
+        fs.writeFileSync(path.join(fixtureOut, "failures.json"), JSON.stringify({
+          platform: process.platform,
+          frames: rows.filter(row => row.fixture === name && failedFrames.includes(row.frame)),
+          sources: doc.clips.filter(clip => clip.mediaPath).map(clip => ({
+            path: clip.mediaPath,
+            sha256: createHash("sha256").update(fs.readFileSync(path.resolve(path.dirname(fixture), clip.mediaPath))).digest("hex")
+          }))
+        }, null, 2));
+        fs.writeFileSync(path.join(fixtureOut, "golden.log"), goldenResult.stdout + goldenResult.stderr);
+        console.log(`export_golden diagnostics: ${fixtureOut}`);
+        const native = path.join(fixtureOut, "native");
+        // The same compositor without H.264: separate rendering disagreement
+        // from export conversion/encoding loss, in the same 4:2:0 metric.
+        const capture = spawnSync(bin, [fixture, "--stills", native, "--still-frames",
+          failedFrames.join(","), "--decode", "sw"], { encoding: "utf8", maxBuffer: 128 * 1024 * 1024 });
+        fs.writeFileSync(path.join(fixtureOut, "native.log"), capture.stdout + capture.stderr);
+        if (capture.status !== 0) {
+          console.log(JSON.stringify({ fixture: name, diagnosticError: capture.stderr,
+            error: capture.error?.message, status: capture.status }));
+        } else {
+          try {
+            for (const frame of failedFrames) {
+              const file = `frame_${String(frame).padStart(6, "0")}.png`;
+              const still = path.join(native, file);
+              const previewGolden = psnrYuv(path.join(gold, "stills", file), still, 0, probe.width, probe.height, true);
+              const exportPreview = psnrYuv(still, movie, frame, probe.width, probe.height);
+              const printable = value => Number.isFinite(value) ? value : "inf";
+              console.log(JSON.stringify({ fixture: name, frame,
+                nativeVsGoldenYuv: printable(previewGolden), exportVsNativeYuv: printable(exportPreview) }));
+            }
+          } catch (error) {
+            console.log(JSON.stringify({ fixture: name, diagnosticError: error.message }));
+          }
+        }
+
       }
       fs.rmSync(movie, { force: true });
       fs.rmSync(gold, { recursive: true, force: true });

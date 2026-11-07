@@ -60,7 +60,7 @@ category = "chrome"
 controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField"]
 signals = []
 test_host = "node native/chat/scripts/check.mjs"
-test_scope = "build/import"
+test_scope = "interaction"
 qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Surface, Ui.TextField"
 
@@ -3444,3 +3444,13 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Effects panel"
 reason = "A row both drags onto a clip and adds on double-click, as a library tile does"
+
+[[file]]
+path = "native/timeline/qml/UnsupportedColorVersion.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "tst_colorspaceversion"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Theme and Metrics"

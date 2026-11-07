@@ -30,6 +30,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const maskApplyV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "mask.apply",
   version: 1,
   // Promoted in Phase 3 Batch 1: the canonical "apply a mask" op; pairs with
@@ -62,18 +63,18 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       },
       mask: {
-        colorSpace: "linear",
+        colorSpace: "data",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

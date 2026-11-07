@@ -2272,7 +2272,10 @@
       "title": "Sign in to NodeTool Cloud",
       "description": "Describe what you want. The agent builds it, and you can take over at any step.",
       "ownKeys": "Use your own API keys and pay providers at their list prices.",
-      "cloudAlphaNotice": "Cloud is in alpha. For production work, use"
+      "cloudAlphaNotice": "Cloud is in alpha. For production work, use",
+      "ssoTitle": "Sign in to NodeTool",
+      "ssoSignIn": "Sign in with {{provider}}",
+      "ssoFailed": "Sign-in failed ({{reason}}). Try again, or ask your administrator for access."
     },
     "inspector": {
       "params": "Params",
@@ -12760,7 +12763,7 @@
       "disableAll": "Disable all nodes",
       "color": "Group color",
       "removeNodesHeading": "REMOVE NODES FROM GROUP",
-      "dragOutModifier": "Drag out while holding CTRL | ⌘ key",
+      "dragOutModifier": "Drag out while holding Alt (Option ⌥ on Mac)",
       "shakeToRemove": "Shake rapidly, then drag out"
     }
   },

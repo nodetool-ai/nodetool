@@ -1,7 +1,19 @@
 import { BaseNode, isRecord, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { loadMediaRefBytes, type MediaRefValue } from "@nodetool-ai/runtime";
-import { getElevenLabsApiKey } from "../elevenlabs-base.js";
+import { callElevenLabs } from "../elevenlabs-base.js";
+
+/** Form fields of POST /v1/speech-to-text, in the order they are sent. */
+type SpeechToTextFields = {
+  model_id: string;
+  file: { bytes: Uint8Array; mimeType: string; filename: string };
+  language_code: string | undefined;
+  tag_audio_events: string;
+  num_speakers: string | undefined;
+  timestamps_granularity: string;
+  diarize: string;
+  file_format: string;
+};
 
 /** Output handles SpeechToTextNode.process() emits. */
 type SpeechToTextNodeOutputs = {
@@ -110,8 +122,6 @@ export class SpeechToTextNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<SpeechToTextNodeOutputs> {
-    const apiKey = getElevenLabsApiKey(this._secrets);
-
     const audio: MediaRefValue | undefined = this.audio;
     if (!isRecord(audio)) {
       throw new Error("Audio input is required");
@@ -135,45 +145,26 @@ export class SpeechToTextNode extends BaseNode {
     if (!resolved) {
       throw new Error("Failed to resolve audio input for transcription");
     }
-    const audioBytes = Buffer.from(resolved);
+    // Multipart fields in the order the API has always received them. The
+    // provider sends no field for an undefined value.
+    const fields: SpeechToTextFields = {
+      model_id: modelId,
+      file: { bytes: resolved, mimeType: "audio/wav", filename: "audio.wav" },
+      language_code: languageCode || undefined,
+      tag_audio_events: String(tagAudioEvents).toLowerCase(),
+      num_speakers: numSpeakers > 0 ? String(numSpeakers) : undefined,
+      timestamps_granularity: timestampsGranularity,
+      diarize: String(diarize).toLowerCase(),
+      file_format: fileFormat
+    };
 
-    const formData = new FormData();
-    formData.append("model_id", modelId);
-    formData.append(
-      "file",
-      new Blob([new Uint8Array(audioBytes)], { type: "audio/wav" }),
-      "audio.wav"
-    );
-
-    if (languageCode) {
-      formData.append("language_code", languageCode);
-    }
-
-    formData.append("tag_audio_events", String(tagAudioEvents).toLowerCase());
-
-    if (numSpeakers > 0) {
-      formData.append("num_speakers", String(numSpeakers));
-    }
-
-    formData.append("timestamps_granularity", timestampsGranularity);
-    formData.append("diarize", String(diarize).toLowerCase());
-    formData.append("file_format", fileFormat);
-
-    const response = await fetch(
-      "https://api.elevenlabs.io/v1/speech-to-text",
-      {
-        method: "POST",
-        headers: { "xi-api-key": apiKey },
-        body: formData
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`ElevenLabs API error: ${errorText}`);
-    }
-
-    const result: unknown = await response.json();
+    const { output: result } = await callElevenLabs(context, {
+      capability: "automatic_speech_recognition",
+      model: modelId,
+      route: "speech-to-text",
+      input: fields,
+      nodeId: this.__node_id
+    });
     if (!isRecord(result)) {
       throw new Error("ElevenLabs API returned a non-object transcription");
     }

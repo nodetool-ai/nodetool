@@ -1022,7 +1022,7 @@ export const createNodeStore = (
             nodeUpdate: Partial<Node<NodeData>>
           ): void => {
             // Check if this is only a selection change. `selectable` is
-            // toggled by groups while Ctrl/Cmd is held, which is not an edit.
+            // toggled by groups while Alt/Option is held, which is not an edit.
             const isOnlySelectionChange = Object.keys(nodeUpdate).every(
               (key) => key === "selected" || key === "selectable"
             );

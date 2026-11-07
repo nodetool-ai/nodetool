@@ -72,6 +72,7 @@ function nodetoolStubPlugin(): Plugin {
 
 // Tests that need real workspace packages run without the stub plugin.
 const realPackageTests = [
+  "src/commands/__tests__/timeline-colorSpaceVersion.test.ts",
   "src/commands/__tests__/timeline-render-audio.test.ts",
   "src/commands/__tests__/timeline-render-completeness.test.ts"
 ];

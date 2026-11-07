@@ -924,6 +924,10 @@ void FfmpegDecoder::run() {
         const auto fmt = static_cast<AVPixelFormat>(frm->format);
         const AVColorSpace cs =
             frm->colorspace != AVCOL_SPC_UNSPECIFIED ? frm->colorspace : s.o.stream->codecpar->color_space;
+        const auto trc = frm->color_trc != AVCOL_TRC_UNSPECIFIED
+            ? frm->color_trc : s.o.stream->codecpar->color_trc;
+        const char* transfer = av_color_transfer_name(trc);
+        out->transfer = trc != AVCOL_TRC_UNSPECIFIED && transfer ? transfer : "unknown";
         const bool full = frm->color_range == AVCOL_RANGE_JPEG || fmt == AV_PIX_FMT_YUVJ420P;
         if (static_cast<int>(fmt) == hw::pixelFormat()) {
             // Zero copy: the frame keeps its CVPixelBuffer; the render thread
@@ -1001,6 +1005,7 @@ void FfmpegDecoder::run() {
                 cached->layout = PlaneLayout::Nv12;
                 cached->matrix = out->matrix;
                 cached->range = out->range;
+                cached->transfer = out->transfer;
                 cached->width = out->width;
                 cached->height = out->height;
                 cached->hardware = cached->frame->format == hw::pixelFormat();
@@ -1155,6 +1160,7 @@ LayerFrame FfmpegSource::frameAt(const FrameContext& ctx, double sourceTimeMs) {
         out.size = m_texSize;
     }
     out.colorMatrix = yuvToRgbMatrix(shown->matrix, shown->range);
+    out.transfer = shown->transfer;
     out.ptsSec = shown->ptsSec;
     if (const auto facts = m_decoder->facts()) {
         out.frameRate = facts->frameRate;

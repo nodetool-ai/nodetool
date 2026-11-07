@@ -546,6 +546,12 @@ nodes — with no ComfyUI graph involved.
   does not convert them to a cost record yet.
 - **Open weights**: these are partner APIs. For an open-weights run, use a
   ComfyUI graph with open models through the nodes above.
+- `comfy-router-manifest.ts` lists the sizes, aspect ratios, resolutions and
+  durations each model accepts. `npm run generate:comfy-manifest` builds it from
+  the OpenAPI documents, including limits that only a field description states.
+  A request takes the model's spelling, a size fits its pixel area, and a value
+  the model does not accept is dropped with a warning. Model pickers offer the
+  same lists. A field in `unparsed` is not constrained.
 
 ---
 

@@ -9,6 +9,7 @@ import {
   isPublicGamePlayRequest,
   isPublicMcpOauthAsRequest,
   isPublicOAuthRequest,
+  isPublicOidcAuthRequest,
   isPublicSharedWorkflowRequest,
   isPublicWorkflowMetadataRequest,
   isPublicAuthExemptRoute,
@@ -122,6 +123,28 @@ describe("isPublicOAuthRequest", () => {
     ]) {
       expect(isPublicOAuthRequest(path)).toBe(false);
     }
+  });
+});
+
+describe("isPublicOidcAuthRequest", () => {
+  it("exempts the two GET hops of an SSO sign-in", () => {
+    expect(isPublicOidcAuthRequest("/api/auth/oidc/login", "GET")).toBe(true);
+    expect(isPublicOidcAuthRequest("/api/auth/oidc/callback", "GET")).toBe(true);
+    expect(isPublicAuthExemptRoute("/api/auth/oidc/callback", "GET")).toBe(true);
+  });
+
+  it("exempts nothing else under the prefix, and no other method", () => {
+    for (const path of [
+      "/api/auth/oidc",
+      "/api/auth/oidc/",
+      "/api/auth/oidc/login/extra",
+      "/api/auth/oidc/session",
+      "/api/auth/other"
+    ]) {
+      expect(isPublicOidcAuthRequest(path, "GET")).toBe(false);
+      expect(isPublicAuthExemptRoute(path, "GET")).toBe(false);
+    }
+    expect(isPublicOidcAuthRequest("/api/auth/oidc/callback", "POST")).toBe(false);
   });
 });
 

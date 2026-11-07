@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import type { FrameSourceWindow } from "@nodetool-ai/timeline/render";
 import { hasTemporalDenoise, denoiseSourceTimes } from "@nodetool-ai/timeline/scene";
 /**
@@ -44,6 +45,7 @@ import type {
 } from "@nodetool-ai/timeline";
 
 import type { CompositeLayer } from "../preview/gpu/types";
+import { sourceDimensions } from "../preview/gpu/source";
 import type { CompositorBackend } from "../preview/gpu/createCompositor";
 import {
   accumulateBlurSample,
@@ -129,6 +131,7 @@ export interface RenderSink {
 }
 
 interface RenderTimelineOptions {
+  workingColorSpaceVersion?: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   mediaTracks?: MediaTrack[];
@@ -323,6 +326,7 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 export async function renderTimeline(
   opts: RenderTimelineOptions
 ): Promise<RenderResult> {
+  assertTimelineColorSpaceSupported(opts);
   const { tracks, clips, fps, durationMs, resolveUrl, signal, onProgress } =
     opts;
 
@@ -691,9 +695,7 @@ export async function renderTimeline(
               layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs),
               signal
             );
-            const width = decoded instanceof HTMLVideoElement
-              ? decoded.videoWidth
-              : decoded.width;
+            const { width } = sourceDimensions(decoded);
             if (width === 0) return null;
             if (layer.clip.mediaType !== "video" || !hasTemporalDenoise(anim.effects ?? layer.effects)) return {source: decoded};
             const times = denoiseSourceTimes(layer.clip, clipSourceTimeSec(layer.clip, layerTimeMs) * 1000);

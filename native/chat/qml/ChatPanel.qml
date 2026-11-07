@@ -19,62 +19,74 @@ Item {
         variant: Ui.Surface.Canvas
         visible: !root.embedded
     }
-    ColumnLayout {
+    Flickable {
+        id: viewport
+        objectName: "chatWidthViewport"
         anchors.fill: parent
-        spacing: Ui.Metrics.none
-        Ui.EditorButton {
-            Layout.alignment: Qt.AlignRight
-            Layout.margins: Ui.Metrics.md
-            variant: Ui.EditorButton.Flat
-            text: qsTr("Reconnect")
-            visible: !!root.session && root.session.connectionStatus === "disconnected" && root.session.selectedThreadId.length > 0
-            onClicked: root.session.resumeConnection()
-        }
-        Ui.Text {
-            role: Ui.Typography.SansLabel
-            Layout.fillWidth: true
-            Layout.margins: Ui.Metrics.md
-            visible: text.length > 0
-            text: root.session ? root.session.error : ""
-            tone: Ui.Text.Error
-            wrapMode: Text.WordWrap
-            Accessible.role: Accessible.AlertMessage
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+        clip: true
+        contentWidth: Math.max(width, ChatMetrics.minimumContentWidth)
+        contentHeight: height
+        flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.horizontal: Ui.ScrollBar { policy: viewport.contentWidth > viewport.width ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff }
+        ColumnLayout {
+            width: viewport.contentWidth
+            height: viewport.height
             spacing: Ui.Metrics.none
-            Loader {
-                Layout.preferredWidth: ChatMetrics.sidebar
-                Layout.fillHeight: true
-                active: !root.embedded && !root.narrow
-                visible: active
-                sourceComponent: ThreadList { session: root.session }
+            Ui.EditorButton {
+                Layout.alignment: Qt.AlignRight
+                Layout.margins: Ui.Metrics.md
+                variant: Ui.EditorButton.Flat
+                text: qsTr("Reconnect")
+                visible: !!root.session && root.session.connectionStatus === "disconnected" && root.session.selectedThreadId.length > 0
+                onClicked: root.session.resumeConnection()
             }
-            Ui.Separator {
-                Layout.fillHeight: true
-                visible: !root.embedded && !root.narrow
-                orientation: Qt.Vertical
+            Ui.Text {
+                role: Ui.Typography.SansLabel
+                Layout.fillWidth: true
+                Layout.margins: Ui.Metrics.md
+                visible: text.length > 0
+                text: root.session ? root.session.error : ""
+                tone: Ui.Text.Error
+                wrapMode: Text.WordWrap
+                Accessible.role: Accessible.AlertMessage
             }
-            Item {
+            RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                ConversationView {
-                    id: conversation
-                    anchors.fill: parent
-                    visible: !root.embedded && !root.narrow || !root.threadPickerActive
-                    session: root.session
-                    scrollPositions: root.scrollPositions
-                    showBack: root.narrow
-                    embedded: root.embedded
-                    onBackRequested: root.threadPickerActive = true
-                }
+                spacing: Ui.Metrics.none
                 Loader {
-                    anchors.fill: parent
-                    active: !root.embedded && root.narrow && root.threadPickerActive
-                    sourceComponent: ThreadList {
+                    Layout.preferredWidth: ChatMetrics.sidebar
+                    Layout.fillHeight: true
+                    active: !root.embedded && !root.narrow
+                    visible: active
+                    sourceComponent: ThreadList { session: root.session }
+                }
+                Ui.Separator {
+                    Layout.fillHeight: true
+                    visible: !root.embedded && !root.narrow
+                    orientation: Qt.Vertical
+                }
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    ConversationView {
+                        id: conversation
+                        anchors.fill: parent
+                        visible: !root.embedded && !root.narrow || !root.threadPickerActive
                         session: root.session
-                        onThreadOpened: root.threadPickerActive = false
+                        scrollPositions: root.scrollPositions
+                        showBack: root.narrow
+                        embedded: root.embedded
+                        onBackRequested: root.threadPickerActive = true
+                    }
+                    Loader {
+                        anchors.fill: parent
+                        active: !root.embedded && root.narrow && root.threadPickerActive
+                        sourceComponent: ThreadList {
+                            session: root.session
+                            onThreadOpened: root.threadPickerActive = false
+                        }
                     }
                 }
             }

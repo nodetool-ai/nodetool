@@ -36,6 +36,7 @@ it("bounds precision loss through two inverse GPU Levels passes", async () => {
     const values = Array.from({length: width}, (_, x) => result[x * 4]!);
     const distinct = new Set(values).size;
     const maximumError = Math.max(...values.map((value, x) => Math.abs(value - x)));
+    // RGBA8 remains the production floor. The FP16 proof is in precisionBenefit.test.ts.
     expect(distinct).toBeGreaterThanOrEqual(192);
     expect(maximumError).toBeLessThanOrEqual(11);
     expect(values.every((value, x) => x === 0 || value >= values[x - 1]!)).toBe(true);

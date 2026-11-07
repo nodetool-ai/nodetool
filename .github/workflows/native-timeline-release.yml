@@ -1,0 +1,165 @@
+name: Native timeline release
+
+on:
+  push:
+    tags: ['timeline-v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timeline-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  QT_VERSION: '6.12.0'
+  NT_NO_HW_DECODE: '1'
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      app_version: ${{ steps.version.outputs.app_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^timeline-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          python3 native/timeline/scripts/release-version.py "$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  package:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: macos-arm64
+          - os: windows-2022
+            platform: windows-x64
+          - os: ubuntu-24.04
+            platform: linux-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      APP_VERSION: ${{ needs.version.outputs.app_version }}
+      # Not PLATFORM: the Visual Studio shell sets that to x64 on Windows.
+      RELEASE_PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: .nvmrc
+          # A release must not restore a cache another run could have written.
+          package-manager-cache: false
+      - name: Set temporary paths
+        run: |
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+          echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          mkdir -p release-assets
+          if [[ "$RUNNER_OS" == macOS ]]; then test "$(uname -m)" = arm64; fi
+      - uses: ./.github/actions/setup-native-timeline
+      # Release packaging builds only the app once per platform. The full test
+      # suite belongs to native-timeline.yml, to bound runtime and runner disk use.
+      - name: Build app (Windows and Linux)
+        if: runner.os != 'macOS'
+        run: |
+          cmake -S native/timeline -B native/timeline/build-ci -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+          bash .github/scripts/disk-usage.sh cmake --build native/timeline/build-ci --target nodetool-timeline --parallel 3
+      - name: Package and verify macOS
+        if: runner.os == 'macOS'
+        run: |
+          native/timeline/scripts/package-macos.sh
+          native/timeline/scripts/make-fixtures.sh
+          # Use the same built app for the existing parity check: no second build.
+          DEV_BIN='build-package/nodetool-timeline.app/Contents/MacOS/nodetool-timeline' native/timeline/scripts/check-package-macos.sh
+          # Future signing and notarization belongs here, before archiving.
+          ditto -c -k --sequesterRsrc --keepParent 'native/timeline/build-package/NodeTool Timeline.app' "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          mkdir "$RUNNER_TEMP/release-extracted"
+          ditto -x -k "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" "$RUNNER_TEMP/release-extracted"
+          python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/NodeTool Timeline.app/Contents/MacOS/nodetool-timeline" \
+            --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
+      - name: Package and verify Windows
+        if: runner.os == 'Windows'
+        run: |
+          bash native/timeline/scripts/package-windows.sh
+          # Future Windows signing belongs here, before archiving.
+          7z a "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" ./native/timeline/build-ci/package-windows/*
+          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          python native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/nodetool-timeline.exe" \
+            --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
+      - name: Package and verify Linux
+        if: runner.os == 'Linux'
+        run: |
+          bash native/timeline/scripts/package-linux.sh
+          # Future Linux package signing belongs here.
+          images=(./*.AppImage)
+          [[ ${#images[@]} == 1 ]]
+          mv "${images[0]}" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
+          image="$GITHUB_WORKSPACE/release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
+          chmod +x "$image"
+          mkdir "$RUNNER_TEMP/release-extracted"
+          (cd "$RUNNER_TEMP/release-extracted" && "$image" --appimage-extract)
+          xvfb-run -a python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/squashfs-root/AppRun" \
+            --package "$RUNNER_TEMP/release-extracted/squashfs-root" --version "$APP_VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: timeline-${{ matrix.platform }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish:
+    needs: [version, package]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: timeline-*
+          merge-multiple: true
+          path: release-assets
+      - name: Check assets and write checksums
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd release-assets
+          files=("nodetool-timeline-$VERSION-macos-arm64.zip" "nodetool-timeline-$VERSION-windows-x64.zip" "nodetool-timeline-$VERSION-linux-x64.AppImage")
+          for file in "${files[@]}"; do test -s "$file"; done
+          sha256sum "${files[@]}" > SHA256SUMS.txt
+      - name: Create draft prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Fail if a release already exists. Never modify a published release.
+          gh release create "$TAG" --verify-tag --draft --prerelease \
+            --title "NodeTool Timeline $TAG (unsigned)" \
+            --notes 'These standalone builds are unsigned and are not notarized. A person must review and publish this draft.
+
+          macOS: extract the ZIP, then right-click NodeTool Timeline.app and choose Open. If Gatekeeper still blocks it, remove quarantine with: xattr -dr com.apple.quarantine "/path/to/NodeTool Timeline.app".
+
+          Windows: extract the ZIP and run nodetool-timeline.exe. In SmartScreen choose More info, then Run anyway.
+
+          Linux: run chmod +x nodetool-timeline-*-linux-x64.AppImage, then launch the AppImage. A FUSE installation may be needed, or use --appimage-extract-and-run.
+
+          Verify the download against SHA256SUMS.txt before opening it.' \
+            release-assets/*

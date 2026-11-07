@@ -238,6 +238,9 @@ private:
     bool decideCanvas();
 
 
+#ifdef NT_SCENE_PRECISION_TEST
+    decltype(PreviewCompositor::workingObserver) m_workingObserver;
+#endif
     QRhi* m_rhi = nullptr;
     QShader m_vs;
     QShader m_fs;
@@ -246,6 +249,9 @@ private:
     bool m_vbufUploaded = false;
 
     // Offscreen canvas at the sequence resolution.
+    nt::WorkingFormat m_workingFormat = nt::WorkingFormat::Rgba8;
+    QRhiTexture::Format workingTextureFormat() const { return m_workingFormat == nt::WorkingFormat::Rgba16F ? QRhiTexture::RGBA16F : QRhiTexture::RGBA8; }
+    nt::LayerFrame::Format workingFrameFormat() const { return m_workingFormat == nt::WorkingFormat::Rgba16F ? nt::LayerFrame::Format::Rgba16FPremultiplied : nt::LayerFrame::Format::Rgba8Premultiplied; }
     QSize m_canvasSize;
     std::unique_ptr<QRhiTexture> m_canvas;
     std::unique_ptr<QRhiTextureRenderTarget> m_canvasRt;
@@ -268,6 +274,7 @@ private:
     std::unique_ptr<QRhiBuffer> m_blitUbuf;
     std::unique_ptr<QRhiShaderResourceBindings> m_blitSrb;
     std::unique_ptr<QRhiGraphicsPipeline> m_blitPipeline;
+    std::unique_ptr<QRhiGraphicsPipeline> m_presentationPipeline;
     std::unique_ptr<QRhiGraphicsPipeline> m_monitorPipeline;
 
     // Declared before the sources and the pool, so it is destroyed after
@@ -277,7 +284,7 @@ private:
     std::map<std::pair<std::string, std::string>, SourceEntry> m_sources;
     nt::SourcePool m_pool;
     // Budget: NT_SURFACE_BUDGET_MIB, else 512 MiB (D35).
-    nt::SurfacePool<Surface> m_surfaces{[this](QSize size) { return makeSurface(size); }, surfaceBudgetBytes()};
+    nt::SurfacePool<Surface> m_surfaces{[this](QSize size, nt::WorkingFormat) { return makeSurface(size); }, surfaceBudgetBytes()};
 
     // Snapshot from synchronize() (D8).
     std::shared_ptr<const nt::Timeline> m_timeline;
@@ -437,6 +444,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_interop.reset();
         m_layerPipeline.reset();
         m_blitPipeline.reset();
+        m_presentationPipeline.reset();
         m_monitorPipeline.reset();
         m_blitSrb.reset();
         m_blitUbuf.reset();
@@ -473,10 +481,15 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
 
 void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     auto* item = static_cast<PreviewCompositor*>(rhiItem);
+#ifdef NT_SCENE_PRECISION_TEST
+    m_workingObserver = item->workingObserver;
+#endif
     m_canvasRegion = item->m_canvasRegion;
     m_itemSize = item->size();
     item->m_lastCanvasSize = m_canvasSize;
     item->m_frameSettled = m_lastFrameSettled;
+    const bool workingFormatChanged = m_workingFormat != item->m_workingFormat;
+    m_workingFormat = item->m_workingFormat;
     item->m_monitorPipelineCreated = bool(m_monitorPipeline);
     // Hand the frames rendered since the last sync to the GUI side.
     item->m_framesRendered = m_frame;
@@ -536,7 +549,8 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_previousValid = false;
         return;
     }
-    if (m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration()) {
+    const bool sourceChanged = m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration();
+    if (sourceChanged) {
         for (auto it = m_sources.begin(); it != m_sources.end();) {
             if (it->second.registered) {
                 retireSource(it->second);
@@ -565,11 +579,19 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     // The canvas holds the other clear's pixels, so a held frame must not reuse it.
     if (clearChanged) { m_previousValid = false; m_hasCompletedCanvas = false; m_canvasDrawn = false; }
     const auto seekSerial = item->m_clock ? item->m_clock->seekSerial() : 0;
+    if (m_workingFormat == nt::WorkingFormat::Rgba16F &&
+        (sourceChanged || workingFormatChanged || seekSerial != m_blurSeekSerial)) {
+        m_previousValid = false;
+        m_hasCompletedCanvas = false;
+        m_canvasDrawn = false;
+        m_blurFrameTime = -1;
+        m_blurComplete = false;
+    }
     const double rate = item->m_clock ? item->m_clock->rate() : 1;
     const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
     const bool transportChanged = seekSerial != m_blurSeekSerial || m_playing != m_blurPlaying || rate != m_blurRate;
     const bool nextTime = clockTime != m_blurFrameTime && (!m_playing || m_blurComplete || m_tapTimes.size() <= 1);
-    if (clearChanged || transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
+    if (workingFormatChanged || (sourceChanged && m_workingFormat == nt::WorkingFormat::Rgba16F) || clearChanged || transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
         m_blurFrameTime = clockTime;
         m_blurRevision = m_timeline->revision;
         m_blurSeekSerial = seekSerial;
@@ -654,7 +676,7 @@ std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QR
 }
 
 void PreviewCompositorRenderer::ensureCanvas() {
-    if (m_canvas && m_canvasSize == m_wantedCanvas) {
+    if (m_canvas && m_canvasSize == m_wantedCanvas && m_canvas->format() == workingTextureFormat()) {
         return;
     }
     m_previousSrb.reset(); m_previousRt.reset(); m_previousCanvas.reset(); m_previousValid = false; m_blurFailed = false;
@@ -667,7 +689,7 @@ void PreviewCompositorRenderer::ensureCanvas() {
     m_canvasRp.reset();
     m_canvasSize = m_wantedCanvas;
     // UsedAsTransferSource: stills read the canvas back (QRhi requires the flag).
-    m_canvas.reset(m_rhi->newTexture(QRhiTexture::RGBA8, m_canvasSize, 1,
+    m_canvas.reset(m_rhi->newTexture(workingTextureFormat(), m_canvasSize, 1,
                                      QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
     if (!m_canvas->create()) qFatal("canvas texture create failed");
     m_canvasRt.reset(m_rhi->newTextureRenderTarget({m_canvas.get()}));
@@ -701,11 +723,11 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
     auto s = std::make_unique<Surface>();
     s->retire = &m_retire;
     s->frame = &m_frame;
-    s->texture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, size, 1,
+    s->texture.reset(m_rhi->newTexture(workingTextureFormat(), size, 1,
                                      QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
     if (!s->texture->create()) return nullptr;
     s->rt.reset(m_rhi->newTextureRenderTarget({s->texture.get()}));
-    // The canvas's pass descriptor: same single RGBA8 attachment, so the
+    // The canvas's pass descriptor: same single working-format attachment, so the
     // layer pipeline draws into a surface as into the canvas.
     s->rt->setRenderPassDescriptor(m_canvasRp.get());
     if (!s->rt->create()) return nullptr;
@@ -727,6 +749,10 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
 }
 
 void PreviewCompositorRenderer::ensureBlitPipeline() {
+    if (m_workingFormat == nt::WorkingFormat::Rgba16F && !m_presentationPipeline) {
+        const auto shader = loadShader(QStringLiteral(":/shaders/monitorview.frag.qsb"));
+        m_presentationPipeline = makePipeline(renderTarget()->renderPassDescriptor(), false, false, &shader);
+    }
     if ((m_alphaDisplay || m_transparencyGrid) && !m_monitorPipeline) {
         const auto shader = loadShader(QStringLiteral(":/shaders/monitorview.frag.qsb"));
         m_monitorPipeline = makePipeline(renderTarget()->renderPassDescriptor(), false, false, &shader);
@@ -779,7 +805,7 @@ bool PreviewCompositorRenderer::ensureBlur() {
         QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, m_canvas.get(), m_sampler.get()),
     });
     if (!m_foldSrb->create()) return fail("cannot create motion blur fold bindings");
-    m_previousCanvas.reset(m_rhi->newTexture(QRhiTexture::RGBA8, m_canvasSize, 1, QRhiTexture::RenderTarget));
+    m_previousCanvas.reset(m_rhi->newTexture(workingTextureFormat(), m_canvasSize, 1, QRhiTexture::RenderTarget));
     if (!m_previousCanvas->create()) return fail("cannot create previous canvas texture");
     m_previousRt.reset(m_rhi->newTextureRenderTarget({m_previousCanvas.get()}));
     m_previousRt->setRenderPassDescriptor(m_canvasRp.get());
@@ -1004,13 +1030,13 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 return {};
             }
             const QSize outputSize{int(width), int(height)};
-            auto* output = m_surfaces.acquire(outputSize, m_frame);
+            auto* output = m_surfaces.acquire(outputSize, m_frame, m_workingFormat);
             if (!output) {
                 resourceFailed("cannot allocate an effect surface");
                 return {};
             }
             passes.push_back({stage.get(), input, output, ext, sources});
-            input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+            input.format = workingFrameFormat();
             input.planes = {output->texture.get(), nullptr, nullptr};
             input.flipV = m_rhi->isYUpInFramebuffer();
             input.size = outputSize;
@@ -1018,7 +1044,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         }
         return input;
     };
-    const nt::EffectContext effectContext{m_rhi, cb, m_frame, &m_retire};
+    const nt::EffectContext effectContext{m_rhi, cb, m_frame, &m_retire, nullptr, m_workingFormat};
     const auto renderEffects = [&](const std::vector<EffectPass>& passes) {
         for (const auto& pass : passes) {
             auto context = effectContext;
@@ -1164,7 +1190,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 }
                 allExact = allExact && sourceFrame.exact;
                 if (sourceFrame.format != nt::LayerFrame::Format::Rgba8Premultiplied) {
-                    auto* converted = m_surfaces.acquire(sourceFrame.size, m_frame);
+                    auto* converted = m_surfaces.acquire(sourceFrame.size, m_frame, m_workingFormat);
                     auto& entry = m_sources[std::pair{id, std::string{}}];
                     if (!converted || !bindFrame(entry, sourceFrame, id)) {
                         if (!converted) { resourceFailed("cannot allocate a second-source conversion surface"); }
@@ -1181,7 +1207,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                     u.sourceTexelSize[1] = 1.0f / sourceFrame.size.height();
                     updates->updateDynamicBuffer(entry.ubuf.get(), 0, sizeof(u), &u);
                     sourceConversions.push_back({converted, entry.srb.get()});
-                    sourceFrame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+                    sourceFrame.format = workingFrameFormat();
                     sourceFrame.planes = {converted->texture.get(), nullptr, nullptr};
                     sourceFrame.flipV = m_rhi->isYUpInFramebuffer();
                 }
@@ -1202,7 +1228,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             for (const float value : sampleRect) { rect.append(value); }
             effectExt.insert("effectSourceRect", rect);
             const auto crop = nt::effects::cropPixels(effectExt, originalSize);
-            auto* cropped = m_surfaces.acquire(crop.size(), m_frame);
+            auto* cropped = m_surfaces.acquire(crop.size(), m_frame, m_workingFormat);
             if (!cropped) {
                 resourceFailed("cannot allocate a cropped effect input");
                 continue;
@@ -1234,7 +1260,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                                        float(crop.width()) / originalSize.width(), float(crop.height()) / originalSize.height()};
             updates->updateDynamicBuffer(cropped->ubuf.get(), 0, sizeof(cropUniforms), &cropUniforms);
             sourceConversions.push_back({cropped, cropped->inputSrb.get()});
-            frame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+            frame.format = workingFrameFormat();
             frame.planes = {cropped->texture.get(), nullptr, nullptr};
             frame.flipV = m_rhi->isYUpInFramebuffer();
             frame.size = crop.size();
@@ -1295,6 +1321,9 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         u.mode = modeFor(frame.format);
         if (frame.format == nt::LayerFrame::Format::Rgba8Premultiplied) {
             u.mode = 3.0f;  // leaf placement filters the web's straight RGBA8 boundary
+        } else if (m_workingFormat == nt::WorkingFormat::Rgba16F &&
+                   frame.format == nt::LayerFrame::Format::Rgba16FPremultiplied) {
+            u.mode = 4.0f;  // preserve leaf filtering without a byte boundary after float effects
         }
         const auto reveal = layer.mask ? layer.mask : layer.transition ? layer.transition->mask : std::nullopt;
         const auto wipe = nt::motion::wipeUniforms(reveal, {sourceWidth, sourceHeight}, outset);
@@ -1304,9 +1333,9 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         if (isMatteSource) {
             matteBindings[&layer] = e.srb.get();
         } else if (useMatte) {
-            auto* placedLayer = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* placedMatte = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* placedLayer = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* placedMatte = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* output = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
             if (!placedLayer || !placedMatte || !output) {
                 resourceFailed("cannot allocate matte surfaces");
                 continue;
@@ -1338,7 +1367,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
     };
     for (const nt::PrecompositeLayer& pc : m_precomposites) {
         if (!hasItems(pc.clipId)) continue;  // nothing drawn: no target
-        Surface* surface = m_surfaces.acquire(m_canvasSize, m_frame);
+        Surface* surface = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
         if (!surface) {
             // The group and everything in it are missing from this frame.
             resourceFailed("cannot allocate the surface of group " + pc.clipId);
@@ -1346,7 +1375,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         }
         std::vector<EffectPass> effects;
         nt::LayerFrame input;
-        input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+        input.format = workingFrameFormat();
         input.planes[0] = surface->texture.get();
         input.size = m_canvasSize;
         input.flipV = m_rhi->isYUpInFramebuffer();
@@ -1411,7 +1440,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
     };
     const auto surfaceFrame = [&](Surface* surface) {
         nt::LayerFrame frame;
-        frame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+        frame.format = workingFrameFormat();
         frame.planes[0] = surface->texture.get();
         frame.size = m_canvasSize;
         frame.flipV = m_rhi->isYUpInFramebuffer();
@@ -1427,8 +1456,8 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
             if (d.adjustment) {
                 for (const auto& stage : m_backdropStages) {
                     if (!stage->applies(*d.ext)) { continue; }
-                    auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame);
-                    auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+                    auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+                    auto* output = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
                     if (!backdrop || !output) {
                         resourceFailed("cannot allocate backdrop stage surfaces");
                         continue;
@@ -1457,9 +1486,9 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 drawBindings(d.srb);
                 continue;
             }
-            auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* layer = m_surfaces.acquire(m_canvasSize, m_frame);
-            auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* layer = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
+            auto* output = m_surfaces.acquire(m_canvasSize, m_frame, m_workingFormat);
             if (!backdrop || !layer || !output) {
                 resourceFailed("cannot allocate blend surfaces");
                 drawBindings(d.srb);
@@ -1554,6 +1583,9 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
 
     const bool blurred = m_tapTimes.size() > 1;
     const bool blurReady = !blurred || ensureBlur();
+#ifdef NT_SCENE_PRECISION_TEST
+    const bool previousCopied = blurred && blurReady && m_blurIndex == 0 && !m_blurComplete && !m_previousValid && m_hasCompletedCanvas;
+#endif
     if (blurred && blurReady && m_blurIndex == 0 && !m_blurComplete && !m_previousValid) {
         if (m_hasCompletedCanvas) {
             auto* copy = m_rhi->nextResourceUpdateBatch();
@@ -1600,16 +1632,23 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // cut during playback); a settled one waits for every exact frame.
     const bool settled = blurred ? m_blurComplete : tapReady;
     m_lastFrameSettled = settled;
+#ifdef NT_SCENE_PRECISION_TEST
+    if (m_workingObserver) {
+        m_workingObserver(m_rhi, cb, m_canvas.get(), settled, m_previousValid, m_blurIndex, previousCopied);
+    }
+#endif
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
     if (m_captureWanted && !m_captureInFlight && ((m_captureImmediate && !blurred) || settled)) {
         m_captureWanted = false;
         const double captureTime = m_timeMs;
         m_captureInFlight = true;
         m_readback = QRhiReadbackResult();
-        // OpenGL (the Linux default) reads a texture back bottom row first.
-        m_readback.completed = [this, captureTime, request = m_captureRequest, flip = m_rhi->isYUpInFramebuffer()] {
+        const auto format = m_canvas->format() == QRhiTexture::RGBA16F
+            ? QImage::Format_RGBA16FPx4_Premultiplied : QImage::Format_RGBA8888_Premultiplied;
+        // Readback rows follow the backend framebuffer orientation. Copy before reuse.
+        m_readback.completed = [this, captureTime, format, request = m_captureRequest, flip = m_rhi->isYUpInFramebuffer()] {
             const QImage img(reinterpret_cast<const uchar*>(m_readback.data.constData()), m_readback.pixelSize.width(),
-                             m_readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
+                             m_readback.pixelSize.height(), format);
             std::lock_guard lock(m_captureMutex);
             m_captured = flip ? img.flipped(Qt::Vertical) : img.copy();
             m_capturedTimeMs = captureTime;
@@ -1639,6 +1678,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     LayerUniforms blit{};
     writeMatrix(blit, corr * fit);
     blit.opacity = 1.0f;
+    // Only the final item pass quantizes float working pixels. Capture precedes it.
+    blit.mode = m_workingFormat == nt::WorkingFormat::Rgba16F ? 1.f : 0.f;
     // A Y-up framebuffer (OpenGL) stores the canvas bottom row first.
     blit.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
     if (m_alphaDisplay || m_transparencyGrid) {
@@ -1652,7 +1693,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     QRhiResourceUpdateBatch* blitUpdates = m_rhi->nextResourceUpdateBatch();
     blitUpdates->updateDynamicBuffer(m_blitUbuf.get(), 0, sizeof(blit), &blit);
     cb->beginPass(renderTarget(), QColor(10, 10, 12, 255), {1.0f, 0}, blitUpdates);
-    cb->setGraphicsPipeline(m_alphaDisplay || m_transparencyGrid ? m_monitorPipeline.get() : m_blitPipeline.get());
+    cb->setGraphicsPipeline(m_workingFormat == nt::WorkingFormat::Rgba16F ? m_presentationPipeline.get()
+        : m_alphaDisplay || m_transparencyGrid ? m_monitorPipeline.get() : m_blitPipeline.get());
     cb->setViewport({0, 0, float(target.width()), float(target.height())});
     cb->setShaderResources(blurred && blurReady && !m_blurComplete && m_previousValid ? m_previousSrb.get() : m_blitSrb.get());
     cb->setVertexInput(0, 1, &vin);

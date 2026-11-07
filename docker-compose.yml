@@ -148,6 +148,14 @@ services:
       # SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY:-}"
       # Optional OAuth redirect when served behind a domain/proxy:
       # AUTH_REDIRECT_URL: "${AUTH_REDIRECT_URL:-}"
+      # Or require login through your own OpenID Connect identity provider
+      # (Keycloak, Authentik, Okta, Entra ID, ...) instead of Supabase. Register
+      # <NODETOOL_PUBLIC_URL>/api/auth/oidc/callback as the redirect URI. See
+      # "Single Sign-On (OIDC)" in docs/authentication.md.
+      # OIDC_ISSUER: "${OIDC_ISSUER:-}"
+      # OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-}"
+      # OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      # NODETOOL_PUBLIC_URL: "${NODETOOL_PUBLIC_URL:-}"
 
       # ── MCP over HTTP and Python nodes ─────────────────────────────────────
       # Both surfaces are off because NODETOOL_ENV is "production" above.

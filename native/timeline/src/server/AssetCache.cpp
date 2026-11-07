@@ -383,12 +383,14 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         return result;
     }
     const QString dir = variantDir(assetId, variant);
-    if (!QDir().mkpath(dir)) {
+    const auto threadLock = folderMutex(dir);
+    std::lock_guard inProcess(*threadLock);
+    // Serialize creation as well as downloads. Another process can still
+    // create the directory, so check the postcondition after mkpath fails.
+    if (!QDir().mkpath(dir) && !QFileInfo(dir).isDir()) {
         result.error = QStringLiteral("cannot create %1").arg(dir);
         return result;
     }
-    const auto threadLock = folderMutex(dir);
-    std::lock_guard inProcess(*threadLock);
     QLockFile processLock(QDir(dir).filePath(QStringLiteral(".lock")));
     processLock.setStaleLockTime(0);  // stale only when the holder process is gone
     if (!processLock.lock()) {

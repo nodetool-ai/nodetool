@@ -3,11 +3,17 @@
  * renderer computes frame times in floating point, so a time can land just
  * below the timestamp of the frame it means; it must still pick that frame.
  */
+class DecodedFrame {
+  readonly close = jest.fn();
+
+  constructor(readonly index: number) {}
+}
+
 interface FakeSample {
   timestamp: number;
   duration: number;
   close: () => void;
-  toVideoFrame: () => { close: () => void; ts: number };
+  toVideoFrame: () => DecodedFrame;
 }
 
 // 30 fps container: frame i has timestamp i/30, as a 15360-tick timescale
@@ -17,7 +23,7 @@ const samples: FakeSample[] = Array.from({ length: FRAME_COUNT }, (_, i) => ({
   timestamp: (i * 512) / 15360,
   duration: 512 / 15360,
   close: () => undefined,
-  toVideoFrame: () => ({ close: () => undefined, ts: i })
+  toVideoFrame: () => new DecodedFrame(i)
 }));
 
 jest.mock("mediabunny", () => ({
@@ -53,13 +59,24 @@ jest.mock("mediabunny", () => ({
 
 import { SequentialVideoSource } from "../SequentialVideoSource";
 
+const makeBitmap = jest.fn(async (frame: DecodedFrame) => ({
+  frame: frame.index,
+  close: jest.fn()
+}));
+
 beforeAll(() => {
-  (globalThis as Record<string, unknown>).VideoDecoder = {
-    isConfigSupported: async () => ({ supported: true })
-  };
-  (globalThis as Record<string, unknown>).createImageBitmap = async (frame: {
-    ts: number;
-  }) => ({ frame: frame.ts, close: () => undefined });
+  Object.defineProperty(globalThis, "VideoDecoder", {
+    configurable: true,
+    value: { isConfigSupported: async () => ({ supported: true }) }
+  });
+  Object.defineProperty(globalThis, "VideoFrame", { configurable: true, value: DecodedFrame });
+  Object.defineProperty(globalThis, "createImageBitmap", { configurable: true, value: makeBitmap });
+});
+
+afterAll(() => {
+  Reflect.deleteProperty(globalThis, "VideoDecoder");
+  Reflect.deleteProperty(globalThis, "VideoFrame");
+  Reflect.deleteProperty(globalThis, "createImageBitmap");
 });
 
 describe("SequentialVideoSource", () => {
@@ -72,11 +89,11 @@ describe("SequentialVideoSource", () => {
     for (let i = 0; i < 200; i += 1) {
       const timelineSec = 0.4 + i / 30;
       const sourceSec = timelineSec - 0.4;
-      const bitmap = (await source!.frameAt(sourceSec)) as unknown as {
-        frame: number;
-      };
-      seen.push(bitmap.frame);
+      const frame = await source!.frameAt(sourceSec);
+      expect(frame).toBeInstanceOf(DecodedFrame);
+      seen.push((frame as unknown as DecodedFrame).index);
     }
+    source!.dispose();
     expect(seen).toEqual(Array.from({ length: 200 }, (_, i) => i));
   });
 
@@ -84,9 +101,29 @@ describe("SequentialVideoSource", () => {
     const source = await SequentialVideoSource.open("blob:clip");
     const sourceSec = 0.4 + 7 / 30 - 0.4;
     expect(sourceSec).toBeLessThan(samples[7].timestamp);
-    const bitmap = (await source!.frameAt(sourceSec)) as unknown as {
-      frame: number;
-    };
-    expect(bitmap.frame).toBe(7);
+    const frame = await source!.frameAt(sourceSec);
+    expect(frame).toMatchObject({ index: 7 });
+    source!.dispose();
+  });
+
+  it("keeps the actual frame open until replacement and closes it on release", async () => {
+    const source = (await SequentialVideoSource.open("blob:clip"))!;
+    try {
+      const first = await source.frameAt(0) as unknown as DecodedFrame;
+      expect(first).toBeInstanceOf(DecodedFrame);
+      expect(await source.frameAt(1 / 60)).toBe(first);
+      expect(first.close).not.toHaveBeenCalled();
+
+      const second = await source.frameAt(1 / 30) as unknown as DecodedFrame;
+      expect(second).toMatchObject({ index: 1 });
+      expect(first.close).toHaveBeenCalledTimes(1);
+      expect(second.close).not.toHaveBeenCalled();
+      expect(makeBitmap).not.toHaveBeenCalled();
+
+      source.dispose();
+      expect(second.close).toHaveBeenCalledTimes(1);
+    } finally {
+      source.dispose();
+    }
   });
 });

@@ -269,7 +269,7 @@ class TestTracksUi : public QObject {
     TrackWindowModel* rows = nullptr;
     Layout layout;
 
-    void load(const Layout& l) {
+    void load(const Layout& l, double initialMsPerPx = 0, double initialScroll = 0) {
         unload();
         layout = l;
         model = new TimelineModel(this);
@@ -283,13 +283,24 @@ class TestTracksUi : public QObject {
         QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));
         view->setResizeMode(QQuickView::SizeRootObjectToView);
         view->resize(kRegionWidth, kRegionHeight);
-        view->show();
-        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
         region = view->rootObject();
         vs = region->findChild<TimelineViewState*>(QStringLiteral("timelineViewState"));
         rows = region->findChild<TrackWindowModel*>(QStringLiteral("trackWindowModel"));
         QVERIFY(vs && rows);
+        // Seed before exposure so setup does not render the entire fitted timeline first.
+        if (initialMsPerPx > 0) {
+            vs->setViewportWidthPx(kRegionWidth - kHeaderWidth);
+            vs->zoomTo(initialMsPerPx, 0);
+            vs->setScrollLeftPx(initialScroll);
+            vs->flush();
+        }
+        view->show();
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
         frame();
+        if (initialMsPerPx > 0) {
+            QCOMPARE(vs->msPerPx(), initialMsPerPx);
+            QCOMPARE(vs->scrollLeftPx(), initialScroll);
+        }
     }
 
     void unload() {
@@ -437,7 +448,7 @@ private slots:
     // Runs only with NT_DRAG_BENCH=1: the numbers depend on the machine.
     void dragCostBench() {
         if (!qEnvironmentVariableIsSet("NT_DRAG_BENCH")) QSKIP("set NT_DRAG_BENCH=1");
-        load({8, 400});
+        load({8, 400}, 10, 0);
         seed(10, 0);
         // NT_DRAG_BENCH_PREVIEW=1: the playhead stays on the moved clip, so
         // every step writes the document for the program preview.
@@ -498,7 +509,7 @@ private slots:
     // notches cancel). The web code is web/src/components/timeline/Tracks/
     // timelineWheel.ts at e173cc68f6 on main (DESIGN.md D29).
     void ctrlWheelZoomsAtTheCursor() {
-        load({8, 400});
+        load({8, 400}, 10, 1000);
         seed(10, 1000);
         // DOM deltaY -100 (one notch toward the user's screen) at clientX 500.
         wheel(lanesPoint(500), {0, 100}, {0, 120}, Qt::ControlModifier);
@@ -515,7 +526,7 @@ private slots:
     }
 
     void eventsInOneFrameApplyOnce() {
-        load({8, 400});
+        load({8, 400}, 10, 1000);
         seed(10, 1000);
         const int flushes = vs->flushCount();
         QSignalSpy zoomSpy(vs, &TimelineViewState::msPerPxChanged);
@@ -531,7 +542,7 @@ private slots:
     }
 
     void largeDeltaZoomsByABoundedFactor() {
-        load({8, 400});
+        load({8, 400}, 10, 0);
         seed(10, 0);
         // A mouse notch reported as a huge delta: DOM -2000.
         wheel(lanesPoint(500), {0, 2000}, {0, 0}, Qt::ControlModifier);
@@ -543,7 +554,7 @@ private slots:
     }
 
     void mouseNotchIsAChromiumNotch() {
-        load({8, 400});
+        load({8, 400}, 10, 0);
         seed(10, 0);
         // One notch away from the user: angle +120, DOM deltaY -100.
         wheel(lanesPoint(0), {}, {0, 120}, Qt::ControlModifier);
@@ -553,7 +564,7 @@ private slots:
     }
 
     void pinchOverTheRulerZooms() {
-        load({8, 400});
+        load({8, 400}, 10, 0);
         seed(10, 0);
         wheel(QPointF(kHeaderWidth + 400, kToolbar + 10), {0, 100}, {}, Qt::ControlModifier);
         frame();
@@ -561,7 +572,7 @@ private slots:
     }
 
     void nativePinchZoomsAtTheFingers() {
-        load({8, 400});
+        load({8, 400}, 10, 2000);
         seed(10, 2000);
         pinch(lanesPoint(600), 0.1);
         frame();
@@ -573,7 +584,7 @@ private slots:
     }
 
     void zoomButtonsKeepThePlayheadPinned() {
-        load({8, 400});
+        load({8, 400}, 10, 1500);
         seed(10, 1500);
         clock->seek(20000);  // viewport x 500
         auto* zoomIn = region->findChild<QQuickItem*>(QStringLiteral("zoomIn"));
@@ -586,7 +597,7 @@ private slots:
     }
 
     void zoomToFitShowsAllContent() {
-        load({8, 400});
+        load({8, 400}, 10, 3000);
         seed(10, 3000);
         vs->zoomToFit();
         frame();
@@ -594,7 +605,7 @@ private slots:
         QCOMPARE(vs->msPerPx(), model->contentEndMs() / (vs->viewportWidthPx() - 64));
     }
     void fitButtonRestoresThePreviousScaleAndScroll() {
-        load({8, 80});
+        load({8, 80}, 10, 3000);
         seed(10, 3000);
         auto* button = region->findChild<QQuickItem*>("zoomFit");
         QVERIFY(button);
@@ -609,7 +620,7 @@ private slots:
         QCOMPARE(vs->scrollLeftPx(), 3000.0);
     }
     void selectionZoomFramesTheSelectedClips() {
-        load({8, 80});
+        load({8, 80}, 10, 3000);
         seed(10, 3000);
         controller()->setSelection({"c-0-2", "c-0-5"});
         auto* button = region->findChild<QQuickItem*>("zoomSelection");
@@ -687,7 +698,7 @@ private slots:
     }
     void edgeScrollingSupportsTimelineGestures() {
         QFETCH(QString, kind);
-        load({40, 40});
+        load({40, 40}, 10, 0);
         seed(10, 0);
         controller()->setSnapEnabled(false);
         QPoint from;
@@ -725,7 +736,7 @@ private slots:
         QCOMPARE(model->undoStack()->count(), 0);
     }
     void snapBypassChangesDuringAHeldDrag() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         clock->seek(3000);
         const auto from = clipPoint("c-0-2", 30);
@@ -939,7 +950,7 @@ private slots:
         QCOMPARE(model->undoStack()->count(), 0);
     }
     void contextMenuKeepsTheMultiSelectionAndUsesItForDelete() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         const auto first = clipPoint("c-0-2", 30);
         const auto second = clipPoint("c-0-3", 30);
@@ -984,7 +995,7 @@ private slots:
 
     // ── Pan and scroll ──
     void horizontalSwipePansTheLanes() {
-        load({8, 400});
+        load({8, 400}, 10, 1000);
         seed(10, 1000);
         // Trackpad swipe left: Qt pixel delta x -40 is DOM deltaX +40.
         wheel(lanesPoint(300), {-40, -6}, {});
@@ -994,7 +1005,7 @@ private slots:
     }
 
     void shiftWheelPansTheLanes() {
-        load({8, 400});
+        load({8, 400}, 10, 1000);
         seed(10, 1000);
         wheel(lanesPoint(300), {0, -30}, {}, Qt::ShiftModifier);
         frame();
@@ -1002,7 +1013,7 @@ private slots:
     }
 
     void verticalWheelScrollsTheTracks() {
-        load({40, 50});
+        load({40, 50}, 10, 0);
         seed(10, 0);
         wheel(lanesPoint(300), {0, -90}, {});
         frame();
@@ -1019,7 +1030,7 @@ private slots:
     }
 
     void scrollStopsAtTheContentEdge() {
-        load({8, 400});
+        load({8, 400}, 10, 0);
         seed(10, 0);
         vs->setScrollLeftPx(1e9);
         QCOMPARE(vs->scrollLeftPx(), vs->maxScrollLeftPx());
@@ -1028,7 +1039,7 @@ private slots:
 
     // ── Scrollbar (TimelineScrollbar.tsx) ──
     void scrollbarThumbDragAndTroughClick() {
-        load({8, 400});
+        load({8, 400}, 10, 0);
         seed(10, 0);
         auto* thumb = region->findChild<QQuickItem*>(QStringLiteral("scrollbarThumb"));
         QVERIFY(thumb);
@@ -1055,7 +1066,7 @@ private slots:
 
     // ── Ruler seek ──
     void rulerClickSeeksAndDragScrubs() {
-        load({8, 400});
+        load({8, 400}, 10, 1000);
         seed(10, 1000);
         const QPoint p(static_cast<int>(kHeaderWidth + 200), static_cast<int>(kToolbar + 10));
         QTest::mousePress(view.get(), Qt::LeftButton, {}, p);
@@ -1182,7 +1193,7 @@ private slots:
     // D28: a dragged clip keeps its delegate and its grab past the window and
     // the overscan, and the drop lands at the pointer.
     void draggedClipSurvivesPastTheOverscan() {
-        load({4, 400});
+        load({4, 400}, 10, 0);
         seed(10, 0);
         QPointer<QQuickItem> clip = itemNamed(QStringLiteral("clip-c-0-2"));
         QVERIFY(clip);
@@ -1225,7 +1236,7 @@ private slots:
     // The same drag with the pin removed: the delegate dies with the window.
     // This is the failure the pin prevents.
     void withoutThePinTheDelegateDies() {
-        load({4, 400});
+        load({4, 400}, 10, 0);
         seed(10, 0);
         QPointer<QQuickItem> clip = itemNamed(QStringLiteral("clip-c-0-2"));
         auto* laneModel = laneModels().first();
@@ -1241,7 +1252,7 @@ private slots:
     }
 
     void moveKeepsTheDelegate() {
-        load({2, 20});
+        load({2, 20}, 10, 0);
         seed(10, 0);
         QPointer<QQuickItem> clip = itemNamed(QStringLiteral("clip-c-0-1"));
         QVERIFY(model->moveClip(QStringLiteral("c-0-1"), 3500));
@@ -1252,7 +1263,7 @@ private slots:
 
     // D30: playback moves the playhead and nothing else.
     void playbackTouchesNoModelOrDelegate() {
-        load({50, 200});
+        load({50, 200}, 10, 0);
         seed(10, 0);
         auto* ruler = region->findChild<RulerCanvas*>(QStringLiteral("rulerCanvas"));
         auto* playhead = region->findChild<QQuickItem*>(QStringLiteral("playhead"));
@@ -1315,7 +1326,7 @@ private slots:
     // F2: a scroll during a drag, then a release with no move: the drop is
     // still under the pointer (useClipDrag reapplies the move before commit).
     void dropAfterAScrollWithoutAMoveLandsAtThePointer() {
-        load({4, 400});
+        load({4, 400}, 10, 0);
         seed(10, 0);
         QQuickItem* clip = itemNamed(QStringLiteral("clip-c-0-2"));
         QVERIFY(clip);
@@ -1525,7 +1536,7 @@ private slots:
         QFETCH(int, modifiers);
         QFETCH(bool, rippleMode);
         QFETCH(bool, multi);
-        load({4, 20, 800, 800});
+        load({4, 20, 800, 800}, 10, 0);
         seed(10, 0);
         auto* g = controller();
         g->setSnapEnabled(false);
@@ -1700,7 +1711,7 @@ private slots:
         if (!registered) {
             nt::app::edits().clear();
         }
-        load({4, 20});
+        load({4, 20}, 10, 0);
         seed(10, 0);
         QUndoStack* undo = model->undoStack();
         const int entries = undo->count();
@@ -1764,7 +1775,7 @@ private slots:
     // Both clip edges snap within 8 px to clip edges, the playhead and the
     // 1 s ticks; Alt (or the magnet off) moves freely.
     void moveSnapsBothEdges() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         // 17 px: start 2170 (no candidate within 80 ms), end 2970 -> 3000.
         drag(clipPoint("c-0-2", 30), clipPoint("c-0-2", 30) + QPoint(17, 0), 6);
@@ -1786,7 +1797,7 @@ private slots:
         if (!registered) {
             nt::app::edits().clear();
         }
-        load({4, 10});
+        load({4, 10}, 10, 0);
         seed(10, 0);
         drag(clipPoint("c-0-2", 30), clipPoint("c-0-2", 30) + QPoint(0, 64), 8, Qt::AltModifier);
         QCOMPARE(clipJson("c-0-2").value("trackId").toString(), QStringLiteral("track-1"));
@@ -1802,7 +1813,7 @@ private slots:
     }
 
     void clicksSelect() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         auto* g = controller();
         QTest::mouseClick(view.get(), Qt::LeftButton, {}, clipPoint("c-0-2", 30));
@@ -1833,7 +1844,7 @@ private slots:
         if (!registered) {
             nt::app::edits().clear();
         }
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         region->forceActiveFocus();
         auto* g = controller();
@@ -2004,7 +2015,7 @@ private slots:
     // An edit updates only the lanes whose clips changed (the playhead rule
     // for edits): the other lanes send no row signal and keep every delegate.
     void anEditTouchesOnlyItsLanes() {
-        load({8, 20});
+        load({8, 20}, 10, 0);
         seed(10, 0);
         QMap<QString, LaneClipModel*> lanes;
         for (QQuickItem* lane : itemsNamed(QStringLiteral("trackLane-")))
@@ -2047,7 +2058,7 @@ private slots:
     // F1: a document replaced during a gesture ends the gesture; neither its
     // release nor a cancel writes the old clips into the new document.
     void aNewDocumentEndsTheGesture() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         const QPoint press = clipPoint("c-0-2", 30);
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, press);
@@ -2066,7 +2077,7 @@ private slots:
     // A move writes the document during the drag only when the program
     // preview can show it: here the playhead is on the moved clip.
     void aMoveUnderThePlayheadUpdatesTheDocumentLive() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         const QJsonObject clip = clipJson("c-0-2");
         clock->seek(clip.value("startMs").toDouble() + 1);
@@ -2095,7 +2106,7 @@ private slots:
     // F6: Escape cancels the gesture and restores the press state; a key
     // command during a gesture cancels the gesture before it runs.
     void escapeCancelsAndKeysEndTheGesture() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         region->forceActiveFocus();
         const QByteArray original = model->documentJson();
@@ -2248,7 +2259,7 @@ private slots:
         if (!registered) {
             nt::app::edits().clear();
         }
-        load({2, 6});
+        load({2, 6}, 10, 0);
         seed(10, 0);
         controller()->setActiveTool(QStringLiteral("cut"));
         const int before = model->clipCount();
@@ -2287,7 +2298,7 @@ private slots:
     }
 
     void trackSelectToolSelectsFromThePointerOn() {
-        load({3, 6});
+        load({3, 6}, 10, 0);
         seed(10, 0);
         auto* g = controller();
         g->setActiveTool(QStringLiteral("trackSelect"));
@@ -2365,7 +2376,7 @@ private slots:
         if (!registered) {
             nt::app::edits().clear();
         }
-        load({2, 4});
+        load({2, 4}, 10, 0);
         seed(10, 0);
         controller()->setActiveTool(QStringLiteral("rateStretch"));
         // End edge +10 px = +100 ms (Alt: no snap): 900 ms at 800/900 speed.
@@ -2376,7 +2387,7 @@ private slots:
     }
 
     void handAndZoomToolsActOnTheLanes() {
-        load({4, 200});
+        load({4, 200}, 10, 0);
         seed(10, 0);
         auto* g = controller();
         g->setActiveTool(QStringLiteral("hand"));
@@ -2471,7 +2482,7 @@ private slots:
 
     // ── M2b: markers and the in/out range ──
     void markersAddSeekDeleteAndUndo() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         region->forceActiveFocus();
         clock->seek(2500);
@@ -2521,7 +2532,7 @@ private slots:
     }
 
     void inOutRangeFollowsThePlaybackStore() {
-        load({2, 10});
+        load({2, 10}, 10, 0);
         seed(10, 0);
         region->forceActiveFocus();
         auto* ruler = region->findChild<RulerCanvas*>(QStringLiteral("rulerCanvas"));
@@ -2905,7 +2916,11 @@ private slots:
                                                     {"status", "generated"}}});
         loadJson(json, {1, 0});
         QTRY_COMPARE(controller()->sourceCapMs("v"), 10000.0);
-        QVERIFY(QFile::remove(file));
+        // Retire the old name before deletion: Windows keeps a deleted file's
+        // name reserved until active thumbnail readers close their handles.
+        const QString retired = dir.filePath("retired.mp4");
+        QVERIFY(QFile::rename(file, retired));
+        QVERIFY(QFile::remove(retired));
         QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4"), file));  // 20 s
         model->setTimeline(parseTimeline(json));
         QTRY_COMPARE(controller()->sourceCapMs("v"), 20000.0);
@@ -2916,7 +2931,7 @@ private slots:
     // select tool selects the block from there, Shift keeps to that lane, and
     // the playhead stays.
     void trackSelectFromAnEmptyLane() {
-        load({3, 6});
+        load({3, 6}, 10, 0);
         seed(10, 0);
         auto* g = controller();
         clock->seek(0);
@@ -3013,6 +3028,9 @@ private slots:
         QJsonObject raw = model->timeline().raw;
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
+        QFile blocker(dir.filePath("blocked"));
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
         const auto banners = [&](nt::server::AutosaveController* saver) {
             QQmlComponent c(view->engine());
             c.setData("import QtQuick\nimport NodeTool.Timeline\nSaveBanners { width: 900 }", QUrl());
@@ -3048,9 +3066,9 @@ private slots:
         // A strip whose copy cannot be written: no claim of a copy.
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
-            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.filePath("blocked/no-such-folder")};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
-            saver.setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
+            saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
@@ -3070,7 +3088,7 @@ private slots:
             const QString backup = dir.filePath(QStringLiteral("stale-copy"));
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), backup};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
-            saver.setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
+            saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
             undo.push(new Bump(&value));
             const QJsonObject firstDoc = docFn();
@@ -3101,7 +3119,7 @@ private slots:
         // A fallback copy is named exactly, including its server/account scope.
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
-            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.filePath("blocked/no-such-folder")};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
             const QString fallback = dir.filePath(QStringLiteral("fallback"));
             saver.setQuitFallbackDirs({fallback});
@@ -3241,7 +3259,8 @@ private slots:
         QTemporaryDir dir;
         const QString a = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
         const QString b = dir.filePath("b.mp4");
-        QVERIFY(QFile::link(a, b));
+        // A Windows QFile::link is a .lnk shortcut, not decodable media.
+        QVERIFY(QFile::copy(a, b));
         QJsonObject json = mediaDoc({{"v1", a, 2000}, {"v2", a, 2000}, {"v3", a, 2000}, {"w1", b, 2000}});
         json.insert("durationMs", 600000);  // room to scroll the clips away
         loadJson(json, {4, 0});

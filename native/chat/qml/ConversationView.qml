@@ -155,7 +155,7 @@ Item {
             delegate: Item {
                 required property string messageId
                 required property string role
-                required property string text
+                required property string displayText
                 required property var parts
                 required property string status
                 width: messages.width
@@ -166,7 +166,7 @@ Item {
                     width: Math.min(parent.width, ChatMetrics.columnWidth)
                     messageId: parent.messageId
                     role: parent.role
-                    text: parent.text
+                    text: parent.displayText
                     parts: parent.parts
                     status: parent.status
                     session: root.session

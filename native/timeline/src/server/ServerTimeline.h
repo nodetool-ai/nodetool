@@ -46,6 +46,8 @@ struct ServerOpenOptions {
 struct ServerOpenResult {
     std::optional<Timeline> timeline;
     QString error;        // a load error; the timeline is absent
+    bool unsupportedColorSpaceVersion = false;
+    QString unsupportedColorSpaceVersionText;
     QJsonObject report;   // the loader report, also on a load error
     std::vector<AssetCache::Lease> mediaLeases; // keep fetched files through model adoption
 };

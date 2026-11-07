@@ -722,18 +722,14 @@ export const previewTimelineFrameSpec: CapabilitySpec = {
     "timecode (call view_image on one to see the pixels) plus, for each " +
     "frame, the layers in composite order with their opacity, blend mode " +
     "and wipe progress. A frame's `degraded` list names where this " +
-    "compositor drew something the export will draw differently — a " +
-    "feathered mask or wipe drawn as a hard edge, a track matte skipped, a " +
-    "group's blend mode lost, a second drop shadow not cast, brightness " +
-    "applied as a multiply instead of the export's addition — each with the " +
-    "clip it happened to; " +
+    "compositor could not reproduce the requested treatment. " +
     "`effects_not_applied` names the effect types it cannot draw at all. " +
     "`complete` is false when a layer is skipped, the preview is degraded, " +
     "an effect is omitted or a font falls back. A missing 3D renderer is " +
     "reported as model3d_unavailable. Never verify the complete composition " +
     "from an incomplete frame. Unlike get_clip_frames, which samples one clip's " +
-    "source media, this composites the sequence. The 2D path needs no browser, " +
-    "GPU or open editor; 3D layers need headless Chromium. Sample the middle of an animation, not its endpoints — " +
+    "source media, this composites the sequence. 2D rendering requires Dawn and a hardware or Mesa lavapipe adapter, with no open editor. " +
+    "Install Dawn with nodetool packs add webgpu --yes. 3D layers need headless Chromium. Sample the middle of an animation, not its endpoints — " +
     "the endpoints are the states you already know. `range` sweeps a window " +
     "densely and `sheet` returns the sweep as one labelled contact sheet, " +
     "which is how you watch a move play out rather than checking one instant.",

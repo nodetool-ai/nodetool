@@ -1,205 +1,47 @@
 /**
- * Shared FAL AI API utilities.
- * Uses @fal-ai/client SDK for queue submit/poll and file uploads.
+ * Shared FAL node utilities. Requests and uploads go through the runtime
+ * `fal_ai` provider by way of the processing context, so node code never
+ * holds the API key.
  */
 
-import { createFalClient, type FalClient } from "@fal-ai/client";
 import {
-  createFalQueueOperations,
-  currentGenerationProviderRequestOptions,
-  falSubmitAndWait,
-  recordGenerationBindingAsync,
-  recordGenerationProviderResult,
-  recordGenerationReceiptAsync,
   fetchExternalMedia,
-  type FalQueueOperations,
-  type FalQueueSubmission,
   type GenerationRequest,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 
-// ---------------------------------------------------------------------------
-// API Key extraction
-// ---------------------------------------------------------------------------
-
-export function getFalApiKey(secrets: Record<string, string>): string {
-  const key = secrets?.FAL_API_KEY || process.env.FAL_API_KEY || "";
-  if (!key) throw new Error("FAL_API_KEY is not configured");
-  return key;
-}
-
-// ---------------------------------------------------------------------------
-// Client cache — one client per API key
-// ---------------------------------------------------------------------------
-
-const clientCache = new Map<string, FalClient>();
-
-function getClient(apiKey: string): FalClient {
-  let client = clientCache.get(apiKey);
-  if (!client) {
-    client = createFalClient({ credentials: apiKey });
-    clientCache.set(apiKey, client);
-  }
-  return client;
-}
-
-// ---------------------------------------------------------------------------
-// Submit job to FAL queue, poll until complete, return result
-// ---------------------------------------------------------------------------
-
-export async function falSubmit(
-  apiKey: string,
-  endpoint: string,
-  args: Record<string, unknown>,
-  onProgress?: (message: string) => void
-): Promise<Record<string, unknown>> {
-  return (await falSubmitWithMeta(apiKey, endpoint, args, onProgress)).data;
-}
+/** The runtime provider every FAL node calls. */
+export const FAL_PROVIDER = "fal_ai";
 
 /**
- * Like {@link falSubmit} but also surfaces the FAL queue `requestId`, used to
- * look up the request's actual billed cost via the billing-events API.
+ * Run a FAL endpoint through the provider, inside the generation seam, and
+ * return the endpoint's JSON with its queue request id. `nodeType` becomes
+ * the generation's node id.
  */
-export async function falSubmitWithMeta(
-  apiKey: string,
-  endpoint: string,
-  args: Record<string, unknown>,
-  onProgress?: (message: string) => void,
-  options: {
-    readonly webhookUrl?: string;
-    readonly signal?: AbortSignal;
-    readonly onAccepted?: (
-      submission: FalQueueSubmission
-    ) => void | Promise<void>;
-    readonly onBound?: (binding: {
-      readonly providerRequestId: string;
-      readonly endpoint: string;
-    }) => void | Promise<void>;
-  } = {}
-): Promise<{ data: Record<string, unknown>; requestId: string | null }> {
-  const client = getClient(apiKey);
-  // `subscribe()` performs submit, polling, and result retrieval as one opaque
-  // operation. Prefer the explicit queue adapter so the paid POST is issued
-  // exactly once and the request id is available before waiting. Older test
-  // doubles and hosts may only expose subscribe(), so retain that fallback.
-  if ("queue" in client && client.queue) {
-    const operations: FalQueueOperations = createFalQueueOperations({ apiKey });
-    const providerRequestOptions = currentGenerationProviderRequestOptions();
-    const request: {
-      endpoint: string;
-      input: Record<string, unknown>;
-      signal?: AbortSignal;
-      webhookUrl?: string;
-    } = {
-      endpoint,
-      input: args
-    };
-    const webhookUrl = options.webhookUrl ?? providerRequestOptions?.webhookUrl;
-    if (webhookUrl) request.webhookUrl = webhookUrl;
-    if (options.signal) request.signal = options.signal;
-    const result = await falSubmitAndWait(operations, request, {
-      signal: options.signal,
-      onAccepted: async (submission) => {
-        await recordGenerationReceiptAsync(
-          { provider_request_id: submission.providerRequestId },
-          submission
-        );
-        await options.onAccepted?.(submission);
-      },
-      onBound: async (binding) => {
-        await recordGenerationBindingAsync(binding);
-        await options.onBound?.(binding);
-      },
-      onUpdate: (observation) => {
-        const rawStatus = observation.rawStatus;
-        if (
-          typeof rawStatus === "object" &&
-          rawStatus !== null &&
-          "logs" in rawStatus &&
-          Array.isArray(rawStatus.logs)
-        ) {
-          for (const entry of rawStatus.logs) {
-            if (
-              typeof entry === "object" &&
-              entry !== null &&
-              "message" in entry &&
-              typeof entry.message === "string"
-            ) {
-              onProgress?.(entry.message);
-            }
-          }
-        }
-      }
-    });
-    recordGenerationProviderResult(result.data);
-    return { data: result.data, requestId: result.requestId };
-  }
-  const subscribeOptions: Parameters<FalClient["subscribe"]>[1] = onProgress
-    ? {
-        input: args,
-        logs: true,
-        onQueueUpdate: (update: {
-          status: string;
-          logs?: Array<{ message: string }>;
-        }) => {
-          if (update.status !== "IN_PROGRESS") return;
-          for (const entry of update.logs ?? []) onProgress(entry.message);
-        }
-      }
-    : { input: args, logs: true };
-  if (options.signal) {
-    Object.assign(subscribeOptions, { abortSignal: options.signal });
-  }
-  const result = await client.subscribe(endpoint, subscribeOptions);
-  const data = (result.data ?? result) as Record<string, unknown>;
-  recordGenerationProviderResult(data);
-  const requestId =
-    (result as { requestId?: string } | undefined)?.requestId ?? null;
-  return { data, requestId };
-}
-
-/**
- * Submit a FAL request through the processing context's generation seam.
- *
- * FAL nodes are provider-specific nodes, so they cannot use one of the
- * capability helpers on ProcessingContext. Keeping the call here gives the
- * generated, raw, and schema-driven nodes the same acceptance and binding
- * ordering as the higher-level provider while preserving their endpoint
- * shaped output. When an enclosing durable seam already supplied provider
- * request options, the request is already inside that seam and must not open
- * a second ledger row.
- */
-export async function falSubmitWithGeneration(
-  apiKey: string,
-  endpoint: string,
-  args: Record<string, unknown>,
+export async function callFalEndpoint(
   context: ProcessingContext | undefined,
-  nodeType: string,
-  capability: GenerationRequest["capability"],
-  onProgress?: (message: string) => void
-): Promise<{ data: Record<string, unknown>; requestId: string | null }> {
-  if (!context || currentGenerationProviderRequestOptions()) {
-    return falSubmitWithMeta(apiKey, endpoint, args, onProgress);
+  request: {
+    readonly endpoint: string;
+    readonly args: Record<string, unknown>;
+    readonly nodeType: string;
+    readonly capability: GenerationRequest["capability"];
   }
-
-  const generation = await context.runGenerationWith<Record<string, unknown>>(
-    {
-      provider: "fal_ai",
-      capability,
-      model: endpoint,
-      nodeId: nodeType,
-      params: args,
-      origin: { surface: "workflow", node_id: nodeType }
-    },
-    async (_provider, signal) =>
-      (await falSubmitWithMeta(apiKey, endpoint, args, onProgress, { signal }))
-        .data
-  );
-
-  return {
-    data: generation.output,
-    requestId: generation.receipt?.provider_request_id ?? null
-  };
+): Promise<{ data: Record<string, unknown>; requestId: string | null }> {
+  if (!context) {
+    throw new Error(`${request.nodeType} needs a processing context to call FAL`);
+  }
+  const { output, requestId } = await context.callProviderEndpoint({
+    provider: FAL_PROVIDER,
+    capability: request.capability,
+    model: request.endpoint,
+    input: request.args,
+    nodeId: request.nodeType
+  });
+  if (typeof output !== "object" || output === null || Array.isArray(output)) {
+    throw new Error(`FAL ${request.endpoint} returned no JSON object`);
+  }
+  // SAFETY: checked above to be a non-array object; it is the endpoint's JSON.
+  return { data: output as Record<string, unknown>, requestId };
 }
 
 /** Map manifest output metadata to the closest protocol capability. */
@@ -220,36 +62,41 @@ export function falCapabilityForOutputType(
 }
 
 // ---------------------------------------------------------------------------
-// Upload to FAL CDN via SDK
-// ---------------------------------------------------------------------------
-
-export async function falUpload(
-  apiKey: string,
-  data: Uint8Array,
-  contentType: string
-): Promise<string> {
-  const client = getClient(apiKey);
-  const blob = new Blob([data.slice().buffer], {
-    type: contentType
-  });
-  return client.storage.upload(blob);
-}
-
-// ---------------------------------------------------------------------------
 // Resolve asset ref to FAL-accessible URL
 // ---------------------------------------------------------------------------
 
-interface UploadContext {
+/** What resolving a ref to bytes needs from the processing context. */
+interface AssetBytesContext {
   storage?: {
     retrieve(uri: string): Promise<Uint8Array | null | undefined>;
   } | null;
   resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }>;
 }
 
+/** A context that can also upload bytes through the FAL provider. */
+export interface FalUploadContext extends AssetBytesContext {
+  uploadProviderMedia(args: {
+    provider: string;
+    bytes: Uint8Array;
+    mimeType: string;
+  }): Promise<string>;
+}
+
+/** Upload bytes to FAL storage through the provider and return the URL. */
+export async function uploadToFal(
+  context: FalUploadContext | undefined,
+  bytes: Uint8Array,
+  mimeType: string
+): Promise<string> {
+  if (!context) {
+    throw new Error("Uploading media to FAL needs a processing context");
+  }
+  return context.uploadProviderMedia({ provider: FAL_PROVIDER, bytes, mimeType });
+}
+
 export async function assetToFalUrl(
-  apiKey: string,
   ref: Record<string, unknown>,
-  context?: UploadContext
+  context: FalUploadContext | undefined
 ): Promise<string | null> {
   let uri = ref.uri as string | undefined;
   // A library-picked or generated ref may carry only `asset_id` (empty `uri`).
@@ -264,7 +111,7 @@ export async function assetToFalUrl(
   if (data) {
     const bytes = Uint8Array.from(Buffer.from(data, "base64"));
     const contentType = inferContentType(ref.type as string);
-    return falUpload(apiKey, bytes, contentType);
+    return uploadToFal(context, bytes, contentType);
   }
   // For non-HTTPS URIs (http://, file://, relative paths, etc.), try to fetch and upload
   if (uri) {
@@ -277,13 +124,13 @@ export async function assetToFalUrl(
     ) {
       const { bytes } = await context.resolveAssetBytes(uri);
       if (bytes) {
-        return falUpload(apiKey, bytes, inferContentType(ref.type as string));
+        return uploadToFal(context, bytes, inferContentType(ref.type as string));
       }
     }
 
     const bytes = await context?.storage?.retrieve(uri);
     if (bytes) {
-      return falUpload(apiKey, bytes, inferContentType(ref.type as string));
+      return uploadToFal(context, bytes, inferContentType(ref.type as string));
     }
 
     try {
@@ -304,7 +151,7 @@ export async function assetToFalUrl(
         const contentType =
           res.headers.get("content-type") ??
           inferContentType(ref.type as string);
-        return falUpload(apiKey, bytes, contentType);
+        return uploadToFal(context, bytes, contentType);
       }
     } catch {
       // URI not fetchable — fall through
@@ -319,7 +166,7 @@ export async function assetToFalUrl(
 
 export async function imageToDataUrl(
   ref: Record<string, unknown>,
-  context?: UploadContext
+  context?: AssetBytesContext
 ): Promise<string | null> {
   const data = ref.data as string | undefined;
   const mime = inferMimeFromRef(ref) ?? "image/png";

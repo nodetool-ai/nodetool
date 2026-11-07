@@ -1,5 +1,7 @@
 #include "ChatClient.h"
 #include <QBuffer>
+#include <QDesktopServices>
+#include <QUuid>
 #include <QFile>
 #include <QFileInfo>
 #include <QHttpMultiPart>
@@ -74,6 +76,7 @@ void ChatClient::connectToServer(const QUrl &base, const QString &token) {
 }
 void ChatClient::disconnectFromServer() {
   ++m_epoch;
+  m_mediaFiles.reset();
   for (auto *reply : m_network.findChildren<QNetworkReply *>()) {
     reply->abort();
   }
@@ -184,7 +187,65 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
             callback(QJsonDocument::fromJson(body).object(), {});
           });
 }
+void ChatClient::openMedia(const QUrl &input, Callback callback) {
+  const auto url = m_base.resolved(input);
+  if ((url.scheme() != "https" && url.scheme() != "http") ||
+      url.host() != m_base.host() || url.port() != m_base.port() || url.scheme() != m_base.scheme()) {
+    callback({}, "Media must be served by the connected server");
+    return;
+  }
+  if (m_mediaRequests >= 4) { callback({}, "Media downloads are busy. Try again."); return; }
+  QNetworkRequest request(url);
+  request.setTransferTimeout(30000);
+  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  if (!m_token.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + m_token.toUtf8()); }
+  auto *reply = m_network.get(request);
+  ++m_mediaRequests;
+  const auto epoch = m_epoch;
+  connect(reply, &QNetworkReply::readyRead, this, [reply] {
+    if (reply->bytesAvailable() > 32 * 1024 * 1024) { reply->abort(); }
+  });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, epoch, callback] {
+    --m_mediaRequests;
+    reply->deleteLater();
+    if (epoch != m_epoch) { return; }
+    const auto mime = reply->header(QNetworkRequest::ContentTypeHeader).toString().section(';', 0, 0);
+    const QHash<QString, QString> extensions{{"audio/mpeg", ".mp3"}, {"audio/wav", ".wav"},
+      {"audio/ogg", ".ogg"}, {"audio/mp4", ".m4a"}, {"video/mp4", ".mp4"}, {"video/webm", ".webm"}};
+    if (reply->error() != QNetworkReply::NoError || reply->bytesAvailable() > 32 * 1024 * 1024 || !extensions.contains(mime)) {
+      callback({}, "Media unavailable or unsupported (32 MiB download limit)"); return;
+    }
+    if (!m_mediaFiles) { m_mediaFiles = std::make_unique<QTemporaryDir>(); }
+    const auto path = m_mediaFiles->filePath(QUuid::createUuid().toString(QUuid::Id128) + extensions[mime]);
+    QFile file(path);
+    const auto bytes = reply->readAll();
+    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
+      callback({}, "Could not save media for the system viewer"); return;
+    }
+    file.close();
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(path))) { callback({}, "No system media viewer available"); }
+    else { callback({}, {}); }
+  });
+}
 void ChatClient::fetchMedia(const QUrl &input, Callback callback) {
+  if (input.scheme() == "data") {
+    const auto source = input.toString();
+    if (source.size() > 2 * 1024 * 1024) { callback({}, "Image preview too large"); return; }
+    const auto comma = source.indexOf(',');
+    const auto bytes = QByteArray::fromBase64(source.mid(comma + 1).toLatin1());
+    QBuffer buffer;
+    buffer.setData(bytes);
+    buffer.open(QIODevice::ReadOnly);
+    QImageReader reader(&buffer);
+    const auto size = reader.size();
+    if (comma < 0 || source.size() > 2 * 1024 * 1024 ||
+        (!source.startsWith("data:image/png;base64,") && !source.startsWith("data:image/jpeg;base64,")) ||
+        !size.isValid() || qint64(size.width()) * size.height() > 16000000) {
+      callback({}, "Image preview unavailable"); return;
+    }
+    callback(source, {});
+    return;
+  }
   if (m_mediaRequests >= 4) {
     callback({}, "Too many image previews in flight");
     return;

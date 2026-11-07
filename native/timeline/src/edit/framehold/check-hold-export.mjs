@@ -25,7 +25,7 @@ try {
   const stills = path.join(dir, 'stills');
   run(bin, [input, '--stills', stills, '--still-frames', firsts.join(','), '--decode', 'sw']);
   run('python3', ['-I', '-c', String.raw`
-import json, subprocess, sys, tempfile, zipfile
+import json, subprocess, sys, zipfile
 from pathlib import Path
 zip_path, stills, doc_path = sys.argv[1:]
 doc = json.loads(Path(doc_path).read_text())
@@ -36,11 +36,9 @@ with zipfile.ZipFile(zip_path) as z:
     assert len(names) == count and count >= 60, (len(names), count)
     frames = [z.read(n) for n in names]
     def pixels(data):
-        with tempfile.NamedTemporaryFile(suffix='.png', dir=stills) as png:
-            png.write(data)
-            png.flush()
-            return subprocess.run(['ffmpeg', '-v', 'error', '-i', png.name, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
-                                  check=True, capture_output=True).stdout
+        return subprocess.run(['ffmpeg', '-v', 'error', '-f', 'image2pipe', '-i', 'pipe:0',
+                               '-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1'],
+                              input=data, check=True, capture_output=True).stdout
     assert len(set(frames[:15])) > 1, 'Motion frames must differ'
     inspected = 15
     for c in doc['clips']:

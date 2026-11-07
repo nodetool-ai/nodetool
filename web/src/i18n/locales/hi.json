@@ -2272,7 +2272,10 @@
       "title": "NodeTool Cloud में साइन इन करें",
       "description": "आप क्या चाहते हैं इसका वर्णन करें। एजेंट इसे बनाता है, और आप किसी भी कदम पर ले जा सकते हैं।",
       "ownKeys": "अपनी सूची की कीमतों पर अपनी खुद की API कुंजी और पे प्रदाताओं का उपयोग करें।",
-      "cloudAlphaNotice": "क्लाउड अल्फा में है। उत्पादन कार्य के लिए, उपयोग करें"
+      "cloudAlphaNotice": "क्लाउड अल्फा में है। उत्पादन कार्य के लिए, उपयोग करें",
+      "ssoTitle": "NodeTool में साइन इन करें",
+      "ssoSignIn": "{{provider}} से साइन इन करें",
+      "ssoFailed": "साइन इन विफल रहा ({{reason}})। फिर से कोशिश करें, या अपने व्यवस्थापक से एक्सेस मांगें।"
     },
     "inspector": {
       "params": "परम",
@@ -9041,6 +9044,10 @@
           "button": "Cheaper Inference API कुंजी प्राप्त करें",
           "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Cheaper Inference प्लेटफॉर्म पर जाएं"
         },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Runcrate प्लेटफॉर्म पर जाएं"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API रूट कुंजी प्राप्त करें",
           "tooltip": "API रूट API कुंजी पृष्ठ पर जाएं"
@@ -12756,7 +12763,7 @@
       "disableAll": "सभी नोड्स को निष्क्रिय करें",
       "color": "समूह रंग",
       "removeNodesHeading": "ग्रुप से कोड प्राप्त करें",
-      "dragOutModifier": "CTRL chlor chlor chlor chlor chlor chlor ch ",
+      "dragOutModifier": "Alt (Mac पर Option ⌥) दबाकर बाहर खींचें",
       "shakeToRemove": "तेज़ी से हिलाना, फिर खींचें"
     }
   },

@@ -75,6 +75,8 @@ void LiveLoudness::discontinuity() noexcept {
 }
 
 void LiveLoudness::publish() noexcept {
+    // A reset leaves the block count alone, so a pending one must not hold it back.
+    out_.blocks_.store(blocks_, std::memory_order_relaxed);
     // A reset asked for and not yet applied: these readings are the ones it clears.
     if (out_.resets_.load(std::memory_order_relaxed) != appliedReset_) {
         return;
@@ -86,7 +88,6 @@ void LiveLoudness::publish() noexcept {
     out_.maxShortTerm_.store(meter_->maxShortTerm(), std::memory_order_relaxed);
     out_.truePeakDb_.store(meter_->truePeakDb(), std::memory_order_relaxed);
     out_.loudnessRange_.store(meter_->loudnessRange(), std::memory_order_relaxed);
-    out_.blocks_.store(blocks_, std::memory_order_relaxed);
     // The request comes in before it clears, so one that came in while this stored is either seen here, and cleared
     // again, or clears after these stores.
     if (out_.resets_.load(std::memory_order_relaxed) != appliedReset_) {
