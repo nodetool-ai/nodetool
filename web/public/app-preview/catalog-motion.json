@@ -272,7 +272,7 @@
                       "type": "Text",
                       "props": {
                         "id": "note-2",
-                        "text": "Write {{column}} to insert a product's value, for example {{title}} or {{color}}. Describe the camera move and the light once, and every product gets the same look."
+                        "text": "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Describe the camera move and the light once for the whole catalog."
                       }
                     },
                     {
@@ -282,6 +282,8 @@
                         "binding": "var:promptTemplate",
                         "label": "Prompt template",
                         "multiline": true,
+                        "placeholderFieldsBinding": "op:preview/out:fields",
+                        "cameraPresets": true,
                         "events": []
                       }
                     },
@@ -1305,6 +1307,27 @@
             "dynamic_outputs": {}
           },
           {
+            "id": "reference_roles",
+            "type": "nodetool.input.BooleanInput",
+            "data": {
+              "name": "reference_roles",
+              "value": false,
+              "description": "Keep {{product_image}}, {{background_image}} and {{decoration_image}} in the prompt and offer them as fields"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 1040
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  Reference roles"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
             "id": "products",
             "type": "nodetool.output.Output",
             "data": {
@@ -1340,6 +1363,26 @@
               "width": 300,
               "selectable": true,
               "title": "7  Summary"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "fields",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fields",
+              "description": "Catalog column names available as prompt placeholders"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 800,
+                "y": 880
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "8  Prompt fields"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1692,6 +1735,15 @@
         "Prompt": "Message Bottle in clear, clear glass bottle with a cork stopper and a folded paper note inside. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
         "Image": "message-bottle.jpg"
       }
+    ],
+    "op:preview/out:fields": [
+      "sku",
+      "title",
+      "description",
+      "color",
+      "material",
+      "price",
+      "image_url"
     ],
     "op:test/out:videos": {
       "$demo": "video"

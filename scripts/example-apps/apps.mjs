@@ -47,7 +47,7 @@ import { AD_LIBRARY_APPS } from "./ad-library-recipes.mjs";
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
 import { PODCAST_PRODUCTION_DESK_APP } from "./podcast-production-desk.mjs";
 import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
-import { CATALOG_MOTION_APP } from "./catalog-motion.mjs";
+import { CATALOG_MOTION_APP, CATALOG_MOTION_REFERENCES_APP } from "./catalog-motion.mjs";
 import { VIDEO_POST_HOUSE_APP } from "./video-post-house.mjs";
 
 const SLIDERS_IMAGE_ENHANCE = [
@@ -1008,6 +1008,8 @@ export const EXAMPLE_APPS = [
   UGC_PRODUCT_VIDEO_APP,
 
   CATALOG_MOTION_APP,
+
+  CATALOG_MOTION_REFERENCES_APP,
 
   // ── 22 ─────────────────────────────────────────────────────────────────────
   // The four apps below each bind one shipped recipe

@@ -315,6 +315,19 @@ function buildControl(control, ctx) {
 
   if (control.textVar !== undefined) {
     ctx.useVariable(control.textVar);
+    let placeholderFieldsBinding;
+    if (control.placeholderFields) {
+      const { op, output, demo } = control.placeholderFields;
+      const operation = ctx.operations.get(op);
+      const port = operation?.template.outputs.get(output);
+      if (!operation || !port) {
+        fail(`${ctx.app.name}: placeholder fields reference an unknown output "${op}:${output}"`);
+      }
+      const portId = operation.kind === "script" ? port.name : port.id;
+      placeholderFieldsBinding = outputBinding(op, portId);
+      ctx.displayed.add(`${op}:${portId}`);
+      if (demo !== undefined) ctx.values[placeholderFieldsBinding] = demo;
+    }
     return {
       type: "TextInput",
       props: {
@@ -322,6 +335,8 @@ function buildControl(control, ctx) {
         binding: varBinding(control.textVar),
         label: control.label,
         multiline: control.multiline === true,
+        ...(placeholderFieldsBinding ? { placeholderFieldsBinding } : {}),
+        ...(control.cameraPresets ? { cameraPresets: true } : {}),
         events: []
       }
     };

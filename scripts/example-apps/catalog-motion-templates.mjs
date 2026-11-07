@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import {
   CATALOG_NEGATIVE_PROMPT,
   CATALOG_PROMPT_TEMPLATE,
+  CATALOG_REFERENCE_PROMPT_TEMPLATE,
   CATALOG_SAMPLE
 } from "./catalog-motion.mjs";
 
@@ -107,14 +108,18 @@ const nameColumn = findColumn(inputs.name_column, [/^(title|name|product|product
 const template = String(inputs.prompt_template ?? "").trim();
 if (!template) throw new Error("Write the prompt template. Use {{column}} to insert a product's value.");
 const PLACEHOLDER = /\{\{\s*([^{}]+?)\s*\}\}/g;
-const missing = [...new Set([...template.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((name) => !byKey.has(keyOf(name))))];
+// With reference_roles on, the image role placeholders stay in the prompt for
+// the animate graph to number.
+const ROLES = inputs.reference_roles ? ["product_image", "background_image", "decoration_image"] : [];
+const isRole = (name) => ROLES.includes(keyOf(name));
+const missing = [...new Set([...template.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((name) => !byKey.has(keyOf(name)) && !isRole(name)))];
 // Reading still succeeds, so the new catalog shows. Rendering refuses below.
 const missingText = missing.length > 0
   ? "The template uses " + missing.map((name) => "{{" + name + "}}").join(", ") +
     ", which the catalog has no column for. The columns are " + columnList + "."
   : "";
 const fill = (product) =>
-  template.replace(PLACEHOLDER, (_, name) => product[byKey.get(keyOf(name))] ?? "").replace(/\s+/g, " ").trim();
+  template.replace(PLACEHOLDER, (_, name) => (isRole(name) ? "{{" + keyOf(name) + "}}" : product[byKey.get(keyOf(name))] ?? "")).replace(/\s+/g, " ").trim();
 
 // A Shopify export writes "//cdn.shopify.com/…"; a bare file name is not a link.
 const imageOf = (product) => {
@@ -169,6 +174,7 @@ const table = products.slice(0, PREVIEW_ROWS).map((product, i) => ({
 
 await output("summary", summary);
 await output("products", table);
+await output("fields", [...new Set([...headers.map(keyOf).filter(Boolean), ...ROLES])]);
 `.trim();
 
 // The animate template also hands the rows on. A range with nothing to
@@ -184,6 +190,33 @@ const item = inputs.item ?? {};
 if (!item.image) throw new Error("This catalog row has no image to animate.");
 await output("image", item.image);
 await output("prompt", String(item.prompt ?? ""));
+`.trim();
+
+// The references variant: the product photo, then the background and the
+// decoration when set. Each role placeholder becomes "image N" by its final
+// place in the list. An unset role's placeholder is removed.
+const REFERENCES_UNPACK_CODE = String.raw`
+const item = inputs.item ?? {};
+if (!item.image) throw new Error("This catalog row has no image to animate.");
+const isSet = (image) => Boolean(image && (image.uri || image.asset_id || image.data));
+const references = [];
+const numbers = {};
+for (const [role, image] of [
+  ["product_image", item.image],
+  ["background_image", inputs.background_image],
+  ["decoration_image", inputs.decoration_image]
+]) {
+  if (!isSet(image)) continue;
+  references.push(image);
+  numbers[role] = references.length;
+}
+const prompt = String(item.prompt ?? "")
+  .replace(/\{\{\s*(product_image|background_image|decoration_image)\s*\}\}/g, (_, role) => (numbers[role] ? "image " + numbers[role] : ""))
+  .replace(/[ \t]+/g, " ")
+  .replace(/ +([,.;:!?])/g, "$1")
+  .trim();
+await output("images", references);
+await output("prompt", prompt);
 `.trim();
 
 const comment = (id, text, y = 0) => ({
@@ -256,7 +289,7 @@ const readerInputs = [
   )
 ];
 
-const readerNode = (emitRows, x, y) =>
+const readerNode = (emitRows, x, y, referenceRoles = false) =>
   node(
     "read",
     "nodetool.code.Code",
@@ -280,11 +313,13 @@ const readerNode = (emitRows, x, y) =>
         name_column: "",
         first_row: 1,
         last_row: 0,
-        duration: 0
+        duration: 0,
+        ...(referenceRoles ? { reference_roles: true } : {})
       },
       dynamic_outputs: {
         summary: { type: "str", type_args: [], optional: false },
         products: { type: "list", type_args: [{ type: "any", type_args: [], optional: false }], optional: false },
+        fields: { type: "list", type_args: [{ type: "str", type_args: [], optional: false }], optional: false },
         ...(emitRows
           ? { rows: { type: "list", type_args: [{ type: "any", type_args: [], optional: false }], optional: false } }
           : {})
@@ -333,14 +368,25 @@ const read = workflow(
       0
     ),
     ...readerInputs,
+    node(
+      "reference_roles",
+      "nodetool.input.BooleanInput",
+      { name: "reference_roles", value: false, description: "Keep {{product_image}}, {{background_image}} and {{decoration_image}} in the prompt and offer them as fields" },
+      0,
+      1040,
+      "5  Reference roles"
+    ),
     readerNode(false, 400, 560),
     output("products", "products", "Every row with its filled prompt and image link", 800, 520, "6  Products"),
-    output("summary", "summary", "Columns, placeholders and rows that will be skipped", 800, 700, "7  Summary")
+    output("summary", "summary", "Columns, placeholders and rows that will be skipped", 800, 700, "7  Summary"),
+    output("fields", "fields", "Catalog column names available as prompt placeholders", 800, 880, "8  Prompt fields")
   ],
   [
     ...readerEdges,
+    edge("e-reference-roles", "reference_roles", "read", "reference_roles"),
     edge("e-products", "read", "products", "value", "products"),
-    edge("e-summary", "read", "summary", "value", "summary")
+    edge("e-summary", "read", "summary", "value", "summary"),
+    edge("e-fields", "read", "fields", "value", "fields")
   ]
 );
 
@@ -430,7 +476,72 @@ const animate = workflow(
   ]
 );
 
-for (const template of [read, animate]) {
+const animateNodes = animate.graph.nodes;
+const references = workflow(
+  "Animate a Product Catalog with References",
+  "Turn a product catalog into product videos made from reference images. Each row's own photo is image 1, and an optional background and decoration image follow it for the whole range. The prompt is filled from that row's columns, and its role placeholders become image 1, image 2 and image 3.",
+  ["video", "example"],
+  [
+    comment(
+      "intro-comment",
+      "# Animate a Product Catalog with References\n\nAnimates a range of rows from a product catalog CSV with Reference To Video. Every product's own photo is image 1. \"Background image\" and \"Decoration image\" are optional and follow it in that order.\n\n**How it works:** \"Read the rows to animate\" fills \"Prompt template\" for each row and keeps `{{product_image}}`, `{{background_image}}` and `{{decoration_image}}`. \"References and prompt\" builds the image list and turns each placeholder into `image N` by its place in the list. A placeholder for an image you leave out is removed. \"Animate\" runs the chosen reference-to-video model, and \"Videos\" streams the clips in as they finish.\n\n**Try this:** Leave out the background. The decoration becomes image 2.",
+      0
+    ),
+    ...animateNodes.filter((n) => !["intro-comment", "read", "unpack", "animate", "videos", "summary"].includes(n.id)).map((n) =>
+      n.id === "prompt_template" ? { ...n, data: { ...n.data, value: CATALOG_REFERENCE_PROMPT_TEMPLATE } }
+      : n.id === "video_model" ? { ...n, data: { ...n.data, description: "The reference-to-video model every product is animated with" } }
+      : n
+    ),
+    node("background_image", "nodetool.input.ImageInput", { name: "background_image", value: { type: "image", uri: "", asset_id: null, data: null, metadata: null }, description: "Optional. The scene or backdrop every clip uses" }, 0, 1320, "18  Background image"),
+    node("decoration_image", "nodetool.input.ImageInput", { name: "decoration_image", value: { type: "image", uri: "", asset_id: null, data: null, metadata: null }, description: "Optional. Props or decoration every clip uses" }, 0, 1500, "19  Decoration image"),
+    readerNode(true, 400, 560, true),
+    node(
+      "unpack",
+      "nodetool.code.Code",
+      { code: REFERENCES_UNPACK_CODE, timeout: 10, max_response_mb: 1, allow_local_network: false, allow_host_filesystem: false, secrets: [], script: {} },
+      1100,
+      560,
+      "14  References and prompt",
+      {
+        dynamic_properties: { item: null, background_image: null, decoration_image: null },
+        dynamic_outputs: {
+          images: { type: "list", type_args: [{ type: "image", type_args: [], optional: false }], optional: false },
+          prompt: { type: "str", type_args: [], optional: false }
+        }
+      }
+    ),
+    node(
+      "animate",
+      "nodetool.video.ReferenceToVideo",
+      {
+        reference_images: [],
+        reference_videos: [],
+        model: { type: "video_model", provider: "", id: "", name: "", path: null, supported_tasks: [] },
+        prompt: "",
+        use_reference_video_audio: false,
+        negative_prompt: "",
+        entities: [],
+        aspect_ratio: "1:1",
+        resolution: "720p",
+        duration: 5,
+        timeout_seconds: 0
+      },
+      1450,
+      560,
+      "15  Animate"
+    ),
+    output("videos", "videos", "One clip per product, saved as an asset", 1850, 560, "16  Videos"),
+    output("summary", "summary", "How many clips the range produces and which rows were skipped", 800, 900, "17  Summary")
+  ],
+  [
+    ...animate.graph.edges.filter((e) => e.id !== "e-image"),
+    edge("e-images", "unpack", "animate", "reference_images", "images"),
+    edge("e-background", "background_image", "unpack", "background_image"),
+    edge("e-decoration", "decoration_image", "unpack", "decoration_image")
+  ]
+);
+
+for (const template of [read, animate, references]) {
   const file = join(EXAMPLES, `${template.name}.json`);
   writeFileSync(file, `${JSON.stringify(template, null, 2)}\n`);
   console.log(file);

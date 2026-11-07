@@ -5,7 +5,11 @@ import type {
   OutputCorrelation,
   FolderRef
 } from "@nodetool-ai/protocol";
-import { isRawRgbaImage } from "@nodetool-ai/protocol";
+import {
+  isRawRgbaImage,
+  referenceMarkerStyle,
+  tagReferenceNumbers
+} from "@nodetool-ai/protocol";
 import type {
   VideoRef,
   ImageRef,
@@ -731,7 +735,7 @@ export class ReferenceToVideoNode extends BaseNode {
   })
   declare model: VideoModelRef;
 
-  @prop({ type: "str", default: "", title: "Prompt", description: "Describe the video using image 1, image 2, video 1, and video 2 numbering in list order." })
+  @prop({ type: "str", default: "", title: "Prompt", description: "Describe the video using image 1, image 2, video 1, and video 2 numbering in list order. An image mentioned in the prompt joins the references after the wired ones and takes the next number." })
   declare prompt: string;
 
   @prop({ type: "bool", default: false, title: "Use Reference Video Audio", description: "Use audio tracks carried by reference videos where supported." })
@@ -764,6 +768,22 @@ export class ReferenceToVideoNode extends BaseNode {
     ]);
     const referenceImages = imageBytes.filter((bytes) => bytes.length > 0);
     const referenceVideos = videoBytes.filter((bytes) => bytes.length > 0);
+
+    // An `asset://` image mentioned in the prompt joins the references after
+    // the wired ones, and its mention becomes its number: "image 3".
+    const wiredCount = referenceImages.length;
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: String(this.prompt ?? "") }],
+      [{ name: "reference_images", kind: "image", list: true, hasSource: false, labelAt: (index) => `image ${wiredCount + index + 1}` }],
+      context
+    );
+    const prompt = isString(overrides.prompt) ? overrides.prompt : String(this.prompt ?? "");
+    if (Array.isArray(overrides.reference_images)) {
+      for (const mentioned of overrides.reference_images as ImageRefLike[]) {
+        const bytes = await imageBytesAsync(mentioned, context);
+        if (bytes.length > 0) referenceImages.push(bytes);
+      }
+    }
     if (referenceImages.length === 0 && referenceVideos.length === 0) {
       throw new Error("Reference To Video requires at least one reference image or video.");
     }
@@ -779,7 +799,10 @@ export class ReferenceToVideoNode extends BaseNode {
         params: {
           reference_images: referenceImages,
           reference_videos: referenceVideos,
-          prompt: await expandPromptMentions(String(this.prompt ?? ""), context),
+          prompt: tagReferenceNumbers(
+            prompt,
+            referenceMarkerStyle(providerId, modelId)
+          ),
           use_reference_video_audio: this.use_reference_video_audio,
           negative_prompt: this.negative_prompt,
           entities: await resolveEntities(this.entities, context),
