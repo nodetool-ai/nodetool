@@ -2436,7 +2436,7 @@ than guessing the path.
 
 **Subcommands:** `init`, `add`, `edit`, `list`, `show`, `plan`, `apply`,
 `status`, `logs`, `destroy`, plus the remote group `workflows` and the
-`users-*` verbs below.
+`users-*` and `accounts-*` verbs below.
 
 **Options:**
 
@@ -2445,7 +2445,7 @@ than guessing the path.
 - `-f, --follow` / `--tail <n>` / `--service <service>` — for `logs`; `--tail`
   defaults to `100`.
 - `--force` — skip the confirmation on `destroy`, `workflows delete`, and `users-remove`.
-- `--json` — machine-readable output on `list`, `workflows list`, and `users-list`.
+- `--json` — machine-readable output on `list`, `workflows list`, `users-list`, and `accounts-list`.
 
 ```bash
 # Scaffold, describe, and review before touching the remote host
@@ -2514,8 +2514,26 @@ nodetool deploy users-reset-token my-server alice
 nodetool deploy users-remove my-server alice
 ```
 
-Every subcommand that touches a live deployment — the `users-*` verbs and the
-`workflows` group above — sends an admin bearer token. `--token <token>`
+#### SSO accounts on the deployment
+
+A server with single sign-on keeps a directory of everyone who has signed in.
+`accounts-list` searches it, and `accounts-set` disables, enables, promotes, or
+demotes one account. A disabled user is refused at once, including their open
+connections and access tokens. See
+[Users, sessions, and admins](authentication.md#users-sessions-and-admins).
+
+```bash
+nodetool deploy accounts-list my-server --query ada
+nodetool deploy accounts-list my-server --status disabled --json
+nodetool deploy accounts-set my-server <user_id> --status disabled
+nodetool deploy accounts-set my-server <user_id> --role admin
+```
+
+`accounts-list` takes `--query`, `--status <active|disabled>`,
+`--role <admin|member>`, `--limit` (default `50`, at most `200`) and `--offset`.
+
+Every subcommand that touches a live deployment — the `users-*` and
+`accounts-*` verbs and the `workflows` group above — sends an admin bearer token. `--token <token>`
 passes it explicitly and wins over `NODETOOL_ADMIN_TOKEN`; with neither, an
 interactive shell prompts and a non-interactive one exits `1`.
 

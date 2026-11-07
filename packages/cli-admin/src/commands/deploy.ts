@@ -511,6 +511,22 @@ function registerWorkflows(deploy: Command): void {
 // users-* commands
 // ---------------------------------------------------------------------------
 
+function parseAccountStatus(
+  value: string | undefined
+): "active" | "disabled" | undefined {
+  if (value === undefined) return undefined;
+  if (value === "active" || value === "disabled") return value;
+  throw new Error(`Invalid --status '${value}'. Must be 'active' or 'disabled'.`);
+}
+
+function parseAccountRole(
+  value: string | undefined
+): "admin" | "member" | undefined {
+  if (value === undefined) return undefined;
+  if (value === "admin" || value === "member") return value;
+  throw new Error(`Invalid --role '${value}'. Must be 'admin' or 'member'.`);
+}
+
 function registerUsers(deploy: Command): void {
   deploy
     .command("users-add <deployment> <username>")
@@ -605,6 +621,91 @@ function registerUsers(deploy: Command): void {
           const mgr = await getUserManager(dep, deploymentName, opts);
           await mgr.removeUser(username);
           console.log(`removed '${username}'`);
+        }
+      )
+    );
+
+  deploy
+    .command("accounts-list <deployment>")
+    .description("List SSO user accounts on the deployment")
+    .option("--query <text>", "Match email, name or user id")
+    .option("--status <status>", "active|disabled")
+    .option("--role <role>", "admin|member")
+    .option("--limit <n>", "Page size, at most 200", "50")
+    .option("--offset <n>", "Skip this many accounts", "0")
+    .option("--token <token>", "Admin bearer token")
+    .option("--json", "Output as JSON")
+    .action(
+      runAction(
+        async (
+          deploymentName: string,
+          opts: {
+            query?: string;
+            status?: string;
+            role?: string;
+            limit: string;
+            offset: string;
+            token?: string;
+            json?: boolean;
+          }
+        ) => {
+          const status = parseAccountStatus(opts.status);
+          const role = parseAccountRole(opts.role);
+          const config = await loadConfigOrExit();
+          const dep = getDeploymentOrExit(config, deploymentName);
+          const mgr = await getUserManager(dep, deploymentName, opts);
+          const page = await mgr.listAccounts({
+            query: opts.query,
+            status,
+            role,
+            limit: Number.parseInt(opts.limit, 10),
+            offset: Number.parseInt(opts.offset, 10)
+          });
+          if (opts.json) {
+            asJson(page);
+            return;
+          }
+          printTable(
+            page.users.map((u) => ({
+              user_id: u.user_id,
+              email: u.email ?? "",
+              name: u.display_name ?? "",
+              admin: u.is_admin ? "yes" : "",
+              status: u.status,
+              last_seen: (u.last_seen_at ?? "").slice(0, 19)
+            })),
+            ["user_id", "email", "name", "admin", "status", "last_seen"]
+          );
+          console.log(`${page.users.length} of ${page.total} accounts`);
+        }
+      )
+    );
+
+  deploy
+    .command("accounts-set <deployment> <user_id>")
+    .description("Disable, enable, promote or demote an SSO user account")
+    .option("--status <status>", "active|disabled")
+    .option("--role <role>", "admin|member")
+    .option("--token <token>", "Admin bearer token")
+    .action(
+      runAction(
+        async (
+          deploymentName: string,
+          userId: string,
+          opts: { status?: string; role?: string; token?: string }
+        ) => {
+          const status = parseAccountStatus(opts.status);
+          const role = parseAccountRole(opts.role);
+          if (!status && !role) {
+            throw new Error("Pass --status, --role, or both.");
+          }
+          const config = await loadConfigOrExit();
+          const dep = getDeploymentOrExit(config, deploymentName);
+          const mgr = await getUserManager(dep, deploymentName, opts);
+          const account = await mgr.updateAccount(userId, { status, role });
+          console.log(
+            `Updated ${account.user_id}: role ${account.role}, status ${account.status}`
+          );
         }
       )
     );

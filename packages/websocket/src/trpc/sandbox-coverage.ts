@@ -49,6 +49,26 @@ export type SandboxApiVerdict =
 export const SANDBOX_API_COVERAGE: Readonly<
   Record<string, SandboxApiVerdict>
 > = {
+  "admin.me": {
+    withheld:
+      "Whether the caller is an admin steers the admin UI. A run has no " +
+      "admin surface to steer."
+  },
+  "admin.users.get": {
+    withheld:
+      "Account administration reaches every tenant on the install, " +
+      "not the caller's own rows."
+  },
+  "admin.users.list": {
+    withheld:
+      "Account administration reaches every tenant on the install, " +
+      "not the caller's own rows."
+  },
+  "admin.users.update": {
+    withheld:
+      "Account administration reaches every tenant on the install, " +
+      "not the caller's own rows."
+  },
   "agentAccess.createToken": {
     withheld:
       "Minting a bearer token is granting a third party the user's whole " +

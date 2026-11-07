@@ -198,6 +198,7 @@ SAML is not built in. Providers that only speak SAML can sit behind an OIDC brid
 | `OIDC_ALLOWED_DOMAINS` | no | Comma-separated email domains allowed to sign in. Requires an `email` claim whose `email_verified` is not `false`. |
 | `OIDC_ALLOWED_GROUPS` | no | Comma-separated groups allowed to sign in. A user needs at least one. |
 | `OIDC_GROUPS_CLAIM` | no | Claim holding the groups. Default `groups`. A dotted path reads a nested claim, such as `realm_access.roles` for Keycloak realm roles. Most providers include groups only when asked, through a scope or a client mapper. |
+| `OIDC_ADMIN_GROUPS` | no | Comma-separated groups whose members are NodeTool admins. Read from the same claim as `OIDC_ALLOWED_GROUPS`. |
 | `OIDC_SESSION_TTL_SECONDS` | no | Session lifetime, from 300 to 2592000. Default 43200 (12 hours). |
 
 A partial or invalid configuration stops the server at boot with a message naming the missing variable, so a server meant to enforce SSO never comes up open.
@@ -217,9 +218,17 @@ NODETOOL_PUBLIC_URL=https://nodetool.example.com
 
 Each person's NodeTool user ID is the first 32 hexadecimal characters of SHA-256 over the issuer and their `sub` claim. It stays the same across sign-ins and never changes when their email or name does. A different issuer gives the same person a different ID, so changing `OIDC_ISSUER` starts everyone with an empty library.
 
-The server logs `SSO sign-in` with the user ID and email at each sign-in. To make someone an admin, add that user ID to `ADMIN_USER_IDS`.
+Each sign-in creates or refreshes the person's row in the user directory (`nodetool_user_accounts`) with their email, name and groups. The server also logs `SSO sign-in` with the user ID and email.
 
-A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt. A user removed from the identity provider keeps access until their session expires. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
+A person is an admin when any of these holds:
+
+- their user ID is in `ADMIN_USER_IDS`, which is how the first admin is set up
+- their groups at the last sign-in include one of `OIDC_ADMIN_GROUPS`
+- an admin gave them the admin role through the `admin.users.update` API
+
+A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt.
+
+An admin can disable an account through `admin.users.update`. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
 Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
 
