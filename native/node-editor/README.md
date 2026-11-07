@@ -220,6 +220,10 @@ both themes. [BodyConnectionTest](tests/graph/BodyConnectionTest.cpp) and
 dynamic slots, scalar replacement/list fan-in, rollback and stale active-drag
 scope changes. Run them with `ctest --test-dir <build> -R
 'node_editor_body_(connection|drop_host)$' --output-on-failure`.
+[CatalogTest](tests/ui/CatalogTest.cpp) drives catalog search, keys, the
+provider chip and pointer placement. Run it with `ctest --test-dir <build> -R
+'node_editor_catalog$' --output-on-failure`. `NODETOOL_CATALOG_CAPTURE_DIR`
+writes its captures in both themes.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
 add-variable targets, full Agent-control presentation, value/code convenience
 actions remain outside these subsets.
