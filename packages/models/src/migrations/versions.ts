@@ -283,9 +283,32 @@ export const RESOURCE_CHANGE_OUTBOX_DDL: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS "idx_resource_change_outbox_created_at" ON "resource_change_outbox" ("created_at")'
 ];
 
+/**
+ * DDL for `nodetool_user_accounts`, valid on both dialects. Applied by its
+ * migration, and by `initTestDb` through {@link POST_BASELINE_TABLE_DDL}.
+ */
+const USER_ACCOUNTS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_user_accounts (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    email TEXT,
+    display_name TEXT,
+    auth_source TEXT NOT NULL,
+    idp_groups TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    last_sign_in_at TEXT,
+    last_seen_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_user_accounts_email
+    ON nodetool_user_accounts (email)`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
-  "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT"
+  "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
+  ...USER_ACCOUNTS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4287,6 +4310,23 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // Preserve generation provenance on rollback.
+    }
+  },
+
+  // ── Create nodetool_user_accounts ───────────────────────────────────
+  // The user directory for self-hosted servers: one row per person who has
+  // signed in, with the role and status an admin manages.
+  {
+    version: "20261107_000000",
+    name: "create_user_accounts",
+    createsTables: ["nodetool_user_accounts"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of USER_ACCOUNTS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_user_accounts_email");
+      await db.execute("DROP TABLE IF EXISTS nodetool_user_accounts");
     }
   }
 ];

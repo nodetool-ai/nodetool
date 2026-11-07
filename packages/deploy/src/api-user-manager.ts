@@ -36,6 +36,30 @@ export interface RemoveUserResponse {
   message: string;
 }
 
+/** A user directory account, as `/trpc/admin.users.*` returns it. */
+export interface DirectoryAccount {
+  user_id: string;
+  email: string | null;
+  display_name: string | null;
+  auth_source: string;
+  groups: string[];
+  role: "admin" | "member";
+  is_admin: boolean;
+  status: "active" | "disabled";
+  created_at: string;
+  updated_at: string;
+  last_sign_in_at: string | null;
+  last_seen_at: string | null;
+}
+
+export interface DirectoryListOptions {
+  query?: string;
+  status?: "active" | "disabled";
+  role?: "admin" | "member";
+  limit?: number;
+  offset?: number;
+}
+
 // ============================================================================
 // APIUserManager
 // ============================================================================
@@ -127,5 +151,26 @@ export class APIUserManager {
    */
   async removeUser(username: string): Promise<RemoveUserResponse> {
     return this.client.users.remove.mutate({ username });
+  }
+
+  /** List the SSO user directory (`admin.users.list`). */
+  async listAccounts(
+    options: DirectoryListOptions = {}
+  ): Promise<{ users: DirectoryAccount[]; total: number }> {
+    return this.client.admin.users.list.query({
+      limit: options.limit ?? 50,
+      offset: options.offset ?? 0,
+      query: options.query,
+      status: options.status,
+      role: options.role
+    });
+  }
+
+  /** Change a directory account's role or status (`admin.users.update`). */
+  async updateAccount(
+    userId: string,
+    changes: { role?: "admin" | "member"; status?: "active" | "disabled" }
+  ): Promise<DirectoryAccount> {
+    return this.client.admin.users.update.mutate({ user_id: userId, ...changes });
   }
 }

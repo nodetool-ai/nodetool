@@ -19,6 +19,7 @@
 
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { createLogger } from "@nodetool-ai/config";
+import { recordSignIn } from "@nodetool-ai/models";
 import {
   OIDC_CALLBACK_PATH,
   OIDC_LOGIN_PATH,
@@ -31,6 +32,8 @@ import {
   sealOidcLoginState,
   type OidcClient
 } from "@nodetool-ai/auth";
+
+import { forgetAccountStatus } from "../lib/user-directory.js";
 
 const log = createLogger("nodetool.websocket.oidc");
 
@@ -161,6 +164,20 @@ const oidcAuthRoutes: FastifyPluginAsync<OidcAuthRouteOptions> = async (
 
     try {
       const identity = await client.completeSignIn(code, loginState);
+      const account = await recordSignIn({
+        userId: identity.userId,
+        email: identity.email ?? null,
+        displayName: identity.name ?? null,
+        authSource: "oidc",
+        groups: identity.groups
+      });
+      if (account.status !== "active") {
+        log.warn("SSO sign-in refused for a disabled account", {
+          userId: identity.userId
+        });
+        return fail(reply, "account_disabled");
+      }
+      forgetAccountStatus(identity.userId);
       const session = await mintOidcSessionToken(
         sessionKey(),
         { userId: identity.userId, email: identity.email, name: identity.name },

@@ -613,6 +613,28 @@ export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyb
 export { storyboards } from "./schema/storyboards.js";
 export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
 
+export {
+  USER_ROLES,
+  USER_STATUSES,
+  getUserAccount,
+  isUserRole,
+  isUserStatus,
+  listUserAccounts,
+  recordSignIn,
+  touchUserLastSeen,
+  updateUserAccount
+} from "./user-account.js";
+export type {
+  SignInRecord,
+  UserAccount,
+  UserAccountChanges,
+  UserAccountListOptions,
+  UserAccountPage,
+  UserRole,
+  UserStatus
+} from "./user-account.js";
+export { userAccounts } from "./schema/user-accounts.js";
+
 export * from "./app-instance.js";
 
 export { listRunTraceOwners, registerRunTrace, getRunTrace, getRegisteredRunTrace, getRegisteredTrace, setRunTraceRoot, settleRunTrace, registerRunTraceParent, registerRunTraceParents, writeRunTraceUpdate, listRunTraceRecords, markRunTraceIncomplete, eraseRunTraceParentContent, deleteRunTrace, pruneRunTraces, sanitizeRunTraceRecord, RunTraceError } from "./run-trace.js";
