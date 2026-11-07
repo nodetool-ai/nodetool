@@ -20065,6 +20065,59 @@
       "save": "Enregistrer",
       "cancel": "Annuler",
       "saveFailed": "Impossible d’enregistrer les limites."
+    },
+    "permissions": {
+      "edit": "Autorisations",
+      "editDefault": "Modifier les autorisations par défaut",
+      "defaultTitle": "Autorisations par défaut",
+      "userTitle": "Autorisations de {{name}}",
+      "defaultAll": "Autorisations par défaut : tout est permis.",
+      "defaultBlockedCount": "Autorisations par défaut : {{count}} bloquées.",
+      "blockedCount": "Autorisations bloquées : {{count}}",
+      "defaultIntro": "Ce que chaque utilisateur peut faire, sauf si vous lui attribuez une autorisation propre.",
+      "userIntro": "Chaque autorisation suit la valeur par défaut tant que vous ne l’autorisez ou ne la bloquez pas ici.",
+      "allow": "Autoriser",
+      "block": "Bloquer",
+      "defaultAllowed": "Par défaut : autorisé",
+      "defaultBlocked": "Par défaut : bloqué",
+      "adminNote": "Les admins ont toujours toutes les autorisations.",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saveFailed": "Impossible d’enregistrer les autorisations.",
+      "flags": {
+        "use_llm": {
+          "label": "Utiliser les modèles de langage",
+          "description": "Chat, agents et génération de texte."
+        },
+        "generate_media": {
+          "label": "Générer des médias",
+          "description": "Images, vidéo, audio et 3D."
+        },
+        "use_server_keys": {
+          "label": "Utiliser les clés de fournisseur du serveur",
+          "description": "Si bloqué, la personne ne peut travailler qu’avec les clés qu’elle ajoute dans les réglages."
+        },
+        "manage_own_keys": {
+          "label": "Gérer ses clés de fournisseur",
+          "description": "Ajouter, modifier ou supprimer des clés de fournisseur et des fournisseurs personnalisés."
+        },
+        "share_links": {
+          "label": "Créer des liens de partage",
+          "description": "Liens qui permettent aux personnes connectées de voir ou de modifier un workflow ou un document."
+        },
+        "share_public": {
+          "label": "Partager publiquement",
+          "description": "Rendre un workflow public ou créer un lien public que tout le monde peut ouvrir."
+        },
+        "publish_apps": {
+          "label": "Publier des apps",
+          "description": "Publier, diffuser et déployer des mini-apps."
+        },
+        "install_packs": {
+          "label": "Modifier les packs de nœuds",
+          "description": "Modifier la confiance des packs, activer ou désactiver les packs intégrés et recharger les packs. Cela concerne tous les utilisateurs."
+        }
+      }
     }
   }
 }

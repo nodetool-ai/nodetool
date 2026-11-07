@@ -20065,6 +20065,59 @@
       "save": "Salva",
       "cancel": "Annulla",
       "saveFailed": "Impossibile salvare i limiti."
+    },
+    "permissions": {
+      "edit": "Autorizzazioni",
+      "editDefault": "Modifica autorizzazioni predefinite",
+      "defaultTitle": "Autorizzazioni predefinite",
+      "userTitle": "Autorizzazioni per {{name}}",
+      "defaultAll": "Autorizzazioni predefinite: tutto consentito.",
+      "defaultBlockedCount": "Autorizzazioni predefinite: {{count}} bloccate.",
+      "blockedCount": "Autorizzazioni bloccate: {{count}}",
+      "defaultIntro": "Cosa può fare ogni utente, a meno che tu non gli assegni un’autorizzazione propria.",
+      "userIntro": "Ogni autorizzazione segue il valore predefinito finché non la consenti o la blocchi qui.",
+      "allow": "Consenti",
+      "block": "Blocca",
+      "defaultAllowed": "Predefinito: consentito",
+      "defaultBlocked": "Predefinito: bloccato",
+      "adminNote": "Gli admin hanno sempre tutte le autorizzazioni.",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "saveFailed": "Impossibile salvare le autorizzazioni.",
+      "flags": {
+        "use_llm": {
+          "label": "Usare modelli linguistici",
+          "description": "Chat, agenti e generazione di testo."
+        },
+        "generate_media": {
+          "label": "Generare media",
+          "description": "Immagini, video, audio e 3D."
+        },
+        "use_server_keys": {
+          "label": "Usare le chiavi dei provider del server",
+          "description": "Se bloccato, la persona può lavorare solo con le chiavi che aggiunge nelle Impostazioni."
+        },
+        "manage_own_keys": {
+          "label": "Gestire le proprie chiavi dei provider",
+          "description": "Aggiungere, modificare o rimuovere chiavi dei provider e provider personalizzati."
+        },
+        "share_links": {
+          "label": "Creare link di condivisione",
+          "description": "Link che permettono alle persone autenticate di vedere o modificare un workflow o un documento."
+        },
+        "share_public": {
+          "label": "Condividere pubblicamente",
+          "description": "Rendere pubblico un workflow o creare un link pubblico che chiunque può aprire."
+        },
+        "publish_apps": {
+          "label": "Pubblicare app",
+          "description": "Pubblicare, rilasciare e distribuire mini app."
+        },
+        "install_packs": {
+          "label": "Modificare i pacchetti di nodi",
+          "description": "Modificare la fiducia nei pacchetti, attivare o disattivare i pacchetti integrati e ricaricare i pacchetti. Riguarda tutti gli utenti."
+        }
+      }
     }
   }
 }

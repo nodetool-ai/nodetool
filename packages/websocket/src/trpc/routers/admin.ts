@@ -10,6 +10,9 @@
  *   quotas.setDefault (mutation) — change them (admin)
  *   quotas.setUser    (mutation) — give one user limits of their own (admin)
  *   quotas.clearUser  (mutation) — put one user back on the default (admin)
+ *   permissions.getDefault (query)    — the flags every user gets (admin)
+ *   permissions.setDefault (mutation) — change them (admin)
+ *   permissions.setUser    (mutation) — set flags for one user (admin)
  *
  * Disabling an account takes effect on this process at once: the cached
  * status is dropped and the user's open WebSockets are closed. Other replicas
@@ -17,11 +20,17 @@
  * themselves, so a server cannot lose its last admin from the UI.
  *
  * Quota changes reach this process's gate at once and other replicas within
- * `QUOTA_CACHE_TTL_MS`.
+ * `QUOTA_CACHE_TTL_MS`. Permission changes likewise, within
+ * `PERMISSION_CACHE_TTL_MS`.
  */
 
 import {
+  DEFAULT_PERMISSION_SUBJECT,
   DEFAULT_QUOTA_SUBJECT,
+  getEffectivePermissions,
+  getPermissionOverrides,
+  resolvePermissions,
+  setPermissionOverrides,
   clearQuota,
   getEffectiveQuota,
   getQuota,
@@ -44,6 +53,10 @@ import {
   adminQuotasSetDefaultInput,
   adminQuotasSetUserInput,
   adminUserQuota,
+  adminDefaultPermissionsOutput,
+  adminPermissionsSetDefaultInput,
+  adminPermissionsSetUserInput,
+  adminUserPermissions,
   type AdminQuotaLimits,
   type AdminUser,
   type AdminUserQuota
@@ -54,6 +67,7 @@ import {
   closeUserSockets,
   forgetAccountStatus
 } from "../../lib/user-directory.js";
+import { forgetPermissions } from "../../lib/permissions.js";
 import { forgetQuota } from "../../quota-gate.js";
 import { throwApiError } from "../error-formatter.js";
 import { router } from "../index.js";
@@ -110,8 +124,14 @@ async function toAdminUser(account: UserAccount): Promise<AdminUser> {
     updated_at: account.updatedAt,
     last_sign_in_at: account.lastSignInAt,
     last_seen_at: account.lastSeenAt,
-    quota: await userQuota(account.userId)
+    quota: await userQuota(account.userId),
+    permissions: await getEffectivePermissions(account.userId)
   };
+}
+
+async function defaultPermissions() {
+  const overrides = await getPermissionOverrides(DEFAULT_PERMISSION_SUBJECT);
+  return { flags: resolvePermissions(overrides), overrides };
 }
 
 export const adminRouter = router({
@@ -221,6 +241,40 @@ export const adminRouter = router({
         await clearQuota(input.user_id);
         forgetQuota(input.user_id);
         return userQuota(input.user_id);
+      })
+  }),
+
+  permissions: router({
+    getDefault: protectedProcedure
+      .output(adminDefaultPermissionsOutput)
+      .query(async ({ ctx }) => {
+        await requireAdmin(ctx.userId);
+        return defaultPermissions();
+      }),
+
+    setDefault: protectedProcedure
+      .input(adminPermissionsSetDefaultInput)
+      .output(adminDefaultPermissionsOutput)
+      .mutation(async ({ ctx, input }) => {
+        await requireAdmin(ctx.userId);
+        await setPermissionOverrides(
+          DEFAULT_PERMISSION_SUBJECT,
+          input.overrides,
+          ctx.userId
+        );
+        forgetPermissions();
+        return defaultPermissions();
+      }),
+
+    setUser: protectedProcedure
+      .input(adminPermissionsSetUserInput)
+      .output(adminUserPermissions)
+      .mutation(async ({ ctx, input }) => {
+        await requireAdmin(ctx.userId);
+        await requireAccount(input.user_id);
+        await setPermissionOverrides(input.user_id, input.overrides, ctx.userId);
+        forgetPermissions(input.user_id);
+        return getEffectivePermissions(input.user_id);
       })
   })
 });

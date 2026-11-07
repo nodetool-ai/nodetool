@@ -19754,6 +19754,59 @@
       "save": "保存",
       "cancel": "取消",
       "saveFailed": "无法保存限额。"
+    },
+    "permissions": {
+      "edit": "权限",
+      "editDefault": "编辑默认权限",
+      "defaultTitle": "默认权限",
+      "userTitle": "{{name}} 的权限",
+      "defaultAll": "默认权限：全部允许。",
+      "defaultBlockedCount": "默认权限：已阻止 {{count}} 项。",
+      "blockedCount": "已阻止的权限：{{count}}",
+      "defaultIntro": "除非你为某个用户单独设置，否则所有用户都可以做这些事。",
+      "userIntro": "每项权限都遵循默认值，直到你在这里允许或阻止它。",
+      "allow": "允许",
+      "block": "阻止",
+      "defaultAllowed": "默认：允许",
+      "defaultBlocked": "默认：阻止",
+      "adminNote": "管理员始终拥有所有权限。",
+      "save": "保存",
+      "cancel": "取消",
+      "saveFailed": "无法保存权限。",
+      "flags": {
+        "use_llm": {
+          "label": "使用语言模型",
+          "description": "聊天、智能体和文本生成。"
+        },
+        "generate_media": {
+          "label": "生成媒体",
+          "description": "图片、视频、音频和 3D。"
+        },
+        "use_server_keys": {
+          "label": "使用服务器的提供商密钥",
+          "description": "阻止后，此人只能使用自己在设置中添加的密钥。"
+        },
+        "manage_own_keys": {
+          "label": "管理自己的提供商密钥",
+          "description": "添加、修改或删除提供商密钥和自定义提供商。"
+        },
+        "share_links": {
+          "label": "创建分享链接",
+          "description": "让已登录的人查看或编辑工作流或文档的链接。"
+        },
+        "share_public": {
+          "label": "公开分享",
+          "description": "公开工作流，或创建任何人都能打开的公开链接。"
+        },
+        "publish_apps": {
+          "label": "发布应用",
+          "description": "发布、上线和部署小应用。"
+        },
+        "install_packs": {
+          "label": "更改节点包",
+          "description": "更改节点包信任设置、开关内置节点包并重新加载节点包。这会影响所有用户。"
+        }
+      }
     }
   }
 }

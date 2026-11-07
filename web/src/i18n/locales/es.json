@@ -20065,6 +20065,59 @@
       "save": "Guardar",
       "cancel": "Cancelar",
       "saveFailed": "No se pudieron guardar los límites."
+    },
+    "permissions": {
+      "edit": "Permisos",
+      "editDefault": "Editar permisos predeterminados",
+      "defaultTitle": "Permisos predeterminados",
+      "userTitle": "Permisos de {{name}}",
+      "defaultAll": "Permisos predeterminados: todo permitido.",
+      "defaultBlockedCount": "Permisos predeterminados: {{count}} bloqueados.",
+      "blockedCount": "Permisos bloqueados: {{count}}",
+      "defaultIntro": "Lo que cada usuario puede hacer, salvo que le asignes un permiso propio.",
+      "userIntro": "Cada permiso sigue el valor predeterminado hasta que lo permitas o bloquees aquí.",
+      "allow": "Permitir",
+      "block": "Bloquear",
+      "defaultAllowed": "Predeterminado: permitido",
+      "defaultBlocked": "Predeterminado: bloqueado",
+      "adminNote": "Los administradores siempre tienen todos los permisos.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saveFailed": "No se pudieron guardar los permisos.",
+      "flags": {
+        "use_llm": {
+          "label": "Usar modelos de lenguaje",
+          "description": "Chat, agentes y generación de texto."
+        },
+        "generate_media": {
+          "label": "Generar medios",
+          "description": "Imágenes, vídeo, audio y 3D."
+        },
+        "use_server_keys": {
+          "label": "Usar las claves de proveedor del servidor",
+          "description": "Si se bloquea, la persona solo puede trabajar con claves que añada en Ajustes."
+        },
+        "manage_own_keys": {
+          "label": "Gestionar sus claves de proveedor",
+          "description": "Añadir, cambiar o quitar claves de proveedor y proveedores personalizados."
+        },
+        "share_links": {
+          "label": "Crear enlaces para compartir",
+          "description": "Enlaces que permiten a personas con sesión iniciada ver o editar un flujo o un documento."
+        },
+        "share_public": {
+          "label": "Compartir públicamente",
+          "description": "Hacer público un flujo o crear un enlace público que cualquiera puede abrir."
+        },
+        "publish_apps": {
+          "label": "Publicar apps",
+          "description": "Publicar, lanzar y desplegar mini apps."
+        },
+        "install_packs": {
+          "label": "Cambiar paquetes de nodos",
+          "description": "Cambiar la confianza de paquetes, activar o desactivar paquetes integrados y recargar paquetes. Afecta a todos los usuarios."
+        }
+      }
     }
   }
 }

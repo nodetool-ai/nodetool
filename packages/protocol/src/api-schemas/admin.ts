@@ -42,6 +42,50 @@ export const adminDefaultQuotaOutput = adminQuotaLimits.extend({
 });
 export type AdminDefaultQuotaOutput = z.infer<typeof adminDefaultQuotaOutput>;
 
+// ── Permissions ──────────────────────────────────────────────────
+// Flags an admin turns off per user or for everyone. A flag nobody set is
+// allowed. Keep in step with PERMISSION_FLAGS in models.
+
+export const adminPermissionFlag = z.enum([
+  "use_llm",
+  "generate_media",
+  "use_server_keys",
+  "manage_own_keys",
+  "share_links",
+  "share_public",
+  "publish_apps",
+  "install_packs"
+]);
+export type AdminPermissionFlag = z.infer<typeof adminPermissionFlag>;
+
+/** Every flag with its value in force. */
+export const adminPermissionFlags = z.record(adminPermissionFlag, z.boolean());
+export type AdminPermissionFlags = z.infer<typeof adminPermissionFlags>;
+
+/** The flags one level sets. A flag left out follows the level below. */
+export const adminPermissionOverrides = z.partialRecord(
+  adminPermissionFlag,
+  z.boolean()
+);
+export type AdminPermissionOverrides = z.infer<typeof adminPermissionOverrides>;
+
+export const adminUserPermissions = z.object({
+  flags: adminPermissionFlags,
+  /** The flags set for this user. Empty when they follow the default. */
+  overrides: adminPermissionOverrides
+});
+export type AdminUserPermissions = z.infer<typeof adminUserPermissions>;
+
+export const adminDefaultPermissionsOutput = z.object({
+  /** What every user gets unless an admin set a flag for them. */
+  flags: adminPermissionFlags,
+  /** The flags the default sets. Empty while every flag is allowed. */
+  overrides: adminPermissionOverrides
+});
+export type AdminDefaultPermissionsOutput = z.infer<
+  typeof adminDefaultPermissionsOutput
+>;
+
 export const adminUser = z.object({
   user_id: z.string(),
   email: z.string().nullable(),
@@ -57,7 +101,8 @@ export const adminUser = z.object({
   updated_at: z.string(),
   last_sign_in_at: z.string().nullable(),
   last_seen_at: z.string().nullable(),
-  quota: adminUserQuota
+  quota: adminUserQuota,
+  permissions: adminUserPermissions
 });
 export type AdminUser = z.infer<typeof adminUser>;
 
@@ -106,3 +151,19 @@ export type AdminQuotasSetDefaultInput = z.infer<
 
 export const adminQuotasSetUserInput = adminUserRef.merge(adminQuotaLimits);
 export type AdminQuotasSetUserInput = z.infer<typeof adminQuotasSetUserInput>;
+
+// ── permissions.setDefault / permissions.setUser ──────────────────
+// Each call replaces the overrides of its level.
+export const adminPermissionsSetDefaultInput = z.object({
+  overrides: adminPermissionOverrides
+});
+export type AdminPermissionsSetDefaultInput = z.infer<
+  typeof adminPermissionsSetDefaultInput
+>;
+
+export const adminPermissionsSetUserInput = adminUserRef.extend({
+  overrides: adminPermissionOverrides
+});
+export type AdminPermissionsSetUserInput = z.infer<
+  typeof adminPermissionsSetUserInput
+>;

@@ -54,6 +54,21 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Whether the caller is an admin steers the admin UI. A run has no " +
       "admin surface to steer."
   },
+  "admin.permissions.getDefault": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.permissions.setDefault": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.permissions.setUser": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
   "admin.quotas.clearUser": {
     withheld:
       "Spend limits are set by an admin for every user on the install, " +

@@ -20065,6 +20065,59 @@
       "save": "Salvar",
       "cancel": "Cancelar",
       "saveFailed": "Não foi possível salvar os limites."
+    },
+    "permissions": {
+      "edit": "Permissões",
+      "editDefault": "Editar permissões padrão",
+      "defaultTitle": "Permissões padrão",
+      "userTitle": "Permissões de {{name}}",
+      "defaultAll": "Permissões padrão: tudo permitido.",
+      "defaultBlockedCount": "Permissões padrão: {{count}} bloqueadas.",
+      "blockedCount": "Permissões bloqueadas: {{count}}",
+      "defaultIntro": "O que cada usuário pode fazer, a menos que você defina uma permissão própria para ele.",
+      "userIntro": "Cada permissão segue o padrão até você permiti-la ou bloqueá-la aqui.",
+      "allow": "Permitir",
+      "block": "Bloquear",
+      "defaultAllowed": "Padrão: permitido",
+      "defaultBlocked": "Padrão: bloqueado",
+      "adminNote": "Admins sempre têm todas as permissões.",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "saveFailed": "Não foi possível salvar as permissões.",
+      "flags": {
+        "use_llm": {
+          "label": "Usar modelos de linguagem",
+          "description": "Chat, agentes e geração de texto."
+        },
+        "generate_media": {
+          "label": "Gerar mídia",
+          "description": "Imagens, vídeo, áudio e 3D."
+        },
+        "use_server_keys": {
+          "label": "Usar as chaves de provedor do servidor",
+          "description": "Se bloqueado, a pessoa só pode trabalhar com chaves que adicionar em Configurações."
+        },
+        "manage_own_keys": {
+          "label": "Gerenciar as próprias chaves de provedor",
+          "description": "Adicionar, alterar ou remover chaves de provedor e provedores personalizados."
+        },
+        "share_links": {
+          "label": "Criar links de compartilhamento",
+          "description": "Links que permitem a pessoas conectadas ver ou editar um fluxo ou documento."
+        },
+        "share_public": {
+          "label": "Compartilhar publicamente",
+          "description": "Tornar um fluxo público ou criar um link público que qualquer pessoa pode abrir."
+        },
+        "publish_apps": {
+          "label": "Publicar apps",
+          "description": "Publicar, lançar e implantar mini apps."
+        },
+        "install_packs": {
+          "label": "Alterar pacotes de nós",
+          "description": "Alterar a confiança dos pacotes, ativar ou desativar pacotes integrados e recarregar pacotes. Isso afeta todos os usuários."
+        }
+      }
     }
   }
 }

@@ -659,6 +659,22 @@ export type {
   UserQuota
 } from "./user-quota.js";
 export { userQuotas } from "./schema/user-quotas.js";
+export {
+  DEFAULT_PERMISSION_SUBJECT,
+  PERMISSION_FLAGS,
+  getEffectivePermissions,
+  getPermissionOverrides,
+  isPermissionFlag,
+  resolvePermissions,
+  setPermissionOverrides
+} from "./user-permissions.js";
+export type {
+  EffectivePermissions,
+  PermissionFlag,
+  PermissionOverrides,
+  Permissions
+} from "./user-permissions.js";
+export { userPermissions } from "./schema/user-permissions.js";
 
 export * from "./app-instance.js";
 

@@ -20376,6 +20376,59 @@
       "save": "Zapisz",
       "cancel": "Anuluj",
       "saveFailed": "Nie udało się zapisać limitów."
+    },
+    "permissions": {
+      "edit": "Uprawnienia",
+      "editDefault": "Edytuj uprawnienia domyślne",
+      "defaultTitle": "Uprawnienia domyślne",
+      "userTitle": "Uprawnienia dla {{name}}",
+      "defaultAll": "Uprawnienia domyślne: wszystko dozwolone.",
+      "defaultBlockedCount": "Uprawnienia domyślne: zablokowane {{count}}.",
+      "blockedCount": "Zablokowane uprawnienia: {{count}}",
+      "defaultIntro": "Co może robić każdy użytkownik, o ile nie ustawisz mu osobnego uprawnienia.",
+      "userIntro": "Każde uprawnienie działa według ustawień domyślnych, dopóki go tu nie zezwolisz ani nie zablokujesz.",
+      "allow": "Zezwól",
+      "block": "Zablokuj",
+      "defaultAllowed": "Domyślnie: dozwolone",
+      "defaultBlocked": "Domyślnie: zablokowane",
+      "adminNote": "Administratorzy zawsze mają wszystkie uprawnienia.",
+      "save": "Zapisz",
+      "cancel": "Anuluj",
+      "saveFailed": "Nie udało się zapisać uprawnień.",
+      "flags": {
+        "use_llm": {
+          "label": "Korzystanie z modeli językowych",
+          "description": "Czat, agenci i generowanie tekstu."
+        },
+        "generate_media": {
+          "label": "Generowanie mediów",
+          "description": "Obrazy, wideo, dźwięk i 3D."
+        },
+        "use_server_keys": {
+          "label": "Korzystanie z kluczy dostawców serwera",
+          "description": "Po zablokowaniu osoba może pracować tylko na kluczach dodanych przez siebie w Ustawieniach."
+        },
+        "manage_own_keys": {
+          "label": "Zarządzanie własnymi kluczami dostawców",
+          "description": "Dodawanie, zmiana i usuwanie kluczy dostawców oraz własnych dostawców."
+        },
+        "share_links": {
+          "label": "Tworzenie linków udostępniania",
+          "description": "Linki, przez które zalogowane osoby mogą wyświetlać lub edytować przepływ albo dokument."
+        },
+        "share_public": {
+          "label": "Udostępnianie publiczne",
+          "description": "Upublicznianie przepływu lub tworzenie publicznego linku, który każdy może otworzyć."
+        },
+        "publish_apps": {
+          "label": "Publikowanie aplikacji",
+          "description": "Publikowanie, wydawanie i wdrażanie miniaplikacji."
+        },
+        "install_packs": {
+          "label": "Zmiana pakietów węzłów",
+          "description": "Zmiana zaufania do pakietów, włączanie i wyłączanie pakietów wbudowanych oraz ponowne ładowanie pakietów. Dotyczy wszystkich użytkowników."
+        }
+      }
     }
   }
 }

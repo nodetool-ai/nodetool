@@ -81,6 +81,7 @@ import {
   publicReleasePreflight,
   undeployApplication
 } from "../../lib/app-deployment-service.js";
+import { requirePermission } from "../../lib/permissions.js";
 
 const okOutput = z.object({ ok: z.literal(true) });
 
@@ -117,6 +118,7 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       const app = await loadOwned(ctx.userId, input.id);
+      await requirePermission(ctx.userId, "publish_apps");
       if (input.baseUpdatedAt && app.updated_at !== input.baseUpdatedAt) {
         throwApiError(
           ApiErrorCode.ALREADY_EXISTS,
@@ -185,7 +187,10 @@ export const applicationsRouter = router({
   deploy: protectedProcedure
     .input(idInput)
     .output(applicationDeployment)
-    .mutation(({ ctx, input }) => deployApplication(ctx.userId, input.id)),
+    .mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.userId, "publish_apps");
+      return deployApplication(ctx.userId, input.id);
+    }),
 
   undeploy: protectedProcedure
     .input(idInput)
@@ -284,6 +289,7 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
+      await requirePermission(ctx.userId, "publish_apps");
       if (await ApplicationDeployment.findLive(input.id)) {
         const candidate = await applicationReleaseVersion(
           input.id,

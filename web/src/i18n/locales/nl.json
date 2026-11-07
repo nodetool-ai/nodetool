@@ -19754,6 +19754,59 @@
       "save": "Opslaan",
       "cancel": "Annuleren",
       "saveFailed": "De limieten konden niet worden opgeslagen."
+    },
+    "permissions": {
+      "edit": "Rechten",
+      "editDefault": "Standaardrechten bewerken",
+      "defaultTitle": "Standaardrechten",
+      "userTitle": "Rechten voor {{name}}",
+      "defaultAll": "Standaardrechten: alles toegestaan.",
+      "defaultBlockedCount": "Standaardrechten: {{count}} geblokkeerd.",
+      "blockedCount": "Geblokkeerde rechten: {{count}}",
+      "defaultIntro": "Wat elke gebruiker mag, tenzij je een eigen recht voor diegene instelt.",
+      "userIntro": "Elk recht volgt de standaard tot je het hier toestaat of blokkeert.",
+      "allow": "Toestaan",
+      "block": "Blokkeren",
+      "defaultAllowed": "Standaard: toegestaan",
+      "defaultBlocked": "Standaard: geblokkeerd",
+      "adminNote": "Beheerders hebben altijd alle rechten.",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "saveFailed": "De rechten konden niet worden opgeslagen.",
+      "flags": {
+        "use_llm": {
+          "label": "Taalmodellen gebruiken",
+          "description": "Chat, agents en tekstgeneratie."
+        },
+        "generate_media": {
+          "label": "Media genereren",
+          "description": "Afbeeldingen, video, audio en 3D."
+        },
+        "use_server_keys": {
+          "label": "Providersleutels van de server gebruiken",
+          "description": "Indien geblokkeerd kan de persoon alleen werken met sleutels die diegene in Instellingen toevoegt."
+        },
+        "manage_own_keys": {
+          "label": "Eigen providersleutels beheren",
+          "description": "Providersleutels en eigen providers toevoegen, wijzigen of verwijderen."
+        },
+        "share_links": {
+          "label": "Deellinks maken",
+          "description": "Links waarmee aangemelde personen een workflow of document kunnen bekijken of bewerken."
+        },
+        "share_public": {
+          "label": "Openbaar delen",
+          "description": "Een workflow openbaar maken of een openbare link maken die iedereen kan openen."
+        },
+        "publish_apps": {
+          "label": "Apps publiceren",
+          "description": "Mini-apps publiceren, uitbrengen en implementeren."
+        },
+        "install_packs": {
+          "label": "Nodepakketten wijzigen",
+          "description": "Pakketvertrouwen wijzigen, ingebouwde pakketten aan- of uitzetten en pakketten herladen. Dit geldt voor alle gebruikers."
+        }
+      }
     }
   }
 }

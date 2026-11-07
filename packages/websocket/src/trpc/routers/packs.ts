@@ -30,6 +30,7 @@ import {
   BUILTIN_NODE_PACKS,
   resolveBuiltinPackEnabled
 } from "@nodetool-ai/protocol";
+import { requirePermission } from "../../lib/permissions.js";
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
@@ -200,8 +201,9 @@ export const packsRouter = router({
   setTrust: protectedProcedure
     .input(trustUpdateInput)
     .output(trustSchema)
-    .mutation(({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       requireNonProduction();
+      await requirePermission(ctx.userId, "install_packs");
       // Base unspecified fields on what's ON DISK, not the env/default-merged
       // effective values — otherwise a partial update bakes an ephemeral
       // NODETOOL_PACKS_ALLOWLIST env override permanently into packs.json.
@@ -288,6 +290,7 @@ export const packsRouter = router({
     .output(builtinsOutput)
     .mutation(async ({ input, ctx }) => {
       requireNonProduction();
+      await requirePermission(ctx.userId, "install_packs");
       const pack = BUILTIN_NODE_PACKS.find((p) => p.id === input.id);
       if (!pack) {
         throwApiError(
@@ -321,6 +324,7 @@ export const packsRouter = router({
     .output(packsListOutput)
     .mutation(async ({ ctx }) => {
       requireNonProduction();
+      await requirePermission(ctx.userId, "install_packs");
       await reloadPacks(ctx.registry);
       return { packs: getPackSnapshot().map(toDto) };
     })

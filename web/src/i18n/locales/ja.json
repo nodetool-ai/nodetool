@@ -19754,6 +19754,59 @@
       "save": "保存",
       "cancel": "キャンセル",
       "saveFailed": "上限を保存できませんでした。"
+    },
+    "permissions": {
+      "edit": "権限",
+      "editDefault": "既定の権限を編集",
+      "defaultTitle": "既定の権限",
+      "userTitle": "{{name}} の権限",
+      "defaultAll": "既定の権限: すべて許可。",
+      "defaultBlockedCount": "既定の権限: {{count}} 件をブロック。",
+      "blockedCount": "ブロック中の権限: {{count}}",
+      "defaultIntro": "個別に設定しない限り、すべてのユーザーができること。",
+      "userIntro": "各権限は、ここで許可またはブロックするまで既定値に従います。",
+      "allow": "許可",
+      "block": "ブロック",
+      "defaultAllowed": "既定: 許可",
+      "defaultBlocked": "既定: ブロック",
+      "adminNote": "管理者は常にすべての権限を持ちます。",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saveFailed": "権限を保存できませんでした。",
+      "flags": {
+        "use_llm": {
+          "label": "言語モデルを使う",
+          "description": "チャット、エージェント、テキスト生成。"
+        },
+        "generate_media": {
+          "label": "メディアを生成する",
+          "description": "画像、動画、音声、3D。"
+        },
+        "use_server_keys": {
+          "label": "サーバーのプロバイダーキーを使う",
+          "description": "ブロックすると、本人が設定で追加したキーでのみ作業できます。"
+        },
+        "manage_own_keys": {
+          "label": "自分のプロバイダーキーを管理する",
+          "description": "プロバイダーキーとカスタムプロバイダーの追加、変更、削除。"
+        },
+        "share_links": {
+          "label": "共有リンクを作成する",
+          "description": "サインインした人がワークフローやドキュメントを閲覧・編集できるリンク。"
+        },
+        "share_public": {
+          "label": "公開共有する",
+          "description": "ワークフローを公開する、または誰でも開ける公開リンクを作成する。"
+        },
+        "publish_apps": {
+          "label": "アプリを公開する",
+          "description": "ミニアプリの公開、リリース、デプロイ。"
+        },
+        "install_packs": {
+          "label": "ノードパックを変更する",
+          "description": "パックの信頼設定の変更、組み込みパックのオン・オフ、パックの再読み込み。すべてのユーザーに影響します。"
+        }
+      }
     }
   }
 }
