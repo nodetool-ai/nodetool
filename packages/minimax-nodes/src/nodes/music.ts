@@ -1,24 +1,14 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   audioRefFromBytes,
-  assertBaseResp,
-  getMinimaxApiKey,
-  MINIMAX_BASE_URL,
+  callMinimax,
   MINIMAX_MUSIC_MODELS,
-  minimaxHeaders,
   resolveAudioPayload
 } from "../minimax-base.js";
-import type { MinimaxResponse } from "../minimax-base.js";
 
 const MUSIC_FORMATS = ["mp3", "wav"];
-
-/** `/v1/music_generation` reply: hex-encoded audio, or a download URL. */
-interface MinimaxMusicResponse extends MinimaxResponse {
-  data?: {
-    audio?: string;
-  };
-}
 
 /** Output handles MinimaxMusicNode.process() emits. */
 type MinimaxMusicNodeOutputs = {
@@ -82,9 +72,7 @@ export class MinimaxMusicNode extends BaseNode {
   })
   declare format: any;
 
-  async process(): Promise<MinimaxMusicNodeOutputs> {
-    const apiKey = getMinimaxApiKey(this._secrets);
-
+  async process(context?: ProcessingContext): Promise<MinimaxMusicNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
 
@@ -106,27 +94,24 @@ export class MinimaxMusicNode extends BaseNode {
       output_format: "hex"
     };
 
-    const res = await fetch(`${MINIMAX_BASE_URL}/v1/music_generation`, {
-      method: "POST",
-      headers: minimaxHeaders(apiKey),
-      body: JSON.stringify(body)
+    if (!context) {
+      throw new Error("MiniMax Music Generation requires a processing context");
+    }
+    // `/v1/music_generation` replies with hex-encoded audio, or a download URL.
+    const reply = await callMinimax(context, {
+      route: "music",
+      capability: "text_to_music",
+      model,
+      input: body,
+      nodeId: this.__node_id || undefined
     });
-    if (!res.ok) {
+    if (!reply.audio) {
       throw new Error(
-        `MiniMax music_generation failed: ${res.status} ${await res.text()}`
-      );
-    }
-    const data: MinimaxMusicResponse = await res.json();
-    assertBaseResp(data, "music_generation");
-
-    const audio = data.data?.audio;
-    if (!audio) {
-      throw new Error(
-        `MiniMax music_generation returned no audio data: ${JSON.stringify(data)}`
+        `MiniMax music_generation returned no audio data: ${reply.describe()}`
       );
     }
 
-    const bytes = await resolveAudioPayload(audio);
+    const bytes = await resolveAudioPayload(context, reply.audio);
     return { output: audioRefFromBytes(bytes, format) };
   }
 }

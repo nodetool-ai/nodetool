@@ -111,7 +111,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | FAL media upload | `packages/fal-nodes/src/fal-base.ts` | workflow |
 | Replicate files upload | `packages/replicate-nodes/src/replicate-base.ts` | workflow |
 | OpenAI media input | `packages/llm-nodes/src/nodes/openai.ts` | workflow |
-| Together image result downloads | `packages/runtime/src/providers/together-provider.ts` | provider response |
+| Together image and endpoint result downloads | `packages/runtime/src/providers/together-provider.ts` | provider response |
 | Together asset resolution | `packages/together-nodes/src/together-base.ts` | workflow |
 | AtlasCloud media pass-through | `packages/atlascloud-nodes/src/atlascloud-factory.ts` | workflow |
 | AtlasCloud prediction downloads | `packages/runtime/src/providers/atlascloud-transport.ts` | provider response |
@@ -119,11 +119,10 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | useapi.net Google Flow and Dreamina result downloads | `packages/runtime/src/providers/useapi-provider.ts` | provider response |
 | vgenv MiniMax H3 result downloads | `packages/runtime/src/providers/vgenv-provider.ts` | provider response |
 | ToAPIs GPT Image and Seedance 2 result downloads | `packages/runtime/src/providers/toapis-provider.ts` | provider response |
-| KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
-| Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
-| MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
-| MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
+| KIE endpoint result downloads (`downloadMedia`) | `packages/runtime/src/providers/kie-endpoint.ts` | provider response |
+| Topaz result downloads and video part uploads | `packages/runtime/src/providers/topaz-provider.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
+| default provider `downloadMedia` for endpoint results | `packages/runtime/src/providers/base-provider.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
 | durable FAL output recovery | `packages/websocket/src/generation-recovery.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |

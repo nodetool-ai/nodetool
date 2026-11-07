@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
-  getReveApiKey,
   postprocessingArray,
   refToBase64,
   reveGenerate,
@@ -99,8 +98,6 @@ export class RemixImageNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<RemixImageNodeOutputs> {
-    const apiKey = getReveApiKey(this._secrets);
-
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
 
@@ -119,14 +116,22 @@ export class RemixImageNode extends BaseNode {
     );
 
     const aspectRatio = String(this.aspect_ratio ?? "none");
-    const result = await reveGenerate(apiKey, "remix", {
-      prompt,
-      reference_images: referenceImages,
-      aspect_ratio: aspectRatio === "none" ? undefined : aspectRatio,
-      version: String(this.version ?? "latest"),
-      postprocessing: postprocessingArray(this.postprocessing),
-      test_time_scaling: Number(this.test_time_scaling ?? 1)
-    });
+    if (!context) {
+      throw new Error("Reve Remix Image requires a processing context");
+    }
+    const result = await reveGenerate(
+      context,
+      "remix",
+      {
+        prompt,
+        reference_images: referenceImages,
+        aspect_ratio: aspectRatio === "none" ? undefined : aspectRatio,
+        version: String(this.version ?? "latest"),
+        postprocessing: postprocessingArray(this.postprocessing),
+        test_time_scaling: Number(this.test_time_scaling ?? 1)
+      },
+      this.__node_id || undefined
+    );
 
     return { output: await reveImageToRef(result.image) };
   }

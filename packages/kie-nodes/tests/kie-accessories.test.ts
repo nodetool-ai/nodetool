@@ -1,48 +1,39 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createKieNodeClass } from "../src/kie-factory.js";
 import type { KieManifestEntry } from "../src/kie-factory.js";
-
-vi.mock("../src/kie-base.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/kie-base.js")>();
-  return {
-    ...actual,
-    getApiKey: () => "test-key",
-    kieExecuteTask: vi.fn(async () => ({
-      data: Buffer.from("video").toString("base64"),
-      items: [Buffer.from("video").toString("base64")],
-      taskId: "task"
-    })),
-    uploadImageInput: vi.fn(
-      async (_key: string, ref: { uri: string }) => `kie:${ref.uri}`
-    ),
-    uploadVideoInput: vi.fn(
-      async (_key: string, ref: { uri: string }) => `kie:${ref.uri}`
-    )
-  };
-});
-
-import { kieExecuteTask } from "../src/kie-base.js";
+import { scriptedKie } from "./scripted-kie.js";
 
 const manifest = JSON.parse(
   readFileSync(new URL("../src/kie-manifest.json", import.meta.url), "utf-8")
 ) as KieManifestEntry[];
 
-const image = (name: string) => ({ type: "image", uri: `https://img/${name}.png` });
+// Inline bytes, so every element medium goes through the provider's upload.
+const media = (type: "image" | "video", name: string) => ({
+  type,
+  uri: "",
+  data: new TextEncoder().encode(name)
+});
+const image = (name: string) => media("image", name);
 
-function run(className: string, properties: Record<string, unknown>) {
+let lastInput: Record<string, unknown> = {};
+
+async function run(className: string, properties: Record<string, unknown>) {
   const spec = manifest.find((entry) => entry.className === className);
   if (!spec) throw new Error(`${className} is not in the manifest`);
   const NodeClass = createKieNodeClass(spec);
   const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
   Object.assign(node, properties);
-  node.setDynamic("_secrets", { KIE_API_KEY: "test" });
-  return node.process();
+  // Name each upload after the bytes it carried.
+  const kie = scriptedKie({
+    uploadUrl: (upload) => `kie:${new TextDecoder().decode(upload.bytes)}`
+  });
+  await node.process(kie.context);
+  lastInput = kie.provider.endpointCalls.at(-1)!.input;
 }
 
 function sentInput(): Record<string, unknown> {
-  const call = vi.mocked(kieExecuteTask).mock.calls.at(-1)!;
-  return call[2];
+  return lastInput;
 }
 
 describe("KIE Kling 3.0 elements and shots", () => {
@@ -64,7 +55,7 @@ describe("KIE Kling 3.0 elements and shots", () => {
           name: "",
           frontal_image: null,
           reference_images: [],
-          video: { type: "video", uri: "https://vid/dog.mp4" },
+          video: media("video", "dog"),
           voice_id: ""
         }
       ]
@@ -73,12 +64,12 @@ describe("KIE Kling 3.0 elements and shots", () => {
       {
         name: "hero",
         description: "hero",
-        element_input_urls: ["kie:https://img/front.png", "kie:https://img/side.png"]
+        element_input_urls: ["kie:front", "kie:side"]
       },
       {
         name: "Element2",
         description: "Element2",
-        element_input_urls: ["kie:https://vid/dog.mp4"]
+        element_input_urls: ["kie:dog"]
       }
     ]);
   });

@@ -1,22 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const assetToFalUrl = vi.fn(
-  async (_apiKey: string, ref: Record<string, unknown>) =>
+  async (ref: Record<string, unknown>, _context?: unknown) =>
     `uploaded:${String(ref.uri)}`
 );
-const falSubmit = vi.fn(async () => ({ output: "ok" }));
+const endpointCall = vi.fn(async () => ({ output: "ok" }));
 const imageToDataUrl = vi.fn(async () => null);
-const falSubmitWithGeneration = vi.fn(
-  async (
-    apiKey: string,
-    endpoint: string,
-    args: Record<string, unknown>,
-    _context?: unknown
-  ) => ({
-    data: await falSubmit(apiKey, endpoint, args),
-    requestId: "req-test"
-  })
-);
 
 vi.mock("../src/fal-base.js", () => ({
   assetToFalUrl,
@@ -24,14 +13,14 @@ vi.mock("../src/fal-base.js", () => ({
     type: "image",
     uri: image.url
   }),
-  falSubmit,
-  falSubmitWithMeta: async (...args) => ({
-    data: await falSubmit(...args),
+  callFalEndpoint: async (
+    _context: unknown,
+    request: { endpoint: string; args: Record<string, unknown> }
+  ) => ({
+    data: await endpointCall(request.endpoint, request.args),
     requestId: "req-test"
   }),
-  falSubmitWithGeneration,
   falCapabilityForOutputType: () => "text_to_image",
-  getFalApiKey: () => "test-key",
   imageToDataUrl,
   isRefSet: (ref: unknown) => {
     if (!ref || typeof ref !== "object") return false;
@@ -61,7 +50,7 @@ const { createFalNodeClass } = await import("../src/fal-factory.js");
 describe("FAL factory argument building", () => {
   beforeEach(() => {
     assetToFalUrl.mockClear();
-    falSubmit.mockClear();
+    endpointCall.mockClear();
     imageToDataUrl.mockClear();
     imageToDataUrl.mockResolvedValue(null);
   });
@@ -110,7 +99,7 @@ describe("FAL factory argument building", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       controlnet: {
         control_image_url: "uploaded:https://example.com/control.png",
         strength: 0.75
@@ -151,7 +140,7 @@ describe("FAL factory argument building", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       inputs: [
         { image_url: "uploaded:https://example.com/a.png" },
         { image_url: "uploaded:https://example.com/b.png" }
@@ -190,7 +179,7 @@ describe("FAL factory argument building", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       image_urls: ["uploaded:https://example.com/a.png"]
     });
   });
@@ -291,8 +280,7 @@ describe("FAL factory argument building", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith(
-      "test-key",
+    expect(endpointCall).toHaveBeenCalledWith(
       "fal-ai/flux-pro/v1/fill",
       expect.objectContaining({
         image_url: "uploaded:https://example.com/base.png",
@@ -335,8 +323,7 @@ describe("FAL factory argument building", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith(
-      "test-key",
+    expect(endpointCall).toHaveBeenCalledWith(
       "fal-ai/flux-pro/v1/fill",
       {
         static_mask_url: "data:image/png;base64,legacy"
@@ -372,7 +359,7 @@ describe("FAL factory argument building", () => {
     await expect(new NodeClass({}).process()).rejects.toThrow(
       "Flux Pro Fill: Mask is not set — connect an input or set the property to an image with a uri, asset_id, or inline data (it must match the image dimensions)"
     );
-    expect(falSubmit).not.toHaveBeenCalled();
+    expect(endpointCall).not.toHaveBeenCalled();
   });
 
   it("refuses to submit when a required asset cannot be uploaded", async () => {
@@ -406,7 +393,7 @@ describe("FAL factory argument building", () => {
     ).rejects.toThrow(
       "video could not be read or uploaded to FAL (asset://a1), so fal-ai/birefnet/v2/video was not called."
     );
-    expect(falSubmit).not.toHaveBeenCalled();
+    expect(endpointCall).not.toHaveBeenCalled();
   });
 
   it("declares required asset inputs as required so validation catches them", () => {
@@ -500,7 +487,7 @@ describe("FAL factory argument building", () => {
     });
 
   it("maps a singular `image` object output onto the `output` slot", async () => {
-    falSubmit.mockResolvedValueOnce({
+    endpointCall.mockResolvedValueOnce({
       image: { url: "https://fal.media/out.png", width: 64, height: 32 }
     });
     const NodeClass = makeNode({
@@ -524,7 +511,7 @@ describe("FAL factory argument building", () => {
   });
 
   it("maps a `video_url` string output onto the `output` slot", async () => {
-    falSubmit.mockResolvedValueOnce({
+    endpointCall.mockResolvedValueOnce({
       video_url: "https://fal.media/clip.mp4"
     });
     const NodeClass = makeNode({
@@ -548,7 +535,7 @@ describe("FAL factory argument building", () => {
   });
 
   it("keeps a declared secondary output beside the primary video slot", async () => {
-    falSubmit.mockResolvedValueOnce({
+    endpointCall.mockResolvedValueOnce({
       video: { url: "https://fal.media/cut.mp4" },
       mask_video: "https://fal.media/mask.mp4"
     });
@@ -583,7 +570,7 @@ describe("FAL factory argument building", () => {
   });
 
   it("omits a secondary output the response left empty", async () => {
-    falSubmit.mockResolvedValueOnce({
+    endpointCall.mockResolvedValueOnce({
       video: { url: "https://fal.media/cut.mp4" },
       mask_video: ""
     });
@@ -617,7 +604,7 @@ describe("FAL factory argument building", () => {
   });
 
   it("maps an `audio_file` object output onto the `output` slot", async () => {
-    falSubmit.mockResolvedValueOnce({
+    endpointCall.mockResolvedValueOnce({
       audio_file: { url: "https://fal.media/sound.wav" }
     });
     const NodeClass = makeNode({
@@ -641,7 +628,7 @@ describe("FAL factory argument building", () => {
   });
 
   it("reads a `str` output from its declared field name (not `output`)", async () => {
-    falSubmit.mockResolvedValueOnce({ voice_id: "abc-123" });
+    endpointCall.mockResolvedValueOnce({ voice_id: "abc-123" });
     const NodeClass = makeNode({
       outputType: "str",
       outputFields: [
@@ -698,7 +685,6 @@ describe("FAL factory argument building", () => {
     await instance.process(context as never);
 
     expect(assetToFalUrl).toHaveBeenCalledWith(
-      "test-key",
       { type: "image", uri: "/api/storage/local.png" },
       context
     );
@@ -707,7 +693,7 @@ describe("FAL factory argument building", () => {
 
 describe("FAL factory scalar coercion", () => {
   beforeEach(() => {
-    falSubmit.mockClear();
+    endpointCall.mockClear();
   });
 
   const scalarNode = (
@@ -749,7 +735,7 @@ describe("FAL factory scalar coercion", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       texture_size: 2048
     });
   });
@@ -767,7 +753,7 @@ describe("FAL factory scalar coercion", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       safety_tolerance: "3"
     });
   });
@@ -779,7 +765,7 @@ describe("FAL factory scalar coercion", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {});
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {});
   });
 
   it("truncates a fractional value in an int field", async () => {
@@ -789,7 +775,7 @@ describe("FAL factory scalar coercion", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       steps: 28
     });
   });
@@ -797,7 +783,7 @@ describe("FAL factory scalar coercion", () => {
 
 describe("FAL factory numeric zero arguments", () => {
   beforeEach(() => {
-    falSubmit.mockClear();
+    endpointCall.mockClear();
   });
 
   it("omits a zero its field's minimum forbids and keeps a zero it allows", async () => {
@@ -826,7 +812,7 @@ describe("FAL factory numeric zero arguments", () => {
 
     await new NodeClass({}).process();
 
-    expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/test", {
+    expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {
       seed: 0
     });
   });

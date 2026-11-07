@@ -156,3 +156,109 @@ describe("ReveProvider — generation", () => {
     ).rejects.toThrow("image must not be empty");
   });
 });
+
+describe("ReveProvider — endpoint calls", () => {
+  it("supports endpoint calls", () => {
+    expect(new ReveProvider({ REVE_API_KEY: "k" }).supportsEndpointCalls()).toBe(
+      true
+    );
+  });
+
+  it.each([
+    ["reve-create", "create"],
+    ["reve-edit", "edit"],
+    ["reve-remix", "remix"]
+  ])("posts %s to /v1/image/%s with the input unchanged", async (model, path) => {
+    const reply = {
+      image: FAKE_IMAGE_B64,
+      request_id: "req-7",
+      credits_used: 2,
+      credits_remaining: 98
+    };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(reply));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const controller = new AbortController();
+    const p = new ReveProvider({ REVE_API_KEY: "secret" });
+
+    const result = await p.callEndpoint({
+      model,
+      input: { prompt: "a fox", version: "latest" },
+      signal: controller.signal
+    });
+
+    expect(result).toEqual({
+      output: reply,
+      requestId: "req-7",
+      metadata: { credits_used: 2, credits_remaining: 98 }
+    });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`https://api.reve.com/v1/image/${path}`);
+    expect(init.headers).toEqual({
+      Authorization: "Bearer secret",
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    });
+    expect(init.body).toBe('{"prompt":"a fox","version":"latest"}');
+    expect(init.signal).toBe(controller.signal);
+  });
+
+  it("rejects an unknown model and any route without calling Reve", async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const p = new ReveProvider({ REVE_API_KEY: "k" });
+    await expect(p.callEndpoint({ model: "reve-v2", input: {} })).rejects.toThrow(
+      'reve has no endpoint for model "reve-v2"'
+    );
+    await expect(
+      p.callEndpoint({ model: "reve-create", input: {}, route: "create" })
+    ).rejects.toThrow('reve does not accept an endpoint route, got "create"');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("throws the HTTP status and body, and a content violation", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("no credits", { status: 402 }))
+      .mockResolvedValueOnce(Response.json({ content_violation: true })) as never;
+    const p = new ReveProvider({ REVE_API_KEY: "k" });
+    await expect(
+      p.callEndpoint({ model: "reve-create", input: { prompt: "x" } })
+    ).rejects.toThrow("Reve API error (402): no credits");
+    await expect(
+      p.callEndpoint({ model: "reve-create", input: { prompt: "x" } })
+    ).rejects.toThrow("content policy violation");
+  });
+
+  it("returns a null request id when Reve sends none", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(Response.json({ image: FAKE_IMAGE_B64 })) as never;
+    const result = await new ReveProvider({ REVE_API_KEY: "k" }).callEndpoint({
+      model: "reve-edit",
+      input: {}
+    });
+    expect(result.requestId).toBeNull();
+    expect(result.metadata).toEqual({});
+  });
+
+  it("does not upload media, because Reve takes images inline", async () => {
+    await expect(
+      new ReveProvider({ REVE_API_KEY: "k" }).uploadMedia({
+        bytes: Uint8Array.from([1]),
+        mimeType: "image/png"
+      })
+    ).rejects.toThrow("reve does not support media uploads");
+  });
+
+  it("downloads a result URL through the screened default", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(Uint8Array.from([4, 5])));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const bytes = await new ReveProvider({ REVE_API_KEY: "k" }).downloadMedia(
+      "https://cdn.example.com/out.png"
+    );
+    expect([...bytes]).toEqual([4, 5]);
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
+  });
+});

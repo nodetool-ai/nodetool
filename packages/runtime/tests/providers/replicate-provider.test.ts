@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { ReplicateProvider } from "../../src/providers/replicate-provider.js";
 import type { Message } from "../../src/providers/types.js";
+import { runWithGenerationReceipt } from "../../src/generation-receipt.js";
 
 /** Helper to create a provider with a mock Replicate client. */
 function createProvider(overrides: Record<string, unknown> = {}) {
@@ -515,5 +516,185 @@ describe("ReplicateProvider", () => {
     expect(input.guidance_scale).toBe(7.5);
     expect(input.num_inference_steps).toBe(30);
     expect(input.seed).toBe(42);
+  });
+});
+
+describe("ReplicateProvider endpoint calls", () => {
+  function throttled(): Error {
+    return Object.assign(new Error("status 429 Too Many Requests"), {
+      response: { status: 429, headers: new Headers({ "retry-after": "5" }) }
+    });
+  }
+
+  it("supports endpoint calls", () => {
+    expect(createProvider().supportsEndpointCalls()).toBe(true);
+  });
+
+  it("runs the model with the input unchanged and records the prediction id", async () => {
+    const runMock = vi.fn(
+      async (
+        _model: string,
+        _options: unknown,
+        progress?: (prediction: { id: string; status: string }) => void
+      ) => {
+        progress?.({ id: "pred-1", status: "starting" });
+        progress?.({ id: "pred-1", status: "succeeded" });
+        return { image: "https://replicate.delivery/out.png" };
+      }
+    );
+    const provider = createProvider({ run: runMock });
+    const progress: unknown[] = [];
+
+    const { value, receipt } = await runWithGenerationReceipt(() =>
+      provider.callEndpoint({
+        model: "owner/model:abc123",
+        input: { prompt: "a fox", nested: { keep: "" } },
+        onProgress: (event) => progress.push(event)
+      })
+    );
+
+    expect(runMock).toHaveBeenCalledWith(
+      "owner/model:abc123",
+      { input: { prompt: "a fox", nested: { keep: "" } } },
+      expect.any(Function)
+    );
+    expect(value).toEqual({
+      output: { image: "https://replicate.delivery/out.png" },
+      requestId: "pred-1"
+    });
+    expect(receipt).toEqual({ provider_request_id: "pred-1" });
+    expect(progress).toEqual([
+      { message: "starting" },
+      { message: "succeeded" }
+    ]);
+  });
+
+  it("returns output URLs as strings, without FileOutput downloads", async () => {
+    const fetchFn = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: "pred-2",
+            status: "succeeded",
+            output: ["https://replicate.delivery/out.mp4"]
+          }),
+          { status: 201, headers: { "content-type": "application/json" } }
+        )
+    );
+    const provider = new ReplicateProvider(
+      { REPLICATE_API_TOKEN: "r8_test" },
+      { fetchFn: fetchFn as unknown as typeof fetch }
+    );
+
+    const result = await provider.callEndpoint({
+      model: "owner/video",
+      input: { prompt: "a fox runs" }
+    });
+
+    expect(result).toEqual({
+      output: ["https://replicate.delivery/out.mp4"],
+      requestId: "pred-2"
+    });
+    // One request: the prediction. A FileOutput would have fetched the file.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [
+      URL,
+      RequestInit
+    ];
+    expect(String(url)).toBe("https://api.replicate.com/v1/models/owner/video/predictions");
+    expect(JSON.parse(String(init.body))).toEqual({
+      input: { prompt: "a fox runs" }
+    });
+  });
+
+  it("rejects a route", async () => {
+    const runMock = vi.fn();
+    await expect(
+      createProvider({ run: runMock }).callEndpoint({
+        model: "owner/model",
+        input: {},
+        route: "suno"
+      })
+    ).rejects.toThrow("replicate does not accept an endpoint route: suno");
+    expect(runMock).not.toHaveBeenCalled();
+  });
+
+  it("waits out the low-credit throttle", async () => {
+    vi.useFakeTimers();
+    try {
+      const runMock = vi
+        .fn()
+        .mockRejectedValueOnce(throttled())
+        .mockResolvedValue("https://replicate.delivery/relit.png");
+      const result = createProvider({ run: runMock }).callEndpoint({
+        model: "owner/relight",
+        input: {}
+      });
+      await vi.advanceTimersByTimeAsync(120_000);
+      await expect(result).resolves.toEqual({
+        output: "https://replicate.delivery/relit.png",
+        requestId: null
+      });
+      expect(runMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("forwards the abort signal and fails when the run was cancelled", async () => {
+    const controller = new AbortController();
+    const runMock = vi.fn(async () => {
+      // The SDK cancels the prediction and resolves with its partial output.
+      controller.abort(new Error("Generation cancelled"));
+      return null;
+    });
+    await expect(
+      createProvider({ run: runMock }).callEndpoint({
+        model: "owner/model",
+        input: {},
+        signal: controller.signal
+      })
+    ).rejects.toThrow("Generation cancelled");
+    const [model, options] = runMock.mock.calls[0] as unknown as [
+      string,
+      { input: unknown; signal?: AbortSignal }
+    ];
+    expect(model).toBe("owner/model");
+    expect(options.signal).toBe(controller.signal);
+  });
+
+  it("uploads bytes through the files API", async () => {
+    const create = vi.fn(async () => ({
+      urls: { get: "https://api.replicate.com/v1/files/f1" }
+    }));
+    const provider = createProvider({ files: { create } });
+
+    const url = await provider.uploadMedia({
+      bytes: Uint8Array.from([1, 2, 3]),
+      mimeType: "image/png",
+      filename: "upload.png"
+    });
+
+    expect(url).toBe("https://api.replicate.com/v1/files/f1");
+    const [blob, metadata, options] = create.mock.calls[0] as unknown as [
+      Blob,
+      Record<string, unknown>,
+      Record<string, unknown>
+    ];
+    expect(blob.type).toBe("image/png");
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(
+      Uint8Array.from([1, 2, 3])
+    );
+    expect(metadata).toEqual({ filename: "upload.png" });
+    expect(options).toEqual({});
+  });
+
+  it("fails an upload whose response has no URL", async () => {
+    const provider = createProvider({
+      files: { create: vi.fn(async () => ({ urls: {} })) }
+    });
+    await expect(
+      provider.uploadMedia({ bytes: new Uint8Array([1]), mimeType: "audio/wav" })
+    ).rejects.toThrow("No URL in upload response");
   });
 });

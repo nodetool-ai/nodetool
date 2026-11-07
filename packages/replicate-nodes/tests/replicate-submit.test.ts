@@ -1,9 +1,8 @@
 /**
  * Tests for assetToUrl upload paths and registerReplicateNodes registry integration.
  *
- * Note: replicateSubmit now uses the Replicate SDK internally (client.run()),
- * so fetch-based mocking no longer applies. The submit/poll lifecycle is
- * tested via the runtime provider tests (replicate-provider.test.ts).
+ * The prediction lifecycle lives in the runtime provider and is tested there
+ * (packages/runtime/tests/providers/replicate-provider.test.ts).
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -27,30 +26,59 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
+/** A context whose provider upload resolves with `url`, or rejects. */
+function uploadContext(result: string | Error) {
+  return {
+    uploadProviderMedia: vi.fn(async () => {
+      if (result instanceof Error) throw result;
+      return result;
+    })
+  };
+}
+
 /* ================================================================== */
-/*  assetToUrl with apiKey (upload paths)                               */
+/*  assetToUrl with an upload context (upload paths)                    */
 /* ================================================================== */
 
-describe("assetToUrl with apiKey (upload paths)", () => {
+describe("assetToUrl with an upload context (upload paths)", () => {
+  it("fetches an external URL and uploads it through the provider", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+      headers: new Headers({ "content-type": "image/jpeg" })
+    });
+    const ctx = uploadContext("https://replicate.delivery/uploads/1.jpg");
+
+    const result = await assetToUrl(
+      { uri: "https://example.com/image.jpg" },
+      ctx
+    );
+
+    expect(result).toBe("https://replicate.delivery/uploads/1.jpg");
+    expect(ctx.uploadProviderMedia).toHaveBeenCalledWith({
+      provider: "replicate",
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: "image/jpeg",
+      filename: "upload.jpeg"
+    });
+  });
+
   it("falls back to direct URL when Replicate upload fails", async () => {
-    // First call: fetches the external URL
     mockFetch.mockResolvedValueOnce({
       ok: true,
       arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
       headers: new Headers({ "content-type": "image/png" })
     });
-    // Second call: upload fails
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
     const result = await assetToUrl(
       { uri: "https://example.com/image.png" },
-      "test-key"
+      uploadContext(new Error("No URL in upload response"))
     );
     // Should fall back to original URL
     expect(result).toBe("https://example.com/image.png");
   });
 
-  it("returns external URL directly when no apiKey is provided", async () => {
+  it("returns external URL directly without an upload context", async () => {
     const result = await assetToUrl({
       uri: "https://example.com/image.png"
     });
@@ -60,12 +88,14 @@ describe("assetToUrl with apiKey (upload paths)", () => {
 
   it("falls back to direct URL when source fetch fails", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+    const ctx = uploadContext("https://replicate.delivery/unused");
 
     const result = await assetToUrl(
       { uri: "https://example.com/missing.png" },
-      "test-key"
+      ctx
     );
     expect(result).toBe("https://example.com/missing.png");
+    expect(ctx.uploadProviderMedia).not.toHaveBeenCalled();
   });
 
   it("returns null for un-fetchable local paths instead of a broken relative URL", async () => {
@@ -75,7 +105,7 @@ describe("assetToUrl with apiKey (upload paths)", () => {
 
     const result = await assetToUrl(
       { uri: "/api/storage/missing.png", type: "image" },
-      "test-key"
+      uploadContext("https://replicate.delivery/unused")
     );
     expect(result).toBeNull();
   });
