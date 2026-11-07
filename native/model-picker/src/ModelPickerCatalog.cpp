@@ -54,6 +54,21 @@ void Catalog::setIdentity(const QString& identity) {
     m_loading = false;
     present();
 }
+void Catalog::setFilter(const QStringList& allowedProviders, const QStringList& tasks) {
+    m_allowedProviders = allowedProviders;
+    m_tasks = tasks;
+}
+QVariantMap Catalog::modelDetails(const QString& id, const QString& provider) const {
+    for (const auto& entry : m_models) {
+        const auto model = entry.toMap();
+        if (model.value("id") == id && (provider.isEmpty() || model.value("provider") == provider)) return model;
+    }
+    return {};
+}
+bool Catalog::providerKeyMissing(const QString& provider) const {
+    const auto meta = m_providerMeta.value(provider);
+    return meta.value("access").toString() == "remote_api" && meta.contains("configured") && !meta.value("configured").toBool();
+}
 void Catalog::setMode(const QString& mode) {
     if (mode == m_mode || detail::catalogProcedure(mode).isEmpty()) return;
     m_mode = mode;
@@ -144,7 +159,7 @@ void Catalog::reload() {
     emit changed();
     const QPointer<Catalog> guard(this);
     if (m_mode == "huggingface_model") {
-        m_query("models.huggingfaceByType", {{"model_type", "hf.model"}, {"scope", m_scope}}, [guard, revision](QJsonValue value, QString error) {
+        m_query("models.huggingfaceByType", {{"model_type", m_huggingFaceType}, {"scope", m_scope}}, [guard, revision](QJsonValue value, QString error) {
             if (!guard || revision != guard->m_revision) return;
             if (error.isEmpty()) {
                 guard->m_models = detail::catalogModels(value.toArray(), "huggingface", guard->m_mode);
@@ -169,7 +184,8 @@ void Catalog::reload() {
         for (const auto& entry : value.toArray()) {
             const auto provider = entry.toObject();
             const auto name = provider.value("provider").toString();
-            if (!name.isEmpty() && detail::catalogProviderMatches(guard->m_mode, provider.value("capabilities").toArray())) {
+            const bool allowed = guard->m_allowedProviders.isEmpty() || guard->m_allowedProviders.contains(name, Qt::CaseInsensitive);
+            if (!name.isEmpty() && allowed && detail::catalogProviderMatches(guard->m_mode, provider.value("capabilities").toArray())) {
                 names.append(name);
                 guard->m_providerMeta.insert(name, provider.toVariantMap());
             }
@@ -212,7 +228,13 @@ void Catalog::reload() {
         for (const auto& name : names) {
             guard->m_query(detail::catalogProcedure(guard->m_mode), {{"provider", name}}, [guard, revision, name, accumulated, errors, finish](QJsonValue result, QString failure) {
                 if (!guard || revision != guard->m_revision) return;
-                if (failure.isEmpty()) accumulated->append(detail::catalogModels(result.toArray(), name, guard->m_mode));
+                if (failure.isEmpty()) {
+                    QJsonArray matching;
+                    for (const auto& model : result.toArray()) {
+                        if (detail::catalogModelMatchesTasks(model.toObject().value("supported_tasks").toArray(), guard->m_tasks)) matching.append(model);
+                    }
+                    accumulated->append(detail::catalogModels(matching, name, guard->m_mode));
+                }
                 else errors->append(name + ": " + failure);
                 finish();
             });

@@ -50,6 +50,9 @@ public:
     explicit Catalog(QObject* parent = nullptr);
     void setQuery(Query query);
     void setIdentity(const QString& identity);
+    // These apply on the next reload. Empty lists leave the catalog unfiltered.
+    void setFilter(const QStringList& allowedProviders, const QStringList& tasks);
+    void setHuggingFaceType(const QString& type) { m_huggingFaceType = type; }
     QString mode() const { return m_mode; }
     void setMode(const QString& mode);
     QString modelScope() const { return m_scope; }
@@ -73,6 +76,9 @@ public:
     bool loaded() const { return m_loaded; }
     bool needsProviderSetup() const;
     Q_INVOKABLE bool hasAvailable(const QString& id, const QString& provider) const;
+    // An empty provider matches the first model with the id.
+    Q_INVOKABLE QVariantMap modelDetails(const QString& id, const QString& provider) const;
+    Q_INVOKABLE bool providerKeyMissing(const QString& provider) const;
     bool loading() const { return m_loading; }
     QString error() const { return m_error; }
     Q_INVOKABLE void reload();
@@ -95,7 +101,8 @@ private:
     QString m_identity, m_mode = QStringLiteral("video"), m_scope = QStringLiteral("local");
     QString m_search, m_group = QStringLiteral("All"), m_error;
     QStringList m_providers, m_favorites, m_recent;
-    QStringList m_rankedKeys;
+    QStringList m_rankedKeys, m_allowedProviders, m_tasks;
+    QString m_huggingFaceType = QStringLiteral("hf.model");
     QHash<QString, QVariantMap> m_providerMeta;
     QString m_default;
     QVariantList m_models;

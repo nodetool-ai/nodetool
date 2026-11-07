@@ -11,6 +11,7 @@ Ui.Popover {
     property string highlightedId: ""
     property string highlightedProvider: ""
     property bool allowServerDefault: false
+    property bool providerSetupAvailable: true
     signal addProvidersRequested()
     signal useServerDefaultRequested()
     signal selected(var model)
@@ -130,7 +131,7 @@ Ui.Popover {
             Layout.leftMargin: Ui.Metrics.lg
             Layout.rightMargin: Ui.Metrics.lg
             Ui.Text { role: Ui.Typography.SansLabel; text: qsTr("Connect an AI provider to use more models"); Layout.fillWidth: true; wrapMode: Text.Wrap }
-            ActionButton { text: qsTr("Add API key"); onClicked: picker.addProvidersRequested() }
+            ActionButton { visible: picker.providerSetupAvailable; text: qsTr("Add API key"); onClicked: picker.addProvidersRequested() }
         }
         ColumnLayout {
             Layout.fillWidth: true
@@ -280,14 +281,15 @@ Ui.Popover {
                 }
             }
         }
-        Ui.Separator { Layout.fillWidth: true }
+        Ui.Separator { visible: picker.allowServerDefault || picker.providerSetupAvailable; Layout.fillWidth: true }
         RowLayout {
             objectName: "modelPickerFooter"
+            visible: picker.allowServerDefault || picker.providerSetupAvailable
             Layout.fillWidth: true
             Layout.margins: Ui.Metrics.md
             ActionButton { objectName: "modelPickerServerDefault"; visible: picker.allowServerDefault; Layout.fillWidth: picker.narrow; text: qsTr("Server default"); onClicked: picker.useServerDefaultRequested() }
-            Ui.Text { role: Ui.Typography.SansLabel; visible: !picker.narrow; text: qsTr("Missing a provider?"); tone: Ui.Text.Secondary; Layout.fillWidth: true }
-            ActionButton { Layout.fillWidth: picker.narrow; text: qsTr("Add providers"); onClicked: picker.addProvidersRequested() }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: !picker.narrow && picker.providerSetupAvailable; text: qsTr("Missing a provider?"); tone: Ui.Text.Secondary; Layout.fillWidth: true }
+            ActionButton { visible: picker.providerSetupAvailable; Layout.fillWidth: picker.narrow; text: qsTr("Add providers"); onClicked: picker.addProvidersRequested() }
         }
     }
     function choose(id, provider) {

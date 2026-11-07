@@ -1359,6 +1359,14 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "native-node-editor",
+    title: "Native workflow graph editor build and Qt tests",
+    command: "node native/node-editor/scripts/check.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "docs/harnesses.md § Native node editor"
+  },
+  {
     id: "native-chat",
     title: "Native chat model, wire conformance and Qt Quick interactions",
     command: "node native/chat/scripts/check.mjs",
@@ -2548,6 +2556,16 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "native-node-editor",
+    title: "Native workflow graph editor (Widgets and Qt Quick)",
+    harnesses: ["native-node-editor"],
+    paths: ["native/node-editor/"],
+    gap:
+      "Run the native check with CMake, Ninja, a C++20 compiler and Qt 6.12 development libraries. " +
+      "QtNodes requires network access on first configure. The root gate lists this check as manual work. " +
+      "Platform input, accessibility and installed-app rendering require separate acceptance."
+  },
+  {
     id: "native-chat",
     title: "Native chat component (C++/Qt Quick)",
     harnesses: ["native-chat"],
@@ -2564,6 +2582,8 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "native/ui_primitives/",
       "native/chat/qml/",
+      "native/node-editor/qml/",
+      "native/node-editor/src/ui/",
       "native/model-picker/qml/",
       "native/timeline/qml/",
       "native/timeline/src/"

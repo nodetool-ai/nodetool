@@ -388,6 +388,8 @@ describe("harness gate", () => {
   it.each([
     "native/ui_primitives/qml/EditorButton.qml",
     "native/chat/qml/ChatComposer.qml",
+    "native/node-editor/qml/Inspector.qml",
+    "native/node-editor/src/ui/EditorWindow.cpp",
     "native/model-picker/qml/ModelPicker.qml",
     "native/timeline/qml/Tracks/ToolButton.qml",
     "native/timeline/src/ui/Tempo/TempoToolbar.qml",
@@ -398,6 +400,23 @@ describe("harness gate", () => {
     expect(plan.checks.map((entry) => entry.harnessId)).toContain("native-ui-design");
     expect(plan.manual.map((entry) => entry.harnessId)).toContain("native-ui-interactions");
     expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  it.each([
+    "native/node-editor/CMakeLists.txt",
+    "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+    "native/node-editor/qml/Inspector.qml",
+    "native/node-editor/tests/document/WorkflowDocumentTest.cpp",
+    "native/node-editor/scripts/check.mjs"
+  ])("selects native graph editor verification for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.surfaces.map((surface) => surface.id)).toContain("native-node-editor");
+    expect(plan.manual.map((entry) => entry.harnessId)).toContain("native-node-editor");
+    expect(plan.checks.map((entry) => entry.harnessId)).not.toContain("native-node-editor");
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(HARNESSES.find((entry) => entry.id === "native-node-editor")?.command)
+      .toBe("node native/node-editor/scripts/check.mjs");
+    expect(SURFACES.find((entry) => entry.id === "native-node-editor")?.gap).toContain("Qt 6.12");
   });
 
   it("reports native chat verification as manual work requiring Qt", () => {

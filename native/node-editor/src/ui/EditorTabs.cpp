@@ -1,0 +1,465 @@
+#include "EditorWindow.h"
+#include <QJsonDocument>
+#include "document/ChildPorts.h"
+#include <QMenu>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QUrlQuery>
+#include <QMessageBox>
+#include <QSettings>
+#include <QStackedWidget>
+#include <QTimer>
+
+namespace nodetool {
+EditorWindow *EditorWindow::activeEditor() const {
+  return tabOwner_ ? const_cast<EditorWindow *>(this) : activeEditor_;
+}
+QVariantList EditorWindow::workflowTabs() const {
+  const auto owner = tabOwner_ ? tabOwner_ : this;
+  QVariantList result;
+  for (auto tab : owner->tabs_) {
+    result.append(QVariantMap{{"title", tab->childParent_ ? tab->childParent_->workflowName() + " › " + tab->workflowName() : tab->workflowName()}, {"dirty", tab->hasUnsavedChanges()}});
+  }
+  return result;
+}
+int EditorWindow::activeTab() const {
+  const auto owner = tabOwner_ ? tabOwner_ : this;
+  return owner->tabs_.indexOf(owner->activeEditor_);
+}
+void EditorWindow::schedulePanelChanged() {
+  if (!panelChangePending_) {
+    panelChangePending_ = true;
+    QMetaObject::invokeMethod(this, &EditorWindow::flushPanelChanged, Qt::QueuedConnection);
+  }
+  // Panels bound to the owner window follow the active tab in the same pass.
+  if (tabOwner_ && tabOwner_->activeEditor_ == this) {
+    tabOwner_->setWindowTitle(windowTitle());
+    tabOwner_->setWindowModified(isWindowModified());
+    tabOwner_->schedulePanelChanged();
+  }
+}
+void EditorWindow::flushPanelChanged() {
+  if (!panelChangePending_) return;
+  // A queued projection runs first, so that its changes share this emit.
+  if (refreshPending_) { refresh(); }
+  panelChangePending_ = false;
+  emit panelChanged();
+}
+void EditorWindow::notifyTabs() {
+  auto owner = tabOwner_ ? tabOwner_ : this;
+  emit owner->tabsChanged();
+  for (auto tab : owner->tabs_) emit tab->tabsChanged();
+}
+void EditorWindow::newTab() {
+  if (tabOwner_) { tabOwner_->newTab(); return; }
+  auto tab = new EditorWindow(tabStack_, this);
+  tab->setWindowFlags(Qt::Widget);
+  // Only a top-level window fills its background, and translucent dock dividers
+  // would otherwise blend with the outer window.
+  tab->setAutoFillBackground(true);
+  tabs_.append(tab);
+  tabStack_->addWidget(tab);
+    connect(&packSetup_, &node_editor::PackSetup::registryRefreshRequested, tab, [this, tab] {
+        if (tab->packOrigin_ == activeEditor_->packOrigin_
+            && tab->packToken_ == activeEditor_->packToken_ && tab->packUser_ == activeEditor_->packUser_) {
+            tab->session_.loadCatalog();
+        }
+    });
+  tab->setCatalog(metadata_);
+  tab->setDarkTheme(tabsDark_);
+  if (!tabsOrigin_.isEmpty()) tab->session_.connectToServer(tabsOrigin_, tabsToken_, tabsUser_);
+  connect(&tab->session_, &node_editor::WorkflowSession::saved, tab, [this, tab] {
+    const bool close = tab->closeAfterServerSave_ && !tab->hasUnsavedChanges();
+    tab->closeAfterServerSave_ = false;
+    if (close) {
+      QPointer<EditorWindow> target = tab;
+      QTimer::singleShot(0, this, [this, target] { if (target) closeTab(tabs_.indexOf(target)); });
+    }
+  });
+  connect(&tab->session_, &node_editor::WorkflowSession::errorOccurred, tab, [tab] { tab->closeAfterServerSave_ = false; });
+  connect(&tab->session_, &node_editor::WorkflowSession::credentialsChanged, tab, [tab] { tab->closeAfterServerSave_ = false; });
+  activateTab(tabs_.size() - 1);
+}
+void EditorWindow::activateTab(int index) {
+  if (tabOwner_) { tabOwner_->activateTab(index); return; }
+  if (index < 0 || index >= tabs_.size() || (activeEditor_ == tabs_[index] && tabStack_->currentWidget() == activeEditor_)) return;
+  if (activeEditor_) {
+    // A tab switch cancels editable drafts, but retains its graph and view.
+    activeEditor_->invalidateGesture();
+    emit activeEditor_->documentEpochChanged();
+  }
+  auto target = tabs_[index];
+  if (target->childParent_ && target->childParentEpoch_ == target->childParent_->documentEpoch_) {
+    const auto stored = node_editor::childGraph(target->childParent_->document_.node(target->childNode_));
+    if (stored != target->syncedChildGraph_) {
+      auto snapshot = target->document_.snapshot(); snapshot["graph"] = stored;
+      target->childSyncing_ = true;
+      (void)target->document_.load(snapshot);
+      target->childSyncing_ = false; target->syncedChildGraph_ = stored;
+    }
+  }
+  activeEditor_ = target;
+    target->syncPackSetup();
+  tabStack_->setCurrentWidget(activeEditor_);
+  setWindowTitle(activeEditor_->windowTitle());
+  setWindowModified(activeEditor_->isWindowModified());
+  notifyTabs();
+  schedulePanelChanged(); emit mediaChanged(); emit zoomChanged(); emit catalogChanged();
+}
+bool EditorWindow::confirmTabClose(bool closeAfterSave) {
+  if (childParent_ && node_editor::childGraphKey(childParent_->document_.node(childNode_)) == "graph" && document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) return true;
+  if (!hasUnsavedChanges()) return true;
+  tabOwner_->activateTab(tabOwner_->tabs_.indexOf(this));
+  const auto choice = QMessageBox::warning(this, tr("Unsaved workflow"), tr("Save changes before closing?"),
+    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+  if (choice == QMessageBox::Discard) return true;
+  if (choice != QMessageBox::Save) return false;
+  if (session_.serverBound()) {
+    closeAfterServerSave_ = closeAfterSave;
+    session_.setSnapshot(document_.snapshot());
+    session_.save();
+    return false;
+  }
+  action("Save");
+  return !hasUnsavedChanges();
+}
+bool EditorWindow::closeTab(int index) {
+  if (tabOwner_) {
+    auto owner = tabOwner_;
+    QPointer<EditorWindow> target = owner->tabs_.value(index);
+    QTimer::singleShot(0, owner, [owner, target] {
+      if (target) owner->closeTab(owner->tabs_.indexOf(target));
+    });
+    return true;
+  }
+  if (index < 0 || index >= tabs_.size()) return false;
+  auto tab = tabs_[index];
+  if (!tab->confirmTabClose(true)) return false;
+  // Inline descendants are already written into this document. Closing the
+  // owning workflow closes their canvases, as the web subgraph strip does.
+  for (int i = tabs_.size() - 1; i >= 0; --i) {
+    const auto child = tabs_[i];
+    if (child->childParent_ == tab && node_editor::childGraphKey(tab->document_.node(child->childNode_)) == "graph") { if (!closeTab(i)) { return false; } }
+  }
+  index = tabs_.indexOf(tab);
+  const bool wasActive = activeEditor_ == tab;
+  tabs_.removeAt(index);
+  tabStack_->removeWidget(tab);
+  if (wasActive) activeEditor_ = nullptr;
+  // Destruction invalidates context-bound requests and all picker callbacks.
+  delete tab;
+  if (tabs_.isEmpty()) newTab();
+  else if (wasActive) activateTab(qMin(index, int(tabs_.size()) - 1));
+  else notifyTabs();
+  return true;
+}
+void EditorWindow::persistTabs() const {
+  if (tabOwner_) { tabOwner_->persistTabs(); return; }
+  QJsonArray entries;
+  for (auto tab : tabs_) {
+    if (tab->childParent_) continue;
+    entries.append(QJsonObject{{"file", tab->file_}, {"workflow", tab->session_.serverBound() ? tab->session_.workflow()["id"].toString() : tab->requestedWorkflow_},
+      {"origin", tab->session_.serverUrl().toString()}});
+  }
+  QSettings settings;
+  settings.setValue("workflowTabs/documents", QJsonDocument(entries).toJson(QJsonDocument::Compact));
+  settings.setValue("workflowTabs/active", activeTab());
+}
+void EditorWindow::restoreTabs() {
+  if (tabOwner_) { tabOwner_->restoreTabs(); return; }
+  QSettings settings;
+  const auto entries = QJsonDocument::fromJson(settings.value("workflowTabs/documents").toByteArray()).array();
+  if (entries.isEmpty()) return;
+  for (int i = 0; i < entries.size(); ++i) {
+    if (i) newTab();
+    auto tab = activeEditor_;
+    const auto entry = entries[i].toObject();
+    const auto path = entry["file"].toString();
+    const auto id = entry["workflow"].toString();
+    if (!path.isEmpty()) tab->openFile(path);
+    else if (!id.isEmpty()) {
+      tab->session_.connectToServer(QUrl(entry["origin"].toString()), qEnvironmentVariable("NODETOOL_TOKEN"));
+      tab->requestedWorkflow_ = id;
+      tab->session_.openWorkflow(id);
+    }
+  }
+  activateTab(settings.value("workflowTabs/active", 0).toInt());
+}
+} // namespace nodetool
+
+namespace nodetool {
+void EditorWindow::openChild() {
+  if (!tabOwner_) {
+    activeEditor_->openChild();
+    return;
+  }
+  const auto node = document_.node(selected_);
+  if (!node_editor::isChildNode(node)) {
+    message_ = tr("Select a subgraph, workflow or app node.");
+    schedulePanelChanged();
+    return;
+  }
+  auto owner = tabOwner_;
+  for (int i = 0; i < owner->tabs_.size(); ++i) {
+    auto tab = owner->tabs_[i];
+    if (tab->childParent_ == this && tab->childNode_ == selected_ &&
+        tab->childParentEpoch_ == documentEpoch_) {
+      owner->activateTab(i);
+      return;
+    }
+  }
+  const auto key = node_editor::childGraphKey(node);
+  const auto data = node["data"].toObject();
+  const auto snapshot = data[key].toObject();
+  const auto graph = node_editor::childGraph(node);
+  const auto id = key == "workflow_json"
+                      ? data["workflow_id"].toString(snapshot["id"].toString())
+                      : snapshot["workflow_id"].toString();
+  if (key == "app_json" && graph.isEmpty() && id.isEmpty() &&
+      !data["app_id"].toString().isEmpty() && !owner->tabsOrigin_.isEmpty()) {
+    const auto epoch = documentEpoch_, credentials = credentialsEpoch_;
+    const auto nodeId = selected_;
+    auto network = new QNetworkAccessManager(this);
+    auto url = owner->tabsOrigin_.resolved(QUrl("/trpc/applications.get"));
+    QUrlQuery query;
+    query.addQueryItem(
+        "input",
+        QString::fromUtf8(QJsonDocument(QJsonObject{{"id", data["app_id"]}})
+                              .toJson(QJsonDocument::Compact)));
+    url.setQuery(query);
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization",
+                         "Bearer " + owner->tabsToken_.toUtf8());
+    auto reply = network->get(request);
+    message_ = tr("Loading app workflow…");
+    schedulePanelChanged();
+    connect(
+        reply, &QNetworkReply::finished, this,
+        [this, reply, network, epoch, credentials, nodeId] {
+          const auto bytes = reply->readAll();
+          const auto error = reply->error();
+          network->deleteLater();
+          if (epoch != documentEpoch_ || credentials != credentialsEpoch_ ||
+              document_.node(nodeId).isEmpty()) {
+            return;
+          }
+          if (error != QNetworkReply::NoError) {
+            message_ = tr(
+                "App could not be loaded. Check the account and connection.");
+            schedulePanelChanged();
+            return;
+          }
+          const auto application = QJsonDocument::fromJson(bytes)
+                                       .object()["result"]
+                                       .toObject()["data"]
+                                       .toObject();
+          auto document = application["document"].toObject();
+          if (application["document"].isString()) {
+            document = QJsonDocument::fromJson(
+                           application["document"].toString().toUtf8())
+                           .object();
+          }
+          const auto old =
+              document_.node(nodeId)["data"].toObject()["app_json"].toObject();
+          QJsonObject operation;
+          for (const auto &v : document["operations"].toArray()) {
+            const auto op = v.toObject();
+            if (!op["workflowId"].toString().isEmpty() &&
+                (operation.isEmpty() || op["id"] == old["operation_id"])) {
+              operation = op;
+            }
+          }
+          if (operation.isEmpty()) {
+            message_ = tr("App has no workflow operation.");
+            schedulePanelChanged();
+            return;
+          }
+          auto snapshot = old;
+          snapshot["name"] = application["name"];
+          snapshot["operation_id"] = operation["id"];
+          snapshot["workflow_id"] = operation["workflowId"];
+          QJsonObject constants;
+          // Input names are resolved once the workflow has loaded in the child.
+          snapshot["input_bindings"] = operation["inputs"];
+          snapshot["variables"] = document["variables"];
+          snapshot["constants"] = constants;
+          const auto result =
+              document_.applyCommand({{"op", "setChildSnapshot"},
+                                      {"id", nodeId},
+                                      {"graph", QJsonObject{}},
+                                      {"snapshot", snapshot}},
+                                     tr("Load app workflow"));
+          if (!result) {
+            message_ = result.error;
+            schedulePanelChanged();
+            return;
+          }
+          selected_ = nodeId;
+          openChild();
+        });
+    return;
+  }
+  if (key != "graph" && graph.isEmpty() && id.isEmpty()) {
+    message_ =
+        tr("Child workflow is missing. Select a workflow in the web editor.");
+    schedulePanelChanged();
+    return;
+  }
+  owner->newTab();
+  auto child = owner->activeEditor_;
+  child->childParent_ = this;
+  child->childNode_ = selected_;
+  child->childParentEpoch_ = documentEpoch_;
+  child->syncedChildGraph_ = graph;
+  child->childSyncing_ = true;
+  auto workflow = snapshot;
+  workflow["name"] = node["ui_properties"].toObject()["title"].toString(
+      snapshot["name"].toString(key == "graph" ? tr("Subgraph")
+                                               : tr("Linked workflow")));
+  workflow["graph"] = graph.isEmpty() ? QJsonObject{{"nodes", QJsonArray{}},
+                                                    {"edges", QJsonArray{}}}
+                                      : graph;
+  (void)child->document_.load(workflow);
+  child->childSyncing_ = false;
+  connect(&child->document_, &node_editor::WorkflowDocument::changed, child,
+          &EditorWindow::syncChild);
+  connect(&child->session_, &node_editor::WorkflowSession::credentialsChanged,
+          child, [child] { child->childParent_.clear(); });
+  if (key != "graph" && !id.isEmpty() && !owner->tabsOrigin_.isEmpty()) {
+    child->requestedWorkflow_ = id;
+    child->session_.openWorkflow(id);
+  }
+  child->fit();
+  owner->notifyTabs();
+}
+void EditorWindow::syncChild() {
+  if (childSyncing_ || !childParent_ ||
+      childParentEpoch_ != childParent_->documentEpoch_) {
+    return;
+  }
+  const auto node = childParent_->document_.node(childNode_);
+  if (node.isEmpty()) {
+    message_ = tr(
+        "The parent node was removed. Child edits are retained in this tab.");
+    schedulePanelChanged();
+    return;
+  }
+  const auto graph = document_.graph();
+  if (graph == syncedChildGraph_) {
+    return;
+  }
+  const auto result = childParent_->document_.applyCommand(
+      {{"op", "setChildGraph"}, {"id", childNode_}, {"graph", graph}},
+      tr("Edit child graph and synchronize ports"));
+  if (!result) {
+    message_ = result.error;
+    schedulePanelChanged();
+    return;
+  }
+  syncedChildGraph_ = graph;
+}
+void EditorWindow::showLinkedWorkflows() {
+  auto menu = new QMenu(this);
+  menu->setObjectName("linked-workflows-menu");
+  menu->setAttribute(Qt::WA_DeleteOnClose);
+  connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
+  connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
+  for (const auto &v : document_.nodes()) {
+    const auto node = v.toObject();
+    const auto key = node_editor::childGraphKey(node);
+    if (key != "workflow_json" && key != "app_json") {
+      continue;
+    }
+    auto entry =
+        menu->addAction(node["ui_properties"].toObject()["title"].toString(
+            node["data"].toObject()[key].toObject()["name"].toString(
+                node["id"].toString())));
+    connect(entry, &QAction::triggered, this, [this, node] {
+      selectNode(node["id"].toString());
+      openChild();
+    });
+  }
+  if (menu->actions().isEmpty()) {
+    menu->addAction(tr("No linked workflows"))->setEnabled(false);
+  }
+  menu->popup(mapToGlobal(rect().center()));
+}
+} // namespace nodetool
+
+void nodetool::EditorWindow::syncPackSetup() {
+  if (!tabOwner_ || tabOwner_->activeEditor_ != this) {
+    return;
+  }
+  QStringList types;
+  for (const auto &value : document_.nodes()) {
+    types.append(value.toObject()["type"].toString());
+  }
+  packSetup()->configure(packOrigin_, packToken_, packUser_);
+  packSetup()->setNodeTypes(types);
+}
+
+namespace nodetool {
+void EditorWindow::refreshChildReferences() {
+  if (!tabOwner_ || tabOwner_->tabsOrigin_.isEmpty()) {
+    return;
+  }
+  const auto epoch = documentEpoch_, credentials = credentialsEpoch_;
+  for (const auto &v : document_.nodes()) {
+    const auto node = v.toObject();
+    const auto key = node_editor::childGraphKey(node);
+    if (key != "workflow_json" && key != "app_json") {
+      continue;
+    }
+    const auto data = node["data"].toObject(), stored = data[key].toObject();
+    const auto id = key == "workflow_json"
+                        ? data["workflow_id"].toString(stored["id"].toString())
+                        : stored["workflow_id"].toString();
+    if (id.isEmpty() || id == document_.snapshot()["id"].toString()) {
+      continue;
+    }
+    auto network = new QNetworkAccessManager(this);
+    QNetworkRequest request(tabOwner_->tabsOrigin_.resolved(QUrl(
+        "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)))));
+    request.setTransferTimeout(30000);
+    request.setRawHeader("Authorization",
+                         "Bearer " + tabOwner_->tabsToken_.toUtf8());
+    auto reply = network->get(request);
+    connect(
+        reply, &QNetworkReply::finished, this,
+        [this, reply, network, epoch, credentials, node, key, stored, id] {
+          const auto bytes = reply->readAll();
+          const auto error = reply->error();
+          network->deleteLater();
+          if (epoch != documentEpoch_ || credentials != credentialsEpoch_ ||
+              document_.node(node["id"].toString())["data"] != node["data"]) {
+            return;
+          }
+          const auto workflow = QJsonDocument::fromJson(bytes).object();
+          if (error != QNetworkReply::NoError || workflow["id"] != id ||
+              !workflow["graph"].isObject()) {
+            message_ = tr("Linked workflow %1 could not be loaded. The stored "
+                          "child graph is retained.")
+                           .arg(id);
+            schedulePanelChanged();
+            return;
+          }
+          auto snapshot = stored;
+          snapshot["graph"] = workflow["graph"];
+          if (key == "workflow_json") {
+            snapshot["id"] = id;
+            snapshot["name"] = workflow["name"];
+          }
+          const auto result =
+              document_.applyCommand({{"op", "setChildSnapshot"},
+                                      {"id", node["id"]},
+                                      {"graph", workflow["graph"]},
+                                      {"snapshot", snapshot}},
+                                     tr("Synchronize linked workflow ports"));
+          if (!result) {
+            message_ = result.error;
+            schedulePanelChanged();
+          }
+        });
+  }
+}
+} // namespace nodetool

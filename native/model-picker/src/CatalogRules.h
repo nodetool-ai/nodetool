@@ -1,5 +1,6 @@
 #pragma once
 #include <QJsonArray>
+#include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 #include <cmath>
@@ -14,6 +15,8 @@ inline QString catalogCapability(const QString& mode) {
     if (mode == "asr_model") return QStringLiteral("automatic_speech_recognition");
     if (mode == "music_model") return QStringLiteral("text_to_music");
     if (mode == "embedding_model") return QStringLiteral("generate_embedding");
+    if (mode == "rerank_model") return QStringLiteral("rerank");
+    if (mode == "audio_to_audio_model") return QStringLiteral("audio_to_audio");
     if (mode == "video") return QStringLiteral("text_to_video");
     if (mode == "image") return QStringLiteral("text_to_image");
     if (mode == "audio") return QStringLiteral("text_to_speech");
@@ -30,6 +33,8 @@ inline QString catalogProcedure(const QString& mode) {
     if (mode == "asr_model") return QStringLiteral("models.asrByProvider");
     if (mode == "music_model") return QStringLiteral("models.musicByProvider");
     if (mode == "embedding_model") return QStringLiteral("models.embeddingByProvider");
+    if (mode == "rerank_model") return QStringLiteral("models.rerankByProvider");
+    if (mode == "audio_to_audio_model") return QStringLiteral("models.audioToAudioByProvider");
     if (mode == "video") return QStringLiteral("models.videoByProvider");
     if (mode == "image") return QStringLiteral("models.imageByProvider");
     if (mode == "audio") return QStringLiteral("models.ttsByProvider");
@@ -45,6 +50,15 @@ inline bool catalogProviderMatches(const QString& mode, const QJsonArray& capabi
     }
     const auto capability = catalogCapability(mode);
     return !capability.isEmpty() && capabilities.contains(capability);
+}
+// Undeclared tasks pass only for basic generation, as in the web picker.
+inline bool catalogModelMatchesTasks(const QJsonArray& supported, const QStringList& tasks) {
+    if (tasks.isEmpty()) return true;
+    for (const auto& task : tasks) {
+        const bool basic = task == "text_to_image" || task == "image_to_image" || task == "text_to_video" || task == "image_to_video";
+        if (supported.isEmpty() ? basic : supported.contains(task)) return true;
+    }
+    return false;
 }
 inline QVariantList catalogModels(const QJsonArray& models, const QString& provider, const QString& mode) {
     QVariantList result;
