@@ -30,7 +30,20 @@ add_executable(node_editor_local_run_tests LocalRunTests.cpp
  ../../src/run/OutputCollectionModel.cpp ../../src/run/OutputCollectionModel.h
  ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h)
 target_include_directories(node_editor_local_run_tests PRIVATE ../../src)
-target_compile_definitions(node_editor_local_run_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}")
+# A bundle with the audio nodes, for the test that decodes compressed audio
+# through native media. The default guest has only the core workflow nodes.
+find_program(NODETOOL_NODE node REQUIRED)
+set(NODETOOL_AUDIO_GUEST "${CMAKE_CURRENT_BINARY_DIR}/local-run-audio-guest.js")
+set(NODETOOL_GUEST_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/../../../graph-runner/guest/build.mjs")
+add_custom_command(OUTPUT "${NODETOOL_AUDIO_GUEST}"
+  COMMAND "${NODETOOL_NODE}" "${NODETOOL_GUEST_BUILD}" "${NODETOOL_AUDIO_GUEST}" --profile parity
+          --modules @nodetool-ai/core-nodes/nodes/constant,@nodetool-ai/audio-nodes/nodes/output,@nodetool-ai/audio-nodes/nodes/audio
+  DEPENDS "${NODETOOL_GUEST_BUILD}"
+  VERBATIM)
+add_custom_target(node_editor_local_run_audio_guest DEPENDS "${NODETOOL_AUDIO_GUEST}")
+add_dependencies(node_editor_local_run_tests node_editor_local_run_audio_guest)
+target_compile_definitions(node_editor_local_run_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}"
+                           AUDIO_GUEST_BUNDLE="${NODETOOL_AUDIO_GUEST}")
 target_link_libraries(node_editor_local_run_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test Qt6::Multimedia)
 nodetool_stage_graph_runner_runtime(node_editor_local_run_tests)
 add_test(NAME node_editor_local_run COMMAND node_editor_local_run_tests)

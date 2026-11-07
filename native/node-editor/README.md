@@ -62,12 +62,19 @@ run, and the run status text ends with "(local)". The bundle comes from `--guest
 `NODETOOL_GUEST_BUNDLE`, then a `guest.bin` or `guest.js` next to the
 executable. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
 
+Local runs use the local user's workspace, the folder the server keeps:
+`$NODETOOL_WORKSPACES_DIR/1`, otherwise `nodetool/workspaces/1` in
+`$XDG_DATA_HOME` (`~/.local/share`) or, on Windows, `%APPDATA%`. They may
+decode media through the native media host and encode with libx264, aac,
+libmp3lame and libopus.
+
 CMake also fetches QuickJS-ng and nlohmann/json for the runner. Supply
 `-DFETCHCONTENT_SOURCE_DIR_QUICKJS` and `-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON`
 for offline builds. The `node_editor_local_run` test loads
 `native/graph-runner/build/guest.js`. Build it first with
 `node native/graph-runner/guest/build.mjs`, or point the
-`NODETOOL_GUEST_BUNDLE` CMake variable at another bundle.
+`NODETOOL_GUEST_BUNDLE` CMake variable at another bundle. The test also builds a
+bundle with the audio nodes for its compressed-audio case.
 
 ```sh
 /tmp/node-editor-build/nodetool-node-editor --server http://localhost:7777 --workflow FULL_WORKFLOW_ID

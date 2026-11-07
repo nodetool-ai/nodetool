@@ -31,15 +31,38 @@ QString guestBundlePath() {
   }
   return {};
 }
+// The local user's managed workspace, where the TypeScript server keeps it:
+// NODETOOL_WORKSPACES_DIR, or `workspaces` in the NodeTool data directory,
+// then the local user id.
+QString localWorkspaceDir() {
+  auto root = qEnvironmentVariable("NODETOOL_WORKSPACES_DIR").trimmed();
+  if (root.isEmpty()) {
+#ifdef Q_OS_WIN
+    auto base = qEnvironmentVariable("APPDATA");
+    if (base.isEmpty()) { base = QDir::home().filePath("AppData/Roaming"); }
+#else
+    auto base = qEnvironmentVariable("XDG_DATA_HOME");
+    if (base.isEmpty()) { base = QDir::home().filePath(".local/share"); }
+#endif
+    root = QDir(base).filePath("nodetool/workspaces");
+  }
+  return QDir(root).filePath("1");
+}
 // One loaded guest serves every session in the process. Sessions live on the
-// GUI thread, so the weak reference needs no lock.
+// GUI thread, so the weak reference needs no lock. Runs get the local
+// workspace and native media with the encoders the media nodes use.
 std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   if (qEnvironmentVariable("NODETOOL_LOCAL_RUNNER") == "0") { return {}; }
   static std::weak_ptr<gr::GraphRunner> shared;
   if (auto runner = shared.lock()) { return runner; }
   const auto path = guestBundlePath();
   if (path.isEmpty() || !QFileInfo::exists(path)) { return {}; }
-  auto runner = std::make_shared<gr::GraphRunner>(QFile::encodeName(path).toStdString());
+  gr::HostOptions options;
+  const auto workspace = localWorkspaceDir();
+  if (QDir().mkpath(workspace)) { options.workspaceDir = QFile::encodeName(workspace).toStdString(); }
+  options.allowMedia = true;
+  options.mediaEncoders = {"libx264", "aac", "libmp3lame", "libopus"};
+  auto runner = std::make_shared<gr::GraphRunner>(QFile::encodeName(path).toStdString(), std::move(options));
   shared = runner;
   return runner;
 }

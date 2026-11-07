@@ -1,8 +1,11 @@
 #include "../../src/run/NodeRuntimeModel.h"
 #include "../../src/run/RunOutputModel.h"
 #include "../../src/server/WorkflowSession.h"
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QScopeGuard>
+#include <QTemporaryDir>
 #include <QtTest>
 #include <memory>
 using namespace nodetool::node_editor;
@@ -52,9 +55,13 @@ QVariantMap jobEntry(const RunOutputModel &output) {
 }
 class LocalRunTests : public QObject {
   Q_OBJECT
+  QTemporaryDir m_workspaces;
 private slots:
   void initTestCase() {
     QVERIFY2(QFileInfo::exists(GUEST_BUNDLE), "Build the guest bundle with node native/graph-runner/guest/build.mjs");
+    QVERIFY(m_workspaces.isValid());
+    // Read when the first session creates the shared runner.
+    qputenv("NODETOOL_WORKSPACES_DIR", QFile::encodeName(m_workspaces.path()));
     qputenv("NODETOOL_LOCAL_RUNNER", "1");
     WorkflowSession::setGuestBundlePath(GUEST_BUNDLE);
   }
@@ -75,6 +82,30 @@ private slots:
     QCOMPARE(runtime.nodeState("repeat")["status"].toString(), QString("completed"));
     QVERIFY(runtime.nodeState("disabled").isEmpty());
     QVERIFY2(errors.isEmpty(), qPrintable(errors.isEmpty() ? QString() : errors.first().first().toString()));
+  }
+  // FLAC decodes only through native media, which stages the bytes in the
+  // local workspace. The runner is created with the audio bundle because no
+  // other session is alive.
+  void decodesCompressedAudio() {
+    WorkflowSession::setGuestBundlePath(AUDIO_GUEST_BUNDLE);
+    const auto restore = qScopeGuard([] { WorkflowSession::setGuestBundlePath(GUEST_BUNDLE); });
+    const QString flac = "data:audio/flac;base64,ZkxhQ4AAACIBuQG5AAHTAAHTCsRA8AAAAbmJiHuA+BAoW0X2xOzHLJd+//h5CAABuFVWAAABAAH/Av0D+ATuBeAGzAewCI0JYgot56R1RDp6MM/BSJHRgghA1Hs66o2/i1rQDNzY1NDIxMC4sKSclIiB66bs2CxUmRocmfVu49PHv5/oqanqquusLCytLS1tba2tbW0s7Gxr66sq6ilo6H9779eW7XoyYcSZSsYM2zl2/IiQmKSwuMDIzNDU2Nzc3ODc2NjU1NDIwLiwqKSUjIHrpu0YrVSdGgx5te7h07+fn+ipKeqq66vsLKzs7S1tbW2tbW0s7Kwrq2rqKekof3vz15b9ejLiwJFCxeyauHb4hJCcpKy0vMTM0NDU2Njc3ODc3NjUzMjAvLSooJiQhfO3DViuVp0iFFm0bOHPt5+f6Kkpqmrra+wsbKztLW2tba1tbSzsrCuraupp6Si//PPbnv2asuPAjTqlzFo3dviEjJigqLS8vMTM1NjY3ODg4NzY1NTMzMC8tLCknJCF+7cNWS5YoTIkOTRs38uvj5+oaSmp6qsrrCxsrS1tbW2tba0tLKxsK+uq6qnpaKg++u/Tht1ZseBGmVLWDNu6evyIlKCksLzAyMzQ2Nzc3Nzc3NzY1MzMyMC4rKSclI371y2ZsFilKiQZNGrdspE=";
+    QJsonArray nodes{node("a", "nodetool.constant.Audio", {{"value", QJsonObject{{"type", "audio"}, {"uri", flac}}}}),
+                     node("n", "nodetool.audio.MonoToStereo", {}),
+                     node("info", "nodetool.audio.GetAudioInfo", {}),
+                     node("out", "nodetool.output.Output", {{"name", "channels"}})};
+    QJsonArray edges{edge("e1", "a", "output", "n", "audio"), edge("e2", "n", "output", "info", "audio"),
+                     edge("e3", "info", "channels", "out", "value")};
+    WorkflowSession session;
+    NodeRuntimeModel runtime;
+    observe(session, runtime);
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    const auto id = session.run(
+        {{"id", "wf-audio"}, {"name", "Audio"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}});
+    QVERIFY(session.runsInProcess(id));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+    QCOMPARE(runtime.nodeState("out")["outputs"].toObject()["channels"].toInt(), 2);
+    QVERIFY(QFileInfo(QDir(m_workspaces.path()).filePath("1")).isDir());
   }
   void cancelsThenRunsAgain() {
     WorkflowSession session;
