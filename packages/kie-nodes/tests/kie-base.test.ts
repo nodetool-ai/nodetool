@@ -1,54 +1,18 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { getCostReconciler } from "@nodetool-ai/runtime";
 import {
-  getApiKey,
   isRefSet,
-  parseCreditsConsumed,
+  kieCapability,
+  kieExecute,
+  registerKieCostReconciler,
   reportKieProviderCost,
-  uploadImageInput,
-  kieExecuteOmniDirect,
-  kieExecuteTask
+  uploadAudioInput,
+  uploadImageInput
 } from "../src/kie-base.js";
+import { RESULT_BYTES, RESULT_URL, finishedJob, scriptedKie } from "./scripted-kie.js";
 
-// ---------------------------------------------------------------------------
-// getApiKey
-// ---------------------------------------------------------------------------
-describe("getApiKey", () => {
-  const originalEnv = process.env.KIE_API_KEY;
-
-  afterEach(() => {
-    if (originalEnv !== undefined) {
-      process.env.KIE_API_KEY = originalEnv;
-    } else {
-      delete process.env.KIE_API_KEY;
-    }
-  });
-
-  it("returns key from secrets object", () => {
-    expect(getApiKey({ KIE_API_KEY: "secret-from-secrets" })).toBe(
-      "secret-from-secrets"
-    );
-  });
-
-  it("falls back to process.env", () => {
-    process.env.KIE_API_KEY = "env-key";
-    expect(getApiKey({})).toBe("env-key");
-  });
-
-  it("prefers secrets over process.env", () => {
-    process.env.KIE_API_KEY = "env-key";
-    expect(getApiKey({ KIE_API_KEY: "secrets-key" })).toBe("secrets-key");
-  });
-
-  it("throws when key is not configured", () => {
-    delete process.env.KIE_API_KEY;
-    expect(() => getApiKey({})).toThrow("KIE_API_KEY is not configured");
-  });
-
-  it("throws when secrets is empty and env is not set", () => {
-    delete process.env.KIE_API_KEY;
-    expect(() => getApiKey({})).toThrow("KIE_API_KEY is not configured");
-  });
-});
+const PNG_HEADER = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const JPEG_HEADER = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46]);
 
 // ---------------------------------------------------------------------------
 // isRefSet
@@ -103,58 +67,45 @@ describe("isRefSet", () => {
 });
 
 // ---------------------------------------------------------------------------
-// uploadImageInput
+// Input uploads
 // ---------------------------------------------------------------------------
 describe("uploadImageInput", () => {
-  const originalFetch = global.fetch;
-
-  beforeEach(() => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: { downloadUrl: "https://kie.example/uploaded.png" }
-      }),
-      text: async () => JSON.stringify({
-        success: true,
-        data: { downloadUrl: "https://kie.example/uploaded.png" }
-      })
-    }) as unknown as typeof fetch;
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
-  });
+  /** A context stand-in: storage for the byte resolver, and the upload call. */
+  function uploadContext(extra: Record<string, unknown> = {}) {
+    const uploadProviderMedia = vi.fn(async () => "https://kie.example/uploaded.png");
+    return {
+      context: { uploadProviderMedia, signal: undefined, ...extra } as never,
+      uploadProviderMedia
+    };
+  }
 
   it("uploads bytes from local storage-backed image URIs", async () => {
-    const storage = {
-      retrieve: vi
-        .fn()
-        .mockResolvedValue(Uint8Array.from([137, 80, 78, 71]))
-    };
+    const storage = { retrieve: vi.fn().mockResolvedValue(PNG_HEADER) };
+    const { context, uploadProviderMedia } = uploadContext({ storage });
 
     const result = await uploadImageInput(
-      "test-api-key",
       { type: "image", uri: "/api/storage/test-image.png" },
-      { storage } as any
+      context
     );
 
     expect(storage.retrieve).toHaveBeenCalledWith("/api/storage/test-image.png");
     expect(result).toBe("https://kie.example/uploaded.png");
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(uploadProviderMedia).toHaveBeenCalledWith({
+      provider: "kie",
+      bytes: PNG_HEADER,
+      mimeType: "image/png",
+      signal: undefined
+    });
   });
 
   it("uploads bytes for asset:// refs via resolveAssetBytes", async () => {
     const storage = { retrieve: vi.fn().mockResolvedValue(null) };
-    const resolveAssetBytes = vi
-      .fn()
-      .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) });
+    const resolveAssetBytes = vi.fn().mockResolvedValue({ bytes: PNG_HEADER });
+    const { context } = uploadContext({ storage, resolveAssetBytes });
 
     const result = await uploadImageInput(
-      "test-api-key",
       { type: "image", uri: "asset://asset-123" },
-      { storage, resolveAssetBytes } as any
+      context
     );
 
     expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123", {
@@ -168,94 +119,231 @@ describe("uploadImageInput", () => {
       retrieve: vi
         .fn()
         .mockImplementation(async (key: string) =>
-          key === "/api/storage/asset-123.png"
-            ? Uint8Array.from([137, 80, 78, 71])
-            : null
+          key === "/api/storage/asset-123.png" ? PNG_HEADER : null
         )
     };
+    const { context } = uploadContext({ storage });
 
     const result = await uploadImageInput(
-      "test-api-key",
       { type: "image", uri: "/api/storage/stale.png", asset_id: "asset-123" },
-      { storage } as any
+      context
     );
 
     expect(result).toBe("https://kie.example/uploaded.png");
   });
-});
 
-describe("kieExecuteOmniDirect", () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
+  it("declares the container the bytes carry", async () => {
+    const { context, uploadProviderMedia } = uploadContext();
+    await uploadImageInput({ type: "image", uri: "", data: JPEG_HEADER }, context);
+    expect(uploadProviderMedia).toHaveBeenCalledWith(
+      expect.objectContaining({ mimeType: "image/jpeg" })
+    );
   });
 
-  it("returns audioId from sync omni response", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        code: 200,
-        data: { audioId: "ff6af85771af49b08bef5b0aa1cba56b", name: "Test" }
-      }),
-      text: async () => JSON.stringify({
-        code: 200,
-        data: { audioId: "ff6af85771af49b08bef5b0aa1cba56b", name: "Test" }
-      })
-    }) as unknown as typeof fetch;
-
-    const result = await kieExecuteOmniDirect(
-      "key",
-      "/api/v1/omni/audio/create",
-      { audio_id: "achernar", name: "Test" },
-      "audioId"
+  it("passes a public URL through without uploading", async () => {
+    const { context, uploadProviderMedia } = uploadContext();
+    const result = await uploadImageInput(
+      { type: "image", uri: "https://example.com/a.png" },
+      context
     );
+    expect(result).toBe("https://example.com/a.png");
+    expect(uploadProviderMedia).not.toHaveBeenCalled();
+  });
 
+  it("falls back to the kind's type when the bytes name another", async () => {
+    const { context, uploadProviderMedia } = uploadContext();
+    await uploadAudioInput({ type: "audio", uri: "", data: PNG_HEADER }, context);
+    expect(uploadProviderMedia).toHaveBeenCalledWith(
+      expect.objectContaining({ mimeType: "audio/mpeg" })
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// kieExecute: the context call and the output mapping
+// ---------------------------------------------------------------------------
+describe("kieExecute", () => {
+  it("runs a job through the provider and downloads its first result", async () => {
+    const { provider, context } = scriptedKie({
+      endpoints: {
+        "test-model": {
+          output: finishedJob([RESULT_URL, "https://kie.cdn.test/second.bin"]),
+          requestId: "task_ok",
+          metadata: { creditsConsumed: 15 }
+        }
+      }
+    });
+
+    const result = await kieExecute(context, {
+      model: "test-model",
+      input: { prompt: "hello" },
+      capability: "text_to_image",
+      nodeId: "node-1"
+    });
+
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "test-model",
+      input: { prompt: "hello" }
+    });
+    expect(provider.endpointCalls[0].route).toBeUndefined();
+    expect(provider.downloadCalls.map((call) => call.url)).toEqual([RESULT_URL]);
     expect(result).toEqual({
-      data: "ff6af85771af49b08bef5b0aa1cba56b",
-      items: ["ff6af85771af49b08bef5b0aa1cba56b"],
-      taskId: ""
+      data: Buffer.from(RESULT_BYTES).toString("base64"),
+      items: [Buffer.from(RESULT_BYTES).toString("base64")],
+      taskId: "task_ok",
+      creditsConsumed: 15
     });
   });
 
-  it("accepts code 0 responses", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        code: 0,
-        data: { characterId: "char_123" }
-      }),
-      text: async () => JSON.stringify({
-        code: 0,
-        data: { characterId: "char_123" }
-      })
-    }) as unknown as typeof fetch;
+  it("reads a text result out of resultJson.resultObject", async () => {
+    const { provider, context } = scriptedKie({
+      endpoints: {
+        "*": {
+          output: {
+            code: 200,
+            data: {
+              state: "success",
+              resultJson: JSON.stringify({ resultObject: { lyrics: "la la" } })
+            }
+          },
+          requestId: "task_txt"
+        }
+      }
+    });
 
-    const result = await kieExecuteOmniDirect(
-      "key",
-      "/api/v1/omni/character/create",
-      { descriptions: "test", image_urls: ["https://example.com/a.png"] },
-      "characterId"
+    const result = await kieExecute(context, {
+      model: "m",
+      input: {},
+      capability: "text_to_image",
+      resultObjectKey: "lyrics"
+    });
+
+    expect(result.data).toBe("la la");
+    expect(provider.downloadCalls).toEqual([]);
+  });
+
+  it("names the task when a finished job has no resultJson", async () => {
+    const { context } = scriptedKie({
+      endpoints: { "*": { output: { code: 200, data: { state: "success" } }, requestId: "task_x" } }
+    });
+    await expect(
+      kieExecute(context, { model: "m", input: {}, capability: "text_to_image" })
+    ).rejects.toThrow("No resultJson in response (taskId: task_x)");
+  });
+
+  it("names the result URL and task when the download fails", async () => {
+    const { context } = scriptedKie({
+      endpoints: {
+        "*": { output: finishedJob(["https://kie.cdn.test/missing.bin"]), requestId: "task_dl" }
+      }
+    });
+    await expect(
+      kieExecute(context, { model: "m", input: {}, capability: "text_to_image" })
+    ).rejects.toThrow(
+      "Failed to download from https://kie.cdn.test/missing.bin (taskId: task_dl): ScriptedProvider has no scripted download"
     );
+  });
 
-    expect(result.data).toBe("char_123");
+  it("runs a Suno call on the Suno route and downloads its first track", async () => {
+    const SONG = "https://kie.cdn.test/song.mp3";
+    const { provider, context } = scriptedKie({
+      endpoints: {
+        "generate-music": {
+          output: { code: 200, data: { status: "SUCCESS", response: { sunoData: [{ audioUrl: SONG }] } } },
+          requestId: "suno-1",
+          metadata: { creditsConsumed: 6 }
+        }
+      },
+      downloads: { [SONG]: new Uint8Array([4, 5]) }
+    });
+
+    const result = await kieExecute(context, {
+      model: "generate-music",
+      input: { prompt: "a shanty" },
+      capability: "text_to_music",
+      sunoEndpoint: "/api/v1/generate"
+    });
+
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "generate-music",
+      route: "suno:/api/v1/generate",
+      input: { prompt: "a shanty" }
+    });
+    expect(result).toEqual({
+      data: Buffer.from([4, 5]).toString("base64"),
+      items: [Buffer.from([4, 5]).toString("base64")],
+      taskId: "suno-1",
+      creditsConsumed: 6
+    });
+  });
+
+  it("reports a Suno answer without tracks", async () => {
+    const { context } = scriptedKie({
+      endpoints: { "*": { output: { code: 200, data: { status: "SUCCESS", response: {} } } } }
+    });
+    await expect(
+      kieExecute(context, {
+        model: "generate-music",
+        input: {},
+        capability: "text_to_music",
+        sunoEndpoint: "/api/v1/generate"
+      })
+    ).rejects.toThrow("No sunoData in Suno response");
+  });
+
+  it("returns the id a direct endpoint answers with", async () => {
+    const { provider, context } = scriptedKie({
+      endpoints: {
+        "gemini-omni-audio": {
+          output: { code: 200, data: { audioId: "ff6af857", name: "Test" } }
+        }
+      }
+    });
+
+    const result = await kieExecute(context, {
+      model: "gemini-omni-audio",
+      input: { audio_id: "achernar", name: "Test" },
+      capability: "text_to_image",
+      directEndpoint: "/api/v1/omni/audio/create",
+      responseIdKey: "audioId"
+    });
+
+    expect(provider.endpointCalls[0]).toMatchObject({
+      route: "direct:/api/v1/omni/audio/create",
+      input: { audio_id: "achernar", name: "Test" }
+    });
+    expect(result).toEqual({ data: "ff6af857", items: ["ff6af857"], taskId: "" });
+  });
+
+  it("reports a direct answer that lacks the id", async () => {
+    const { context } = scriptedKie({
+      endpoints: { "*": { output: { code: 0, data: {} } } }
+    });
+    await expect(
+      kieExecute(context, {
+        model: "gemini-omni-character",
+        input: {},
+        capability: "text_to_image",
+        directEndpoint: "/api/v1/omni/character/create",
+        responseIdKey: "characterId"
+      })
+    ).rejects.toThrow('No characterId in response: {"code":0,"data":{}}');
+  });
+
+  it("needs a processing context", async () => {
+    await expect(
+      kieExecute(undefined, { model: "m", input: {}, capability: "text_to_image" })
+    ).rejects.toThrow("KIE nodes need a processing context");
   });
 });
 
-describe("parseCreditsConsumed", () => {
-  it("reads numeric creditsConsumed from recordInfo payload", () => {
-    expect(
-      parseCreditsConsumed({ data: { creditsConsumed: 12, state: "success" } })
-    ).toBe(12);
-  });
-
-  it("parses string creditsConsumed", () => {
-    expect(parseCreditsConsumed({ data: { creditsConsumed: "5.5" } })).toBe(5.5);
-  });
-
-  it("returns undefined when creditsConsumed is missing", () => {
-    expect(parseCreditsConsumed({ data: { state: "success" } })).toBeUndefined();
+describe("kieCapability", () => {
+  it("names each output type's capability", () => {
+    expect(kieCapability("image")).toBe("text_to_image");
+    expect(kieCapability("video")).toBe("text_to_video");
+    expect(kieCapability("audio")).toBe("text_to_speech");
+    expect(kieCapability("audio", true)).toBe("text_to_music");
+    expect(kieCapability("text")).toBe("text_to_image");
   });
 });
 
@@ -290,249 +378,57 @@ describe("reportKieProviderCost", () => {
   });
 });
 
-describe("kieExecuteTask poll failure", () => {
-  const originalFetch = global.fetch;
+// ---------------------------------------------------------------------------
+// Cost reconciler: the provider reads the credits, the pack prices them
+// ---------------------------------------------------------------------------
+describe("registerKieCostReconciler", () => {
+  const envKey = process.env.KIE_API_KEY;
 
   afterEach(() => {
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
+    if (envKey === undefined) delete process.env.KIE_API_KEY;
+    else process.env.KIE_API_KEY = envKey;
+    vi.unstubAllGlobals();
   });
 
-  it("throws when poll state is fail", async () => {
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ code: 200, data: { taskId: "task_fail" } }),
-        text: async () => JSON.stringify({ code: 200, data: { taskId: "task_fail" } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          code: 200,
-          data: { state: "fail", failMsg: "Internal Error" }
-        }),
-        text: async () => JSON.stringify({
-          code: 200,
-          data: { state: "fail", failMsg: "Internal Error" }
-        })
-      }) as unknown as typeof fetch;
-
-    await expect(
-      kieExecuteTask("key", "gemini-omni-video", { prompt: "test", duration: "8" }, 1, 2)
-    ).rejects.toThrow("Task failed: Internal Error");
-  });
-
-  it("returns creditsConsumed from successful poll", async () => {
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ code: 200, data: { taskId: "task_ok" } }),
-        text: async () => JSON.stringify({ code: 200, data: { taskId: "task_ok" } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          code: 200,
-          data: { state: "success", creditsConsumed: 15 }
-        }),
-        text: async () => JSON.stringify({
-          code: 200,
-          data: { state: "success", creditsConsumed: 15 }
-        })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          code: 200,
-          data: {
-            resultJson: JSON.stringify({ resultUrls: ["https://example.com/out.png"] })
-          }
-        }),
-        text: async () => JSON.stringify({
-          code: 200,
-          data: {
-            resultJson: JSON.stringify({ resultUrls: ["https://example.com/out.png"] })
-          }
-        })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
-      }) as unknown as typeof fetch;
-
-    const result = await kieExecuteTask(
-      "key",
-      "test-model",
-      { prompt: "hello" },
-      1,
-      2
-    );
-
-    expect(result.creditsConsumed).toBe(15);
-    expect(result.taskId).toBe("task_ok");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Transport rules: retry, fail-fast, terminal synonyms
-// ---------------------------------------------------------------------------
-describe("kieExecuteTask transport", () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
-  });
-
-  function jsonRes(body: unknown, status = 200) {
-    return {
-      ok: status >= 200 && status < 300,
-      status,
-      json: async () => body,
-      text: async () => JSON.stringify(body)
-    } as unknown as Response;
-  }
-
-  it("gives up on a persistent poll error instead of running the whole budget", async () => {
-    let polls = 0;
-    global.fetch = vi.fn(async (url: string | URL) => {
-      const u = String(url);
-      if (u.includes("createTask")) {
-        return jsonRes({ code: 200, data: { taskId: "task_err" } });
-      }
-      polls++;
-      return {
-        ok: false,
-        status: 502,
-        text: async () => "<html>bad gateway</html>",
-        json: async () => {
-          throw new SyntaxError("Unexpected token '<'");
-        }
-      } as unknown as Response;
-    }) as unknown as typeof fetch;
-
-    await expect(
-      kieExecuteTask("key", "m", { prompt: "x" }, 1, 40)
-    ).rejects.toThrow(/502/);
-    // Bounded run of consecutive errors, not the full 40-attempt budget.
-    expect(polls).toBeLessThanOrEqual(5);
-  });
-
-  it("does not retry the job-creating POST on a 5xx", async () => {
-    let submits = 0;
-    global.fetch = vi.fn(async (url: string | URL) => {
-      if (String(url).includes("createTask")) {
-        submits++;
-        return jsonRes({ msg: "overloaded" }, 503);
-      }
-      throw new Error(`unexpected: ${String(url)}`);
-    }) as unknown as typeof fetch;
-
-    await expect(
-      kieExecuteTask("key", "m", { prompt: "x" }, 1, 2)
-    ).rejects.toThrow(/503/);
-    // A retried POST could create a second billable task.
-    expect(submits).toBe(1);
-  });
-
-  it("stops polling when the run is cancelled", async () => {
-    let polls = 0;
-    global.fetch = vi.fn(async (url: string | URL) => {
-      const u = String(url);
-      if (u.includes("createTask")) {
-        return jsonRes({ code: 200, data: { taskId: "task_cancel" } });
-      }
-      polls++;
-      return jsonRes({ code: 200, data: { state: "generating" } });
-    }) as unknown as typeof fetch;
-
-    const controller = new AbortController();
-    controller.abort(new Error("Workflow cancelled"));
-
-    await expect(
-      kieExecuteTask(
-        "key",
-        "m",
-        { prompt: "x" },
-        1,
-        50,
-        undefined,
-        undefined,
-        undefined,
-        controller.signal
+  it("prices the credits KieProvider.fetchBillingCost reads with the run's key", async () => {
+    delete process.env.KIE_API_KEY;
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ code: 200, data: { state: "success", creditsConsumed: 8 } }),
+        { status: 200 }
       )
-    ).rejects.toThrow("Workflow cancelled");
-    expect(polls).toBe(0);
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    registerKieCostReconciler();
+
+    const reconciled = await getCostReconciler("kie")!({
+      requestId: "task_9",
+      secrets: { KIE_API_KEY: "user-key" }
+    });
+
+    expect(reconciled).toEqual({
+      cost: 0.04,
+      currency: "USD",
+      quantity: 8,
+      unit_price: 0.005
+    });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://api.kie.ai/api/v1/jobs/recordInfo?taskId=task_9");
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer user-key");
   });
 
-  it("treats every terminal success synonym as done", async () => {
-    global.fetch = vi.fn(async (url: string | URL) => {
-      const u = String(url);
-      if (u.includes("createTask")) {
-        return jsonRes({ code: 200, data: { taskId: "task_syn" } });
-      }
-      if (u.includes("recordInfo")) {
-        return jsonRes({
-          code: 200,
-          data: {
-            state: "completed",
-            creditsConsumed: 3,
-            resultJson: JSON.stringify({
-              resultUrls: ["https://example.com/out.png"]
-            })
-          }
-        });
-      }
-      return {
-        ok: true,
-        status: 200,
-        arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
-      } as unknown as Response;
-    }) as unknown as typeof fetch;
+  it("answers null without a key and sends nothing", async () => {
+    delete process.env.KIE_API_KEY;
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    registerKieCostReconciler();
 
-    const result = await kieExecuteTask("key", "m", { prompt: "x" }, 1, 3);
-    expect(result.creditsConsumed).toBe(3);
-  });
+    const reconciled = await getCostReconciler("kie")!({
+      requestId: "task_9",
+      secrets: {}
+    });
 
-  it("retries the download of a result that was already billed", async () => {
-    let downloads = 0;
-    global.fetch = vi.fn(async (url: string | URL) => {
-      const u = String(url);
-      if (u.includes("createTask")) {
-        return jsonRes({ code: 200, data: { taskId: "task_dl" } });
-      }
-      if (u.includes("recordInfo")) {
-        return jsonRes({
-          code: 200,
-          data: {
-            state: "success",
-            resultJson: JSON.stringify({
-              resultUrls: ["https://example.com/out.png"]
-            })
-          }
-        });
-      }
-      downloads++;
-      if (downloads === 1) {
-        return {
-          ok: false,
-          status: 503,
-          headers: { get: () => null },
-          arrayBuffer: async () => new ArrayBuffer(0),
-          text: async () => "busy"
-        } as unknown as Response;
-      }
-      return {
-        ok: true,
-        status: 200,
-        arrayBuffer: async () => Uint8Array.from([9]).buffer
-      } as unknown as Response;
-    }) as unknown as typeof fetch;
-
-    const result = await kieExecuteTask("key", "m", { prompt: "x" }, 1, 3);
-    expect(downloads).toBe(2);
-    expect(result.items.length).toBe(1);
+    expect(reconciled).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

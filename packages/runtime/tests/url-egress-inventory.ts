@@ -439,10 +439,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "provider-response"
   ),
   guardedSafeFetch(
-    "packages/kie-nodes/src/kie-base.ts",
-    "KIE result downloads",
+    "packages/runtime/src/providers/kie-endpoint.ts",
+    "KIE endpoint result downloads",
     "provider-response",
-    "resultUrls / videoUrl / audioUrl come out of a response body; the API calls beside them are fixed-host."
+    "resultUrls / audioUrl come out of a response body and reach downloadMedia; the API calls beside them are fixed-host."
   ),
   {
     ...guardedSafeFetch(
@@ -1194,10 +1194,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "api.topazlabs.com; the download beside them is guarded."
   ),
   fixedHost(
-    "packages/kie-nodes/src/kie-base.ts",
-    "KIE API calls",
+    "packages/runtime/src/providers/kie-endpoint.ts",
+    "KIE endpoint API calls",
     "KIE_API_KEY",
-    "kie.ai endpoints; the result downloads beside them are guarded."
+    "kie.ai endpoints; a route path must be an /api/v1/ path. The result downloads beside them are guarded."
   ),
   fixedHost(
     "packages/minimax-nodes/src/minimax-base.ts",

@@ -3,8 +3,9 @@
  * Testing strategy item 4). Each case runs a real manifest node and pins every
  * HTTP request that reaches the network boundary: uploads, the job submit, the
  * polls and the result download. The pinned requests were recorded from the
- * pack's own transport before it moved into `KieProvider`, so the migrated code
- * must send the same endpoints and the same JSON.
+ * pack's own transport before it moved into `KieProvider`. The nodes now reach
+ * KIE through a real `KieProvider` with `fetch` stubbed, and must send the same
+ * endpoints and the same JSON.
  */
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -116,11 +117,7 @@ function manifestNode(modelId: string) {
   const spec = MANIFEST.find((entry) => entry.modelId === modelId);
   if (!spec) throw new Error(`${modelId} is not in the manifest`);
   const NodeClass = createKieNodeClass(spec);
-  const node = new (NodeClass as new () => InstanceType<typeof NodeClass>)();
-  // The pack read the key from the node's secrets; the provider reads it from
-  // the resolver below. Both are set so this test runs against either.
-  node.setDynamic("_secrets", { KIE_API_KEY: "kie-key" });
-  return node;
+  return new (NodeClass as new () => InstanceType<typeof NodeClass>)();
 }
 
 function kieContext(): ProcessingContext {

@@ -24,7 +24,7 @@ Includes Seedream, Grok Imagine, Kling, Hailuo, and Suno music nodes.
 
 ## Configuration
 
-Set `KIE_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable.
+Set `KIE_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable. The nodes reach Kie.ai through NodeTool's KIE provider, which reads the key, so each call also gets a generation record.
 
 ## Links
 

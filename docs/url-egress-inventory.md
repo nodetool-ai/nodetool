@@ -119,7 +119,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | useapi.net Google Flow and Dreamina result downloads | `packages/runtime/src/providers/useapi-provider.ts` | provider response |
 | vgenv MiniMax H3 result downloads | `packages/runtime/src/providers/vgenv-provider.ts` | provider response |
 | ToAPIs GPT Image and Seedance 2 result downloads | `packages/runtime/src/providers/toapis-provider.ts` | provider response |
-| KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
+| KIE endpoint result downloads (`downloadMedia`) | `packages/runtime/src/providers/kie-endpoint.ts` | provider response |
 | Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
 | MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
 | MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
