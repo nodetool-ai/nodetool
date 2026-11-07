@@ -64,8 +64,10 @@ executable. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
 
 Local runs use the local user's workspace, the folder the server keeps:
 `$NODETOOL_WORKSPACES_DIR/1`, otherwise `nodetool/workspaces/1` in
-`$XDG_DATA_HOME` (`~/.local/share`) or, on Windows, `%APPDATA%`. They may use
-the GPU, decode media through the native media host, and encode with libx264,
+`$XDG_DATA_HOME` (`~/.local/share`) or, on Windows, `%APPDATA%`. They read
+`asset://` refs from the server's local asset store: `$ASSET_FOLDER`,
+`$STORAGE_PATH`, otherwise `nodetool/assets` in the same data directory. They
+may use the GPU, decode media through the native media host, and encode with libx264,
 aac, libmp3lame and libopus.
 
 CMake also fetches QuickJS-ng and nlohmann/json for the runner. Supply

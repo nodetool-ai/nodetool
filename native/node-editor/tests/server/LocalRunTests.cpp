@@ -3,6 +3,7 @@
 #include "../../src/server/WorkflowSession.h"
 #include <QDir>
 #include <QFileInfo>
+#include <QImage>
 #include <QJsonArray>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -55,12 +56,15 @@ QVariantMap jobEntry(const RunOutputModel &output) {
 class LocalRunTests : public QObject {
   Q_OBJECT
   QTemporaryDir m_workspaces;
+  QTemporaryDir m_assets;
 private slots:
   void initTestCase() {
     QVERIFY2(QFileInfo::exists(GUEST_BUNDLE), "Build the guest bundle with node native/graph-runner/guest/build.mjs");
     QVERIFY(m_workspaces.isValid());
     // Read when the first session creates the shared runner.
     qputenv("NODETOOL_WORKSPACES_DIR", QFile::encodeName(m_workspaces.path()));
+    QVERIFY(m_assets.isValid());
+    qputenv("ASSET_FOLDER", QFile::encodeName(m_assets.path()));
     qputenv("NODETOOL_LOCAL_RUNNER", "1");
     WorkflowSession::setGuestBundlePath(GUEST_BUNDLE);
   }
@@ -102,6 +106,29 @@ private slots:
     QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
     QCOMPARE(runtime.nodeState("out")["outputs"].toObject()["channels"].toInt(), 1);
     QVERIFY(QFileInfo(QDir(m_workspaces.path()).filePath("1")).isDir());
+  }
+  // A constant node's asset:// ref reads from the local server's asset store,
+  // where assets live at <user>/<id>.<ext>.
+  void readsLocalAssets() {
+    const QString assetId = "0123456789abcdef0123456789abcdef";
+    QVERIFY(QDir(m_assets.path()).mkpath("1"));
+    QImage image(3, 2, QImage::Format_RGB32);
+    image.fill(Qt::red);
+    QVERIFY(image.save(QDir(m_assets.path()).filePath("1/" + assetId + ".png")));
+    const QJsonObject ref{{"type", "image"}, {"uri", "asset://" + assetId}, {"asset_id", assetId}};
+    QJsonArray nodes{node("img", "nodetool.constant.Image", {{"value", ref}}),
+                     node("meta", "nodetool.image.GetMetadata", {}),
+                     node("out", "nodetool.output.Output", {{"name", "width"}})};
+    QJsonArray edges{edge("e1", "img", "output", "meta", "image"), edge("e2", "meta", "width", "out", "value")};
+    WorkflowSession session;
+    NodeRuntimeModel runtime;
+    observe(session, runtime);
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    const auto id = session.run(
+        {{"id", "wf-asset"}, {"name", "Asset"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}});
+    QVERIFY(session.runsInProcess(id));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+    QCOMPARE(runtime.nodeState("out")["outputs"].toObject()["width"].toInt(), 3);
   }
   void cancelsThenRunsAgain() {
     WorkflowSession session;
