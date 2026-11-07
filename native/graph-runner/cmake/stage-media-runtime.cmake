@@ -1,0 +1,21 @@
+# Keep libavfilter and the other configured FFmpeg components together. Qt may
+# otherwise supply older libraries with the same SONAME through its RUNPATH.
+foreach(library IN LISTS GR_MEDIA_RUNTIME_LIBRARIES)
+  file(COPY "${library}" DESTINATION "${GR_RUNTIME_DIRECTORY}" FOLLOW_SYMLINK_CHAIN)
+  execute_process(COMMAND "${GR_READELF}" -d "${library}"
+    OUTPUT_VARIABLE dynamic RESULT_VARIABLE status ERROR_VARIABLE error)
+  if(NOT status EQUAL 0)
+    message(FATAL_ERROR "Cannot inspect media runtime ${library}: ${error}")
+  endif()
+  string(REGEX MATCH "\\(SONAME\\)[^\n]*\\[([^]]+)\\]" match "${dynamic}")
+  if(NOT match)
+    message(FATAL_ERROR "Media runtime has no ELF SONAME: ${library}")
+  endif()
+  set(soname "${CMAKE_MATCH_1}")
+  file(REAL_PATH "${library}" real)
+  get_filename_component(filename "${real}" NAME)
+  if(NOT filename STREQUAL soname)
+    file(REMOVE "${GR_RUNTIME_DIRECTORY}/${soname}")
+    file(CREATE_LINK "${filename}" "${GR_RUNTIME_DIRECTORY}/${soname}" SYMBOLIC)
+  endif()
+endforeach()

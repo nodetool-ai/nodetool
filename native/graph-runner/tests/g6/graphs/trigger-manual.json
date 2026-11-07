@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "nodetool.triggers.ManualTrigger",
+      "properties": {
+        "name": "manual"
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "event-data",
+      "source": "trigger",
+      "sourceHandle": "data",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

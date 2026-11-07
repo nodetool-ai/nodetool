@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "id": "controller",
+      "type": "nodetool.constant.Dict",
+      "properties": {
+        "value": {
+          "value": 42
+        }
+      }
+    },
+    {
+      "id": "controlled",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+        "value": 1
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "control",
+      "source": "controller",
+      "sourceHandle": "output",
+      "target": "controlled",
+      "targetHandle": "__control__",
+      "edge_type": "control"
+    },
+    {
+      "id": "result",
+      "source": "controlled",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

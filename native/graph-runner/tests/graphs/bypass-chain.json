@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    {
+      "id": "source",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+        "value": 7
+      }
+    },
+    {
+      "id": "bypass",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+        "value": 99
+      },
+      "ui_properties": {
+        "bypassed": true
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "in",
+      "source": "source",
+      "sourceHandle": "output",
+      "target": "bypass",
+      "targetHandle": "value"
+    },
+    {
+      "id": "result",
+      "source": "bypass",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

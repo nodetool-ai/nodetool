@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    { "id": "key", "type": "nodetool.constant.String", "properties": { "value": "b" } },
+    { "id": "cases", "type": "nodetool.constant.List", "properties": { "value": ["a", "b", "c"] } },
+    { "id": "payload", "type": "nodetool.constant.Integer", "properties": { "value": 99 } },
+    { "id": "sw", "type": "nodetool.control.Switch", "properties": {} },
+    { "id": "out_matched", "type": "nodetool.output.Output", "properties": { "name": "matched" } },
+    { "id": "out_default", "type": "nodetool.output.Output", "properties": { "name": "default" } },
+    { "id": "out_index", "type": "nodetool.output.Output", "properties": { "name": "index" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "key", "sourceHandle": "output", "target": "sw", "targetHandle": "value" },
+    { "id": "e2", "source": "cases", "sourceHandle": "output", "target": "sw", "targetHandle": "cases" },
+    { "id": "e3", "source": "payload", "sourceHandle": "output", "target": "sw", "targetHandle": "input" },
+    { "id": "e4", "source": "sw", "sourceHandle": "matched", "target": "out_matched", "targetHandle": "value" },
+    { "id": "e5", "source": "sw", "sourceHandle": "default", "target": "out_default", "targetHandle": "value" },
+    { "id": "e6", "source": "sw", "sourceHandle": "index", "target": "out_index", "targetHandle": "value" }
+  ]
+}

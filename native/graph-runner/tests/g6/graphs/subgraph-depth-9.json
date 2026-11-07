@@ -1,0 +1,306 @@
+{
+  "nodes": [
+    {
+      "id": "sub",
+      "type": "nodetool.workflows.subgraph.Subgraph",
+      "properties": {
+        "graph": {
+          "nodes": [
+            {
+              "id": "sub",
+              "type": "nodetool.workflows.subgraph.Subgraph",
+              "properties": {
+                "graph": {
+                  "nodes": [
+                    {
+                      "id": "sub",
+                      "type": "nodetool.workflows.subgraph.Subgraph",
+                      "properties": {
+                        "graph": {
+                          "nodes": [
+                            {
+                              "id": "sub",
+                              "type": "nodetool.workflows.subgraph.Subgraph",
+                              "properties": {
+                                "graph": {
+                                  "nodes": [
+                                    {
+                                      "id": "sub",
+                                      "type": "nodetool.workflows.subgraph.Subgraph",
+                                      "properties": {
+                                        "graph": {
+                                          "nodes": [
+                                            {
+                                              "id": "sub",
+                                              "type": "nodetool.workflows.subgraph.Subgraph",
+                                              "properties": {
+                                                "graph": {
+                                                  "nodes": [
+                                                    {
+                                                      "id": "sub",
+                                                      "type": "nodetool.workflows.subgraph.Subgraph",
+                                                      "properties": {
+                                                        "graph": {
+                                                          "nodes": [
+                                                            {
+                                                              "id": "sub",
+                                                              "type": "nodetool.workflows.subgraph.Subgraph",
+                                                              "properties": {
+                                                                "graph": {
+                                                                  "nodes": [
+                                                                    {
+                                                                      "id": "sub",
+                                                                      "type": "nodetool.workflows.subgraph.Subgraph",
+                                                                      "properties": {
+                                                                        "graph": {
+                                                                          "nodes": [
+                                                                            {
+                                                                              "id": "value",
+                                                                              "type": "nodetool.constant.Integer",
+                                                                              "properties": {
+                                                                                "value": 7
+                                                                              }
+                                                                            },
+                                                                            {
+                                                                              "id": "out",
+                                                                              "type": "nodetool.output.Output",
+                                                                              "properties": {
+                                                                                "name": "answer"
+                                                                              }
+                                                                            }
+                                                                          ],
+                                                                          "edges": [
+                                                                            {
+                                                                              "id": "leaf",
+                                                                              "source": "value",
+                                                                              "sourceHandle": "output",
+                                                                              "target": "out",
+                                                                              "targetHandle": "value"
+                                                                            }
+                                                                          ]
+                                                                        }
+                                                                      },
+                                                                      "dynamic_outputs": {
+                                                                        "answer": {
+                                                                          "type": "int"
+                                                                        }
+                                                                      }
+                                                                    },
+                                                                    {
+                                                                      "id": "out",
+                                                                      "type": "nodetool.output.Output",
+                                                                      "properties": {
+                                                                        "name": "answer"
+                                                                      }
+                                                                    }
+                                                                  ],
+                                                                  "edges": [
+                                                                    {
+                                                                      "id": "edge",
+                                                                      "source": "sub",
+                                                                      "sourceHandle": "answer",
+                                                                      "target": "out",
+                                                                      "targetHandle": "value"
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              },
+                                                              "dynamic_outputs": {
+                                                                "answer": {
+                                                                  "type": "int"
+                                                                }
+                                                              }
+                                                            },
+                                                            {
+                                                              "id": "out",
+                                                              "type": "nodetool.output.Output",
+                                                              "properties": {
+                                                                "name": "answer"
+                                                              }
+                                                            }
+                                                          ],
+                                                          "edges": [
+                                                            {
+                                                              "id": "edge",
+                                                              "source": "sub",
+                                                              "sourceHandle": "answer",
+                                                              "target": "out",
+                                                              "targetHandle": "value"
+                                                            }
+                                                          ]
+                                                        }
+                                                      },
+                                                      "dynamic_outputs": {
+                                                        "answer": {
+                                                          "type": "int"
+                                                        }
+                                                      }
+                                                    },
+                                                    {
+                                                      "id": "out",
+                                                      "type": "nodetool.output.Output",
+                                                      "properties": {
+                                                        "name": "answer"
+                                                      }
+                                                    }
+                                                  ],
+                                                  "edges": [
+                                                    {
+                                                      "id": "edge",
+                                                      "source": "sub",
+                                                      "sourceHandle": "answer",
+                                                      "target": "out",
+                                                      "targetHandle": "value"
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              "dynamic_outputs": {
+                                                "answer": {
+                                                  "type": "int"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "id": "out",
+                                              "type": "nodetool.output.Output",
+                                              "properties": {
+                                                "name": "answer"
+                                              }
+                                            }
+                                          ],
+                                          "edges": [
+                                            {
+                                              "id": "edge",
+                                              "source": "sub",
+                                              "sourceHandle": "answer",
+                                              "target": "out",
+                                              "targetHandle": "value"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "dynamic_outputs": {
+                                        "answer": {
+                                          "type": "int"
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "out",
+                                      "type": "nodetool.output.Output",
+                                      "properties": {
+                                        "name": "answer"
+                                      }
+                                    }
+                                  ],
+                                  "edges": [
+                                    {
+                                      "id": "edge",
+                                      "source": "sub",
+                                      "sourceHandle": "answer",
+                                      "target": "out",
+                                      "targetHandle": "value"
+                                    }
+                                  ]
+                                }
+                              },
+                              "dynamic_outputs": {
+                                "answer": {
+                                  "type": "int"
+                                }
+                              }
+                            },
+                            {
+                              "id": "out",
+                              "type": "nodetool.output.Output",
+                              "properties": {
+                                "name": "answer"
+                              }
+                            }
+                          ],
+                          "edges": [
+                            {
+                              "id": "edge",
+                              "source": "sub",
+                              "sourceHandle": "answer",
+                              "target": "out",
+                              "targetHandle": "value"
+                            }
+                          ]
+                        }
+                      },
+                      "dynamic_outputs": {
+                        "answer": {
+                          "type": "int"
+                        }
+                      }
+                    },
+                    {
+                      "id": "out",
+                      "type": "nodetool.output.Output",
+                      "properties": {
+                        "name": "answer"
+                      }
+                    }
+                  ],
+                  "edges": [
+                    {
+                      "id": "edge",
+                      "source": "sub",
+                      "sourceHandle": "answer",
+                      "target": "out",
+                      "targetHandle": "value"
+                    }
+                  ]
+                }
+              },
+              "dynamic_outputs": {
+                "answer": {
+                  "type": "int"
+                }
+              }
+            },
+            {
+              "id": "out",
+              "type": "nodetool.output.Output",
+              "properties": {
+                "name": "answer"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge",
+              "source": "sub",
+              "sourceHandle": "answer",
+              "target": "out",
+              "targetHandle": "value"
+            }
+          ]
+        }
+      },
+      "dynamic_outputs": {
+        "answer": {
+          "type": "int"
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "answer"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge",
+      "source": "sub",
+      "sourceHandle": "answer",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "value", "type": "nodetool.constant.String", "properties": { "value": "tick" } },
+    { "id": "repeat", "type": "nodetool.control.RepeatValue", "properties": { "count": 10 } },
+    { "id": "take", "type": "nodetool.control.Take", "properties": { "n": 3 } },
+    { "id": "collect", "type": "nodetool.control.Collect", "properties": {} },
+    { "id": "out", "type": "nodetool.output.Output", "properties": { "name": "taken" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "value", "sourceHandle": "output", "target": "repeat", "targetHandle": "value" },
+    { "id": "e2", "source": "repeat", "sourceHandle": "output", "target": "take", "targetHandle": "input_item" },
+    { "id": "e3", "source": "take", "sourceHandle": "output", "target": "collect", "targetHandle": "input_item" },
+    { "id": "e4", "source": "collect", "sourceHandle": "output", "target": "out", "targetHandle": "value" }
+  ]
+}

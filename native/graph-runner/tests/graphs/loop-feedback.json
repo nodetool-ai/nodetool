@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "id": "loop",
+      "type": "nodetool.control.Loop",
+      "properties": {
+        "initial": 7,
+        "max_iterations": 3
+      }
+    },
+    {
+      "id": "body",
+      "type": "nodetool.constant.Integer",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "done"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "body-in",
+      "source": "loop",
+      "sourceHandle": "value",
+      "target": "body",
+      "targetHandle": "value"
+    },
+    {
+      "id": "feedback",
+      "source": "body",
+      "sourceHandle": "output",
+      "target": "loop",
+      "targetHandle": "next"
+    },
+    {
+      "id": "done",
+      "source": "loop",
+      "sourceHandle": "done",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

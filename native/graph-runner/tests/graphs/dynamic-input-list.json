@@ -1,0 +1,53 @@
+{
+  "nodes": [
+    {
+      "id": "source",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+        "value": 3
+      }
+    },
+    {
+      "id": "typed",
+      "type": "nodetool.control.If",
+      "properties": {
+        "condition": true
+      },
+      "dynamic_inputs": {
+        "value": {
+          "type": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "int"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "in",
+      "source": "source",
+      "sourceHandle": "output",
+      "target": "typed",
+      "targetHandle": "value"
+    },
+    {
+      "id": "result",
+      "source": "typed",
+      "sourceHandle": "if_true",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

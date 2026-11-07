@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "note", "type": "nodetool.workflows.base_node.Comment", "data": { "comment": ["Doubles nothing, only explains."] }, "ui_properties": { "position": { "x": 0, "y": 0 } } },
+    { "id": "group", "type": "nodetool.workflows.base_node.Group", "data": {}, "ui_properties": { "position": { "x": 200, "y": 0 } } },
+    { "id": "src", "type": "nodetool.constant.Integer", "parent_id": "group", "data": { "value": 7 }, "ui_properties": { "position": { "x": 10, "y": 10 } } },
+    { "id": "pass", "type": "nodetool.control.Reroute", "parent_id": "group", "data": {}, "ui_properties": { "position": { "x": 100, "y": 10 } } },
+    { "id": "out", "type": "nodetool.output.Output", "data": { "name": "result" }, "ui_properties": { "position": { "x": 400, "y": 0 } } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "src", "sourceHandle": "output", "target": "pass", "targetHandle": "input_value" },
+    { "id": "e2", "source": "pass", "sourceHandle": "output", "target": "out", "targetHandle": "value" },
+    { "id": "e3", "source": "note", "sourceHandle": "output", "target": "out", "targetHandle": "value" },
+    { "id": "e4", "source": "group", "sourceHandle": "output", "target": "pass", "targetHandle": "input_value", "type": "control" }
+  ]
+}

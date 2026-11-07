@@ -1,0 +1,562 @@
+// Unit tests for the engine boundary, the inbox, the scheduler, the
+// correlation analysis, and graph normalization. Run with
+// `ctest --test-dir build`.
+#include "js/engine.h"
+#include "kernel/correlation.h"
+#include "kernel/graph.h"
+#include "kernel/inbox.h"
+#include "kernel/normalize.h"
+#include "kernel/runner.h"
+#include "kernel/task.h"
+
+#include <cstdio>
+#include <functional>
+#include <string>
+#include <vector>
+
+namespace {
+
+int failures = 0;
+int checks = 0;
+
+#define CHECK(cond)                                                    \
+  do {                                                                 \
+    ++checks;                                                          \
+    if (!(cond)) {                                                     \
+      ++failures;                                                      \
+      std::fprintf(stderr, "%s:%d: CHECK failed: %s\n", __FILE__,      \
+                   __LINE__, #cond);                                   \
+    }                                                                  \
+  } while (0)
+
+using gr::Json;
+using gr::Loop;
+using gr::Task;
+namespace js = gr::js;
+
+// --- engine boundary ------------------------------------------------------
+
+void engineEvaluatesAndCalls() {
+  auto e = js::createQuickJsEngine();
+  js::Value v = e->evaluateScript("1 + 2", "t.js");
+  CHECK(e->isNumber(v));
+  CHECK(e->toNumber(v) == 3);
+  e->evaluateScript("globalThis.add = (a, b) => a + b;", "t.js");
+  js::Value add = e->get(e->global(), "add");
+  CHECK(e->isFunction(add));
+  js::Value r = e->call(add, e->undefined(), {e->string("a"), e->string("b")});
+  CHECK(e->toString(r) == "ab");
+}
+
+void engineHostFunctionRoundTrip() {
+  auto e = js::createQuickJsEngine();
+  std::vector<std::string> seen;
+  e->set(e->global(), "hostUpper",
+         e->function("hostUpper", 1, [&seen](js::Engine& en, const std::vector<js::Value>& a) {
+           std::string s = en.toString(a.at(0));
+           seen.push_back(s);
+           for (auto& c : s) c = char(std::toupper(c));
+           return en.string(s);
+         }));
+  js::Value r = e->evaluateScript("hostUpper('quick') + '!'", "t.js");
+  CHECK(e->toString(r) == "QUICK!");
+  CHECK(seen.size() == 1 && seen[0] == "quick");
+}
+
+void engineErrorsCrossTheBoundary() {
+  auto e = js::createQuickJsEngine();
+  bool threw = false;
+  try {
+    e->evaluateScript("throw new Error('boom')", "t.js");
+  } catch (const js::JsError& err) {
+    threw = std::string(err.what()) == "boom";
+  }
+  CHECK(threw);
+
+  // A C++ exception in a host function becomes a JavaScript Error.
+  e->set(e->global(), "fail", e->function("fail", 0, [](js::Engine&, const std::vector<js::Value>&) -> js::Value {
+    throw std::runtime_error("host said no");
+  }));
+  js::Value r = e->evaluateScript(
+      "(() => { try { fail(); return 'no'; } catch (x) { return x.message; } })()",
+      "t.js");
+  CHECK(e->toString(r) == "host said no");
+}
+
+void engineBytesRoundTrip() {
+  auto e = js::createQuickJsEngine();
+  const uint8_t data[] = {0, 1, 2, 250, 255};
+  js::Value bytes = e->bytes(data, sizeof data);
+  CHECK(e->isBytes(bytes));
+  CHECK(e->toBytes(bytes) == std::vector<uint8_t>(data, data + sizeof data));
+  // A view covers only its own range of the buffer.
+  js::Value view = e->evaluateScript(
+      "new Uint8Array([9, 8, 7, 6, 5]).subarray(1, 3)", "view.js");
+  CHECK(e->isBytes(view));
+  CHECK((e->toBytes(view) == std::vector<uint8_t>{8, 7}));
+  js::Value buffer = e->evaluateScript("new Uint16Array([258]).buffer", "buffer.js");
+  CHECK(e->isBytes(buffer) && e->toBytes(buffer).size() == 2);
+  CHECK(!e->isBytes(e->string("abc")) && !e->isBytes(e->object()));
+}
+
+void enginePromisesSettleThroughJobs() {
+  auto e = js::createQuickJsEngine();
+  js::Value p = e->evaluateScript("(async () => { await null; return 'done'; })()", "t.js");
+  std::string got;
+  js::then(*e, p, [&](js::Engine& en, const js::Value& v) { got = en.toString(v); },
+           [&](js::Engine&, const js::Value&) { got = "rejected"; });
+  CHECK(got.empty());  // nothing runs until the job queue drains
+  CHECK(e->hasPendingJobs());
+  CHECK(e->drainJobs() > 0);
+  CHECK(got == "done");
+
+  // A host-made promise resolved from C++.
+  auto cap = e->newPromise();
+  e->set(e->global(), "pending", cap.promise);
+  js::Value chained = e->evaluateScript("pending.then((x) => x * 2)", "t.js");
+  std::string doubled;
+  js::then(*e, chained, [&](js::Engine& en, const js::Value& v) { doubled = en.toString(v); },
+           [](js::Engine&, const js::Value&) {});
+  e->call(cap.resolve, e->undefined(), {e->number(21)});
+  e->drainJobs();
+  CHECK(doubled == "42");
+}
+
+void engineBytecodeRoundTrip() {
+  std::vector<uint8_t> bc;
+  {
+    auto e = js::createQuickJsEngine();
+    bc = e->compileScript("globalThis.answer = 6 * 7;", "t.js");
+  }
+  CHECK(!bc.empty());
+  auto e = js::createQuickJsEngine();
+  e->evaluateBytecode(bc);
+  CHECK(e->toNumber(e->get(e->global(), "answer")) == 42);
+}
+
+// --- scheduler and inbox --------------------------------------------------
+
+Task<void> collectHandle(gr::Inbox& inbox, std::string handle, std::vector<Json>& out) {
+  for (;;) {
+    auto env = co_await inbox.nextInput(handle);
+    if (!env) break;
+    out.push_back(env->data);
+  }
+}
+
+Task<void> collectAny(gr::Inbox& inbox, std::vector<std::string>& out) {
+  for (;;) {
+    auto item = co_await inbox.nextAny();
+    if (!item) break;
+    out.push_back(item->first + "=" + item->second.data.dump());
+  }
+}
+
+void inboxEndsStreamWhenAllUpstreamsAreDone() {
+  gr::Inbox inbox;
+  inbox.addUpstream("a", 2);
+  std::vector<Json> got;
+  auto t = collectHandle(inbox, "a", got);
+  Loop::current().run();
+  CHECK(!t.done());  // parked: two open sources, nothing buffered
+
+  inbox.put("a", 1);
+  inbox.markSourceDone("a");
+  Loop::current().run();
+  CHECK(got.size() == 1);
+  CHECK(!t.done());  // one source still open
+  CHECK(inbox.isOpen("a"));
+
+  inbox.put("a", 2);
+  inbox.markSourceDone("a");
+  Loop::current().run();
+  CHECK(t.done());
+  CHECK(got.size() == 2 && got[1] == 2);
+  CHECK(inbox.isFullyDrained());
+}
+
+void inboxAnyFollowsArrivalOrder() {
+  gr::Inbox inbox;
+  inbox.addUpstream("x");
+  inbox.addUpstream("y");
+  inbox.put("y", 1);
+  inbox.put("x", 2);
+  inbox.put("y", 3);
+  inbox.markSourceDone("x");
+  inbox.markSourceDone("y");
+  std::vector<std::string> got;
+  auto t = collectAny(inbox, got);
+  Loop::current().run();
+  CHECK(t.done());
+  CHECK((got == std::vector<std::string>{"y=1", "x=2", "y=3"}));
+  CHECK((inbox.handles() == std::vector<std::string>{"x", "y"}));
+}
+
+void inboxDrainAndClose() {
+  gr::Inbox inbox;
+  inbox.addUpstream("a");
+  inbox.put("a", "p");
+  inbox.put("a", "q");
+  auto drained = inbox.drainHandle("a");
+  CHECK(drained.size() == 2);
+  CHECK(!inbox.hasBuffered("a"));
+  CHECK(inbox.hasPendingWork());  // upstream still open
+  std::vector<std::string> got;
+  auto t = collectAny(inbox, got);
+  Loop::current().run();
+  CHECK(!t.done());
+  inbox.closeAll();
+  inbox.put("a", "ignored");
+  Loop::current().run();
+  CHECK(t.done());
+  CHECK(got.empty());
+}
+
+Task<int> produceLater() {
+  co_await gr::Tick{};
+  co_return 7;
+}
+
+Task<void> awaitTwice(std::vector<int>& out) {
+  out.push_back(co_await produceLater());
+  out.push_back(co_await produceLater());
+}
+
+void tasksResumeThroughTheLoop() {
+  std::vector<int> out;
+  auto t = awaitTwice(out);
+  CHECK(out.empty());  // eager start stops at the first Tick
+  Loop::current().run();
+  CHECK(t.done());
+  CHECK((out == std::vector<int>{7, 7}));
+}
+
+void inboxLargeStreamIsLinear() {
+  gr::Inbox inbox;
+  inbox.addUpstream("a");
+  const int n = 200000;
+  for (int i = 0; i < n; ++i) inbox.put("a", i);
+  inbox.markSourceDone("a");
+  std::vector<Json> got;
+  auto t = collectHandle(inbox, "a", got);
+  Loop::current().run();
+  CHECK(t.done());
+  CHECK(int(got.size()) == n);
+  CHECK(got.back() == n - 1);
+}
+
+Task<int> waitOn(gr::Signal& signal, std::shared_ptr<int> held) {
+  co_await signal.wait();
+  co_return *held;
+}
+
+Task<void> awaitWaiter(gr::Signal& signal, std::shared_ptr<int> held, bool& resumed) {
+  co_await waitOn(signal, std::move(held));
+  resumed = true;
+}
+
+void abandonDestroysSuspendedFrames() {
+  gr::Signal never;
+  auto held = std::make_shared<int>(1);
+  bool resumed = false;
+  {
+    auto t = awaitWaiter(never, held, resumed);
+    Loop::current().run();
+    CHECK(!t.done());
+  }
+  CHECK(Loop::current().liveFrames() == 2);
+  CHECK(held.use_count() == 2);
+  Loop::current().abandon();
+  CHECK(Loop::current().liveFrames() == 0);
+  CHECK(held.use_count() == 1);  // the frame's locals were destroyed
+  CHECK(!resumed);
+}
+
+void finishedTasksLeaveNoFrames() {
+  std::vector<int> out;
+  auto t = awaitTwice(out);
+  Loop::current().run();
+  CHECK(t.done());
+  CHECK(Loop::current().liveFrames() == 0);
+}
+
+// --- graph normalization ---------------------------------------------------
+
+std::optional<Json> resolveTestTypes(const std::string& type) {
+  if (type == "test.Echo") {
+    return Json{{"nodeType", "test.Echo"},
+                {"propertyTypes", {{"text", "str"}, {"items", "list[int]"}}},
+                {"outputs", {{"output", "str"}}},
+                {"descriptorDefaults", {{"name", "Echo"}, {"is_streaming_output", false},
+                                        {"input_mode", "buffered"}}}};
+  }
+  return std::nullopt;
+}
+
+void normalizeMovesEditorFields() {
+  Json graph = Json::parse(R"({
+    "nodes": [
+      {"id": "a", "type": "test.Echo", "data": {"text": "hi"},
+       "dynamic_properties": {"extra": 2}, "ui_properties": {"position": {"x": 1}},
+       "input_mode": "stream"},
+      {"id": "b", "type": "test.Echo", "name": "Mine", "properties": {"text": "p"},
+       "data": {"text": "ignored"}, "outputs": {"output": "any"},
+       "dynamic_inputs": {"slot": {"type": {"type": "list", "type_args": [{"type": "int"}]}}}},
+      {"id": "c", "type": "test.Unknown"},
+      {"id": "", "type": "test.Echo"},
+      "not a node"
+    ],
+    "edges": [
+      {"id": "e1", "source": "a", "sourceHandle": "output", "target": "b", "targetHandle": "text", "type": "default"},
+      {"id": "e2", "source": "a", "sourceHandle": "output", "target": "b", "targetHandle": "slot", "type": "control"},
+      {"id": "e3", "source": "a", "sourceHandle": "output", "target": "c", "targetHandle": "text"},
+      {"id": "e4", "source": "a", "target": "b", "targetHandle": "text"}
+    ]})");
+  Json out = gr::normalizeGraph(graph, resolveTestTypes);
+  CHECK(out["nodes"].size() == 2);
+  const Json& a = out["nodes"][0];
+  CHECK(a["properties"] == Json::parse(R"({"text": "hi", "extra": 2})"));
+  CHECK(!a.contains("data"));
+  CHECK(a["name"] == "Echo");
+  CHECK(a["input_mode"] == "buffered");  // the registry is authoritative
+  CHECK(a["outputs"] == Json::parse(R"({"output": "str"})"));
+  CHECK(a["ui_properties"]["position"]["x"] == 1);
+  const Json& b = out["nodes"][1];
+  CHECK(b["name"] == "Mine");
+  CHECK(b["properties"] == Json::parse(R"({"text": "p"})"));
+  CHECK(b["outputs"]["output"] == "any");
+  CHECK(b["propertyTypes"]["slot"] == "list[int]");
+  CHECK(b["propertyTypes"]["items"] == "list[int]");
+  CHECK(out["edges"].size() == 2);
+  CHECK(out["edges"][0]["edge_type"] == "data");
+  CHECK(!out["edges"][0].contains("type"));
+  CHECK(out["edges"][1]["edge_type"] == "control");
+
+  bool threw = false;
+  try {
+    (void)gr::normalizeGraph(Json::parse(R"({"nodes": []})"), resolveTestTypes);
+  } catch (const gr::GraphValidationError&) {
+    threw = true;
+  }
+  CHECK(threw);
+}
+
+// Editor-only nodes go even when the registry would resolve their type, and
+// the edges that touch them go with them. A Group's child stays.
+void normalizePrunesEditorOnlyNodes() {
+  auto resolveAll = [](const std::string& type) -> std::optional<Json> {
+    return Json{{"nodeType", type}, {"descriptorDefaults", {{"name", type}}}};
+  };
+  Json graph = Json::parse(R"({
+    "nodes": [
+      {"id": "note", "type": "nodetool.workflows.base_node.Comment"},
+      {"id": "group", "type": "nodetool.workflows.base_node.Group"},
+      {"id": "old", "type": "nodetool.workflows.base_node.Reroute"},
+      {"id": "child", "type": "test.Echo", "parent_id": "group"},
+      {"id": "reroute", "type": "nodetool.control.Reroute"},
+      {"id": "preview", "type": "nodetool.workflows.base_node.Preview"}
+    ],
+    "edges": [
+      {"source": "note", "sourceHandle": "output", "target": "child", "targetHandle": "text"},
+      {"source": "child", "sourceHandle": "output", "target": "group", "targetHandle": "x"},
+      {"source": "child", "sourceHandle": "output", "target": "reroute", "targetHandle": "input_value"}
+    ]})");
+  Json out = gr::normalizeGraph(graph, resolveAll);
+  std::vector<std::string> ids;
+  for (const auto& n : out["nodes"]) ids.push_back(n["id"].get<std::string>());
+  CHECK((ids == std::vector<std::string>{"child", "reroute", "preview"}));
+  CHECK(out["nodes"][0]["parent_id"] == "group");
+  CHECK(out["edges"].size() == 1);
+  CHECK(out["edges"][0]["target"] == "reroute");
+  CHECK(gr::isEditorOnlyType("nodetool.workflows.base_node.Group"));
+  CHECK(!gr::isEditorOnlyType("nodetool.control.Reroute"));
+  CHECK(!gr::isEditorOnlyType("Comment"));
+}
+
+// --- runner ----------------------------------------------------------------
+
+// A node whose process() waits on a signal nobody raises.
+class StallExecutor final : public gr::Executor {
+public:
+  Task<void> initialize() override { co_return; }
+  Task<void> preProcess() override { co_return; }
+  Task<void> finalize() override { co_return; }
+  Task<Json> process(Json) override {
+    co_await never_.wait();
+    co_return Json::object();
+  }
+  std::unique_ptr<gr::FrameIterator> genProcess(Json) override { return nullptr; }
+  bool hasRun() const override { return false; }
+  Task<Json> run(gr::StreamIO&) override { co_return Json::object(); }
+
+private:
+  gr::Signal never_;
+};
+
+class StallCatalog final : public gr::NodeCatalog {
+public:
+  std::optional<Json> describe(const Json&) override { return Json::object(); }
+  std::optional<Json> resolve(const std::string& type) override {
+    if (type != "test.Stall") return std::nullopt;
+    return Json{{"nodeType", type}, {"descriptorDefaults", {{"name", "Stall"}}}};
+  }
+  Json validate(const Json&, const std::vector<std::string>&) override {
+    return Json::array();
+  }
+  std::unique_ptr<gr::Executor> create(const Json&) override {
+    return std::make_unique<StallExecutor>();
+  }
+};
+
+void stalledRunIsAbandoned() {
+  StallCatalog catalog;
+  std::vector<Json> messages;
+  {
+    gr::Runner runner(catalog, [&](const Json& m) { messages.push_back(m); });
+    auto task = runner.run(
+        Json::parse(R"({"nodes": [{"id": "s", "type": "test.Stall", "data": {}}], "edges": []})"),
+        Json::object());
+    Loop::current().run();
+    CHECK(!task.done());
+    CHECK(Loop::current().liveFrames() > 0);
+    // Cancelling closes inboxes, but this node waits on its own signal.
+    runner.cancel();
+    Loop::current().run();
+    CHECK(!task.done());
+    Loop::current().abandon();
+    CHECK(Loop::current().liveFrames() == 0);
+  }
+  CHECK(messages.size() == 2);
+  CHECK(messages.back()["type"] == "node_update");
+  CHECK(messages.back()["node_name"] == "Stall");
+}
+
+// --- correlation analysis -------------------------------------------------
+
+gr::Node makeNode(std::string id, std::string type,
+                  std::vector<std::pair<std::string, gr::OutputCorrelation>> corr,
+                  std::optional<std::string> mode) {
+  gr::Node n;
+  n.id = std::move(id);
+  n.type = std::move(type);
+  n.outputCorrelation = std::move(corr);
+  n.hasOutputCorrelation = !n.outputCorrelation.empty();
+  n.inputMode = std::move(mode);
+  return n;
+}
+
+gr::Edge makeEdge(std::string id, std::string s, std::string sh, std::string t, std::string th) {
+  gr::Edge e;
+  e.id = std::move(id);
+  e.source = std::move(s);
+  e.sourceHandle = std::move(sh);
+  e.target = std::move(t);
+  e.targetHandle = std::move(th);
+  return e;
+}
+
+void correlationIterationThenAggregate() {
+  std::vector<gr::Node> nodes;
+  nodes.push_back(makeNode("src", "c.Const", {}, std::nullopt));
+  nodes.push_back(makeNode(
+      "each", "c.ForEach",
+      {{"output", {"iteration", "__execution__", "items", std::nullopt}},
+       {"index", {"iteration", "__execution__", "items", std::nullopt}}},
+      "buffered"));
+  nodes.push_back(makeNode("add", "c.Add", {}, std::nullopt));
+  nodes.back().outputs = Json{{"output", "int"}};
+  nodes.push_back(makeNode("collect", "c.Collect",
+                           {{"output", {"aggregate", "input_item", std::nullopt, "innermost"}}},
+                           "stream"));
+  nodes.push_back(makeNode("out", "c.Out", {{"output", {"forward", "value", std::nullopt, std::nullopt}}},
+                           "buffered"));
+  std::vector<gr::Edge> edges = {
+      makeEdge("e1", "src", "output", "each", "input_list"),
+      makeEdge("e2", "each", "output", "add", "a"),
+      makeEdge("e3", "src", "output", "add", "b"),
+      makeEdge("e4", "add", "output", "collect", "input_item"),
+      makeEdge("e5", "collect", "output", "out", "value")};
+  gr::Graph g(std::move(nodes), std::move(edges));
+  auto r = gr::analyzeCorrelation(g);
+  CHECK(r.issues.empty());
+  const auto& add = r.nodes.at("add");
+  CHECK((add.invocationScope == gr::Scope{"each:items"}));
+  CHECK(add.input("b")->scope.empty());
+  CHECK((r.nodes.at("collect").input("input_item")->scope == gr::Scope{"each:items"}));
+  CHECK(r.nodes.at("out").invocationScope.empty());
+  CHECK(r.nodes.at("collect").output("output")->scope.empty());
+}
+
+// As in the TypeScript analyzer, a node whose descriptor lists no outputs
+// and declares no output_correlation produces no output facts, so its
+// downstream edges sit at the empty scope.
+void correlationUndeclaredOutputsResetScope() {
+  std::vector<gr::Node> nodes;
+  nodes.push_back(makeNode("src", "c.Const", {}, std::nullopt));
+  nodes.push_back(makeNode(
+      "each", "c.ForEach",
+      {{"output", {"iteration", "__execution__", "items", std::nullopt}}}, "buffered"));
+  nodes.push_back(makeNode("add", "c.Add", {}, std::nullopt));
+  nodes.push_back(makeNode("sink", "c.Sink", {}, std::nullopt));
+  std::vector<gr::Edge> edges = {makeEdge("e1", "src", "output", "each", "input_list"),
+                                 makeEdge("e2", "each", "output", "add", "a"),
+                                 makeEdge("e3", "add", "output", "sink", "x")};
+  gr::Graph g(std::move(nodes), std::move(edges));
+  auto r = gr::analyzeCorrelation(g);
+  CHECK(r.issues.empty());
+  CHECK((r.nodes.at("add").invocationScope == gr::Scope{"each:items"}));
+  CHECK(r.nodes.at("sink").input("x")->scope.empty());
+}
+
+void correlationRejectsCycles() {
+  std::vector<gr::Node> nodes;
+  nodes.push_back(makeNode("a", "t.A", {}, std::nullopt));
+  nodes.push_back(makeNode("b", "t.B", {}, std::nullopt));
+  std::vector<gr::Edge> edges = {makeEdge("e1", "a", "output", "b", "x"),
+                                 makeEdge("e2", "b", "output", "a", "y")};
+  gr::Graph g(std::move(nodes), std::move(edges));
+  auto r = gr::analyzeCorrelation(g);
+  CHECK(r.issues.size() == 1);
+  CHECK(r.issues[0].message.find("Involved nodes: a, b") != std::string::npos);
+}
+
+void lineageProjection() {
+  gr::Lineage l{{"a:items", 2}, {"b:items", 5}};
+  CHECK(gr::projectLineageKey(l, {"b:items", "a:items"}) == "b:items=5,a:items=2");
+  CHECK(!gr::tryProjectLineageKey(l, {"c:items"}).has_value());
+  CHECK(gr::tryProjectLineageKey(l, {}).value() == "");
+}
+
+}  // namespace
+
+int main() {
+  std::vector<std::pair<const char*, std::function<void()>>> tests = {
+      {"engineEvaluatesAndCalls", engineEvaluatesAndCalls},
+      {"engineHostFunctionRoundTrip", engineHostFunctionRoundTrip},
+      {"engineErrorsCrossTheBoundary", engineErrorsCrossTheBoundary},
+      {"engineBytesRoundTrip", engineBytesRoundTrip},
+      {"enginePromisesSettleThroughJobs", enginePromisesSettleThroughJobs},
+      {"engineBytecodeRoundTrip", engineBytecodeRoundTrip},
+      {"tasksResumeThroughTheLoop", tasksResumeThroughTheLoop},
+      {"abandonDestroysSuspendedFrames", abandonDestroysSuspendedFrames},
+      {"finishedTasksLeaveNoFrames", finishedTasksLeaveNoFrames},
+      {"normalizeMovesEditorFields", normalizeMovesEditorFields},
+      {"normalizePrunesEditorOnlyNodes", normalizePrunesEditorOnlyNodes},
+      {"stalledRunIsAbandoned", stalledRunIsAbandoned},
+      {"inboxEndsStreamWhenAllUpstreamsAreDone", inboxEndsStreamWhenAllUpstreamsAreDone},
+      {"inboxAnyFollowsArrivalOrder", inboxAnyFollowsArrivalOrder},
+      {"inboxDrainAndClose", inboxDrainAndClose},
+      {"inboxLargeStreamIsLinear", inboxLargeStreamIsLinear},
+      {"correlationIterationThenAggregate", correlationIterationThenAggregate},
+      {"correlationUndeclaredOutputsResetScope", correlationUndeclaredOutputsResetScope},
+      {"correlationRejectsCycles", correlationRejectsCycles},
+      {"lineageProjection", lineageProjection},
+  };
+  for (const auto& [name, fn] : tests) {
+    int before = failures;
+    fn();
+    std::fprintf(stderr, "%s %s\n", failures == before ? "PASS" : "FAIL", name);
+  }
+  std::fprintf(stderr, "%d checks, %d failed\n", checks, failures);
+  return failures == 0 ? 0 : 1;
+}

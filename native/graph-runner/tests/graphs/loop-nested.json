@@ -1,0 +1,68 @@
+{
+  "nodes": [
+    {
+      "id": "outer",
+      "type": "nodetool.control.Loop",
+      "properties": {
+        "initial": 7,
+        "max_iterations": 3
+      }
+    },
+    {
+      "id": "inner",
+      "type": "nodetool.control.Loop",
+      "properties": {
+        "max_iterations": 2
+      }
+    },
+    {
+      "id": "body",
+      "type": "nodetool.constant.Integer",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "done"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "initial",
+      "source": "outer",
+      "sourceHandle": "value",
+      "target": "inner",
+      "targetHandle": "initial"
+    },
+    {
+      "id": "body-in",
+      "source": "inner",
+      "sourceHandle": "value",
+      "target": "body",
+      "targetHandle": "value"
+    },
+    {
+      "id": "inner-next",
+      "source": "body",
+      "sourceHandle": "output",
+      "target": "inner",
+      "targetHandle": "next"
+    },
+    {
+      "id": "outer-next",
+      "source": "inner",
+      "sourceHandle": "done",
+      "target": "outer",
+      "targetHandle": "next"
+    },
+    {
+      "id": "done",
+      "source": "outer",
+      "sourceHandle": "done",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

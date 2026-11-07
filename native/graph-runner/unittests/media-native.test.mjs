@@ -1,0 +1,279 @@
+import "../guest/env/index.mjs";
+import { ContextAbortController } from "../guest/host/context-services.mjs";
+import { PNG } from "./timeline-process-media.mjs";
+import { writeFile } from "node:fs/promises";
+import {
+  hasEncoder,
+  probeMedia,
+  packetTimes,
+  openVideoFrameEncoder,
+  openRgbaFrameReader,
+  decodeAudioToPcm,
+  openFilterComplex,
+  muxAudioWithVideoCopy,
+  concatSegments
+} from "../guest/host/media-native.mjs";
+const root = globalThis.__timelineRoot;
+let checks = 0;
+function assert(ok, message) {
+  if (!ok) throw new Error(message);
+  checks++;
+}
+assert(await hasEncoder("libx264"), "real libx264 discovery");
+assert(!(await hasEncoder("missing_codec")), "missing codec discovery");
+const path = `${root}/frames.mp4`;
+const encoder = await openVideoFrameEncoder({
+  outPath: path,
+  fps: 1,
+  input: "rgba",
+  width: 8,
+  height: 8,
+  spec: {
+    codec: "libx264",
+    pixelFormat: "yuv420p",
+    filter: "scale=out_color_matrix=bt709:out_range=tv",
+    options: { preset: "veryfast", crf: "0" }
+  }
+});
+for (const color of [
+  [255, 0, 0, 255],
+  [0, 255, 0, 255]
+]) {
+  const pixels = new Uint8Array(256);
+  for (let i = 0; i < 256; i += 4) pixels.set(color, i);
+  await encoder.write(pixels);
+}
+await encoder.finish();
+// A yellow frame passed the former selected-channel-only reference checks.
+const yellowEncoder = await openVideoFrameEncoder({
+  outPath: `${root}/wrong-color.mp4`,
+  fps: 1,
+  input: "rgba",
+  width: 8,
+  height: 8,
+  spec: {
+    codec: "libx264",
+    pixelFormat: "yuv420p",
+    options: { preset: "veryfast", crf: "0" }
+  }
+});
+const yellowPixels = new Uint8Array(256);
+for (let i = 0; i < yellowPixels.length; i += 4)
+  yellowPixels.set([255, 255, 0, 255], i);
+await yellowEncoder.write(yellowPixels);
+await yellowEncoder.finish();
+const probe = await probeMedia(path);
+assert(
+  probe.video.width === 8 &&
+    probe.video.height === 8 &&
+    probe.durationSec === 2,
+  "video probe"
+);
+assert((await packetTimes(path)).length === 2, "packet timestamps");
+const reader = await openRgbaFrameReader({
+  filePath: path,
+  filter:
+    "fps=1:round=up,scale=4:4:flags=accurate_rnd+full_chroma_int,format=rgba"
+});
+const red = await reader.next(),
+  green = await reader.next();
+assert(
+  red.width === 4 && red.rgba[0] > 200 && red.rgba[1] < 30,
+  "decoded red pixels"
+);
+assert(green.rgba[1] > 200 && green.rgba[0] < 30, "decoded green pixels");
+assert((await reader.next()) === null, "decode EOF");
+await reader.close();
+const wav = new Uint8Array(44 + 48000 * 2);
+const view = new DataView(wav.buffer);
+function str(at, text) {
+  for (let i = 0; i < text.length; i++) wav[at + i] = text.charCodeAt(i);
+}
+str(0, "RIFF");
+view.setUint32(4, wav.length - 8, true);
+str(8, "WAVEfmt ");
+view.setUint32(16, 16, true);
+view.setUint16(20, 1, true);
+view.setUint16(22, 1, true);
+view.setUint32(24, 48000, true);
+view.setUint32(28, 96000, true);
+view.setUint16(32, 2, true);
+view.setUint16(34, 16, true);
+str(36, "data");
+view.setUint32(40, wav.length - 44, true);
+for (let i = 0; i < 48000; i++)
+  view.setInt16(
+    44 + i * 2,
+    Math.round(8000 * Math.sin((2 * Math.PI * 440 * i) / 48000)),
+    true
+  );
+await writeFile(`${root}/tone.wav`, wav);
+const pcm = await decodeAudioToPcm(`${root}/tone.wav`, {
+  sampleRate: 24000,
+  channels: 1
+});
+assert(
+  pcm.channels === 1 &&
+    pcm.samples.length === 24000 &&
+    pcm.samples.some((x) => x > 0.2),
+  "audio PCM resample"
+);
+const mix = await openFilterComplex({
+  inputs: [{ filePath: `${root}/tone.wav`, kind: "audio", label: "1:a" }],
+  graph:
+    "[1:a]atrim=start=0:end=1,asetpts=PTS-STARTPTS,volume=0.5,adelay=0|0,apad[aout]",
+  output: "aout",
+  outputKind: "audio"
+});
+await muxAudioWithVideoCopy({
+  videoPath: path,
+  audio: mix.frames(),
+  outPath: `${root}/audio.mp4`,
+  codec: "aac",
+  sampleRate: 48000
+});
+await mix.close();
+const mixed = await probeMedia(`${root}/audio.mp4`);
+assert(
+  mixed.video.width === 8 && mixed.audio.channels === 2,
+  "copied video and AAC audio"
+);
+const audio = await decodeAudioToPcm(`${root}/audio.mp4`, {
+  sampleRate: 48000,
+  channels: 1,
+  maxSeconds: 2
+});
+assert(
+  audio.samples.some((x) => x > 0.05),
+  "muxed audio is audible"
+);
+let refused = false;
+try {
+  await probeMedia("/etc/passwd");
+} catch {
+  refused = true;
+}
+assert(refused, "outside path refused");
+const abort = new ContextAbortController();
+abort.abort();
+refused = false;
+try {
+  await probeMedia(path, { signal: abort.signal });
+} catch {
+  refused = true;
+}
+assert(refused, "cancelled probe refused");
+
+await writeFile(`${root}/still.png`, new Uint8Array(PNG));
+const still = await openRgbaFrameReader({
+  filePath: `${root}/still.png`,
+  filter: "scale=8:8,format=rgba"
+});
+const image = await still.next();
+assert(
+  image.width === 8 && image.rgba[0] === 255 && image.rgba[1] === 0,
+  "real PNG decode"
+);
+await still.close();
+await concatSegments({
+  outPath: `${root}/concat.mp4`,
+  width: 8,
+  height: 8,
+  fps: 1,
+  segments: [
+    { kind: "image", filePath: `${root}/still.png`, durationSec: 1 },
+    { kind: "video", filePath: path, durationSec: 1, withAudio: false },
+    { kind: "blank", durationSec: 1 }
+  ],
+  videoFilter: "scale=8:8,pad=8:8:(ow-iw)/2:(oh-ih)/2",
+  video: {
+    codec: "libx264",
+    pixelFormat: "yuv420p",
+    options: { preset: "veryfast" }
+  },
+  audioCodec: "aac"
+});
+const cut = await probeMedia(`${root}/concat.mp4`);
+assert(
+  cut.audio.channels === 2 && Math.abs(cut.durationSec - 3) < 0.03,
+  "rough-cut concat container"
+);
+const cutFrames = await openRgbaFrameReader({
+  filePath: `${root}/concat.mp4`,
+  filter: "format=rgba"
+});
+const first = await cutFrames.next(),
+  second = await cutFrames.next(),
+  third = await cutFrames.next();
+assert(
+  first.rgba[0] > 200 &&
+    second.rgba[0] > 200 &&
+    third.rgba[0] < 30 &&
+    (await cutFrames.next()) === null,
+  "concat actual frames"
+);
+await cutFrames.close();
+for (const [name, fn] of [
+  ["default deny", () => globalThis.__mediaDenied.hasEncoder("libx264")],
+  ["host cancellation", () => globalThis.__mediaCancelled.probe(path)],
+  [
+    "pixel quota",
+    () =>
+      globalThis.__mediaLimited.openFilter({
+        inputs: [{ filePath: path, kind: "video", label: "in" }],
+        graph: "[in]format=rgba[out]",
+        output: "out",
+        outputKind: "video"
+      })
+  ],
+  [
+    "external filter",
+    () =>
+      globalThis.__host.media.openFilter({
+        inputs: [],
+        graph: "movie=/etc/passwd[out]",
+        output: "out",
+        outputKind: "video"
+      })
+  ],
+  [
+    "codec grant",
+    () =>
+      globalThis.__host.media.openEncoder({
+        outPath: `${root}/denied.mp4`,
+        spec: { codec: "mpeg4" }
+      })
+  ]
+]) {
+  let failed = false;
+  try {
+    fn();
+  } catch {
+    failed = true;
+  }
+  assert(failed, name);
+}
+const invalid = await openVideoFrameEncoder({
+  outPath: `${root}/invalid.mp4`,
+  fps: 1,
+  input: "rgba",
+  width: 8,
+  height: 8,
+  spec: {
+    codec: "libx264",
+    pixelFormat: "yuv420p",
+    options: { preset: "veryfast", crf: 1 }
+  }
+});
+let invalidRefused = false;
+try {
+  await invalid.write(new Uint8Array(256));
+} catch {
+  invalidRefused = true;
+} finally {
+  await invalid.abort();
+}
+assert(invalidRefused, "invalid codec options release dictionaries");
+globalThis.__timelineChecks = checks;
+globalThis.__timelineResult = JSON.stringify({ checks, probe, mixed });
+globalThis.__nodetool = {};

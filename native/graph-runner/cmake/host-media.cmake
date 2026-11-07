@@ -1,0 +1,5 @@
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GR_MEDIA REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil libavfilter libswscale libswresample)
+target_sources(gr_kernel PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/host/media.cpp)
+target_link_libraries(gr_kernel PRIVATE PkgConfig::GR_MEDIA)
+set_property(TARGET gr_kernel PROPERTY GR_MEDIA_RUNTIME_LIBRARIES "${GR_MEDIA_LINK_LIBRARIES}")

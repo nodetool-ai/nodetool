@@ -1,0 +1,31 @@
+import Yoga from 'yoga-layout';
+export function yogaLayoutFixture() {
+  const root = Yoga.Node.create();
+  root.setWidth(300);
+  root.setHeight(100);
+  root.setFlexDirection(Yoga.FLEX_DIRECTION_ROW);
+  const child = Yoga.Node.create();
+  child.setFlexGrow(1);
+  const measured = Yoga.Node.create();
+  let calls = 0;
+  measured.setMeasureFunc(() => { calls++; return { width: 40, height: 20 }; });
+  root.insertChild(child, 0);
+  root.insertChild(measured, 1);
+  root.calculateLayout(undefined, undefined, Yoga.DIRECTION_LTR);
+  const snapshot = () => ({ root: root.getComputedLayout(), child: child.getComputedLayout(), measured: measured.getComputedLayout(), calls });
+  const result = [snapshot()];
+  if (result[0].child.width !== 260 || result[0].measured.left !== 260 || calls !== 1) throw new Error('Flex and measure regression');
+  child.setFlexGrow(0);
+  child.setWidthPercent(25);
+  root.setGap(Yoga.GUTTER_COLUMN, 12);
+  root.setJustifyContent(Yoga.JUSTIFY_SPACE_BETWEEN);
+  root.calculateLayout(undefined, undefined, Yoga.DIRECTION_RTL);
+  result.push(snapshot());
+  root.setFlexDirection(Yoga.FLEX_DIRECTION_COLUMN);
+  root.setHeight(200);
+  child.setHeightPercent(30);
+  root.calculateLayout(undefined, undefined, Yoga.DIRECTION_LTR);
+  result.push(snapshot());
+  root.freeRecursive();
+  return result;
+}
