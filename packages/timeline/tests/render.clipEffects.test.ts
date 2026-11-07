@@ -30,6 +30,19 @@ const everyEffect: ClipEffect[] = [
     temperature: 0.3,
     tint: -0.2
   },
+  { id: "denoise", type: "denoise", enabled: true, lumaStrength: 0.7, chromaStrength: 0.5, radius: 2 },
+  { id: "deband", type: "deband", enabled: true, strength: 0.8, range: 4, threshold: 0.1, dither: 0.3 },
+  { id: "secondaryColor", type: "secondaryColor", enabled: true, hueCenter: 140, hueWidth: 100, hueShift: 30, saturation: 1.3, lightness: 0.1 },
+  { id: "exposure", type: "exposure", enabled: true, exposure: 0.5, rolloff: 0.3, whites: -0.2 },
+  { id: "deflicker", type: "deflicker", enabled: true, strength: 0.75, analysis: {
+    version: 1, source: {assetId: "matrix-source", mediaPath: ""}, rangeStartMs: 0, rangeEndMs: 1000,
+    windowMs: 500, maxCorrection: 1, frameRate: 30, samples: [{timeMs: 0, stops: 0.6}]
+  } },
+  { id: "stabilize", type: "stabilize", enabled: true, strength: 0.75, maxZoom: 1.2, analysis: {
+    version: 1, kind: "stabilize", source: {assetId: "matrix-source", mediaPath: ""}, rangeStartMs: 0, rangeEndMs: 1000,
+    windowMs: 500, frameRate: 30, width: 48, height: 48, requiredZoom: 1.1, trackedFrames: 1,
+    samples: [{timeMs: 0, x: 0.02, y: -0.01, angle: 0.015, scale: 1}]
+  } },
   { id: "2", type: "blur", enabled: true, radius: 4 },
   { id: "3", type: "glow", enabled: true, radius: 8, intensity: 1 },
   {
@@ -210,7 +223,18 @@ describe("Canvas 2D — the clip effect catalog", () => {
   });
 
   it("supports the complete document effect catalog", () => {
-    expect(unsupportedEffectTypes([{ effects: everyEffect }])).toEqual([]);
+    const clip = makeClip({mediaType: "video", currentAssetId: "matrix-source", durationMs: 1000,
+      inPointMs: 0, effects: everyEffect});
+    const resolved = resolveAnimatedLayerProps({clip, opacity: 1}, 0, {width: 100, height: 100}).effects ?? [];
+    const deflicker = resolved.find(effect => effect.id === "deflicker");
+    expect(deflicker?.type).toBe("exposure");
+    if (deflicker?.type !== "exposure") { throw new Error("Deflicker analysis did not resolve"); }
+    expect(deflicker.exposure).toBeCloseTo(0.45);
+    const stabilize = resolved.find(effect => effect.id === "stabilize");
+    if (stabilize?.type !== "stabilize") { throw new Error("Stabilization analysis did not resolve"); }
+    expect(stabilize._matrix).toBeDefined();
+    expect(stabilize._matrix).not.toEqual([1, 0, 0, 0, 1, 0]);
+    expect(unsupportedEffectTypes([{ effects: resolved }])).toEqual([]);
   });
 
   it("supports white balance on the pixel surface", () => {
