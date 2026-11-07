@@ -12,7 +12,14 @@ import {
   recordGenerationProviderResult,
   recordGenerationReceiptAsync
 } from "../generation-receipt.js";
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type EndpointProgress,
+  type MediaUpload,
+  type ProviderCapability
+} from "./base-provider.js";
 import {
   falGetGeneration,
   falListGenerations,
@@ -130,6 +137,7 @@ interface OpenRouterCatalogRow {
 type FalQueueUpdate = {
   status: string;
   logs?: Array<{ message: string }>;
+  queue_position?: number;
 };
 
 type FalClient = {
@@ -142,7 +150,7 @@ type FalClient = {
       /** Aborts the queued request — see @fal-ai/client RunOptions. */
       abortSignal?: AbortSignal;
     }
-  ): Promise<{ data?: Record<string, unknown> }>;
+  ): Promise<{ data?: Record<string, unknown>; requestId?: string }>;
   storage: {
     upload(file: Blob): Promise<string>;
   };
@@ -981,7 +989,14 @@ export class FalProvider extends BaseProvider {
               Array.isArray(observation.rawStatus.logs)
                 ? observation.rawStatus.logs
                 : undefined;
-            opts.onQueueUpdate?.({
+            const queuePosition =
+              typeof observation.rawStatus === "object" &&
+              observation.rawStatus !== null &&
+              "queue_position" in observation.rawStatus &&
+              typeof observation.rawStatus.queue_position === "number"
+                ? observation.rawStatus.queue_position
+                : undefined;
+            const update: FalQueueUpdate = {
               status,
               logs: logs?.filter(
                 (entry): entry is { message: string } =>
@@ -990,7 +1005,11 @@ export class FalProvider extends BaseProvider {
                   "message" in entry &&
                   typeof entry.message === "string"
               )
-            });
+            };
+            if (queuePosition !== undefined) {
+              update.queue_position = queuePosition;
+            }
+            opts.onQueueUpdate?.(update);
           }
         });
         recordGenerationProviderResult(result.data);
@@ -999,6 +1018,51 @@ export class FalProvider extends BaseProvider {
       storage: client.storage
     };
     return this._client;
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Run one FAL endpoint with the caller's input, unchanged, through the
+   * queue. The output is the endpoint's JSON. Queue positions and log lines
+   * reach `onProgress`. FAL has one endpoint family, so a `route` is refused.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    if (req.route !== undefined) {
+      throw new Error(`fal_ai does not accept an endpoint route: ${req.route}`);
+    }
+    this.requireApiKey();
+    const client = await this.getClient();
+    const options: Parameters<FalClient["subscribe"]>[1] = {
+      input: req.input,
+      logs: true
+    };
+    const onProgress = req.onProgress;
+    if (onProgress) {
+      options.onQueueUpdate = (update) => forwardQueueUpdate(update, onProgress);
+    }
+    if (req.signal) options.abortSignal = req.signal;
+    const result = await client.subscribe(req.model, options);
+    return {
+      output: result.data ?? result,
+      requestId: result.requestId ?? null
+    };
+  }
+
+  /** Upload bytes to FAL storage and return the hosted URL. */
+  override async uploadMedia(upload: MediaUpload): Promise<string> {
+    this.requireApiKey();
+    upload.signal?.throwIfAborted();
+    return this.upload(upload.bytes, upload.mimeType);
+  }
+
+  /** The endpoint path fails here instead of sending an unauthenticated call. */
+  private requireApiKey(): void {
+    if (!this.apiKey) throw new Error("FAL_API_KEY is not configured");
   }
 
   /** How the platform-API client reaches FAL: this provider's fetch, its signal. */
@@ -2404,6 +2468,17 @@ export function extractAudioUrl(result: Record<string, unknown>): string {
   if (isString(result.audio_url)) return result.audio_url;
   if (isString(result.url)) return result.url;
   throw new Error(`Unexpected FAL audio response: ${JSON.stringify(result)}`);
+}
+
+/** Report a queue update as endpoint progress: the queue position, then each log line. */
+function forwardQueueUpdate(
+  update: FalQueueUpdate,
+  onProgress: (event: EndpointProgress) => void
+): void {
+  if (update.status === "IN_QUEUE" && update.queue_position !== undefined) {
+    onProgress({ message: `Queued at position ${update.queue_position}` });
+  }
+  for (const entry of update.logs ?? []) onProgress({ message: entry.message });
 }
 
 async function downloadBytes(
