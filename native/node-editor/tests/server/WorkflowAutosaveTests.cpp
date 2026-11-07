@@ -227,6 +227,103 @@ private slots:
     QTRY_COMPARE(http.writes.size(), 1);
     QCOMPARE(http.writes[0]["expected_updated_at"].toString(), QString("r1"));
   }
+  static QJsonObject twoNodes(int a, int b) {
+    const auto entry = [](const QString &id, int value) {
+      return QJsonObject{{"id", id}, {"type", "fixture"}, {"data", QJsonObject{{"value", value}}}};
+    };
+    return {{"nodes", QJsonArray{entry("a", a), entry("b", b)}}, {"edges", QJsonArray{}}};
+  }
+  static int valueOf(const QJsonObject &workflow, const QString &id) {
+    for (const auto &entry : workflow["graph"].toObject()["nodes"].toArray())
+      if (entry.toObject()["id"] == id) return entry.toObject()["data"].toObject()["value"].toInt();
+    return -1;
+  }
+  static void notifyOps(Http &http, const QString &revision, const QString &node) {
+    http.peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "resource_change"}, {"resource_type", "workflow"},
+      {"event", "updated"}, {"resource", QJsonObject{{"id", "bound"}, {"updated_at", revision}}},
+      {"ops", QJsonArray{QJsonObject{{"tool", "ui_update_node_data"}, {"input", QJsonObject{{"node_id", node}}}}}}}));
+  }
+  void operationScopedRemoteChangeMerges() {
+    Http http; http.remote["graph"] = twoNodes(1, 1);
+    WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
+    QTRY_VERIFY(session.connected()); QTRY_VERIFY(http.peer);
+    session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound());
+    auto draft = session.workflow(); draft["graph"] = twoNodes(2, 1); session.setSnapshot(draft);
+    http.remote["updated_at"] = "r2"; http.remote["graph"] = twoNodes(1, 3);
+    notifyOps(http, "r2", "b");
+    QTRY_COMPARE(valueOf(session.workflow(), "b"), 3);
+    QCOMPARE(valueOf(session.workflow(), "a"), 2);
+    QVERIFY(!session.conflictPending()); QVERIFY(session.mergeConflicts().isEmpty()); QVERIFY(session.dirty());
+    QCOMPARE(session.workflow()["updated_at"].toString(), QString("r2"));
+    session.flushAutosave(); QTRY_COMPARE(http.writes.size(), 1); QTRY_VERIFY(!session.dirty());
+    QCOMPARE(http.writes[0]["expected_updated_at"].toString(), QString("r2"));
+    QCOMPARE(http.writes[0]["graph"].toObject(), twoNodes(2, 3));
+  }
+  void operationConflictUsesExistingConflictReview() {
+    Http http; http.remote["graph"] = twoNodes(1, 1);
+    WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
+    QTRY_VERIFY(session.connected()); QTRY_VERIFY(http.peer);
+    session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound());
+    auto draft = session.workflow(); draft["graph"] = twoNodes(2, 1); session.setSnapshot(draft);
+    http.remote["updated_at"] = "r2"; http.remote["graph"] = twoNodes(3, 4);
+    notifyOps(http, "r2", "a");
+    QTRY_VERIFY(session.conflictPending());
+    QCOMPARE(session.conflictWorkflow(), http.remote);
+    // The draft wins the contested node and keeps the remote edit to the other one.
+    QCOMPARE(session.workflow()["graph"].toObject(), twoNodes(2, 4));
+    QCOMPARE(session.mergeConflicts().size(), 1);
+    const auto conflict = session.mergeConflicts().first().toMap();
+    QCOMPARE(conflict["id"].toString(), QString("a")); QCOMPARE(conflict["reason"].toString(), QString("edited"));
+    session.flushAutosave(); QTest::qWait(20); QVERIFY(http.writes.isEmpty());
+    session.keepLocalWorkflow(); QTRY_COMPARE(http.writes.size(), 1); QTRY_VERIFY(!session.dirty());
+    QCOMPARE(http.writes[0]["expected_updated_at"].toString(), QString("r2"));
+    QCOMPARE(http.writes[0]["graph"].toObject(), twoNodes(2, 4));
+    QVERIFY(session.mergeConflicts().isEmpty());
+  }
+  void hostAppliesMergeAsOneEditOrKeepsTheWholeConflict() {
+    for (const bool accept : {true, false}) {
+      Http http; http.remote["graph"] = twoNodes(1, 1);
+      WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
+      QJsonObject document; int applied = 0;
+      session.setSnapshotProvider([&] { return document; });
+      connect(&session, &WorkflowSession::workflowOpened, &session, [&] { document = session.workflow(); });
+      session.setGraphApplier([&](const QJsonObject &graph) {
+        ++applied;
+        if (!accept) return false;
+        document["graph"] = graph; session.documentChanged(); return true;
+      });
+      QTRY_VERIFY(session.connected()); QTRY_VERIFY(http.peer);
+      session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound());
+      document["graph"] = twoNodes(2, 1); session.documentChanged();
+      http.remote["updated_at"] = "r2"; http.remote["graph"] = twoNodes(1, 3);
+      notifyOps(http, "r2", "b");
+      if (accept) {
+        QTRY_COMPARE(applied, 1);
+        QCOMPARE(document["graph"].toObject(), twoNodes(2, 3));
+        QCOMPARE(session.workflow()["updated_at"].toString(), QString("r2"));
+        QVERIFY(!session.conflictPending()); QVERIFY(session.dirty());
+      } else {
+        // A merged graph the document refuses falls back to the whole-workflow review.
+        QTRY_VERIFY(session.conflictPending()); QCOMPARE(applied, 1);
+        QCOMPARE(session.conflictWorkflow(), http.remote);
+        QCOMPARE(document["graph"].toObject(), twoNodes(2, 1));
+      }
+    }
+  }
+  void staleSaveDuringOperationNoticeMergesInsteadOfConflicting() {
+    Http http; http.remote["graph"] = twoNodes(1, 1);
+    WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
+    QTRY_VERIFY(session.connected()); QTRY_VERIFY(http.peer);
+    session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound());
+    auto draft = session.workflow(); draft["graph"] = twoNodes(2, 1); session.setSnapshot(draft);
+    http.delay = true; session.flushAutosave(); QTRY_VERIFY(http.pending);
+    http.remote["updated_at"] = "r2"; http.remote["graph"] = twoNodes(1, 3);
+    notifyOps(http, "r2", "b"); QTest::qWait(30);
+    http.delay = false; http.status = 409; http.finish(http.pending, http.pendingBody);
+    QTRY_COMPARE(valueOf(session.workflow(), "b"), 3);
+    QVERIFY(!session.conflictPending()); QCOMPARE(valueOf(session.workflow(), "a"), 2);
+    QCOMPARE(session.workflow()["updated_at"].toString(), QString("r2"));
+  }
   void remoteReloadAndScopeDiscards() {
     Http http; WorkflowSession session; session.setAutosaveDelay(60000); session.connectToServer(http.url(), {});
     session.openWorkflow("bound"); QTRY_VERIFY(session.serverBound());

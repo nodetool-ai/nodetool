@@ -18,6 +18,7 @@ add_library(node_editor_core STATIC
  src/layout/SelectionLayout.cpp src/layout/SelectionLayout.h
  src/document/GroupIntoSubgraph.cpp src/document/GroupIntoSubgraph.h
  src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
+ src/document/WorkflowMerge.cpp src/document/WorkflowMerge.h
  src/server/WorkflowVersions.cpp src/server/WorkflowVersions.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/properties/DocumentPickerController.cpp src/properties/DocumentPickerController.h

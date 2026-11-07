@@ -1,5 +1,6 @@
 #include "WorkflowSession.h"
 #include "MsgPack.h"
+#include "../document/WorkflowMerge.h"
 #include <QJsonArray>
 #include <QDateTime>
 #include <QJsonDocument>
@@ -528,13 +529,19 @@ void WorkflowSession::submitAutosave(bool checkpoint, std::function<void(bool)> 
       if (!error.isEmpty()) {
         // The web logs a failed checkpoint and runs anyway. Only a conflict needs the user.
         m_autosaveState = checkpoint ? (m_dirty ? "unsaved" : "saved") : "error";
-        if (status == 409) {
+        // An operation notice already explains the stale revision. Its comparison
+        // merges the remote edits, as the web does after a failed autosave.
+        const bool merging = status == 409 && !m_pendingOps.isEmpty() && !m_pendingWithoutOps;
+        if (merging) {
+          m_autosaveState = "unsaved";
+          refreshRemoteWorkflow();
+        } else if (status == 409) {
           m_conflictPending = true;
           m_autosaveState = "conflict";
           refreshRemoteWorkflow();
           emit saveConflict(id);
         }
-        if (!checkpoint || status == 409) emit errorOccurred(error);
+        if (!merging && (!checkpoint || status == 409)) emit errorOccurred(error);
       } else if (result["skipped"].toBool() && checkpoint) {
         m_autosaveState = m_dirty ? "unsaved" : "saved";
       } else if (result["skipped"].toBool()) {
@@ -617,17 +624,23 @@ void WorkflowSession::clearConflict() {
   m_remoteAgain = false;
   m_flushAgain = false;
   m_keepLocalRevision.clear();
+  m_mergeConflicts.clear();
+  m_pendingOps = {};
+  m_pendingWithoutOps = false;
 }
 void WorkflowSession::refreshRemoteWorkflow() {
   if (m_id.isEmpty()) return;
   if (m_saving || m_remoteLoading) { m_remoteAgain = true; return; }
   const auto epoch = m_documentEpoch, remoteEpoch = ++m_remoteEpoch;
   const auto id = m_id;
+  // This comparison consumes the notices received so far. Later notices queue another one.
+  const auto ops = std::exchange(m_pendingOps, QJsonArray{});
+  const bool withoutOps = std::exchange(m_pendingWithoutOps, false);
   m_remoteLoading = true;
   m_autosave.cancel();
   emit stateChanged();
   request("GET", "/api/workflows/" + QString::fromLatin1(QUrl::toPercentEncoding(id)), {},
-    [this, epoch, remoteEpoch, id](QJsonObject remote, int status, QString error) {
+    [this, epoch, remoteEpoch, id, ops, withoutOps](QJsonObject remote, int status, QString error) {
       if (epoch != m_documentEpoch || remoteEpoch != m_remoteEpoch || id != m_id) return;
       m_remoteLoading = false;
       if (!error.isEmpty()) {
@@ -648,6 +661,8 @@ void WorkflowSession::refreshRemoteWorkflow() {
             m_autosave.changed();
           }
         }
+      } else if (m_dirty && !m_conflictPending && !withoutOps && !ops.isEmpty() && mergeRemoteWorkflow(remote, ops)) {
+        // Merged. True conflicts, if any, now wait for review.
       } else if (m_dirty || m_conflictPending) {
         const bool newConflict = !m_conflictPending;
         m_remoteWorkflow = remote;
@@ -722,8 +737,62 @@ void WorkflowSession::externalWorkflowChange(const QJsonObject &event) {
   }
   if (event["event"] != "updated" && event["event"] != "created") return;
   if (resource["updated_at"].toString() == m_revision) return;
+  // A notice without ops is a whole-document replacement (resourceChangeMessageOutSchema).
+  const auto ops = event["ops"].toArray();
+  if (ops.isEmpty()) {
+    m_pendingWithoutOps = true;
+  } else {
+    for (const auto &op : ops) m_pendingOps.append(op);
+  }
   // Notices carry row metadata, never an authoritative editable snapshot.
   refreshRemoteWorkflow();
+}
+bool WorkflowSession::mergeRemoteWorkflow(const QJsonObject &remote, const QJsonArray &ops) {
+  // Mirrors mergeExternalGraph in web/src/stores/WorkflowManagerStore.ts: merge
+  // against the last server copy, then roll the base and revision to the remote.
+  const auto local = workflow();
+  const auto result = mergeWorkflowSnapshots(m_persistedWorkflow, local, remote, ops);
+  const auto graph = result.graph["graph"].toObject();
+  QVariantList conflicts;
+  for (const auto &conflict : result.conflicts) {
+    conflicts.append(QVariantMap{{"kind", conflict.kind}, {"id", conflict.id}, {"label", conflict.label},
+      {"reason", conflict.reason}, {"remoteDeleted", conflict.external.isNull()}});
+  }
+  const auto persisted = std::exchange(m_persistedWorkflow, remote);
+  const auto revision = std::exchange(m_revision, remote["updated_at"].toString());
+  // Set before the host applies the graph, so its edit notification pauses writes.
+  if (!conflicts.isEmpty()) {
+    m_conflictPending = true;
+    m_remoteWorkflow = remote;
+    m_mergeConflicts = conflicts;
+    m_autosaveState = "conflict";
+  }
+  if (m_graphApplier && graph != local["graph"].toObject() && !m_graphApplier(graph)) {
+    // The document refused the merged graph. Offer the whole-workflow comparison instead.
+    m_persistedWorkflow = persisted;
+    m_revision = revision;
+    m_conflictPending = false;
+    m_remoteWorkflow = {};
+    m_mergeConflicts.clear();
+    return false;
+  }
+  // The applied edit already holds the graph. Root members and the revision live here.
+  auto merged = result.graph;
+  if (m_graphApplier) merged["graph"] = workflow()["graph"];
+  m_workflow = merged;
+  ++m_edit;
+  m_snapshotEdit = m_edit;
+  m_dirty = true;
+  if (m_conflictPending) {
+    // The host's edit notification marks the state unsaved. The review still waits.
+    m_autosaveState = "conflict";
+    emit saveConflict(m_id);
+  } else {
+    m_autosaveState = "unsaved";
+    m_autosave.changed();
+  }
+  emit workflowChanged();
+  return true;
 }
 bool WorkflowSession::send(const QString &cmd, const QJsonObject &data) {
   if (!m_connected) {

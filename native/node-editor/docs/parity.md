@@ -1442,6 +1442,28 @@ behavior, not audible output, hardware latency or device-removal recovery. See
 [live visualization design](live-audio-visual-parity.md) and
 [compressed audio design](compressed-audio-parity.md).
 
+### F33 operation-level server merge
+
+| Behavior | Web | Native | Status |
+|---|---|---|---|
+| Notice with `ops` on a dirty draft | `mergeExternalGraph` in [WorkflowManagerStore.ts](../../../web/src/stores/WorkflowManagerStore.ts) merges against the last server copy | `WorkflowSession` merges against its persisted snapshot through [WorkflowMerge](../src/document/WorkflowMerge.cpp) | Matches |
+| Notice without `ops` | One whole-document conflict | The existing whole-workflow comparison | Matches |
+| Merge units | Nodes and edges by ID, node `position`, `data` and remaining fields as separate slots ([workflowMerge.ts](../../../web/src/stores/workflowMerge.ts)) | The same slots on persisted nodes. The data group holds `data`, the dynamic slot fields and the `ui_properties` fields the web copies into ReactFlow node data | Matches |
+| Contest | The draft wins. A conflict is listed only for a unit an op touched. Unattributed ops count every contested unit ([documentMerge.ts](../../../web/src/stores/documentMerge.ts)) | Same | Matches |
+| Deletes and dangling edges | A delete against an edited unit keeps the draft and lists a conflict. Dangling edges are dropped and listed | Same | Matches |
+| Lineage links | `mergeGraphLinks` | Same rule | Matches |
+| Applying the merge | No undo entry. Writes continue | One "Merge server changes" undo step. Writes pause only when a conflict is listed | Differs by design |
+| Conflict review | Per-unit banner with accept and discard ([useDocumentConflicts.ts](../../../web/src/hooks/useDocumentConflicts.ts)) | The existing Server sync dialog lists each conflict in the web's wording, with whole-workflow **Keep local version** and **Reload server version** | Partial |
+
+[WorkflowMergeTest](../tests/document/WorkflowMergeTest.cpp) covers the merge
+rules, unknown members and the single undo step.
+[WorkflowAutosaveTests](../tests/server/WorkflowAutosaveTests.cpp) covers merged
+and conflicting notices over fake HTTP and MsgPack, the host applier, and a stale
+autosave that waits for the merge. [ServerSyncHostTest](../tests/ui/ServerSyncHostTest.cpp)
+covers the editor's undo step and the listed conflict. See
+[Server workflow synchronization](server-document-sync.md#operation-level-merge).
+Acceptance pending.
+
 ### F37 workflow versions, sharing and metadata
 
 **Version history**, **Share workflow** and **Workflow metadata** are available

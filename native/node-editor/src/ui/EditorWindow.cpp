@@ -598,6 +598,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(document_.undoStack(), &QUndoStack::canUndoChanged, this, &EditorWindow::schedulePanelChanged);
     connect(document_.undoStack(), &QUndoStack::canRedoChanged, this, &EditorWindow::schedulePanelChanged);
     session_.setSnapshotProvider([this] { return document_.snapshot(); });
+    // A merged server change is one undoable edit, so Undo returns to the local draft.
+    session_.setGraphApplier([this](const QJsonObject &graph) {
+        return document_.applyCommand({{"op", "replaceGraph"}, {"graph", graph}}, tr("Merge server changes")).ok;
+    });
     connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
         // GenerationHistory copies the document on the next inspector sync.
         historyWorkflowStale_ = true;

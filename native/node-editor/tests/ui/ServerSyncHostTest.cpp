@@ -173,6 +173,50 @@ private slots:
     QTRY_VERIFY(!window.session()->conflictPending()); QVERIFY(!window.session()->dirty());
     QCOMPARE(window.document()->snapshot()["graph"], http.remote["graph"]);
   }
+  static QJsonObject commentNode(const QString &id, const QString &text) {
+    return {{"id", id}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", text}}},
+      {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 10}, {"y", 10}}}}}};
+  }
+  static void notifyNodeOp(Http &http, const QString &revision, const QString &node) {
+    http.peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "resource_change"}, {"resource_type", "workflow"},
+      {"event", "updated"}, {"resource", QJsonObject{{"id", "bound"}, {"updated_at", revision}}},
+      {"ops", QJsonArray{QJsonObject{{"tool", "ui_update_node_data"}, {"input", QJsonObject{{"node_id", node}}}}}}}));
+  }
+  void operationNoticeMergesAsOneUndoStepAndListsConflicts() {
+    Http http;
+    http.remote["graph"] = QJsonObject{{"nodes", QJsonArray{commentNode("a", "base"), commentNode("b", "base")}}, {"edges", QJsonArray{}}};
+    EditorWindow window; window.resize(1280, 900); window.show(); window.session()->setAutosaveDelay(60000);
+    window.session()->connectToServer(http.url(), {}); window.session()->openWorkflow("bound");
+    QTRY_VERIFY(window.session()->serverBound()); QTRY_VERIFY(http.peer);
+    QTRY_COMPARE(window.document()->snapshot()["id"].toString(), QString("bound"));
+    // Let the comparison that follows the socket connection finish. A comparison
+    // without ops that sees the remote change would raise the whole-workflow conflict.
+    QTest::qWait(100); QTRY_VERIFY(!window.session()->remoteLoading());
+    QVERIFY(addComment(window, "local")); const auto local = window.document()->snapshot();
+    const auto undo = window.document()->undoStack()->index();
+    http.remote["updated_at"] = "r2";
+    http.remote["graph"] = QJsonObject{{"nodes", QJsonArray{commentNode("a", "remote"), commentNode("b", "base")}}, {"edges", QJsonArray{}}};
+    notifyNodeOp(http, "r2", "a");
+    QTRY_COMPARE(window.document()->node("a")["data"].toObject()["comment"].toString(), QString("remote"));
+    QVERIFY(!window.document()->node("local").isEmpty());
+    QCOMPARE(window.document()->undoStack()->index(), undo + 1);
+    QCOMPARE(window.document()->undoStack()->undoText(), QString("Merge server changes"));
+    QVERIFY(!window.session()->conflictPending()); QVERIFY(window.session()->dirty());
+    QVERIFY(!window.findChild<QDialog *>("server-sync-dialog"));
+    window.document()->undo(); QCOMPARE(window.document()->snapshot()["graph"], local["graph"]);
+    window.document()->redo(); QCOMPARE(window.document()->node("a")["data"].toObject()["comment"].toString(), QString("remote"));
+    // A contested unit keeps the local value and opens the existing review with it listed.
+    QVERIFY(window.document()->applyCommand({{"op", "setComment"}, {"id", "b"}, {"value", "mine"}}));
+    http.remote["updated_at"] = "r3";
+    http.remote["graph"] = QJsonObject{{"nodes", QJsonArray{commentNode("a", "remote"), commentNode("b", "theirs")}}, {"edges", QJsonArray{}}};
+    notifyNodeOp(http, "r3", "b");
+    QTRY_VERIFY(window.session()->conflictPending());
+    QCOMPARE(window.document()->node("b")["data"].toObject()["comment"].toString(), QString("mine"));
+    QTRY_VERIFY(panel(window)); auto *conflicts = item(panel(window), "server-sync-merge-conflicts");
+    QVERIFY(conflicts); QTRY_VERIFY(conflicts->isVisible());
+    QVERIFY(conflicts->property("text").toString().contains("b — changed outside while you were editing it"));
+    QVERIFY(http.writes.isEmpty());
+  }
   void deletionSaveCopyAndCredentialsClose() {
     Http http; EditorWindow window; window.show(); window.session()->setAutosaveDelay(60000);
     window.session()->connectToServer(http.url(), {}); window.session()->openWorkflow("bound");

@@ -11,7 +11,7 @@ target_include_directories(node_editor_generation_history_tests PRIVATE ../../sr
 target_link_libraries(node_editor_generation_history_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
 add_test(NAME node_editor_generation_history COMMAND node_editor_generation_history_tests)
 
-add_executable(node_editor_generation_history_live_tests GenerationHistoryLiveTest.cpp ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h ../../src/server/MsgPack.cpp ../../src/run/GenerationHistory.cpp ../../src/run/GenerationHistory.h ../../src/run/PartialRunPlanner.cpp)
+add_executable(node_editor_generation_history_live_tests GenerationHistoryLiveTest.cpp ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h ../../src/server/MsgPack.cpp ../../src/run/GenerationHistory.cpp ../../src/run/GenerationHistory.h ../../src/run/PartialRunPlanner.cpp)
 target_include_directories(node_editor_generation_history_live_tests PRIVATE ../../src)
 target_link_libraries(node_editor_generation_history_live_tests PRIVATE Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test)
 add_test(NAME node_editor_generation_history_live COMMAND node_editor_generation_history_live_tests)

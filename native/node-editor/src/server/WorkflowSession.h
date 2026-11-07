@@ -24,6 +24,7 @@ class WorkflowSession final : public QObject {
   Q_PROPERTY(QString autosaveState READ autosaveState NOTIFY stateChanged)
   Q_PROPERTY(bool conflictPending READ conflictPending NOTIFY stateChanged)
   Q_PROPERTY(QJsonObject conflictWorkflow READ conflictWorkflow NOTIFY stateChanged)
+  Q_PROPERTY(QVariantList mergeConflicts READ mergeConflicts NOTIFY stateChanged)
   Q_PROPERTY(bool serverBound READ serverBound NOTIFY stateChanged)
   Q_PROPERTY(bool connected READ connected NOTIFY stateChanged)
 public:
@@ -48,6 +49,13 @@ public:
   QString autosaveState() const { return m_autosaveState; }
   bool conflictPending() const { return m_conflictPending; }
   QJsonObject conflictWorkflow() const { return m_remoteWorkflow; }
+  // Units the local draft kept after an operation-level merge: kind, id, label,
+  // reason and remoteDeleted.
+  QVariantList mergeConflicts() const { return m_mergeConflicts; }
+  // Applies a merged graph to the host document as one undoable edit. Returns
+  // false when the document refuses it. Without an applier the session
+  // replaces its own snapshot.
+  void setGraphApplier(std::function<bool(const QJsonObject &)> applier) { m_graphApplier = std::move(applier); }
   bool serverBound() const { return !m_id.isEmpty() && !m_revision.isEmpty(); }
   void setVersionRestoreBusy(bool busy) { m_saving = busy; emit stateChanged(); if (!busy) { refreshRemoteWorkflow(); } }
   void acknowledgeRestoredVersion(const QJsonObject &response);
@@ -105,7 +113,14 @@ private:
   void clearConflict();
   void submitAutosave(bool checkpoint, std::function<void(bool)> done);
   void externalWorkflowChange(const QJsonObject &event);
+  bool mergeRemoteWorkflow(const QJsonObject &remote, const QJsonArray &ops);
   WorkflowAutosave m_autosave;
+  std::function<bool(const QJsonObject &)> m_graphApplier;
+  QVariantList m_mergeConflicts;
+  // Ops from workflow notices since the last comparison. A notice without ops
+  // replaces the whole document and so rules out an operation-level merge.
+  QJsonArray m_pendingOps;
+  bool m_pendingWithoutOps = false;
   QString m_autosaveState = "saved";
   QJsonObject m_remoteWorkflow;
   bool m_conflictPending = false, m_remoteLoading = false, m_remoteAgain = false, m_flushAgain = false;
