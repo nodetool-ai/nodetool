@@ -2953,3 +2953,26 @@ npm run test:journeys --workspace=web -- app-instances.spec.ts run-observability
 The registry lists browser journeys as manual checks. Instance tabs retain the
 application and instance IDs separately. Selecting a historical run is inspection
 state and does not replace working variables or invoke an operation.
+
+
+### Native graph runner
+
+```bash
+node scripts/check-native-graph-runner.mjs
+```
+
+The default gate selects this check for `native/graph-runner/` and the native
+editor's local execution bridge. It parses the guest and harness JavaScript
+modules, rebuilds the guest and shader catalog, configures and builds the
+C++ runner, runs CTest with empty test registries rejected, and compares
+fixture message streams against the TypeScript reference. This is focused
+conformance, not the full node parity inventory. Editor changes also retain
+the separate manual Qt editor check.
+
+Install the workspace dependencies first. The check requires Node, CMake
+3.28 or newer, a C++20 compiler, and a GPU adapter or software Vulkan ICD for
+GPU tests. CMake fetches dependencies pinned in the runner's CMake files on
+the first build. Set `NODETOOL_GRAPH_RUNNER_BUILD_DIR` to reuse a populated
+CMake build directory. The default is `native/graph-runner/build`. The wrapper
+always rebuilds sources and guest artifacts before testing, including when
+reusing a build. Missing prerequisites and failed commands return nonzero.

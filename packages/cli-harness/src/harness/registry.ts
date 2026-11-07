@@ -1359,6 +1359,15 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "native-graph-runner",
+    title: "Native QuickJS graph runner",
+    command: "node scripts/check-native-graph-runner.mjs",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Native graph runner",
+    selfcheck: { command: "node scripts/check-native-graph-runner.mjs", cost: "cheap" }
+  },
+  {
     id: "native-node-editor",
     title: "Native workflow graph editor build and Qt tests",
     command: "node native/node-editor/scripts/check.mjs",
@@ -2553,6 +2562,19 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/harness-registry.test.ts",
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
+    ]
+  },
+  {
+    id: "native-graph-runner",
+    title: "Native graph execution and editor local-run dependency",
+    harnesses: ["native-graph-runner"],
+    paths: [
+      "native/graph-runner/",
+      "scripts/check-native-graph-runner.mjs",
+      "native/node-editor/CMakeLists.txt",
+      "native/node-editor/src/server/WorkflowSession.cpp",
+      "native/node-editor/src/server/WorkflowSession.h",
+      "native/node-editor/tests/server/LocalRunTests.cpp"
     ]
   },
   {

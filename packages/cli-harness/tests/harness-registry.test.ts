@@ -403,6 +403,19 @@ describe("harness gate", () => {
   });
 
   it.each([
+    "native/graph-runner/src/main.cpp",
+    "native/graph-runner/guest/entry.mjs",
+    "native/graph-runner/parity/run.mjs",
+    "scripts/check-native-graph-runner.mjs",
+    "native/node-editor/src/server/WorkflowSession.cpp"
+  ])("runs the native graph runner check for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks.find((entry) => entry.harnessId === "native-graph-runner")?.command)
+      .toBe("node scripts/check-native-graph-runner.mjs");
+  });
+
+  it.each([
     "native/node-editor/CMakeLists.txt",
     "native/node-editor/src/graph/WorkflowGraphModel.cpp",
     "native/node-editor/qml/Inspector.qml",
