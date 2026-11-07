@@ -984,8 +984,8 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "generativelanguage.googleapis.com, model id from a constant."
   ),
   fixedHost(
-    "packages/elevenlabs-nodes/src/nodes/text-to-speech.ts",
-    "ElevenLabs TTS",
+    "packages/runtime/src/providers/elevenlabs-provider.ts",
+    "ElevenLabs provider (TTS and STT, incl. the elevenlabs-nodes request nodes)",
     "ELEVENLABS_API_KEY",
     "api.elevenlabs.io."
   ),

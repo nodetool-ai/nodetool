@@ -1,6 +1,6 @@
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isRecord, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { getElevenLabsApiKey, VOICE_ID_MAP } from "../elevenlabs-base.js";
+import { callElevenLabs, VOICE_ID_MAP } from "../elevenlabs-base.js";
 
 /** Voice settings the API accepts; each field is sent only when it differs
  * from the API default. */
@@ -193,9 +193,9 @@ export class TextToSpeechNode extends BaseNode {
   })
   declare text_normalization: any;
 
-  async process(): Promise<TextToSpeechNodeOutputs> {
-    const apiKey = getElevenLabsApiKey(this._secrets);
-
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TextToSpeechNodeOutputs> {
     const voiceId = String(this.voice_id ?? VOICE_ID_MAP.Aria);
     if (!voiceId) throw new Error("voice_id is required");
 
@@ -248,24 +248,18 @@ export class TextToSpeechNode extends BaseNode {
       payload.voice_settings = voiceSettings;
     }
 
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
+    const { output } = await callElevenLabs(context, {
+      capability: "text_to_speech",
+      model: modelId,
+      route: "text-to-speech",
+      input: { voice_id: voiceId, ...payload },
+      nodeId: this.__node_id
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`ElevenLabs API error: ${errorText}`);
+    const audio = isRecord(output) ? output.data : undefined;
+    if (!(audio instanceof Uint8Array)) {
+      throw new Error("ElevenLabs returned no audio");
     }
-
-    const audioData = await response.arrayBuffer();
-    const base64 = Buffer.from(audioData).toString("base64");
+    const base64 = Buffer.from(audio).toString("base64");
 
     return {
       output: {
