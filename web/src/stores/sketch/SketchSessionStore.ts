@@ -28,6 +28,12 @@ import type {
   LayerVersion,
   LayerWorkflowBinding
 } from "@nodetool-ai/image-editor";
+import {
+  decodeSketchLayerData,
+  encodeSketchLayerData,
+  SERIALIZED_LAYER_DATA_PREFIX,
+  type SketchLayerBounds
+} from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 import { type SketchDocument, type SketchTool } from "../../components/sketch/types";
 import type { SketchStore } from "../../components/sketch/state";
@@ -82,6 +88,7 @@ type SketchSaveResult = Pick<SketchDocumentResponse, "updatedAt">;
 
 interface ExternalizationResult {
   sketch: PersistedSketchEditorState;
+  byteLength: number;
   externalizedLayerIds: string[];
 }
 
@@ -634,113 +641,139 @@ async function dataUrlToFile(dataUrl: string, fileName: string): Promise<File> {
 
 async function externalizeOversizedBitmaps(
   sketch: PersistedSketchEditorState,
-  layerBindings: LayerWorkflowBinding[]
+  layerBindings: LayerWorkflowBinding[],
+  uploadedRefs: Map<string, string>
 ): Promise<ExternalizationResult> {
   const nextSketch = structuredClone(sketch);
-  const uploadedRefs = new Map<string, string>();
   const externalizedLayerIds = new Set<string>();
+  const inlineBytes = getImageDocumentByteLength(nextSketch, layerBindings);
+  const fitsInline = inlineBytes <= MAX_PERSISTED_IMAGE_DOCUMENT_BYTES;
+  const hasUploadedBitmaps = uploadedRefs.size > 0;
 
   type Candidate = {
-    key: string;
+    data: string;
+    image: string;
+    bounds: SketchLayerBounds | undefined;
     bytes: number;
-    getValue: () => string | null;
-    replace: (uri: string) => void;
+    replace: (uri: string, bounds: SketchLayerBounds | undefined) => number;
     fileName: string;
     layerId?: string;
   };
 
-  const buildCandidates = (): Candidate[] => {
-    const candidates: Candidate[] = [];
-
-    nextSketch.layers.forEach((layer, index) => {
-      if (!layer.data || !layer.data.startsWith("data:")) {
-        return;
+  const candidates: Candidate[] = [];
+  const decodedLayers = new Map<string, ReturnType<typeof decodeSketchLayerData>>();
+  const addCandidate = (
+    data: string | null,
+    fileName: string,
+    replace: Candidate["replace"],
+    layerId?: string
+  ): void => {
+    if (!data || (fitsInline && !hasUploadedBitmaps && data.length <= MAX_INLINE_LAYER_BYTES)) {
+      return;
+    }
+    let image: string | null = data;
+    let bounds: SketchLayerBounds | undefined;
+    if (data.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
+      let decoded = decodedLayers.get(data);
+      if (!decoded) {
+        decoded = decodeSketchLayerData(
+          data,
+          nextSketch.canvas.width,
+          nextSketch.canvas.height
+        );
+        decodedLayers.set(data, decoded);
       }
-      const data = layer.data;
+      ({ image, bounds } = decoded);
+    }
+    if (image?.startsWith("data:")) {
       candidates.push({
-        key: `layer:${layer.id}`,
-        bytes: getDataUrlByteLength(data),
-        fileName: sanitizeLayerFileName(layer.name, index),
-        layerId: layer.id,
-        getValue: () => layer.data,
-        replace: (uri) => {
-          layer.data = null;
-          layer.imageReference = {
-            uri,
-            naturalWidth: Math.max(
-              1,
-              layer.contentBounds?.width ?? nextSketch.canvas.width
-            ),
-            naturalHeight: Math.max(
-              1,
-              layer.contentBounds?.height ?? nextSketch.canvas.height
-            ),
-            objectFit: "fill"
-          };
-        }
+        data,
+        image,
+        bounds,
+        bytes: getDataUrlByteLength(image),
+        replace,
+        fileName,
+        layerId
       });
-    });
-
-    nextSketch.history?.forEach((entry, entryIndex) => {
-      Object.entries(entry.layerSnapshots).forEach(([layerId, snapshot]) => {
-        if (!snapshot || !snapshot.startsWith("data:")) {
-          return;
-        }
-        candidates.push({
-          key: `history:${entryIndex}:${layerId}`,
-          bytes: getDataUrlByteLength(snapshot),
-          fileName: sanitizeLayerFileName(layerId, entryIndex),
-          getValue: () => entry.layerSnapshots[layerId],
-          replace: (uri) => {
-            entry.layerSnapshots[layerId] = uri;
-          }
-        });
-      });
-    });
-
-    return candidates.sort((a, b) => b.bytes - a.bytes);
+    }
   };
 
-  const candidates = buildCandidates();
+  nextSketch.layers.forEach((layer, index) => {
+    addCandidate(
+      layer.data,
+      sanitizeLayerFileName(layer.name, index),
+      (uri, bounds) => {
+        if (bounds) {
+          layer.data = encodeSketchLayerData(uri, bounds);
+          return layer.data.length;
+        }
+        layer.data = null;
+        layer.imageReference = {
+          uri,
+          naturalWidth: Math.max(
+            1,
+            layer.contentBounds?.width ?? nextSketch.canvas.width
+          ),
+          naturalHeight: Math.max(
+            1,
+            layer.contentBounds?.height ?? nextSketch.canvas.height
+          ),
+          objectFit: "fill"
+        };
+        return uri.length + 512;
+      },
+      layer.id
+    );
+  });
+
+  nextSketch.history?.forEach((entry, entryIndex) => {
+    Object.entries(entry.layerSnapshots).forEach(([layerId, snapshot]) => {
+      addCandidate(snapshot, sanitizeLayerFileName(layerId, entryIndex), (uri, bounds) => {
+        const replacement = bounds ? encodeSketchLayerData(uri, bounds) : uri;
+        entry.layerSnapshots[layerId] = replacement;
+        return replacement.length;
+      });
+    });
+  });
+
+  if (hasUploadedBitmaps) {
+    const liveImages = new Set(candidates.map(({ image }) => image));
+    for (const image of uploadedRefs.keys()) {
+      if (!liveImages.has(image)) {
+        uploadedRefs.delete(image);
+      }
+    }
+  }
+  candidates.sort((a, b) => b.bytes - a.bytes);
 
   // Serializing the whole document is O(total bytes); do it once and track the
   // running total as candidates are externalized instead of re-serializing per
-  // iteration. The estimate is conservative (each replacement also adds a
-  // small imageReference / uri payload, padded below), and `saveSnapshot`
-  // re-checks the exact size after externalization.
-  const REPLACEMENT_PADDING_BYTES = 512;
-  let totalBytes =
-    candidates.length > 0
-      ? getImageDocumentByteLength(nextSketch, layerBindings)
-      : 0;
+  // iteration. Legacy layer replacements reserve space for the imageReference
+  // object. Recheck the exact size if any bitmap was externalized.
+  let totalBytes = inlineBytes;
+  let replacedBitmap = false;
 
   for (const candidate of candidates) {
+    let uri = uploadedRefs.get(candidate.image);
     if (
+      !uri &&
       candidate.bytes <= MAX_INLINE_LAYER_BYTES &&
       totalBytes <= MAX_PERSISTED_IMAGE_DOCUMENT_BYTES
     ) {
-      break;
-    }
-
-    const sourceData = candidate.getValue();
-    if (sourceData == null || !sourceData.startsWith("data:")) {
       continue;
     }
 
-    let uri = uploadedRefs.get(sourceData);
     if (!uri) {
       const asset = await useAssetStore.getState().createAsset(
-        await dataUrlToFile(sourceData, candidate.fileName)
+        await dataUrlToFile(candidate.image, candidate.fileName)
       );
       uri = `asset://${asset.id}`;
-      uploadedRefs.set(sourceData, uri);
+      uploadedRefs.set(candidate.image, uri);
     }
 
-    candidate.replace(uri);
-    totalBytes -= Math.max(
-      0,
-      sourceData.length - uri.length - REPLACEMENT_PADDING_BYTES
-    );
+    const replacementBytes = candidate.replace(uri, candidate.bounds);
+    totalBytes += replacementBytes - candidate.data.length;
+    replacedBitmap = true;
     if (candidate.layerId) {
       externalizedLayerIds.add(candidate.layerId);
     }
@@ -748,6 +781,9 @@ async function externalizeOversizedBitmaps(
 
   return {
     sketch: nextSketch,
+    byteLength: replacedBitmap
+      ? getImageDocumentByteLength(nextSketch, layerBindings)
+      : inlineBytes,
     externalizedLayerIds: [...externalizedLayerIds]
   };
 }
@@ -782,29 +818,25 @@ async function saveSnapshot(
   documentId: string,
   name: string,
   revisionOverride?: string,
-  onSaved?: (response: SketchDocumentResponse) => void
+  onSaved?: (response: SketchDocumentResponse) => void,
+  uploadedRefs = new Map<string, string>()
 ): Promise<SketchSaveResult> {
   const session = instance.session;
   const layerBindings = Object.values(session.getState().bindings);
   const snapshot = buildSnapshot(instance.editor);
   const sketch = toPersistedSketchEditorState(snapshot);
-  const prepared = await externalizeOversizedBitmaps(sketch, layerBindings);
+  const prepared = await externalizeOversizedBitmaps(sketch, layerBindings, uploadedRefs);
   const nextHash = computeImageDocumentHash(prepared.sketch, layerBindings);
   const store = session.getState();
-  const preparedBytes = getImageDocumentByteLength(
-    prepared.sketch,
-    layerBindings
-  );
-
   if (nextHash === store.lastServerHash) {
     return { updatedAt: store.baseUpdatedAt ?? "" };
   }
 
-  if (preparedBytes > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
+  if (prepared.byteLength > MAX_PERSISTED_IMAGE_DOCUMENT_BYTES) {
     session.getState().markSaveFailed(false);
     useNotificationStore.getState().addNotification({
       content:
-        "Sketch autosave was skipped because the document is still too large even after externalizing big layers.",
+        "Sketch autosave was skipped because the sketch data, including undo history, still exceeds 10 MB.",
       type: "warning",
       alert: false,
       dedupeKey: `sketch-autosave-too-large:${documentId}`,
@@ -926,6 +958,7 @@ export function useStandaloneSketchDocument(
   // which is rebuilt whenever the cached response changes, so a save started
   // by an earlier controller still counts.
   const savesInFlightRef = useRef(new Set<Promise<unknown>>());
+  const bitmapUploadsRef = useRef({ documentId: "", refs: new Map<string, string>() });
   // Keep the latest trpc utils available to the autosave callback. Reassign
   // on every render so the closure inside `saveSnapshot` sees the current
   // utils object even though it lives outside any React effect.
@@ -979,6 +1012,10 @@ export function useStandaloneSketchDocument(
     let alive = true;
     let controller: DocumentSyncController;
     const schedule = (): void => controller.markDirty();
+    if (bitmapUploadsRef.current.documentId !== response.id) {
+      bitmapUploadsRef.current = { documentId: response.id, refs: new Map() };
+    }
+    const uploadedRefs = bitmapUploadsRef.current.refs;
 
     // Writes from outside this browser (agent doc-ops, CLI, another tab) come
     // in as `resource_change`. A clean editor re-hydrates from the server copy
@@ -1214,7 +1251,8 @@ export function useStandaloneSketchDocument(
           current.name,
           revision,
           (response) =>
-            utilsRef.current.sketch.get.setData({ id: response.id }, response)
+            utilsRef.current.sketch.get.setData({ id: response.id }, response),
+          uploadedRefs
         );
         savesInFlightRef.current.add(pending);
         try {
