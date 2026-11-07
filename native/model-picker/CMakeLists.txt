@@ -8,7 +8,7 @@ qt_add_qml_module(nodetool_model_picker
     RESOURCE_PREFIX /qt/qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/ModelPicker
     QML_FILES qml/ModelPicker.qml qml/ModelPickerButton.qml qml/ModelPickerMetrics.qml
-    SOURCES src/ModelPickerCatalog.h src/ModelPickerCatalog.cpp)
+    SOURCES src/ModelPickerCatalog.h src/ModelPickerCatalog.cpp src/CatalogRules.h src/ModelLabels.h)
 target_link_libraries(nodetool_model_picker PUBLIC nodetool_ui_primitives)
 target_include_directories(nodetool_model_picker PUBLIC src)
 target_link_libraries(nodetool_model_picker PUBLIC Qt6::Core Qt6::Qml Qt6::Quick Qt6::QuickControls2)
