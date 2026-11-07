@@ -35,6 +35,8 @@ signals:
   void errorOccurred(QString message);
   void nodeCreated(QString id);
   void workflowFileDropped(QString path);
+  // The Copy action of a loaded image on a card.
+  void copyRequested(QString node, QString property);
 protected:
   bool eventFilter(QObject *, QEvent *) override;
 private:
@@ -68,6 +70,8 @@ private:
   bool accepts(const QMimeData *) const;
   // The node, property and media type of the drop zone under a viewport point.
   QStringList dropZone(const QPoint &viewportPosition) const;
+  // The drop zone a click acts on, with "pick" or "copy" as its fourth entry.
+  QStringList clickZone(const QPoint &viewportPosition) const;
   void drop(const QMimeData *, const QPointF &, const QStringList &zone);
   // Asks for a file for the drop zone clicked at a viewport point, then uploads it as a drop.
   void pickFile(const QStringList &zone, const QPoint &viewportPosition);

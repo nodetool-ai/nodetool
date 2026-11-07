@@ -4,7 +4,10 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QVariantMap>
+#include <QTextLayout>
 #include <QVector>
+#include <memory>
+#include <vector>
 
 namespace nodetool {
 // The body a node type draws, as the bespoke registry in
@@ -23,6 +26,24 @@ QStringList modelChipNames(const QJsonObject &metadata, const QJsonObject &ui);
 
 // The header icon type, as BaseNode, OutputNode and PreviewNode pass iconType.
 QString headerIconType(CardBody body, const QJsonObject &metadata);
+
+// A schema-driven provider node of DynamicSchemaNodeShell.tsx: fal, kie or
+// replicate. Its card keeps the generic rows and adds the model to the title,
+// a hint while no schema is loaded, a footer and the provider's edge color.
+struct SchemaProvider {
+    QString label;
+    QColor accent;
+    // The ui_properties field naming the model, and a prefix the title drops.
+    QString detailKey;
+    QString titlePrefix;
+    QString description;
+    QString instructions;
+};
+// The provider of a node type, or an empty label for any other node.
+SchemaProvider schemaProvider(const QString &type);
+// The title detail, as the shell's titleDetail, and the footer caption.
+QString schemaTitleDetail(const SchemaProvider &provider, const QJsonObject &ui);
+QString schemaFooter(const SchemaProvider &provider, const QJsonObject &ui);
 
 struct CardBodyInput {
     QJsonObject node;
@@ -49,6 +70,11 @@ inline constexpr auto setVariableType = "nodetool.variable.SetVariable";
 QStringList graphVariableNames(const QJsonArray &nodes);
 // Bodies whose layout reads the graph's variable names.
 bool readsGraphVariables(CardBody body);
+
+// Lays out a text area's text as a pre-wrap textarea wraps it: each paragraph
+// wraps at the width on its own, an empty one still takes a line, and lines
+// sit lineHeight apart from the top. The Constant String body sizes and paints with it.
+std::vector<std::unique_ptr<QTextLayout>> textAreaLayouts(const QString &text, const QFont &font, double width, double lineHeight);
 
 // A slider row's track, the value under a card-local x, and the value label.
 QRectF sliderTrack(const NodeRow &row);

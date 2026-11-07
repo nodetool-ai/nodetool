@@ -47,6 +47,12 @@ struct CanvasTheme {
   QColor previewSelected{"#d4d6db"};
   QColor outputSelected{"#4adbf1"};
   QColor selectionShadow{0, 0, 0, 77};
+  // Media on cards: the web's c_scrim behind badges and asset actions with its
+  // grey 100 ink, and the alpha surface behind an image.
+  QColor mediaScrim{0, 0, 0, 153};
+  QColor mediaScrimInk{"#d4d6db"};
+  QColor alphaBase{"#1e1e1e"};
+  QColor alphaChecker{"#2a2a2a"};
   QString sansFamily{"Inter"};
   QString monoFamily{"JetBrains Mono"};
 };
@@ -179,6 +185,8 @@ signals:
     void branchDimmingChanged();
     void outputFormRequested(const QString &id);
     void dynamicPortFormRequested(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
+    // The card's slot type chip asks for the type menu below sceneAnchor.
+    void dynamicTypeMenuRequested(const QString &id, const QString &name, const QRectF &sceneAnchor);
     void childOpenRequested(const QString &id);
   void canvasContextMenuRequested(const QString &nodeId, const QPoint &screenPosition);
   void paneDoubleClicked(const QPointF &scenePosition);
@@ -187,6 +195,10 @@ signals:
   void reconnectDiscarded(const QString &id);
   void titleEditRequested(QtNodes::NodeId id);
   void inlineEditRequested(QtNodes::NodeId id, const QString &name);
+  // A document select's open button: the document kind and the chosen id.
+  void documentOpenRequested(const QString &kind, const QString &id);
+  // Opens the property's inline editor expanded, as Constant String's Open editor.
+  void inlineExpandRequested(QtNodes::NodeId id, const QString &name);
   void looseWireDropped(QtNodes::NodeId node, QtNodes::PortType port,
                         QtNodes::PortIndex index, const QPointF &position);
   // A right-click on a handle opens its connection menu (web NodeOutput.tsx:66-84, PropertyField.tsx:165-180).

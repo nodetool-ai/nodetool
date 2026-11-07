@@ -34,10 +34,10 @@ InlinePropertyPresenter::InlinePropertyPresenter(WorkflowGraphModel &model,
     EditorScene &scene, QGraphicsView &view, QQmlEngine *engine, QObject *parent)
     : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine) {
   connect(&scene_, &EditorScene::inlineEditRequested, this, &InlinePropertyPresenter::activate);
-  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, &InlinePropertyPresenter::cancel);
+  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { if (!holding_) { cancel(); } });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId) { reposition(); });
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { reposition(); });
-  connect(&scene_, &QGraphicsScene::selectionChanged, this, [this] { if (active() && !current()) { cancel(); } });
+  connect(&scene_, &QGraphicsScene::selectionChanged, this, [this] { if (!holding_ && active() && !current()) { cancel(); } });
   connect(view.horizontalScrollBar(), &QScrollBar::valueChanged, this, &InlinePropertyPresenter::reposition);
   connect(view.verticalScrollBar(), &QScrollBar::valueChanged, this, &InlinePropertyPresenter::reposition);
   qApp->installEventFilter(this);
@@ -104,6 +104,9 @@ void InlinePropertyPresenter::cancel() {
   ++generation_;
   committing_ = false;
   pendingValue_.clear();
+  applyQueued_ = false;
+  pendingApply_.clear();
+  contentHeight_ = 0;
   descriptor_.clear();
   name_.clear();
   node_ = QtNodes::InvalidNodeId;
@@ -141,6 +144,48 @@ void InlinePropertyPresenter::commit(const QVariant &value, int token) {
     if (token == generation_) { flushCommit(); }
   });
 }
+void InlinePropertyPresenter::apply(const QVariant &value, int token) {
+  if (token != generation_ || committing_ || !current()) { return; }
+  pendingApply_ = value;
+  if (applyQueued_) { return; }
+  applyQueued_ = true;
+  // Deferred like commit(): the Quick handler that published the value returns first.
+  QTimer::singleShot(0, this, [this, token] { if (token == generation_) { flushApply(); } });
+}
+void InlinePropertyPresenter::flushApply() {
+  if (!applyQueued_) { return; }
+  applyQueued_ = false;
+  const auto value = pendingApply_;
+  pendingApply_.clear();
+  if (!current() || !commitProperty) { return; }
+  const auto resource = model_.resourceId(node_);
+  holding_ = true;
+  commitProperty(resource, name_, value);
+  holding_ = false;
+  // Projection can replace the node's graph id. The resource id is stable.
+  node_ = QtNodes::InvalidNodeId;
+  for (const auto id : model_.allNodeIds()) {
+    if (model_.resourceId(id) == resource) { node_ = id; break; }
+  }
+  const auto descriptor = model_.nodeExists(node_) ? model_.inlineDescriptor(node_, name_) : QVariantMap{};
+  if (descriptor.isEmpty()) { cancel(); return; }
+  descriptor_ = descriptor;
+  if (!current()) { cancel(); return; }
+  emit changed();
+  reposition();
+}
+void InlinePropertyPresenter::close(int token) {
+  if (token != generation_) { return; }
+  flushApply();
+  if (token != generation_) { return; }
+  cancel();
+  view_.setFocus(Qt::OtherFocusReason);
+}
+void InlinePropertyPresenter::setContentHeight(double height) {
+  if (!active() || qFuzzyCompare(height, contentHeight_)) { return; }
+  contentHeight_ = std::max(0.0, height);
+  reposition();
+}
 
 void InlinePropertyPresenter::expand() {
   if (!current()) { cancel(); return; }
@@ -161,8 +206,10 @@ void InlinePropertyPresenter::updateMask() {
   widget_->setMask(region.intersected(QRegion(view_.viewport()->rect())));
 }
 void InlinePropertyPresenter::reposition() {
+  if (holding_) { return; }
   if (!widget_ || !current()) { if (active()) { cancel(); } return; }
   auto local = model_.inlineFieldRect(node_, name_);
+  if (contentHeight_ > 0) { local.setHeight(std::max(local.height(), contentHeight_)); }
   const auto kind = descriptor_["kind"].toString();
   if (name_ == "code") { local.setHeight(std::max(280.0, local.height())); }
   if (kind == "text" || kind == "multiline") {

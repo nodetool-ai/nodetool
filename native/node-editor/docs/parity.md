@@ -393,9 +393,9 @@ dynamic outputs, types a search, and clicks Delete output with the pointer.
 | 7 | Rename starts from the card label or edit icon (`components/node/PropertyInput.tsx` 496-513, 648-658) | Partial. The inspector has rename fields | Implemented through card-label double-click and an edit control |
 | 8 | Enter or leaving the field commits a rename (`PropertyInput.tsx` 478-486) | Partial. Only the Rename button committed | Card rename commits on Enter or blur and cancels on Escape. The inspector keeps its explicit Rename/Cancel behavior and retains a draft on focus loss |
 | 9 | Rename moves the value, the declaration and the wires (`useDynamicProperty.ts` 134-161, `NodeStore.ts` 1293-1306) | Implemented | Implemented |
-| 10 | An unconnected input of a user-owned node shows a type chip with the slot palette, narrowed by `allowed_dynamic_slot_types` (`components/node/DynamicSlotTypePicker.tsx` 47-114, `utils/dynamicSlotTypes.ts` 39-111, `PropertyInput.tsx` 530-535) | Missing | Implemented as a select in the inspector row through the new `setDynamicInputType` command. Schema-driven nodes and connected inputs show none |
+| 10 | An unconnected input of a user-owned node shows a type chip with the slot palette, narrowed by `allowed_dynamic_slot_types` (`components/node/DynamicSlotTypePicker.tsx` 47-114, `utils/dynamicSlotTypes.ts` 39-111, `PropertyInput.tsx` 530-535) | Missing | Implemented on the card label row and in the inspector row through the `setDynamicInputType` command. The card chip shows the slot type in its type color and opens a checked menu of the palette. Schema-driven nodes, connected inputs and read-only cards show none |
 | 11 | A retype keeps a value that fits the new type and reseeds one that does not (`useDynamicProperty.ts` 175-197, `utils/dynamicSlots.ts` 126-147) | Missing | Implemented, one undo entry |
-| 12 | The X removes the value, the declaration and the wires in one step (`useDynamicProperty.ts` 75-98) | Implemented | Implemented |
+| 12 | The X removes the value, the declaration and the wires in one step (`useDynamicProperty.ts` 75-98) | Implemented in the inspector | Implemented on the card label row and in the inspector |
 | 13 | The output-handle menu deletes a dynamic output (`OutputContextMenu.tsx` 93-124) | Missing | Implemented. See F03 row 11 |
 | 14 | Output rename has a hook and no UI in the web (`hooks/nodes/useDynamicOutput.ts` 38-46) | Implemented in the inspector | Implemented |
 | 15 | Legacy string declarations read as their type (`utils/dynamicSlots.ts` 85-107) | Partial. They read as `any` | Implemented in the inspector rows |
@@ -406,8 +406,16 @@ keys in the real select, presses Escape in a rename draft, moves focus away
 from another and checks that its draft stays, adds a wire and checks the
 refused retype, and reads undo and redo. [AuthoringUiTest](../tests/ui/AuthoringUiTest.cpp) and
 [the graph projection suite](../tests/ui/DynamicPortsTest.cpp) cover the
-existing flows. Retyping remains in the inspector. The card type chip and
-complete card removal affordances still need visual acceptance.
+existing flows. DynamicCardTest `cardTypeChipRetypesInOneStep` clicks the card
+chip, checks the current type in the menu, clicks another type and reads the
+reseeded value, the single undo entry and the restored snapshot.
+`cardTypeChipHiddenForConnectedAndSchemaDrivenSlots` checks the connected,
+schema-driven and read-only cases, and `cardRemoveControlDeletesSlotAndWires`
+removes a connected slot from the card. The card's rename control used an
+`edit` icon that the canvas icon table lacked, so it painted nothing. The table
+now has the web's EditOutlined and CloseOutlined paths. The web reveals the
+chip, rename and remove controls on hover. The native card paints them at all
+times. Visual acceptance against the web remains open.
 
 [DynamicCardTest](../tests/ui/DynamicCardTest.cpp) drives card additions,
 controlled output-type selection, connected rename with preserved edge metadata,
@@ -597,6 +605,27 @@ scope rejection, viewport alignment, and idle
 geometry updates. Typing blocks graph shortcuts while unrelated shortcuts remain
 available. [InlineHostTest](../tests/ui/InlineHostTest.cpp) exercises actual
 EditorWindow card clicks, typing, one-step undo, and credential-change rejection.
+
+The card also edits the structured, workflow and collection fields that the
+web edits inline. The web's rules decide which fields qualify. ListProperty and
+DictProperty edit a table only on `nodetool.constant.List` and
+`nodetool.constant.Dict`, StringListProperty edits any list of strings, and
+JSONProperty and RecordTypeProperty edit on every card. Other lists and
+dictionaries show their label alone on both editors. The card paints a summary
+field. A click opens a panel that hosts the inspector's structured row editor.
+Each change applies as one undo step and the panel stays open across the
+re-projection, as the web's tables apply each cell edit. A canvas click commits a
+typed entry and closes the panel. Escape closes it. Workflow, workflow list and
+collection fields open a select that loads the first 200 workflows or the
+collections from the server. A workflow list choice toggles one workflow and
+keeps the select on the card. `structuredFieldsFollowWebCardRules`,
+`structuredPanelStaysOpenAcrossEdits`, `recordColumnsAndJsonOnCard` and
+`workflowAndCollectionSelectsOnCard` drive these with pointer and key events
+against a local tRPC stub. InlineHostTest
+`structuredPanelStaysOpenThroughHostProjection` repeats the panel through
+EditorWindow. The panel's entry rows and JSON text area differ in layout from
+the web's ListTable, chip input and Monaco editor. The web's data type select above
+a constant List or Dict table has no native equivalent.
 
 Run `ctest --test-dir <build> -R 'node_editor_inline_(property|host)'
 --output-on-failure`. `NODETOOL_INLINE_CAPTURE=/path/prefix` writes native
@@ -3050,7 +3079,7 @@ is visible only on inspection.
 | W1 | Card fields | A node with `inline_fields` shows those fields as rows and `input_fields` as handles. Other properties stay in the inspector until an edge targets them, which makes them handles. The StringInput card is 129 px tall. | Every property was a row. The StringInput card was 419 px tall with Name, Value and Description. | High | Fixed in `WorkflowGraphModel.cpp`. Model properties keep a row, as web model chips do. Asserted by `cardsFollowWebFieldClassification`. |
 | W2 | Card title | Input nodes show their `name` value, such as "subject". | Input nodes showed the type title "String Input". | Medium | Fixed in `WorkflowGraphModel.cpp`. Asserted by `cardsFollowWebFieldClassification`. |
 | W3 | Unclassified metadata | Metadata without `inline_fields`, such as Prompt and Fake Generate Image, shows no field rows (`resolveInlineFieldNames` in `web/src/utils/exposedInputs.ts`). Fake Generate Image is 130 px tall. | The same rule. Other properties stay in the inspector until an edge targets them, and an unplaced model property shows a model chip. Fake Generate Image is 129 px tall. | Medium | Fixed in `WorkflowGraphModel.cpp` (`cardField`). Asserted by `CardBodiesTest::cardHeightsMatchWebCapture`. Test fixtures that relied on the old fallback now declare `inline_fields` or `input_fields`: `PropertyFixture.h`, `CompatiblePickerFixture.h`, `BodyConnectionFixture.h`, `InlinePropertyTest`, `IncrementalProjectionTest`, `CanvasMediaTest`, `DynamicPortsTest`, `CodePropertyTest`, `CompatiblePickerHostTest`, `EditorTest` and `BodyDropHostTest`. Not accepted. |
-| W4 | Bespoke bodies | Prompt shows a variable composer, Resize Image a mode switch, Blur a select and slider, Preview a 400×300 preview, Output a result placeholder, Image Input a drop zone, Agent a model chip and Add output. Header icons come from `IconForType.tsx`. | `CardBodies.cpp` lays out and `CardBodyPainter.cpp` paints these bodies. The Prompt composer draws each `{{ variable }}` as a chip, warning-colored when no input defines it, and its footer holds Variables, insert chips and Add another variable. Output and Preview draw their empty states. Blur has a type select and a size slider, and Resize Image a Scale, Dimensions and Fit switch with width, height and a lock that links them. Content cards such as Agent add a model chip that opens the shared picker and an Add output button that opens the output form. A file dropped on the Image Input drop zone uploads and sets the value. Card headers draw the web data type SVGs, so Output shows the text icon and Preview the eye. Heights: Prompt 168, Output 150, Preview 400×300, Blur 199, Resize Image 212, Agent 217, Image Input 120. | Medium | Part 1 fixed, part 2 partly fixed. Asserted by `CardBodiesTest` with pointer, key and drop events on the parity fixture and on added part 2 nodes. Open: the differences in [Card body differences after part 1](#card-body-differences-after-part-1) and the bodies listed as missing in [Bespoke bodies for part 2](#bespoke-bodies-for-part-2). Acceptance pending. |
+| W4 | Bespoke bodies | Prompt shows a variable composer, Resize Image a mode switch, Blur a select and slider, Preview a 400×300 preview, Output a result placeholder, Image Input a drop zone, Agent a model chip and Add output. Header icons come from `IconForType.tsx`. | `CardBodies.cpp` lays out and `CardBodyPainter.cpp` paints these bodies. The Prompt composer draws each `{{ variable }}` as a chip, warning-colored when no input defines it, and its footer holds Variables, insert chips and Add another variable. Output and Preview draw their empty states. Blur has a type select and a size slider, and Resize Image a Scale, Dimensions and Fit switch with width, height and a lock that links them. Content cards such as Agent add a model chip that opens the shared picker and an Add output button that opens the output form. A file dropped on the Image Input drop zone uploads and sets the value. Card headers draw the web data type SVGs, so Output shows the text icon and Preview the eye. Heights: Prompt 168, Output 150, Preview 400×300, Blur 199, Resize Image 212, Agent 217, Image Input 120. | Medium | Part 1 fixed, parts 2 and 3 partly fixed. Asserted by `CardBodiesTest` with pointer, key and drop events on the parity fixture and on added part 2 and part 3 nodes. Open: the differences in [Card body differences after part 1](#card-body-differences-after-part-1) and [Bespoke bodies for part 2](#bespoke-bodies-for-part-2), and the bodies listed as missing in [Bespoke bodies for part 3](#bespoke-bodies-for-part-3). Acceptance pending. |
 | W5 | Card typography and geometry | Width 280, radius 8, 1 px border at 8% white, Inter 13 title in the 400 face, first port at 46 and 28 px steps. | Same measurements. | Low | Matches. |
 | W6 | Ports and wires | 12 px handles with a 2 px ring in the card color. Wires are 1.5 px in the source type color. | Same measurements. | Low | Matches. |
 | W7 | Grid | 25-unit crosses 3 units wide, which scale with zoom. | Same pattern. | Low | Matches. |
@@ -3197,17 +3226,128 @@ Differences in these bodies:
    native edits the color in the inspector.
 2. The Before tab and the Mask input tabs show their empty-state message, not
    the upstream image. The canvas painter draws only the node's own result.
-3. Rotate and Flip, and the Scale dimension badge, are not ported.
+3. The Scale dimension badge is not ported.
+
+### Bespoke bodies for part 3
+
+`cardBodyFor` now also routes the node components that `ReactFlowWrapper.tsx`
+registers for Compare Images and Constant String, and the Rotate and Flip,
+Resize, Fit and Paste bodies. The three provider nodes keep the generic rows
+and take the shell additions of `DynamicSchemaNodeShell.tsx`. `CardBodiesTest`
+covers each one:
+
+| Body | Web source | Native height | Controls | Test |
+|---|---|---|---|---|
+| Compare Images | `CompareImagesNode.tsx` | 300×250 minimum, authored sizes grow the comparer | `image_a` and `image_b` handles on the 28 px pitch, and the "Connect two images, then run" empty state filling the padded body | `compareImagesBodyFillsTheCard` |
+| Constant String | `ConstantStringNode.tsx` | 106 empty, then 46 plus the wrapped text, at most 600 | Value handle and output on the header line. A click on the text opens the inline editor. Open editor opens it expanded, and Copy copies the value. | `constantStringBodyGrowsWithItsText` |
+| Rotate and Flip | `RotateAndFlipBody.tsx` | 202 | A -360 to 360 slider with 90 degree marks and a degree readout, Flip H and Flip V toggles and Reset, which writes all three values in one step | `rotateAndFlipBodyEditsAngleAndFlips` |
+| Resize | `ResizeBody.tsx` | 187 | Width and height boxes with the aspect lock | `resizeAndFitBodiesShareTheDimensionRow` |
+| Fit | `FitBody.tsx` | 211 | Width and height boxes and the 256 to 1024 presets | `resizeAndFitBodiesShareTheDimensionRow` |
+| Paste | `PasteBody.tsx` | 187 | `image` and `paste` handles, and Left and Top boxes | `pasteBodyEditsItsOffsets` |
+| FAL, KIE and Replicate | `DynamicSchemaNodeShell.tsx` and the three content files | At least the shell's 120 px content column | The model joins the title, the edge takes the provider color at 25 percent, a hint explains an empty node, and a footer names the provider and model. The Add input and Add output buttons are gone, as on the web. | `dynamicProviderCardsShowTheirModel` |
+
+Each edit is one undo step and keeps unknown node fields. Heights come from the
+body CSS, not from a web capture. Resize, Fit and Paste reuse the Resize Image
+dimension row, so their boxes follow the measured Resize Image card.
+
+Differences in these bodies:
+
+1. The provider rows keep the generic 8 px card inset, where the shell has no
+   body padding. Native has no schema loader, so the header has no reload
+   button, and a stored dynamic property also hides the hint, where the web
+   reads `dynamic_inputs`, which its loader refetches on load.
+2. Constant String's Open editor opens the expanded inline editor, where the
+   web opens a modal text editor. A card taller than its text keeps its
+   authored height, where the web refits the height when the card mounts.
+3. The Paste overlay rectangle and the Resize, Fit and Paste dimension badges
+   need upstream image sizes, which the canvas does not read.
+4. Compare Images paints the run result with the shared result painter. The
+   web's comparer slider is not on the card.
 
 Bodies native still draws with the generic or content card body:
 
-1. Node components: Compare Images, Constant String, Dynamic FAL, Dynamic KIE,
-   Dynamic Replicate, Comfy nodes, Workflow, App and Sketch.
-2. Image editing bodies: Canvas Resize, Compositor, Crop, Curves, Fit, Levels,
-   Masks Extractor, Painter, Paste, Resize, and Rotate and Flip.
+1. Node components: Comfy nodes, Workflow, App and Sketch.
+2. Image editing bodies: Canvas Resize, Compositor, Crop, Curves, Levels,
+   Masks Extractor and Painter.
 3. Other bodies: Collection, Constant Sketch, Constant Timeline, Extract Video
    Frame, List Generator, the synth modules, the audio effects and Audio Output.
 4. The Code body (`CodeBody.tsx`), which native shows as a code row.
+5. The inline color popover and the upstream images in the Before and Mask
+   preview tabs, listed under the part 2 differences above.
+
+### Media values on cards
+
+Before this change an image, video or audio value on a constant or input card
+showed only its file name, and an image, video or audio list showed an empty
+body. The drop zone row stored the file name and nothing resolved the value:
+only run outputs went through `MediaResolver`. The W4 Image Input body was
+measured on an empty value, so the gap did not show.
+
+Cards now show the media as `PropertyDropzone.tsx`, the list properties and
+`special_nodes.css` do. `CardMediaLoader` resolves each image value through
+`MediaResolver`, so asset ids with their `/api/storage` uri, HTTP URLs and
+`asset://` references all load, and hands a thumbnail to the model.
+`CardMedia.cpp` lays out and paints the zone. Video and audio values play in
+`CardMediaPlayer.qml` overlays that `CanvasMediaPresenter` places over the zone,
+using the same resolver, `VideoFrameView` and `AudioWaveform` as run outputs.
+
+| Value | Web | Native |
+|---|---|---|
+| Constant Image or Video | No label, margin or padding. The media fills the card width at its aspect ratio and grows with an authored height. | The same. A video's height follows its decoded frame size, 16:9 until it is known. |
+| Image Input | Outlined zone 6 px below the label, padded 4 px, image at most 200 px tall over the alpha checker. The dimensions badge, Copy and Replace show on hover. | The same. Copy puts the full image on the clipboard and Replace opens the file picker. A click elsewhere on a loaded zone does nothing, as on the web. |
+| Video Input | The video, then the empty file name line. Native browser controls. | Poster frame, then a bar with play, time and seek. |
+| Audio | The file name line, a 15 px waveform, play with time and seek, then loop, mute and download. | The same without download. The zone is 125 px. |
+| Lists | A grid of 80 px (image) or 120 px (video) tiles, a column of audio rows, then an 80 px drop zone. | The same grid and heights. Image tiles are painted, video and audio tiles play in one overlay per list. |
+| Empty | "Click or drop" zone. An empty constant Video collapses to the header. | "Click or drop" zone, kept for the empty constant Video. |
+| Loading and failed | A loading image draws nothing. A failed image reads "Image could not be loaded". | A loading image draws an empty outlined zone at the failed height, 128 px on an input card. A failed image reads "Image could not be loaded". |
+
+Card heights at 280 px match the web DOM to a pixel: constant Image 90 empty,
+177 for a 2:1 image; Image Input 120 empty, 128 failed, 284 for a square image;
+constant Video 204 and Video Input 273 for a 5:3 video; constant Audio 102
+empty and 183 loaded; Audio Input 201; Image List 266 with two images and 156
+empty; Video List 256; Audio List 214. The web adds a 98 px recorder below
+audio values, which native does not have. `MediaCardsTest` asserts the heights,
+the image pixels, the poster frame, playback, the waveform, the hover badge,
+the actions, and the empty, loading and failed states against a local server.
+
+Open: the audio and video recorders, audio download, the image viewer on
+double click, drops and clicks on a list's drop zone, per-tile remove buttons
+and dimension badges, the upstream preview of a connected media input, and the
+web's gradient video controls.
+
+### Constant values on cards
+
+Before this change several `nodetool.constant.*` cards showed an empty body or
+the wrong control. Model, image size, dataframe, entity, document and model 3D
+values had no row. A Select was a free text area. A List or Dict showed a
+"Value" label where the web leads with a "Data type" select, and an unset JSON
+or string list read "Not set" where the web shows an empty editor or its
+prompt. The native catalog fixture for these cards is
+[ConstantNodesFixture.json](../tests/ui/ConstantNodesFixture.json), recorded
+from the metadata a running server lists, and
+[CardBodiesTest](../tests/ui/CardBodiesTest.cpp) asserts each card below with
+that metadata.
+
+| Constant | Web | Native |
+|---|---|---|
+| ASR, Embedding, Image, Language, TTS and Video model | A "Value" label, then the model button with the placeholder of its type, or the model name and provider. | The same chip row. A click opens the shared model picker and one pick is one undo step. |
+| Image Size | A label, W and H number boxes, swap, lock and presets buttons, and the matched preset name under them. | The same strip and caption, painted from the web's preset list. A click opens the inspector's size editor over the strip, with W, H, swap, lock and presets. Each change is one undo step and the panel stays open. |
+| Select | A dropdown of the node's own `options` with a "Select…" placeholder. | The same dropdown. The options come from the node data and the inspector offers them too. |
+| List and Dict | A "Data type" select (int, string, datetime, float), then a table. | A "Data type" field showing the type of the first value, then the existing table summary and row editor. The type is a display only. |
+| JSON | A label and an empty editor when unset. | The same. The stored text lives in `data`. |
+| Text List | Chips with the prompt "Enter values…". | One line of values with the same prompt. |
+| Data Frame | No label. An "Add column" tab, a drop zone with "Drop CSV or Excel file" and "Supported: CSV, XLSX, XLS", then the columns and a table. | The tab, the zone and a read-only text table of the columns and first four rows. Add column is one undo step. A dropped CSV file fills the frame. |
+| Script, Sketch, Storyboard and Timeline | A label, a select of documents and a button that opens the document in its editor. | The same layout. The select opens the inspector's document picker. The button asks the window to open the document and does nothing for an empty select. |
+| Entity | A label, a chip per picked entity and a "Pick entity" button. | The label and the chip. An unnamed entity reads "Untitled", as on the web. |
+| Document | A drop zone without a label. | The zone, reading the file name once set. |
+| Model 3D | A label and a drop zone, then the viewer once loaded. | The label and the zone. |
+
+Open: the Data type select does not change how cells edit, the dataframe's
+column manager, cell editing and expanded editor, chips and the entity picker,
+document names (a stored reference carries no name, so a chosen document reads
+"Untitled" until the card learns names from the server), clicking swap, lock
+and presets directly on the card, and drops of document and model files onto
+their zones.
 
 ### Chrome entries without a native panel
 

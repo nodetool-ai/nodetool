@@ -1,5 +1,6 @@
 #include "CanvasDropController.h"
 #include "WorkflowGraphModel.h"
+#include "CardMedia.h"
 #include <QApplication>
 #include <QDropEvent>
 #include <QFile>
@@ -188,13 +189,17 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
     if (mouse->button() != Qt::LeftButton) return QObject::eventFilter(object, event);
     const auto point = mouse->position().toPoint();
     if (event->type() == QEvent::MouseButtonPress) {
-      pressZone_ = dropZone(point);
+      pressZone_ = clickZone(point);
       pressPoint_ = point;
     } else {
       const auto zone = pressZone_;
       pressZone_.clear();
-      if (!zone.isEmpty() && dropZone(point) == zone && (point - pressPoint_).manhattanLength() < QApplication::startDragDistance()) {
-        QTimer::singleShot(0, this, [this, zone, point] { pickFile(zone, point); });
+      if (!zone.isEmpty() && clickZone(point) == zone && (point - pressPoint_).manhattanLength() < QApplication::startDragDistance()) {
+        if (zone[3] == QLatin1String("copy")) {
+          emit copyRequested(zone[0], zone[1]);
+        } else {
+          QTimer::singleShot(0, this, [this, zone, point] { pickFile(zone, point); });
+        }
       }
     }
     return QObject::eventFilter(object, event);
@@ -253,6 +258,32 @@ QStringList CanvasDropController::dropZone(const QPoint &viewportPosition) const
             }
             const auto &zone = model_.layout(node->nodeId()).rows[row];
             return {model_.resourceId(node->nodeId()), zone.propertyName, zone.typeName};
+        }
+    }
+    return {};
+}
+QStringList CanvasDropController::clickZone(const QPoint &viewportPosition) const {
+    auto zone = dropZone(viewportPosition);
+    if (zone.isEmpty()) {
+        return {};
+    }
+    // An empty zone opens the picker anywhere. A loaded image does so only from
+    // its Replace action, as the web's dropped zone takes no click.
+    for (auto *entry : view_.items(viewportPosition)) {
+        for (auto *item = entry; item; item = item->parentItem()) {
+            auto *node = qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item);
+            if (!node) {
+                continue;
+            }
+            const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
+            const auto &row = model_.layout(node->nodeId()).rows[model_.dropZoneAt(node->nodeId(), local)];
+            if (row.placeholder || row.mediaKind.isEmpty() || cardMediaActionRect(row, CardMediaAction::Replace).contains(local)) {
+                return zone << QStringLiteral("pick");
+            }
+            if (cardMediaActionRect(row, CardMediaAction::Copy).contains(local)) {
+                return zone << QStringLiteral("copy");
+            }
+            return {};
         }
     }
     return {};

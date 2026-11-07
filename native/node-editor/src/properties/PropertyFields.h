@@ -149,7 +149,7 @@ inline QString propertyKind(const QJsonObject& p) {
         const QSet<QString> editableEntries{"any", "str", "string", "int", "integer", "float", "number", "bool", "boolean", "list", "dict", "union", "enum"};
         return editableEntries.contains(entry) ? type : QStringLiteral("unsupported");
     }
-    if (type == "json" || type == "record_type") { return type; }
+    if (type == "json" || type == "record_type" || type == "dataframe") { return type; }
     if (type == "sketch" || type == "timeline" || type == "script" || type == "storyboard") { return "document_ref"; }
     if (QSet<QString>{"font", "folder", "entity", "file", "document", "file_path", "folder_path"}.contains(type)) {
         return type;
@@ -273,6 +273,13 @@ inline QString validatePropertyValue(const QJsonObject& p, const QJsonValue& val
         int budget = 10000;
         return validateTypedValue(propertyType(p), value, 0, budget);
     }
+    if (kind == "dataframe") {
+        const auto frame = value.toObject();
+        const bool shaped = value.isObject() && frame.value("type") == "dataframe"
+            && (frame.value("columns").isNull() || frame.value("columns").isUndefined() || frame.value("columns").isArray())
+            && (frame.value("data").isNull() || frame.value("data").isUndefined() || frame.value("data").isArray());
+        return shaped ? QString{} : QStringLiteral("Expected a dataframe");
+    }
     if (kind == "document_ref") {
         const auto reference = value.toObject();
         return value.isObject() && reference.value("type") == scalarPropertyType(p) && !reference.value("id").toString().isEmpty() ? QString{} : QStringLiteral("Choose a document reference");
@@ -381,10 +388,15 @@ inline QVariantList propertyFields(const QJsonObject& rawNode, const QJsonObject
         }
         const bool conditionSatisfied = storage != "data" || propertyConditionSatisfied(p, node.value("data").toObject());
         if (!connected && !conditionSatisfied) { return; }
-        const auto kind = propertyKind(p);
+        // SelectProperty.tsx offers the options the node itself stores in `options`.
+        const bool select = p.value("json_schema_extra").toObject().value("type") == "select" && scalarPropertyType(p) == "str";
+        const auto kind = select ? QStringLiteral("choice") : propertyKind(p);
         const bool appendStatic = kind == "media_list" && metadata.value("append_static_inputs").toArray().contains(name);
         QVariantList options;
-        for (const auto& option : propertyOptions(p)) { options.append(QVariantMap{{"label", option.toVariant().toString()}, {"value", option.toVariant()}}); }
+        for (const auto& option : select ? node.value("data").toObject().value("options").toArray() : propertyOptions(p)) {
+            if (select && !option.isString()) { continue; }
+            options.append(QVariantMap{{"label", option.toVariant().toString()}, {"value", option.toVariant()}});
+        }
         QVariantMap row{{"siblingModel", node.value("data").toObject().value("model").toVariant()}, {"nodeType", node.value("type").toString()}, {"name", name}, {"label", p.value("title").toString(name)}, {"description", p.value("description").toString()},
             {"dataType", propertyEditorType(p).toVariantMap()}, {"kind", kind}, {"value", value.toVariant()}, {"editable", conditionSatisfied && (!connected || appendStatic) && kind != "unsupported"}, {"conditionalUnavailable", !conditionSatisfied}, {"appendStatic", appendStatic}, {"connected", connected},
             {"required", p.value("required").toBool()}, {"nullable", propertyNullable(p)},
@@ -393,12 +405,13 @@ inline QVariantList propertyFields(const QJsonObject& rawNode, const QJsonObject
             // stored value differs. A null default has nothing to reset to.
             {"hasResetDefault", !p.value("default").isNull() && !p.value("default").isUndefined()},
             {"changed", data.contains(name) && !p.value("default").isNull() && !p.value("default").isUndefined() && data.value(name) != p.value("default")},
-            {"options", options}, {"storage", storage}, {"error", !conditionSatisfied ? QStringLiteral("Unavailable for the selected settings") : connected && !appendStatic ? QStringLiteral("Value supplied by a connected input") : (kind == "unsupported" ? QStringLiteral("Preserved. Edit this value in the web editor.") : (value.isUndefined() ? QString{} : validatePropertyValue(p, value)))},
+            {"options", options}, {"storage", storage}, {"error", !conditionSatisfied ? QStringLiteral("Unavailable for the selected settings") : connected && !appendStatic ? QStringLiteral("Value supplied by a connected input") : (kind == "unsupported" ? QStringLiteral("Preserved. Edit this value in the web editor.") : (value.isUndefined() || select ? QString{} : validatePropertyValue(p, value)))},
             {"step", kind == "integer" ? 1.0 : 0.1}};
         for (const auto& bound : {QStringLiteral("min"), QStringLiteral("max")}) {
             const auto v = p.value(bound);
             row.insert(bound, v.isDouble() && std::isfinite(v.toDouble()) ? v.toVariant() : QVariant{});
         }
+        if (select) { row.insert("optionsFromNode", true); }
         if (kind == "media" || kind == "media_list") { row.insert("mediaType", propertyMediaType(p)); }
         if (kind == "model") {
             row.insert("modelType", scalarPropertyType(p));

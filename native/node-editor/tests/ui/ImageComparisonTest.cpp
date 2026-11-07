@@ -276,7 +276,8 @@ private slots:
         FakeHttp http; QVERIFY(http.server.isListening()); MediaResolver resolver; resolver.configure(http.base(), "retry-account");
         Host h(pair({{"uri", "/api/retry.png"}}, inlineImage(Qt::blue)), &resolver); QVERIFY2(h.root(), qPrintable(h.error)); QVERIFY(h.surface());
         QTRY_VERIFY(http.requests.contains("/api/retry.png")); http.reply("/api/retry.png", {}, "image/png", 503);
-        QTRY_VERIFY(find(h.root(), "Retry A", true));
+        // The full parallel suite slows this suite fivefold.
+        QTRY_VERIFY_WITH_TIMEOUT(find(h.root(), "Retry A", true), 15000);
         http.requests.remove("/api/retry.png"); h.click(find(h.root(), "Retry A", true));
         QTRY_VERIFY(http.requests.contains("/api/retry.png")); http.reply("/api/retry.png", png(Qt::red));
         QTRY_VERIFY_WITH_TIMEOUT(near(h.pixel(0.25, 0.5), Qt::red), 3000);

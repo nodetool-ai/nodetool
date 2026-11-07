@@ -44,6 +44,13 @@ public slots:
   void cancel();
   void reposition();
   void commit(const QVariant &value, int generation);
+  // A table, column list or list select applies each change as its own undo
+  // step and stays open, as the web's card editors do. close() applies a
+  // queued change before closing.
+  void apply(const QVariant &value, int generation);
+  void close(int generation);
+  // The height an open structured editor needs, in card units.
+  void setContentHeight(double height);
   void expand();
   void popupRect(const QRectF &rect);
 signals:
@@ -68,7 +75,13 @@ private:
   bool expanded_ = false;
   bool committing_ = false;
   QVariant pendingValue_;
+  // An applied change re-projects the document. The editor survives it.
+  bool holding_ = false;
+  bool applyQueued_ = false;
+  QVariant pendingApply_;
+  double contentHeight_ = 0;
   void flushCommit();
+  void flushApply();
   bool current() const;
   void updateMask();
 };

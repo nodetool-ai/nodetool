@@ -1,5 +1,6 @@
 #include "CardBodyPainter.h"
 #include "CardBodies.h"
+#include "CardMedia.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QSvgRenderer>
@@ -136,7 +137,28 @@ void paintComposer(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
     painter->restore();
 }
 
+// A small icon button. An active toggle tints its icon and a round fill with
+// the primary color, as StateIconButton's isActive.
+void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    const auto ink = row.checked ? theme.primary : theme.textSecondary;
+    if (row.checked) {
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(faded(theme.primary, 0.1));
+        painter->drawEllipse(row.rect);
+    }
+    const double icon = row.rect.height() >= nm::iconButtonSize ? nm::iconButtonIcon : nm::headerButtonIcon;
+    painter->save();
+    painter->translate(row.rect.center());
+    painter->rotate(row.number);
+    paintMaterialIcon(painter, row.icon, QRectF(-icon / 2, -icon / 2, icon, icon), ink);
+    painter->restore();
+}
+
 void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    if (!row.icon.isEmpty()) {
+        paintIconButton(painter, theme, row);
+        return;
+    }
     if (row.bare) {
         painter->setPen(QPen(row.checked ? theme.primary : theme.divider, nm::borderWidth));
         painter->setBrush(Qt::NoBrush);
@@ -188,6 +210,11 @@ void paintSlider(QPainter *painter, const CanvasTheme &theme, const NodeRow &row
     painter->setPen(Qt::NoPen);
     painter->setBrush(theme.divider);
     painter->drawRoundedRect(track, track.height() / 2, track.height() / 2);
+    // Snap marks, as a Material Slider's marks: 2 px dots on the track.
+    painter->setBrush(theme.textSecondary);
+    for (const auto &mark : row.optionValues) {
+        painter->drawEllipse(QPointF(position(mark.toDouble()), track.center().y()), nm::micro / 2.0, nm::micro / 2.0);
+    }
     // A bipolar slider fills outward from zero, as the Slider primitive's origin.
     const auto origin = row.bipolar ? position(0) : track.x();
     const auto thumb = position(value);
@@ -279,6 +306,24 @@ void paintModelChip(QPainter *painter, const CanvasTheme &theme, const NodeRow &
     paintChevron(painter, theme, row.rect);
 }
 
+// ConstantStringNode's text preview: 11 px text on 1.2 em lines in a subtle
+// field, padded 6 px and clipped where the card is shorter than its text.
+void paintTextArea(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(theme.field);
+    painter->drawRoundedRect(row.rect, nm::chipRadius, nm::chipRadius);
+    const auto area = row.rect.adjusted(nm::stringTextPadding, nm::stringTextPadding, -nm::stringTextPadding, -nm::stringTextPadding);
+    painter->save();
+    painter->setClipRect(area);
+    // A connected value is read-only and drawn at 0.7.
+    painter->setOpacity(painter->opacity() * (row.checked ? 0.7 : 1.0));
+    painter->setPen(theme.textPrimary);
+    for (const auto &paragraph : textAreaLayouts(row.value, sans(theme, nm::fontValue), area.width(), nm::fontValue * nm::stringLineHeight)) {
+        paragraph->draw(painter, area.topLeft());
+    }
+    painter->restore();
+}
+
 void paintDropZone(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
     painter->setPen(theme.textSecondary);
     painter->setFont(sans(theme, nm::fontLabel));
@@ -290,7 +335,53 @@ void paintDropZone(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
     font.setLetterSpacing(QFont::AbsoluteSpacing, nm::micro);
     painter->setFont(font);
     painter->setPen(row.placeholder ? theme.textSecondary : theme.textPrimary);
+    if (!row.options.isEmpty()) {
+        // A drop zone with a hint, as the dataframe's: icon, text, then the supported files.
+        constexpr double line = 12;
+        const double icon = nm::iconSize;
+        const auto top = row.rect.top() + (row.rect.height() - (icon + 2 * line + 2 * nm::micro)) / 2.0;
+        paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - icon / 2.0, top, icon, icon), theme.textSecondary);
+        const auto width = int(row.rect.width() - 2 * nm::padding);
+        painter->drawText(QRectF(row.rect.x(), top + icon + nm::micro, row.rect.width(), line), Qt::AlignCenter,
+                          painter->fontMetrics().elidedText(row.value, Qt::ElideMiddle, width));
+        painter->setPen(theme.textSecondary);
+        painter->setFont(sans(theme, nm::fontValue - nm::micro));
+        painter->drawText(QRectF(row.rect.x(), top + icon + line + 2 * nm::micro, row.rect.width(), line), Qt::AlignCenter,
+                          painter->fontMetrics().elidedText(row.options.first(), Qt::ElideRight, width));
+        return;
+    }
     painter->drawText(row.rect, Qt::AlignCenter, painter->fontMetrics().elidedText(row.value, Qt::ElideMiddle, int(row.rect.width() - 2 * nm::padding)));
+}
+
+// ImageSizeProperty.tsx: 70 px W and H boxes, then the swap, lock and presets
+// buttons at the right, and the matched preset's name under the boxes.
+void paintImageSize(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    painter->setPen(theme.textSecondary);
+    painter->setFont(sans(theme, nm::fontLabel));
+    painter->drawText(QRectF(row.rect.x(), row.y, row.rect.width(), nm::rowHeight), Qt::AlignLeft | Qt::AlignVCenter, row.label);
+    for (int i = 0; i < row.parts.size() && i < row.optionValues.size(); ++i) {
+        const auto box = row.parts[i];
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(theme.field);
+        painter->drawRoundedRect(box, nm::fieldRadius, nm::fieldRadius);
+        const auto inner = box.adjusted(nm::padding, 0, -nm::padding, 0);
+        painter->setFont(sans(theme, nm::fontValue));
+        painter->setPen(theme.textSecondary);
+        painter->drawText(inner, Qt::AlignLeft | Qt::AlignVCenter, row.options.value(i));
+        painter->setPen(theme.textPrimary);
+        painter->drawText(inner, Qt::AlignRight | Qt::AlignVCenter, row.optionValues[i].toString());
+    }
+    const double icon = nm::iconSize;
+    auto x = row.rect.right() - icon;
+    for (const auto name : {"moreVert", "lockOpen", "swapHoriz"}) {
+        paintMaterialIcon(painter, QString::fromLatin1(name), QRectF(x, row.rect.center().y() - icon / 2.0, icon, icon), theme.textSecondary);
+        x -= icon + nm::micro;
+    }
+    if (!row.value.isEmpty()) {
+        painter->setPen(theme.textSecondary);
+        painter->setFont(sans(theme, nm::fontValue - nm::micro));
+        painter->drawText(QRectF(row.rect.x(), row.rect.bottom(), row.rect.width(), nm::imageSizeCaptionHeight), Qt::AlignLeft | Qt::AlignVCenter, row.value);
+    }
 }
 } // namespace
 
@@ -362,19 +453,42 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
     case NodeRowKind::ModelChip:
         paintModelChip(painter, theme, row);
         return true;
+    case NodeRowKind::ImageSize:
+        paintImageSize(painter, theme, row);
+        return true;
     case NodeRowKind::DropZone:
-        paintDropZone(painter, theme, row);
+        if (row.mediaKind.isEmpty()) {
+            paintDropZone(painter, theme, row);
+        } else {
+            paintCardMedia(painter, theme, row, state.hovered);
+        }
         return true;
     case NodeRowKind::Swatch:
         paintSwatch(painter, theme, row);
         return true;
-    case NodeRowKind::Label:
+    case NodeRowKind::Label: {
         if (row.rect.isEmpty()) {
             return false;
         }
-        painter->setPen(theme.textSecondary);
+        auto text = row.rect;
+        // A footer strip has a rule along its top and pads its caption.
+        if (row.checked) {
+            painter->setPen(QPen(theme.divider, nm::borderWidth));
+            painter->drawLine(QPointF(row.rect.left(), row.rect.top() + 0.5), QPointF(row.rect.right(), row.rect.top() + 0.5));
+            text.adjust(2 * nm::schemaFooterPadding, nm::borderWidth + nm::schemaFooterPadding, -2 * nm::schemaFooterPadding, -nm::schemaFooterPadding);
+        }
+        // A placeholder hint is drawn at 0.7, as the dynamic schema hint's opacity.
+        painter->setPen(row.placeholder ? faded(theme.textSecondary, 0.7) : theme.textSecondary);
         painter->setFont(sans(theme, row.textSize > 0 ? row.textSize : nm::fontValue));
-        painter->drawText(row.rect, row.wrap ? Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap : Qt::AlignLeft | Qt::AlignVCenter, row.label);
+        painter->drawText(text, row.wrap ? Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap : Qt::AlignLeft | Qt::AlignVCenter,
+                          row.checked ? painter->fontMetrics().elidedText(row.label, Qt::ElideRight, int(text.width())) : row.label);
+        return true;
+    }
+    case NodeRowKind::Multiline:
+        if (row.rect.isEmpty()) {
+            return false;
+        }
+        paintTextArea(painter, theme, row);
         return true;
     case NodeRowKind::Field:
         if (row.rect.isEmpty()) {

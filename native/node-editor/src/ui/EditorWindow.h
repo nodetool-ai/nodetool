@@ -39,6 +39,7 @@ class EditorScene;
 class InlinePropertyPresenter;
 class InlineTitlePresenter;
 class CanvasMediaPresenter;
+class CardMediaLoader;
 class CanvasDropController;
 class CompatibleNodePicker;
 class EditorWindow final : public QMainWindow {
@@ -342,6 +343,7 @@ private slots:
 private:
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
+  void showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor);
   QPointer<QDialog> dynamicPortDialog_;
   EditorWindow(QWidget *parent, EditorWindow *tabOwner);
   EditorWindow *tabOwner_ = nullptr;
@@ -549,6 +551,7 @@ private:
   InlinePropertyPresenter *inlinePresenter_ = nullptr;
   InlineTitlePresenter *inlineTitle_ = nullptr;
   CanvasMediaPresenter *canvasMedia_ = nullptr;
+  CardMediaLoader *cardMediaLoader_ = nullptr;
   CanvasDropController *canvasDrops_ = nullptr;
   CompatibleNodePicker *compatiblePicker_ = nullptr;
   QQuickWidget *viewportOverlay_ = nullptr;

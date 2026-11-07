@@ -25,6 +25,7 @@
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/InlineTitlePresenter.h"
 #include "graph/CanvasMediaPresenter.h"
+#include "graph/CardMediaLoader.h"
 #include "graph/CanvasDropController.h"
 #include "graph/NodeCreation.h"
 #include "graph/CompatibleNodePicker.h"
@@ -300,6 +301,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         dialog->show();
     });
     connect(scene_, &EditorScene::dynamicPortFormRequested, this, &EditorWindow::showDynamicPortDialog);
+    connect(scene_, &EditorScene::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
     connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }
     });
@@ -334,6 +336,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   };
   inlinePresenter_->commitCommand = [this](const QJsonObject &command) { return apply(command); };
   connect(this, &EditorWindow::zoomChanged, inlinePresenter_, &InlinePropertyPresenter::reposition);
+  // Constant String's Open editor stands in for the web's text editor modal.
+  connect(scene_, &EditorScene::inlineExpandRequested, this, [this](QtNodes::NodeId id, const QString &name) {
+    inlinePresenter_->activate(id, name);
+    if (inlinePresenter_->active() && !inlinePresenter_->expanded()) { inlinePresenter_->expand(); }
+  });
+  connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { documentPicker_.open(kind, id); });
   connect(inlinePresenter_, &InlinePropertyPresenter::popupChanged, this, &EditorWindow::positionSelectionToolbar);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(this, &EditorWindow::documentEpochChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
@@ -373,6 +381,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(inlineTitle_, &InlineTitlePresenter::activated, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(scene_, &EditorScene::inlineEditRequested, inlineTitle_, &InlineTitlePresenter::cancel);
   canvasMedia_ = new CanvasMediaPresenter(model_, *scene_, *view_, engine_, this);
+  cardMediaLoader_ = new CardMediaLoader(model_, mediaResolver_, this);
   connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::refresh);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, canvasMedia_, &CanvasMediaPresenter::clear);
   compatiblePicker_ = new CompatibleNodePicker(model_, *scene_, *view_, engine_, this);
@@ -386,6 +395,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, compatiblePicker_, &CompatibleNodePicker::cancel);
   connect(this, &EditorWindow::documentEpochChanged, compatiblePicker_, &CompatibleNodePicker::cancel);
   canvasDrops_ = new CanvasDropController(model_, *view_, this);
+  connect(canvasDrops_, &CanvasDropController::copyRequested, this, [this](const QString &node, const QString &property) {
+    if (cardMediaLoader_) { cardMediaLoader_->copy(node, property); }
+  });
   canvasDrops_->createNode = [this](const QJsonObject &metadata, const QPointF &position, const QJsonObject &properties) {
     return createNativeNode(metadata, position, document_.nodes(), properties);
   };
@@ -807,6 +819,7 @@ EditorWindow::~EditorWindow() {
   delete serverSyncDialog_.data();
   delete lineage_;
   delete canvasMedia_;
+  delete cardMediaLoader_;
   delete inlineTitle_;
   delete inlinePresenter_;
   // Dock animations can resize the viewport while bound overlays are destroyed.
@@ -1500,6 +1513,40 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
     connect(dialog, &QDialog::finished, view_, [view = QPointer<QGraphicsView>(view_)] {
         if (view) { view->setFocus(Qt::OtherFocusReason); }
     });
+}
+
+// DynamicSlotTypePicker.tsx: a menu of the slot palette below the chip, with
+// the current type checked. A choice retypes through setDynamicInputType.
+void EditorWindow::showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor) {
+    if (readOnly() || !selectNode(id)) { return; }
+    auto *menu = new QMenu(this);
+    menu->setObjectName("dynamic-slot-type-menu");
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    auto *controller = new node_editor::DynamicPortsController(&document_, menu);
+    controller->setNodeMetadata(metadata_);
+    controller->setSelectedNode(id);
+    QString current;
+    bool retypable = false;
+    for (const auto &entry : controller->inputs()) {
+        const auto row = entry.toMap();
+        if (row.value("name").toString() == name) { current = row.value("typeKey").toString(); retypable = row.value("retypable").toBool(); }
+    }
+    if (controller->readOnly() || !retypable) { menu->deleteLater(); return; }
+    for (const auto &entry : controller->inputTypes()) {
+        const auto key = entry.toMap().value("value").toString();
+        auto *choice = menu->addAction(key);
+        choice->setCheckable(true);
+        choice->setChecked(key == current);
+        connect(choice, &QAction::triggered, controller, [controller, name, key, current] {
+            if (key != current) { controller->setPortType(name, key); }
+        });
+    }
+    connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
+    connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
+    connect(&dynamicPorts_, &node_editor::DynamicPortsController::changed, menu, [this, id, menu] {
+        if (dynamicPorts_.selectedNode() != id) { menu->close(); }
+    });
+    menu->popup(view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft())));
 }
 
 void EditorWindow::clearDynamicPortDialogs() {
@@ -3065,6 +3112,10 @@ void EditorWindow::presentation(const QVariantMap &roles) {
       theme.success = color("success");
   }
   theme.selectionShadow = color("shadow");
+  for (const auto &[name, target] : {std::pair{"mediaScrim", &theme.mediaScrim}, std::pair{"mediaScrimInk", &theme.mediaScrimInk},
+                                     std::pair{"alphaBase", &theme.alphaBase}, std::pair{"alphaChecker", &theme.alphaChecker}}) {
+    if (color(name).isValid()) { *target = color(name); }
+  }
   theme.textPrimary = color("text");
   theme.textSecondary = color("secondary");
   theme.sansFamily = roles.value("sans").toString();
