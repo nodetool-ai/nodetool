@@ -476,6 +476,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "animate-a-product-catalog-with-references",
+        "name": "Animate a Product Catalog with References",
+        "description": "Turn a product catalog into product videos made from reference images. Each row's own photo is image 1, and an optional background and decoration image follow it for the whole range. The prompt is filled from that row's columns, and its role placeholders become image 1, image 2 and image 3.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "slug": "animate-a-product-catalog",
         "name": "Animate a Product Catalog",
         "description": "Turn a product catalog into product videos. Each row's own photo is animated with image-to-video, and the prompt is filled from that row's columns, so a whole range of products shares one camera move and light while every clip stays true to its product.",
