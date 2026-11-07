@@ -78,6 +78,9 @@ std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   if (QDir().mkpath(workspace)) { options.workspaceDir = QFile::encodeName(workspace).toStdString(); }
   const auto assets = localAssetDir();
   if (QDir().mkpath(assets)) { options.assetDir = QFile::encodeName(assets).toStdString(); }
+  // Runs act as the local user, so asset://<id> resolves to its key
+  // <user>/<id>.<ext> without listing the user's whole asset folder.
+  options.context.userId = "1";
   options.gpu.enabled = true;
   options.allowMedia = true;
   options.mediaEncoders = {"libx264", "aac", "libmp3lame", "libopus"};
