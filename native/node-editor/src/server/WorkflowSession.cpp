@@ -1,17 +1,76 @@
 #include "WorkflowSession.h"
 #include "MsgPack.h"
+#include "nodetool/graph_runner.h"
+#include <QCoreApplication>
 #include <QJsonArray>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QSet>
+#include <QTimer>
 #include <algorithm>
+#include <mutex>
 #include <QUuid>
 namespace nodetool::node_editor {
+namespace {
+QString &guestBundleOption() {
+  static QString path;
+  return path;
+}
+QString guestBundlePath() {
+  if (!guestBundleOption().isEmpty()) { return guestBundleOption(); }
+  const auto variable = qEnvironmentVariable("NODETOOL_GUEST_BUNDLE");
+  if (!variable.isEmpty()) { return variable; }
+  if (!QCoreApplication::instance()) { return {}; }
+  const QDir dir(QCoreApplication::applicationDirPath());
+  for (const auto &name : {"guest.bin", "guest.js"}) {
+    if (QFileInfo::exists(dir.filePath(name))) { return dir.filePath(name); }
+  }
+  return {};
+}
+// One loaded guest serves every session in the process. Sessions live on the
+// GUI thread, so the weak reference needs no lock.
+std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
+  if (qEnvironmentVariable("NODETOOL_LOCAL_RUNNER") == "0") { return {}; }
+  static std::weak_ptr<gr::GraphRunner> shared;
+  if (auto runner = shared.lock()) { return runner; }
+  const auto path = guestBundlePath();
+  if (path.isEmpty() || !QFileInfo::exists(path)) { return {}; }
+  auto runner = std::make_shared<gr::GraphRunner>(QFile::encodeName(path).toStdString());
+  shared = runner;
+  return runner;
+}
+}
+// Runner callbacks arrive on its worker thread. They post to the session
+// under this lock, and the destructor clears the target under it, so no
+// callback reaches a destroyed session.
+struct WorkflowSession::LocalRunRelay {
+  std::mutex mutex;
+  WorkflowSession *session = nullptr;
+};
+void WorkflowSession::setGuestBundlePath(const QString &path) { guestBundleOption() = path; }
+bool WorkflowSession::localRunnerReady() const { return m_localRunner && m_localRunner->ready(); }
 WorkflowSession::WorkflowSession(QObject *parent)
     : QObject(parent), m_autosave(this, [this] { flushAutosave(); }), m_history(&m_generations, this), m_network(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this) {
+  m_localRunner = sharedLocalRunner();
+  if (m_localRunner) {
+    m_localRelay = std::make_shared<LocalRunRelay>();
+    m_localRelay->session = this;
+    // Run availability changes when the bundle finishes loading.
+    auto *poll = new QTimer(this);
+    poll->setInterval(100);
+    connect(poll, &QTimer::timeout, this, [this, poll] {
+      if (m_localRunner->ready() || !m_localRunner->loadError().empty()) {
+        poll->deleteLater();
+        emit stateChanged();
+      }
+    });
+    poll->start();
+  }
   connect(&m_history, &GenerationHistory::changed, this, &WorkflowSession::generationsChanged);
   m_socket.setMaxAllowedIncomingMessageSize(32 * 1024 * 1024);
   connect(&m_socket, &QWebSocket::connected, this, [this] {
@@ -26,7 +85,7 @@ WorkflowSession::WorkflowSession(QObject *parent)
   connect(&m_socket, &QWebSocket::disconnected, this, [this] {
     m_connected = false;
     for (auto i = m_runs.begin(); i != m_runs.end(); ++i) {
-      if (!i.value()["terminal"].toBool()) {
+      if (!i.value()["terminal"].toBool() && !m_inProcessRuns.contains(i.key())) {
         i.value().insert("uncertain", true);
       }
     }
@@ -38,6 +97,16 @@ WorkflowSession::WorkflowSession(QObject *parent)
           [this](QAbstractSocket::SocketError) {
             emit errorOccurred(m_socket.errorString());
           });
+}
+WorkflowSession::~WorkflowSession() {
+  if (!m_localRelay) { return; }
+  {
+    std::lock_guard lock(m_localRelay->mutex);
+    m_localRelay->session = nullptr;
+  }
+  for (const auto &id : m_inProcessRuns) {
+    if (!m_runs.value(id)["terminal"].toBool()) { m_localRunner->cancel(id.toStdString()); }
+  }
 }
 QVariantList WorkflowSession::queue() const {
     QVariantList result;
@@ -103,7 +172,10 @@ void WorkflowSession::disconnectFromServer() {
   m_token.clear();
   m_base = QUrl{};
   m_userId.clear();
-  m_runs.clear();
+  // In-process runs do not depend on the server connection.
+  for (auto i = m_runs.begin(); i != m_runs.end();) {
+    i = m_inProcessRuns.contains(i.key()) ? std::next(i) : m_runs.erase(i);
+  }
   m_workflow = {};
   m_persistedWorkflow = {};
   m_catalog = {};
@@ -636,10 +708,6 @@ QString WorkflowSession::run(const QJsonObject &snapshot, const QJsonObject &par
 QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObject &params,
                                    const QJsonObject &fullSnapshot, const QJsonArray &metadata,
                                    const QStringList &executed) {
-  if (!m_connected) {
-    emit errorOccurred("Connect before running");
-    return {};
-  }
   for (const auto &run : m_runs) {
     if (run["uncertain"].toBool()) {
       emit errorOccurred(
@@ -669,12 +737,24 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
       edges.append(e);
     }
   }
+  const QJsonObject runGraph{{"nodes", nodes}, {"edges", edges}};
+  const auto graphJson = QJsonDocument(runGraph).toJson(QJsonDocument::Compact).toStdString();
+  const bool inProcess = localRunnerReady() && m_localRunner->canRun(graphJson);
+  if (!inProcess && !m_connected) {
+    emit errorOccurred("Connect before running");
+    return {};
+  }
   const auto retained = queue();
   qsizetype finished = 0;
   for (const auto &entry : retained) if (entry.toMap()["terminal"].toBool()) ++finished;
   for (const auto &entry : retained) {
     if (finished <= 20) break;
-    if (entry.toMap()["terminal"].toBool()) { m_runs.remove(entry.toMap()["jobId"].toString()); --finished; }
+    if (entry.toMap()["terminal"].toBool()) {
+      const auto jobId = entry.toMap()["jobId"].toString();
+      m_runs.remove(jobId);
+      m_inProcessRuns.remove(jobId);
+      --finished;
+    }
   }
   const auto id = QUuid::createUuid().toString(QUuid::Id128);
   QJsonObject data{{"type", "run_job_request"},
@@ -690,15 +770,28 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
                    {"explicit_types", false},
                    {"concurrent", true},
                    {"settings", snapshot["settings"].toObject()},
-                   {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
+                   {"graph", runGraph}};
   m_runs.insert(id, {{"workflow_id", snapshot["id"]}, {"last_seq", 0}, {"status", "starting"}, {"name", snapshot["name"]}, {"edit", static_cast<double>(m_edit)}, {"started_at", QJsonValue::Null}, {"order", static_cast<double>(++m_queueOrder)}});
   m_generations.submitted(id, fullSnapshot, metadata, executed);
-  if (!send("run_job", data)) {
+  if (inProcess) {
+    m_inProcessRuns.insert(id);
+    const auto workflowId = snapshot["id"].toString();
+    m_localRunner->submit(id.toStdString(), workflowId.toStdString(), graphJson,
+                          QJsonDocument(params).toJson(QJsonDocument::Compact).toStdString(),
+                          [relay = m_localRelay, id, workflowId](const std::string &message, bool) {
+                            std::lock_guard lock(relay->mutex);
+                            if (!relay->session) { return; }
+                            auto *session = relay->session;
+                            QMetaObject::invokeMethod(session, [session, id, workflowId, json = QByteArray::fromStdString(message)] {
+                              session->receiveLocal(id, workflowId, json);
+                            }, Qt::QueuedConnection);
+                          });
+  } else if (!send("run_job", data)) {
     m_runs[id].insert("uncertain", true);
     emit errorOccurred(
         "Run submission uncertain. Reconnect using its job ID before retrying");
   }
-    if (m_accountJobs) {
+    if (m_accountJobs && !inProcess) {
         m_accountJobs->refresh();
     }
   emit runSubmitted(id);
@@ -708,6 +801,10 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
 void WorkflowSession::stop(const QString &id) {
     if (!m_runs.contains(id)) {
         emit errorOccurred("Unknown job ID");
+        return;
+    }
+    if (m_inProcessRuns.contains(id)) {
+        m_localRunner->cancel(id.toStdString());
         return;
     }
     send("cancel_job", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]}});
@@ -737,6 +834,7 @@ void WorkflowSession::reconnectTransport() {
 }
 void WorkflowSession::reconnectRuns() {
   for (auto i = m_runs.begin(); i != m_runs.end(); ++i) {
+    if (m_inProcessRuns.contains(i.key())) { continue; }
     QJsonObject d{{"workflow_id", i.value()["workflow_id"]},
                   {"last_seq", i.value()["last_seq"]},
                   {"job_id", i.key()}};
@@ -750,11 +848,6 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     return;
   }
   auto event = decoded->toObject();
-  if (event["type"] == "error" && event["node_id"].toString().isEmpty() && !event["job_id"].toString().isEmpty()) {
-    event["type"] = "job_update";
-    event["status"] = "failed";
-    if (event["error"].toString().isEmpty()) event["error"] = event["message"];
-  }
   if (event["type"] == "ping") {
     m_socket.sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "pong"}}));
     return;
@@ -766,31 +859,50 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     externalWorkflowChange(event);
     return;
   }
-  const auto id = event["job_id"].toString();
+  ingestRunEvent(event);
+}
+void WorkflowSession::receiveLocal(const QString &jobId, const QString &workflowId, const QByteArray &json) {
+  auto event = QJsonDocument::fromJson(json).object();
+  // The server relay stamps these on every message of a job; the kernel
+  // stream carries them only on job and edge updates.
+  if (!event.contains("job_id")) { event["job_id"] = jobId; }
+  if (!event.contains("workflow_id")) { event["workflow_id"] = workflowId; }
+  ingestRunEvent(event);
+}
+void WorkflowSession::ingestRunEvent(QJsonObject event) {
+  if (event.value("type") == "error" && event.value("node_id").toString().isEmpty() && !event.value("job_id").toString().isEmpty()) {
+    event["type"] = "job_update";
+    event["status"] = "failed";
+    if (event.value("error").toString().isEmpty()) event["error"] = event.value("message");
+  }
+  // Read through a const object: QJsonObject::operator[] inserts missing keys,
+  // and an inserted null job_seq reads as an invalid sequence downstream.
+  const QJsonObject message = std::move(event);
+  const auto id = message["job_id"].toString();
   if (!m_runs.contains(id)) {
-    if (m_accountJobs && (event["type"] == "job_update" || event["type"] == "job_resumed")) {
+    if (m_accountJobs && (message["type"] == "job_update" || message["type"] == "job_resumed")) {
         m_accountJobs->refresh();
     }
     return;
   }
   auto &run = m_runs[id];
-  const auto type = event["type"].toString();
-  const auto seq = event["job_seq"].toDouble();
+  const auto type = message["type"].toString();
+  const auto seq = message["job_seq"].toDouble();
   if (seq > 0 && seq <= run["last_seq"].toDouble()) {
     return;
   }
-  if (type == "job_resumed" && event["status"] == "unknown") {
+  if (type == "job_resumed" && message["status"] == "unknown") {
     emit errorOccurred(
         "Server no longer knows this run. Confirm its outcome before retrying");
-    emit runEvent(id, event);
+    emit runEvent(id, message);
     return;
   }
   if (seq > 0 || type == "job_resumed" || type == "job_update") {
     run.insert("uncertain", false);
   }
   if ((type == "job_update" || type == "job_resumed") &&
-      (event["status"] == "completed" || event["status"] == "failed" ||
-       event["status"] == "cancelled" || event["status"] == "finished")) {
+      (message["status"] == "completed" || message["status"] == "failed" ||
+       message["status"] == "cancelled" || message["status"] == "finished")) {
     run.insert("terminal", true);
   }
   if (seq > 0) {
@@ -800,23 +912,23 @@ void WorkflowSession::receive(const QByteArray &bytes) {
     run.insert("last_seq", seq);
   }
   if (type == "job_update" || type == "job_resumed") {
-    auto status = event["status"].toString();
+    auto status = message["status"].toString();
     if (status == "finished") status = "completed";
     if (status == "error") status = "failed";
-    if (event["started_at"].isString()) {
-        run.insert("started_at", event["started_at"]);
+    if (message["started_at"].isString()) {
+        run.insert("started_at", message["started_at"]);
     }
     run.insert("status", status);
-    run.insert("queue_position", event["queue_position"]);
-    if (m_accountJobs) {
+    run.insert("queue_position", message["queue_position"]);
+    if (m_accountJobs && !m_inProcessRuns.contains(id)) {
         m_accountJobs->refresh();
     }
-    run.insert("error", event["error"]);
+    run.insert("error", message["error"]);
     if (status == "failed") run.insert("terminal", true);
     emit stateChanged();
   }
-  m_generations.ingest(id, event, QDateTime::currentMSecsSinceEpoch());
+  m_generations.ingest(id, message, QDateTime::currentMSecsSinceEpoch());
   if (type == "generation_complete") { m_history.liveChanged(); }
-  emit runEvent(id, event);
+  emit runEvent(id, message);
 }
 } // namespace nodetool::node_editor

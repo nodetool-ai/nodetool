@@ -48,6 +48,27 @@ The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
 `-DFETCHCONTENT_SOURCE_DIR_QTNODES=/path/to/nodeeditor` for offline builds.
 QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
 
+## Local runs
+
+The editor links [`native/graph-runner`](../graph-runner/README.md) and loads
+its guest bundle in the background at startup. A graph runs inside the editor
+process, with or without a server connection, when every node and edge is one
+the runner supports (constant, control, input and Output nodes, no control
+edges). Comment and Group nodes do not count, because the runner drops them as
+the server does. Other graphs go to the server as before. Local run messages go
+through the same session handling as server messages, including the job summary
+that puts the run's outputs on the Output panel's job row. Stop cancels a local
+run, and the run status text ends with "(local)". The bundle comes from `--guest-bundle <path>`, then
+`NODETOOL_GUEST_BUNDLE`, then a `guest.bin` or `guest.js` next to the
+executable. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
+
+CMake also fetches QuickJS-ng and nlohmann/json for the runner. Supply
+`-DFETCHCONTENT_SOURCE_DIR_QUICKJS` and `-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON`
+for offline builds. The `node_editor_local_run` test loads
+`native/graph-runner/build/guest.js`. Build it first with
+`node native/graph-runner/guest/build.mjs`, or point the
+`NODETOOL_GUEST_BUNDLE` CMake variable at another bundle.
+
 ```sh
 /tmp/node-editor-build/nodetool-node-editor --server http://localhost:7777 --workflow FULL_WORKFLOW_ID
 ```

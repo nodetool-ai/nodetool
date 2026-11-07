@@ -9,7 +9,10 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QWebSocket>
+#include <QSet>
 #include <functional>
+#include <memory>
+namespace gr { class GraphRunner; }
 namespace nodetool::node_editor {
 // Host supplies credentials in memory. Snapshots use the persisted workflow
 // format.
@@ -30,6 +33,15 @@ public:
   Q_PROPERTY(QVariantList queue READ queue NOTIFY stateChanged)
   QVariantList queue() const;
   explicit WorkflowSession(QObject *parent = nullptr);
+  ~WorkflowSession() override;
+  // Guest bundle for in-process runs, from --guest-bundle. Set it before the
+  // first session is created. NODETOOL_GUEST_BUNDLE and a guest.bin or
+  // guest.js next to the executable are the fallbacks. NODETOOL_LOCAL_RUNNER=0
+  // turns in-process runs off.
+  static void setGuestBundlePath(const QString &path);
+  // Supported graphs run in this process, with or without a server.
+  bool localRunnerReady() const;
+  bool runsInProcess(const QString &jobId) const { return m_inProcessRuns.contains(jobId); }
   QJsonObject workflow() const { return m_workflow; }
   QJsonObject catalog() const { return m_catalog; }
   bool dirty() const { return m_dirty; }
@@ -108,6 +120,13 @@ private:
                const QJsonObject &body, Callback callback);
   bool send(const QString &command, const QJsonObject &data);
   void receive(const QByteArray &bytes);
+  // Run events from the server and from the in-process runner.
+  void ingestRunEvent(QJsonObject event);
+  void receiveLocal(const QString &jobId, const QString &workflowId, const QByteArray &json);
+  struct LocalRunRelay;
+  std::shared_ptr<gr::GraphRunner> m_localRunner;
+  std::shared_ptr<LocalRunRelay> m_localRelay;
+  QSet<QString> m_inProcessRuns;
   QNetworkAccessManager m_network;
   QWebSocket m_socket;
   QUrl m_base;

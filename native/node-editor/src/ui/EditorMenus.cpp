@@ -49,13 +49,13 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
     }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
- if (name == "Stop") { return runActive() && session_.connected(); }
+ if (name == "Stop") { return runActive() && (session_.connected() || session_.runsInProcess(run_)); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }
  if (name == "Redo") { return !readOnly() && document_.undoStack()->canRedo(); }
  if (name == "Copy") { return count > 0; }
  if (name == "Paste") { return !readOnly() && QJsonDocument::fromJson(QApplication::clipboard()->text().toUtf8()).isObject(); }
- if (name == "Run") { return !readOnly() && session_.connected(); }
- if (name == "Run selected") { return !readOnly() && count > 0 && !runActive() && session_.connected(); }
+ if (name == "Run") { return !readOnly() && (session_.connected() || session_.localRunnerReady()); }
+ if (name == "Run selected") { return !readOnly() && count > 0 && !runActive() && (session_.connected() || session_.localRunnerReady()); }
  if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid" || name == "Layout selection" || name == "Arrange selection") { return !readOnly() && count >= 2; }
  if (name == "Delete" || name == "Cut" || name == "Duplicate" || name == "Duplicate vertical" || name == "Group selection" || name == "Disable toggle" || name == "Disable selected" || name == "Enable selected") { return !readOnly() && count > 0; }
  if (name == "Remove from group") {

@@ -615,7 +615,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::runSubmitted, this,
           [this](const QString &id) {
             run_ = id;
-            message_ = tr("Run starting");
+            message_ = session_.runsInProcess(id) ? tr("Run starting (local)") : tr("Run starting");
             schedulePanelChanged();
             runtime_.beginRun(id);
             runOutput_.beginRun(id);
@@ -627,12 +627,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             runOutput_.ingest(id, event);
             const auto status = event["status"].toString();
             if (id == run_ && status == "running") {
-                message_ = tr("Run running");
+                message_ = session_.runsInProcess(id) ? tr("Run running (local)") : tr("Run running");
                 schedulePanelChanged();
             }
             if (id == run_ && event["type"] == "job_update" &&
                 (status == "completed" || status == "finished" || status == "failed" || status == "cancelled")) {
               message_ = event["error"].toString().isEmpty() ? tr("Run %1").arg(status) : event["error"].toString();
+              if (session_.runsInProcess(id)) { message_ += tr(" (local)"); }
               const auto plan = session_.lastPartialPlan();
               if (!plan.stale.isEmpty()) { message_ += tr(" · Reusing generations from edited nodes: %1").arg(plan.stale.join(", ")); }
               schedulePanelChanged();
@@ -651,7 +652,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
           });
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this,
           [this] {
-            runtime_.setConnected(session_.connected());
+            runtime_.setConnected(session_.connected() || session_.runsInProcess(run_));
             if (session_.connected() && message_ == tr("Connecting to server")) {
               message_ = tr("Connected to server");
             }
@@ -1595,7 +1596,7 @@ void EditorWindow::authoredAction(const QString &id, const QString &command, qui
   }
   if (node["type"].toString() != "nodetool.workflows.base_node.Group" && node["type"].toString() != "nodetool.workflows.Group") return;
   if (command == "run") {
-    if (runActive() || !session_.connected()) return;
+    if (runActive() || !(session_.connected() || session_.localRunnerReady())) return;
     const auto run = session_.runSelected(document_.snapshot(), {id}, metadata_);
     if (!run.isEmpty()) { run_ = run; schedulePanelChanged(); }
   } else if (command == "bypass") {

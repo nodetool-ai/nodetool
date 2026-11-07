@@ -18,7 +18,11 @@ int main(int argc, char **argv) {
         name, QString("%1 path or value").arg(name), "value"));
   }
   parser.addOption(QCommandLineOption("offline", "Start without connecting to a server"));
+  parser.addOption(QCommandLineOption("guest-bundle", "Guest bundle (guest.js or guest.bin) for in-process runs", "path"));
   parser.process(app);
+  if (parser.isSet("guest-bundle")) {
+    nodetool::node_editor::WorkflowSession::setGuestBundlePath(parser.value("guest-bundle"));
+  }
   nodetool::EditorWindow window;
   if (!parser.isSet("open") && !parser.isSet("workflow")) window.restoreTabs();
   if (parser.isSet("open") && !window.openFile(parser.value("open"))) {
