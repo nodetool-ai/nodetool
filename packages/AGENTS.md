@@ -418,7 +418,7 @@ fixes:
   octal, short-form `127.1`) and unwrap IPv4-mapped IPv6 (`[::ffff:127.0.0.1]`)
   *before* range-checking private/loopback/link-local/metadata; block `localhost`
   and `*.localhost`. A dotted-quad regex is not enough (the
-  `169.254.169.254` metadata IP has many encodings). `atlascloud-base.ts` has the
+  `169.254.169.254` metadata IP has many encodings). `atlascloud-factory.ts` has the
   hardened reference.
 - **Extract output URLs by recursively scanning** string / `FileOutput`
   (`.url()`/`.url`) / array / named-key-object shapes; accept a *nested* string
