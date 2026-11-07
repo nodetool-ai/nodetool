@@ -5,6 +5,7 @@ import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
     id: root
+    objectName: "structured-editor"
     required property var descriptor
     required property var value
     required property bool writable
@@ -96,6 +97,21 @@ ColumnLayout {
         }
         publish(next)
     }
+    // A nested list or dictionary is edited as JSON. Text that does not parse, or is not the
+    // declared container, leaves the document untouched and keeps the draft in place.
+    function replaceNested(index, text) {
+        let parsed
+        try { parsed = JSON.parse(text) }
+        catch (e) { error = "Nested value is not valid JSON: " + e.message; return false }
+        const wantsList = entryType.type === "list", wantsDict = entryType.type === "dict"
+        if ((wantsList && !Array.isArray(parsed)) || (wantsDict && (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)))) {
+            error = wantsList ? "Enter a JSON list" : "Enter a JSON object"
+            return false
+        }
+        error = ""
+        replace(index, parsed)
+        return true
+    }
     function applyJson() {
         if (!writable || !shapeValid) return
         try { if (jsonDraft.trim()) JSON.parse(jsonDraft) }
@@ -118,6 +134,7 @@ ColumnLayout {
     }
     NodeButton {
         visible: root.kind === "json"
+        objectName: "structured-apply-json"
         text: "Apply JSON"
         enabled: root.writable && root.shapeValid
         onClicked: root.applyJson()
@@ -142,6 +159,7 @@ ColumnLayout {
             RowLayout {
                 Layout.fillWidth: true
                 Ui.TextField {
+                    objectName: "structured-key-" + row.index
                     visible: root.kind === "dict"
                     Layout.fillWidth: true
                     value: String(root.rows[row.index])
@@ -152,11 +170,12 @@ ColumnLayout {
                     onValueCommitted: value => root.rename(row.index, value)
                 }
                 Ui.Text { visible: root.kind === "list"; text: String(row.index + 1); role: Ui.Typography.MonoCaption }
-                NodeButton { text: "↑"; accessibleName: "Move up"; visible: root.kind !== "dict"; enabled: root.writable && row.index > 0; onClicked: root.move(row.index, -1) }
-                NodeButton { text: "↓"; accessibleName: "Move down"; visible: root.kind !== "dict"; enabled: root.writable && row.index + 1 < root.rows.length; onClicked: root.move(row.index, 1) }
-                NodeButton { text: "Remove"; enabled: root.writable; onClicked: root.remove(row.index) }
+                NodeButton { objectName: "structured-up-" + row.index; text: "↑"; accessibleName: "Move up"; visible: root.kind !== "dict"; enabled: root.writable && row.index > 0; onClicked: root.move(row.index, -1) }
+                NodeButton { objectName: "structured-down-" + row.index; text: "↓"; accessibleName: "Move down"; visible: root.kind !== "dict"; enabled: root.writable && row.index + 1 < root.rows.length; onClicked: root.move(row.index, 1) }
+                NodeButton { objectName: "structured-remove-" + row.index; text: "Remove"; enabled: root.writable; onClicked: root.remove(row.index) }
             }
             Ui.TextField {
+                objectName: "structured-text-" + row.index
                 visible: root.kind !== "record_type" && ["str", "string", "any"].includes(row.type)
                 Layout.fillWidth: true
                 value: typeof row.entry === "string" ? row.entry : ""
@@ -167,6 +186,7 @@ ColumnLayout {
                 onValueCommitted: value => root.replace(row.index, value)
             }
             Ui.NumberField {
+                objectName: "structured-number-" + row.index
                 visible: root.kind !== "record_type" && ["int", "integer", "float", "number"].includes(row.type)
                 Layout.fillWidth: true
                 value: typeof row.entry === "number" ? row.entry : 0
@@ -184,12 +204,18 @@ ColumnLayout {
                 enabled: root.writable && root.shapeValid
                 onCheckedChangedByUser: checked => root.replace(row.index, checked)
             }
-            Ui.Text {
+            Ui.TextArea {
+                objectName: "structured-nested-" + row.index
                 visible: root.kind !== "record_type" && !["str", "string", "any", "int", "integer", "float", "number", "bool", "boolean"].includes(row.type)
-                text: JSON.stringify(row.entry, null, 2)
-                role: Ui.Typography.MonoCaption
                 Layout.fillWidth: true
-                wrapMode: Text.WrapAnywhere
+                implicitHeight: Ui.Metrics.touch * 2
+                role: Ui.Typography.MonoCaption
+                value: row.entry === undefined ? "" : JSON.stringify(row.entry, null, 2)
+                background: FieldFrame { control: parent }
+                accessibleName: "Nested JSON"
+                enabled: root.writable && root.shapeValid
+                onEditStarted: root.editStarted()
+                onValueCommitted: value => root.replaceNested(row.index, value)
             }
             Ui.TextField {
                 visible: root.kind === "record_type"

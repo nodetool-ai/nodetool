@@ -10,13 +10,13 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network WebSockets Test)
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/CodeInference.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/GraphRunner.cmake)
 add_executable(node_editor_server_tests WorkflowSessionTests.cpp
- ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
+ ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp)
 target_link_libraries(node_editor_server_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test)
 nodetool_stage_graph_runner_runtime(node_editor_server_tests)
 add_test(NAME node_editor_server_tests COMMAND node_editor_server_tests)
 add_executable(node_editor_autosave_tests WorkflowAutosaveTests.cpp
- ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
+ ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp)
 target_link_libraries(node_editor_autosave_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test)
 nodetool_stage_graph_runner_runtime(node_editor_autosave_tests)
@@ -24,7 +24,7 @@ add_test(NAME node_editor_autosave_tests COMMAND node_editor_autosave_tests)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia)
 add_executable(node_editor_local_run_tests LocalRunTests.cpp
  ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
- ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp
+ ../../src/server/MsgPack.cpp ../../src/document/WorkflowMerge.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp
  ../../src/run/NodeRuntimeModel.cpp ../../src/run/NodeRuntimeModel.h
  ../../src/run/RunOutputModel.cpp ../../src/run/RunOutputModel.h
  ../../src/run/OutputCollectionModel.cpp ../../src/run/OutputCollectionModel.h
@@ -40,7 +40,7 @@ if(NOT TARGET nodetool_ui_primitives)
  add_subdirectory(../../../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
 endif()
 qt_add_executable(node_editor_server_sync_panel_tests ServerSyncPanelTest.cpp
- ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
+ ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp)
 target_link_libraries(node_editor_server_sync_panel_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test Qt6::Quick)
 nodetool_stage_graph_runner_runtime(node_editor_server_sync_panel_tests)
@@ -49,7 +49,7 @@ nodetool_use_ui_primitives(node_editor_server_sync_panel_tests)
 add_test(NAME node_editor_server_sync_panel COMMAND node_editor_server_sync_panel_tests)
 set_tests_properties(node_editor_server_sync_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 add_executable(node_editor_reroute_live_tests RerouteLiveTests.cpp
- ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
+ ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp
  ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h)
 node_editor_use_code_inference(node_editor_reroute_live_tests)

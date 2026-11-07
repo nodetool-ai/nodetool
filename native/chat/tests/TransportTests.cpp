@@ -50,7 +50,7 @@ public:
                         uploadSocket = socket;
                         if (holdUploads) { return; }
                         const auto body = failUploads ? QByteArray("{\"error\":\"Upload rejected\"}")
-                            : QByteArray("{\"id\":\"cccccccccccccccccccccccccccccccc\"}");
+                            : QByteArray("{\"id\":\"cccccccccccccccccccccccccccccccc\",\"name\":\"brief.pdf\",\"content_type\":\"application/pdf\"}");
                         socket->write((failUploads ? QByteArray("HTTP/1.1 500 Internal Server Error\r\n") : QByteArray("HTTP/1.1 200 OK\r\n"))
                             + "Content-Type: application/json\r\nConnection: close\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\n\r\n" + body);
                         socket->disconnectFromHost();
@@ -249,7 +249,8 @@ private slots:
         const auto frame = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& value) { return value["command"] == "chat_message"; });
         const auto content = frame["data"].toObject()["content"].toArray();
         QCOMPARE(content.size(), 2);
-        QCOMPARE(content[1].toObject()["document"].toObject()["uri"].toString(), QStringLiteral("asset://cccccccccccccccccccccccccccccccc"));
+        // The stored asset record names the part and the extension, as web useDragAndDrop.ts does.
+        QCOMPARE(content[1].toObject()["document"].toObject()["uri"].toString(), QStringLiteral("asset://cccccccccccccccccccccccccccccccc.pdf"));
         QCOMPARE(session.attachments().size(), 0);
         server.emitEvent({{"type", "generation_stopped"}, {"thread_id", ThreadId}});
         QTRY_COMPARE(session.turnStatus(), QStringLiteral("idle"));

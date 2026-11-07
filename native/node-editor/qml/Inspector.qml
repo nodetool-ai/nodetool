@@ -15,6 +15,12 @@ Rectangle {
     readonly property var info: propertyHost && propertyHost.selectionInfo ? propertyHost.selectionInfo : ({})
     readonly property var fieldsModel: propertyHost ? propertyHost.properties : []
     readonly property bool hasSelection: propertyHost && propertyHost.selection !== ""
+    // RunSelectedNodesSection.tsx: the run count lives with the open inspector.
+    property int runs: 1
+    readonly property bool canRun: !!propertyHost && typeof propertyHost.runSelectedNodes === "function"
+    readonly property bool running: !!propertyHost && !!propertyHost.runActive
+    readonly property var runProgress: propertyHost && propertyHost.runProgress ? propertyHost.runProgress : ({})
+    readonly property var cost: propertyHost && propertyHost.costEstimate ? propertyHost.costEstimate : ({})
     component TabButton: PanelRow {
         id: tabButton
         property int index: 0
@@ -162,7 +168,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
-            contentHeight: helpText.implicitHeight + Ui.Metrics.lg * 2
+            contentHeight: helpText.implicitHeight + focusButton.height + Ui.Metrics.lg * 3
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
@@ -175,6 +181,16 @@ Rectangle {
                 text: root.info.description || "No help is available for this node."
                 role: Ui.Typography.SansBody
                 tone: Ui.Text.Secondary
+            }
+            // NodeInfoPanel.tsx: the Focus button centers the canvas on the node.
+            NodeButton {
+                id: focusButton
+                objectName: "inspector-focus"
+                x: Ui.Metrics.lg
+                y: helpText.y + helpText.implicitHeight + Ui.Metrics.lg
+                text: qsTr("Focus")
+                iconName: "myLocation"
+                onClicked: root.propertyHost.userAction("Focus node")
             }
         }
         Loader {
@@ -194,6 +210,118 @@ Rectangle {
             wrapMode: Text.WrapAnywhere
             Layout.fillWidth: true
             Layout.margins: Ui.Metrics.lg
+        }
+        // The web inspector footer (inspector/RunSelectedNodesSection.tsx): a Runs
+        // stepper from 1 to 32 beside Run selected, on the canvas surface.
+        Rectangle {
+            visible: root.hasSelection && root.canRun
+            Layout.fillWidth: true
+            Layout.preferredHeight: runFooter.implicitHeight + Ui.Metrics.md + Ui.Metrics.lg
+            color: roles.canvas
+            Rectangle { width: parent.width; height: Ui.Metrics.border; color: roles.divider }
+            GridLayout {
+                id: runFooter
+                objectName: "inspector-run-footer"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.leftMargin: Ui.Metrics.lg
+                anchors.rightMargin: Ui.Metrics.lg
+                anchors.topMargin: Ui.Metrics.md
+                // The web stacks the two rows below a 240 px container.
+                columns: root.width > 240 ? 2 : 1
+                columnSpacing: Ui.Metrics.md
+                rowSpacing: Ui.Metrics.sm
+                RowLayout {
+                    spacing: Ui.Metrics.xs
+                    Ui.Text { objectName: "inspector-runs-label"; text: qsTr("Runs"); role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
+                    Rectangle {
+                        implicitWidth: stepper.implicitWidth + Ui.Metrics.xs * 2
+                        implicitHeight: stepper.implicitHeight
+                        radius: Ui.Metrics.radiusControl
+                        color: roles.field
+                        Row {
+                            id: stepper
+                            x: Ui.Metrics.xs
+                            Ui.EditorButton {
+                                objectName: "inspector-runs-decrease"
+                                density: Ui.EditorButton.Compact
+                                variant: Ui.EditorButton.Flat
+                                iconName: "remove"
+                                iconSize: Ui.Metrics.iconSm
+                                implicitWidth: Ui.Metrics.compact
+                                leftPadding: Ui.Metrics.none
+                                rightPadding: Ui.Metrics.none
+                                accessibleName: qsTr("Decrease runs")
+                                enabled: root.runs > 1 && !root.running
+                                onClicked: root.runs = Math.max(1, root.runs - 1)
+                            }
+                            Ui.Text {
+                                objectName: "inspector-runs-value"
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Ui.Metrics.xxl
+                                horizontalAlignment: Text.AlignHCenter
+                                text: String(root.runs)
+                                role: Ui.Typography.SansLabel
+                            }
+                            Ui.EditorButton {
+                                objectName: "inspector-runs-increase"
+                                density: Ui.EditorButton.Compact
+                                variant: Ui.EditorButton.Flat
+                                iconName: "add"
+                                iconSize: Ui.Metrics.iconSm
+                                implicitWidth: Ui.Metrics.compact
+                                leftPadding: Ui.Metrics.none
+                                rightPadding: Ui.Metrics.none
+                                accessibleName: qsTr("Increase runs")
+                                enabled: root.runs < 32 && !root.running
+                                onClicked: root.runs = Math.min(32, root.runs + 1)
+                            }
+                        }
+                    }
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.micro
+                    Ui.EditorButton {
+                        id: runSelected
+                        objectName: "inspector-run-selected"
+                        Layout.fillWidth: true
+                        variant: Ui.EditorButton.Primary
+                        iconName: "playArrow"
+                        text: qsTr("Run selected")
+                        accessibleName: qsTr("Run selected nodes")
+                        enabled: !root.running && !root.propertyHost.readOnly
+                        onHoveredChanged: root.propertyHost.showToolTip(hovered ? qsTr("Run selected nodes") + "  " + (Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter") : "")
+                        onClicked: root.propertyHost.runSelectedNodes(root.runs)
+                    }
+                    Ui.Text {
+                        objectName: "inspector-run-progress"
+                        visible: root.runProgress.total !== undefined && root.runProgress.total > 1
+                        text: visible ? qsTr("Run %1/%2").arg(root.runProgress.current).arg(root.runProgress.total) : ""
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
+                    }
+                }
+            }
+        }
+        // PanelRight.tsx puts the collapsed cost estimate under the inspector. Native
+        // reads the per-run total from the server preflight of the saved workflow.
+        Rectangle {
+            visible: !!root.cost.available
+            Layout.fillWidth: true
+            Layout.preferredHeight: Ui.Metrics.compact + Ui.Metrics.xs * 2
+            color: roles.panel
+            Rectangle { width: parent.width; height: Ui.Metrics.border; color: roles.divider }
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: Ui.Metrics.lg
+                anchors.rightMargin: Ui.Metrics.lg
+                spacing: Ui.Metrics.md
+                Ui.Text { objectName: "inspector-cost-title"; text: qsTr("Cost estimate"); role: Ui.Typography.SansLabel }
+                Item { Layout.fillWidth: true }
+                Ui.Text { objectName: "inspector-cost-caption"; text: root.cost.caption || ""; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ namespace {
 QJsonArray catalog() {
   return QJsonArray{QJsonObject{{"node_type","Scalar"},{"title","Scalar controls"},
     {"input_fields",QJsonArray{"hidden"}},
+    {"inline_fields",QJsonArray{"text","prompt","number","flag","mode"}},
     {"properties",QJsonArray{
       QJsonObject{{"name","text"},{"type",QJsonObject{{"type","str"}}},{"json_schema_extra",QJsonObject{{"multiline",false}}}},
       QJsonObject{{"name","prompt"},{"type",QJsonObject{{"type","str"}}}},

@@ -3,6 +3,7 @@
 #include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
+#include <QHttpMultiPart>
 #include <QMimeDatabase>
 #include <QSaveFile>
 #include <QTimer>
@@ -12,6 +13,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 #include <QUuid>
+#include <memory>
 namespace nodetool::node_editor {
 namespace {
 constexpr qint64 ItemLimit = 32 * 1024 * 1024;
@@ -49,6 +51,8 @@ void MediaResolver::cancel(const QString &key) {
   identities_.remove(key);
   auto reply = replies_.take(key);
   if (reply) { reply->abort(); }
+  auto upload = uploads_.take(key);
+  if (upload) { upload->abort(); }
 }
 void MediaResolver::release(const QString &key) { leases_.remove(key); }
 bool MediaResolver::useCached(const QString &key, quint64 serial, const QString &identity) {
@@ -87,6 +91,9 @@ void MediaResolver::clear() {
   const auto replies = replies_;
   replies_.clear();
   for (const auto &reply : replies) { if (reply) { reply->abort(); } }
+  const auto uploads = uploads_;
+  uploads_.clear();
+  for (const auto &upload : uploads) { if (upload) { upload->abort(); } }
   if (cache_.isValid()) {
     for (const auto &name : QDir(cache_.path()).entryList(QDir::Files)) { QFile::remove(cache_.filePath(name)); }
   }
@@ -277,6 +284,63 @@ bool MediaResolver::saveResolved(const QString &key, const QUrl &destination) {
   }
   if (!output.commit()) { emit saveFailed(key, "Could not save media to the selected file"); return false; }
   emit saved(key, destination);
+  return true;
+}
+QByteArray MediaResolver::resolvedBytes(const QString &key) const {
+  const auto identity = identities_.value(key);
+  const auto entry = entries_.constFind(identity);
+  if (!serials_.contains(key) || entry == entries_.cend() || !leases_.value(key).contains(identity)) { return {}; }
+  QFile file(entry->url.toLocalFile());
+  return file.open(QIODevice::ReadOnly) ? file.read(ItemLimit) : QByteArray{};
+}
+// Web: ContentCardBody.tsx handleAddToAssets -> AssetStore.createAsset -> uploadAsset. The
+// multipart "json" part carries {content_type, name} and the server files the asset under the
+// account's own folder, so no parent_id is sent.
+bool MediaResolver::saveToAssets(const QString &key, const QString &requested, const QString &kind) {
+  const auto identity = identities_.value(key);
+  const auto entry = entries_.constFind(identity);
+  if (!serials_.contains(key) || entry == entries_.cend() || !leases_.value(key).contains(identity)) {
+    emit assetSaveFailed(key, "The media preview is no longer available"); return false;
+  }
+  if (server_.isEmpty()) { emit assetSaveFailed(key, "Connect to a server to save assets"); return false; }
+  if (uploads_.contains(key) && uploads_.value(key)) { emit assetSaveFailed(key, "This media is already being saved"); return false; }
+  auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
+  auto *file = new QFile(entry->url.toLocalFile(), multipart.get());
+  if (!file->open(QIODevice::ReadOnly)) { emit assetSaveFailed(key, "Could not read the cached media"); return false; }
+  const auto mime = entry->contentType.section(';', 0, 0).trimmed();
+  QHttpPart metadata;
+  metadata.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"json\"");
+  metadata.setBody(QJsonDocument(QJsonObject{{"name", suggestedFilename(key, requested, kind)},
+      {"content_type", mime.isEmpty() ? QStringLiteral("application/octet-stream") : mime}}).toJson(QJsonDocument::Compact));
+  multipart->append(metadata);
+  QHttpPart data;
+  data.setHeader(QNetworkRequest::ContentTypeHeader, mime.isEmpty() ? QStringLiteral("application/octet-stream") : mime);
+  // The user-visible name is metadata. A fixed multipart filename avoids header injection.
+  data.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"file\"; filename=\"upload\"");
+  data.setBodyDevice(file);
+  multipart->append(data);
+  QNetworkRequest request(server_.resolved(QUrl("/api/assets")));
+  request.setTransferTimeout(120000);
+  request.setAttribute(QNetworkRequest::CookieLoadControlAttribute, QNetworkRequest::Manual);
+  request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
+  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+  if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
+  const auto serial = serials_.value(key);
+  auto *reply = network_.post(request, multipart.get());
+  multipart.release()->setParent(reply);
+  uploads_[key] = reply;
+  connect(reply, &QNetworkReply::readyRead, reply, [reply] { if (reply->bytesAvailable() > 1024 * 1024) { reply->abort(); } });
+  connect(reply, &QNetworkReply::finished, this, [this, reply, key, serial] {
+    reply->deleteLater();
+    if (uploads_.value(key) == reply) { uploads_.remove(key); }
+    if (!current(key, serial)) { return; }
+    const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const auto id = QJsonDocument::fromJson(reply->readAll()).object().value("id").toString();
+    if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300 || id.isEmpty()) {
+      emit assetSaveFailed(key, QString("Could not save to assets (HTTP %1)").arg(status)); return;
+    }
+    emit assetSaved(key, id);
+  });
   return true;
 }
 void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &bytes, const QString &suffix, const QString &contentType) {

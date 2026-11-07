@@ -4,12 +4,14 @@
 #include <QEvent>
 #include <QApplication>
 #include <QQuickWindow>
+#include <QQuickRenderControl>
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQmlEngine>
+#include <QQmlComponent>
 #include <QRegion>
 #include <QScrollBar>
 #include <QSet>
@@ -56,6 +58,7 @@ CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorScen
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { schedule(); });
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &CanvasMediaPresenter::schedule);
   connect(&scene_, &QGraphicsScene::selectionChanged, this, &CanvasMediaPresenter::schedule);
+  connect(&scene_, &EditorScene::branchDimmingChanged, this, &CanvasMediaPresenter::schedule);
   connect(view.horizontalScrollBar(), &QScrollBar::valueChanged, this, &CanvasMediaPresenter::schedule);
   connect(view.verticalScrollBar(), &QScrollBar::valueChanged, this, &CanvasMediaPresenter::schedule);
   qApp->installEventFilter(this);
@@ -63,6 +66,7 @@ CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorScen
   view_.viewport()->installEventFilter(this);
 }
 CanvasMediaPresenter::~CanvasMediaPresenter() {
+  closeImageViewer();
   qApp->removeEventFilter(this);
   view_.removeEventFilter(this);
   view_.viewport()->removeEventFilter(this);
@@ -127,6 +131,18 @@ void CanvasMediaPresenter::setCollections(const QVariantList &collections) {
 void CanvasMediaPresenter::applySources(const QHash<QString, QVariantMap> &sources) {
   if (sources_ == sources) { return; }
   sources_ = sources;
+  if (imageViewer_) {
+    const auto source = sources_.value(imageViewerNode_);
+    if (source.isEmpty() || source.value("runId") != imageViewerSource_.value("runId")
+        || source.value("outputName") != imageViewerSource_.value("outputName")) { closeImageViewer(); }
+    else {
+      QVariantList images;
+      for (const auto &entry : source.value("items").toList()) {
+        if (entry.toMap().value("kind") == "image") { images.append(entry); }
+      }
+      QMetaObject::invokeMethod(imageViewer_, "sync", Q_ARG(QVariant, images));
+    }
+  }
   QSet<QString> mediaNodes;
   for (auto it = sources_.cbegin(); it != sources_.cend(); ++it) {
     if (it->value("kind") != "image" || it->value("items").toList().size() > 1) { mediaNodes.insert(it.key()); }
@@ -145,6 +161,7 @@ void CanvasMediaPresenter::retire(const QString &id) {
   entry.widget->deleteLater();
 }
 void CanvasMediaPresenter::releaseWidgets() {
+  closeImageViewer();
   for (const auto &id : active_.keys()) { retire(id); }
   emit changed();
 }
@@ -155,6 +172,13 @@ void CanvasMediaPresenter::clear() {
 }
 void CanvasMediaPresenter::refresh() {
   if (!engine_ || !view_.isVisible() || !view_.viewport()->isVisible()) { releaseWidgets(); return; }
+  if (imageViewer_) {
+    bool present = false;
+    for (const auto id : model_.allNodeIds()) {
+      if (model_.resourceId(id) == imageViewerNode_ && !model_.collapsed(id)) { present = true; break; }
+    }
+    if (!present) { closeImageViewer(); }
+  }
   const auto viewport = view_.viewport()->rect();
   const auto transform = view_.viewportTransform();
   const auto zoom = std::clamp(std::abs(view_.transform().m11()), 0.08, 8.0);
@@ -205,7 +229,8 @@ void CanvasMediaPresenter::refresh() {
         root->setProperty("zoom", zoom);
         root->setProperty("offsetX", mapped.x() - clipped.x());
         root->setProperty("offsetY", mapped.y() - clipped.y());
-        root->setProperty("mediaOpacity", model_.bypassed(node->nodeId()) ? node_metrics::disabledOpacity : 1.0);
+        // The widget sits above the canvas, so it follows the card opacity: disabled and off the selected branch.
+        root->setProperty("mediaOpacity", (model_.bypassed(node->nodeId()) ? node_metrics::disabledOpacity : 1.0) * node->opacity());
         widget->show();
         stacking.prepend(widget);
       }
@@ -218,8 +243,80 @@ void CanvasMediaPresenter::refresh() {
   if (auto picker = view_.viewport()->findChild<QQuickWidget *>("compatible-node-picker", Qt::FindDirectChildrenOnly); picker && picker->isVisible()) { picker->raise(); }
   emit changed();
 }
+void CanvasMediaPresenter::closeImageViewer() {
+  if (!imageViewer_) { return; }
+  auto viewer = imageViewer_.data();
+  imageViewer_.clear();
+  imageViewerNode_.clear();
+  imageViewerSource_.clear();
+  QMetaObject::invokeMethod(viewer, "dismiss");
+  delete viewer;
+}
+bool CanvasMediaPresenter::canViewImage(const QString &nodeId) const {
+  for (const auto id : model_.allNodeIds()) {
+    if (model_.resourceId(id) == nodeId) { return canOpenImageViewer(id); }
+  }
+  return false;
+}
+QString CanvasMediaPresenter::imageOutputName(const QString &nodeId) const {
+  const auto source = sources_.value(nodeId);
+  return source.value("kind") == "image" ? source.value("outputName").toString() : QString{};
+}
+bool CanvasMediaPresenter::viewImage(const QString &nodeId) {
+  for (const auto id : model_.allNodeIds()) {
+    if (model_.resourceId(id) == nodeId) { return openImageViewer(id); }
+  }
+  return false;
+}
+bool CanvasMediaPresenter::canOpenImageViewer(QtNodes::NodeId id) const {
+  const auto source = sources_.value(model_.resourceId(id));
+  return engine_ && view_.isVisible() && view_.viewport()->isVisible() && source.value("kind") == "image" && source.value("items").toList().size() == 1
+      && !model_.collapsed(id) && !model_.canvasResultRect(id).isEmpty();
+}
+bool CanvasMediaPresenter::openImageViewer(QtNodes::NodeId id) {
+  const auto resource = model_.resourceId(id);
+  const auto source = sources_.value(resource);
+  const auto items = source.value("items").toList();
+  if (!canOpenImageViewer(id)) { return false; }
+  closeImageViewer();
+  QQmlComponent component(engine_, QUrl("qrc:/editor/ImageViewer.qml"));
+  auto object = component.createWithInitialProperties({{"items", items}, {"selected", items.first()},
+      {"currentIndex", 0}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}});
+  auto viewer = qobject_cast<QQuickWindow *>(object);
+  if (!viewer) { delete object; return false; }
+  viewer->QObject::setParent(this);
+  imageViewer_ = viewer;
+  imageViewerNode_ = resource;
+  imageViewerSource_ = source;
+  viewer->setTransientParent(view_.window()->windowHandle());
+  connect(viewer, &QWindow::visibleChanged, this, [this, viewer](bool visible) {
+    if (visible) { return; }
+    if (imageViewer_ == viewer) { imageViewer_.clear(); imageViewerNode_.clear(); imageViewerSource_.clear(); }
+    viewer->deleteLater();
+    view_.setFocus(Qt::PopupFocusReason);
+  });
+  viewer->show();
+  viewer->requestActivate();
+  return true;
+}
 bool CanvasMediaPresenter::eventFilter(QObject *object, QEvent *event) {
   if (event->type() == QEvent::ShortcutOverride) {
+    if (imageViewer_ && imageViewer_->isVisible()) {
+      const auto ownsWindow = [this](QWindow *window) {
+        for (auto current = window; current; current = current->transientParent()) {
+          if (current == imageViewer_ || current == view_.window()->windowHandle()) { return true; }
+        }
+        const auto quick = qobject_cast<QQuickWindow *>(window);
+        return quick && QQuickRenderControl::renderWindowFor(quick) == view_.window()->windowHandle();
+      };
+      bool owned = false;
+      for (auto target = object; target && !owned; target = target->parent()) {
+        if (const auto widget = qobject_cast<QWidget *>(target)) { owned = widget->window() == view_.window(); }
+        else if (const auto item = qobject_cast<QQuickItem *>(target)) { owned = ownsWindow(item->window()); }
+        else if (const auto window = qobject_cast<QWindow *>(target)) { owned = ownsWindow(window); }
+      }
+      if (owned) { event->accept(); return true; }
+    }
     for (const auto &entry : active_) {
       if (!entry.widget) { continue; }
       bool inside = object == entry.widget || object == entry.widget->quickWindow();
@@ -227,6 +324,21 @@ bool CanvasMediaPresenter::eventFilter(QObject *object, QEvent *event) {
         inside = target == entry.widget || target == entry.widget->rootObject();
       }
       if (inside) { event->accept(); return true; }
+    }
+  }
+  if (object == view_.viewport() && event->type() == QEvent::MouseButtonDblClick) {
+    const auto mouse = static_cast<QMouseEvent *>(event);
+    if (mouse->button() == Qt::LeftButton && mouse->modifiers() == Qt::NoModifier) {
+      const auto scenePoint = view_.mapToScene(mouse->position().toPoint());
+      // The first containing card owns the point, even when its result is empty.
+      for (auto item : scene_.items(scenePoint, Qt::IntersectsItemBoundingRect, Qt::DescendingOrder)) {
+        const auto node = qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item);
+        if (!node || !node->isVisible()) { continue; }
+        if (model_.canvasResultRect(node->nodeId()).contains(node->mapFromScene(scenePoint)) && openImageViewer(node->nodeId())) {
+          event->accept(); return true;
+        }
+        break;
+      }
     }
   }
   if (object == &view_ || object == view_.viewport()) {

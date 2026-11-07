@@ -5,7 +5,7 @@ Build and run independently of npm and the native editor host:
 ```sh
 cmake -S native/node-editor/tests/browser \
   -B "$HOME/.cache/nodetool-native-builds/browser" \
-  -DCMAKE_PREFIX_PATH=/home/mg/qt/6.12.0/gcc_64
+  -DCMAKE_PREFIX_PATH=<Qt 6.12 install prefix>
 cmake --build "$HOME/.cache/nodetool-native-builds/browser" -j4
 ctest --test-dir "$HOME/.cache/nodetool-native-builds/browser" --output-on-failure
 ```

@@ -22,6 +22,7 @@
 #include <QtTest>
 #include "run/GenerationHistory.h"
 #include "run/RunOutputModel.h"
+#include <functional>
 #include <memory>
 #include <vector>
 #include "graph/EditorScene.h"
@@ -190,7 +191,16 @@ private slots:
     auto field = control(w, "Enabled");
     QVERIFY2(field, "Boolean property must expose an accessible real control");
     QVERIFY(field->metaObject()->indexOfProperty("checked") >= 0);
-    QVERIFY(containsText(inspector(w)->rootObject(), "Enabled help"));
+    // The description is the label tooltip, as in the web inspector.
+    QVERIFY(!containsText(inspector(w)->rootObject(), "Enabled help"));
+    std::function<bool(QQuickItem *)> hasHelp = [&hasHelp](QQuickItem *item) {
+        if (item->property("helpText").toString() == "Enabled help") {
+            return true;
+        }
+        const auto children = item->childItems();
+        return std::any_of(children.cbegin(), children.cend(), hasHelp);
+    };
+    QVERIFY(hasHelp(inspector(w)->rootObject()));
     auto count = w.document()->undoStack()->count();
     inspector(w)->setFocus();
     field->forceActiveFocus();
@@ -311,7 +321,7 @@ private slots:
     field = control(w, "Default");
     QVERIFY(field);
     type(w, field, "pending default draft", 0);
-    button = propertyAction(w, "Default", "Use default");
+    button = propertyAction(w, "Default", "Reset to default");
     QVERIFY(button);
     const auto defaultCount = w.document()->undoStack()->count();
     click(w, button);
@@ -507,7 +517,8 @@ private slots:
     QTest::mouseClick(output->quickWindow(), Qt::LeftButton, Qt::NoModifier,
         clear->mapToScene(QPointF(clear->width() / 2, clear->height() / 2)).toPoint());
     QTRY_VERIFY(w.runOutput()->runs().isEmpty());
-    QVERIFY(containsText(output->rootObject(), "No run output"));
+    // The web Logs view names its empty state "No recorded runs" (components/panels/TracePanel.tsx).
+    QVERIFY(containsText(output->rootObject(), "No recorded runs"));
     w.action("Output");
     QVERIFY(!w.outputVisible());
     emit w.session()->errorOccurred("Fixture connection failure");
@@ -578,6 +589,24 @@ private slots:
     QCOMPARE(panels.count(), 1);
     QCOMPARE(owner.count(), 1);
   }
+  // Window edits project once in the next pass and keep the scene items. A replaced document resets them.
+  void windowEditsProjectIncrementally() {
+    EditorWindow window;
+    loadPanelFixture(window);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QSignalSpy reset(&model, &WorkflowGraphModel::modelReset), projected(&model, &WorkflowGraphModel::projectionChanged);
+    QVERIFY(window.document()->applyCommand({{"op", "moveNodes"}, {"positions", QJsonObject{{"a", QJsonObject{{"x", 40}, {"y", 20}}}}}}));
+    QVERIFY(window.document()->applyCommand({{"op", "moveNodes"}, {"positions", QJsonObject{{"b", QJsonObject{{"x", 640}, {"y", 20}}}}}}));
+    QCOMPARE(projected.count(), 0);
+    QTRY_COMPARE(projected.count(), 1);
+    QTest::qWait(50);
+    QCOMPARE(projected.count(), 1);
+    QCOMPARE(reset.count(), 0);
+    QVERIFY(window.document()->load(window.document()->snapshot()));
+    QCOMPARE(reset.count(), 1);
+    QTest::qWait(50);
+    QCOMPARE(reset.count(), 1);
+  }
   // A click selection syncs the inspector once, although the press selects and the release clicks.
   void clickSelectionSyncsInspectorOnce() {
     EditorWindow window;
@@ -625,9 +654,9 @@ private slots:
     w.show();
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
-    // Rail, tabs, status, catalog, browser, inspector, output, both toolbars, viewport readout,
-    // first-workflow guide, queue overlay, subgraph canvas strip, chat overlay.
-    QCOMPARE(panels.size(), 14);
+    // Rail, tabs, document header, status, catalog, browser, inspector, output, both toolbars,
+    // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay.
+    QCOMPARE(panels.size(), 16);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }
@@ -638,7 +667,7 @@ private slots:
     QJsonObject inline_{{"name", "note"}, {"type", QJsonObject{{"type", "str"}}}};
     const QJsonArray catalog{QJsonObject{{"node_type", "t.A"}, {"title", "Alpha"}, {"input_fields", QJsonArray{"text"}},
         {"properties", QJsonArray{input}}, {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", QJsonObject{{"type", "str"}}}}}}},
-        QJsonObject{{"node_type", "t.B"}, {"title", "Beta"}, {"properties", QJsonArray{inline_}}, {"outputs", QJsonArray{}}}};
+        QJsonObject{{"node_type", "t.B"}, {"title", "Beta"}, {"inline_fields", QJsonArray{"note"}}, {"properties", QJsonArray{inline_}}, {"outputs", QJsonArray{}}}};
     model.project({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "a"}, {"type", "t.A"}},
         QJsonObject{{"id", "b"}, {"type", "t.B"}, {"data", QJsonObject{{"note", "hello"}}}, {"ui_properties", QJsonObject{{"width", 320}}}}}},
         {"edges", QJsonArray{}}}}}, catalog);
@@ -703,6 +732,10 @@ private slots:
     QVERIFY(w.selection().isEmpty());
     select(w, "a");
     QTRY_VERIFY(w.inspectorVisible());
+    // The web opens with its side panels closed.
+    QVERIFY(!w.catalogVisible());
+    w.action("Toggle nodes");
+    QVERIFY(w.catalogVisible());
     w.action("Toggle nodes");
     QVERIFY(!w.catalogVisible());
     w.action("Toggle nodes");
@@ -724,7 +757,9 @@ private slots:
     QVERIFY(w.zoomPercent() > zoom);
     w.action("Reset zoom");
     QCOMPARE(w.zoomPercent(), 100);
-    QVERIFY(containsText(panelNamed("StatusBar.qml"), "2 nodes"));
+    auto *status = panelNamed("StatusBar.qml");
+    QCOMPARE(status->findChild<QQuickItem *>("status-nodes-value")->property("text").toString(), QString("2"));
+    QCOMPARE(status->findChild<QQuickItem *>("status-nodes-key")->property("text").toString(), QString("nodes"));
   }
   void largeGraphRepaintCost() {
     EditorWindow w;
@@ -848,16 +883,24 @@ private slots:
     const auto wideZoom = w.zoomPercent();
     QVERIFY(wideZoom <= 100);
     QVERIFY(w.unobstructedViewport().height() < view->viewport()->height());
-    // The inspector narrows the canvas, and the fit follows the settled layout.
+    // The web keeps the zoom on select and pans only to clear the inspector
+    // (useClearInspectorOverlap.ts), so fit mode no longer refits to the narrower
+    // canvas (W9). Every node stays visible only after an explicit fit.
     QVERIFY(w.selectNode("5"));
     QTRY_VERIFY(w.inspectorVisible());
-    QTest::qWait(50);
-    QTRY_VERIFY(allVisible());
-    QVERIFY(w.zoomPercent() < wideZoom);
+    QTest::qWait(400);
+    QCOMPARE(w.zoomPercent(), wideZoom);
+    for (auto id : model->allNodeIds()) {
+      if (model->resourceId(id) != "5") { continue; }
+      const auto rect = view->mapFromScene(w.scene()->nodeGraphicsObject(id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
+      QVERIFY(view->viewport()->rect().contains(rect));
+    }
     w.action("Clear selection");
     QTest::qWait(50);
-    QTRY_COMPARE(w.zoomPercent(), wideZoom);
+    QCOMPARE(w.zoomPercent(), wideZoom);
+    w.fit();
     QVERIFY(allVisible());
+    QCOMPARE(w.zoomPercent(), wideZoom);
     // Once the user sets the zoom, selection keeps the zoom and uncovers the node.
     w.action("Reset zoom");
     view->centerOn(0, 0);
@@ -870,11 +913,12 @@ private slots:
       QTRY_VERIFY(w.unobstructedViewport().contains(QRectF(rect)));
     }
   }
-  void catalogFiltersByNamespaceAndText() {
+  void catalogFiltersByCategoryAndText() {
     EditorWindow w;
-    w.setCatalog({QJsonObject{{"node_type", "a.one.First"}, {"title", "First"}, {"namespace", "a.one"}},
+    w.setCatalog({QJsonObject{{"node_type", "nodetool.input.First"}, {"title", "First"}, {"namespace", "nodetool.input"}},
                   QJsonObject{{"node_type", "a.two.Second"}, {"title", "Second"}, {"namespace", "a.two"}}});
     w.show();
+    w.action("Toggle nodes");
     QTest::qWait(30);
     QQuickItem *root = nullptr;
     for (auto panel : w.findChildren<QQuickWidget *>()) {
@@ -883,16 +927,16 @@ private slots:
     QVERIFY(root);
     auto rows = root->findChild<QQuickItem *>("catalog-rows");
     QTRY_COMPARE(rows->property("count").toInt(), 2);
-    // The node rows take the width the namespace column leaves.
-    auto namespaces = root->findChild<QQuickItem *>("catalog-namespaces");
-    QVERIFY(namespaces);
-    QTRY_VERIFY2(rows->width() >= root->width() - namespaces->width() - 1,
-                 qPrintable(QString("rows %1, namespaces %2, panel %3").arg(rows->width()).arg(namespaces->width()).arg(root->width())));
-    QVERIFY(namespaces->width() <= 124);
+    // The node rows take the width the category column leaves.
+    auto categories = root->findChild<QQuickItem *>("catalog-categories");
+    QVERIFY(categories);
+    QTRY_VERIFY2(rows->width() >= root->width() - categories->width() - 1,
+                 qPrintable(QString("rows %1, categories %2, panel %3").arg(rows->width()).arg(categories->width()).arg(root->width())));
+    QVERIFY(categories->width() <= 156);
     root->setProperty("query", "sec");
     QTRY_COMPARE(rows->property("count").toInt(), 1);
     root->setProperty("query", "");
-    root->setProperty("category", "One");
+    root->setProperty("category", "io");
     QTRY_COMPARE(rows->property("count").toInt(), 1);
     QVERIFY(containsText(root, "First"));
   }
@@ -910,6 +954,7 @@ private slots:
              QJsonArray{QJsonObject{{"name", "text"}, {"default", "hello"}}}}},
         QJsonObject{
             {"node_type", "sink"},
+            {"input_fields", QJsonArray{"in"}},
             {"properties",
              QJsonArray{QJsonObject{{"name", "in"},
                                     {"type", QJsonObject{{"type", "str"}}}}}}}};

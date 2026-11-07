@@ -1,5 +1,7 @@
 #include "NodeLayout.h"
+#include <QFile>
 #include <QHash>
+#include <QSet>
 
 namespace nodetool {
 QColor typeColor(const QString &type) {
@@ -27,7 +29,7 @@ QString typeIcon(const QString &type) {
       {"video", "movie"}, {"audio", "equalizer"}, {"bool", "toggle"}, {"int", "number"},
       {"float", "number"}, {"list", "list"}, {"dict", "braces"}, {"json", "braces"},
       {"object", "braces"}, {"dataframe", "table"}, {"document", "document"}, {"folder", "folder"},
-      {"any", "help"}};
+      {"any", "help"}, {"preview", "visibility"}};
   return icons.value(type, QStringLiteral("help"));
 }
 
@@ -52,8 +54,65 @@ QString iconPath(const QString &name) {
       {"folderOpen", "M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2m0 12H4V8h16z"},
       {"addCircle", "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m5 11h-4v4h-2v-4H7v-2h4V7h2v4h4z"},
       {"hub", "M8.4 18.2c.38.5.6 1.12.6 1.8 0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3c.44 0 .85.09 1.23.26l1.41-1.77c-.92-1.03-1.29-2.39-1.09-3.69l-2.03-.68c-.54.83-1.46 1.38-2.52 1.38-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3c0 .07 0 .14-.01.21l2.03.68c.64-1.21 1.82-2.09 3.22-2.32V5.91C9.96 5.57 9 4.4 9 3c0-1.66 1.34-3 3-3s3 1.34 3 3c0 1.4-.96 2.57-2.25 2.91v2.16c1.4.23 2.58 1.11 3.22 2.32l2.03-.68c-.01-.07-.01-.14-.01-.21 0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3c-1.06 0-1.98-.55-2.52-1.38l-2.03.68c.2 1.29-.16 2.65-1.09 3.69l1.41 1.77c.38-.17.79-.26 1.23-.26 1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3c0-.68.22-1.3.6-1.8l-1.41-1.77c-1.35.75-3.01.76-4.37 0z"},
-      {"article", "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-5 14H7v-2h7zm3-4H7v-2h10zm0-4H7V7h10z"}};
+      {"article", "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-5 14H7v-2h7zm3-4H7v-2h10zm0-4H7V7h10z"},
+      {"visibility", "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"},
+      {"textFields", "M2.5 4v3h5v12h3V7h5V4zm19 5h-9v3h3v7h3v-7h3z"},
+      {"output", "M17 17L22 12L17 7L15.59 8.41L18.17 11H9v2h9.17l-2.58 2.59zM19 19H5V5h14v2h2V5c0-1.1-.89-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.11 0 2-.9 2-2v-2h-2z"},
+      {"link", "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5"},
+      {"linkOff", "M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.98l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5m-1 4h-2.19l2 2H16zM2 4.27l3.11 3.11C3.29 8.12 2 9.91 2 12c0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1 0-1.59 1.21-2.9 2.76-3.07L8.73 11H8v2h2.73L13 15.27V17h1.73l4.01 4L20 19.74 3.27 3z"},
+      {"add", "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"},
+      {"arrowDropDown", "M7 10l5 5 5-5z"}};
   return paths.value(name);
+}
+
+QString webTypeIcon(const QString &type) {
+    // Aliases from iconMap in web/src/config/IconForType.tsx. Other names use
+    // their own icon when one exists, and "any" otherwise.
+    static const QHash<QString, QString> aliases{
+        {"bytes", "file"}, {"cv", "audio"}, {"collection", "database"}, {"embedding_model", "tensor"},
+        {"rerank_model", "tensor"}, {"font", "document"}, {"image_size", "language_model"},
+        {"model_ref", "model"}, {"llama_cpp_model", "language_model"}, {"llama_model", "language_model"},
+        {"mistral_model", "language_model"}, {"model_3d_model", "model_3d"}, {"model3d", "model_3d"},
+        {"none", "notype"}, {"sketch", "image"}, {"timeline", "video"}, {"keyframe", "image"},
+        {"video_element", "image"}, {"shot", "video"}, {"message", "thread_message"},
+        {"torch_tensor", "tensor"}, {"tts_model", "audio"}, {"asr_model", "audio"},
+        {"music_model", "audio"}, {"audio_to_audio_model", "audio"}, {"video_model", "video"},
+        {"workflow", "dataframe"}, {"object", "dict"}, {"json", "dict"}};
+    // Keys with an SVG in resources/data_types that iconMap also lists by name.
+    static const QSet<QString> named{
+        "any", "notype", "asset", "audio", "bool", "chunk", "preview", "dataframe", "dict", "enum",
+        "file", "float", "folder", "image", "int", "list", "model", "language_model", "image_model",
+        "str", "tensor", "text", "union", "video", "task", "thread", "datetime", "date", "np_array",
+        "document", "model_3d"};
+    auto name = type;
+    if (name.startsWith(QStringLiteral("nodetool."))) {
+        name = name.mid(9);
+    }
+    if (name.isEmpty()) {
+        return QStringLiteral("notype");
+    }
+    if (const auto alias = aliases.constFind(name); alias != aliases.cend()) {
+        return *alias;
+    }
+    if (name.startsWith(QStringLiteral("tjs."))) {
+        return QStringLiteral("language_model");
+    }
+    return named.contains(name) ? name : QStringLiteral("any");
+}
+
+QByteArray webTypeIconSvg(const QString &key, const QColor &color) {
+    static QHash<QString, QByteArray> sources;
+    auto found = sources.find(key);
+    if (found == sources.end()) {
+        QFile file(QStringLiteral(":/editor/data_types/%1.svg").arg(key));
+        found = sources.insert(key, file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray{});
+    }
+    if (found->isEmpty()) {
+        return {};
+    }
+    auto svg = *found;
+    svg.replace("currentColor", color.name(QColor::HexRgb).toLatin1());
+    return svg;
 }
 
 QString displayName(const QString &name) {

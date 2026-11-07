@@ -47,7 +47,7 @@ QJsonObject node(const QString &id, double x, double y) {
 }
 QJsonArray catalog() {
   return QJsonArray{QJsonObject{{"node_type", "Media"}, {"title", "Media output"},
-    {"input_fields", QJsonArray{"input"}},
+    {"input_fields", QJsonArray{"input"}}, {"inline_fields", QJsonArray{"text"}},
     {"properties", QJsonArray{QJsonObject{{"name", "input"}, {"type", QJsonObject{{"type", "any"}}}}, QJsonObject{{"name", "text"}, {"type", QJsonObject{{"type", "str"}}}, {"json_schema_extra", QJsonObject{{"multiline", false}}}}}},
     {"outputs", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "any"}}}}}}}};
 }

@@ -1,7 +1,9 @@
 #include "CanvasDropController.h"
 #include "WorkflowGraphModel.h"
+#include <QApplication>
 #include <QDropEvent>
 #include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QGraphicsView>
 #include <QJsonDocument>
@@ -10,6 +12,7 @@
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QRegularExpression>
+#include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -48,6 +51,18 @@ QStringList assetIds(const QJsonObject &drag) {
   if (ids.isEmpty() || ids.size() > 256) return {};
   for (const auto &id : ids) if (id.isEmpty() || id.size() > 1024) return {};
   return ids;
+}
+// A saved sketch or timeline enters the graph as a constant node that names the
+// document by ID (web hooks/handlers/useDropHandler.ts:195-239).
+struct DocumentDrop { QString nodeType, kind, id, title; };
+DocumentDrop documentDrop(const QJsonObject &drag) {
+    const auto kind = drag["type"].toString();
+    const auto payload = drag["payload"].toObject();
+    const auto id = payload["id"].toString();
+    if ((kind != "sketch" && kind != "timeline") || id.isEmpty() || id.size() > 1024) { return {}; }
+    const auto name = payload["name"].toString();
+    if (kind == "sketch") { return {"nodetool.constant.Sketch", kind, id, name.isEmpty() ? QObject::tr("Untitled sketch") : name}; }
+    return {"nodetool.constant.Timeline", kind, id, name.isEmpty() ? QObject::tr("Untitled video") : name};
 }
 bool sameOrigin(const QUrl &a, const QUrl &b) { return a.scheme() == b.scheme() && a.host() == b.host() && a.port(a.scheme() == "https" ? 443 : 80) == b.port(b.scheme() == "https" ? 443 : 80); }
 QJsonObject trpcData(const QByteArray &bytes) {
@@ -158,6 +173,8 @@ void CanvasDropController::fail(const QString &key, const QString &message) {
   transfers_[key].state = "failed"; transfers_[key].error = message; emit changed(); emit errorOccurred(message);
 }
 bool CanvasDropController::accepts(const QMimeData *mime) const {
+  // A document reference needs no upload, so it needs no server.
+  if (!model_.readOnly() && !documentDrop(dragPayload(mime)).id.isEmpty()) return true;
   if (origin_.isEmpty() || model_.readOnly()) return false;
   if (!assetIds(dragPayload(mime)).isEmpty()) return true;
   if (!mime->hasUrls() || mime->urls().isEmpty() || mime->urls().size() > 256) return false;
@@ -165,6 +182,23 @@ bool CanvasDropController::accepts(const QMimeData *mime) const {
   return false;
 }
 bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
+  // A click on a drop zone opens a file picker. The scene still sees the click and selects the card.
+  if (object == view_.viewport() && (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease)) {
+    auto *mouse = static_cast<QMouseEvent *>(event);
+    if (mouse->button() != Qt::LeftButton) return QObject::eventFilter(object, event);
+    const auto point = mouse->position().toPoint();
+    if (event->type() == QEvent::MouseButtonPress) {
+      pressZone_ = dropZone(point);
+      pressPoint_ = point;
+    } else {
+      const auto zone = pressZone_;
+      pressZone_.clear();
+      if (!zone.isEmpty() && dropZone(point) == zone && (point - pressPoint_).manhattanLength() < QApplication::startDragDistance()) {
+        QTimer::singleShot(0, this, [this, zone, point] { pickFile(zone, point); });
+      }
+    }
+    return QObject::eventFilter(object, event);
+  }
   if (object != view_.viewport() || (event->type() != QEvent::DragEnter && event->type() != QEvent::DragMove && event->type() != QEvent::Drop)) return QObject::eventFilter(object, event);
   auto *dropEvent = static_cast<QDropEvent *>(event);
   if (dropEvent->mimeData()->hasFormat("application/x-nodetool-node-type")) return false;
@@ -173,7 +207,9 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
     return false;
   }
   if (!(dropEvent->possibleActions() & Qt::CopyAction)) { dropEvent->ignore(); return true; }
-  if (!assetIds(dragPayload(dropEvent->mimeData())).isEmpty()) {
+  const auto document = documentDrop(dragPayload(dropEvent->mimeData()));
+  const auto zone = document.id.isEmpty() ? dropZone(dropEvent->position().toPoint()) : QStringList{};
+  if ((!assetIds(dragPayload(dropEvent->mimeData())).isEmpty() && zone.isEmpty()) || !document.id.isEmpty()) {
     for (auto *entry : view_.items(dropEvent->position().toPoint())) for (auto *item = entry; item; item = item->parentItem())
       if (qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item)) { dropEvent->ignore(); return true; }
   }
@@ -181,15 +217,69 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
   if (event->type() == QEvent::Drop) {
     bool invertible = false; const auto inverse = view_.viewportTransform().inverted(&invertible);
     if (!invertible) { dropEvent->ignore(); return true; }
-    drop(dropEvent->mimeData(), inverse.map(dropEvent->position()));
+    drop(dropEvent->mimeData(), inverse.map(dropEvent->position()), zone);
   }
   return true;
 }
-void CanvasDropController::drop(const QMimeData *mime, const QPointF &position) {
+void CanvasDropController::pickFile(const QStringList &zone, const QPoint &viewportPosition) {
+    const auto &kind = zone[2];
+    QString path;
+    if (chooseFile) {
+        path = chooseFile(kind);
+    } else {
+        const QHash<QString, QString> filters{{"image", tr("Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)")},
+                                              {"video", tr("Videos (*.mp4 *.mov *.webm *.mkv)")},
+                                              {"audio", tr("Audio (*.wav *.mp3 *.ogg *.flac *.m4a)")}};
+        path = QFileDialog::getOpenFileName(view_.window(), tr("Choose %1").arg(kind), {}, filters.value(kind, tr("All files (*)")));
+    }
+    bool invertible = false;
+    const auto inverse = view_.viewportTransform().inverted(&invertible);
+    if (path.isEmpty() || !invertible) return;
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(path)});
+    drop(&mime, inverse.map(QPointF(viewportPosition)), zone);
+}
+QStringList CanvasDropController::dropZone(const QPoint &viewportPosition) const {
+    for (auto *entry : view_.items(viewportPosition)) {
+        for (auto *item = entry; item; item = item->parentItem()) {
+            auto *node = qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item);
+            if (!node) {
+                continue;
+            }
+            const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
+            const auto row = model_.dropZoneAt(node->nodeId(), local);
+            if (row < 0) {
+                return {};
+            }
+            const auto &zone = model_.layout(node->nodeId()).rows[row];
+            return {model_.resourceId(node->nodeId()), zone.propertyName, zone.typeName};
+        }
+    }
+    return {};
+}
+void CanvasDropController::drop(const QMimeData *mime, const QPointF &position, const QStringList &zone) {
+  if (const auto document = documentDrop(dragPayload(mime)); !document.id.isEmpty()) {
+    if (model_.readOnly() || !catalog_.contains(document.nodeType) || !createNode || !applyCommand) {
+      emit errorOccurred(tr("Could not create %1 node: metadata is missing.").arg(document.kind));
+      return;
+    }
+    auto node = createNode(catalog_.value(document.nodeType), position, QJsonObject{{"value", QJsonObject{{"type", document.kind}, {"id", document.id}}}});
+    auto ui = node["ui_properties"].toObject();
+    ui["title"] = document.title;
+    node["ui_properties"] = ui;
+    if (!node["id"].toString().isEmpty() && applyCommand(QJsonObject{{"op", "addNode"}, {"node", node}})) { emit nodeCreated(node["id"].toString()); }
+    return;
+  }
   const auto ids = assetIds(dragPayload(mime));
-  const auto count = ids.isEmpty() ? mime->urls().size() : ids.size();
+  // A drop zone takes one file, as the web's single media property does.
+  const auto count = !zone.isEmpty() ? qsizetype(1) : ids.isEmpty() ? mime->urls().size() : ids.size();
   for (qsizetype index = 0; index < count; ++index) {
     Transfer row; row.key = QUuid::createUuid().toString(QUuid::Id128); row.position = position + QPointF((index % 2) * 250, (index / 2) * 250);
+    if (!zone.isEmpty()) {
+        row.targetNode = zone[0];
+        row.targetProperty = zone[1];
+        row.targetKind = zone[2];
+    }
     if (ids.isEmpty()) { row.file = mime->urls()[index]; row.name = row.file.fileName(); }
     else { row.assetId = ids[index]; row.name = row.assetId; }
     transfers_.insert(row.key, row); order_.append(row.key); start(row.key);
@@ -202,7 +292,11 @@ void CanvasDropController::start(const QString &key) {
   if (row.file.isEmpty()) { fetchAsset(key); return; }
   if (!row.file.isLocalFile() || !QFileInfo(row.file.toLocalFile()).isFile()) { fail(key, tr("Drop a readable local file")); return; }
   const auto mime = QMimeDatabase{}.mimeTypeForFile(row.file.toLocalFile()).name(); row.kind = mediaKind(mime, row.name);
-  if (row.kind.isEmpty() || !catalog_.contains(nodeType(row.kind))) { fail(key, tr("Unsupported drop type or missing node metadata: %1").arg(row.name)); return; }
+  if (!row.targetNode.isEmpty() && row.kind != row.targetKind) {
+      fail(key, tr("Drop a %1 file here").arg(row.targetKind));
+      return;
+  }
+  if (row.kind.isEmpty() || (row.targetNode.isEmpty() && !catalog_.contains(nodeType(row.kind)))) { fail(key, tr("Unsupported drop type or missing node metadata: %1").arg(row.name)); return; }
   if (row.kind == "text" || (row.kind == "dataframe" && mime == "text/csv")) {
     QFile file(row.file.toLocalFile()); if (!file.open(QIODevice::ReadOnly) || file.size() > TextLimit) { fail(key, tr("Could not read text file, or it exceeds the 8 MiB limit")); return; }
     const auto bytes = file.readAll(); QString text;
@@ -211,7 +305,16 @@ void CanvasDropController::start(const QString &key) {
       QJsonParseError error; const auto parsed = QJsonDocument::fromJson("[" + text.toUtf8() + "]", &error);
       if (error.error != QJsonParseError::NoError || parsed.array().size() != 1) { fail(key, tr("Invalid JSON file")); return; }
       const auto graph = parsed.array()[0].toObject()["graph"].toObject();
-      if (graph["nodes"].isArray() && graph["edges"].isArray()) { fail(key, tr("Workflow JSON canvas import is not available. Use Open file instead.")); return; }
+      if (graph["nodes"].isArray() && graph["edges"].isArray()) {
+        // The web opens a dropped workflow file as its own workflow instead of
+        // pasting it into this graph (hooks/handlers/dropHandlerUtils.ts:204-220).
+        const auto path = row.file.toLocalFile();
+        transfers_.remove(key);
+        order_.removeAll(key);
+        emit changed();
+        emit workflowFileDropped(path);
+        return;
+      }
     }
     row.value = row.kind == "dataframe" ? dataframe(text) : QJsonValue(text); row.hasValue = true;
     if (row.value.isNull() || row.value.isUndefined()) { fail(key, tr("CSV data is empty or malformed")); return; }
@@ -238,7 +341,7 @@ void CanvasDropController::fetchAsset(const QString &key) {
     const bool prefix = requested.size() == 12 && QRegularExpression("^[0-9a-f]{32}$").match(id).hasMatch() && id.left(12) == requested;
     if (reply->error() != QNetworkReply::NoError || status != 200 || id.isEmpty() || (id != requested && !prefix)) { fail(key, tr("Could not load the dropped asset (HTTP %1)").arg(status)); return; }
     auto &row = transfers_[key]; const auto kind = mediaKind(asset["content_type"].toString(), asset["name"].toString());
-    if (kind.isEmpty() || !catalog_.contains(nodeType(kind)) || (!row.file.isEmpty() && kind != row.kind)) { fail(key, tr("The asset type is unsupported or does not match the dropped file")); return; }
+    if (kind.isEmpty() || (row.targetNode.isEmpty() ? !catalog_.contains(nodeType(kind)) : kind != row.targetKind) || (!row.file.isEmpty() && kind != row.kind)) { fail(key, tr("The asset type is unsupported or does not match the dropped file")); return; }
     row.assetId = id; row.kind = kind; row.name = asset["name"].toString(id);
     if ((kind == "text" || kind == "dataframe") && !row.hasValue && row.file.isEmpty()) {
       auto contentUrl = QUrl(asset["get_url"].toString());
@@ -268,6 +371,28 @@ void CanvasDropController::downloadText(const QString &key, const QUrl &url) {
 void CanvasDropController::finish(const QString &key, const QJsonValue &value) {
   if (!transfers_.contains(key) || transfers_[key].state == "cancelled") return;
   const auto row = transfers_[key]; const auto type = nodeType(row.kind);
+  if (!row.targetNode.isEmpty()) {
+      // Keep fields of the stored reference that this drop does not replace.
+      auto reference = QJsonObject{};
+      for (const auto id : model_.allNodeIds()) {
+          if (model_.resourceId(id) == row.targetNode) {
+              reference = model_.nodeSnapshot(id)["data"].toObject()[row.targetProperty].toObject();
+          }
+      }
+      const auto dropped = value.toObject();
+      for (auto it = dropped.begin(); it != dropped.end(); ++it) {
+          reference.insert(it.key(), it.value());
+      }
+      const QJsonObject command{{"op", "setProperty"}, {"id", row.targetNode}, {"name", row.targetProperty}, {"value", reference}};
+      if (model_.readOnly() || !applyCommand || !applyCommand(command)) {
+          fail(key, tr("Could not set the dropped file. Local work is unchanged."));
+          return;
+      }
+      transfers_.remove(key);
+      order_.removeAll(key);
+      emit changed();
+      return;
+  }
   if (model_.readOnly() || !catalog_.contains(type) || !createNode || !applyCommand) { fail(key, tr("The graph or node metadata changed. Retry this drop when editing is available.")); return; }
   QJsonObject properties{{"value", value}};
   if (row.kind == "folder") { auto name = row.name.toLower(); name.replace(QRegularExpression("\\s+"), "_"); properties["name"] = name; }

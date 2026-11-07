@@ -1,0 +1,515 @@
+[
+  {
+    "name": "ui_add_node",
+    "description": "Add a single node to the current workflow graph. Required: `id`, `type`, `position`. Optional: `properties`.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique node id within the workflow. Must be a stable, model-chosen string (e.g. 'llm_1', 'image_out')."
+        },
+        "type": {
+          "type": "string",
+          "description": "Node type identifier from `ui_search_nodes` (e.g. 'nodetool.text.Format'). Same as `node_type` in search results."
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Canvas coordinates: `{ x: number, y: number }`. Space nodes ~240px horizontally, ~160px vertically."
+        },
+        "properties": {
+          "description": "Optional initial property values keyed by property name. Required properties left unset will be reported as warnings.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "position"
+      ]
+    }
+  },
+  {
+    "name": "ui_connect_nodes",
+    "description": "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first. On a node that accepts dynamic inputs (Concat, Prompt, Images To List…), a new target handle name declares that input, typed after the source output.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "source_node_id": {
+          "type": "string",
+          "description": "Id of the node producing the value."
+        },
+        "source_handle": {
+          "type": "string",
+          "description": "Output port name on the source node (from `outputs[].name` in ui_search_nodes)."
+        },
+        "target_node_id": {
+          "type": "string",
+          "description": "Id of the node consuming the value."
+        },
+        "target_handle": {
+          "type": "string",
+          "description": "Input port name on the target node (the property name from `properties[].name` in ui_search_nodes)."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "source_node_id",
+        "source_handle",
+        "target_node_id",
+        "target_handle"
+      ]
+    }
+  },
+  {
+    "name": "ui_copy",
+    "description": "Copy text to clipboard.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The text to copy to the system clipboard."
+        }
+      },
+      "required": [
+        "text"
+      ]
+    }
+  },
+  {
+    "name": "ui_delete_edge",
+    "description": "Delete an edge from the workflow graph.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "description": "Id of the edge to delete."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "edge_id"
+      ]
+    }
+  },
+  {
+    "name": "ui_delete_node",
+    "description": "Delete a node from the workflow graph.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "description": "Id of the node to delete."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "node_id"
+      ]
+    }
+  },
+  {
+    "name": "ui_get_graph",
+    "description": "Read a workflow graph (nodes and edges). Reads the open editor when the workflow has one, otherwise the saved workflow from the server — so a workflow created over the API is readable without opening it. `source` says which one answered.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "ui_move_node",
+    "description": "Move a node to an absolute canvas position.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "description": "Id of the node to move."
+        },
+        "position": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "description": "Absolute canvas coordinates `{x, y}` (numbers, not a string)."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "node_id",
+        "position"
+      ]
+    }
+  },
+  {
+    "name": "ui_open_document",
+    "description": "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this to show a document to the user. For edits to a closed timeline, storyboard, script or sketch, use its server edit capability. Types: workflow, timeline, storyboard, script, jsscript, sketch, app, svg, audio. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user); for svg and audio it is the asset id. Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "workflow",
+            "timeline",
+            "storyboard",
+            "script",
+            "jsscript",
+            "sketch",
+            "app",
+            "svg",
+            "audio"
+          ],
+          "description": "Kind of document to open, as named in the ui_context block."
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Id of the document to open."
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ]
+    }
+  },
+  {
+    "name": "ui_open_workflow",
+    "description": "Open a workflow tab and switch to it by workflow id.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "workflow_id": {
+          "type": "string",
+          "description": "Id of the workflow to open."
+        }
+      },
+      "required": [
+        "workflow_id"
+      ]
+    }
+  },
+  {
+    "name": "ui_paste",
+    "description": "Paste text from clipboard.",
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "ui_run_workflow",
+    "description": "Run a workflow by id.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "workflow_id": {
+          "type": "string",
+          "description": "Id of the workflow to run."
+        },
+        "params": {
+          "description": "Optional workflow input parameters keyed by input-node name.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "workflow_id"
+      ]
+    }
+  },
+  {
+    "name": "ui_search_models",
+    "description": "List models available to the user for a given task category. Sourced from the user's configured providers (live model lists) plus curated recommendations as a fallback. Each entry is a **ready-to-paste object** for the matching node's `model` property — call `ui_update_node_data({ node_id, data: { properties: { model: <entry> } } })` directly. Do NOT pass a bare id string; the node reads `model.provider` and `model.id` separately.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "text_to_image",
+            "image_to_image",
+            "text_to_video",
+            "image_to_video",
+            "video_to_video",
+            "reference_to_video",
+            "text_to_speech",
+            "text_to_music",
+            "audio_to_audio",
+            "speech_to_text",
+            "text_generation",
+            "embedding"
+          ],
+          "description": "Model task category. Match to the AI node you're configuring: `text_to_image` for nodetool.image.TextToImage, `image_to_image` for nodetool.image.ImageToImage, `text_to_video` for nodetool.video.TextToVideo, `image_to_video` for nodetool.video.ImageToVideo, `reference_to_video` for nodetool.video.ReferenceToVideo, `text_to_speech` for nodetool.audio.TextToSpeech, `text_to_music` for nodetool.audio.TextToMusic, `audio_to_audio` for nodetool.audio.AudioToAudio, `speech_to_text` for nodetool.text.AutomaticSpeechRecognition, `text_generation` for nodetool.agents.* and nodetool.generators.*, `embedding` for nodetool.text.Embedding."
+        },
+        "limit": {
+          "description": "Max results to return (default 20).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    }
+  },
+  {
+    "name": "ui_search_nodes",
+    "description": "Search available node types from the metadata store by query/type filters. Always call this BEFORE `ui_add_node` to find the exact `node_type` string — node-type names cannot be guessed and there is no global list to memorize. Set `include_properties: true` and `include_outputs: true` to also see input property names and output port names (which you'll need for `ui_update_node_data` and `ui_connect_nodes`). Multiple query words are matched independently. Use broad category terms (e.g. \"image generate\", \"text format\") with limit=20.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "input_type": {
+          "type": "string"
+        },
+        "output_type": {
+          "type": "string"
+        },
+        "strict_match": {
+          "type": "boolean"
+        },
+        "include_properties": {
+          "type": "boolean"
+        },
+        "include_outputs": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "query"
+      ]
+    }
+  },
+  {
+    "name": "ui_set_node_title",
+    "description": "Set a node's display title (ui property).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "description": "Id of the node whose title to set."
+        },
+        "title": {
+          "type": "string",
+          "description": "New display title for the node."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "node_id",
+        "title"
+      ]
+    }
+  },
+  {
+    "name": "ui_switch_tab",
+    "description": "Switch to an already-open workflow tab by zero-based tab index.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "tab_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Zero-based tab index (0 is the first tab)."
+        }
+      },
+      "required": [
+        "tab_index"
+      ]
+    }
+  },
+  {
+    "name": "ui_update_node_data",
+    "description": "Update a node's properties (data.properties).",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "description": "Id of the node to update."
+        },
+        "data": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {},
+          "description": "Partial node-data overlay merged into `data` (e.g. `{ properties: { x: 1 }, title: 'New' }`). Unspecified keys are preserved."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "based_on_revision": {
+          "description": "Revision returned by ui_get_graph or the previous mutation. Refuse this edit if the graph has changed. Covers the graph fields exposed by ui_get_graph.",
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "node_id",
+        "data"
+      ]
+    }
+  }
+]

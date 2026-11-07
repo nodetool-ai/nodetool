@@ -439,6 +439,10 @@ private slots:
         if (window.outputVisible()) {
             window.action("Output");
         }
+        // The catalog starts closed, as the web side panels do.
+        if (!window.catalogVisible()) {
+            window.action("Toggle nodes");
+        }
         QVERIFY(click(window, "catalog-optional-packs"));
         QTest::qWait(200);
         QVERIFY(click(window, "catalog-runtimes"));

@@ -65,13 +65,49 @@ ColumnLayout {
         })
     }
     function immediate(value) { cancelDraft(); begin(); commit(value) }
-    Ui.Text {
-        text: root.title + (root.descriptor.required ? " *" : "")
-        role: Ui.Typography.SansLabel
-        font.weight: Font.Normal
-        tone: root.writable ? Ui.Text.Secondary : Ui.Text.Disabled
+    // The web inspector shows a property description as the label tooltip.
+    RowLayout {
         Layout.fillWidth: true
-        wrapMode: Text.Wrap
+        spacing: Ui.Metrics.sm
+        Ui.Text {
+            text: root.title + (root.descriptor.required ? " *" : "")
+            role: Ui.Typography.SansLabel
+            font.weight: Font.Normal
+            tone: root.writable ? Ui.Text.Secondary : Ui.Text.Disabled
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            readonly property string helpText: root.descriptor.description || ""
+            Accessible.description: helpText
+            HoverHandler {
+                onHoveredChanged: {
+                    if (root.host && typeof root.host.showToolTip === "function") {
+                        root.host.showToolTip(hovered ? parent.helpText : "")
+                    }
+                }
+            }
+        }
+        // The web marks a value that differs from its default (property-input-container.value-changed).
+        Rectangle {
+            objectName: "changed-marker"
+            visible: root.descriptor.changed === true
+            Layout.preferredWidth: Ui.Metrics.sm
+            Layout.preferredHeight: Ui.Metrics.sm
+            radius: width / 2
+            color: Ui.Theme.accentPrimary
+            Accessible.role: Accessible.StaticText
+            Accessible.name: "Changed from default"
+        }
+    }
+    // The web resets a changed property on Ctrl or Cmd with a right click.
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        acceptedModifiers: Qt.ControlModifier
+        onTapped: if (root.descriptor.changed === true) root.removeValue()
+    }
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        acceptedModifiers: Qt.MetaModifier
+        onTapped: if (root.descriptor.changed === true) root.removeValue()
     }
     Loader {
         id: fieldLoader
@@ -384,22 +420,13 @@ ColumnLayout {
         }
     }
     Ui.Text {
-        visible: text !== ""
-        text: root.descriptor.description || ""
-        role: Ui.Typography.SansCaption
-        tone: Ui.Text.Disabled
-        Layout.fillWidth: true
-        wrapMode: Text.Wrap
-    }
-    Ui.Text {
         visible: text !== "" && !["document_ref", "model3d"].includes(root.descriptor.kind)
         text: root.descriptor.conditionalUnavailable ? "Unavailable for the selected settings"
             : root.descriptor.connected && root.descriptor.appendStatic ? "Connected items precede these editable static items."
             : root.descriptor.connected ? "Connected input. Disconnect it to edit this value."
             : !root.descriptor.editable ? "This value is preserved. A dedicated editor is required."
             : root.descriptor.hasValue && root.descriptor.value === null ? "Stored null. Choose a value to replace it."
-            : !root.descriptor.hasValue && !root.descriptor.hasDefault ? "Not set. This property is omitted."
-            : !root.descriptor.hasValue && root.descriptor.hasDefault ? "Using the metadata default." : ""
+            : !root.descriptor.hasValue && !root.descriptor.hasDefault ? "Not set. This property is omitted." : ""
         role: Ui.Typography.SansCaption
         tone: Ui.Text.Disabled
         Layout.fillWidth: true
@@ -425,7 +452,10 @@ ColumnLayout {
         }
     }
     RowLayout {
-        visible: root.writable && (root.descriptor.nullable === true || root.descriptor.hasDefault === true || root.descriptor.required === false)
+        // A value at its default shows no reset action, as on the web.
+        visible: root.writable && (root.descriptor.nullable === true
+            || (root.descriptor.required === false && !root.descriptor.hasDefault)
+            || root.descriptor.changed === true)
         spacing: Ui.Metrics.md
         NodeButton {
             variant: NodeButton.Flat
@@ -451,9 +481,10 @@ ColumnLayout {
             variant: NodeButton.Flat
             leftPadding: 0
             onPressed: root.cancelDraft()
-            text: "Use default"
-            visible: root.descriptor.hasDefault === true
-            enabled: root.descriptor.hasValue
+            objectName: "reset-default"
+            text: "Reset to default"
+            visible: root.descriptor.changed === true
+            enabled: root.descriptor.changed === true
             onClicked: {
                 root.removeValue()
             }

@@ -130,8 +130,18 @@ void NodeRuntimeModel::beginRun(QString jobId) {
   selectRun(jobId);
 }
 void NodeRuntimeModel::selectRun(QString jobId) {
-  if (selected_ == jobId || !runs_.contains(jobId)) { return; }
+  // The output panel selects no run after a server, workflow or file change, so the
+  // canvas stops projecting the previous run.
+  if (!runs_.contains(jobId)) { jobId.clear(); }
+  if (selected_ == jobId) { return; }
   selected_ = jobId;
+  emit projectionChanged();
+}
+void NodeRuntimeModel::reset() {
+  runs_.clear();
+  order_.clear();
+  if (selected_.isEmpty()) { return; }
+  selected_.clear();
   emit projectionChanged();
 }
 void NodeRuntimeModel::setConnected(bool connected) {
@@ -145,11 +155,29 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
   const auto type = event["type"].toString();
   if (type != "node_update" && type != "node_progress" && type != "output_update" && type != "generation_complete" && type != "edge_update" && type != "job_update" && type != "job_resumed") { return; }
   auto &run = *found;
-  const auto sequence = event["job_seq"].toDouble();
-  if (event.contains("job_seq")) {
+  // A null sequence, as on a `job_resumed` reply, is no sequence.
+  const auto stamp = event.value("job_seq");
+  if (!stamp.isUndefined() && !stamp.isNull()) {
+    const auto sequence = stamp.toDouble();
     if (!std::isfinite(sequence) || sequence <= 0 || sequence <= run.sequence) { return; }
     run.sequence = sequence;
   }
+  if (type == "job_resumed" && event["status"] == "unknown") {
+    // The server lost the run. As settleLostRun in web/src/stores/workflowUpdates.ts
+    // does, drop its statuses, progress and edge reports. Results stay.
+    if (run.terminal) { return; }
+    run.terminal = true;
+    run.terminalStatus.clear();
+    for (auto it = run.nodes.begin(); it != run.nodes.end(); ++it) {
+      for (const auto *key : {"status", "progress", "total"}) { it.value().remove(QLatin1String(key)); }
+    }
+    run.edges.clear();
+    if (selected_ == jobId) { emit projectionChanged(); }
+    return;
+  }
+  // A "finished" reply with frames to replay is followed by the run's own terminal
+  // job_update, which carries the real outcome.
+  if (type == "job_resumed" && event["replay_count"].toDouble() > 0) { return; }
   if (type == "job_update" || type == "job_resumed") {
     if (run.terminal || !terminal(event["status"].toString())) { return; }
     run.terminal = true;
@@ -159,7 +187,8 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
         it.value()["status"] = event["status"];
       }
     }
-    run.edges.clear();
+    // Edge reports stay for the finished run: the canvas still marks the
+    // untaken branch of an If or Switch after the run ends.
     if (selected_ == jobId) { emit projectionChanged(); }
     return;
   }
@@ -180,6 +209,8 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
     if (selected_ == jobId) { emit projectionChanged(); }
     return;
   }
+  // Late node frames of a cancelled run are dropped, as handleNodeUpdate does on the web.
+  if (type == "node_update" && run.terminalStatus == "cancelled") { return; }
   const auto id = event["node_id"].toString();
   if (id.isEmpty() || id.size() > 1024) { return; }
   if (!run.nodes.contains(id) && run.nodes.size() >= 10000) {
@@ -192,7 +223,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
   auto state = run.nodes.value(id);
   const bool stopped = run.terminal || terminal(state["status"].toString());
   bool truncated = state["truncated"].toBool();
-  if (run.terminal && state["status"].toString().isEmpty()) { state["status"] = run.terminalStatus; }
+  if (run.terminal && state["status"].toString().isEmpty() && !run.terminalStatus.isEmpty()) { state["status"] = run.terminalStatus; }
   if (type == "node_update") {
     if (!stopped) {
       const auto status = event["status"].toString();

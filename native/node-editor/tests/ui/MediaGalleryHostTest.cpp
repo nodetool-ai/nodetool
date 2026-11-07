@@ -1,21 +1,37 @@
 #include "ui/EditorWindow.h"
 #include "media/VideoFrameView.h"
+#include "graph/EditorScene.h"
+#include "graph/WorkflowGraphModel.h"
+#include <QGraphicsView>
+#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QBuffer>
 #include <QDataStream>
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QKeyEvent>
+#include <QShortcut>
 #include <QMediaPlayer>
 #include <QPointer>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QQuickWindow>
+#include <QQmlEngine>
 #include <QVideoFrame>
 #include <QVideoSink>
 #include <QWheelEvent>
 #include <QtTest>
 using namespace nodetool;
 namespace {
+class ShortcutProbe final : public QObject {
+public:
+  int deliveries = 0;
+  bool eventFilter(QObject *, QEvent *event) override {
+    if (event->type() == QEvent::ShortcutOverride) { ++deliveries; }
+    return false;
+  }
+};
 const QString NodeId = "33333333333333333333333333333333";
 QString imageUri(const QColor &color) {
   QImage image(32, 24, QImage::Format_RGB32); image.fill(color);
@@ -67,12 +83,23 @@ bool click(QQuickWidget *widget, const QString &name) {
   QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
   return true;
 }
-bool openTile(QQuickWidget *widget, const QString &name) {
+QQuickWindow *imageViewer() {
+  for (auto candidate : QGuiApplication::allWindows()) {
+    if (candidate->objectName() == "image-viewer-window" && candidate->isVisible()) { return qobject_cast<QQuickWindow *>(candidate); }
+  }
+  return nullptr;
+}
+bool openTile(QQuickWidget *widget, const QString &name, bool dismissViewer = true) {
   if (widget) { polish(widget->rootObject()); }
   const auto item = control(widget, name);
   if (!widget || !item || !item->isVisible()) { return false; }
   const auto point = item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
   QTest::mouseDClick(widget, Qt::LeftButton, Qt::NoModifier, point);
+  if (dismissViewer && imageViewer()) {
+    QMetaObject::invokeMethod(imageViewer(), "dismiss");
+    widget->window()->activateWindow();
+    widget->setFocus();
+  }
   return true;
 }
 bool scrollGrid(QQuickWidget *widget, int pixels) {
@@ -129,6 +156,280 @@ bool capture(EditorWindow &window, const QString &name) {
 class MediaGalleryHostTest final : public QObject {
   Q_OBJECT
 private slots:
+  void imageActivationOpensModal() {
+    EditorWindow window; setup(window);
+    window.runOutput()->beginRun("modal-image");
+    output(window, "modal-image", media("image", imageUri(Qt::blue)));
+    window.action("Output"); window.fit();
+    QTRY_VERIFY(control(panel(window), "preview-image"));
+    QVERIFY(openTile(panel(window), "preview-image", false));
+    QTRY_VERIFY(imageViewer());
+    QCOMPARE(imageViewer()->modality(), Qt::WindowModal);
+    QCOMPARE(imageViewer()->transientParent(), window.windowHandle());
+    QCOMPARE(QQmlEngine::objectOwnership(window.windowHandle()), QQmlEngine::CppOwnership);
+    const auto snapshot = window.document()->snapshot();
+    const auto undo = window.document()->undoStack()->count();
+    imageViewer()->requestActivate();
+    QTRY_VERIFY(imageViewer()->isActive());
+    for (const auto key : {Qt::Key_Delete, Qt::Key_Space, Qt::Key_Left, Qt::Key_Right}) { QTest::keyClick(imageViewer(), key); }
+    QTest::keyClick(imageViewer(), Qt::Key_Return, Qt::ControlModifier);
+    QCOMPARE(window.document()->snapshot(), snapshot);
+    QCOMPARE(window.document()->undoStack()->count(), undo);
+    imageViewer()->requestActivate();
+    QTRY_VERIFY(imageViewer()->isActive() && imageViewer()->activeFocusItem());
+    QTest::keyClick(imageViewer(), Qt::Key_Escape);
+    QTRY_VERIFY(!imageViewer());
+  }
+  void rasterImageOpensFromKeyboardMenu() {
+    EditorWindow window; setup(window);
+    window.runOutput()->beginRun("keyboard-raster");
+    output(window, "keyboard-raster", media("image", imageUri(Qt::blue)));
+    window.fit();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto id = *model.allNodeIds().begin();
+    auto *node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    node->setSelected(true);
+    auto hostFor = [&](const QString &name) -> QQuickWidget * {
+      for (auto *widget : window.findChildren<QQuickWidget *>()) {
+        if (widget->isVisible() && control(widget, name)) { return widget; }
+      }
+      return nullptr;
+    };
+    QTRY_VERIFY(hostFor("selection-more-node-actions"));
+    auto *toolbar = hostFor("selection-more-node-actions");
+    auto *more = control(toolbar, "selection-more-node-actions");
+    more->forceActiveFocus();
+    QTest::keyClick(toolbar->quickWindow(), Qt::Key_Space);
+    QTRY_VERIFY(window.findChild<QQuickWidget *>("context-menu-host"));
+    auto *menu = window.findChild<QQuickWidget *>("context-menu-host");
+    auto menuEntry = [&]() -> QQuickItem * {
+      QVariant result;
+      QMetaObject::invokeMethod(menu->rootObject(), "itemFor", Q_RETURN_ARG(QVariant, result),
+          Q_ARG(QVariant, QString("open-image-viewer")));
+      return qobject_cast<QQuickItem *>(result.value<QObject *>());
+    };
+    QTRY_VERIFY(menuEntry());
+    auto *open = menuEntry();
+    QVERIFY(open->isEnabled());
+    const auto snapshot = window.document()->snapshot();
+    const auto undo = window.document()->undoStack()->count();
+    open->forceActiveFocus();
+    QTest::keyClick(menu->quickWindow(), Qt::Key_Return);
+    QTRY_VERIFY(imageViewer());
+    QCOMPARE(window.document()->snapshot(), snapshot);
+    QCOMPARE(window.document()->undoStack()->count(), undo);
+    QMetaObject::invokeMethod(imageViewer(), "dismiss");
+    QTRY_VERIFY(!imageViewer());
+  }
+  // Web OutputQuickActionButtons: image outputs offer Upscale, Remove background and
+  // "Edit with prompt". Each creates the node (when it is in the catalog) and wires the
+  // output into its `image` input (config/outputQuickActions.ts). Native offers them on the
+  // node menu, next to Open image viewer.
+  void imageQuickActionsCreateConnectedNodes() {
+    EditorWindow window; setup(window);
+    const auto imageNode = [](const QString &type, const QString &title) {
+      return QJsonObject{{"node_type", type}, {"title", title},
+        {"properties", QJsonArray{QJsonObject{{"name", "image"}, {"type", QJsonObject{{"type", "image"}}}}}},
+        {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "image"}}}}}}};
+    };
+    window.setCatalog(QJsonArray{
+      QJsonObject{{"node_type", "Fixture.Gallery"}, {"title", "Mixed output gallery"}, {"outputs", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "any"}}}}}}},
+      imageNode("nodetool.image.Upscale", "Upscale"), imageNode("nodetool.image.ImageToImage", "Image To Image")});
+    window.runOutput()->beginRun("quick-actions");
+    output(window, "quick-actions", media("image", imageUri(Qt::blue)));
+    window.fit();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto id = *model.allNodeIds().begin();
+    auto *node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
+    node->setSelected(true);
+    auto hostFor = [&](const QString &name) -> QQuickWidget * {
+      for (auto *widget : window.findChildren<QQuickWidget *>()) { if (widget->isVisible() && control(widget, name)) { return widget; } }
+      return nullptr;
+    };
+    const auto openMenu = [&]() -> QQuickWidget * {
+      QQuickWidget *toolbar = nullptr; [&] { QTRY_VERIFY(toolbar = hostFor("selection-more-node-actions")); }();
+      auto *more = control(toolbar, "selection-more-node-actions"); more->forceActiveFocus();
+      QTest::keyClick(toolbar->quickWindow(), Qt::Key_Space);
+      QQuickWidget *menu = nullptr; [&] { QTRY_VERIFY(menu = window.findChild<QQuickWidget *>("context-menu-host")); }();
+      return menu;
+    };
+    const auto entry = [](QQuickWidget *menu, const QString &name) -> QQuickItem * {
+      QVariant result;
+      QMetaObject::invokeMethod(menu->rootObject(), "itemFor", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, name));
+      return qobject_cast<QQuickItem *>(result.value<QObject *>());
+    };
+    auto *menu = openMenu(); QVERIFY(menu);
+    QTRY_VERIFY(entry(menu, "quick-action-upscale"));
+    QVERIFY(entry(menu, "quick-action-edit"));
+    QVERIFY2(!entry(menu, "quick-action-remove-background"), "An action whose node is not in the catalog is not offered");
+    QCOMPARE(entry(menu, "quick-action-upscale")->property("text").toString(), QString("Upscale"));
+    QCOMPARE(entry(menu, "quick-action-edit")->property("text").toString(), QString("Edit with prompt"));
+    const auto nodes = window.document()->nodes().size();
+    const auto undo = window.document()->undoStack()->count();
+    entry(menu, "quick-action-upscale")->forceActiveFocus();
+    QTest::keyClick(menu->quickWindow(), Qt::Key_Return);
+    QTRY_COMPARE(window.document()->nodes().size(), nodes + 1);
+    QCOMPARE(window.document()->undoStack()->count(), undo + 1);
+    QCOMPARE(window.document()->edges().size(), 1);
+    const auto edge = window.document()->edges().first().toObject();
+    QCOMPARE(edge["source"].toString(), NodeId);
+    QCOMPARE(edge["sourceHandle"].toString(), QString("value"));
+    QCOMPARE(edge["targetHandle"].toString(), QString("image"));
+    const auto created = window.document()->node(edge["target"].toString());
+    QCOMPARE(created["type"].toString(), QString("nodetool.image.Upscale"));
+    const auto position = created["ui_properties"].toObject()["position"].toObject();
+    const auto origin = window.document()->node(NodeId)["ui_properties"].toObject()["position"].toObject();
+    QVERIFY2(position["x"].toDouble() > origin["x"].toDouble() + 100, "The new node is placed to the right of the source");
+    // Undo removes the node and the wire in one step.
+    window.document()->undoStack()->undo();
+    QCOMPARE(window.document()->nodes().size(), nodes);
+    QCOMPARE(window.document()->edges().size(), 0);
+  }
+  void rasterCanvasActivationAndScope() {
+    EditorWindow window; setup(window);
+    window.runOutput()->beginRun("raster-image");
+    output(window, "raster-image", media("image", imageUri(Qt::blue)));
+    window.fit();
+    auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto id = *model.allNodeIds().begin();
+    auto node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
+    QVERIFY(!canvas(window));
+    const auto point = view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center()));
+    const auto snapshot = window.document()->snapshot();
+    const auto undo = window.document()->undoStack()->count();
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+    QTRY_VERIFY(imageViewer());
+    QCOMPARE(imageViewer()->transientParent(), window.windowHandle());
+    QVERIFY(!canvas(window));
+    auto modal = imageViewer();
+    QWidget unrelatedWindow;
+    ShortcutProbe unrelatedProbe;
+    unrelatedWindow.installEventFilter(&unrelatedProbe);
+    int unrelatedActivations = 0;
+    QShortcut unrelatedAction(QKeySequence(Qt::Key_F8), &unrelatedWindow);
+    connect(&unrelatedAction, &QShortcut::activated, &unrelatedWindow, [&] { ++unrelatedActivations; });
+    unrelatedWindow.show(); unrelatedWindow.activateWindow();
+    QTRY_VERIFY(unrelatedWindow.isActiveWindow());
+    QTest::keyClick(&unrelatedWindow, Qt::Key_F8);
+    QTRY_COMPARE(unrelatedActivations, 1);
+    unrelatedProbe.deliveries = 0;
+    QKeyEvent unrelatedShortcut(QEvent::ShortcutOverride, Qt::Key_Delete, Qt::NoModifier);
+    unrelatedShortcut.ignore();
+    QCoreApplication::sendEvent(&unrelatedWindow, &unrelatedShortcut);
+    QCOMPARE(unrelatedProbe.deliveries, 1);
+    ShortcutProbe hostProbe;
+    view->viewport()->installEventFilter(&hostProbe);
+    QKeyEvent hostShortcut(QEvent::ShortcutOverride, Qt::Key_Delete, Qt::NoModifier);
+    hostShortcut.ignore();
+    QCoreApplication::sendEvent(view->viewport(), &hostShortcut);
+    QCOMPARE(hostProbe.deliveries, 0);
+    QVERIFY(hostShortcut.isAccepted());
+    unrelatedWindow.hide();
+    modal->requestActivate(); QTRY_VERIFY(modal->isActive());
+    for (const auto key : {Qt::Key_Delete, Qt::Key_Space, Qt::Key_Left, Qt::Key_Right}) { QTest::keyClick(modal, key); }
+    QTest::keyClick(modal, Qt::Key_Return, Qt::ControlModifier);
+    QCOMPARE(window.document()->snapshot(), snapshot);
+    QCOMPARE(window.document()->undoStack()->count(), undo);
+    window.runOutput()->ingest("raster-image", {{"type", "log_update"}, {"job_id", "raster-image"}, {"content", "Preserve raster viewer"}});
+    QCOMPARE(imageViewer(), modal);
+    output(window, "raster-image", media("image", imageUri(Qt::blue)));
+    QTRY_VERIFY(imageViewer() && imageViewer()->property("items").toList().size() == 2);
+    QCOMPARE(imageViewer(), modal);
+    window.runOutput()->beginRun("new-image-scope");
+    QTRY_VERIFY(!imageViewer());
+    output(window, "new-image-scope", media("image", imageUri(Qt::blue)));
+    window.fit();
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center())));
+    QTRY_VERIFY(imageViewer());
+    window.session()->disconnectFromServer();
+    QTRY_VERIFY(!imageViewer());
+    QVERIFY(!canvas(window));
+  }
+  void rasterCanvasRespectsTopCardAndCollapse() {
+    EditorWindow window; setup(window);
+    const QString coverId = "44444444444444444444444444444444";
+    auto fixture = window.document()->snapshot();
+    auto graph = fixture["graph"].toObject(); auto nodes = graph["nodes"].toArray();
+    auto cover = nodes.first().toObject(); cover["id"] = coverId; nodes.append(cover);
+    graph["nodes"] = nodes; fixture["graph"] = graph;
+    QVERIFY(window.document()->load(fixture));
+    window.runOutput()->beginRun("occluded");
+    output(window, "occluded", media("image", imageUri(Qt::blue)));
+    window.fit();
+    auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QtNodes::NodeId imageId = 0, coveringId = 0;
+    for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == NodeId) { imageId = id; } else { coveringId = id; } }
+    auto imageNode = window.scene()->nodeGraphicsObject(imageId); QVERIFY(imageNode);
+    auto coveringNode = window.scene()->nodeGraphicsObject(coveringId); QVERIFY(coveringNode);
+    const auto scenePoint = imageNode->mapToScene(model.canvasResultRect(imageId).center());
+    coveringNode->setPos(scenePoint - coveringNode->boundingRect().center());
+    coveringNode->setZValue(imageNode->zValue() + 1);
+    QVERIFY(coveringNode->sceneBoundingRect().contains(scenePoint));
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
+    QVERIFY(!imageViewer());
+    coveringNode->setVisible(false);
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
+    QTRY_VERIFY(imageViewer());
+    auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["collapsed"] = true;
+    QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
+    QTRY_VERIFY(!imageViewer());
+    QVERIFY(model.canvasResultRect(imageId).isEmpty());
+  }
+  void bypassedRasterImageRemainsInspectable() {
+    EditorWindow window; setup(window);
+    auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["bypassed"] = true;
+    QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
+    window.runOutput()->beginRun("bypassed-image");
+    output(window, "bypassed-image", media("image", imageUri(Qt::blue)));
+    window.fit();
+    auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto id = *model.allNodeIds().begin();
+    auto node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    QVERIFY(model.bypassed(id)); QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
+    const auto snapshot = window.document()->snapshot();
+    const auto undo = window.document()->undoStack()->count();
+    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center())));
+    QTRY_VERIFY(imageViewer());
+    QCOMPARE(window.document()->snapshot(), snapshot);
+    QCOMPARE(window.document()->undoStack()->count(), undo);
+    QVERIFY(QMetaObject::invokeMethod(imageViewer(), "dismiss"));
+  }
+  void singleImageDownloadFitsOutputPanel() {
+    EditorWindow window; setup(window);
+    window.runOutput()->beginRun("single-image");
+    output(window, "single-image", media("image", imageUri(Qt::blue)));
+    window.action("Output"); window.fit();
+    QTRY_VERIFY(gallery(panel(window)));
+    QVERIFY(!canvas(window));
+    auto widget = panel(window);
+    QQuickItem *download = nullptr;
+    QQuickItem *image = nullptr;
+    QTRY_VERIFY((download = control(widget, "preview-download")) && (image = control(widget, "preview-image")));
+    QTRY_VERIFY(image->property("status").toInt() == 1 && download->isVisible() && download->isEnabled());
+    polish(widget->rootObject());
+    const auto downloadBounds = download->mapRectToScene(download->boundingRect());
+    const auto imageBounds = image->mapRectToScene(image->boundingRect());
+    QVERIFY(QRectF(widget->rect()).contains(downloadBounds));
+    QVERIFY(imageBounds.width() > 0 && imageBounds.height() > 0);
+    QVERIFY(!imageBounds.intersects(downloadBounds));
+    const auto before = window.document()->snapshot();
+    const auto undoCount = window.document()->undoStack()->count();
+    QVERIFY(click(widget, "preview-download"));
+    auto preview = control(widget, "gallery-selected-media");
+    QVERIFY(preview);
+    auto dialog = preview->findChild<QObject *>("preview-download-dialog");
+    QVERIFY(dialog);
+    QTRY_VERIFY(dialog->property("visible").toBool());
+    QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
+    QCOMPARE(window.document()->snapshot(), before);
+    QCOMPARE(window.document()->undoStack()->count(), undoCount);
+    QVERIFY(!canvas(window));
+  }
   void orderedRepeatsMixedTextScrollAndPlayback() {
     QFile file(QStringLiteral(MEDIA_VIDEO_FIXTURE)); QVERIFY(file.open(QIODevice::ReadOnly));
     const auto movie = "data:video/mp4;base64," + QString::fromLatin1(file.readAll().toBase64());
@@ -256,11 +557,29 @@ private slots:
     QTRY_VERIFY(click(panel(window), "gallery-tile-0"));
     QVERIFY(!gallery(panel(window))->property("singleView").toBool());
     QTest::keyClick(panel(window), Qt::Key_Return);
+    QTRY_VERIFY(imageViewer());
+    imageViewer()->requestActivate();
+    QTRY_VERIFY(imageViewer()->isActive());
+    QTRY_VERIFY(imageViewer()->activeFocusItem());
+    QTest::keyClick(imageViewer(), Qt::Key_Escape);
+    QTRY_VERIFY(!imageViewer());
+    window.activateWindow();
+    QTRY_VERIFY(window.isActiveWindow());
+    panel(window)->setFocus();
     QTRY_VERIFY(gallery(panel(window))->property("singleView").toBool());
     QVERIFY(click(panel(window), "gallery-grid"));
     QTRY_VERIFY(control(panel(window), "gallery-tile-1"));
     QVERIFY(click(panel(window), "gallery-tile-1"));
     QTest::keyClick(panel(window), Qt::Key_Space);
+    QTRY_VERIFY(imageViewer());
+    imageViewer()->requestActivate();
+    QTRY_VERIFY(imageViewer()->isActive());
+    QTRY_VERIFY(imageViewer()->activeFocusItem());
+    QTest::keyClick(imageViewer(), Qt::Key_Escape);
+    QTRY_VERIFY(!imageViewer());
+    window.activateWindow();
+    QTRY_VERIFY(window.isActiveWindow());
+    panel(window)->setFocus();
     QTRY_VERIFY(gallery(panel(window))->property("singleView").toBool());
     QVERIFY(click(panel(window), "gallery-grid"));
     for (const auto width : {500, 180}) {

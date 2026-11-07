@@ -20,6 +20,9 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QJsonDocument>
+#include <QBuffer>
+#include <QImage>
+#include <QPainter>
 #include <memory>
 
 using namespace nodetool::node_editor;
@@ -39,10 +42,33 @@ private:
         }
         return nullptr;
     }
+    static QQuickItem* findImage(QQuickItem* root) {
+        if (QString::fromLatin1(root->metaObject()->className()) == "QQuickImage") { return root; }
+        for (auto* child : root->childItems()) {
+            if (auto* result = findImage(child)) { return result; }
+        }
+        return nullptr;
+    }
+    static QString imageStatus(QQuickItem* image) {
+        const auto* meta = image->metaObject();
+        const auto property = meta->property(meta->indexOfProperty("status"));
+        return QString::fromLatin1(property.enumerator().valueToKey(property.read(image).toInt()));
+    }
 private slots:
     void inspectorModelAndTabClose() {
         using nodetool::EditorWindow;
         const QString assetId = "1234567890abcdef1234567890abcdef";
+        QByteArray thumbnail;
+        {
+            QImage image(64, 48, QImage::Format_ARGB32);
+            image.fill(QColor(40, 90, 160));
+            QPainter painter(&image);
+            painter.fillRect(QRect(32, 0, 32, 48), QColor(230, 140, 40));
+            painter.end();
+            QBuffer buffer(&thumbnail);
+            QVERIFY(buffer.open(QIODevice::WriteOnly));
+            QVERIFY(image.save(&buffer, "PNG"));
+        }
         QTcpServer server;
         QVERIFY(server.listen(QHostAddress::LocalHost));
         QList<QPointer<QTcpSocket>> pending;
@@ -65,6 +91,11 @@ private slots:
                     pending.append(socket);
                     return;
                 }
+                if (bytes.startsWith("GET /thumbs/model.png ")) {
+                    socket->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: image/png\r\nContent-Length: " + QByteArray::number(thumbnail.size()) + "\r\n\r\n" + thumbnail);
+                    socket->disconnectFromHost();
+                    return;
+                }
                 QJsonObject response;
                 if (bytes.startsWith("POST /api/assets ")) {
                     ++uploads;
@@ -72,7 +103,7 @@ private slots:
                     QVERIFY(bytes.contains("glTF"));
                     response = {{"id", assetId}, {"name", "model.glb"}, {"content_type", "model/gltf-binary"}};
                 } else if (bytes.contains("assets.get")) {
-                    response = {{"result", QJsonObject{{"data", QJsonObject{{"id", assetId}, {"name", "model.glb"}, {"content_type", "model/gltf-binary"}, {"thumbnail_url", QJsonValue::Null}}}}}};
+                    response = {{"result", QJsonObject{{"data", QJsonObject{{"id", assetId}, {"name", "model.glb"}, {"content_type", "model/gltf-binary"}, {"thumb_url", "/thumbs/model.png"}}}}}};
                 } else {
                     const QJsonArray rows{QJsonObject{{"id", assetId}, {"name", "Sketch"}}};
                     response = {{"result", QJsonObject{{"data", rows}}}};
@@ -157,6 +188,14 @@ private slots:
         const QJsonObject uploaded{{"type", "model_3d"}, {"uri", "asset://" + assetId}, {"asset_id", assetId}};
         QTRY_COMPARE(window.document()->node("n")["data"].toObject()["value"].toObject(), uploaded);
         QTRY_COMPARE(control("model3d-preview-name")->property("text").toString(), QString("model.glb"));
+        const auto thumbnailImage = [&] {
+            auto* drop = control("model3d-drop");
+            return drop ? findImage(drop) : nullptr;
+        };
+        QTRY_VERIFY(thumbnailImage() && imageStatus(thumbnailImage()) == "Ready");
+        QCOMPARE(thumbnailImage()->property("source").toUrl().path(), QString("/thumbs/model.png"));
+        QVERIFY(thumbnailImage()->width() > 0);
+        QVERIFY(thumbnailImage()->height() > 0);
         capture("filled");
         const auto undoCount = window.document()->undoStack()->count();
         QDragEnterEvent repeatEnter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);

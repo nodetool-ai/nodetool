@@ -33,9 +33,16 @@ class WorkflowTabsTest final : public QObject {
     return nullptr;
   }
   static bool click(EditorWindow &window, const QString &name) {
-    // Panels follow in the next pass, and their layout in the pass after.
-    QCoreApplication::processEvents();
-    QCoreApplication::processEvents();
+    // Panels follow in the next pass and their layout in the pass after. The card
+    // toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
+    QTest::qWaitFor([&] {
+      for (auto panel : window.findChildren<QQuickWidget *>()) {
+        if (!panel->isVisible() || !panel->rootObject()) continue;
+        auto item = find(panel->rootObject(), name);
+        if (item && item->isVisible()) return true;
+      }
+      return false;
+    }, 1000);
     for (auto panel : window.findChildren<QQuickWidget *>()) {
       if (!panel->isVisible() || !panel->rootObject()) continue;
       auto item = find(panel->rootObject(), name);
@@ -82,6 +89,8 @@ private slots:
     QVERIFY(settingsDir_.isValid());
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDir_.path());
+    // These tests count workflow sockets. An open chat window adds its own.
+    QSettings().setValue("canvas-chat-dock/collapsed", true);
   }
   void pointerTabsUndoCloseAndRuntime() {
     QWebSocketServer server("tabs", QWebSocketServer::NonSecureMode);

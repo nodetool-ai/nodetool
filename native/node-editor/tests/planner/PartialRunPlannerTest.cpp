@@ -126,6 +126,24 @@ private slots:
   QCOMPARE(PartialRunPlanner(edited,metadata(),{},now).inputSignature("cached"),signature);
   QCOMPARE(ids(PartialRunPlanner(original,metadata(),cache,now).plan({"cached","target"}).snapshot),(QStringList{"cached","target"}));
  }
+ // web WorkflowRunner.ts buildRunJobData: a bypassed node and every incident edge leave the submitted
+ // graph, and the boundary invents no pass-through edge. The upstream of a bypassed node is therefore
+ // not pulled into the run and an uncached generative behind it cannot block the run.
+ void bypassedNodesLeaveWithTheirIncidentEdges() {
+  auto bypassed=node("bypassed","computed"); bypassed["ui_properties"]=QJsonObject{{"bypassed",true}};
+  const auto snapshot=workflow({node("g","generator"),node("source","computed"),bypassed,node("target","target"),node("live","computed")},
+                               {edge("g","bypassed"),edge("source","bypassed","other"),edge("bypassed","target"),edge("live","target","second")});
+  const auto plan=PartialRunPlanner(snapshot,metadata(),{},1000).plan({"target"});
+  QVERIFY2(plan.ok,qPrintable(plan.error)); QCOMPARE(plan.executed,(QStringList{"target","live"}));
+  QVERIFY(plan.blocked.isEmpty());
+  QCOMPARE(plan.snapshot["graph"].toObject()["edges"].toArray(),QJsonArray{edge("live","target","second")});
+  QCOMPARE(ids(plan.snapshot),(QStringList{"target","live"}));
+  const auto only=PartialRunPlanner(snapshot,metadata(),{},1000).plan({"bypassed"});
+  QVERIFY(!only.ok); QVERIFY(only.error.contains("no enabled runnable nodes"));
+  PartialRunPlanner hasher(snapshot,metadata(),{},1000);
+  auto enabled=snapshot; auto graph=enabled["graph"].toObject(); auto nodes=graph["nodes"].toArray(); nodes[2]=node("bypassed","computed"); graph["nodes"]=nodes; enabled["graph"]=graph;
+  QVERIFY2(PartialRunPlanner(enabled,metadata(),{},1000).inputSignature("target")!=hasher.inputSignature("target"),"toggling bypass changes every downstream signature");
+ }
  void generativePinsMissingAndStale() {
   auto snapshot=workflow({node("g","generator",{{"prompt","old"}}),node("target","target")},{edge("g","target")});
   PartialRunPlanner hasher(snapshot,metadata(),{},1000); const auto signature=hasher.inputSignature("g");

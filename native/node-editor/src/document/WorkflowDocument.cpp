@@ -173,26 +173,47 @@ QJsonObject portType(const QJsonObject& rawNode, const QString& handle, bool out
         && (node["type"] == "nodetool.code.Code" || !node.value("dynamic_outputs").toObject().contains(handle))) { return {{"type", "any"}}; }
     return {};
 }
+bool emptyModelProperty(const QJsonValue& value) {
+    if (value.isUndefined() || value.isNull()) { return true; }
+    if (value.isBool()) { return !value.toBool(); }
+    if (value.isDouble()) { return value.toDouble() == 0; }
+    if (value.isString()) { return value.toString().isEmpty(); }
+    if (!value.isObject()) { return false; }
+    const auto model = value.toObject();
+    return model.value("provider") == "empty" || model.value("provider") == "" || model.value("id") == "";
+}
+QJsonObject withPropertyDefaults(QJsonObject node, const QJsonObject& defaults) {
+    if (node.isEmpty()) { return node; }
+    if (node.contains("data") && !node.value("data").isObject()) { return node; }
+    auto data = node.value("data").toObject();
+    bool changed = false;
+    for (auto property = defaults.cbegin(); property != defaults.cend(); ++property) {
+        if (emptyModelProperty(data.value(property.key())) && !emptyModelProperty(property.value())) {
+            data.insert(property.key(), property.value());
+            changed = true;
+        }
+    }
+    if (changed) { node.insert("data", data); }
+    return node;
+}
+void applyGraphDefaults(QJsonObject& workflow, const QHash<QString, QJsonObject>& defaults) {
+    auto graph = workflow.value("graph").toObject();
+    auto nodes = graph.value("nodes").toArray();
+    for (qsizetype i = 0; i < nodes.size(); ++i) {
+        const auto node = nodes.at(i).toObject();
+        const auto found = defaults.constFind(node.value("id").toString());
+        if (found != defaults.cend()) { nodes[i] = withPropertyDefaults(node, *found); }
+    }
+    graph.insert("nodes", nodes);
+    workflow.insert("graph", graph);
+}
 QJsonObject endpointDefinition(QJsonObject node) {
     node.remove("ui_properties");
     node.remove("parent_id");
     return node;
 }
-bool preservesExistingEdge(const QJsonObject& workflow, const QJsonObject& fragment, const QJsonObject& edge) {
-    const auto graph = workflow.value("graph").toObject();
-    if (!graph.value("edges").toArray().contains(edge)) { return false; }
-    const auto existing = graph.value("nodes").toArray(), pasted = fragment.value("nodes").toArray();
-    for (const auto& field : {QStringLiteral("source"), QStringLiteral("target")}) {
-        const auto id = edge.value(field).toString();
-        const auto oldIndex = indexOf(existing, id), newIndex = indexOf(pasted, id);
-        if (oldIndex < 0 || newIndex < 0 || endpointDefinition(existing[oldIndex].toObject()) != endpointDefinition(pasted[newIndex].toObject())) { return false; }
-    }
-    return true;
-}
-QString validateNewEdge(const QJsonArray& nodes, const QJsonArray& edges, const QJsonObject& edge,
-                        const QHash<QString, QJsonObject>& metadata) {
-    QHash<QString, QJsonObject> byId;
-    for (const auto& value : nodes) { const auto n = value.toObject(); byId.insert(n.value("id").toString(), n); }
+QString validateEdgeEndpoints(const QHash<QString, QJsonObject>& byId, const QJsonObject& edge,
+                              const QHash<QString, QJsonObject>& metadata) {
     const auto source = edge.value("source").toString(); const auto target = edge.value("target").toString();
     if (!byId.contains(source) || !byId.contains(target)) { return "Unknown connection endpoint"; }
     const auto sourceHandle = edge.value("sourceHandle").toString(), targetHandle = edge.value("targetHandle").toString();
@@ -208,6 +229,15 @@ QString validateNewEdge(const QJsonArray& nodes, const QJsonArray& edges, const 
         if (!connectionTypesCompatible(output, input)) { return "Incompatible port types"; }
     }
     if (source == target) { return "Self connections are unsupported"; }
+    return {};
+}
+QString validateNewEdge(const QJsonArray& nodes, const QJsonArray& edges, const QJsonObject& edge,
+                        const QHash<QString, QJsonObject>& metadata) {
+    QHash<QString, QJsonObject> byId;
+    for (const auto& value : nodes) { const auto n = value.toObject(); byId.insert(n.value("id").toString(), n); }
+    if (const auto error = validateEdgeEndpoints(byId, edge, metadata); !error.isEmpty()) { return error; }
+    const auto source = edge.value("source").toString(), target = edge.value("target").toString();
+    const bool control = edge.value("edge_type") == "control" || edge.value("sourceHandle") == "__control__" || edge.value("targetHandle") == "__control__";
     if (!control && loopFeedback(byId.value(target), edge.value("targetHandle").toString())) { return {}; }
     QHash<QString, QStringList> adjacency;
     for (const auto& value : edges) {
@@ -222,6 +252,90 @@ QString validateNewEdge(const QJsonArray& nodes, const QJsonArray& edges, const 
         if (id == source) { return "Connection creates a cycle"; }
         if (visited.contains(id)) { continue; }
         visited.insert(id); pending.append(adjacency.value(id));
+    }
+    return {};
+}
+QByteArray connectionKey(const QJsonObject& edge) {
+    return QJsonDocument(QJsonArray{edge.value("source"), edge.value("target"),
+        edge.value("sourceHandle"), edge.value("targetHandle")}).toJson(QJsonDocument::Compact);
+}
+// A single SCC pass answers every pasted edge's cycle query, including paths
+// through preserved imported edges. Feedback inputs do not form cycle paths.
+QHash<QString, int> connectionComponents(const QHash<QString, QJsonObject>& nodes,
+                                         const QJsonArray& edges) {
+    QHash<QString, QStringList> forward, reverse;
+    for (const auto& value : edges) {
+        const auto edge = value.toObject();
+        const auto source = edge.value("source").toString(), target = edge.value("target").toString();
+        if (loopFeedback(nodes.value(target), edge.value("targetHandle").toString())) { continue; }
+        forward[source].append(target);
+        reverse[target].append(source);
+    }
+    QSet<QString> visited;
+    QStringList order;
+    struct Frame { QString id; qsizetype next = 0; };
+    for (auto node = nodes.cbegin(); node != nodes.cend(); ++node) {
+        if (visited.contains(node.key())) { continue; }
+        std::vector<Frame> stack{{node.key()}};
+        visited.insert(node.key());
+        while (!stack.empty()) {
+            auto& frame = stack.back();
+            const auto adjacent = forward.constFind(frame.id);
+            if (adjacent != forward.cend() && frame.next < adjacent->size()) {
+                const auto next = adjacent->at(frame.next++);
+                if (!visited.contains(next)) { visited.insert(next); stack.push_back({next}); }
+            } else { order.append(frame.id); stack.pop_back(); }
+        }
+    }
+    QHash<QString, int> components;
+    int component = 0;
+    while (!order.isEmpty()) {
+        const auto root = order.takeLast();
+        if (components.contains(root)) { continue; }
+        QStringList pending{root};
+        components.insert(root, component);
+        while (!pending.isEmpty()) {
+            const auto id = pending.takeLast();
+            for (const auto& next : reverse.value(id)) {
+                if (!components.contains(next)) { components.insert(next, component); pending.append(next); }
+            }
+        }
+        ++component;
+    }
+    return components;
+}
+QString validatePastedEdges(const QJsonObject& workflow, const QJsonObject& fragment,
+                            const QHash<QString, QJsonObject>& metadata) {
+    QHash<QString, QJsonObject> originalNodes, pastedNodes;
+    const auto graph = workflow.value("graph").toObject();
+    for (const auto& value : graph.value("nodes").toArray()) {
+        const auto node = value.toObject();
+        originalNodes.insert(node.value("id").toString(), endpointDefinition(node));
+    }
+    QSet<QString> unchanged;
+    for (const auto& value : fragment.value("nodes").toArray()) {
+        const auto node = value.toObject();
+        const auto id = node.value("id").toString();
+        pastedNodes.insert(id, node);
+        if (originalNodes.contains(id) && originalNodes.value(id) == endpointDefinition(node)) { unchanged.insert(id); }
+    }
+    QSet<QByteArray> originalEdges;
+    for (const auto& value : graph.value("edges").toArray()) {
+        originalEdges.insert(QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact));
+    }
+    const auto edges = fragment.value("edges").toArray();
+    QHash<QByteArray, int> duplicates;
+    for (const auto& value : edges) { ++duplicates[connectionKey(value.toObject())]; }
+    const auto components = connectionComponents(pastedNodes, edges);
+    for (const auto& value : edges) {
+        const auto edge = value.toObject();
+        const auto source = edge.value("source").toString(), target = edge.value("target").toString();
+        if (unchanged.contains(source) && unchanged.contains(target)
+            && originalEdges.contains(QJsonDocument(edge).toJson(QJsonDocument::Compact))) { continue; }
+        if (duplicates.value(connectionKey(edge)) > 1) { return "Duplicate pasted connection"; }
+        if (const auto error = validateEdgeEndpoints(pastedNodes, edge, metadata); !error.isEmpty()) { return error; }
+        if (!loopFeedback(pastedNodes.value(target), edge.value("targetHandle").toString())
+            && components.value(source) == components.value(target)) { return "Connection creates a cycle"; }
     }
     return {};
 }
@@ -728,6 +842,67 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
             }
             edges = updated;
         }
+    } else if (op == "setDynamicInputType") {
+        // The web type chip (DynamicSlotTypePicker.tsx, useDynamicProperty.ts
+        // handleUpdatePropertyType) keeps a value that still fits the new type
+        // and reseeds one that does not.
+        const auto index = indexOf(nodes, id);
+        if (index < 0) { return failure("Unknown node ID"); }
+        auto n = nodes[index].toObject();
+        const auto definition = metadata.value(n.value("type").toString());
+        if (!definition.value("supports_dynamic_inputs").toBool()) {
+            return failure("Node metadata does not support editing these dynamic ports");
+        }
+        const auto data = n.value("data").toObject();
+        const auto nodeType = n.value("type").toString();
+        if (nodeType.startsWith("fal.") || nodeType.startsWith("kie.") || nodeType.startsWith("replicate.") || nodeType.startsWith("comfy.")
+            || nodeType == "nodetool.workflows.workflow_node.Workflow" || nodeType == "nodetool.workflows.subgraph.Subgraph"
+            || data.contains("endpoint_id") || data.contains("model_id")) {
+            return failure("This node's schema sets its input types");
+        }
+        for (const auto& container : {QStringLiteral("dynamic_inputs"), QStringLiteral("dynamic_properties")}) {
+            if (n.contains(container) && !n.value(container).isObject()) { return failure("Unsupported dynamic port container"); }
+        }
+        const auto name = command.value("name").toString();
+        auto ports = n.value("dynamic_inputs").toObject();
+        auto values = n.value("dynamic_properties").toObject();
+        if (name.isEmpty() || (!ports.contains(name) && !values.contains(name))) { return failure("Unknown dynamic port"); }
+        for (const auto& port : definition.value("properties").toArray()) {
+            if (port.toObject().value("name") == name) { return failure("Unknown dynamic port"); }
+        }
+        for (const auto& value : edges) {
+            const auto edge = value.toObject();
+            if (edge.value("target") == id && edge.value("targetHandle") == name) { return failure("Disconnect the input before changing its type"); }
+        }
+        const auto type = command.value("type");
+        if (!validType(type) || type.toObject().value("type").toString().isEmpty()) { return failure("Invalid dynamic port type metadata"); }
+        const auto key = [](const QJsonObject& candidate) {
+            const auto args = candidate.value("type_args").toArray();
+            return candidate.value("type") == "list" && args.size() == 1
+                ? "list[" + args[0].toObject().value("type").toString() + "]" : candidate.value("type").toString();
+        };
+        const auto allowed = definition.value("allowed_dynamic_slot_types").toArray();
+        bool permitted = allowed.isEmpty();
+        for (const auto& candidate : allowed) { if (key(candidate.toObject()) == key(type.toObject())) { permitted = true; break; } }
+        if (!permitted) { return failure("Dynamic input type is not allowed by node metadata"); }
+        auto declaration = ports.value(name).isObject() ? ports.value(name).toObject() : QJsonObject{};
+        declaration.insert("type", type);
+        ports.insert(name, declaration);
+        const auto previous = values.value(name);
+        const bool keep = values.contains(name) && validatePropertyValue(QJsonObject{{"type", type}}, previous).isEmpty();
+        if (!keep) {
+            const auto kind = type.toObject().value("type").toString();
+            QJsonValue seeded = QJsonValue::Null;
+            if (kind == "str" || kind == "text" || kind == "any") { seeded = QString(); }
+            else if (kind == "int" || kind == "float" || kind == "number") { seeded = 0; }
+            else if (kind == "bool") { seeded = false; }
+            else if (kind == "list") { seeded = QJsonArray{}; }
+            else if (kind == "dict") { seeded = QJsonObject{}; }
+            values.insert(name, seeded);
+        }
+        n.insert("dynamic_inputs", ports);
+        n.insert("dynamic_properties", values);
+        nodes[index] = n;
     } else if (op == "setChildGraph" || op == "setChildSnapshot") {
         const auto index = indexOf(nodes, id);
         if (index < 0) { return failure("Child owner no longer exists"); }
@@ -854,22 +1029,7 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         const auto fragment = command.value("fragment").toObject();
         QJsonObject wrapped{{"graph", fragment}};
         if (const auto error = validate(wrapped); !error.isEmpty()) { return failure(error); }
-        const auto fragmentEdges = fragment.value("edges").toArray();
-        for (const auto& value : fragment.value("edges").toArray()) {
-            const auto edge = value.toObject();
-            if (!preservesExistingEdge(workflow, fragment, edge)) {
-                QJsonArray others;
-                bool skippedSelf = false;
-                for (const auto& other : fragmentEdges) {
-                    if (!skippedSelf && other == value) { skippedSelf = true; continue; }
-                    const auto candidate = other.toObject();
-                    if (candidate.value("source") == edge.value("source") && candidate.value("target") == edge.value("target")
-                        && candidate.value("sourceHandle") == edge.value("sourceHandle") && candidate.value("targetHandle") == edge.value("targetHandle")) { return failure("Duplicate pasted connection"); }
-                    others.append(other);
-                }
-                if (const auto error = validateNewEdge(fragment.value("nodes").toArray(), others, edge, metadata); !error.isEmpty()) { return failure(error); }
-            }
-        }
+        if (const auto error = validatePastedEdges(workflow, fragment, metadata); !error.isEmpty()) { return failure(error); }
         for (const auto& value : fragment.value("nodes").toArray()) { result.idMap.insert(value.toObject().value("id").toString(), newId()); }
         const auto offset = command.value("offset").toObject();
         const auto dx = offset.value("x").toDouble(32); const auto dy = offset.value("y").toDouble(32);
@@ -899,6 +1059,10 @@ class DocumentEdit final : public QUndoCommand {
 public:
     DocumentEdit(WorkflowDocument& document, QJsonObject before, QJsonObject after, const QString& label)
         : QUndoCommand(label), document_(document), before_(std::move(before)), after_(std::move(after)) {}
+    void applyDefaults(const QHash<QString, QJsonObject>& defaults) {
+        applyGraphDefaults(before_, defaults);
+        applyGraphDefaults(after_, defaults);
+    }
     void undo() override { document_.restore(before_); }
     void redo() override { document_.restore(after_); }
 private:
@@ -909,6 +1073,14 @@ class NodeDeltaEdit final : public QUndoCommand {
 public:
     NodeDeltaEdit(WorkflowDocument& document, QJsonObject before, QJsonObject after, const QString& label)
         : QUndoCommand(label), document_(document), before_(std::move(before)), after_(std::move(after)) {}
+    void applyDefaults(const QHash<QString, QJsonObject>& defaults) {
+        for (auto node = before_.begin(); node != before_.end(); ++node) {
+            node.value() = withPropertyDefaults(node.value().toObject(), defaults.value(node.key()));
+        }
+        for (auto node = after_.begin(); node != after_.end(); ++node) {
+            node.value() = withPropertyDefaults(node.value().toObject(), defaults.value(node.key()));
+        }
+    }
     void undo() override { apply(before_, after_); }
     void redo() override { apply(after_, before_); }
 private:
@@ -1016,6 +1188,26 @@ void WorkflowDocument::setNodeMetadata(const QJsonArray& metadata) {
     for (const auto& value : metadata) {
         const auto entry = value.toObject(); const auto type = entry.value("node_type").toString();
         if (!type.isEmpty()) { metadata_.insert(type, entry); }
+    }
+}
+void WorkflowDocument::applyPropertyDefaults(const QHash<QString, QJsonObject>& defaults) {
+    if (isReadOnly()) { return; }
+    bool anyChanged = false;
+    for (auto values = defaults.cbegin(); values != defaults.cend(); ++values) {
+        const auto current = node(values.key());
+        const auto updated = withPropertyDefaults(current, values.value());
+        if (updated != current) { writeNode(values.key(), updated); anyChanged = true; }
+    }
+    // Defaults are document initialization. Normalize existing history rather
+    // than replaying defaults during undo, so later explicit clears stay clear.
+    for (int i = 0; i < undo_.count(); ++i) {
+        auto* command = const_cast<QUndoCommand*>(undo_.command(i));
+        if (auto* edit = dynamic_cast<DocumentEdit*>(command)) { edit->applyDefaults(defaults); }
+        else if (auto* edit = dynamic_cast<NodeDeltaEdit*>(command)) { edit->applyDefaults(defaults); }
+    }
+    if (anyChanged) {
+        undo_.resetClean();
+        emit changed();
     }
 }
 EditResult WorkflowDocument::load(const QJsonObject& workflow) {

@@ -22,6 +22,8 @@ class CompatibleNodePicker final : public QObject {
   Q_PROPERTY(QString title READ title NOTIFY changed)
   Q_PROPERTY(bool active READ active NOTIFY changed)
   Q_PROPERTY(int generation READ generation NOTIFY changed)
+  // A dynamic output's menu also deletes it (web OutputContextMenu.tsx:93-124, :622-630).
+  Q_PROPERTY(bool canDeleteOutput READ canDeleteOutput NOTIFY changed)
 public:
   CompatibleNodePicker(WorkflowGraphModel &model, EditorScene &scene,
                        QGraphicsView &view, QQmlEngine *engine,
@@ -34,7 +36,10 @@ public:
   int generation() const { return generation_; }
   void choose(const QString &key) { choose(key, generation_); }
   bool active() const { return active_; }
+  bool canDeleteOutput() const;
   QQuickWidget *widget() const;
+  // Create `type` beside `source`'s output and wire the output into `targetPort` as one document step.
+  bool addConnected(QtNodes::NodeId source, const QString &outputName, const QString &type, const QString &targetPort);
   std::function<bool(const QJsonObject &)> applyCommand;
 public slots:
   void open(QtNodes::NodeId node, QtNodes::PortType port,
@@ -46,6 +51,7 @@ public slots:
   void choose(const QString &key, int generation);
   void search(const QString &query, int generation);
   void dismiss(int generation);
+  void deleteOutput(int generation);
   void cancel();
 signals:
   void changed();
@@ -77,6 +83,8 @@ private:
   void applyBody(const QString &port, const QJsonArray &prefix = {},
                  const QJsonObject &sourceTypeOverride = {}, bool newDynamicInput = false);
   bool current() const;
+  QJsonObject connectCommand(const QJsonObject &metadata, bool forward, const QString &resource, const QString &handle,
+                             const QString &port, const QPointF &position, QString &id) const;
   bool owns(QObject *object) const;
   void positionWidget();
 };

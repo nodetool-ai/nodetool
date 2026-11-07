@@ -5,6 +5,8 @@
 #include <QJsonDocument>
 #include <QMessageBox>
 #include <QPointer>
+#include <QScopeGuard>
+#include <QUuid>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
@@ -112,14 +114,42 @@ private:
 private slots:
   void liveBrowser() {
     const auto origin = qEnvironmentVariable("NODETOOL_BROWSER_LIVE_URL");
-    if (origin.isEmpty()) { QSKIP("Set NODETOOL_BROWSER_LIVE_URL for optional production browser capture"); }
+    if (origin.isEmpty()) { QSKIP("Set NODETOOL_BROWSER_LIVE_URL for the disposable live browser test"); }
+    const auto token = qEnvironmentVariable("NODETOOL_TOKEN");
+    node_editor::WorkflowBrowser fixture;
+    fixture.configure(QUrl(origin), token);
+    QSignalSpy created(&fixture, &node_editor::WorkflowBrowser::created);
+    fixture.createWorkflow("Native browser fixture " + QUuid::createUuid().toString(QUuid::WithoutBraces));
+    QTRY_VERIFY_WITH_TIMEOUT(created.count() == 1 || !fixture.error().isEmpty(), 30000);
+    QVERIFY2(created.count() == 1, qPrintable(fixture.error()));
+    const auto id = created.first().first().toString();
+    const auto cleanup = qScopeGuard([&fixture, id] {
+      QTRY_VERIFY_WITH_TIMEOUT(!fixture.loading() && !fixture.busy(), 30000);
+      QSignalSpy deleted(&fixture, &node_editor::WorkflowBrowser::deleted);
+      fixture.deleteWorkflow(id);
+      QTRY_VERIFY_WITH_TIMEOUT(deleted.count() == 1 || !fixture.error().isEmpty(), 30000);
+      QVERIFY2(deleted.count() == 1, qPrintable(fixture.error()));
+      QTRY_VERIFY_WITH_TIMEOUT(!fixture.loading(), 30000);
+    });
     EditorWindow window; window.show();
-    window.session()->connectToServer(QUrl(origin),qEnvironmentVariable("NODETOOL_TOKEN"));
+    window.session()->connectToServer(QUrl(origin), token);
     QTRY_VERIFY_WITH_TIMEOUT(window.session()->connected(),30000);
     window.action("Open");
     auto service = window.workflowBrowser();
-    QTRY_VERIFY_WITH_TIMEOUT(!service->loading() && !service->projectsLoading() && !service->rows().isEmpty(),30000);
+    QTRY_VERIFY_WITH_TIMEOUT(!service->loading() && !service->projectsLoading(),30000);
     QVERIFY2(service->error().isEmpty(),qPrintable(service->error()));
+    const auto containsFixture = [service, id] {
+      for (const auto &row : service->rows()) {
+        if (row.toMap()["id"].toString() == id) { return true; }
+      }
+      return false;
+    };
+    while (!containsFixture() && service->hasNext()) {
+      service->loadNext();
+      QTRY_VERIFY_WITH_TIMEOUT(!service->loading(), 30000);
+      QVERIFY2(service->error().isEmpty(), qPrintable(service->error()));
+    }
+    QVERIFY(containsFixture());
     QTest::qWait(250);
     captureWindow(window,"live-browser");
   }
@@ -254,7 +284,7 @@ private slots:
     };
     EditorWindow window; window.resize(1400,1200); window.show();
     window.session()->connectToServer(server.url(), "fixture-token");
-    click(panel(window,"Rail"),item(window,"rail-workflows"));
+    click(panel(window,"Rail"),item(window,"rail-documents"));
     QVERIFY(window.browserVisible()); QVERIFY(!window.catalogVisible());
     auto browser = panel(window,"WorkflowBrowser"); QVERIFY(browser);
     auto service = window.workflowBrowser();

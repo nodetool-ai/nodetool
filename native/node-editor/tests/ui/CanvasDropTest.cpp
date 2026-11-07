@@ -231,10 +231,22 @@ private slots:
     const auto json = writeFile(dir, "value.json", "{\"answer\":42}"); QMimeData jsonMime; jsonMime.setUrls({QUrl::fromLocalFile(json)}); QVERIFY(drop(window, jsonMime, QPointF(200, 180))); QTRY_COMPARE(window.document()->nodes().size(), 2); QCOMPARE(server.uploads, 1);
     QCOMPARE(window.document()->nodes()[1].toObject()["type"].toString(), QString("nodetool.constant.String")); QCOMPARE(window.document()->nodes()[1].toObject()["data"].toObject()["value"].toString(), QString("{\"answer\":42}"));
     const auto snapshot = window.document()->snapshot();
-    const auto workflow = writeFile(dir, "workflow.json", "{\"graph\":{\"nodes\":[],\"edges\":[]}}"); QMimeData workflowMime; workflowMime.setUrls({QUrl::fromLocalFile(workflow)}); QVERIFY(drop(window, workflowMime, QPointF(230, 200))); QCOMPARE(window.document()->snapshot(), snapshot); QCOMPARE(server.uploads, 1);
-    QVERIFY(controller(window)->transfers().last().toMap()["error"].toString().contains("Open file"));
     const auto invalid = writeFile(dir, "invalid.json", "invalid json"); QMimeData invalidMime; invalidMime.setUrls({QUrl::fromLocalFile(invalid)}); QVERIFY(drop(window, invalidMime, QPointF(230, 200))); QCOMPARE(window.document()->snapshot(), snapshot); QCOMPARE(server.uploads, 1);
     QMimeData remote; remote.setUrls({QUrl("https://example.com/image.png")}); QVERIFY(!drop(window, remote, QPointF(230, 200))); QCOMPARE(window.document()->snapshot(), snapshot);
+    // A workflow file opens as its own workflow and leaves this graph, the
+    // uploads and the transfer panel unchanged (web dropHandlerUtils.ts:204-220).
+    auto *drops = controller(window);
+    const auto rows = drops->transfers().size();
+    const auto tabs = window.workflowTabs().size();
+    const auto workflow = writeFile(dir, "workflow.json", "{\"name\":\"Dropped workflow\",\"graph\":{\"nodes\":[{\"id\":\"n1\",\"type\":\"nodetool.constant.String\",\"data\":{\"value\":\"kept\"}}],\"edges\":[]}}");
+    QMimeData workflowMime; workflowMime.setUrls({QUrl::fromLocalFile(workflow)});
+    QVERIFY(drop(window, workflowMime, QPointF(230, 200)));
+    QCOMPARE(drops->transfers().size(), rows);
+    QCOMPARE(server.uploads, 1);
+    QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
+    QTRY_COMPARE(window.document()->nodes().size(), 1);
+    QCOMPARE(window.document()->nodes()[0].toObject()["data"].toObject()["value"].toString(), QString("kept"));
+    QCOMPARE(window.localFilePath(), workflow);
   }
   void csvDelimiterAndQuotedWhitespace_data() {
     QTest::addColumn<QByteArray>("csv"); QTest::addColumn<QString>("left"); QTest::addColumn<QString>("right");
@@ -294,6 +306,70 @@ private slots:
     window.session()->credentialsChanged(server.url(), "next-token", "2"); server.release(); QTest::qWait(30); QVERIFY(drops->transfers().isEmpty()); QCOMPARE(window.document()->snapshot(), local);
     window.session()->credentialsChanged(server.url(), "drop-token", "1"); QVERIFY(drop(window, mime, QPointF(220, 170))); QTRY_VERIFY(!server.pending.isEmpty());
     auto next = local; next["id"] = "next-workflow"; QVERIFY(window.document()->load(next)); server.release(); QTest::qWait(30); QVERIFY(window.document()->nodes().isEmpty()); QVERIFY(drops->transfers().isEmpty());
+  }
+  // Saved sketches and timelines enter as constant nodes on the pane, with
+  // one undo entry each, and need no server (web useDropHandler.ts:195-239).
+  void sketchAndTimelineDocumentsBecomeConstantNodes() {
+    auto catalog = metadata();
+    for (const auto &type : {QString("Sketch"), QString("Timeline")}) {
+      catalog.append(QJsonObject{{"node_type", "nodetool.constant." + type}, {"title", type},
+        {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", type.toLower()}}}, {"default", QJsonValue::Null}}}},
+        {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", type.toLower()}}}}}}});
+    }
+    EditorWindow window;
+    window.setCatalog(catalog);
+    window.resize(1400, 1000);
+    window.show();
+    QTest::qWait(60);
+    auto *view = window.findChild<QGraphicsView *>();
+    QVERIFY(view);
+    view->scale(0.75, 0.75);
+    const QPointF point(210, 190);
+    const auto expected = view->mapToScene(point.toPoint());
+    const auto payload = [](const QString &type, const QJsonObject &body) {
+      return QJsonDocument(QJsonObject{{"type", type}, {"payload", body}}).toJson(QJsonDocument::Compact);
+    };
+    QMimeData sketch;
+    sketch.setData("application/x-nodetool-drag", payload("sketch", QJsonObject{{"id", "0123456789abcdef0123456789abcdef"}, {"name", "Poster"}}));
+    QVERIFY(drop(window, sketch, point));
+    QTRY_COMPARE(window.document()->nodes().size(), 1);
+    auto node = window.document()->nodes()[0].toObject();
+    QCOMPARE(node["type"].toString(), QString("nodetool.constant.Sketch"));
+    QCOMPARE(node["data"].toObject()["value"].toObject(), QJsonObject({{"type", "sketch"}, {"id", "0123456789abcdef0123456789abcdef"}}));
+    QCOMPARE(node["ui_properties"].toObject()["title"].toString(), QString("Poster"));
+    const auto at = node["ui_properties"].toObject()["position"].toObject();
+    QCOMPARE(QPointF(at["x"].toDouble(), at["y"].toDouble()), expected);
+    QCOMPARE(window.document()->undoStack()->count(), 1);
+    // A nameless timeline gets the web fallback title.
+    QMimeData timeline;
+    timeline.setData("application/x-nodetool-drag", payload("timeline", QJsonObject{{"id", "fedcba9876543210fedcba9876543210"}}));
+    QVERIFY(drop(window, timeline, QPointF(210, 600)));
+    QTRY_COMPARE(window.document()->nodes().size(), 2);
+    node = window.document()->nodes()[1].toObject();
+    QCOMPARE(node["type"].toString(), QString("nodetool.constant.Timeline"));
+    QCOMPARE(node["ui_properties"].toObject()["title"].toString(), QString("Untitled video"));
+    QCOMPARE(window.document()->undoStack()->count(), 2);
+    // A drop on a card, or without an ID, adds nothing.
+    const auto card = view->mapFromScene(expected + QPointF(30, 20));
+    // The scene indexes a new card after the projection settles.
+    QTRY_VERIFY(!view->items(card).isEmpty());
+    QVERIFY(!drop(window, sketch, QPointF(card)));
+    QMimeData empty;
+    empty.setData("application/x-nodetool-drag", payload("sketch", QJsonObject{{"name", "No id"}}));
+    QVERIFY(!drop(window, empty, QPointF(700, 600)));
+    QCOMPARE(window.document()->nodes().size(), 2);
+    window.action("Undo");
+    QCOMPARE(window.document()->nodes().size(), 1);
+    // Without node metadata the drop reports and adds nothing.
+    EditorWindow bare;
+    bare.setCatalog(metadata());
+    bare.resize(1000, 800);
+    bare.show();
+    QTest::qWait(40);
+    QVERIFY(drop(bare, sketch, point));
+    QTest::qWait(20);
+    QVERIFY(bare.document()->nodes().isEmpty());
+    QVERIFY(bare.message().contains("metadata is missing"));
   }
 };
 QTEST_MAIN(CanvasDropTest)

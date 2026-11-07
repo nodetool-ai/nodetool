@@ -19,6 +19,15 @@ Rectangle {
     color: Ui.Theme.surfacePanel
     implicitWidth: Ui.Metrics.dialogWidth
     implicitHeight: content.implicitHeight + Ui.Metrics.xl * 2
+    // Wording from conflictBannerLabel in web/src/hooks/useDocumentConflicts.ts.
+    function mergeConflictText() {
+        const conflicts = workflowSession ? workflowSession.mergeConflicts : []
+        const lines = conflicts.map(conflict => conflict.reason === "replaced" ? "The whole document was replaced outside the editor"
+            : conflict.reason === "deleted" ? conflict.label + (conflict.remoteDeleted ? " — deleted outside while you were editing it" : " — changed outside after you deleted it")
+            : conflict.reason === "dangling" ? conflict.label + " — refers to something you deleted"
+            : conflict.label + " — changed outside while you were editing it")
+        return lines.length ? "Other server changes were merged. Your version was kept here:\n" + lines.join("\n") : ""
+    }
     function preview(value) {
         const text = JSON.stringify(value || {}, null, 2)
         return text.length > 65536 ? text.slice(0, 65536) + "\n… Comparison preview shortened." : text
@@ -53,6 +62,14 @@ Rectangle {
                     : root.serverState === "unsaved" ? "Server workflow has unsaved changes."
                     : root.serverState === "reloaded" ? "Loaded the current server workflow."
                     : "Server workflow is saved."
+            }
+            Ui.Text {
+                objectName: "server-sync-merge-conflicts"
+                visible: root.conflicted && text.length > 0
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                role: Ui.Typography.SansBody
+                text: root.conflicted ? root.mergeConflictText() : ""
             }
             Ui.CheckBox {
                 objectName: "server-sync-autosave"

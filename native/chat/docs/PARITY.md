@@ -12,6 +12,9 @@ is not evidence of platform support.
 | Plain text, Markdown, code copy | Required | Delegate and composer interaction tests |
 | Repeated text deltas and final echo | Required | Shared web/C++ conformance fixture |
 | Provider and model selection | Required | Composer values reach prompt envelope |
+| Media-generation modes and settings | Required | Web send-path payload fixture in the editor chat tests |
+| Reasoning level | Required | Sent only for chat turns, chip shown only for supporting models |
+| Asset mention picker | Required | Key and pointer tests against `assets.search` |
 | Send and stop | Required | Session transport tests and local server smoke |
 | Disconnect during a turn | Required | Interrupted state without automatic resend |
 | Tool progress and results | Required | Structured-part preservation tests |

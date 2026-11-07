@@ -1,6 +1,8 @@
 #include "ui/EditorWindow.h"
 #include <QFile>
 #include <QJsonDocument>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
@@ -96,14 +98,89 @@ private slots:
     QCOMPARE(window.document()->snapshot()["graph"], graph);
     QCOMPARE(window.document()->undoStack()->index(), undo + 1);
   }
+    void editBeforeAutosaveResponseKeepsEditAndUndo() {
+        AutosaveHttp http;
+        EditorWindow window;
+        window.session()->setAutosaveDelay(60000);
+        window.session()->connectToServer(http.url(), {});
+        window.session()->openWorkflow("same-id");
+        QTRY_VERIFY(window.session()->serverBound());
+        QVERIFY(moveComment(window));
+        QCoreApplication::processEvents();
+        const QJsonValue before = window.document()->snapshot()["graph"];
+        const int undo = window.document()->undoStack()->index();
+        bool edited = false;
+        QJsonValue latest;
+        auto *network = window.session()->findChild<QNetworkAccessManager *>();
+        QVERIFY(network);
+        // QNetworkAccessManager emits finished before the session's reply
+        // callback. This puts the edit and workflowChanged in the same turn,
+        // with no opportunity for a queued document sync between them.
+        connect(network, &QNetworkAccessManager::finished, &window, [&](QNetworkReply *reply) {
+            if (reply->url().path() != "/trpc/workflows.autosave" || edited) {
+                return;
+            }
+            edited = true;
+            QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{
+                {"id", "latest"}, {"type", "nodetool.workflows.base_node.Comment"}}}}));
+            latest = window.document()->snapshot()["graph"];
+        });
+        QSignalSpy changes(window.session(), &node_editor::WorkflowSession::workflowChanged);
+        window.session()->flushAutosave();
+        QTRY_VERIFY(edited);
+        QTRY_VERIFY(!window.session()->saving());
+        QVERIFY(!changes.isEmpty());
+        QCOMPARE(window.document()->snapshot()["graph"], latest);
+        QCOMPARE(window.session()->workflow()["graph"], latest);
+        QVERIFY(window.session()->dirty());
+        QCOMPARE(window.document()->undoStack()->index(), undo + 1);
+        window.document()->undo();
+        QCOMPARE(window.document()->snapshot()["graph"], before);
+        QCOMPARE(window.document()->undoStack()->index(), undo);
+    }
+    void editThenOpenInSameTurnBindsWorkflow() {
+        AutosaveHttp http;
+        EditorWindow window;
+        window.session()->connectToServer(http.url(), {});
+        QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{
+            {"id", "local"}, {"type", "nodetool.workflows.base_node.Comment"}}}}));
+        window.session()->openWorkflow("same-id");
+        QTRY_VERIFY(window.session()->serverBound());
+        QCOMPARE(window.document()->snapshot()["graph"], http.workflow["graph"]);
+        QVERIFY(window.document()->node("local").isEmpty());
+        QCOMPARE(window.document()->undoStack()->index(), 0);
+        QVERIFY(!window.session()->dirty());
+    }
+    void editDuringOpenKeepsLocalWorkflow() {
+        AutosaveHttp http;
+        EditorWindow window;
+        window.session()->connectToServer(http.url(), {});
+        bool edited = false;
+        auto *network = window.session()->findChild<QNetworkAccessManager *>();
+        QVERIFY(network);
+        connect(network, &QNetworkAccessManager::finished, &window, [&](QNetworkReply *reply) {
+            if (reply->url().path() != "/api/workflows/same-id" || edited) {
+                return;
+            }
+            edited = true;
+            QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{
+                {"id", "local"}, {"type", "nodetool.workflows.base_node.Comment"}}}}));
+        });
+        window.session()->openWorkflow("same-id");
+        QTRY_VERIFY(edited);
+        QCoreApplication::processEvents();
+        QVERIFY(!window.session()->serverBound());
+        QVERIFY(!window.document()->node("local").isEmpty());
+        QCOMPARE(window.document()->undoStack()->index(), 1);
+        QVERIFY(window.session()->dirty());
+    }
   void editThenFlushInSameTurnSavesEdit() {
     AutosaveHttp http; EditorWindow window;
     window.session()->setAutosaveDelay(60000);
     window.session()->connectToServer(http.url(), {}); window.session()->openWorkflow("same-id");
     QTRY_VERIFY(window.session()->serverBound());
     QTRY_COMPARE(window.document()->snapshot()["id"].toString(), QString("same-id"));
-    // Document changes reach the session on a later turn. A flush in the same
-    // turn, as on close, must still send the edit.
+    // A flush in the same turn, as on close, must send the live edit.
     QVERIFY(moveComment(window)); const QJsonValue graph = window.document()->snapshot()["graph"];
     window.session()->flushAutosave();
     QTRY_COMPARE(http.writes, 1); QTRY_VERIFY(!window.session()->saving());

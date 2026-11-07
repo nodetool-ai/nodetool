@@ -4,6 +4,7 @@
 #include "ui/EditorWindow.h"
 #include <QQuickWidget>
 #include <QApplication>
+#include <QClipboard>
 #include <QDataStream>
 #include <QBuffer>
 #include <QImage>
@@ -450,7 +451,13 @@ private slots:
     QVERIFY(preview->property("resolvedSource").toUrl().isEmpty());
     QVERIFY(preview->property("failure").toString().isEmpty());
   }
+  void imagePreview_data() {
+    QTest::addColumn<bool>("asset");
+    QTest::newRow("inline") << false;
+    QTest::newRow("authenticated-asset") << true;
+  }
   void imagePreview() {
+    QFETCH(bool, asset);
     QImage image(80, 40, QImage::Format_RGB32);
     image.fill(Qt::blue);
     QByteArray bytes;
@@ -460,14 +467,435 @@ private slots:
     engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/editor/MediaPreview.qml"));
     QTRY_VERIFY(component.isReady());
-    const auto source = "data:image/png;base64," + QString::fromLatin1(bytes.toBase64());
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", source}}));
+    QList<QByteArray> requests;
+    QTcpServer server;
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    connect(&server, &QTcpServer::newConnection, this, [&] {
+      auto socket = server.nextPendingConnection();
+      connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+        const auto request = socket->readAll();
+        requests.append(request);
+        const auto body = request.contains("/trpc/assets.get")
+          ? QByteArray("{\"result\":{\"data\":{\"get_url\":\"/api/storage/image.png\"}}}") : bytes;
+        socket->write("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\nConnection: close\r\n\r\n" + body);
+        socket->disconnectFromHost();
+      });
+      connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+    });
+    resolver.configure(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), "image-download-token");
+    const QVariant source = asset
+      ? QVariant(QVariantMap{{"type", "image"}, {"asset_id", "0123456789abcdef0123456789abcdef"}})
+      : QVariant("data:image/png;base64," + QString::fromLatin1(bytes.toBase64()));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", source}, {"showDownload", true}}));
     QVERIFY(preview);
+    QQuickWindow surface;
+    surface.resize(400, 300);
+    auto item = qobject_cast<QQuickItem *>(preview.get());
+    QVERIFY(item);
+    item->setParentItem(surface.contentItem());
+    item->setSize(surface.size());
+    surface.show();
     auto rendered = preview->findChild<QQuickItem *>("preview-image"); QVERIFY(rendered);
     QTRY_COMPARE(rendered->property("status").toInt(), 1);
     QCOMPARE(rendered->property("fillMode").toInt(), 1);
+    auto download = preview->findChild<QQuickItem *>("preview-download");
+    QVERIFY(download);
+    QVERIFY(download->isVisible());
+    QVERIFY(download->isEnabled());
+    QVERIFY(preview->setProperty("showDownload", false));
+    QVERIFY(!download->isVisible());
+    QVERIFY(preview->setProperty("showDownload", true));
+    QVERIFY(download->isVisible());
+    for (const auto name : {"preview-speed", "preview-loop", "preview-mute", "preview-volume", "preview-fullscreen"}) {
+      auto control = preview->findChild<QQuickItem *>(name);
+      QVERIFY(control);
+      QVERIFY(!control->isVisible());
+    }
+    const auto previewRequests = requests.size();
+    auto dialog = preview->findChild<QObject *>("preview-download-dialog");
+    QVERIFY(dialog);
+    QVERIFY(dialog->setProperty("options", int(QFileDialog::DontUseNativeDialog)));
+    QTest::mouseClick(&surface, Qt::LeftButton, Qt::NoModifier,
+                     download->mapToScene(QPointF(download->width() / 2, download->height() / 2)).toPoint());
+    QTRY_VERIFY(dialog->property("visible").toBool());
+    QVERIFY(dialog->property("selectedFile").toUrl().fileName().endsWith("image.png"));
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto destination = QUrl::fromLocalFile(directory.filePath("image.png"));
+    QVERIFY(dialog->setProperty("selectedFile", destination));
+    QVERIFY(QMetaObject::invokeMethod(dialog, "accepted"));
+    QFile downloaded(destination.toLocalFile());
+    QVERIFY(downloaded.open(QIODevice::ReadOnly));
+    QCOMPARE(downloaded.readAll(), bytes);
+    QCOMPARE(requests.size(), previewRequests);
+    if (asset) {
+      QVERIFY(requests.size() >= 2);
+      QVERIFY(requests[0].contains("0123456789abcdef0123456789abcdef"));
+      for (const auto &request : requests) { QVERIFY(request.contains("Authorization: Bearer image-download-token")); }
+    }
+    QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
     resolver.clear();
+    QVERIFY(!download->isEnabled());
     QVERIFY(rendered->property("source").toUrl().isEmpty());
+  }
+  void modalImageViewerInteractionsAndScope() {
+    QImage image(80, 40, QImage::Format_RGB32); image.fill(Qt::blue);
+    QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
+    const auto locator = "data:image/png;base64," + QString::fromLatin1(bytes.toBase64());
+    const QVariantMap first{{"kind", "image"}, {"locator", locator}, {"itemKey", "first"}};
+    const QVariantMap repeat{{"kind", "image"}, {"locator", locator}, {"itemKey", "repeat"}};
+    const QVariantMap last{{"kind", "image"}, {"locator", locator}, {"itemKey", "last"}};
+    const QVariantMap text{{"kind", "text"}, {"text", "Not an image"}, {"itemKey", "caption"}};
+    MediaResolver resolver;
+    QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/MediaGallery.qml"));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    std::unique_ptr<QObject> gallery(component.createWithInitialProperties({{"items", QVariantList{first, text, repeat, last}}, {"scopeKey", "workflow:run:output"}}));
+    QVERIFY2(gallery, qPrintable(component.errorString()));
+    QQuickWindow surface; surface.resize(500, 500);
+    auto item = qobject_cast<QQuickItem *>(gallery.get()); QVERIFY(item);
+    item->setParentItem(surface.contentItem()); item->setSize(surface.size());
+    surface.show(); surface.requestActivate();
+    QQuickItem *tile = nullptr;
+    QTRY_VERIFY((tile = findItem(item, "gallery-tile-2")));
+    tile->forceActiveFocus();
+    QTest::keyClick(&surface, Qt::Key_Space);
+    auto viewer = gallery->findChild<QQuickWindow *>("image-viewer-window"); QVERIFY(viewer);
+    QTRY_VERIFY(viewer->isVisible());
+    QCOMPARE(viewer->modality(), Qt::WindowModal);
+    QCOMPARE(viewer->transientParent(), &surface);
+    QCOMPARE(QQmlEngine::objectOwnership(&surface), QQmlEngine::CppOwnership);
+    QCOMPARE(viewer->property("items").toList().size(), 3);
+    QCOMPARE(viewer->property("currentIndex").toInt(), 1);
+    QCOMPARE(viewer->property("selected").toMap()["itemKey"].toString(), QString("repeat"));
+    QQuickItem *preview = nullptr;
+    QTRY_VERIFY((preview = findItem(viewer->contentItem(), "image-viewer-preview")));
+    auto rendered = findItem(preview, "preview-image"); QVERIFY(rendered);
+    QTRY_COMPARE(rendered->property("status").toInt(), 1);
+    auto interaction = findItem(preview, "preview-image-interaction"); QVERIFY(interaction);
+    const auto center = interaction->mapToScene(QPointF(interaction->width() / 2, interaction->height() / 2)).toPoint();
+    QTest::mouseDClick(viewer, Qt::LeftButton, Qt::NoModifier, center);
+    QTRY_COMPARE(preview->property("imageZoom").toDouble(), 2.0);
+    QTest::mousePress(viewer, Qt::LeftButton, Qt::NoModifier, center);
+    QTest::mouseMove(viewer, center + QPoint(30, 20));
+    QTest::mouseRelease(viewer, Qt::LeftButton, Qt::NoModifier, center + QPoint(30, 20));
+    QVERIFY(preview->property("imagePanX").toDouble() > 0);
+    QTest::mouseClick(viewer, Qt::RightButton, Qt::NoModifier, center);
+    QCOMPARE(preview->property("imageZoom").toDouble(), 1.0);
+    QCOMPARE(preview->property("imagePanX").toDouble(), 0.0);
+    QWheelEvent wheel(center, viewer->mapToGlobal(center), {}, {0, 120}, Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+    QCoreApplication::sendEvent(viewer, &wheel);
+    QVERIFY(preview->property("imageZoom").toDouble() > 1);
+    const auto zoom = preview->property("imageZoom");
+    const auto source = rendered->property("source");
+    auto appended = first; appended["itemKey"] = "appended";
+    QVERIFY(gallery->setProperty("items", QVariantList{first, text, repeat, last, appended}));
+    QCOMPARE(findItem(viewer->contentItem(), "image-viewer-preview"), preview);
+    QCOMPARE(preview->property("imageZoom"), zoom);
+    QCOMPARE(rendered->property("source"), source);
+    QTest::keyClick(viewer, Qt::Key_Left);
+    QCOMPARE(viewer->property("currentIndex").toInt(), 0);
+    QCOMPARE(preview->property("imageZoom").toDouble(), 1.0);
+    QTest::keyClick(viewer, Qt::Key_Left);
+    QCOMPARE(viewer->property("currentIndex").toInt(), 0);
+    QTest::keyClick(viewer, Qt::Key_Right);
+    QCOMPARE(viewer->property("selected").toMap()["itemKey"].toString(), QString("repeat"));
+    QCOMPARE(gallery->property("currentIndex").toInt(), 2);
+    QQuickItem *download = nullptr;
+    QTRY_VERIFY((download = findItem(preview, "preview-download")) && download->isEnabled());
+    auto dialog = preview->findChild<QObject *>("preview-download-dialog"); QVERIFY(dialog);
+    QVERIFY(dialog->setProperty("options", int(QFileDialog::DontUseNativeDialog)));
+    QTest::mouseClick(viewer, Qt::LeftButton, Qt::NoModifier, download->mapToScene({download->width() / 2, download->height() / 2}).toPoint());
+    QTRY_VERIFY(dialog->property("visible").toBool());
+    QCOMPARE(qvariant_cast<QWindow *>(dialog->property("parentWindow")), viewer);
+    QTemporaryDir directory; QVERIFY(directory.isValid());
+    const auto destination = QUrl::fromLocalFile(directory.filePath("exact.png"));
+    QVERIFY(dialog->setProperty("selectedFile", destination));
+    QVERIFY(QMetaObject::invokeMethod(dialog, "accepted"));
+    QFile exported(destination.toLocalFile()); QVERIFY(exported.open(QIODevice::ReadOnly)); QCOMPARE(exported.readAll(), bytes);
+    QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
+    viewer->requestActivate();
+    for (const auto dark : {true, false}) {
+      QQmlComponent themeComponent(&engine);
+      themeComponent.setData("import QtQml; import NodeTool.UiPrimitives as Ui; QtObject { property var theme: Ui.Theme }", {});
+      std::unique_ptr<QObject> holder(themeComponent.create()); QVERIFY(holder);
+      auto theme = qvariant_cast<QObject *>(holder->property("theme")); QVERIFY(theme);
+      QVERIFY(theme->setProperty("preference", dark ? 2 : 3));
+      for (const auto width : {900, 360}) {
+        viewer->resize(width, 600); QTest::qWait(30);
+        QVERIFY(saveCapture(viewer->grabWindow(), QString("image-viewer-%1-%2.png").arg(width).arg(dark ? "dark" : "light")));
+        QVERIFY(QRectF(viewer->contentItem()->boundingRect()).contains(download->mapRectToScene(download->boundingRect())));
+      }
+    }
+    QTest::keyClick(viewer, Qt::Key_Escape);
+    QTRY_VERIFY(!viewer->isVisible());
+    surface.requestActivate();
+    QTRY_VERIFY(surface.isActive());
+    QTRY_VERIFY(item->hasActiveFocus());
+    // Multi-image selected output keeps the Open action on its image itself.
+    auto inlineImage = findItem(item, "preview-image-interaction"); QVERIFY(inlineImage);
+    auto inlinePreview = findItem(item, "gallery-selected-media"); QVERIFY(inlinePreview);
+    QSignalSpy activated(inlinePreview, SIGNAL(imageActivated()));
+    QTest::mouseClick(&surface, Qt::LeftButton, Qt::NoModifier, inlineImage->mapToScene({inlineImage->width()/2, inlineImage->height()/2}).toPoint());
+    QTest::mouseDClick(&surface, Qt::LeftButton, Qt::NoModifier, inlineImage->mapToScene({inlineImage->width()/2, inlineImage->height()/2}).toPoint());
+    QTRY_COMPARE(activated.size(), 1);
+    QTRY_VERIFY(viewer->isVisible());
+    QVERIFY(gallery->setProperty("scopeKey", "another-workflow"));
+    QTRY_VERIFY(!viewer->isVisible());
+    surface.requestActivate(); QTRY_VERIFY(surface.isActive());
+    inlineImage->forceActiveFocus(); QTRY_COMPARE(surface.activeFocusItem(), inlineImage);
+    QTest::keyClick(&surface, Qt::Key_Return);
+    QTRY_VERIFY(viewer->isVisible());
+    resolver.configure(QUrl("http://127.0.0.1:9"), "another-account");
+    QTRY_VERIFY(!viewer->isVisible());
+    surface.requestActivate(); QTRY_VERIFY(surface.isActive());
+    inlineImage->forceActiveFocus(); QTRY_COMPARE(surface.activeFocusItem(), inlineImage);
+    QTest::keyClick(&surface, Qt::Key_Return);
+    QTRY_VERIFY(viewer->isVisible());
+    auto closeButton = findItem(viewer->contentItem(), "image-viewer-close"); QVERIFY(closeButton);
+    QTest::mouseClick(viewer, Qt::LeftButton, Qt::NoModifier, closeButton->mapToScene({closeButton->width()/2, closeButton->height()/2}).toPoint());
+    QTRY_VERIFY(!viewer->isVisible());
+    surface.requestActivate(); QTRY_VERIFY(surface.isActive());
+    inlineImage->forceActiveFocus(); QTRY_COMPARE(surface.activeFocusItem(), inlineImage);
+    QTest::keyClick(&surface, Qt::Key_Return); QTRY_VERIFY(viewer->isVisible());
+    viewer->close(); QTRY_VERIFY(!viewer->isVisible());
+    surface.requestActivate(); QTRY_VERIFY(surface.isActive());
+    inlineImage->forceActiveFocus(); QTRY_COMPARE(surface.activeFocusItem(), inlineImage);
+    QTest::keyClick(&surface, Qt::Key_Return); QTRY_VERIFY(viewer->isVisible());
+    auto pendingPreview = findItem(viewer->contentItem(), "image-viewer-preview"); QVERIFY(pendingPreview);
+    auto pendingDownload = findItem(pendingPreview, "preview-download"); QVERIFY(pendingDownload);
+    QTRY_VERIFY(pendingDownload->isEnabled());
+    QPointer<QObject> pendingDialog = pendingPreview->findChild<QObject *>("preview-download-dialog"); QVERIFY(pendingDialog);
+    QVERIFY(pendingDialog->setProperty("options", int(QFileDialog::DontUseNativeDialog)));
+    QTest::mouseClick(viewer, Qt::LeftButton, Qt::NoModifier, pendingDownload->mapToScene({pendingDownload->width()/2, pendingDownload->height()/2}).toPoint());
+    QTRY_VERIFY(pendingDialog->property("visible").toBool());
+    const auto canceled = QUrl::fromLocalFile(directory.filePath("canceled.png"));
+    QVERIFY(pendingDialog->setProperty("selectedFile", canceled));
+    QVERIFY(gallery->setProperty("items", QVariantList{first, last}));
+    QTRY_VERIFY(!viewer->isVisible());
+    QTRY_VERIFY(!pendingDialog || !pendingDialog->property("visible").toBool());
+    QVERIFY(!QFile::exists(canceled.toLocalFile()));
+  }
+  void modalImageViewerCancelsLateReplies() {
+    QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QPointer<QTcpSocket>> sockets;
+    connect(&server, &QTcpServer::newConnection, &server, [&] {
+      while (server.hasPendingConnections()) { sockets.append(server.nextPendingConnection()); }
+    });
+    MediaResolver resolver;
+    QSignalSpy resolved(&resolver, &MediaResolver::resolved);
+    QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/ImageViewer.qml"));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    const QVariantMap image{{"kind", "image"}, {"itemKey", "pending"},
+      {"locator", QString("http://127.0.0.1:%1/delayed.png").arg(server.serverPort())}};
+    std::unique_ptr<QObject> owner(component.createWithInitialProperties({{"items", QVariantList{image}}, {"selected", image}, {"scopeKey", "pending-scope"}}));
+    auto viewer = qobject_cast<QQuickWindow *>(owner.get()); QVERIFY2(viewer, qPrintable(component.errorString()));
+    viewer->show(); viewer->requestActivate();
+    QTRY_VERIFY(!sockets.isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(viewer, "dismiss"));
+    QTRY_VERIFY(!viewer->isVisible());
+    QImage pixels(8, 8, QImage::Format_RGB32); pixels.fill(Qt::green);
+    QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(pixels.save(&buffer, "PNG"));
+    for (auto socket : sockets) {
+      if (socket && socket->state() == QAbstractSocket::ConnectedState) {
+        socket->write("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: " + QByteArray::number(bytes.size()) + "\r\nConnection: close\r\n\r\n" + bytes);
+        socket->disconnectFromHost();
+      }
+    }
+    QTest::qWait(50);
+    QCOMPARE(resolved.size(), 0);
+    QVERIFY(!findItem(viewer->contentItem(), "image-viewer-preview"));
+    QVERIFY(viewer->property("items").toList().isEmpty());
+  }
+  void imageGalleryDownloadActions() {
+    QImage image(80, 40, QImage::Format_RGB32);
+    image.fill(Qt::blue);
+    QByteArray bytes;
+    QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
+    const auto locator = "data:image/png;base64," + QString::fromLatin1(bytes.toBase64());
+    const QVariantMap first{{"kind", "image"}, {"locator", locator}, {"itemKey", "first"}};
+    const QVariantMap second{{"kind", "image"}, {"locator", locator}, {"itemKey", "second"}};
+    MediaResolver resolver;
+    QQmlEngine engine;
+    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/MediaGallery.qml"));
+    QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
+    std::unique_ptr<QObject> gallery(component.createWithInitialProperties({{"items", QVariantList{first}}}));
+    QVERIFY2(gallery, qPrintable(component.errorString()));
+    QQuickWindow surface;
+    surface.resize(400, 400);
+    auto item = qobject_cast<QQuickItem *>(gallery.get());
+    QVERIFY(item);
+    item->setParentItem(surface.contentItem());
+    item->setSize(surface.size());
+    surface.show();
+    auto preview = gallery->findChild<QQuickItem *>("gallery-selected-media");
+    QVERIFY(preview);
+    auto download = preview->findChild<QQuickItem *>("preview-download");
+    QVERIFY(download);
+    QTRY_VERIFY(download->isVisible() && download->isEnabled());
+    auto toolbarDownload = gallery->findChild<QQuickItem *>("gallery-download");
+    QVERIFY(toolbarDownload);
+    QVERIFY(!toolbarDownload->isVisible());
+    QVERIFY(gallery->setProperty("items", QVariantList{first, second}));
+    QTRY_VERIFY(toolbarDownload->isVisible());
+    QVERIFY(!download->isVisible());
+  }
+  // Web ContentCardBody.tsx VideoPreview offers Download and "Save to assets" (aria-label
+  // "Save video to assets"). The native button uploads the cached bytes through
+  // POST /api/assets and reports with the web's strings.
+  void videoSaveToAssetsActionLikeTheWeb() {
+    QFile fixture(QStringLiteral(MEDIA_VIDEO_FIXTURE));
+    QVERIFY(fixture.open(QIODevice::ReadOnly));
+    const auto source = "data:video/mp4;base64," + QString::fromLatin1(fixture.readAll().toBase64());
+    QByteArray request; int status = 200; QByteArray reply = R"({"id":"0123456789abcdef0123456789abcdef"})"; int posts = 0;
+    QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+    connect(&server, &QTcpServer::newConnection, this, [&] {
+      auto socket = server.nextPendingConnection();
+      connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
+        request += socket->readAll();
+        const auto split = request.indexOf("\r\n\r\n");
+        if (split < 0) { return; }
+        const auto header = request.left(split); const auto at = header.toLower().indexOf("content-length:");
+        if (at < 0 || request.size() - split - 4 < header.mid(at + 15).split('\r').first().trimmed().toInt()) { return; }
+        ++posts;
+        socket->write("HTTP/1.1 " + QByteArray::number(status) + " Result\r\nContent-Type: application/json\r\nContent-Length: " + QByteArray::number(reply.size()) + "\r\nConnection: close\r\n\r\n" + reply);
+        socket->disconnectFromHost();
+      });
+      connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
+    });
+    MediaResolver resolver; resolver.configure(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), "save-account");
+    QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/MediaPreview.qml"));
+    QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QQuickWindow surface; surface.resize(900, 400);
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "video"}, {"locator", QVariantMap{{"uri", source}, {"name", "Take one"}}}}));
+    QVERIFY2(preview, qPrintable(component.errorString()));
+    auto item = qobject_cast<QQuickItem *>(preview.get()); QVERIFY(item);
+    item->setParentItem(surface.contentItem()); item->setSize(surface.size()); surface.show();
+    auto save = preview->findChild<QQuickItem *>("preview-save-assets");
+    QVERIFY2(save, "A video preview must offer Save to assets");
+    QCOMPARE(save->property("accessibleName").toString(), QString("Save video to assets"));
+    QTRY_VERIFY_WITH_TIMEOUT(save->isVisible() && save->isEnabled(), 15000);
+    const auto press = [&] { QTest::mouseClick(&surface, Qt::LeftButton, Qt::NoModifier, save->mapToScene(QPointF(save->width() / 2, save->height() / 2)).toPoint()); };
+    press();
+    QTRY_VERIFY_WITH_TIMEOUT(findItem(item, "1 file added to assets", true), 10000);
+    QCOMPARE(posts, 1);
+    QVERIFY(request.startsWith("POST /api/assets"));
+    QVERIFY(request.contains("Authorization: Bearer save-account"));
+    QVERIFY(request.contains("\"name\":\"Take one.mp4\""));
+    QVERIFY(request.contains("\"content_type\":\"video/mp4\""));
+    request.clear(); status = 500; reply = "{}";
+    press();
+    QTRY_VERIFY_WITH_TIMEOUT(findItem(item, "Failed to add video to assets", true), 10000);
+    QVERIFY(!findItem(item, "1 file added to assets", true));
+    // Web offers Save to assets on the video card only, not on images or audio.
+    QVERIFY(preview->setProperty("mediaKind", "image"));
+    QTRY_VERIFY(!save->isVisible());
+    QVERIFY(preview->setProperty("mediaKind", "audio"));
+    QTRY_VERIFY(!save->isVisible());
+  }
+  // Web ImageView and AssetViewer expose Copy for images; desktop copies the pixels.
+  void imageCopyActionPutsPixelsOnTheClipboard() {
+    QImage image(80, 40, QImage::Format_RGB32); image.fill(Qt::blue);
+    QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
+    MediaResolver resolver; QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/MediaPreview.qml"));
+    QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
+    QQuickWindow surface; surface.resize(400, 300);
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", "data:image/png;base64," + QString::fromLatin1(bytes.toBase64())}, {"showDownload", true}}));
+    QVERIFY2(preview, qPrintable(component.errorString()));
+    auto item = qobject_cast<QQuickItem *>(preview.get()); QVERIFY(item);
+    item->setParentItem(surface.contentItem()); item->setSize(surface.size()); surface.show();
+    auto copy = preview->findChild<QQuickItem *>("preview-copy");
+    QVERIFY2(copy, "An image preview with actions must offer Copy");
+    QCOMPARE(copy->property("accessibleName").toString(), QString("Copy image"));
+    QTRY_VERIFY(copy->isVisible() && copy->isEnabled());
+    QGuiApplication::clipboard()->clear();
+    QTest::mouseClick(&surface, Qt::LeftButton, Qt::NoModifier, copy->mapToScene(QPointF(copy->width() / 2, copy->height() / 2)).toPoint());
+    QTRY_VERIFY(findItem(item, "Copied!", true));
+    const auto copied = QGuiApplication::clipboard()->image();
+    QCOMPARE(copied.size(), QSize(80, 40));
+    QCOMPARE(copied.pixelColor(10, 10), QColor(Qt::blue));
+    // Without actions (grid tiles) or after the lease is released there is nothing to copy.
+    QVERIFY(preview->setProperty("showDownload", false));
+    QTRY_VERIFY(!copy->isVisible());
+    QVERIFY(preview->setProperty("showDownload", true));
+    resolver.clear();
+    QTRY_VERIFY(!copy->isEnabled());
+  }
+  // The save dialog names the file after the media. Typing a bare name must keep its extension.
+  void downloadDialogKeepsTheMediaExtension() {
+    QImage image(80, 40, QImage::Format_RGB32); image.fill(Qt::blue);
+    QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
+    MediaResolver resolver; QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/MediaPreview.qml"));
+    QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", "data:image/png;base64," + QString::fromLatin1(bytes.toBase64())}, {"showDownload", true}}));
+    QVERIFY2(preview, qPrintable(component.errorString()));
+    QQuickWindow surface; surface.resize(400, 300);
+    auto item = qobject_cast<QQuickItem *>(preview.get()); QVERIFY(item);
+    item->setParentItem(surface.contentItem()); item->setSize(surface.size()); surface.show();
+    auto dialog = preview->findChild<QObject *>("preview-download-dialog"); QVERIFY(dialog);
+    QVERIFY(dialog->setProperty("options", int(QFileDialog::DontUseNativeDialog)));
+    QTRY_VERIFY(!preview->property("resolvedSource").toUrl().isEmpty());
+    QVERIFY(QMetaObject::invokeMethod(preview.get(), "download"));
+    QTRY_VERIFY(dialog->property("visible").toBool());
+    QCOMPARE(dialog->property("defaultSuffix").toString(), QString("png"));
+    QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
+  }
+  // Web AssetViewer: Copy, Download and "Compare with another image" (two or more images).
+  void modalImageViewerCompareMode() {
+    const auto uri = [](const QColor &color) {
+      QImage image(80, 40, QImage::Format_RGB32); image.fill(color);
+      QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly); image.save(&buffer, "PNG");
+      return "data:image/png;base64," + QString::fromLatin1(bytes.toBase64());
+    };
+    const QVariantList items{QVariantMap{{"kind", "image"}, {"locator", uri(Qt::red)}, {"itemKey", "red"}, {"filename", "red.png"}},
+                             QVariantMap{{"kind", "image"}, {"locator", uri(Qt::green)}, {"itemKey", "green"}, {"filename", "green.png"}},
+                             QVariantMap{{"kind", "image"}, {"locator", uri(Qt::blue)}, {"itemKey", "blue"}, {"filename", "blue.png"}}};
+    MediaResolver resolver; QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/ImageViewer.qml"));
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    std::unique_ptr<QObject> object(component.createWithInitialProperties({{"scopeKey", "compare"}}));
+    auto viewer = qobject_cast<QQuickWindow *>(object.get()); QVERIFY2(viewer, qPrintable(component.errorString()));
+    QVERIFY(QMetaObject::invokeMethod(viewer, "openAt", Q_ARG(QVariant, items), Q_ARG(QVariant, 0), Q_ARG(QVariant, QVariant::fromValue<QObject *>(nullptr))));
+    QTRY_VERIFY(viewer->isVisible());
+    auto root = viewer->contentItem();
+    const auto click = [&](const QString &name) {
+      QQuickItem *control = nullptr; QTRY_VERIFY_WITH_TIMEOUT((control = findItem(root, name)) && control->isEnabled(), 5000);
+      QTest::mouseClick(viewer, Qt::LeftButton, Qt::NoModifier, control->mapToScene(QPointF(control->width() / 2, control->height() / 2)).toPoint());
+    };
+    QTRY_VERIFY(findItem(root, "preview-copy"));
+    QTRY_VERIFY(findItem(root, "preview-download"));
+    QVERIFY(!findItem(root, "preview-save-assets"));
+    QVERIFY(!findItem(root, "image-viewer-compare-pick"));
+    click("image-viewer-compare");
+    QTRY_VERIFY(findItem(root, "Select another image to compare", true));
+    auto pick = findItem(root, "image-viewer-compare-pick"); QVERIFY(pick);
+    QVERIFY2(!pick->isEnabled(), "The first image cannot be compared with itself");
+    click("image-viewer-next");
+    QTRY_COMPARE(findItem(root, "image-viewer-position")->property("text").toString(), QString("2 / 3"));
+    click("image-viewer-compare-pick");
+    QQuickItem *comparison = nullptr;
+    QTRY_VERIFY((comparison = findItem(root, "output-comparison")));
+    const auto pair = comparison->property("comparison").toMap();
+    QCOMPARE(pair.value("label_a").toString(), QString("red.png"));
+    QCOMPARE(pair.value("label_b").toString(), QString("green.png"));
+    QCOMPARE(pair.value("image_a").toMap().value("uri").toString(), uri(Qt::red));
+    QCOMPARE(pair.value("image_b").toMap().value("uri").toString(), uri(Qt::green));
+    QVERIFY(!findItem(root, "preview-image"));
+    click("image-viewer-compare-exit");
+    QTRY_VERIFY(!findItem(root, "output-comparison"));
+    QTRY_VERIFY(findItem(root, "Select another image to compare", true));
+    click("image-viewer-compare-cancel");
+    QTRY_VERIFY(!findItem(root, "Select another image to compare", true));
+    QTRY_VERIFY(findItem(root, "image-viewer-compare"));
+    QVERIFY(QMetaObject::invokeMethod(viewer, "dismiss"));
+    QVERIFY(QMetaObject::invokeMethod(viewer, "openAt", Q_ARG(QVariant, QVariantList{items.first()}), Q_ARG(QVariant, 0), Q_ARG(QVariant, QVariant::fromValue<QObject *>(nullptr))));
+    QTRY_VERIFY(viewer->isVisible());
+    QVERIFY2(!findItem(root, "image-viewer-compare"), "A single image has nothing to compare");
   }
   void audioPlayback() { exercise("audio", wav(), "audio/wav"); }
   void videoPlayback() {

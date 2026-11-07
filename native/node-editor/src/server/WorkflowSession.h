@@ -27,11 +27,14 @@ class WorkflowSession final : public QObject {
   Q_PROPERTY(QString autosaveState READ autosaveState NOTIFY stateChanged)
   Q_PROPERTY(bool conflictPending READ conflictPending NOTIFY stateChanged)
   Q_PROPERTY(QJsonObject conflictWorkflow READ conflictWorkflow NOTIFY stateChanged)
+  Q_PROPERTY(QVariantList mergeConflicts READ mergeConflicts NOTIFY stateChanged)
   Q_PROPERTY(bool serverBound READ serverBound NOTIFY stateChanged)
   Q_PROPERTY(bool connected READ connected NOTIFY stateChanged)
 public:
   Q_PROPERTY(QVariantList queue READ queue NOTIFY stateChanged)
   QVariantList queue() const;
+  // The server's latest `system_stats` sample: cpu_percent, memory_percent and memory_used_gb.
+  QVariantMap systemStats() const { return m_systemStats; }
   explicit WorkflowSession(QObject *parent = nullptr);
   ~WorkflowSession() override;
   // Guest bundle for in-process runs, from --guest-bundle. Set it before the
@@ -42,7 +45,12 @@ public:
   // Supported graphs run in this process, with or without a server.
   bool localRunnerReady() const;
   bool runsInProcess(const QString &jobId) const { return m_inProcessRuns.contains(jobId); }
-  QJsonObject workflow() const { return m_workflow; }
+  QJsonObject workflow() const;
+  // The host invalidates synchronously. Only a snapshot reader serializes.
+  void setSnapshotProvider(std::function<QJsonObject()> provider);
+  void documentChanged();
+  // Emits a pending documentChanged() notification now instead of in its queued turn.
+  void flushDocumentNotification();
   QJsonObject catalog() const { return m_catalog; }
   bool dirty() const { return m_dirty; }
   bool saving() const { return m_saving; }
@@ -53,10 +61,21 @@ public:
   QString autosaveState() const { return m_autosaveState; }
   bool conflictPending() const { return m_conflictPending; }
   QJsonObject conflictWorkflow() const { return m_remoteWorkflow; }
+  // Units the local draft kept after an operation-level merge: kind, id, label,
+  // reason and remoteDeleted.
+  QVariantList mergeConflicts() const { return m_mergeConflicts; }
+  // Applies a merged graph to the host document as one undoable edit. Returns
+  // false when the document refuses it. Without an applier the session
+  // replaces its own snapshot.
+  void setGraphApplier(std::function<bool(const QJsonObject &)> applier) { m_graphApplier = std::move(applier); }
   bool serverBound() const { return !m_id.isEmpty() && !m_revision.isEmpty(); }
   void setVersionRestoreBusy(bool busy) { m_saving = busy; emit stateChanged(); if (!busy) { refreshRemoteWorkflow(); } }
   void acknowledgeRestoredVersion(const QJsonObject &response);
   Q_INVOKABLE void flushAutosave();
+  // Saves a "Before execution" checkpoint version, then calls done(true). Calls done(false) when
+  // the document changed meanwhile, so the caller must not run it. Runs that need no checkpoint
+  // (no server binding, no nodes, a conflict, a failed request) call done(true) at once or after the reply.
+  void checkpointBeforeRun(std::function<void(bool)> done);
   Q_INVOKABLE void detachServerWorkflow();
   Q_INVOKABLE void refreshRemoteWorkflow();
   Q_INVOKABLE void reloadRemoteWorkflow();
@@ -84,6 +103,9 @@ public:
   Q_INVOKABLE void cancelJob(const QString &jobId);
   Q_INVOKABLE void reconnectRuns();
   Q_INVOKABLE void reconnectTransport();
+  // Static preflight of the stored workflow (POST /api/sdk/v1/preflight). done gets
+  // the summary's cost object, or an error. Needs a server-bound workflow.
+  void preflightCost(std::function<void(QJsonObject, QString)> done);
 signals:
   void workflowChanged();
   void generationsChanged();
@@ -91,13 +113,12 @@ signals:
   void catalogChanged();
   void stateChanged();
   void credentialsChanged(QUrl server, QString token, QString userId);
-  // Hosts that coalesce document snapshots flush them before the session reads or replaces its workflow.
-  void snapshotRequested();
   void errorOccurred(QString message);
   void saveConflict(QString workflowId);
   void saved(QString workflowId);
   void runEvent(QString jobId, QJsonObject event);
   void runSubmitted(QString jobId);
+  void systemStatsChanged();
 
 private:
   QSharedPointer<AccountJobs> m_accountJobs;
@@ -105,11 +126,22 @@ private:
                     const QJsonObject &fullSnapshot, const QJsonArray &metadata,
                     const QStringList &executed);
   void clearConflict();
+  void submitAutosave(bool checkpoint, std::function<void(bool)> done);
   void externalWorkflowChange(const QJsonObject &event);
+  bool mergeRemoteWorkflow(const QJsonObject &remote, const QJsonArray &ops);
   WorkflowAutosave m_autosave;
+  std::function<bool(const QJsonObject &)> m_graphApplier;
+  QVariantList m_mergeConflicts;
+  // Ops from workflow notices since the last comparison. A notice without ops
+  // replaces the whole document and so rules out an operation-level merge.
+  QJsonArray m_pendingOps;
+  bool m_pendingWithoutOps = false;
   QString m_autosaveState = "saved";
   QJsonObject m_remoteWorkflow;
   bool m_conflictPending = false, m_remoteLoading = false, m_remoteAgain = false, m_flushAgain = false;
+  // The compared server revision a deferred Keep local applies to.
+  QString m_keepLocalRevision;
+  void resumeKeepLocal();
   quint64 m_remoteEpoch = 0;
   ExecutionGenerationStore m_generations;
   GenerationHistory m_history;
@@ -131,9 +163,14 @@ private:
   QWebSocket m_socket;
   QUrl m_base;
   QString m_token, m_userId, m_id, m_revision;
-  QJsonObject m_workflow, m_catalog, m_persistedWorkflow;
+    std::function<QJsonObject()> m_snapshotProvider;
+    mutable QJsonObject m_workflow;
+    mutable quint64 m_snapshotEdit = 0;
+    bool m_documentNotificationPending = false;
+    QJsonObject m_catalog, m_persistedWorkflow;
   QHash<QString, QJsonObject> m_runs;
   quint64 m_queueOrder = 0;
+  QVariantMap m_systemStats;
   quint64 m_epoch = 0, m_documentEpoch = 0, m_loadEpoch = 0, m_edit = 0;
   bool m_connected = false, m_dirty = false, m_saving = false;
   bool m_reconnecting = false;

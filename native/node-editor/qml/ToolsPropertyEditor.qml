@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
@@ -52,15 +53,60 @@ ColumnLayout {
         id: toolsMenu
         Instantiator {
             model: root.entries
-            delegate: Ui.MenuItem {
+            delegate: Basic.MenuItem {
+                id: entry
                 required property var modelData
                 required property int index
+                readonly property bool entryChecked: modelData.ids.every(id => root.selected.some(item => item.name === id))
                 objectName: "tool-toggle-" + index
                 text: modelData.label
-                iconName: root.glyphs[index]
                 enabled: root.writable
-                checkable: true
-                checked: modelData.ids.every(id => root.selected.some(item => item.name === id))
+                leftPadding: Ui.Metrics.md
+                rightPadding: Ui.Metrics.md
+                implicitHeight: Math.max(Ui.Metrics.compact, label.implicitHeight + Ui.Metrics.md)
+                // Kind icon first, label, then the selection box at the trailing edge, as in ToolsListProperty.tsx.
+                contentItem: RowLayout {
+                    spacing: Ui.Metrics.sm
+                    Ui.Icon {
+                        name: root.glyphs[entry.index]
+                        tone: entry.enabled ? Ui.Text.Primary : Ui.Text.Disabled
+                        Layout.preferredWidth: Ui.Metrics.iconSm
+                        Layout.preferredHeight: Ui.Metrics.iconSm
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    Ui.Text {
+                        id: label
+                        text: entry.text
+                        role: Ui.Typography.SansLabel
+                        tone: entry.enabled ? Ui.Text.Primary : Ui.Text.Disabled
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+                    Rectangle {
+                        objectName: "tool-check-" + entry.index
+                        implicitWidth: Ui.Metrics.iconSm
+                        implicitHeight: Ui.Metrics.iconSm
+                        radius: Ui.Metrics.micro
+                        color: !entry.enabled ? Ui.Theme.actionDisabled : entry.entryChecked ? Ui.Theme.accentPrimary : Ui.Theme.surfaceInput
+                        border.width: Ui.Metrics.border
+                        border.color: Ui.Theme.borderControl
+                        Layout.alignment: Qt.AlignVCenter
+                        Ui.Icon {
+                            anchors.centerIn: parent
+                            visible: entry.entryChecked
+                            name: "check"
+                            size: Ui.Metrics.iconXs
+                            tone: entry.enabled ? Ui.Text.OnAccent : Ui.Text.Disabled
+                        }
+                    }
+                }
+                background: Rectangle {
+                    color: entry.highlighted ? Ui.Theme.actionSelected : entry.hovered ? Ui.Theme.actionHover : "transparent"
+                    radius: Ui.Metrics.radiusControl
+                    border.width: entry.visualFocus ? Ui.Metrics.focus : 0
+                    border.color: Ui.Theme.borderFocus
+                }
                 onTriggered: root.toggle(modelData)
             }
             onObjectAdded: (index, object) => toolsMenu.insertItem(index, object)

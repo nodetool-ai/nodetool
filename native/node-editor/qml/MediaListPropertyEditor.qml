@@ -52,14 +52,6 @@ ColumnLayout {
         }
     }
     Timer { id: previewRestart; interval: 0; onTriggered: root.previewReady = true }
-    Ui.Text {
-        Layout.fillWidth: true
-        visible: root.entries.length === 0
-        text: "No " + root.descriptor.mediaType + " items. Add library assets or upload files."
-        role: Ui.Typography.SansCaption
-        tone: Ui.Text.Secondary
-        wrapMode: Text.Wrap
-    }
     AssetPropertyEditor {
         id: picker
         Layout.fillWidth: true
@@ -68,6 +60,7 @@ ColumnLayout {
         writable: root.writable
         nodeId: root.nodeId
         multipleFiles: true
+        dropZoneOnly: true
         onReferencesCommitted: values => root.append(values)
         onScopeInvalidated: root.scopeInvalidated()
     }

@@ -40,6 +40,9 @@ inline QJsonArray catalog() {
       {"node_type", "fixture.Properties"}, {"title", "Property fixture"},
       {"description", "Protocol property controls"}, {"namespace", "fixture"},
       {"layout", "default"}, {"supports_dynamic_inputs", true},
+      // Every property is a card row, as web NodeContent shows inline_fields.
+      {"inline_fields", QJsonArray{"Text", "Enabled", "Count", "Ratio", "Choice", "Nullable", "NullableMissing",
+                                   "Default", "Multiline", "Image", "Model"}},
       {"properties", QJsonArray{text,
                                 property("Enabled", "bool", false), count, ratio,
                                 choice, nullable, nullableMissing, omitted, multiline,

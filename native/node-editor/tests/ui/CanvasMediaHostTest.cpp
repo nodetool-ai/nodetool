@@ -140,12 +140,17 @@ private slots:
     QTRY_VERIFY(table->width() > 0 && table->height() > 0);
     auto view = window.findChild<QGraphicsView *>();
     QVERIFY(view);
-    view->scale(0.85, 0.85);
+    const auto zoomBefore = tableWidget->rootObject()->property("zoom").toReal();
+    // Zoom through the editor, as the toolbar and shortcuts do. The window keeps its own
+    // zoom state, so a direct QGraphicsView::scale is not a user zoom.
+    window.action("Zoom out");
     view->horizontalScrollBar()->setValue(view->horizontalScrollBar()->value() + 20);
     view->verticalScrollBar()->setValue(view->verticalScrollBar()->value() + 15);
     QTest::qWait(100);
     QCOMPARE(overlay(window, AudioNode), tableWidget);
-    QVERIFY(tableWidget->rootObject()->property("zoom").toReal() < 1);
+    // Card media follows the canvas zoom.
+    QTRY_VERIFY(tableWidget->rootObject()->property("zoom").toReal() < zoomBefore);
+    QCOMPARE(tableWidget->rootObject()->property("zoom").toReal(), view->transform().m11());
     const auto transform = view->viewportTransform();
     const auto point = table->mapToScene(QPointF(table->width() / 2, table->height() / 2)).toPoint();
     QVERIFY(tableWidget->rect().contains(point));

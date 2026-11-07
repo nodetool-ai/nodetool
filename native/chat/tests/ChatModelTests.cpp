@@ -1,4 +1,5 @@
 #include "runtime/ChatSession.h"
+#include "runtime/ComposerRules.h"
 #include "model/MessageModel.h"
 #include "model/Markdown.h"
 #include "model/PlanDocument.h"
@@ -576,6 +577,94 @@ private slots:
         reordered.upsert(raw[raw.size() - 2].toObject());
         QCOMPARE(reordered.rowCount(), 1);
         QCOMPARE(presentation(partAt(partsFor(reordered), 0)), presentation(partAt(partsFor(loaded, 1), 0)));
+    }
+    // packages/protocol/tests/reasoning-effort.test.ts cases.
+    void reasoningSupport_data() {
+        QTest::addColumn<QString>("provider");
+        QTest::addColumn<QString>("model");
+        QTest::addColumn<bool>("supported");
+        const QList<std::tuple<const char *, const char *, bool>> cases{
+            {"anthropic", "claude-opus-5-5", true}, {"anthropic", "claude-sonnet-5-5", true},
+            {"anthropic", "claude-haiku-5-5", true}, {"anthropic", "claude-fable-5-1", true},
+            {"anthropic", "claude-opus-4-8", true}, {"anthropic", "claude-opus-4-6", true},
+            {"anthropic", "claude-sonnet-4-6", true}, {"anthropic", "claude-opus-4-5-20251101", true},
+            {"anthropic", "claude-sonnet-4-5", false}, {"anthropic", "claude-haiku-4-5", false},
+            {"anthropic", "claude-opus-4-20250514", false}, {"anthropic", "claude-3-7-sonnet-latest", false},
+            {"claude_agent_sdk", "sonnet", true}, {"antigravity", "gemini-3.5-flash", true},
+            {"openai", "gpt-5.2", true}, {"openai", "gpt-5-mini", true}, {"openai", "gpt-5-chat-latest", false},
+            {"openai", "gpt-4o", false}, {"gemini", "gemini-2.5-pro", true}, {"gemini", "models/gemini-3.5-flash", true},
+            {"gemini", "gemini-3-pro-image", false}, {"gemini", "gemini-2.5-flash-preview-tts", false},
+            {"gemini", "gemini-2.0-flash", false}, {"openrouter", "openai/gpt-5", false}, {"ollama", "qwen3", false},
+            {"", "gpt-5", false}, {"openai", "", false}};
+        for (const auto &[provider, model, supported] : cases) {
+            QTest::addRow("%s %s", provider, model) << QString(provider) << QString(model) << supported;
+        }
+    }
+    void reasoningSupport() {
+        QFETCH(QString, provider);
+        QFETCH(QString, model);
+        QFETCH(bool, supported);
+        QCOMPARE(nt::chat::composer::supportsReasoningEffort(provider, model), supported);
+    }
+    // useTextareaAssetMention.test.tsx findMentionTrigger and removeMentionToken cases.
+    void mentionRules() {
+        using nt::chat::composer::mentionTrigger;
+        using nt::chat::composer::removeMention;
+        const auto trigger = [](int start, int end, const QString &query) {
+            return QVariantMap{{"start", start}, {"end", end}, {"query", query}};
+        };
+        QCOMPARE(mentionTrigger("@", 1), trigger(0, 1, ""));
+        QCOMPARE(mentionTrigger("@fox", 4), trigger(0, 4, "fox"));
+        QCOMPARE(mentionTrigger("hello @wo", 9), trigger(6, 9, "wo"));
+        QCOMPARE(mentionTrigger("line1\n@foo", 10), trigger(6, 10, "foo"));
+        QVERIFY(mentionTrigger("user@host", 9).isEmpty());
+        QVERIFY(mentionTrigger("a@b", 3).isEmpty());
+        QVERIFY(mentionTrigger("hello @wo world", 15).isEmpty());
+        QVERIFY(mentionTrigger("@foo\nbar", 8).isEmpty());
+        QCOMPARE(mentionTrigger("a @b @c", 7), trigger(5, 7, "c"));
+        const auto longQuery = "@" + QString(65, 'x');
+        QVERIFY(mentionTrigger(longQuery, static_cast<int>(longQuery.size())).isEmpty());
+        QCOMPARE(removeMention("according to @no", 13, 16)["text"].toString(), QString("according to"));
+        QCOMPARE(removeMention("according to @ my notes", 13, 14)["text"].toString(), QString("according to my notes"));
+        QCOMPARE(removeMention("@fox runs", 0, 4)["text"].toString(), QString("runs"));
+        QCOMPARE(removeMention("line1\n@foo", 6, 10)["text"].toString(), QString("line1\n"));
+    }
+    // web/src/utils/__tests__/groupByDate.test.ts cases. Weeks and months follow formatDateAndTime.ts relativeTime.
+    void dateGroups() {
+        using nt::chat::composer::dateGroup;
+        const auto at = [](const char *text) {
+            return QDateTime::fromString(QString::fromLatin1(text), Qt::ISODate);
+        };
+        const auto now = at("2024-01-15T12:00:00Z");
+        QCOMPARE(dateGroup(at("2024-01-15T08:30:00Z"), now), QString("Today"));
+        QCOMPARE(dateGroup(at("2024-01-15T23:59:59Z"), now), QString("Today"));
+        QCOMPARE(dateGroup(at("2024-01-15T00:00:00Z"), now), QString("Today"));
+        QCOMPARE(dateGroup(at("2024-01-14T12:00:00Z"), now), QString("Yesterday"));
+        QCOMPARE(dateGroup(at("2024-01-14T00:00:00Z"), now), QString("Yesterday"));
+        QCOMPARE(dateGroup(at("2024-01-14T23:59:59Z"), now), QString("Yesterday"));
+        QCOMPARE(dateGroup(at("2024-01-13T12:00:00Z"), now), QString("2 days ago"));
+        QCOMPARE(dateGroup(at("2024-01-09T12:00:00Z"), now), QString("6 days ago"));
+        QCOMPARE(dateGroup(at("2024-01-08T12:00:00Z"), now), QString("1 week ago"));
+        QCOMPARE(dateGroup(at("2024-01-01T12:00:00Z"), now), QString("2 weeks ago"));
+        QCOMPARE(dateGroup(at("2023-12-15T12:00:00Z"), now), QString("1 month ago"));
+        QCOMPARE(dateGroup(at("2022-11-01T12:00:00Z"), now), QString("1 year ago"));
+    }
+    // mediaGenerationRequest.ts with MediaGenerationStore.ts resolveImageSize.
+    void mediaRequestSizes() {
+        using nt::chat::composer::mediaRequest;
+        auto settings = nt::chat::composer::defaultSettings("image");
+        auto request = mediaRequest("image", settings, {}, {});
+        QCOMPARE(request["width"].toInt(), 1820);
+        QCOMPARE(request["height"].toInt(), 1024);
+        QVERIFY(request["provider"].isNull());
+        settings["aspectRatio"] = "9:16";
+        settings["resolution"] = "4K";
+        request = mediaRequest("image", settings, "fal", "flux");
+        QCOMPARE(request["width"].toInt(), 4096);
+        QCOMPARE(request["height"].toInt(), 7282);
+        QVERIFY(!request.contains("preset_ids"));
+        QCOMPARE(mediaRequest("chat", {}, {}, {}), (QJsonObject{{"mode", "chat"}}));
+        QVERIFY(mediaRequest("reference_to_video", nt::chat::composer::defaultSettings("reference_to_video"), {}, {})["use_reference_video_audio"].isNull());
     }
     void persistedAssistantToolCallsRemainReadable() {
         MessageModel model;

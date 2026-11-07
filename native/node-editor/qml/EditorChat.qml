@@ -15,6 +15,19 @@ Ui.Surface {
     property string query: ""
     property string pendingDelete: ""
     property string pendingLabel: ""
+    // The row animating out after a confirmed delete, as ThreadList.tsx deletingId.
+    property string deletingId: ""
+    Timer {
+        id: deleteTimer
+        objectName: "editorThreadDeleteTimer"
+        // ThreadList.tsx waits MOTION.normal before deleting, with or without motion.
+        interval: Ui.Metrics.motionNormal
+        onTriggered: {
+            const id = root.deletingId
+            root.deletingId = ""
+            root.session.deleteThread(id)
+        }
+    }
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.border
@@ -130,37 +143,89 @@ Ui.Surface {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        model: root.session.workflowThreads.filter(function (row) {
-                            return !root.query || ((row.title || "") + " " + row.preview).toLowerCase().includes(root.query);
-                        })
-                        delegate: RowLayout {
+                        // workflowThreadRows filters by the search and adds the
+                        // relative-date headings of ThreadList.tsx.
+                        model: root.session.workflowThreads.length >= 0 ? root.session.workflowThreadRows(root.query) : []
+                        delegate: Column {
                             id: row
                             required property var modelData
+                            readonly property bool deleting: root.deletingId === modelData.id
+                            readonly property int motion: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal
                             width: ListView.view.width
-                            Ui.EditorButton {
-                                Layout.fillWidth: true
-                                text: row.modelData.title || row.modelData.preview
-                                variant: Ui.EditorButton.Flat
-                                contentAlignment: Qt.AlignLeft
-                                onClicked: {
-                                    root.session.selectThread(row.modelData.id);
-                                    root.threadsOpen = false;
+                            RowLayout {
+                                objectName: "editorThreadGroup-" + (row.modelData.header || "")
+                                width: row.width
+                                visible: !!row.modelData.header
+                                Ui.Text {
+                                    Layout.fillWidth: true
+                                    Layout.leftMargin: Ui.Metrics.md
+                                    Layout.topMargin: Ui.Metrics.md
+                                    role: Ui.Typography.SansCaption
+                                    tone: Ui.Text.Secondary
+                                    text: (row.modelData.header || "").toUpperCase()
+                                }
+                                Ui.Text {
+                                    Layout.rightMargin: Ui.Metrics.md
+                                    Layout.topMargin: Ui.Metrics.md
+                                    role: Ui.Typography.SansCaption
+                                    tone: Ui.Text.Disabled
+                                    text: row.modelData.headerDate || ""
                                 }
                             }
-                            Ui.Text {
-                                role: Ui.Typography.SansCaption
-                                tone: Ui.Text.Secondary
-                                text: row.modelData.updated_at ? Qt.formatTime(new Date(row.modelData.updated_at), "hh:mm") : ""
-                            }
-                            Ui.ToolbarIconButton {
-                                objectName: "deleteThread" + row.modelData.id
-                                text: qsTr("Delete conversation")
-                                iconName: "deleteOutline"
-                                onClicked: {
-                                    root.pendingDelete = row.modelData.id;
-                                    root.pendingLabel = row.modelData.title || row.modelData.preview;
-                                    deleteDialog.returnFocusTo = this;
-                                    deleteDialog.open();
+                            Item {
+                                id: rowFrame
+                                objectName: "editorThreadRow-" + row.modelData.id
+                                width: row.width
+                                height: row.deleting ? 0 : rowContent.implicitHeight
+                                opacity: row.deleting ? 0 : 1
+                                clip: true
+                                Behavior on height {
+                                    NumberAnimation {
+                                        duration: row.motion
+                                    }
+                                }
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: row.motion
+                                    }
+                                }
+                                RowLayout {
+                                    id: rowContent
+                                    width: row.width
+                                    x: row.deleting ? -row.width : 0
+                                    Behavior on x {
+                                        NumberAnimation {
+                                            duration: row.motion
+                                        }
+                                    }
+                                    Ui.EditorButton {
+                                        Layout.fillWidth: true
+                                        text: row.modelData.title || row.modelData.preview
+                                        variant: Ui.EditorButton.Flat
+                                        contentAlignment: Qt.AlignLeft
+                                        active: root.session.selectedThreadId === row.modelData.id
+                                        onClicked: {
+                                            root.session.selectThread(row.modelData.id);
+                                            root.threadsOpen = false;
+                                        }
+                                    }
+                                    Ui.Text {
+                                        role: Ui.Typography.SansCaption
+                                        tone: Ui.Text.Secondary
+                                        text: row.modelData.time || ""
+                                    }
+                                    Ui.ToolbarIconButton {
+                                        objectName: "deleteThread" + row.modelData.id
+                                        text: qsTr("Delete conversation")
+                                        iconName: "deleteOutline"
+                                        enabled: !row.deleting
+                                        onClicked: {
+                                            root.pendingDelete = row.modelData.id;
+                                            root.pendingLabel = row.modelData.title || row.modelData.preview;
+                                            deleteDialog.returnFocusTo = this;
+                                            deleteDialog.open();
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -191,7 +256,8 @@ Ui.Surface {
                     text: qsTr("Delete")
                     variant: Ui.EditorButton.Destructive
                     onClicked: {
-                        root.session.deleteThread(root.pendingDelete);
+                        root.deletingId = root.pendingDelete;
+                        deleteTimer.restart();
                         deleteDialog.close();
                     }
                 }

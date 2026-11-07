@@ -88,7 +88,13 @@ private slots:
   QCOMPARE(graph["edges"].toArray().size(), 1);
   QCOMPARE(window.runOutput()->runs().size(), 1);
   const auto job = commands.first()["data"].toObject()["job_id"].toString(); QVERIFY(!job.isEmpty());
+  // Several cards wait for the active run. A lone card is Run node, an independent job that the web never blocks
+  // (useRunFromHere.ts returns isWorkflowRunning: false), which NodeActionsTest covers.
+  auto authoringModel = window.findChild<WorkflowGraphModel *>(); QVERIFY(authoringModel);
+  for (const auto id : authoringModel->allNodeIds()) { if (authoringModel->resourceId(id) == "n0") { window.scene()->nodeGraphicsObject(id)->setSelected(true); } }
+  QCOMPARE(window.selectedCount(), 2);
   window.action("Run selected"); QTest::qWait(20); QCOMPARE(commands.size(), 1);
+  QVERIFY(window.selectNode("n1"));
   window.action("Stop"); QTRY_COMPARE(commands.size(), 2);
   QCOMPARE(commands[1]["command"].toString(), QString("cancel_job")); QCOMPARE(commands[1]["data"].toObject()["job_id"].toString(), job);
   window.session()->reconnectRuns(); QTRY_COMPARE(commands.size(), 3);
@@ -247,7 +253,7 @@ private slots:
   QCOMPARE(window.document()->snapshot(), locked); QCOMPARE(window.document()->undoStack()->count(), 0);
  }
  void catalogDragGestureDoesNotClick() {
-  EditorWindow window; window.setCatalog(property_fixture::catalog()); window.show(); QTest::qWait(100);
+  EditorWindow window; window.setCatalog(property_fixture::catalog()); window.show(); window.action("Toggle nodes"); QTest::qWait(100);
   QQuickWidget *catalog = nullptr;
   for (auto panel : window.findChildren<QQuickWidget *>()) { if (panel->source().fileName() == "Catalog.qml") { catalog = panel; } }
   QVERIFY(catalog); auto row = find(catalog->rootObject(), "catalog-node-fixture.Properties"); QVERIFY(row);
@@ -262,13 +268,48 @@ private slots:
   QVERIFY(window.document()->nodes().isEmpty()); QCOMPARE(window.document()->undoStack()->count(), 0);
  }
  void catalogClickStillAdds() {
-  EditorWindow window; window.setCatalog(property_fixture::catalog()); window.show(); QTest::qWait(100);
+  EditorWindow window; window.setCatalog(property_fixture::catalog()); window.show(); window.action("Toggle nodes"); QTest::qWait(100);
   QQuickWidget *catalog = nullptr;
   for (auto panel : window.findChildren<QQuickWidget *>()) { if (panel->source().fileName() == "Catalog.qml") { catalog = panel; } }
   QVERIFY(catalog); auto row = find(catalog->rootObject(), "catalog-node-fixture.Properties"); QVERIFY(row);
   const auto point = row->mapToScene(QPointF(row->width()/2,row->height()/2)).toPoint();
   QTest::mouseClick(catalog->quickWindow(), Qt::LeftButton, Qt::NoModifier, point);
   QTRY_COMPARE(window.document()->nodes().size(), 1); QCOMPARE(window.document()->undoStack()->count(), 1);
+ }
+ // web/src/stores/NodeStore.ts autoLayout and core/graph.ts: the top left of the top-level nodes stays
+ // where it was, a group is resized to fit its laid out children plus 50, and it is one undo step.
+ void autoLayoutKeepsTheAnchorFitsGroupsAndUndoesOnce() {
+  EditorWindow window; window.setCatalog(compactCatalog());
+  QJsonObject group{{"id", "g"}, {"type", "nodetool.workflows.base_node.Group"},
+      {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 320}, {"y", 240}}}, {"width", 1400}, {"height", 1200}, {"future", true}}}};
+  auto first = node("c1"); first["parent_id"] = "g"; first["ui_properties"] = QJsonObject{{"position", QJsonObject{{"x", 700}, {"y", 700}}}};
+  auto second = node("c2"); second["parent_id"] = "g"; second["ui_properties"] = QJsonObject{{"position", QJsonObject{{"x", 10}, {"y", 10}}}};
+  auto outside = node("o"); outside["ui_properties"] = QJsonObject{{"position", QJsonObject{{"x", 900}, {"y", 1500}}}};
+  const QJsonArray edges{QJsonObject{{"id", "inner"}, {"source", "c1"}, {"target", "c2"}, {"sourceHandle", "out"}, {"targetHandle", "Text"}}};
+  QVERIFY(window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{group, first, second, outside}}, {"edges", edges}}}}));
+  window.resize(1500, 900); window.show(); window.fit(); QTest::qWait(80);
+  const auto original = window.document()->snapshot();
+  window.action("Auto layout"); QTest::qWait(80);
+  QCOMPARE(window.document()->undoStack()->count(), 1);
+  // The top left of the top-level nodes is where it was: the group at 320, 240 and the node at 900, 1500.
+  const auto g = window.document()->node("g"), c1 = window.document()->node("c1"), c2 = window.document()->node("c2"), o = window.document()->node("o");
+  QCOMPARE(std::min(position(g).x(), position(o).x()), 320.0);
+  QCOMPARE(std::min(position(g).y(), position(o).y()), 240.0);
+  // The padding of 50 leads the children and trails them inside the resized group.
+  QCOMPARE(position(c1), QPointF(50, 50));
+  const auto right = std::max(position(c1).x() + 280.0, position(c2).x() + 280.0);
+  QVERIFY(position(c2).x() > position(c1).x());
+  const auto ui = g["ui_properties"].toObject();
+  QVERIFY2(ui["width"].toDouble() >= right + 50 && ui["width"].toDouble() < right + 50 + 400, qPrintable(QString::number(ui["width"].toDouble())));
+  QVERIFY(ui["width"].toDouble() < 1400 && ui["height"].toDouble() < 1200);
+  QCOMPARE(ui["future"].toBool(), true);
+  const auto directory = qEnvironmentVariable("NODETOOL_CANVAS_CAPTURE_DIR");
+  for (const bool dark : {true, false}) {
+    window.setDarkTheme(dark); window.fit(); QTest::qWait(150);
+    if (!directory.isEmpty()) { QVERIFY(QDir().mkpath(directory)); QVERIFY(window.grab().save(directory + (dark ? "/layout-group-dark.png" : "/layout-group-light.png"))); }
+  }
+  window.action("Undo"); QCOMPARE(window.document()->snapshot(), original);
+  window.action("Redo"); QCOMPARE(window.document()->node("g")["ui_properties"].toObject()["width"].toDouble(), ui["width"].toDouble());
  }
 };
 QTEST_MAIN(CanvasAuthoringTest)

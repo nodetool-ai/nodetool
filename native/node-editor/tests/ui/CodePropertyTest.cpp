@@ -70,7 +70,7 @@ private slots:
  void host() {
   EditorWindow window;
   QJsonObject field{{"name","code"},{"type",QJsonObject{{"type","str"}}},{"default",""}};
-  QJsonArray catalog{QJsonObject{{"node_type","nodetool.code.Code"},{"title","Code"},{"properties",QJsonArray{field}},{"supports_dynamic_inputs",true},{"supports_dynamic_outputs",true}},QJsonObject{{"node_type","sink"},{"properties",QJsonArray{QJsonObject{{"name","value"},{"type",QJsonObject{{"type","any"}}}}}}}};
+  QJsonArray catalog{QJsonObject{{"node_type","nodetool.code.Code"},{"title","Code"},{"inline_fields",QJsonArray{"code"}},{"properties",QJsonArray{field}},{"supports_dynamic_inputs",true},{"supports_dynamic_outputs",true}},QJsonObject{{"node_type","sink"},{"inline_fields",QJsonArray{"value"}},{"properties",QJsonArray{QJsonObject{{"name","value"},{"type",QJsonObject{{"type","any"}}}}}}}};
   window.setCatalog(catalog);
   QVERIFY(window.document()->load({{"graph",QJsonObject{{"nodes",QJsonArray{codeNode(""),QJsonObject{{"id","sink"},{"type","sink"}}}},{"edges",QJsonArray{}}}}}));
   window.setDarkTheme(true); window.show(); QVERIFY(window.selectNode("code"));

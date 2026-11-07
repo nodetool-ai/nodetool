@@ -1,4 +1,5 @@
 #include "EditorWindow.h"
+#include "EditorChatSearch.h"
 #include "document/ConnectionTypes.h"
 #include "graph/BodyConnectionRules.h"
 #include "graph/NodeCreation.h"
@@ -118,83 +119,18 @@ QJsonObject readNode(const QJsonObject &node) {
             {"parentId", node["parent_id"].toString()},
             {"data", data}};
 }
-QJsonObject revisionInputType(const QJsonValue &value) {
-    const auto raw = value.toObject();
-    QJsonArray args;
-    for (const auto &arg : raw["type_args"].toArray()) {
-        args.append(revisionInputType(arg));
-    }
-    auto values = raw["values"].toArray();
-    if (values.isEmpty()) {
-        values = raw["enum"].toArray();
-    }
-    QJsonArray filtered;
-    for (const auto &entry : values) {
-        if (entry.isString() || entry.isDouble()) {
-            filtered.append(entry);
-        }
-    }
-    return {{"type", value.isString() ? value : QJsonValue(raw["type"].toString("any"))},
-            {"optional", raw["optional"].toBool()},
-            {"values", filtered.isEmpty() ? QJsonValue(QJsonValue::Null) : QJsonValue(filtered)},
-            {"type_args", args},
-            {"type_name", raw["type_name"].isString() ? raw["type_name"] : QJsonValue(QJsonValue::Null)}};
-}
-QString graphRevision(const QJsonValue &id, const QJsonArray &nodes, const QJsonArray &edges) {
-    QJsonArray normalizedNodes;
-    QJsonArray normalizedEdges;
-    for (const auto &value : nodes) {
-        const auto node = value.toObject();
-        const auto data = node["data"].toObject();
-        QJsonObject normalizedData;
-        for (const auto &key :
-             {"properties", "dynamic_properties", "dynamic_outputs", "title", "color", "model_id",
-              "endpoint_id", "selected_generation", "selected_generations", "setupStepId"}) {
-            if (data.contains(key)) {
-                normalizedData[key] = data[key];
-            }
-        }
-        normalizedData["collapsed"] = data["collapsed"].toBool();
-        normalizedData["bypassed"] = data["bypassed"].toBool();
-        QJsonObject inputs;
-        const auto rawInputs = data["dynamic_inputs"].toObject();
-        for (auto it = rawInputs.begin(); it != rawInputs.end(); ++it) {
-            const auto slot = it.value().toObject();
-            QJsonObject input{
-                {"type", revisionInputType(slot["type"].isObject() ? slot["type"] : it.value())}};
-            for (const auto &key : {"description", "default", "required", "min", "max"}) {
-                if (slot.contains(key)) {
-                    input[key] = slot[key];
-                }
-            }
-            inputs[it.key()] = input;
-        }
-        normalizedData["dynamic_inputs"] = inputs;
-        normalizedNodes.append(
-            QJsonObject{{"id", node["id"]},
-                        {"type", node["type"]},
-                        {"parent_id", node["parentId"].toString().isEmpty() ? QJsonValue(QJsonValue::Null)
-                                                                            : node["parentId"]},
-                        {"position", node["position"]},
-                        {"data", normalizedData}});
-    }
-    for (const auto &value : edges) {
-        const auto edge = value.toObject();
-        normalizedEdges.append(QJsonObject{
-            {"id", edge["id"]},
-            {"source", edge["source"]},
-            {"target", edge["target"]},
-            {"sourceHandle",
-             edge["sourceHandle"].toString().isEmpty() ? QJsonValue(QJsonValue::Null) : edge["sourceHandle"]},
-            {"targetHandle",
-             edge["targetHandle"].toString().isEmpty() ? QJsonValue(QJsonValue::Null) : edge["targetHandle"]},
-            {"edge_type", edge["edge_type"]}});
-    }
-    const QJsonObject revision{{"workflow_id", id}, {"nodes", normalizedNodes}, {"edges", normalizedEdges}};
-    return "graph:" + QString::fromLatin1(
-                          QCryptographicHash::hash(QJsonDocument(revision).toJson(QJsonDocument::Compact),
-                                                   QCryptographicHash::Sha256)
-                              .toHex());
+constexpr auto RevisionIdentity = "nodetool.chatRevisionIdentity";
+constexpr auto RevisionEdit = "nodetool.chatRevisionEdit";
+// The web hashes graph content (packages/protocol/src/workflow-document-revision.ts).
+// Native names the document instance and its change count instead, so a revision
+// costs the same at any graph size. Every graph change emits changed(), which
+// advances the count. A change and its undo give a new revision, where the web
+// would return the earlier hash. The digest keeps the web's "graph:<64 hex>" form.
+QString documentRevision(const node_editor::WorkflowDocument &document) {
+    const auto key = document.property(RevisionIdentity).toString() + QChar(0x1f) +
+                     QString::number(document.property(RevisionEdit).toULongLong());
+    const auto digest = QCryptographicHash::hash(key.toUtf8(), QCryptographicHash::Sha256);
+    return "graph:" + QString::fromLatin1(digest.toHex());
 }
 bool parsesCode(const QString &code) {
     thread_local QJSEngine parser;
@@ -279,7 +215,7 @@ QJsonObject graphResult(node_editor::WorkflowDocument &document, const QJsonArra
     return {{"ok", true},
             {"workflow_id", id},
             {"source", "editor"},
-            {"document_revision", graphRevision(id, nodes, edges)},
+            {"document_revision", documentRevision(document)},
             {"nodes", nodes},
             {"edges", edges},
             {"validation",
@@ -304,6 +240,11 @@ QJsonObject handleType(const QJsonObject &node, const QJsonObject &meta, const Q
 } // namespace
 
 void EditorWindow::initializeChatTools() {
+    document_.setProperty(RevisionIdentity, QUuid::createUuid().toString(QUuid::Id128));
+    connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
+        const auto edit = document_.property(RevisionEdit).toULongLong();
+        document_.setProperty(RevisionEdit, edit + 1);
+    });
     const QMap<QString, QStringList> required{
         {"ui_get_graph", {}},
         {"ui_add_node", {"id", "type", "position"}},
@@ -321,42 +262,16 @@ void EditorWindow::initializeChatTools() {
         {"ui_open_workflow", {"workflow_id"}},
         {"ui_run_workflow", {"workflow_id"}},
         {"ui_open_document", {"type", "id"}}};
+    // The manifest is the web registry's own JSON schema for these tools,
+    // written by scripts/generate-chat-web-fixtures.mjs.
     QVariantList tools;
-    for (auto it = required.begin(); it != required.end(); ++it) {
-        QVariantMap properties;
-        for (const auto &key : it.value()) {
-            const auto type = key == "position" || key == "data" ? "object"
-                              : key == "tab_index"               ? "integer"
-                                                                 : "string";
-            properties[key] = QVariantMap{{"type", type}};
+    QFile manifest(":/editor/chat/tool-manifest.json");
+    if (manifest.open(QIODevice::ReadOnly)) {
+        for (const auto &entry : QJsonDocument::fromJson(manifest.readAll()).array()) {
+            if (required.contains(entry.toObject()["name"].toString())) {
+                tools.append(entry.toObject().toVariantMap());
+            }
         }
-        properties["workflow_id"] = QVariantMap{
-            {"anyOf", QVariantList{QVariantMap{{"type", "string"}}, QVariantMap{{"type", "null"}}}}};
-        if (it.key() == "ui_add_node") {
-            properties["position"] = QVariantMap{
-                {"anyOf",
-                 QVariantList{QVariantMap{{"type", "object"},
-                                          {"properties", QVariantMap{{"x", QVariantMap{{"type", "number"}}},
-                                                                     {"y", QVariantMap{{"type", "number"}}}}},
-                                          {"required", QStringList{"x", "y"}}},
-                              QVariantMap{{"type", "string"}}}}};
-        }
-        properties["based_on_revision"] = QVariantMap{{"type", "string"}};
-        for (const auto &key : {"properties", "params"}) {
-            properties[key] = QVariantMap{{"type", "object"}};
-        }
-        properties["limit"] = QVariantMap{{"type", "integer"}};
-        for (const auto &key : {"include_properties", "include_outputs", "strict_match"}) {
-            properties[key] = QVariantMap{{"type", "boolean"}};
-        }
-        for (const auto &key : {"input_type", "output_type"}) {
-            properties[key] = QVariantMap{{"type", "string"}};
-        }
-        tools.append(QVariantMap{
-            {"name", it.key()},
-            {"description", it.key()},
-            {"parameters",
-             QVariantMap{{"type", "object"}, {"properties", properties}, {"required", it.value()}}}});
     }
     chat_.setHostTools(tools);
     auto account = std::make_shared<ToolAccount>();
@@ -571,7 +486,7 @@ void EditorWindow::initializeChatTools() {
                 return QJsonObject{};
             };
             if (name == "ui_open_workflow" || name == "ui_open_document") {
-                owner->activateTab(owner->tabs_.indexOf(target));
+                owner->activateSurface(owner->tabs_.indexOf(target));
                 if (name == "ui_open_document") {
                     complete({{"ok", true},
                               {"type", "workflow"},
@@ -588,39 +503,29 @@ void EditorWindow::initializeChatTools() {
                 return;
             }
             if (name == "ui_search_nodes") {
-                QJsonArray results;
-                int total = 0;
+                // web/src/lib/tools/builtin/searchNodes.ts execute.
                 const auto query = input["query"].toString().trimmed();
-                const auto terms = query.toLower().split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
-                for (const auto &entry : metadata) {
-                    const auto meta = entry.toObject();
-                    const auto text = QString::fromUtf8(QJsonDocument(meta).toJson()).toLower();
-                    bool matches = true;
-                    for (const auto &term : terms) {
-                        matches = matches && text.contains(term);
+                const auto sorted = computeNodeSearchResults(metadata, query, input["input_type"].toString(),
+                                                             input["output_type"].toString(),
+                                                             input["strict_match"].toBool());
+                const auto namespaceRank = [](const QString &type) {
+                    if (type.startsWith("nodetool.")) {
+                        return 0;
                     }
-                    for (const auto &direction : {"input_type", "output_type"}) {
-                        if (!input.contains(direction)) {
-                            continue;
-                        }
-                        bool found = false;
-                        for (const auto &field :
-                             meta[QString(direction) == "input_type" ? "properties" : "outputs"].toArray()) {
-                            const auto type = field.toObject()["type"].toObject();
-                            found = found || (input["strict_match"].toBool()
-                                                  ? type["type"] == input[direction]
-                                                  : node_editor::connectionTypesCompatible(
-                                                        type, QJsonObject{{"type", input[direction]}}));
-                        }
-                        matches = matches && found;
-                    }
-                    if (!matches) {
-                        continue;
-                    }
-                    ++total;
-                    if (results.size() >= std::clamp(input["limit"].toInt(25), 1, 100)) {
-                        continue;
-                    }
+                    return type.startsWith("huggingface.") ? 2 : 1;
+                };
+                QList<QJsonObject> preferred;
+                for (const auto &entry : sorted) {
+                    preferred.append(entry.toObject());
+                }
+                std::stable_sort(preferred.begin(), preferred.end(),
+                                 [&namespaceRank](const QJsonObject &a, const QJsonObject &b) {
+                                     return namespaceRank(a["node_type"].toString()) <
+                                            namespaceRank(b["node_type"].toString());
+                                 });
+                const auto limit = static_cast<int>(std::floor(std::clamp(input["limit"].toDouble(25), 1.0, 100.0)));
+                QJsonArray results;
+                for (const auto &meta : preferred.mid(0, limit)) {
                     QJsonObject result{{"node_type", meta["node_type"]},
                                        {"title", meta["title"]},
                                        {"namespace", meta["namespace"]}};
@@ -649,7 +554,7 @@ void EditorWindow::initializeChatTools() {
                 complete({{"ok", true},
                           {"query", query},
                           {"count", results.size()},
-                          {"total_matches", total},
+                          {"total_matches", sorted.size()},
                           {"results", results}});
                 return;
             }
@@ -729,7 +634,7 @@ void EditorWindow::initializeChatTools() {
                 return;
             }
             if (input.contains("based_on_revision") &&
-                input["based_on_revision"] != graphResult(document, metadata)["document_revision"]) {
+                input["based_on_revision"] != documentRevision(document)) {
                 fail("document_revision_conflict: The editor graph changed since your read. Read "
                      "ui_get_graph again and retry.");
                 return;
@@ -905,7 +810,7 @@ void EditorWindow::initializeChatTools() {
                 return;
             }
             result["source"] = "editor";
-            result["document_revision"] = graphResult(document, metadata)["document_revision"];
+            result["document_revision"] = documentRevision(document);
             complete(result);
         });
 }

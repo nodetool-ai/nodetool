@@ -189,18 +189,22 @@ void InlineTitlePresenter::refresh() {
 bool InlineTitlePresenter::current() const {
   if (!active() || model_.readOnly() || !model_.nodeExists(node_)) return false;
   auto *item = scene_.nodeGraphicsObject(node_);
-  return item && item->isSelected() && scene_.selectedItems().size() == 1 &&
-    (group_ ? model_.layout(node_).title : model_.uiProperties(node_)["title"].toString()) == text_;
+  const auto stored = comment_ ? model_.comment(node_).toString()
+      : (group_ || header_) ? model_.layout(node_).title : model_.uiProperties(node_)["title"].toString();
+  return item && item->isSelected() && scene_.selectedItems().size() == 1 && stored == text_;
 }
 void InlineTitlePresenter::activate(QtNodes::NodeId id) {
   cancel();
-  if (!engine_ || model_.readOnly() || !model_.nodeExists(id) || model_.isComment(id)) return;
+  if (!engine_ || model_.readOnly() || !model_.nodeExists(id)) return;
+  // Rich-text comments keep their formatting, which only the web editor writes.
+  if (model_.isComment(id) && !model_.comment(id).isString()) return;
   auto *item = scene_.nodeGraphicsObject(id); if (!item) return;
   const auto viewZoom = std::clamp(std::abs(view_.transform().m11()), 0.08, 8.0);
   view_.ensureVisible(model_.isGroup(id) ? scene_.groupLabelRect(id, viewZoom) : item->sceneBoundingRect(), 16, 16);
   scene_.clearSelection(); item->setSelected(true); emit scene_.nodeSelected(id);
-  node_ = id; group_ = model_.isGroup(id); reroute_ = model_.isReroute(id); requestedHeight_ = 100;
-  text_ = group_ ? model_.layout(id).title : model_.uiProperties(id)["title"].toString();
+  node_ = id; group_ = model_.isGroup(id); reroute_ = model_.isReroute(id); comment_ = model_.isComment(id);
+  header_ = model_.nodeData(id, QtNodes::NodeRole::Type).toString() == "nodetool.code.Code"; requestedHeight_ = 100;
+  text_ = comment_ ? model_.comment(id).toString() : (group_ || header_) ? model_.layout(id).title : model_.uiProperties(id)["title"].toString();
   if (!current()) { cancel(); return; }
   emit activated();
   auto *widget = new TitleEditorWidget(engine_, view_.viewport()); widget_ = widget;
@@ -212,6 +216,20 @@ void InlineTitlePresenter::activate(QtNodes::NodeId id) {
   widget->show(); widget->raise(); widget->setFocus(Qt::MouseFocusReason); emit changed();
   const auto token = generation_;
   QTimer::singleShot(0, this, [this, token] { if (token == generation_ && widget_ && current()) QMetaObject::invokeMethod(widget_->rootObject(), "activate"); });
+}
+void InlineTitlePresenter::validateDocument(const node_editor::WorkflowDocument &document) {
+    if (!active()) {
+        return;
+    }
+    const auto node = document.node(model_.resourceId(node_));
+    const auto previous = model_.nodeSnapshot(node_);
+    const auto title = [](const QJsonObject &value) {
+        return QJsonArray{value["type"], value["ui_properties"].toObject()["title"],
+            value["data"].toObject()["headline"], value["data"].toObject()["comment"]};
+    };
+    if (node.isEmpty() || document.isReadOnly() || title(node) != title(previous)) {
+        cancel();
+    }
 }
 void InlineTitlePresenter::cancel() {
   if (const auto note = notes_.value(node_)) note->setVisible(true);
@@ -226,12 +244,18 @@ void InlineTitlePresenter::commit(const QString &text, int token) {
 }
 void InlineTitlePresenter::flush() {
   if (!committing_ || !current()) return;
-  const auto id = model_.resourceId(node_), text = pending_; const auto previous = text_;
-  cancel(); if (text != previous && commitTitle) commitTitle(id, text);
+  const auto id = model_.resourceId(node_); auto text = pending_; const auto previous = text_;
+  // resolveCodeNodeTitle: a blank draft or the metadata title stores nothing, so the header follows the metadata.
+  if (header_) {
+    const auto fallback = model_.metadata(node_)["title"].toString(QStringLiteral("Code"));
+    text = text.trimmed() == fallback ? QString{} : text.trimmed();
+  }
+  const auto stored = header_ ? model_.uiProperties(node_)["title"].toString() : previous;
+  cancel(); if (text != (header_ ? stored : previous) && commitTitle) commitTitle(id, text);
   view_.setFocus(Qt::OtherFocusReason);
 }
 void InlineTitlePresenter::setEditorHeight(double logicalHeight, int token) {
-  if (token != generation_ || singleLine() || !current() || !std::isfinite(logicalHeight) || logicalHeight <= 0) return;
+  if (token != generation_ || singleLine() || comment_ || !current() || !std::isfinite(logicalHeight) || logicalHeight <= 0) return;
   const auto height = std::clamp(logicalHeight, 32.0, 1000000.0);
   if (std::abs(height - requestedHeight_) < 0.5) return;
   requestedHeight_ = height;
@@ -247,10 +271,13 @@ void InlineTitlePresenter::reposition() {
   zoom_ = group_ ? viewZoom * groupLabelScale(viewZoom) : viewZoom;
   QRectF sceneRect;
   if (group_) sceneRect = scene_.groupLabelRect(node_, viewZoom);
+  else if (comment_) sceneRect = QRectF(item->scenePos(), model_.layout(node_).size);
+  else if (header_) sceneRect = QRectF(item->scenePos() + QPointF(node_metrics::borderWidth + node_metrics::padding + node_metrics::titleOffset - 4, node_metrics::borderWidth + node_metrics::padding - 2),
+      QSizeF(std::max(60, model_.layout(node_).size.width() - 2 * (node_metrics::borderWidth + node_metrics::padding) - node_metrics::titleOffset), node_metrics::headerHeight + 4));
   else if (reroute_) sceneRect = QRectF(item->scenePos() + QPointF((model_.layout(node_).size.width() - 116) / 2.0, model_.layout(node_).size.height() + 6), QSizeF(116, 26));
   else sceneRect = QRectF(item->scenePos() + QPointF(8, model_.layout(node_).size.height() + 10), QSizeF(std::max(120, model_.layout(node_).size.width() - 16), requestedHeight_));
   rect_ = view_.viewportTransform().mapRect(sceneRect);
-  if (!group_) {
+  if (!group_ && !comment_ && !header_) {
     auto available = QRectF(view_.viewport()->rect());
     if (availableViewport) available = available.intersected(availableViewport());
     available = available.adjusted(8, 8, -8, -8);

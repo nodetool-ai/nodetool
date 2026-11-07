@@ -27,6 +27,7 @@ both together. Translucent web values are flattened over the panel surface.
 | Subtle / control border | `#232426` / `#27292e` | `#e4e4e7` / `#dcdce1` | `divider` / `grey.700`, `Chip.defaultBorder` |
 | Strong / focus / error border | `#8a8f98` / `#3d68a8` / `#ff5555` | `#5b5b66` / `#2f62c4` / `#d92d20` | `text.secondary` / `primary.main` / `error.main` |
 | Accent / hover | `#3d68a8` / `#2a4d80` | `#2f62c4` / `#244e9e` | `primary.main` / `primary.dark` |
+| Secondary accent | `#e879f9` | `#b13bcf` | `secondary.main` |
 | Destructive / hover | `#c62828` / `#a32020` | `#b42318` / `#912018` | `error.dark` |
 | Success / warning | `#50fa7b` / `#ffb86c` | `#16a34a` / `#dc6803` | `success.main` / `warning.main` |
 | Error / info | `#ff5555` / `#22d3ee` | `#d92d20` / `#0e7490` | `error.main` / `info.main` |

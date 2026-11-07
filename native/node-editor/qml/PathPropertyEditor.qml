@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import NodeTool.UiPrimitives as Ui
@@ -63,6 +64,7 @@ ColumnLayout {
     }
     FileDialog {
         id: fileDialog
+        parentWindow: root.Window.window
         title: "Select file"
         fileMode: FileDialog.OpenFile
         nameFilters: ["All files (*)"]
@@ -70,6 +72,7 @@ ColumnLayout {
     }
     FolderDialog {
         id: folderDialog
+        parentWindow: root.Window.window
         title: "Select folder"
         onAccepted: root.acceptPath(selectedFolder, root.dialogGeneration)
     }

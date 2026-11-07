@@ -18,6 +18,7 @@ Item {
         else loader.item.forceActiveFocus(Qt.MouseFocusReason)
         if (kind === "boolean") commit(!value)
         if (kind === "choice") loader.item.popup.open()
+        if (kind === "model") loader.item.openPicker()
     }
     function maskPopup() {
         if (!loader.item || !loader.item.popup || !loader.item.popup.visible) {
@@ -45,6 +46,7 @@ Item {
             width: parent.width
             height: parent.height - (root.kind === "text" || root.kind === "multiline" ? Ui.Metrics.small : 0)
             sourceComponent: root.descriptor.name === "code" ? codeEditor : root.kind === "boolean" ? booleanEditor : root.kind === "choice" ? choiceEditor
+                : root.kind === "model" ? modelEditor
                 : root.kind === "number" || root.kind === "integer" ? numberEditor
                 : multilineEditor
         }
@@ -122,6 +124,19 @@ Item {
             checked: root.value === true
             accessibleName: root.descriptor.label || root.descriptor.name || ""
             onCheckedChangedByUser: checked => root.commit(checked)
+        }
+    }
+    Component {
+        id: modelEditor
+        // The card's model chip opens the shared picker that the inspector uses.
+        ModelPropertyEditor {
+            objectName: "inline-model"
+            descriptor: root.descriptor
+            value: root.value
+            writable: true
+            onValueCommitted: value => root.commit(value)
+            popup.onOpened: Qt.callLater(root.maskPopup)
+            popup.onClosed: Qt.callLater(root.maskPopup)
         }
     }
     Component {

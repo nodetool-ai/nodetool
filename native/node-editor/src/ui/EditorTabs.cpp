@@ -7,23 +7,31 @@
 #include <QUrlQuery>
 #include <QMessageBox>
 #include <QSettings>
+#include <QQuickWidget>
+#include <QShortcut>
 #include <QStackedWidget>
 #include <QTimer>
+#include <QToolTip>
+#include <functional>
 
 namespace nodetool {
 EditorWindow *EditorWindow::activeEditor() const {
   return tabOwner_ ? const_cast<EditorWindow *>(this) : activeEditor_;
 }
 QVariantList EditorWindow::workflowTabs() const {
-  const auto owner = tabOwner_ ? tabOwner_ : this;
-  QVariantList result;
-  for (auto tab : owner->tabs_) {
-    if (tab->inlineChild_) { continue; }
-    result.append(QVariantMap{
-        {"title", tab->childParent_ ? tab->childParent_->workflowName() + " › " + tab->workflowName() : tab->workflowName()},
-        {"dirty", tab->hasUnsavedChanges()}});
-  }
-  return result;
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    QVariantList result;
+    for (auto tab : owner->visibleTabs()) {
+        const auto title = tab->childParent_
+            ? tab->childParent_->workflowName() + " › " + tab->workflowName()
+            : tab->workflowName();
+        // The web hides the per-run spinner while instant update reruns the graph.
+        result.append(QVariantMap{{"title", title},
+                                  {"dirty", tab->hasUnsavedChanges()},
+                                  {"running", tab->runActive() && !tab->instantUpdate_},
+                                  {"renamable", !tab->childParent_}});
+    }
+    return result;
 }
 int EditorWindow::activeTab() const {
     const auto owner = tabOwner_ ? tabOwner_ : this;
@@ -31,17 +39,57 @@ int EditorWindow::activeTab() const {
     while (host && host->inlineChild_ && host->childParent_) {
         host = host->childParent_;
     }
-    int index = 0;
-    for (auto tab : owner->tabs_) {
-        if (tab->inlineChild_) {
-            continue;
-        }
-        if (tab == host) {
-            return index;
-        }
-        ++index;
+    return owner->visibleTabs().indexOf(host);
+}
+QString EditorWindow::projectKey() const {
+    auto root = this;
+    while (root->childParent_) {
+        root = root->childParent_;
     }
-    return -1;
+    const auto id = root->session_.serverBound()
+        ? root->document_.snapshot()["project_id"].toString()
+        : QString();
+    if (id.isEmpty()) {
+        return root->assignedProject_;
+    }
+    // The web reads the Personal project and the loose bucket as one scope.
+    if (id == "default" || id.startsWith("personal:")) {
+        return {};
+    }
+    return id;
+}
+QString EditorWindow::activeProject() const {
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    return owner->activeEditor_ ? owner->activeEditor_->projectKey() : QString();
+}
+QList<EditorWindow *> EditorWindow::visibleTabs() const {
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    const auto project = owner->activeProject();
+    QList<EditorWindow *> result;
+    for (auto tab : owner->tabs_) {
+        if (!tab->inlineChild_ && tab->projectKey() == project) {
+            result.append(tab);
+        }
+    }
+    return result;
+}
+QString EditorWindow::projectName() const {
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    const auto project = owner->activeProject();
+    if (project.isEmpty()) {
+        return tr("Personal");
+    }
+    for (const auto &value : owner->projects_) {
+        if (value.toObject()["id"].toString() == project) {
+            return value.toObject()["name"].toString();
+        }
+    }
+    // An unlisted project takes its active document's name, as on the web.
+    auto root = owner->activeEditor_;
+    while (root && root->childParent_) {
+        root = root->childParent_;
+    }
+    return root ? root->workflowName() : tr("Project");
 }
 void EditorWindow::schedulePanelChanged() {
   if (!panelChangePending_) {
@@ -57,19 +105,45 @@ void EditorWindow::schedulePanelChanged() {
 }
 void EditorWindow::flushPanelChanged() {
   if (!panelChangePending_) return;
-  // A queued projection runs first, so that its changes share this emit.
+  // The session's queued edit notification and a queued projection run first,
+  // so that their changes share this emit.
+  session_.flushDocumentNotification();
   if (refreshPending_) { refresh(); }
   panelChangePending_ = false;
   emit panelChanged();
 }
 void EditorWindow::notifyTabs() {
-  auto owner = tabOwner_ ? tabOwner_ : this;
-  emit owner->tabsChanged();
-  for (auto tab : owner->tabs_) emit tab->tabsChanged();
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    // Every tab hosts a strip, and each model change rebuilds its delegates,
+    // which would also end a tab drag in progress.
+    const QVariantList signature{owner->workflowTabs(), owner->activeTab(),
+                                 owner->canvasStrips(), owner->projectName()};
+    if (signature == owner->tabSignature_) {
+        return;
+    }
+    owner->tabSignature_ = signature;
+    emit owner->tabsChanged();
+    for (auto tab : owner->tabs_) {
+        emit tab->tabsChanged();
+    }
 }
 void EditorWindow::newTab() {
   if (tabOwner_) { tabOwner_->newTab(); return; }
+  // A new document joins the project on screen, as web creationProjectId does.
+  const auto project = activeProject();
   auto tab = new EditorWindow(tabStack_, this);
+    tab->assignedProject_ = project;
+    connect(&tab->browser_, &node_editor::WorkflowBrowser::changed, this, [this, tab] {
+        harvestProjects(QJsonArray::fromVariantList(tab->browser_.projects()));
+    });
+    connect(&tab->session_, &node_editor::WorkflowSession::credentialsChanged, this,
+            [this](const QUrl &origin, const QString &, const QString &user) {
+        const auto account = origin.toString() + '\n' + user;
+        if (account != projectsAccount_) {
+            projectsAccount_ = account;
+            projects_ = {};
+        }
+    });
   tab->setWindowFlags(Qt::Widget);
   // Only a top-level window fills its background, and translucent dock dividers
   // would otherwise blend with the outer window.
@@ -99,28 +173,17 @@ void EditorWindow::newTab() {
 }
 void EditorWindow::activateTab(int index) {
     auto owner = tabOwner_ ? tabOwner_ : this;
-    for (auto tab : owner->tabs_) {
-        if (tab->inlineChild_) {
-            continue;
-        }
-        if (index-- == 0) {
-            auto shown = tab->shownSurface_ ? tab->shownSurface_.data() : tab;
-            owner->activateSurface(owner->tabs_.indexOf(shown));
-            return;
-        }
+    const auto tab = owner->visibleTabs().value(index);
+    if (!tab) {
+        return;
     }
+    auto shown = tab->shownSurface_ ? tab->shownSurface_.data() : tab;
+    owner->activateSurface(owner->tabs_.indexOf(shown));
 }
 bool EditorWindow::closeTab(int index) {
     auto owner = tabOwner_ ? tabOwner_ : this;
-    for (auto tab : owner->tabs_) {
-        if (tab->inlineChild_) {
-            continue;
-        }
-        if (index-- == 0) {
-            return closeSurface(owner->tabs_.indexOf(tab));
-        }
-    }
-    return false;
+    const auto tab = owner->visibleTabs().value(index);
+    return tab && closeSurface(owner->tabs_.indexOf(tab));
 }
 QVariantList EditorWindow::canvasStrips() const {
     auto owner = tabOwner_ ? tabOwner_ : this;
@@ -213,9 +276,12 @@ void EditorWindow::activateSurface(int index) {
         host = host->childParent_;
     }
     host->shownSurface_ = target;
+    projectActive_.insert(host->projectKey(), host);
     target->syncPackSetup();
     packSetup_.activeEditorChanged();
     tabStack_->setCurrentWidget(activeEditor_);
+    // The previous strip's hover tooltip belongs to a hidden tab.
+    QToolTip::hideText();
     setWindowTitle(activeEditor_->windowTitle());
     setWindowModified(activeEditor_->isWindowModified());
     notifyTabs();
@@ -225,6 +291,9 @@ void EditorWindow::activateSurface(int index) {
     emit catalogChanged();
 }
 bool EditorWindow::confirmTabClose(bool closeAfterSave) {
+    if (discardApproved_) {
+        return true;
+    }
     if (childParent_ &&
         node_editor::childGraphKey(childParent_->document_.node(childNode_)) == "graph" &&
         document_.graph() == node_editor::childGraph(childParent_->document_.node(childNode_))) {
@@ -245,7 +314,6 @@ bool EditorWindow::confirmTabClose(bool closeAfterSave) {
     }
     if (session_.serverBound()) {
         closeAfterServerSave_ = closeAfterSave;
-        session_.setSnapshot(document_.snapshot());
         session_.save();
         return false;
     }
@@ -301,6 +369,18 @@ bool EditorWindow::closeSurface(int index) {
             }
         }
     }
+    // The web activates the visible neighbour, right before left.
+    QPointer<EditorWindow> neighbour;
+    if (!tab->inlineChild_) {
+        const auto visible = visibleTabs();
+        const auto at = visible.indexOf(tab);
+        if (at >= 0) {
+            neighbour = visible.value(at + 1, visible.value(at - 1));
+        }
+        if (neighbour && neighbour->shownSurface_) {
+            neighbour = neighbour->shownSurface_;
+        }
+    }
     index = tabs_.indexOf(tab);
     const bool wasActive = activeEditor_ == tab;
     tabs_.removeAt(index);
@@ -324,7 +404,8 @@ bool EditorWindow::closeSurface(int index) {
     if (tabs_.isEmpty()) {
         newTab();
     } else if (wasActive) {
-        activateSurface(fallback ? tabs_.indexOf(fallback) : qMin(index, int(tabs_.size()) - 1));
+        const auto next = fallback ? fallback : neighbour;
+        activateSurface(next ? tabs_.indexOf(next) : qMin(index, int(tabs_.size()) - 1));
     } else {
         notifyTabs();
     }
@@ -336,20 +417,29 @@ void EditorWindow::persistTabs() const {
         return;
     }
     QJsonArray entries;
+    auto active = activeEditor_;
+    while (active && active->childParent_) {
+        active = active->childParent_;
+    }
+    int activeEntry = 0;
     for (auto tab : tabs_) {
         if (tab->childParent_) {
             continue;
+        }
+        if (tab == active) {
+            activeEntry = entries.size();
         }
         entries.append(QJsonObject{{"file", tab->file_},
                                    {"workflow", tab->session_.serverBound()
                                                     ? tab->session_.workflow()["id"].toString()
                                                     : tab->requestedWorkflow_},
-                                   {"origin", tab->session_.serverUrl().toString()}});
+                                   {"origin", tab->session_.serverUrl().toString()},
+                                   {"project", tab->projectKey()}});
     }
     QSettings settings;
     settings.setValue("workflowTabs/documents",
                       QJsonDocument(entries).toJson(QJsonDocument::Compact));
-    settings.setValue("workflowTabs/active", activeTab());
+    settings.setValue("workflowTabs/active", activeEntry);
 }
 void EditorWindow::restoreTabs() {
     if (tabOwner_) {
@@ -362,11 +452,14 @@ void EditorWindow::restoreTabs() {
     if (entries.isEmpty()) {
         return;
     }
+    QList<EditorWindow *> restored;
     for (int i = 0; i < entries.size(); ++i) {
         if (i)
             newTab();
         auto tab = activeEditor_;
+        restored.append(tab);
         const auto entry = entries[i].toObject();
+        tab->assignedProject_ = entry["project"].toString();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
         if (!path.isEmpty())
@@ -378,7 +471,298 @@ void EditorWindow::restoreTabs() {
             tab->session_.openWorkflow(id);
         }
     }
-    activateTab(settings.value("workflowTabs/active", 0).toInt());
+    const auto active = restored.value(settings.value("workflowTabs/active", 0).toInt(), restored.first());
+    activateSurface(tabs_.indexOf(active));
+    notifyTabs();
+}
+QQuickWidget *EditorWindow::tabBarWidget() const {
+    for (auto widget : findChildren<QQuickWidget *>()) {
+        if (widget->source().fileName() == "TabBar.qml") {
+            return widget;
+        }
+    }
+    return nullptr;
+}
+void EditorWindow::dropTab(int source, int target, bool after) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    const auto visible = owner->visibleTabs();
+    if (source < 0 || target < 0 || source >= visible.size() || target >= visible.size() || source == target) {
+        return;
+    }
+    // Tabs of other projects keep their places, as web gatherProjectTabs does.
+    const auto moved = visible[source];
+    owner->tabs_.removeOne(moved);
+    owner->tabs_.insert(owner->tabs_.indexOf(visible[target]) + (after ? 1 : 0), moved);
+    owner->notifyTabs();
+    // The web store persists every reorder, so a restart restores the order.
+    owner->persistTabs();
+}
+void EditorWindow::showTabMenu(int index, const QPointF &global) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    QPointer<EditorWindow> target = owner->visibleTabs().value(index);
+    if (!target) {
+        return;
+    }
+    auto menu = new QMenu(this);
+    menu->setObjectName("workflow-tab-menu");
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    // The menu belongs to a tab that a choice may close, so choices run later.
+    const auto later = [owner](std::function<void()> work) {
+        return [owner, work] { QTimer::singleShot(0, owner, work); };
+    };
+    // web/src/components/workspace/WorkspaceTabItem.tsx lists these entries.
+    if (!target->childParent_) {
+        menu->addAction(tr("Rename"), owner, later([owner, target] {
+            if (!target) {
+                return;
+            }
+            auto shown = target->shownSurface_ ? target->shownSurface_.data() : target.data();
+            owner->activateSurface(owner->tabs_.indexOf(shown));
+            auto surface = owner->activeEditor_;
+            if (auto bar = surface->tabBarWidget()) {
+                bar->setFocus(Qt::OtherFocusReason);
+            }
+            emit surface->tabRenameRequested(owner->visibleTabs().indexOf(target));
+        }));
+    }
+    menu->addAction(tr("Close tab"), owner, later([owner, target] {
+        if (target) {
+            owner->closeSurface(owner->tabs_.indexOf(target));
+        }
+    }));
+    menu->addAction(tr("Close other tabs"), owner, later([owner, target] {
+        if (target) {
+            owner->closeOtherTabs(owner->visibleTabs().indexOf(target));
+        }
+    }));
+    menu->addAction(tr("Close all tabs"), owner, later([owner] { owner->closeAllTabs(); }));
+    menu->popup(global.toPoint());
+}
+void EditorWindow::closeOtherTabs(int index) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    auto targets = owner->visibleTabs();
+    const auto keep = targets.value(index);
+    if (!keep) {
+        return;
+    }
+    targets.removeOne(keep);
+    owner->closeTabs(targets, keep);
+}
+void EditorWindow::closeAllTabs() {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    QList<EditorWindow *> targets;
+    for (auto tab : owner->tabs_) {
+        if (!tab->inlineChild_) {
+            targets.append(tab);
+        }
+    }
+    owner->closeTabs(targets, nullptr);
+}
+void EditorWindow::closeTabs(const QList<EditorWindow *> &targets, EditorWindow *keep) {
+    const QList<QPointer<EditorWindow>> pending(targets.cbegin(), targets.cend());
+    QPointer<EditorWindow> kept = keep;
+    if (activeEditor_) {
+        activeEditor_->flushChild();
+    }
+    // The web asks about every unsaved document before it closes any of them.
+    QList<EditorWindow *> approved;
+    for (const auto &tab : pending) {
+        if (!tab || !tab->hasUnsavedChanges()) {
+            continue;
+        }
+        if (!tab->confirmTabClose(true)) {
+            return;
+        }
+        if (tab) {
+            approved.append(tab);
+        }
+    }
+    if (kept) {
+        activateSurface(tabs_.indexOf(kept->shownSurface_ ? kept->shownSurface_.data() : kept.data()));
+    }
+    for (const auto &tab : pending) {
+        if (!tab) {
+            continue;
+        }
+        // A document that changed after the question was not approved.
+        tab->discardApproved_ = approved.contains(tab.data());
+        const auto closed = closeSurface(tabs_.indexOf(tab));
+        if (tab) {
+            tab->discardApproved_ = false;
+        }
+        if (!closed) {
+            return;
+        }
+    }
+}
+void EditorWindow::renameTab(int index, const QString &name) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    const auto target = owner->visibleTabs().value(index);
+    const auto trimmed = name.trimmed();
+    if (!target || target->childParent_ || trimmed.isEmpty() || trimmed == target->workflowName()) {
+        return;
+    }
+    if (target->session_.serverBound()) {
+        target->versions_.saveMetadata({{"name", trimmed}});
+        target->schedulePanelChanged();
+        return;
+    }
+    auto workflow = target->document_.snapshot();
+    workflow.insert("name", trimmed);
+    target->document_.reconcileMetadata(workflow);
+    if (!target->file_.isEmpty()) {
+        (void)target->saveFile(target->file_);
+    }
+    target->schedulePanelChanged();
+}
+void EditorWindow::showTabToolTip(const QString &text, const QPointF &global) {
+    if (text.isEmpty()) {
+        QToolTip::hideText();
+        return;
+    }
+    // A hover that began in a strip that is now hidden shows nothing.
+    if (tabOwner_ && tabOwner_->activeEditor_ != this) {
+        return;
+    }
+    QToolTip::showText(global.toPoint(), text, this);
+}
+void EditorWindow::setTabStripOffset(qreal offset) {
+    // Only the shown strip scrolls. Hidden strips keep stale widths.
+    if (tabOwner_ && tabOwner_->activeEditor_ != this) {
+        return;
+    }
+    (tabOwner_ ? tabOwner_ : this)->tabStripOffset_ = offset;
+}
+qreal EditorWindow::tabStripOffset() const {
+    return (tabOwner_ ? tabOwner_ : this)->tabStripOffset_;
+}
+void EditorWindow::selectAdjacentTab(int step) {
+    const auto count = visibleTabs().size();
+    if (count == 0) {
+        return;
+    }
+    // web/src/hooks/useNodeEditorShortcuts.ts wraps at either end.
+    const auto current = activeTab();
+    if (step < 0) {
+        activateTab(current <= 0 ? count - 1 : current - 1);
+    } else {
+        activateTab(current >= count - 1 ? 0 : current + 1);
+    }
+}
+void EditorWindow::installTabShortcuts() {
+    const auto bind = [this](const QString &keys, const std::function<void()> &work) {
+        auto shortcut = new QShortcut(QKeySequence(keys), this);
+        shortcut->setContext(Qt::WindowShortcut);
+        connect(shortcut, &QShortcut::activated, this, work);
+    };
+    // web/src/config/shortcuts.ts: prevTab, nextTab, switchToTab1-9,
+    // newWorkflow and closeWorkflow.
+    for (const auto &keys : {"Ctrl+PgUp", "Ctrl+Shift+[", "Ctrl+Alt+Left"}) {
+        bind(QString::fromLatin1(keys), [this] { selectAdjacentTab(-1); });
+    }
+    for (const auto &keys : {"Ctrl+PgDown", "Ctrl+Shift+]", "Ctrl+Alt+Right"}) {
+        bind(QString::fromLatin1(keys), [this] { selectAdjacentTab(1); });
+    }
+    for (int n = 1; n <= 9; ++n) {
+        bind(QString("Ctrl+%1").arg(n), [this, n] { activateTab(n - 1); });
+    }
+    bind("Ctrl+T", [this] { newTab(); });
+    bind("Ctrl+W", [this] { closeTab(activeTab()); });
+}
+void EditorWindow::harvestProjects(const QJsonArray &projects) {
+    QJsonArray named;
+    for (const auto &value : projects) {
+        const auto row = value.toObject();
+        const auto id = row["id"].toString();
+        if (id.isEmpty() || id == "default" || id.startsWith("personal:") || row["isPersonal"].toBool()) {
+            continue;
+        }
+        named.append(QJsonObject{{"id", id}, {"name", row["name"].toString()}});
+    }
+    if (named.isEmpty() || named == projects_) {
+        return;
+    }
+    projects_ = named;
+    notifyTabs();
+    populateProjectMenu();
+}
+void EditorWindow::showProjectMenu(const QPointF &global) {
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    if (owner->projectMenu_) {
+        owner->projectMenu_->close();
+    }
+    auto menu = new QMenu(this);
+    menu->setObjectName("project-menu");
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    owner->projectMenu_ = menu;
+    owner->populateProjectMenu();
+    menu->popup(global.toPoint());
+    auto active = owner->activeEditor_;
+    if (active && !active->session_.serverUrl().isEmpty()) {
+        active->browser_.loadProjects();
+    }
+}
+void EditorWindow::populateProjectMenu() {
+    auto menu = projectMenu_.data();
+    if (!menu) {
+        return;
+    }
+    menu->clear();
+    // Personal comes first, then the named projects and any project with an
+    // open document, as in web/src/components/projects/ProjectSelector.tsx.
+    QStringList keys{QString()};
+    QHash<QString, QString> names;
+    for (const auto &value : projects_) {
+        const auto row = value.toObject();
+        keys.append(row["id"].toString());
+        names.insert(row["id"].toString(), row["name"].toString());
+    }
+    for (auto tab : tabs_) {
+        const auto key = tab->projectKey();
+        if (tab->inlineChild_ || keys.contains(key)) {
+            continue;
+        }
+        keys.append(key);
+        names.insert(key, tab->workflowName());
+    }
+    const auto active = activeProject();
+    for (const auto &key : keys) {
+        auto action = menu->addAction(key.isEmpty() ? tr("Personal") : names.value(key));
+        action->setCheckable(true);
+        action->setChecked(key == active);
+        connect(action, &QAction::triggered, this, [this, key] {
+            QTimer::singleShot(0, this, [this, key] { selectProject(key); });
+        });
+    }
+}
+void EditorWindow::selectProject(const QString &project) {
+    if (tabOwner_) {
+        tabOwner_->selectProject(project);
+        return;
+    }
+    if (project == activeProject()) {
+        return;
+    }
+    QPointer<EditorWindow> target = projectActive_.value(project);
+    if (!target || !tabs_.contains(target) || target->projectKey() != project) {
+        target = nullptr;
+        for (auto tab : tabs_) {
+            if (!tab->inlineChild_ && tab->projectKey() == project) {
+                target = tab;
+                break;
+            }
+        }
+    }
+    if (target) {
+        activateSurface(tabs_.indexOf(target->shownSurface_ ? target->shownSurface_.data() : target.data()));
+        return;
+    }
+    // Native has no project home, so a project without open documents gets a
+    // blank workflow.
+    newTab();
+    activeEditor_->assignedProject_ = project;
+    notifyTabs();
+    activeEditor_->schedulePanelChanged();
 }
 } // namespace nodetool
 

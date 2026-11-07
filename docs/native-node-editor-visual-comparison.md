@@ -110,6 +110,29 @@ borders, fonts, and spacing, then change the owning production component or
 its platform's tokens. Recapture both surfaces after changes. Never fill an
 unavailable measurement with a guessed value or normalize away a mismatch.
 
+## Whole-window captures
+
+Component cases do not show window layout. Whole-window captures compare the
+web editor and the native window on one fixture, at the same logical sizes and
+states. The [whole-window comparison](../native/node-editor/docs/parity.md#whole-window-comparison)
+lists the states, the differences and their status.
+
+Start the documentation backend and Vite on free ports. The backend seeds an
+in-memory database, so the capture leaves no workflows behind.
+
+```bash
+PORT=7791 METADATA_ROOTS="" node_modules/.bin/tsx --conditions nodetool-dev packages/websocket/src/screenshot-server.ts
+(cd web && PROXY_API_TARGET=http://127.0.0.1:7791 ../node_modules/.bin/vite --host 127.0.0.1 --port 3091 --strictPort)
+node native/node-editor/scripts/capture-web-window-parity.mjs --web http://127.0.0.1:3091 --api http://127.0.0.1:7791 --out /tmp/window/web
+NODETOOL_WINDOW_PARITY_CAPTURE_DIR=/tmp/window/native NODETOOL_WINDOW_PARITY_SERVER=http://127.0.0.1:7791 \
+  <build>/node_editor_window_parity_tests captures
+```
+
+The web script and `WindowParityTest` read
+`native/node-editor/tests/ui/WindowParityFixture.json` and apply the same run
+messages. Without `NODETOOL_WINDOW_PARITY_SERVER` the native test runs offline,
+so the connection state and catalog differ from the web capture.
+
 ## Known deviations
 
 The web fixture does not load `handle_edge_tooltip.css` or `useProcessedEdges`,
@@ -141,4 +164,5 @@ Agent control handles, canvas editing, the run selected and cost footer in the
 inspector, connectable-handle dimming during a drag, handle hover scale, and the
 selected-node action toolbar. Floating surfaces draw no elevation shadow, and the
 selected card approximates the web's blur with stacked outlines. The comparison
-checks components, and full-window screenshots remain visual evidence only.
+checks components. Whole-window captures are visual evidence, and
+`WindowParityTest` asserts the differences fixed from them.

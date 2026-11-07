@@ -24,6 +24,7 @@ Ui.MenuButton {
                 required property int index
                 objectName: "chip-option-" + index
                 text: modelData.label
+                shortcutText: modelData.shortcutText !== undefined ? String(modelData.shortcutText) : ""
                 iconName: root.iconName
                 checkable: true
                 checked: modelData.value === root.value

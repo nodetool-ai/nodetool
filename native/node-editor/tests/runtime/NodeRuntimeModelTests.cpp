@@ -1,4 +1,5 @@
 #include "../../src/run/NodeRuntimeModel.h"
+#include "../../src/run/UntakenBranch.h"
 #include <QtTest>
 #include <QJsonDocument>
 using namespace nodetool::node_editor;
@@ -85,6 +86,96 @@ private slots:
   model.ingest("a",event); model.ingest("a",event); QCOMPARE(changed.size(),1);
   event["job_id"]="b"; event["progress"]=2; model.ingest("a",event);
   QCOMPARE(model.nodeState("n")["progress"].toDouble(),1.0);
+ }
+ // The canvas keeps marking the untaken branch after the run ends, so edge reports outlive the job.
+ void edgeReportsOutliveTheFinishedRun() {
+  NodeRuntimeModel model; model.beginRun("a");
+  model.ingest("a",{{"type","edge_update"},{"job_id","a"},{"job_seq",1},{"edge_id","e"},{"status","completed"}});
+  model.ingest("a",{{"type","job_update"},{"job_id","a"},{"job_seq",2},{"status","completed"}});
+  QCOMPARE(model.edgeState("e")["status"].toString(),"completed");
+  model.ingest("a",{{"type","edge_update"},{"job_id","a"},{"job_seq",3},{"edge_id","late"},{"status","active"}});
+  QVERIFY(model.edgeState("late").isEmpty());
+ }
+ // F27. A `job_resumed` "unknown" reply means the server lost the run. Like settleLostRun in
+ // web/src/stores/workflowUpdates.ts, its node statuses, progress and edge reports are dropped, so
+ // nothing on the canvas keeps running.
+ void lostRunClearsItsRunningState() {
+  NodeRuntimeModel model; model.beginRun("a");
+  QSignalSpy projection(&model,&NodeRuntimeModel::projectionChanged);
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  model.ingest("a",{{"type","node_progress"},{"job_id","a"},{"job_seq",2},{"node_id","n"},{"progress",1},{"total",4}});
+  model.ingest("a",{{"type","edge_update"},{"job_id","a"},{"job_seq",3},{"edge_id","e"},{"status","active"}});
+  model.ingest("a",{{"type","job_resumed"},{"job_id","a"},{"status","unknown"},{"last_seq",3},{"replay_count",0}});
+  QVERIFY(!model.nodeState("n").contains("status"));
+  QVERIFY(!model.nodeState("n").contains("progress"));
+  QVERIFY(model.edgeState("e").isEmpty());
+  QVERIFY(projection.size() > 0);
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",4},{"node_id","n"},{"status","running"}});
+  QVERIFY(model.nodeState("n")["status"].toString().isEmpty());
+ }
+ // F27. A "finished" reply with frames to replay is followed by the run's own terminal job_update,
+ // as handleJobResumed in web/src/stores/workflowUpdates.ts expects. The reply alone must not end
+ // the run, or the replayed failure would be lost.
+ void resumedFinishedRunWaitsForItsReplayedOutcome() {
+  NodeRuntimeModel model; model.beginRun("a");
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  model.ingest("a",{{"type","job_resumed"},{"job_id","a"},{"status","finished"},{"last_seq",1},{"replay_count",2}});
+  QCOMPARE(model.nodeState("n")["status"].toString(),"running");
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",2},{"node_id","n"},{"status","error"},{"error","boom"}});
+  model.ingest("a",{{"type","job_update"},{"job_id","a"},{"job_seq",3},{"status","failed"}});
+  QCOMPARE(model.nodeState("n")["status"].toString(),"error");
+  // With nothing left to replay the reply settles the run.
+  model.beginRun("b");
+  model.ingest("b",{{"type","node_update"},{"job_id","b"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  model.ingest("b",{{"type","job_resumed"},{"job_id","b"},{"status","finished"},{"last_seq",1},{"replay_count",0}});
+  QVERIFY(model.nodeState("n")["status"].toString() != "running");
+ }
+ // F27. handleNodeUpdate in web/src/stores/workflowUpdates.ts drops late node frames of a
+ // cancelled run, so a result arriving after Stop does not appear.
+ void cancelledRunDropsLateNodeFrames() {
+  NodeRuntimeModel model; model.beginRun("a");
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  model.ingest("a",{{"type","job_update"},{"job_id","a"},{"job_seq",2},{"status","cancelled"}});
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",3},{"node_id","n"},{"status","completed"},{"result",QJsonObject{{"text","late"}}}});
+  QCOMPARE(model.nodeState("n")["status"].toString(),"cancelled");
+  QVERIFY(!model.nodeState("n").contains("result"));
+ }
+ // F27. The output panel drops its runs on a server, workflow or file change and then selects no
+ // run. The canvas projection must follow instead of keeping the previous run's states.
+ void selectingNoRunClearsTheProjection() {
+  NodeRuntimeModel model; model.beginRun("a");
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  QSignalSpy projection(&model,&NodeRuntimeModel::projectionChanged);
+  model.selectRun({});
+  QVERIFY(model.nodeState("n").isEmpty());
+  QCOMPARE(projection.size(),1);
+  model.selectRun("unknown");
+  QVERIFY(model.nodeState("n").isEmpty());
+  QCOMPARE(projection.size(),1);
+  model.selectRun("a");
+  QCOMPARE(model.nodeState("n")["status"].toString(),"running");
+ }
+ // web/src/utils/__tests__/untakenBranches.test.ts shapes: a branch output that completed without a
+ // message is dead, death cascades only through nodes whose data inputs are all dead, and control
+ // edges and non-branch sources never start it.
+ void untakenBranchFollowsTheWebRules() {
+  const QHash<QString,QString> types{{"if","nodetool.control.If"},{"sw","nodetool.control.Switch"},{"a","x"},{"b","x"},{"c","x"},{"d","x"},{"e","x"}};
+  const auto edge=[](const char *id,const char *from,const char *to,const char *kind="data") { return QJsonObject{{"id",id},{"source",from},{"target",to},{"edge_type",kind}}; };
+  const QJsonArray edges{edge("ia","if","a"),edge("ib","if","b"),edge("bc","b","c"),edge("ad","a","d"),edge("bd","b","d"),edge("sd","sw","e"),edge("ctl","b","e","control")};
+  QHash<QString,QJsonObject> states{{"ia",{{"status","completed"},{"counter",1}}},{"ib",{{"status","completed"}}},{"sd",{{"status","active"}}}};
+  const auto found=findUntakenBranch(types,edges,[&](const QString &id) { return states.value(id); });
+  QCOMPARE(found.nodeIds,(QSet<QString>{"b","c"}));
+  QCOMPARE(found.edgeIds,(QSet<QString>{"ib","bc","bd"}));
+  QVERIFY(!found.nodeIds.contains("d"));
+  // A source that is not an If or Switch never marks its edges, whatever they report.
+  states["bc"]={{"status","completed"}};
+  QCOMPARE(findUntakenBranch(types,edges,[&](const QString &id) { return states.value(id); }),found);
+  // Nothing reported yet means nothing is dead.
+  QVERIFY(findUntakenBranch(types,edges,[](const QString &) { return QJsonObject{}; }).empty());
+  // When both outputs are dead the shared target dies as well.
+  states["ia"]={{"status","completed"}};
+  const auto both=findUntakenBranch(types,edges,[&](const QString &id) { return states.value(id); });
+  QVERIFY(both.nodeIds.contains("a")); QVERIFY(both.nodeIds.contains("d"));
  }
 };
 QTEST_GUILESS_MAIN(NodeRuntimeModelTests)

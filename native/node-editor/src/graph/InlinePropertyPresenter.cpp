@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QGraphicsView>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -106,7 +107,9 @@ void InlinePropertyPresenter::cancel() {
   descriptor_.clear();
   name_.clear();
   node_ = QtNodes::InvalidNodeId;
+  const bool popupWasOpen = popupOpen();
   popupRect_ = {};
+  if (popupWasOpen) { emit popupChanged(); }
   expanded_ = false;
   if (widget_) {
     auto old = widget_;
@@ -124,8 +127,10 @@ void InlinePropertyPresenter::flushCommit() {
   const auto id = model_.resourceId(node_);
   const auto name = name_;
   const auto value = pendingValue_;
+  const auto command = model_.propertyCommand(node_, name, QJsonValue::fromVariant(value));
   cancel();
-  if (commitProperty) { commitProperty(id, name, value); }
+  if (command["op"] == QStringLiteral("batch") && commitCommand) { commitCommand(command); }
+  else if (commitProperty) { commitProperty(id, name, value); }
   view_.setFocus(Qt::OtherFocusReason);
 }
 void InlinePropertyPresenter::commit(const QVariant &value, int token) {
@@ -143,7 +148,12 @@ void InlinePropertyPresenter::expand() {
   emit changed();
   reposition();
 }
-void InlinePropertyPresenter::popupRect(const QRectF &rect) { popupRect_ = rect; updateMask(); }
+void InlinePropertyPresenter::popupRect(const QRectF &rect) {
+  const bool wasOpen = popupOpen();
+  popupRect_ = rect;
+  updateMask();
+  if (wasOpen != popupOpen()) { emit popupChanged(); }
+}
 void InlinePropertyPresenter::updateMask() {
   if (!widget_) { return; }
   auto region = QRegion(editorRect_.adjusted(-2, -2, 2, 2).toAlignedRect());
@@ -186,6 +196,30 @@ bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
       QTimer::singleShot(0, this, [this, token] { if (token == generation_) { reposition(); } });
     }
     if (event->type() == QEvent::MouseButtonPress) {
+      const auto *mouse = static_cast<QMouseEvent *>(event);
+      if (mouse->button() == Qt::LeftButton && name_ == QStringLiteral("prompt") && current()) {
+        const auto *item = scene_.nodeGraphicsObject(node_);
+        const auto local = item->mapFromScene(view_.mapToScene(view_.viewport()->mapFromGlobal(mouse->globalPosition().toPoint())));
+        for (const auto &row : model_.layout(node_).rows) {
+          if (row.action != QStringLiteral("insertVariable") || !row.rect.contains(local)) { continue; }
+          const auto field = widget_->rootObject()->findChild<QQuickItem *>(QStringLiteral("inline-multiline"));
+          if (!field) { break; }
+          auto text = field->property("text").toString();
+          const auto start = field->property("selectionStart").toInt();
+          const auto end = field->property("selectionEnd").toInt();
+          const auto inserted = QStringLiteral("{{ %1 }}").arg(row.value);
+          if (!field->property("editing").toBool()) {
+            field->setProperty("editBaseline", field->property("value"));
+            field->setProperty("editing", true);
+          }
+          text.replace(start, end - start, inserted);
+          field->setProperty("text", text);
+          field->setProperty("cursorPosition", start + inserted.size());
+          field->forceActiveFocus(Qt::MouseFocusReason);
+          event->accept();
+          return true;
+        }
+      }
       // A deliberate canvas blur commits before its pointer dispatch changes
       // selection. Programmatic selection/source changes still invalidate queued
       // writes. finish() has returned, so document projection cannot destroy a

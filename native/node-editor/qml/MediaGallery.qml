@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Controls.Basic as Basic
 import NodeTool.NodeEditor.Media 1.0
@@ -18,8 +19,25 @@ ColumnLayout {
     readonly property int count: gallery.count
     readonly property int currentIndex: gallery.currentIndex
     readonly property bool singleView: gallery.singleView
+    activeFocusOnTab: true
     spacing: Ui.Metrics.xs
+    function activate(index) {
+        const item = root.items[index]
+        gallery.open(index)
+        if (item && item.kind === "image") {
+            const images = root.items.filter(entry => entry.kind === "image")
+            const selectedIndex = images.findIndex(entry => entry.itemKey === item.itemKey)
+            imageViewer.transientParent = viewerHost.windowFor(root.Window.window)
+            imageViewer.openAt(images, selectedIndex, root)
+        }
+    }
+    onItemsChanged: imageViewer.sync(root.items.filter(item => item.kind === "image"))
+    onScopeKeyChanged: imageViewer.dismiss()
+    onActiveChanged: if (!active) imageViewer.dismiss()
+    MediaViewerHost { id: viewerHost }
+    ImageViewer { id: imageViewer; scopeKey: root.scopeKey }
     function release() {
+        imageViewer.dismiss()
         if (viewer.item && viewer.item.reset) viewer.item.reset()
         for (const tile of tiles.contentItem.children) { if (tile.release) tile.release() }
     }
@@ -32,6 +50,7 @@ ColumnLayout {
         NodeButton { objectName: "gallery-grid"; text: "Grid"; accessibleName: "Show output grid"; visible: gallery.singleView; variant: NodeButton.Flat; onClicked: gallery.showGrid() }
         NodeButton { objectName: "gallery-previous"; text: root.compact ? "‹" : "Previous"; accessibleName: "Previous output"; enabled: gallery.currentIndex > 0; variant: NodeButton.Flat; onClicked: gallery.open(gallery.currentIndex - 1) }
         Ui.Text { objectName: "gallery-position"; height: Ui.Metrics.compact; verticalAlignment: Text.AlignVCenter; text: (gallery.currentIndex + 1) + " / " + gallery.count; role: Ui.Typography.MonoCaption; elide: Text.ElideRight }
+        NodeButton { objectName: "gallery-copy"; text: "Copy"; accessibleName: "Copy selected image"; visible: gallery.singleView && root.selected.kind === "image"; variant: NodeButton.Flat; onClicked: { if (viewer.item && viewer.item.copyImage) viewer.item.copyImage() } }
         NodeButton { objectName: "gallery-download"; text: "Download"; accessibleName: "Download selected output"; visible: gallery.singleView && root.selected.kind === "image"; variant: NodeButton.Flat; onClicked: { if (viewer.item && viewer.item.download) viewer.item.download() } }
         NodeButton { objectName: "gallery-next"; text: root.compact ? "›" : "Next"; accessibleName: "Next output"; enabled: gallery.currentIndex + 1 < gallery.count; variant: NodeButton.Flat; onClicked: gallery.open(gallery.currentIndex + 1) }
     }
@@ -55,6 +74,8 @@ ColumnLayout {
             requestKey: root.scopeKey + ":selected:" + String(selectedPreview)
             fillPreview: root.compact && mediaKind === "image"
             compact: root.compact
+            onImageActivated: root.activate(gallery.currentIndex)
+            showDownload: mediaKind !== "image" || gallery.count <= 1
             compactPreviewHeight: root.compact && gallery.count > 1 ? Ui.Metrics.comfortable : mediaKind === "audio" ? Ui.Metrics.xxxl * 2 + Ui.Metrics.lg : Ui.Metrics.comfortable * 2
         }
     }
@@ -115,6 +136,7 @@ ColumnLayout {
                             locator: tile.galleryItem.locator
                             requestKey: root.scopeKey + ":tile:" + tile.galleryItem.itemKey + ':' + String(tile)
                             showFilename: false
+                            showDownload: false
                             fillPreview: true
                         }
                     }
@@ -133,14 +155,14 @@ ColumnLayout {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: tile.forceActiveFocus(Qt.MouseFocusReason)
-                    onDoubleClicked: gallery.open(tile.index)
+                    onDoubleClicked: root.activate(tile.index)
                 }
                 Accessible.role: Accessible.Button
                 Accessible.name: "Open output " + (index + 1)
-                Accessible.onPressAction: gallery.open(index)
+                Accessible.onPressAction: root.activate(index)
                 activeFocusOnTab: true
-                Keys.onReturnPressed: gallery.open(index)
-                Keys.onSpacePressed: gallery.open(index)
+                Keys.onReturnPressed: root.activate(index)
+                Keys.onSpacePressed: root.activate(index)
             }
         }
     }

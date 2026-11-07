@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import NodeTool.UiPrimitives as Ui
@@ -26,6 +27,27 @@ ColumnLayout {
     readonly property string uploadKey: requestKey + "-upload-" + generation
     property bool previewReady: true
     property bool multipleFiles: false
+    // A media list shows one click-or-drop zone instead of the library controls
+    // (web components/properties/ImageListProperty.tsx and its audio, video and text siblings).
+    property bool dropZoneOnly: false
+    readonly property string dropPrompt: mediaKind === "image" ? qsTr("Click or drop images here")
+        : mediaKind === "audio" ? qsTr("Click or drop audio files here")
+        : mediaKind === "video" ? qsTr("Click or drop videos here")
+        : mediaKind === "text" ? qsTr("Click or drop text files here") : qsTr("Click or drop files here")
+    readonly property string dropTooltip: mediaKind === "image" ? qsTr("Click to select images or drag and drop")
+        : mediaKind === "audio" ? qsTr("Click to select audio files or drag and drop")
+        : mediaKind === "video" ? qsTr("Click to select videos or drag and drop")
+        : mediaKind === "text" ? qsTr("Click to select text files or drag and drop") : qsTr("Click to select files or drag and drop")
+    function chooseFiles() {
+        if (!writable || !controller || uploading) return
+        editNodeId = nodeId
+        if (dialogProvider) {
+            const chosen = dialogProvider(mediaKind, picker.nameFilters)
+            uploadFiles(Array.isArray(chosen) ? chosen : [chosen])
+        } else {
+            picker.open()
+        }
+    }
     readonly property string mediaKind: descriptor ? descriptor.mediaType || (descriptor.dataType ? descriptor.dataType.type || "" : "") : ""
     property var uploadFilesPending: []
     property var uploadedReferences: []
@@ -217,6 +239,7 @@ ColumnLayout {
     }
     Ui.TextField {
         Layout.fillWidth: true
+        visible: !root.dropZoneOnly
         objectName: "asset-search-" + root.descriptor.name
         value: root.searchText
         accessibleName: "Search " + root.mediaKind + " assets"
@@ -225,6 +248,7 @@ ColumnLayout {
         onValueCommitted: value => { root.searchText = value; root.search(false) }
     }
     RowLayout {
+        visible: !root.dropZoneOnly
         spacing: Ui.Metrics.xs
         NodeButton {
             objectName: "asset-refresh-" + root.descriptor.name
@@ -248,6 +272,7 @@ ColumnLayout {
     }
     Ui.Select {
         objectName: "asset-select-" + root.descriptor.name
+        visible: !root.dropZoneOnly
         Layout.fillWidth: true
         accessibleName: "Select " + root.mediaKind + " asset"
         enabled: root.writable && !root.uploading && root.assets.length > 0
@@ -256,7 +281,7 @@ ColumnLayout {
         onValueCommitted: value => root.selectAsset(value)
     }
     NodeButton {
-        visible: root.nextCursor !== ""
+        visible: root.nextCursor !== "" && !root.dropZoneOnly
         text: "Load more assets"
         enabled: root.writable && !root.listing
         onClicked: root.search(true)
@@ -272,14 +297,55 @@ ColumnLayout {
     }
     Ui.Text {
         Layout.fillWidth: true
-        text: root.error || (!root.controller ? "Connect to a server to choose media." : root.listing ? "Loading assets…" : root.assets.length === 0 ? (root.searched ? "No matching assets. Change the search or upload a file." : "Browse your library or upload a file.") : "")
+        text: root.dropZoneOnly ? root.error : (root.error || (!root.controller ? "Connect to a server to choose media." : root.listing ? "Loading assets…" : root.assets.length === 0 ? (root.searched ? "No matching assets. Change the search or upload a file." : "Browse your library or upload a file.") : ""))
         visible: text !== ""
         role: Ui.Typography.SansCaption
         tone: root.error ? Ui.Text.Error : Ui.Text.Secondary
         wrapMode: Text.Wrap
     }
+    Rectangle {
+        id: dropZone
+        objectName: "media-list-drop-" + root.descriptor.name
+        visible: root.dropZoneOnly
+        Layout.fillWidth: true
+        implicitHeight: 80
+        radius: Ui.Metrics.radiusControl
+        readonly property bool over: zoneDrop.containsDrag || zoneHover.hovered || activeFocus
+        color: over ? Ui.Theme.actionSelected : Ui.Theme.surfaceInput
+        border.width: activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
+        border.color: activeFocus ? Ui.Theme.borderFocus : over ? Ui.Theme.textSecondary : Ui.Theme.borderSubtle
+        opacity: root.writable && root.controller ? 1 : 0.6
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Button
+        Accessible.name: root.dropTooltip
+        Accessible.onPressAction: root.chooseFiles()
+        Keys.onReturnPressed: root.chooseFiles()
+        Keys.onSpacePressed: root.chooseFiles()
+        HoverHandler {
+            id: zoneHover
+            onHoveredChanged: if (typeof editor !== "undefined" && editor) editor.showToolTip(hovered ? root.dropTooltip : "")
+        }
+        TapHandler { onTapped: root.chooseFiles() }
+        Ui.Text {
+            anchors.centerIn: parent
+            width: parent.width - Ui.Metrics.xl * 2
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            text: root.dropPrompt
+            font.capitalization: Font.AllUppercase
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
+        }
+        DropArea {
+            id: zoneDrop
+            anchors.fill: parent
+            enabled: root.writable && root.controller && !root.uploading
+            onDropped: drop => { if (drop.hasUrls) { root.uploadFiles(drop.urls); drop.acceptProposedAction() } }
+        }
+    }
     DropArea {
         objectName: "asset-drop-" + root.descriptor.name
+        visible: !root.dropZoneOnly
         Layout.fillWidth: true
         implicitHeight: Ui.Metrics.touch
         enabled: root.writable && root.controller && !root.uploading
@@ -289,6 +355,7 @@ ColumnLayout {
     Timer { id: previewRestart; interval: 0; onTriggered: root.previewReady = true }
     FileDialog {
         id: picker
+        parentWindow: root.Window.window
         title: "Upload " + root.mediaKind
         fileMode: root.multipleFiles ? FileDialog.OpenFiles : FileDialog.OpenFile
         nameFilters: root.mediaKind === "image" ? ["Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp *.svg)"]

@@ -1,0 +1,4024 @@
+{
+  "source": "web/src/lib/tools/builtin/searchNodes.ts",
+  "catalogs": {
+    "web-rank": [
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Image Resize",
+        "node_type": "image.Resize",
+        "namespace": "image"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Text Concat",
+        "node_type": "text.Concat",
+        "namespace": "text"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Image Blur",
+        "node_type": "image.Blur",
+        "namespace": "image"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Math Add",
+        "node_type": "math.Add",
+        "namespace": "math"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Add",
+        "node_type": "math.AddNumbers",
+        "namespace": "math"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Subtract",
+        "node_type": "math.Subtract",
+        "namespace": "math"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Alpha",
+        "node_type": "a.Alpha",
+        "namespace": "a"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "Alpha Two",
+        "node_type": "a.AlphaTwo",
+        "namespace": "a"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "A",
+        "node_type": "ns.A",
+        "namespace": "ns"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "title": "B",
+        "node_type": "ns.B",
+        "namespace": "ns"
+      }
+    ],
+    "web-search": [
+      {
+        "description": "Adds two numbers together",
+        "properties": [],
+        "outputs": [],
+        "namespace": "math",
+        "node_type": "math.add",
+        "title": "Add"
+      },
+      {
+        "description": "Subtracts one number from another",
+        "properties": [],
+        "outputs": [],
+        "namespace": "math",
+        "node_type": "math.subtract",
+        "title": "Subtract"
+      },
+      {
+        "description": "Joins strings together",
+        "properties": [],
+        "outputs": [],
+        "namespace": "string",
+        "node_type": "string.concat",
+        "title": "Concatenate"
+      },
+      {
+        "description": "A default node that should be filtered out",
+        "properties": [],
+        "outputs": [],
+        "namespace": "default",
+        "node_type": "default.node",
+        "title": "Default Node"
+      }
+    ],
+    "web-tool": [
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "huggingface.image.Generate",
+        "title": "HF Generate",
+        "namespace": "huggingface.image"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.image.Generate",
+        "title": "NT Generate",
+        "namespace": "nodetool.image"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "fal.image.Generate",
+        "title": "Fal Generate",
+        "namespace": "fal.image"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.text.Concat",
+        "title": "Concat",
+        "namespace": "nodetool.text"
+      },
+      {
+        "description": "",
+        "properties": [
+          {
+            "name": "template",
+            "type": {
+              "type": "str"
+            },
+            "required": true
+          }
+        ],
+        "outputs": [],
+        "node_type": "nodetool.text.Format",
+        "title": "Format",
+        "namespace": "nodetool.text"
+      },
+      {
+        "description": "Long description that should not be included.",
+        "properties": [
+          {
+            "name": "value",
+            "type": {
+              "type": "str"
+            },
+            "title": "Value",
+            "required": false,
+            "default": "",
+            "description": "Property description that should not be included."
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str"
+            },
+            "stream": false
+          }
+        ],
+        "node_type": "nodetool.constant.String",
+        "title": "String",
+        "namespace": "nodetool.constant"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node0",
+        "title": "Node 0",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node1",
+        "title": "Node 1",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node2",
+        "title": "Node 2",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node3",
+        "title": "Node 3",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node4",
+        "title": "Node 4",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node5",
+        "title": "Node 5",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node6",
+        "title": "Node 6",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node7",
+        "title": "Node 7",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node8",
+        "title": "Node 8",
+        "namespace": "nodetool.test"
+      },
+      {
+        "description": "",
+        "properties": [],
+        "outputs": [],
+        "node_type": "nodetool.test.Node9",
+        "title": "Node 9",
+        "namespace": "nodetool.test"
+      }
+    ],
+    "catalog": [
+      {
+        "description": "Concatenates two text values.\ntext, concat, join, combine\n\nUse cases:\n- Join prompt fragments\n- Build file names",
+        "properties": [
+          {
+            "name": "a",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            },
+            "required": true
+          },
+          {
+            "name": "b",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.text.Concat",
+        "title": "Concat",
+        "namespace": "nodetool.text"
+      },
+      {
+        "description": "Replaces placeholders in a template.\ntext, template, format\n\nUse cases:\nFill a prompt template from inputs",
+        "properties": [
+          {
+            "name": "template",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            },
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.text.FormatText",
+        "title": "Format Text",
+        "namespace": "nodetool.text"
+      },
+      {
+        "description": "Replaces text that matches a regular expression.\ntext, regex, replace, substitute",
+        "properties": [
+          {
+            "name": "text",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          },
+          {
+            "name": "pattern",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.text.RegexReplace",
+        "title": "Regex Replace",
+        "namespace": "nodetool.text"
+      },
+      {
+        "description": "A constant string.\nconstant, text, string",
+        "properties": [
+          {
+            "name": "value",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.constant.String",
+        "title": "String",
+        "namespace": "nodetool.constant"
+      },
+      {
+        "description": "A constant image.\nconstant, image, picture",
+        "properties": [
+          {
+            "name": "value",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.constant.Image",
+        "title": "Image",
+        "namespace": "nodetool.constant"
+      },
+      {
+        "description": "Generates an image from a text prompt with any provider.\nimage, generation, text-to-image, txt2img\n\nUse cases:\n- Create artwork from a prompt\n- Draft product shots",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            },
+            "required": true
+          },
+          {
+            "name": "width",
+            "type": {
+              "type": "int",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.image.TextToImage",
+        "title": "Text To Image",
+        "namespace": "nodetool.image"
+      },
+      {
+        "description": "Transforms an image guided by a prompt.\nimage, edit, img2img",
+        "properties": [
+          {
+            "name": "image",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            },
+            "required": true
+          },
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.image.ImageToImage",
+        "title": "Image To Image",
+        "namespace": "nodetool.image"
+      },
+      {
+        "description": "Resizes an image to the given size.\nimage, resize, scale",
+        "properties": [
+          {
+            "name": "image",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          },
+          {
+            "name": "width",
+            "type": {
+              "type": "int",
+              "optional": false,
+              "type_args": []
+            }
+          },
+          {
+            "name": "height",
+            "type": {
+              "type": "int",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.image.Resize",
+        "title": "Resize",
+        "namespace": "nodetool.image"
+      },
+      {
+        "description": "Resizes an image.\nimage, resize",
+        "properties": [
+          {
+            "name": "image",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.image.OldResize",
+        "title": "Resize (legacy)",
+        "namespace": "nodetool.image",
+        "deprecated": true
+      },
+      {
+        "description": "Generates a video clip from a text prompt.\nvideo, generation, text-to-video",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            },
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "video",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.video.TextToVideo",
+        "title": "Text To Video",
+        "namespace": "nodetool.video"
+      },
+      {
+        "description": "Reads text aloud with a speech model.\naudio, speech, tts, voice",
+        "properties": [
+          {
+            "name": "text",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            },
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "audio",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.audio.TextToSpeech",
+        "title": "Text To Speech",
+        "namespace": "nodetool.audio"
+      },
+      {
+        "description": "Runs a language model agent with tools.\nagent, llm, tools, chat",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          },
+          {
+            "name": "tools",
+            "type": {
+              "type": "list",
+              "optional": false,
+              "type_args": [
+                {
+                  "type": "any",
+                  "optional": false,
+                  "type_args": []
+                }
+              ]
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "text",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          },
+          {
+            "name": "chunk",
+            "type": {
+              "type": "chunk",
+              "optional": false,
+              "type_args": []
+            },
+            "stream": true
+          }
+        ],
+        "node_type": "nodetool.agents.Agent",
+        "title": "Agent",
+        "namespace": "nodetool.agents"
+      },
+      {
+        "description": "Runs JavaScript on its inputs.\ncode, javascript, script",
+        "properties": [
+          {
+            "name": "code",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [],
+        "node_type": "nodetool.code.Code",
+        "title": "Code",
+        "namespace": "nodetool.code"
+      },
+      {
+        "description": "A text value supplied when the workflow runs.\ninput, text, parameter",
+        "properties": [
+          {
+            "name": "value",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.input.StringInput",
+        "title": "String Input",
+        "namespace": "nodetool.input"
+      },
+      {
+        "description": "Applies a value to each list item.\nlist, map, iterate",
+        "properties": [
+          {
+            "name": "values",
+            "type": {
+              "type": "list",
+              "optional": false,
+              "type_args": [
+                {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              ]
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "list",
+              "optional": false,
+              "type_args": [
+                {
+                  "type": "any",
+                  "optional": false,
+                  "type_args": []
+                }
+              ]
+            }
+          }
+        ],
+        "node_type": "nodetool.list.Map",
+        "title": "Map",
+        "namespace": "nodetool.list"
+      },
+      {
+        "description": "Adds two numbers.\nmath, add, sum, plus",
+        "properties": [
+          {
+            "name": "a",
+            "type": {
+              "type": "union",
+              "optional": false,
+              "type_args": [
+                {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                },
+                {
+                  "type": "float",
+                  "optional": false,
+                  "type_args": []
+                }
+              ]
+            }
+          },
+          {
+            "name": "b",
+            "type": {
+              "type": "int",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "float",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.math.Add",
+        "title": "Add",
+        "namespace": "nodetool.math"
+      },
+      {
+        "description": "Picks one of a set of options.\nenum, choice, select",
+        "properties": [
+          {
+            "name": "option",
+            "type": {
+              "type": "enum",
+              "optional": false,
+              "type_args": [],
+              "type_name": "Mode",
+              "values": [
+                "a",
+                "b"
+              ]
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.text.Choice",
+        "title": "Choice",
+        "namespace": "nodetool.text"
+      },
+      {
+        "description": "An internal text step.\ntext, internal",
+        "properties": [
+          {
+            "name": "text",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "nodetool.internal.Step",
+        "title": "Internal Step",
+        "namespace": "nodetool.internal",
+        "hidden": true
+      },
+      {
+        "description": "Generates images with Stable Diffusion.\nimage, generation, diffusion, text-to-image",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "huggingface.image.StableDiffusion",
+        "title": "Stable Diffusion",
+        "namespace": "huggingface.image"
+      },
+      {
+        "description": "Generates text with a local model.\ntext, generation, llm",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "huggingface.text.TextGeneration",
+        "title": "Text Generation",
+        "namespace": "huggingface.text"
+      },
+      {
+        "description": "Generates images with FLUX.1 dev.\nimage, generation, flux",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "fal.image.FluxDev",
+        "title": "Flux Dev",
+        "namespace": "fal.image"
+      },
+      {
+        "description": "Creates an image with an OpenAI model.\nimage, generation, openai",
+        "properties": [
+          {
+            "name": "prompt",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "openai.image.CreateImage",
+        "title": "Create Image",
+        "namespace": "openai.image"
+      },
+      {
+        "description": "Runs any Replicate model.\nreplicate, model, dynamic",
+        "properties": [
+          {
+            "name": "model",
+            "type": {
+              "type": "str",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "any",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "replicate.DynamicReplicate",
+        "title": "Replicate",
+        "namespace": "replicate"
+      },
+      {
+        "description": "Adjusts image contrast and sharpness.\nimage, enhance, adjust",
+        "properties": [
+          {
+            "name": "image",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "name": "output",
+            "type": {
+              "type": "image",
+              "optional": false,
+              "type_args": []
+            }
+          }
+        ],
+        "node_type": "lib.pillow.Enhance",
+        "title": "Enhance",
+        "namespace": "lib.pillow"
+      },
+      {
+        "description": "A default namespace node.\nimage, text",
+        "properties": [],
+        "outputs": [],
+        "node_type": "default.Placeholder",
+        "title": "Placeholder",
+        "namespace": "default"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "catalog": "web-rank",
+      "args": {
+        "query": "image"
+      },
+      "result": {
+        "ok": true,
+        "query": "image",
+        "count": 2,
+        "total_matches": 2,
+        "results": [
+          {
+            "node_type": "image.Blur",
+            "title": "Image Blur",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.Resize",
+            "title": "Image Resize",
+            "namespace": "image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-rank",
+      "args": {
+        "query": "zzzzzzzzzzzzzzz"
+      },
+      "result": {
+        "ok": true,
+        "query": "zzzzzzzzzzzzzzz",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "web-rank",
+      "args": {
+        "query": "math"
+      },
+      "result": {
+        "ok": true,
+        "query": "math",
+        "count": 3,
+        "total_matches": 3,
+        "results": [
+          {
+            "node_type": "math.Add",
+            "title": "Math Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.AddNumbers",
+            "title": "Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.Subtract",
+            "title": "Subtract",
+            "namespace": "math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-rank",
+      "args": {
+        "query": "math.Add"
+      },
+      "result": {
+        "ok": true,
+        "query": "math.Add",
+        "count": 3,
+        "total_matches": 3,
+        "results": [
+          {
+            "node_type": "math.Add",
+            "title": "Math Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.AddNumbers",
+            "title": "Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.Subtract",
+            "title": "Subtract",
+            "namespace": "math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-rank",
+      "args": {
+        "query": "alpha"
+      },
+      "result": {
+        "ok": true,
+        "query": "alpha",
+        "count": 2,
+        "total_matches": 2,
+        "results": [
+          {
+            "node_type": "a.Alpha",
+            "title": "Alpha",
+            "namespace": "a"
+          },
+          {
+            "node_type": "a.AlphaTwo",
+            "title": "Alpha Two",
+            "namespace": "a"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-rank",
+      "args": {
+        "query": "",
+        "limit": 100
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 10,
+        "total_matches": 10,
+        "results": [
+          {
+            "node_type": "a.Alpha",
+            "title": "Alpha",
+            "namespace": "a"
+          },
+          {
+            "node_type": "a.AlphaTwo",
+            "title": "Alpha Two",
+            "namespace": "a"
+          },
+          {
+            "node_type": "image.Blur",
+            "title": "Image Blur",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.Resize",
+            "title": "Image Resize",
+            "namespace": "image"
+          },
+          {
+            "node_type": "math.Add",
+            "title": "Math Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.AddNumbers",
+            "title": "Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.Subtract",
+            "title": "Subtract",
+            "namespace": "math"
+          },
+          {
+            "node_type": "ns.A",
+            "title": "A",
+            "namespace": "ns"
+          },
+          {
+            "node_type": "ns.B",
+            "title": "B",
+            "namespace": "ns"
+          },
+          {
+            "node_type": "text.Concat",
+            "title": "Text Concat",
+            "namespace": "text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-search",
+      "args": {
+        "query": "",
+        "limit": 100
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 3,
+        "total_matches": 3,
+        "results": [
+          {
+            "node_type": "math.add",
+            "title": "Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.subtract",
+            "title": "Subtract",
+            "namespace": "math"
+          },
+          {
+            "node_type": "string.concat",
+            "title": "Concatenate",
+            "namespace": "string"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-search",
+      "args": {
+        "query": "Add"
+      },
+      "result": {
+        "ok": true,
+        "query": "Add",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "math.add",
+            "title": "Add",
+            "namespace": "math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-search",
+      "args": {
+        "query": "math"
+      },
+      "result": {
+        "ok": true,
+        "query": "math",
+        "count": 2,
+        "total_matches": 2,
+        "results": [
+          {
+            "node_type": "math.add",
+            "title": "Add",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.subtract",
+            "title": "Subtract",
+            "namespace": "math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-search",
+      "args": {
+        "query": "+"
+      },
+      "result": {
+        "ok": true,
+        "query": "+",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "web-search",
+      "args": {
+        "query": "string",
+        "input_type": "string"
+      },
+      "result": {
+        "ok": true,
+        "query": "string",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "web-search",
+      "args": {
+        "query": "",
+        "input_type": "string",
+        "output_type": "string",
+        "strict_match": true
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "generated-500",
+      "args": {
+        "query": "add"
+      },
+      "result": {
+        "ok": true,
+        "query": "add",
+        "count": 25,
+        "total_matches": 63,
+        "results": [
+          {
+            "node_type": "math.add8",
+            "title": "Add 8",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.sub0.add0",
+            "title": "Add 0",
+            "namespace": "math.sub0"
+          },
+          {
+            "node_type": "math.add104",
+            "title": "Add 104",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add112",
+            "title": "Add 112",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add128",
+            "title": "Add 128",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add136",
+            "title": "Add 136",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add152",
+            "title": "Add 152",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add16",
+            "title": "Add 16",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add160",
+            "title": "Add 160",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add176",
+            "title": "Add 176",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add184",
+            "title": "Add 184",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add200",
+            "title": "Add 200",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add208",
+            "title": "Add 208",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add224",
+            "title": "Add 224",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add232",
+            "title": "Add 232",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add248",
+            "title": "Add 248",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add256",
+            "title": "Add 256",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add272",
+            "title": "Add 272",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add280",
+            "title": "Add 280",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add296",
+            "title": "Add 296",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add304",
+            "title": "Add 304",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add32",
+            "title": "Add 32",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add320",
+            "title": "Add 320",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add328",
+            "title": "Add 328",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add344",
+            "title": "Add 344",
+            "namespace": "math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "generated-2000",
+      "args": {
+        "query": "process"
+      },
+      "result": {
+        "ok": true,
+        "query": "process",
+        "count": 25,
+        "total_matches": 250,
+        "results": [
+          {
+            "node_type": "video.process4",
+            "title": "Process 4",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process100",
+            "title": "Process 100",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1004",
+            "title": "Process 1004",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1012",
+            "title": "Process 1012",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1028",
+            "title": "Process 1028",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1036",
+            "title": "Process 1036",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1052",
+            "title": "Process 1052",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1060",
+            "title": "Process 1060",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1076",
+            "title": "Process 1076",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1084",
+            "title": "Process 1084",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1100",
+            "title": "Process 1100",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1108",
+            "title": "Process 1108",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1124",
+            "title": "Process 1124",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1132",
+            "title": "Process 1132",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1148",
+            "title": "Process 1148",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1156",
+            "title": "Process 1156",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process116",
+            "title": "Process 116",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1172",
+            "title": "Process 1172",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1180",
+            "title": "Process 1180",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1196",
+            "title": "Process 1196",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1204",
+            "title": "Process 1204",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1220",
+            "title": "Process 1220",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1228",
+            "title": "Process 1228",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process124",
+            "title": "Process 124",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process1244",
+            "title": "Process 1244",
+            "namespace": "video"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "generated-1000",
+      "args": {
+        "query": "test"
+      },
+      "result": {
+        "ok": true,
+        "query": "test",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "generated-1000",
+      "args": {
+        "query": "add"
+      },
+      "result": {
+        "ok": true,
+        "query": "add",
+        "count": 25,
+        "total_matches": 125,
+        "results": [
+          {
+            "node_type": "math.add8",
+            "title": "Add 8",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.sub0.add0",
+            "title": "Add 0",
+            "namespace": "math.sub0"
+          },
+          {
+            "node_type": "math.add104",
+            "title": "Add 104",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add112",
+            "title": "Add 112",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add128",
+            "title": "Add 128",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add136",
+            "title": "Add 136",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add152",
+            "title": "Add 152",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add16",
+            "title": "Add 16",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add160",
+            "title": "Add 160",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add176",
+            "title": "Add 176",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add184",
+            "title": "Add 184",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add200",
+            "title": "Add 200",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add208",
+            "title": "Add 208",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add224",
+            "title": "Add 224",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add232",
+            "title": "Add 232",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add248",
+            "title": "Add 248",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add256",
+            "title": "Add 256",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add272",
+            "title": "Add 272",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add280",
+            "title": "Add 280",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add296",
+            "title": "Add 296",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add304",
+            "title": "Add 304",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add32",
+            "title": "Add 32",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add320",
+            "title": "Add 320",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add328",
+            "title": "Add 328",
+            "namespace": "math"
+          },
+          {
+            "node_type": "math.add344",
+            "title": "Add 344",
+            "namespace": "math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "generated-1000",
+      "args": {
+        "query": "sub"
+      },
+      "result": {
+        "ok": true,
+        "query": "sub",
+        "count": 25,
+        "total_matches": 417,
+        "results": [
+          {
+            "node_type": "string.sub0.subtract9",
+            "title": "Subtract 9",
+            "namespace": "string.sub0"
+          },
+          {
+            "node_type": "string.sub10.subtract105",
+            "title": "Subtract 105",
+            "namespace": "string.sub10"
+          },
+          {
+            "node_type": "string.sub12.subtract129",
+            "title": "Subtract 129",
+            "namespace": "string.sub12"
+          },
+          {
+            "node_type": "string.sub15.subtract153",
+            "title": "Subtract 153",
+            "namespace": "string.sub15"
+          },
+          {
+            "node_type": "string.sub17.subtract177",
+            "title": "Subtract 177",
+            "namespace": "string.sub17"
+          },
+          {
+            "node_type": "string.sub20.subtract201",
+            "title": "Subtract 201",
+            "namespace": "string.sub20"
+          },
+          {
+            "node_type": "string.sub22.subtract225",
+            "title": "Subtract 225",
+            "namespace": "string.sub22"
+          },
+          {
+            "node_type": "string.sub24.subtract249",
+            "title": "Subtract 249",
+            "namespace": "string.sub24"
+          },
+          {
+            "node_type": "string.sub27.subtract273",
+            "title": "Subtract 273",
+            "namespace": "string.sub27"
+          },
+          {
+            "node_type": "string.sub29.subtract297",
+            "title": "Subtract 297",
+            "namespace": "string.sub29"
+          },
+          {
+            "node_type": "string.sub3.subtract33",
+            "title": "Subtract 33",
+            "namespace": "string.sub3"
+          },
+          {
+            "node_type": "string.sub32.subtract321",
+            "title": "Subtract 321",
+            "namespace": "string.sub32"
+          },
+          {
+            "node_type": "string.sub34.subtract345",
+            "title": "Subtract 345",
+            "namespace": "string.sub34"
+          },
+          {
+            "node_type": "string.sub36.subtract369",
+            "title": "Subtract 369",
+            "namespace": "string.sub36"
+          },
+          {
+            "node_type": "string.sub39.subtract393",
+            "title": "Subtract 393",
+            "namespace": "string.sub39"
+          },
+          {
+            "node_type": "string.sub41.subtract417",
+            "title": "Subtract 417",
+            "namespace": "string.sub41"
+          },
+          {
+            "node_type": "string.sub44.subtract441",
+            "title": "Subtract 441",
+            "namespace": "string.sub44"
+          },
+          {
+            "node_type": "string.sub46.subtract465",
+            "title": "Subtract 465",
+            "namespace": "string.sub46"
+          },
+          {
+            "node_type": "string.sub48.subtract489",
+            "title": "Subtract 489",
+            "namespace": "string.sub48"
+          },
+          {
+            "node_type": "string.sub5.subtract57",
+            "title": "Subtract 57",
+            "namespace": "string.sub5"
+          },
+          {
+            "node_type": "string.sub51.subtract513",
+            "title": "Subtract 513",
+            "namespace": "string.sub51"
+          },
+          {
+            "node_type": "string.sub53.subtract537",
+            "title": "Subtract 537",
+            "namespace": "string.sub53"
+          },
+          {
+            "node_type": "string.sub56.subtract561",
+            "title": "Subtract 561",
+            "namespace": "string.sub56"
+          },
+          {
+            "node_type": "string.sub58.subtract585",
+            "title": "Subtract 585",
+            "namespace": "string.sub58"
+          },
+          {
+            "node_type": "string.sub60.subtract609",
+            "title": "Subtract 609",
+            "namespace": "string.sub60"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "generated-1000",
+      "args": {
+        "query": "mul"
+      },
+      "result": {
+        "ok": true,
+        "query": "mul",
+        "count": 25,
+        "total_matches": 125,
+        "results": [
+          {
+            "node_type": "image.multiply10",
+            "title": "Multiply 10",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply106",
+            "title": "Multiply 106",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply122",
+            "title": "Multiply 122",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply130",
+            "title": "Multiply 130",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply146",
+            "title": "Multiply 146",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply154",
+            "title": "Multiply 154",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply170",
+            "title": "Multiply 170",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply178",
+            "title": "Multiply 178",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply194",
+            "title": "Multiply 194",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply2",
+            "title": "Multiply 2",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply202",
+            "title": "Multiply 202",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply218",
+            "title": "Multiply 218",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply226",
+            "title": "Multiply 226",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply242",
+            "title": "Multiply 242",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply250",
+            "title": "Multiply 250",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply26",
+            "title": "Multiply 26",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply266",
+            "title": "Multiply 266",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply274",
+            "title": "Multiply 274",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply290",
+            "title": "Multiply 290",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply298",
+            "title": "Multiply 298",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply314",
+            "title": "Multiply 314",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply322",
+            "title": "Multiply 322",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply338",
+            "title": "Multiply 338",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply34",
+            "title": "Multiply 34",
+            "namespace": "image"
+          },
+          {
+            "node_type": "image.multiply346",
+            "title": "Multiply 346",
+            "namespace": "image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "generated-1000",
+      "args": {
+        "query": "div"
+      },
+      "result": {
+        "ok": true,
+        "query": "div",
+        "count": 25,
+        "total_matches": 125,
+        "results": [
+          {
+            "node_type": "audio.divide107",
+            "title": "Divide 107",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide11",
+            "title": "Divide 11",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide115",
+            "title": "Divide 115",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide131",
+            "title": "Divide 131",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide139",
+            "title": "Divide 139",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide155",
+            "title": "Divide 155",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide163",
+            "title": "Divide 163",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide179",
+            "title": "Divide 179",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide187",
+            "title": "Divide 187",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide19",
+            "title": "Divide 19",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide203",
+            "title": "Divide 203",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide211",
+            "title": "Divide 211",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide227",
+            "title": "Divide 227",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide235",
+            "title": "Divide 235",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide251",
+            "title": "Divide 251",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide259",
+            "title": "Divide 259",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide275",
+            "title": "Divide 275",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide283",
+            "title": "Divide 283",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide299",
+            "title": "Divide 299",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide307",
+            "title": "Divide 307",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide323",
+            "title": "Divide 323",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide331",
+            "title": "Divide 331",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide347",
+            "title": "Divide 347",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide35",
+            "title": "Divide 35",
+            "namespace": "audio"
+          },
+          {
+            "node_type": "audio.divide355",
+            "title": "Divide 355",
+            "namespace": "audio"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "generated-1000",
+      "args": {
+        "query": "proc"
+      },
+      "result": {
+        "ok": true,
+        "query": "proc",
+        "count": 25,
+        "total_matches": 125,
+        "results": [
+          {
+            "node_type": "video.process100",
+            "title": "Process 100",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process116",
+            "title": "Process 116",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process124",
+            "title": "Process 124",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process140",
+            "title": "Process 140",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process148",
+            "title": "Process 148",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process164",
+            "title": "Process 164",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process172",
+            "title": "Process 172",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process188",
+            "title": "Process 188",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process196",
+            "title": "Process 196",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process20",
+            "title": "Process 20",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process212",
+            "title": "Process 212",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process220",
+            "title": "Process 220",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process236",
+            "title": "Process 236",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process244",
+            "title": "Process 244",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process260",
+            "title": "Process 260",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process268",
+            "title": "Process 268",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process28",
+            "title": "Process 28",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process284",
+            "title": "Process 284",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process292",
+            "title": "Process 292",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process308",
+            "title": "Process 308",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process316",
+            "title": "Process 316",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process332",
+            "title": "Process 332",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process340",
+            "title": "Process 340",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process356",
+            "title": "Process 356",
+            "namespace": "video"
+          },
+          {
+            "node_type": "video.process364",
+            "title": "Process 364",
+            "namespace": "video"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-tool",
+      "args": {
+        "query": "concat"
+      },
+      "result": {
+        "ok": true,
+        "query": "concat",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-tool",
+      "args": {
+        "query": "format",
+        "include_properties": true
+      },
+      "result": {
+        "ok": true,
+        "query": "format",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.text.Format",
+            "title": "Format",
+            "namespace": "nodetool.text",
+            "properties": [
+              {
+                "name": "template",
+                "type": {
+                  "type": "str"
+                },
+                "required": true
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "template",
+                "type": {
+                  "type": "str"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-tool",
+      "args": {
+        "query": "node",
+        "limit": 3
+      },
+      "result": {
+        "ok": true,
+        "query": "node",
+        "count": 3,
+        "total_matches": 14,
+        "results": [
+          {
+            "node_type": "nodetool.test.Node0",
+            "title": "Node 0",
+            "namespace": "nodetool.test"
+          },
+          {
+            "node_type": "nodetool.test.Node1",
+            "title": "Node 1",
+            "namespace": "nodetool.test"
+          },
+          {
+            "node_type": "nodetool.test.Node2",
+            "title": "Node 2",
+            "namespace": "nodetool.test"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-tool",
+      "args": {
+        "query": "generate"
+      },
+      "result": {
+        "ok": true,
+        "query": "generate",
+        "count": 3,
+        "total_matches": 3,
+        "results": [
+          {
+            "node_type": "nodetool.image.Generate",
+            "title": "NT Generate",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "fal.image.Generate",
+            "title": "Fal Generate",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "huggingface.image.Generate",
+            "title": "HF Generate",
+            "namespace": "huggingface.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "web-tool",
+      "args": {
+        "query": "nonexistent"
+      },
+      "result": {
+        "ok": true,
+        "query": "nonexistent",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "web-tool",
+      "args": {
+        "query": "string",
+        "include_properties": "true",
+        "include_outputs": "true",
+        "strict_match": "false"
+      },
+      "result": {
+        "ok": true,
+        "query": "string",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant",
+            "properties": [
+              {
+                "name": "value",
+                "type": {
+                  "type": "str"
+                },
+                "required": false
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "value",
+                "type": {
+                  "type": "str"
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "str"
+                },
+                "stream": false
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "str"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "image"
+      },
+      "result": {
+        "ok": true,
+        "query": "image",
+        "count": 9,
+        "total_matches": 9,
+        "results": [
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "lib.pillow.Enhance",
+            "title": "Enhance",
+            "namespace": "lib.pillow"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "text to image"
+      },
+      "result": {
+        "ok": true,
+        "query": "text to image",
+        "count": 22,
+        "total_matches": 22,
+        "results": [
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.audio.TextToSpeech",
+            "title": "Text To Speech",
+            "namespace": "nodetool.audio"
+          },
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.RegexReplace",
+            "title": "Regex Replace",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.Choice",
+            "title": "Choice",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.agents.Agent",
+            "title": "Agent",
+            "namespace": "nodetool.agents"
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.input.StringInput",
+            "title": "String Input",
+            "namespace": "nodetool.input"
+          },
+          {
+            "node_type": "nodetool.code.Code",
+            "title": "Code",
+            "namespace": "nodetool.code"
+          },
+          {
+            "node_type": "nodetool.list.Map",
+            "title": "Map",
+            "namespace": "nodetool.list"
+          },
+          {
+            "node_type": "nodetool.math.Add",
+            "title": "Add",
+            "namespace": "nodetool.math"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "lib.pillow.Enhance",
+            "title": "Enhance",
+            "namespace": "lib.pillow"
+          },
+          {
+            "node_type": "huggingface.text.TextGeneration",
+            "title": "Text Generation",
+            "namespace": "huggingface.text"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "txt2img"
+      },
+      "result": {
+        "ok": true,
+        "query": "txt2img",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "imgae"
+      },
+      "result": {
+        "ok": true,
+        "query": "imgae",
+        "count": 8,
+        "total_matches": 8,
+        "results": [
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "resize image",
+        "include_properties": true,
+        "include_outputs": true
+      },
+      "result": {
+        "ok": true,
+        "query": "resize image",
+        "count": 9,
+        "total_matches": 9,
+        "results": [
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image",
+            "properties": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              },
+              {
+                "name": "width",
+                "type": {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                }
+              },
+              {
+                "name": "height",
+                "type": {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              },
+              {
+                "name": "width",
+                "type": {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                }
+              },
+              {
+                "name": "height",
+                "type": {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image",
+            "properties": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                },
+                "required": true
+              },
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              },
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image",
+            "properties": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                },
+                "required": true
+              },
+              {
+                "name": "width",
+                "type": {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              },
+              {
+                "name": "width",
+                "type": {
+                  "type": "int",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant",
+            "properties": [
+              {
+                "name": "value",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "value",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image",
+            "properties": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image",
+            "properties": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image",
+            "properties": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "lib.pillow.Enhance",
+            "title": "Enhance",
+            "namespace": "lib.pillow",
+            "properties": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "image",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image",
+            "properties": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "input_handles": [
+              {
+                "name": "prompt",
+                "type": {
+                  "type": "str",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ],
+            "output_handles": [
+              {
+                "name": "output",
+                "type": {
+                  "type": "image",
+                  "optional": false,
+                  "type_args": []
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "nodetool.text"
+      },
+      "result": {
+        "ok": true,
+        "query": "nodetool.text",
+        "count": 19,
+        "total_matches": 19,
+        "results": [
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.audio.TextToSpeech",
+            "title": "Text To Speech",
+            "namespace": "nodetool.audio"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.RegexReplace",
+            "title": "Regex Replace",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.Choice",
+            "title": "Choice",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.input.StringInput",
+            "title": "String Input",
+            "namespace": "nodetool.input"
+          },
+          {
+            "node_type": "nodetool.agents.Agent",
+            "title": "Agent",
+            "namespace": "nodetool.agents"
+          },
+          {
+            "node_type": "nodetool.code.Code",
+            "title": "Code",
+            "namespace": "nodetool.code"
+          },
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.list.Map",
+            "title": "Map",
+            "namespace": "nodetool.list"
+          },
+          {
+            "node_type": "nodetool.math.Add",
+            "title": "Add",
+            "namespace": "nodetool.math"
+          },
+          {
+            "node_type": "huggingface.text.TextGeneration",
+            "title": "Text Generation",
+            "namespace": "huggingface.text"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "flux"
+      },
+      "result": {
+        "ok": true,
+        "query": "flux",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "speech"
+      },
+      "result": {
+        "ok": true,
+        "query": "speech",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.audio.TextToSpeech",
+            "title": "Text To Speech",
+            "namespace": "nodetool.audio"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "  Concat  "
+      },
+      "result": {
+        "ok": true,
+        "query": "Concat",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "prompt fragments"
+      },
+      "result": {
+        "ok": true,
+        "query": "prompt fragments",
+        "count": 5,
+        "total_matches": 5,
+        "results": [
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "rgx"
+      },
+      "result": {
+        "ok": true,
+        "query": "rgx",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "generation",
+        "limit": 4
+      },
+      "result": {
+        "ok": true,
+        "query": "generation",
+        "count": 4,
+        "total_matches": 6,
+        "results": [
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "limit": 100
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 23,
+        "total_matches": 23,
+        "results": [
+          {
+            "node_type": "nodetool.agents.Agent",
+            "title": "Agent",
+            "namespace": "nodetool.agents"
+          },
+          {
+            "node_type": "nodetool.audio.TextToSpeech",
+            "title": "Text To Speech",
+            "namespace": "nodetool.audio"
+          },
+          {
+            "node_type": "nodetool.code.Code",
+            "title": "Code",
+            "namespace": "nodetool.code"
+          },
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.input.StringInput",
+            "title": "String Input",
+            "namespace": "nodetool.input"
+          },
+          {
+            "node_type": "nodetool.list.Map",
+            "title": "Map",
+            "namespace": "nodetool.list"
+          },
+          {
+            "node_type": "nodetool.math.Add",
+            "title": "Add",
+            "namespace": "nodetool.math"
+          },
+          {
+            "node_type": "nodetool.text.Choice",
+            "title": "Choice",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.RegexReplace",
+            "title": "Regex Replace",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "replicate.DynamicReplicate",
+            "title": "Replicate",
+            "namespace": "replicate"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "lib.pillow.Enhance",
+            "title": "Enhance",
+            "namespace": "lib.pillow"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          },
+          {
+            "node_type": "huggingface.text.TextGeneration",
+            "title": "Text Generation",
+            "namespace": "huggingface.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "input_type": "str"
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 18,
+        "total_matches": 18,
+        "results": [
+          {
+            "node_type": "nodetool.agents.Agent",
+            "title": "Agent",
+            "namespace": "nodetool.agents"
+          },
+          {
+            "node_type": "nodetool.audio.TextToSpeech",
+            "title": "Text To Speech",
+            "namespace": "nodetool.audio"
+          },
+          {
+            "node_type": "nodetool.code.Code",
+            "title": "Code",
+            "namespace": "nodetool.code"
+          },
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.input.StringInput",
+            "title": "String Input",
+            "namespace": "nodetool.input"
+          },
+          {
+            "node_type": "nodetool.list.Map",
+            "title": "Map",
+            "namespace": "nodetool.list"
+          },
+          {
+            "node_type": "nodetool.text.Choice",
+            "title": "Choice",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.RegexReplace",
+            "title": "Regex Replace",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "replicate.DynamicReplicate",
+            "title": "Replicate",
+            "namespace": "replicate"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          },
+          {
+            "node_type": "huggingface.text.TextGeneration",
+            "title": "Text Generation",
+            "namespace": "huggingface.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "output_type": "image"
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 10,
+        "total_matches": 10,
+        "results": [
+          {
+            "node_type": "nodetool.constant.Image",
+            "title": "Image",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.OldResize",
+            "title": "Resize (legacy)",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "replicate.DynamicReplicate",
+            "title": "Replicate",
+            "namespace": "replicate"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "lib.pillow.Enhance",
+            "title": "Enhance",
+            "namespace": "lib.pillow"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "text",
+        "input_type": "str",
+        "output_type": "str"
+      },
+      "result": {
+        "ok": true,
+        "query": "text",
+        "count": 7,
+        "total_matches": 7,
+        "results": [
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.RegexReplace",
+            "title": "Regex Replace",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.Choice",
+            "title": "Choice",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.input.StringInput",
+            "title": "String Input",
+            "namespace": "nodetool.input"
+          },
+          {
+            "node_type": "huggingface.text.TextGeneration",
+            "title": "Text Generation",
+            "namespace": "huggingface.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "input_type": "any",
+        "limit": 100
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 0,
+        "total_matches": 0,
+        "results": []
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "input_type": "int",
+        "strict_match": true
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 3,
+        "total_matches": 3,
+        "results": [
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.Resize",
+            "title": "Resize",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.math.Add",
+            "title": "Add",
+            "namespace": "nodetool.math"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "output_type": "notype",
+        "strict_match": true
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.code.Code",
+            "title": "Code",
+            "namespace": "nodetool.code"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "",
+        "input_type": "enum"
+      },
+      "result": {
+        "ok": true,
+        "query": "",
+        "count": 17,
+        "total_matches": 17,
+        "results": [
+          {
+            "node_type": "nodetool.agents.Agent",
+            "title": "Agent",
+            "namespace": "nodetool.agents"
+          },
+          {
+            "node_type": "nodetool.audio.TextToSpeech",
+            "title": "Text To Speech",
+            "namespace": "nodetool.audio"
+          },
+          {
+            "node_type": "nodetool.code.Code",
+            "title": "Code",
+            "namespace": "nodetool.code"
+          },
+          {
+            "node_type": "nodetool.constant.String",
+            "title": "String",
+            "namespace": "nodetool.constant"
+          },
+          {
+            "node_type": "nodetool.image.ImageToImage",
+            "title": "Image To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.image.TextToImage",
+            "title": "Text To Image",
+            "namespace": "nodetool.image"
+          },
+          {
+            "node_type": "nodetool.video.TextToVideo",
+            "title": "Text To Video",
+            "namespace": "nodetool.video"
+          },
+          {
+            "node_type": "nodetool.input.StringInput",
+            "title": "String Input",
+            "namespace": "nodetool.input"
+          },
+          {
+            "node_type": "nodetool.list.Map",
+            "title": "Map",
+            "namespace": "nodetool.list"
+          },
+          {
+            "node_type": "nodetool.text.Concat",
+            "title": "Concat",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.FormatText",
+            "title": "Format Text",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "nodetool.text.RegexReplace",
+            "title": "Regex Replace",
+            "namespace": "nodetool.text"
+          },
+          {
+            "node_type": "replicate.DynamicReplicate",
+            "title": "Replicate",
+            "namespace": "replicate"
+          },
+          {
+            "node_type": "fal.image.FluxDev",
+            "title": "Flux Dev",
+            "namespace": "fal.image"
+          },
+          {
+            "node_type": "openai.image.CreateImage",
+            "title": "Create Image",
+            "namespace": "openai.image"
+          },
+          {
+            "node_type": "huggingface.image.StableDiffusion",
+            "title": "Stable Diffusion",
+            "namespace": "huggingface.image"
+          },
+          {
+            "node_type": "huggingface.text.TextGeneration",
+            "title": "Text Generation",
+            "namespace": "huggingface.text"
+          }
+        ]
+      }
+    },
+    {
+      "catalog": "catalog",
+      "args": {
+        "query": "list",
+        "input_type": "str"
+      },
+      "result": {
+        "ok": true,
+        "query": "list",
+        "count": 1,
+        "total_matches": 1,
+        "results": [
+          {
+            "node_type": "nodetool.list.Map",
+            "title": "Map",
+            "namespace": "nodetool.list"
+          }
+        ]
+      }
+    }
+  ]
+}
