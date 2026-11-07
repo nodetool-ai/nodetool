@@ -31,11 +31,24 @@ struct CardBodyInput {
     int outputCount = 0;
     QHash<QString, QVariantMap> fields;
     bool dimensionsLinked = false;
+    // Names published by Set Variable nodes anywhere in the workflow, sorted.
+    QStringList graphVariables;
+    // The selected preview tab of a Before/After or Mask body, empty for its default.
+    QString previewTab;
 };
 
-// Lays out a Prompt, Output, Preview, Blur or Resize Image body: its rows, port
-// positions, result area and natural size. The caller applies a user resize.
+// Lays out a bespoke body: its rows, port positions, result area and size. A
+// body whose web preview-area flexes grows it to fill an authored height or
+// the web default height, and records the growth in NodeLayout::flexHeight.
 void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input);
+
+// The type of a Set Variable node, whose name the Prompt and Get Variable bodies offer.
+inline constexpr auto setVariableType = "nodetool.variable.SetVariable";
+// Every variable name defined by a Set Variable node, as collectVariableNames
+// in web/src/components/node_types/editing/variableGraph.ts.
+QStringList graphVariableNames(const QJsonArray &nodes);
+// Bodies whose layout reads the graph's variable names.
+bool readsGraphVariables(CardBody body);
 
 // A slider row's track, the value under a card-local x, and the value label.
 QRectF sliderTrack(const NodeRow &row);

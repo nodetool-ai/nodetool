@@ -31,6 +31,25 @@ double textWidth(const QString &text) {
     return QFontMetricsF(font).horizontalAdvance(text);
 }
 
+QFont bodyFont(int pixels, bool medium = false, bool mono = false) {
+    QFont font(mono ? QStringLiteral("JetBrains Mono") : QStringLiteral("Inter"));
+    font.setPixelSize(pixels);
+    font.setWeight(medium ? QFont::Medium : QFont::Normal);
+    return font;
+}
+
+double captionWidth(const QString &text, bool medium = false, bool mono = false) {
+    return QFontMetricsF(bodyFont(nm::fontValue, medium, mono)).horizontalAdvance(text);
+}
+
+// The height of text wrapped at a width, in lines of lineHeight em.
+double wrappedHeight(const QString &text, const QFont &font, double width, double lineHeight) {
+    const QFontMetricsF metrics(font);
+    const auto bounds = metrics.boundingRect(QRectF(0, 0, std::max(1.0, width), 1e6), Qt::TextWordWrap, text);
+    const auto lines = std::max(1.0, std::round(bounds.height() / metrics.lineSpacing()));
+    return lines * font.pixelSize() * lineHeight;
+}
+
 // Places a port's handle on the card edge when the port exists.
 void placePort(NodeLayout &layout, const QJsonArray &inputs, const QString &name, double y) {
     const auto index = portIndex(inputs, name);
@@ -112,37 +131,61 @@ void layoutPrompt(NodeLayout &layout, const CardBodyInput &input) {
                                QRectF(x, nm::bodyTop, width - 2 * x, nm::composerHeight));
     composer.value = prompt;
     composer.placeholder = prompt.isEmpty();
+    // Set Variable names resolve at run time, so the composer treats them as known.
     composer.options = dynamic.keys();
+    for (const auto &name : input.graphVariables) {
+        if (!composer.options.contains(name)) {
+            composer.options.append(name);
+        }
+    }
     // A connected prompt is read-only. The web still draws its text at full contrast.
     composer.checked = field.value("connected").toBool();
     layout.rows.append(composer);
     // Retain the canonical endpoint position even though the prompt handle is hidden.
     placePort(layout, input.inputs, QStringLiteral("prompt"), nm::contentTop + nm::rowHeight / 2.0);
     auto y = nm::bodyTop + nm::composerHeight + nm::micro;
-    const QRectF bar(x, y, width - 2 * x, nm::variableBarHeight);
+    // The variable bar is a wrapping flex row, so an item that does not fit
+    // starts a new line below the last.
+    const auto right = width - x;
+    auto line = QRectF(x, y, width - 2 * x, nm::variableBarHeight);
     auto chipX = x;
+    const auto place = [&](double itemWidth) {
+        if (chipX > x && chipX + itemWidth > right) {
+            // A wrapped line holds the 28 px button 2 px below the last.
+            line.translate(0, nm::actionHeight + nm::micro);
+            chipX = x;
+        }
+        const auto left = chipX;
+        chipX += itemWidth + nm::chipGap;
+        return left;
+    };
     if (!promptVariables(prompt).isEmpty()) {
         const auto label = QObject::tr("Variables");
-        layout.rows.append(labelRow(label, QRectF(chipX, bar.y(), textWidth(label), bar.height())));
-        chipX += textWidth(label) + nm::chipGap;
+        const auto left = place(textWidth(label));
+        layout.rows.append(labelRow(label, QRectF(left, line.y(), textWidth(label), line.height())));
     }
-    for (const auto &name : dynamic.keys()) {
+    // The node's own inputs come first, then the Set Variable names it lacks,
+    // which the web accents as coming from elsewhere in the graph.
+    for (const auto &name : composer.options) {
         const auto text = QStringLiteral("{{ %1 }}").arg(name);
+        const auto chipWidth = std::min(right - x, textWidth(text) + 2 * nm::chipPadding);
+        const auto left = place(chipWidth);
         auto chip = controlRow(NodeRowKind::Action, {}, text,
-                               QRectF(chipX, bar.center().y() - nm::chipHeight / 2.0, textWidth(text) + 2 * nm::chipPadding, nm::chipHeight));
+                               QRectF(left, line.center().y() - nm::chipHeight / 2.0, chipWidth, nm::chipHeight));
         chip.action = QStringLiteral("insertVariable");
         chip.value = name;
         chip.bare = true;
+        chip.checked = !dynamic.contains(name);
         layout.rows.append(chip);
-        chipX = chip.rect.right() + nm::chipGap;
     }
     const auto addLabel = QObject::tr("Add another variable");
-    const auto buttonWidth = std::min(bar.right() - chipX, textWidth(addLabel) + nm::iconSize + 4 * nm::chipPadding);
+    const auto buttonWidth = std::min(right - x, textWidth(addLabel) + nm::iconSize + 4 * nm::chipPadding);
+    const auto addLeft = place(buttonWidth);
     auto add = controlRow(NodeRowKind::Action, {}, addLabel,
-                          QRectF(chipX, bar.center().y() - nm::actionHeight / 2.0, buttonWidth, nm::actionHeight));
+                          QRectF(addLeft, line.center().y() - nm::actionHeight / 2.0, buttonWidth, nm::actionHeight));
     add.action = QStringLiteral("addVariable");
     layout.rows.append(add);
-    y = bar.bottom();
+    y = line.bottom();
     // Each variable is a dynamic input row with its own handle, as the composer's NodeInputs.
     for (int i = 0; i < input.inputs.size(); ++i) {
         const auto name = input.inputs[i].toObject()["name"].toString();
@@ -195,7 +238,8 @@ void layoutPreview(NodeLayout &layout, const CardBodyInput &input) {
 // image handle over its left edge.
 double imagePreview(NodeLayout &layout, const CardBodyInput &input) {
     const auto x = double(nm::borderWidth + nm::padding + nm::micro);
-    const QRectF area(x, nm::bodyTop, layout.size.width() - 2 * x, nm::imagePreviewHeight);
+    // BlurBody.tsx and ResizeImageBody.tsx: .preview-area minHeight 96.
+    const QRectF area(x, nm::bodyTop, layout.size.width() - 2 * x, nm::imageBodyPreviewHeight);
     layout.rows.append(placeholderRow(QObject::tr("Connect an image, then run"), QStringLiteral("image"), area));
     layout.resultRect = area;
     placePort(layout, input.inputs, QStringLiteral("image"), nm::contentTop + nm::rowHeight / 2.0);
@@ -205,7 +249,8 @@ double imagePreview(NodeLayout &layout, const CardBodyInput &input) {
 void layoutBlur(NodeLayout &layout, const CardBodyInput &input) {
     const auto width = double(layout.size.width());
     const auto x = double(nm::borderWidth + nm::padding + nm::micro);
-    auto y = imagePreview(layout, input) + nm::controlGap;
+    // The body's 2 px gap and the controls grid's 2 px top padding.
+    auto y = imagePreview(layout, input) + nm::bodyGap + nm::bodyGap;
     const QRectF select(x + nm::controlLabelWidth, y, width - 2 * x - nm::controlLabelWidth, nm::controlHeight);
     layout.rows.append(selectRow(input.fields.value(QStringLiteral("blur_type")), QStringLiteral("blur_type"), QObject::tr("Type"), select));
     placePort(layout, input.inputs, QStringLiteral("blur_type"), select.center().y());
@@ -220,7 +265,7 @@ void layoutBlur(NodeLayout &layout, const CardBodyInput &input) {
 void layoutResizeImage(NodeLayout &layout, const CardBodyInput &input) {
     const auto width = double(layout.size.width());
     const auto x = double(nm::borderWidth + nm::padding + nm::micro);
-    auto y = imagePreview(layout, input) + nm::padding - 1;
+    auto y = imagePreview(layout, input) + nm::bodyGap;
     const auto modeField = input.fields.value(QStringLiteral("mode"));
     const auto mode = fieldValue(modeField).toString().isEmpty() ? QStringLiteral("dimensions") : fieldValue(modeField).toString();
     auto modes = controlRow(NodeRowKind::Segmented, QStringLiteral("mode"), QObject::tr("Resize mode"),
@@ -287,6 +332,560 @@ void layoutResizeImage(NodeLayout &layout, const CardBodyInput &input) {
     }
     layout.size.setHeight(int(std::ceil(bottom + nm::padding + nm::padding + nm::borderWidth)));
 }
+
+// A web preview-area is flex 1 1 auto, so a card taller than its natural size
+// grows the preview and keeps every control below it at the bottom.
+void growPreview(NodeLayout &layout, const CardBodyInput &input, int fallbackHeight = 0) {
+    const auto authored = input.node["ui_properties"].toObject()["height"].toDouble();
+    const auto target = authored > 0 ? int(authored) : fallbackHeight;
+    const auto extra = std::max(0, target - layout.size.height());
+    if (extra == 0 || layout.resultRect.isEmpty()) {
+        return;
+    }
+    const auto bottom = layout.resultRect.bottom();
+    for (auto &row : layout.rows) {
+        if (row.rect == layout.resultRect) {
+            row.rect.setHeight(row.rect.height() + extra);
+            row.height = row.rect.height();
+            continue;
+        }
+        if (row.rect.top() < bottom) {
+            continue;
+        }
+        row.rect.translate(0, extra);
+        row.y += extra;
+        row.fieldY += extra;
+        for (auto &part : row.parts) {
+            part.translate(0, extra);
+        }
+    }
+    for (auto &y : layout.inputY) {
+        if (y > bottom) {
+            y += extra;
+        }
+    }
+    layout.resultRect.setHeight(layout.resultRect.height() + extra);
+    layout.flexHeight = extra;
+    layout.size.setHeight(layout.size.height() + extra);
+}
+
+// humanize in AdjustmentBody.tsx and GeneratorBody.tsx: underscores become
+// spaces and each word starts upper case.
+QString humanize(const QString &name) {
+    auto text = QString(name).replace(QLatin1Char('_'), QLatin1Char(' '));
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        if (text[i].isLetterOrNumber() && (i == 0 || !text[i - 1].isLetterOrNumber())) {
+            text[i] = text[i].toUpper();
+        }
+    }
+    return text;
+}
+
+QString propertyType(const QJsonObject &property) {
+    return typeName(property);
+}
+
+struct SliderSpec {
+    QString name;
+    QString label;
+    double minimum = 0;
+    double maximum = 1;
+    double step = 0.01;
+    double fallback = 0;
+    bool bipolar = false;
+};
+
+// toSliderSpecs in AdjustmentBody.tsx and the slider specs of GeneratorBody.tsx:
+// one slider per float or int property with a numeric min and max.
+QVector<SliderSpec> metadataSliders(const QJsonObject &metadata) {
+    QVector<SliderSpec> specs;
+    const auto type = metadata["node_type"].toString();
+    for (const auto &value : metadata["properties"].toArray()) {
+        const auto property = value.toObject();
+        const auto kind = propertyType(property);
+        if (kind != QStringLiteral("float") && kind != QStringLiteral("int")) {
+            continue;
+        }
+        SliderSpec spec;
+        spec.name = property["name"].toString();
+        spec.label = property["title"].toString(humanize(spec.name));
+        spec.step = kind == QStringLiteral("int") ? 1 : 0.01;
+        spec.fallback = property["default"].isDouble() ? property["default"].toDouble() : 0;
+        bool ranged = property["min"].isDouble() && property["max"].isDouble();
+        spec.minimum = property["min"].toDouble();
+        spec.maximum = property["max"].toDouble();
+        // GeneratorBody's PARAM_OVERRIDES for GaussianNoise, whose metadata omits the range.
+        if (type == QStringLiteral("lib.image.draw.GaussianNoise") && spec.name == QStringLiteral("mean")) {
+            spec.minimum = -1;
+            spec.maximum = 1;
+            spec.fallback = 0;
+            ranged = true;
+        } else if (type == QStringLiteral("lib.image.draw.GaussianNoise") && spec.name == QStringLiteral("stddev")) {
+            spec.minimum = 0;
+            spec.maximum = 3;
+            spec.fallback = 1;
+            ranged = true;
+        }
+        if (!ranged) {
+            continue;
+        }
+        spec.bipolar = spec.minimum < 0 && spec.maximum > 0;
+        specs.append(spec);
+    }
+    return specs;
+}
+
+// The single column of an image editing body, from the top of its preview-area.
+struct Column {
+    NodeLayout &layout;
+    const CardBodyInput &input;
+    double x = nm::borderWidth + nm::padding + nm::micro;
+    double width = 0;
+    double y = nm::bodyTop;
+
+    Column(NodeLayout &target, const CardBodyInput &source)
+        : layout(target), input(source), width(target.size.width() - 2 * x) {}
+
+    void preview(const QString &message, const QString &icon = QStringLiteral("image")) {
+        const QRectF area(x, y, width, nm::imageBodyPreviewHeight);
+        layout.rows.append(placeholderRow(message, icon, area));
+        layout.resultRect = area;
+        y = area.bottom();
+    }
+
+    // HandleColumn: one 18 px row per image handle, 28 px apart, from 4 px into the body.
+    void handles(const QStringList &names) {
+        for (int i = 0; i < names.size(); ++i) {
+            placePort(layout, input.inputs, names[i], nm::contentTop + nm::rowHeight / 2.0 + i * nm::handleRowStep);
+        }
+    }
+
+    double number(const QString &name, double fallback) const {
+        const auto value = fieldValue(input.fields.value(name));
+        return value.isValid() && value.canConvert<double>() ? value.toDouble() : fallback;
+    }
+
+    // A ColorPicker value is a { type: "color", value } object.
+    QString color(const QString &name) const {
+        const auto value = fieldValue(input.fields.value(name));
+        return value.typeId() == QMetaType::QVariantMap ? value.toMap().value("value").toString() : value.toString();
+    }
+
+    void finish(int fallbackHeight = 0) {
+        layout.size.setHeight(int(std::ceil(y + nm::imageBodyBottom)));
+        growPreview(layout, input, fallbackHeight);
+    }
+};
+
+// A grid of label, control and value cells, as the .controls block of the
+// image editing bodies. A fractional grid is AdjustmentSlider's
+// minmax(0, 1fr) minmax(48px, 1.4fr) auto. Otherwise the label column fits
+// its widest label, as minmax(0, auto) minmax(40px, 1fr) auto.
+struct Grid {
+    bool fractional = true;
+    double columnGap = 6;
+    double rowGap = 4;
+    double padY = 4;
+    double padX = 4;
+    double valueMinimum = nm::adjustmentValueWidth;
+    // A bare NodeSlider is 20 px tall and keeps a neutral thumb.
+    bool bareSliders = false;
+    // Labels in the medium weight, as adjustmentSliderStyles.
+    bool mediumLabels = true;
+    QString valueSuffix;
+
+    struct Item {
+        enum Kind { Slider, Swatch, Select } kind = Slider;
+        SliderSpec slider;
+        QString name;
+        QString label;
+        QStringList options;
+        QVariantList values;
+    };
+    QVector<Item> items;
+
+    void slider(const SliderSpec &spec) { items.append({Item::Slider, spec, spec.name, spec.label, {}, {}}); }
+    void swatch(const QString &name, const QString &label) { items.append({Item::Swatch, {}, name, label, {}, {}}); }
+    void select(const QString &name, const QString &label, const QStringList &options, const QVariantList &values) {
+        items.append({Item::Select, {}, name, label, options, values});
+    }
+
+    QString valueText(const Item &item, double value) const {
+        NodeRow row;
+        row.step = item.slider.step;
+        row.bipolar = item.slider.bipolar;
+        row.value = QStringLiteral("%1") + valueSuffix;
+        return sliderText(row, value);
+    }
+
+    void place(Column &column) const {
+        const auto inner = column.width - 2 * padX;
+        const auto left = column.x + padX;
+        double valueWidth = valueMinimum;
+        double labelWidth = 0;
+        for (const auto &item : items) {
+            labelWidth = std::max(labelWidth, captionWidth(item.label, mediumLabels));
+            if (item.kind != Item::Slider) {
+                continue;
+            }
+            const auto current = std::clamp(column.number(item.name, item.slider.fallback), item.slider.minimum, item.slider.maximum);
+            // AdjustmentSlider's value cell has 4 px padding on each side.
+            const auto padding = bareSliders ? 0.0 : 2.0 * nm::chipGap;
+            for (const auto value : {item.slider.minimum, item.slider.maximum, current}) {
+                valueWidth = std::max(valueWidth, captionWidth(valueText(item, value), false, true) + padding);
+            }
+        }
+        if (fractional) {
+            labelWidth = (inner - valueWidth - 2 * columnGap) / (1 + nm::adjustmentSliderFraction);
+        }
+        auto y = column.y + padY;
+        for (int i = 0; i < items.size(); ++i) {
+            const auto &item = items[i];
+            if (i > 0) {
+                y += rowGap;
+            }
+            if (item.kind == Item::Swatch) {
+                auto row = controlRow(NodeRowKind::Swatch, item.name, item.label,
+                                      QRectF(left + labelWidth + columnGap, y, nm::swatchSize, nm::swatchSize));
+                row.value = column.color(item.name);
+                row.parts = {QRectF(left, y, labelWidth, nm::swatchSize)};
+                row.checked = column.input.fields.value(item.name).value("connected").toBool();
+                column.layout.rows.append(row);
+                y += nm::swatchSize;
+                continue;
+            }
+            if (item.kind == Item::Select) {
+                const QRectF rect(left + labelWidth + columnGap, y, inner - labelWidth - columnGap, nm::selectHeight);
+                auto row = selectRow(column.input.fields.value(item.name), item.name, item.label, rect);
+                row.options = item.options;
+                row.optionValues = item.values;
+                const auto index = item.values.indexOf(fieldValue(column.input.fields.value(item.name)));
+                if (index >= 0) {
+                    row.value = item.options.value(index);
+                }
+                column.layout.rows.append(row);
+                y += nm::selectHeight;
+                continue;
+            }
+            auto height = double(bareSliders ? nm::nodeSliderHeight : nm::adjustmentRowHeight);
+            if (fractional) {
+                height = std::max(height, wrappedHeight(item.label, bodyFont(nm::fontValue, mediumLabels), labelWidth, nm::adjustmentLabelLineHeight));
+            }
+            const auto field = column.input.fields.value(item.name);
+            auto row = sliderRow(field, item.name, item.label, QRectF(left, y, inner, height), item.slider.minimum, item.slider.maximum,
+                                 item.slider.step, QStringLiteral("%1") + valueSuffix);
+            row.number = std::clamp(column.number(item.name, item.slider.fallback), item.slider.minimum, item.slider.maximum);
+            row.labelWidth = labelWidth;
+            row.valueWidth = valueWidth;
+            row.columnGap = columnGap;
+            row.bipolar = item.slider.bipolar;
+            row.tracksDefault = !bareSliders;
+            row.defaultNumber = item.slider.fallback;
+            row.wrap = fractional;
+            column.layout.rows.append(row);
+            y += height;
+        }
+        column.y = y + padY;
+    }
+};
+
+// A flex row with a label on the left and a ColorPicker on the right, padded 2 px by 4 px.
+void colorRow(Column &column, const QString &name, const QString &label) {
+    const auto padX = double(nm::chipGap);
+    const auto top = column.y + nm::micro;
+    auto row = controlRow(NodeRowKind::Swatch, name, label,
+                          QRectF(column.x + column.width - padX - nm::swatchSize, top, nm::swatchSize, nm::swatchSize));
+    row.value = column.color(name);
+    row.parts = {QRectF(column.x + padX, top, column.width - 2 * padX - nm::swatchSize, nm::swatchSize)};
+    row.checked = column.input.fields.value(name).value("connected").toBool();
+    column.layout.rows.append(row);
+    column.y = top + nm::swatchSize + nm::micro;
+}
+
+// A quiet ToggleGroup: 24 px options 2 px apart. Equal options fill the row,
+// as fullWidth. Flexible options grow from their label, as flex 1 1 auto.
+// Otherwise each option fits its label with 8 px padding.
+enum class ToggleFit { Equal, Flexible, Content };
+NodeRow toggleRow(Column &column, double left, const QString &name, const QStringList &labels, const QVariantList &values,
+                  int selected, ToggleFit fit, bool mono) {
+    const auto right = column.x + column.width;
+    auto row = controlRow(NodeRowKind::Segmented, name, {}, QRectF(left, column.y, right - left, nm::toggleHeight));
+    row.options = labels;
+    row.optionValues = values;
+    row.selected = selected;
+    row.bare = mono;
+    const auto gaps = nm::micro * std::max<qsizetype>(0, labels.size() - 1);
+    QVector<double> widths;
+    double used = 0;
+    for (const auto &label : labels) {
+        const auto padding = fit == ToggleFit::Content ? 2.0 * nm::padding : 2.0 * nm::micro;
+        widths.append(captionWidth(label, false, mono) + padding);
+        used += widths.last();
+    }
+    const auto free = std::max(0.0, row.rect.width() - gaps - used);
+    auto x = left;
+    for (int i = 0; i < labels.size(); ++i) {
+        auto width = widths[i];
+        if (fit == ToggleFit::Equal) {
+            width = (row.rect.width() - gaps) / labels.size();
+        } else if (fit == ToggleFit::Flexible) {
+            width += free / labels.size();
+        }
+        row.parts.append(QRectF(x, column.y, width, nm::toggleHeight));
+        x += width + nm::micro;
+    }
+    if (fit == ToggleFit::Content) {
+        row.rect.setRight(x - nm::micro);
+    }
+    return row;
+}
+
+void layoutAdjustment(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    QStringList images;
+    for (const auto &value : input.metadata["properties"].toArray()) {
+        if (propertyType(value.toObject()) == QStringLiteral("image")) {
+            images.append(value.toObject()["name"].toString());
+        }
+    }
+    column.handles(images);
+    column.preview(QObject::tr("Connect an image, then run"));
+    column.y += nm::bodyGap;
+    Grid grid;
+    for (const auto &spec : metadataSliders(input.metadata)) {
+        grid.slider(spec);
+    }
+    grid.place(column);
+    // bespokeNodeSizes.ts gives two slider-heavy adjustments a taller default.
+    const auto type = input.metadata["node_type"].toString();
+    column.finish(type == QStringLiteral("lib.image.color_grading.LiftGammaGain") ? nm::liftGammaGainHeight
+                  : type == QStringLiteral("lib.image.color_grading.SplitToning") ? nm::splitToningHeight : 0);
+}
+
+// SimpleFilterBody.tsx and MaskBody.tsx: a preview whose tab bar picks which image it shows.
+void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
+                         const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop) {
+    Column column(layout, input);
+    column.handles(handles);
+    const auto tab = tabs.contains(input.previewTab) ? input.previewTab : fallbackTab;
+    const auto index = int(tabs.indexOf(tab));
+    column.preview(messages.value(index));
+    column.y += nm::bodyGap + padTop;
+    QVariantList values;
+    for (const auto &value : tabs) {
+        values.append(value);
+    }
+    auto row = toggleRow(column, column.x, {}, labels, values, index, ToggleFit::Flexible, true);
+    row.action = QStringLiteral("previewTab");
+    layout.rows.append(row);
+    column.y += nm::toggleHeight;
+    column.finish();
+}
+
+void layoutSimpleFilter(NodeLayout &layout, const CardBodyInput &input) {
+    layoutTabbedPreview(layout, input, {QStringLiteral("image")}, {QObject::tr("Before"), QObject::tr("After")},
+                        {QStringLiteral("before"), QStringLiteral("after")},
+                        {QObject::tr("Connect an image"), QObject::tr("Run the node to see the result")}, QStringLiteral("after"), 0);
+}
+
+void layoutMask(NodeLayout &layout, const CardBodyInput &input) {
+    layoutTabbedPreview(layout, input, {QStringLiteral("image1"), QStringLiteral("image2"), QStringLiteral("mask")},
+                        {QObject::tr("Img 1"), QObject::tr("Img 2"), QObject::tr("Mask"), QObject::tr("Result")},
+                        {QStringLiteral("image1"), QStringLiteral("image2"), QStringLiteral("mask"), QStringLiteral("result")},
+                        {QObject::tr("Connect image 1"), QObject::tr("Connect image 2"), QObject::tr("Connect a mask"), QObject::tr("Run the node to composite")},
+                        QStringLiteral("result"), 0);
+}
+
+// The image column shared by the fixed-control bodies: handle, preview and gap.
+Column imageColumn(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    column.handles({QStringLiteral("image")});
+    column.preview(QObject::tr("Connect an image, then run"));
+    column.y += nm::bodyGap;
+    return column;
+}
+
+// The Blur, Scale and HSL Adjust grid: minmax(0, auto) minmax(40px, 1fr) auto, 4 px gaps, padded 2 px by 4 px.
+Grid autoGrid(double rowGap, bool bareSliders, double valueMinimum) {
+    Grid grid;
+    grid.fractional = false;
+    grid.columnGap = nm::chipGap;
+    grid.rowGap = rowGap;
+    grid.padY = nm::micro;
+    grid.bareSliders = bareSliders;
+    grid.mediumLabels = !bareSliders;
+    grid.valueMinimum = valueMinimum;
+    return grid;
+}
+
+void layoutScale(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    // ScaleBody.tsx: a 0 to 10 slider in 0.1 steps, shown as "1.00×".
+    auto grid = autoGrid(nm::chipGap, true, nm::sliderValueWidth);
+    grid.valueSuffix = QStringLiteral("×");
+    grid.slider({QStringLiteral("scale"), QObject::tr("Scale"), 0, 10, 0.1, 1, false});
+    grid.place(column);
+    column.finish();
+}
+
+void layoutOffset(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    // OffsetBody.tsx: two AdjustmentSlider rows 2 px apart, then the wrap row.
+    Grid grid;
+    grid.columnGap = nm::chipGap;
+    grid.rowGap = nm::micro;
+    grid.padY = nm::micro;
+    grid.slider({QStringLiteral("dx"), QObject::tr("Offset X"), -1, 1, 0.01, 0, true});
+    grid.slider({QStringLiteral("dy"), QObject::tr("Offset Y"), -1, 1, 0.01, 0, true});
+    grid.place(column);
+    // The wrap row spans the grid after a 2 px row gap, which takes the place of
+    // the grid's bottom padding, and its own 2 px top padding.
+    column.y += nm::micro;
+    const auto label = QObject::tr("Wrap").toUpper();
+    const auto left = column.x + grid.padX;
+    auto eyebrow = labelRow(label, QRectF(left, column.y, captionWidth(label), nm::toggleHeight));
+    layout.rows.append(eyebrow);
+    const auto wrap = std::clamp(int(std::round(column.number(QStringLiteral("wrap"), 1))), 0, 2);
+    auto row = toggleRow(column, left + eyebrow.rect.width() + nm::chipGap, QStringLiteral("wrap"),
+                         {QObject::tr("Clamp"), QObject::tr("Repeat"), QObject::tr("Mirror")}, {0, 1, 2}, wrap, ToggleFit::Content, false);
+    row.checked = input.fields.value(QStringLiteral("wrap")).value("connected").toBool();
+    layout.rows.append(row);
+    column.y += nm::toggleHeight + grid.padY;
+    column.finish();
+}
+
+// Pad and Chroma Key put the color in the grid, ahead of their sliders.
+void layoutSwatchGrid(NodeLayout &layout, const CardBodyInput &input, const QString &colorName, const QString &colorLabel,
+                      const QVector<SliderSpec> &sliders) {
+    auto column = imageColumn(layout, input);
+    auto grid = autoGrid(nm::micro, false, nm::adjustmentValueWidth);
+    grid.swatch(colorName, colorLabel);
+    for (const auto &spec : sliders) {
+        grid.slider(spec);
+    }
+    grid.place(column);
+    column.finish();
+}
+
+// Outline, Drop Shadow and Color Overlay put the color in its own row above the grid.
+void layoutColorRowBody(NodeLayout &layout, const CardBodyInput &input, const QString &colorLabel, const QVector<SliderSpec> &sliders) {
+    auto column = imageColumn(layout, input);
+    colorRow(column, QStringLiteral("color"), colorLabel);
+    column.y += nm::bodyGap;
+    auto grid = autoGrid(nm::micro, false, nm::adjustmentValueWidth);
+    for (const auto &spec : sliders) {
+        grid.slider(spec);
+    }
+    grid.place(column);
+    column.finish();
+}
+
+void layoutChannels(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    // ChannelsBody.tsx: a full-width R G B A L toggle below 2 px of padding.
+    column.y += nm::micro;
+    const QVariantList channels{QStringLiteral("red"), QStringLiteral("green"), QStringLiteral("blue"), QStringLiteral("alpha"), QStringLiteral("luminance")};
+    const auto field = input.fields.value(QStringLiteral("channel"));
+    const auto current = fieldValue(field).toString();
+    const auto selected = channels.indexOf(current.isEmpty() ? QStringLiteral("luminance") : current);
+    auto row = toggleRow(column, column.x, QStringLiteral("channel"), {QStringLiteral("R"), QStringLiteral("G"), QStringLiteral("B"),
+                         QStringLiteral("A"), QStringLiteral("L")}, channels, int(selected), ToggleFit::Equal, false);
+    row.checked = field.value("connected").toBool();
+    layout.rows.append(row);
+    column.y += nm::toggleHeight;
+    column.finish();
+}
+
+void layoutHslAdjust(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    // HSLAdjustBody.tsx: a Range select, then Hue, Sat and Lum sliders from -1 to 1.
+    auto grid = autoGrid(nm::micro, true, nm::sliderValueWidth);
+    QStringList labels;
+    QVariantList values;
+    for (const auto *range : {"all", "reds", "oranges", "yellows", "greens", "cyans", "blues", "purples", "magentas"}) {
+        values.append(QString::fromLatin1(range));
+        labels.append(displayName(QString::fromLatin1(range)));
+    }
+    grid.select(QStringLiteral("color_range"), QObject::tr("Range"), labels, values);
+    grid.slider({QStringLiteral("hue_shift"), QObject::tr("Hue"), -1, 1, 0.01, 0, true});
+    grid.slider({QStringLiteral("saturation"), QObject::tr("Sat"), -1, 1, 0.01, 0, true});
+    grid.slider({QStringLiteral("luminance"), QObject::tr("Lum"), -1, 1, 0.01, 0, true});
+    grid.place(column);
+    column.finish();
+}
+
+void layoutGenerator(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    // GeneratorBody.tsx: no image input and no icon in the empty preview.
+    column.preview(QObject::tr("Run to preview"), QStringLiteral("none"));
+    column.y += nm::bodyGap;
+    for (const auto &value : input.metadata["properties"].toArray()) {
+        const auto property = value.toObject();
+        if (propertyType(property) != QStringLiteral("color")) {
+            continue;
+        }
+        const auto name = property["name"].toString();
+        colorRow(column, name, property["title"].toString(humanize(name)));
+        column.y += nm::bodyGap;
+    }
+    Grid grid;
+    for (const auto &spec : metadataSliders(input.metadata)) {
+        grid.slider(spec);
+    }
+    grid.place(column);
+    column.finish(nm::generatorHeight);
+}
+
+void layoutGetVariable(NodeLayout &layout, const CardBodyInput &input) {
+    const auto x = double(nm::borderWidth + nm::padding + nm::micro);
+    const auto width = layout.size.width() - 2 * x;
+    placePort(layout, input.inputs, QStringLiteral("trigger"), nm::contentTop + nm::rowHeight / 2.0);
+    const auto hint = [&](const QString &text, double y) {
+        const auto font = bodyFont(nm::fontValue);
+        auto row = labelRow(text, QRectF(x + nm::micro, y + nm::micro, width - 2 * nm::micro,
+                                          wrappedHeight(text, font, width - 2 * nm::micro, nm::hintLineHeight)));
+        row.wrap = true;
+        layout.rows.append(row);
+        return row.rect.bottom() + nm::micro;
+    };
+    auto y = hint(QObject::tr("Reads a variable published by any Set Variable node in this workflow. It waits for the first "
+                              "value, then streams every value the setter publishes — no ordering wire needed."), double(nm::bodyTop));
+    y += nm::getVariableGap;
+    const auto field = input.fields.value(QStringLiteral("name"));
+    const auto current = fieldValue(field).toString();
+    QStringList labels;
+    QVariantList values;
+    // A stored name whose Set Variable node is gone stays visible and selected.
+    if (!current.isEmpty() && !input.graphVariables.contains(current)) {
+        labels.append(QObject::tr("%1 (no Set Variable node)").arg(current));
+        values.append(current);
+    }
+    for (const auto &name : input.graphVariables) {
+        labels.append(name);
+        values.append(name);
+    }
+    if (labels.isEmpty()) {
+        y = hint(QObject::tr("No variables defined yet. Add a Set Variable node to this workflow to choose one."), y);
+    } else {
+        // SelectField: a 13 px Label 4 px above a 28 px small select.
+        const auto label = QObject::tr("Variable");
+        auto caption = labelRow(label, QRectF(x, y, width, nm::rowHeight + nm::micro));
+        caption.textSize = nm::fontLabel;
+        layout.rows.append(caption);
+        y = caption.rect.bottom() + nm::chipGap;
+        auto picker = selectRow(field, QStringLiteral("name"), label, QRectF(x, y, width, nm::handleRowStep));
+        picker.bare = true;
+        picker.options = labels;
+        picker.optionValues = values;
+        const auto index = values.indexOf(current);
+        picker.value = index >= 0 ? labels.value(index) : QString{};
+        picker.placeholder = index < 0;
+        layout.rows.append(picker);
+        y = picker.rect.bottom();
+    }
+    // The 4 px gap before the outputs-row, the body padding, the card padding and the border.
+    layout.size.setHeight(int(std::ceil(y + nm::getVariableGap + nm::micro + nm::padding + nm::borderWidth)));
+}
 } // namespace
 
 CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
@@ -305,6 +904,37 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
     if (type == QStringLiteral("nodetool.image.ResizeImage")) {
         return CardBody::ResizeImage;
     }
+    // ADJUSTMENT_NODE_TYPES in AdjustmentBody.constants.ts.
+    static const QSet<QString> adjustments{
+        "lib.image.color.BrightnessContrast", "lib.image.color.HSB", "lib.image.color.Invert", "lib.image.color.Posterize",
+        "lib.image.color.Exposure", "lib.image.color.Grade", "lib.image.color_grading.Exposure",
+        "lib.image.color_grading.SaturationVibrance", "lib.image.color_grading.ColorBalance", "lib.image.color_grading.Vignette",
+        "lib.image.color_grading.CDL", "lib.image.color_grading.LiftGammaGain", "lib.image.color_grading.SplitToning",
+        "lib.image.effects.Add", "lib.image.effects.Glow", "lib.image.enhance.AdaptiveContrast", "lib.image.enhance.AutoContrast",
+        "lib.image.enhance.RankFilter", "lib.image.filter.Canny", "lib.image.filter.Expand", "lib.image.filter.GaussianBlur",
+        "lib.image.filter.Pixelate", "lib.image.filter.Posterize", "lib.image.filter.Solarize", "lib.image.filter.Threshold",
+        "lib.image.filter.UnsharpMask", "lib.image.filter.Vignette", "lib.image.keyer.LumaKey", "lib.image.warp.Displace",
+        "lib.image.warp.Spherize"};
+    // GENERATOR_NODE_TYPES in bespokeNodeTypes.ts.
+    static const QSet<QString> generators{
+        "lib.image.draw.LinearGradient", "lib.image.draw.RadialGradient", "lib.image.draw.AngularGradient",
+        "lib.image.draw.DiamondGradient", "lib.image.draw.Checkerboard", "lib.image.draw.GaussianNoise"};
+    static const QHash<QString, CardBody> bodies{
+        {"lib.image.filter.Invert", CardBody::SimpleFilter}, {"lib.image.filter.ConvertToGrayscale", CardBody::SimpleFilter},
+        {"nodetool.image.Scale", CardBody::Scale}, {"lib.image.warp.Offset", CardBody::Offset}, {"lib.image.warp.Pad", CardBody::Pad},
+        {"lib.image.effects.Outline", CardBody::Outline}, {"lib.image.effects.DropShadow", CardBody::DropShadow},
+        {"lib.image.effects.ColorOverlay", CardBody::ColorOverlay}, {"lib.image.keyer.ChromaKey", CardBody::ChromaKey},
+        {"nodetool.image.Channels", CardBody::Channels}, {"lib.image.Mask", CardBody::Mask},
+        {"lib.image.color_grading.HSLAdjust", CardBody::HslAdjust}, {"nodetool.variable.GetVariable", CardBody::GetVariable}};
+    if (bodies.contains(type)) {
+        return bodies.value(type);
+    }
+    if (adjustments.contains(type)) {
+        return CardBody::Adjustment;
+    }
+    if (generators.contains(type)) {
+        return CardBody::Generator;
+    }
     return metadata["body"] == QStringLiteral("content_card") ? CardBody::Content : CardBody::Generic;
 }
 
@@ -321,7 +951,30 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
         return name == QStringLiteral("value");
     case CardBody::Blur:
     case CardBody::ResizeImage:
+    case CardBody::SimpleFilter:
+    case CardBody::Scale:
+    case CardBody::Offset:
+    case CardBody::Pad:
+    case CardBody::Outline:
+    case CardBody::DropShadow:
+    case CardBody::ColorOverlay:
+    case CardBody::ChromaKey:
+    case CardBody::Channels:
+    case CardBody::HslAdjust:
         return name == QStringLiteral("image");
+    case CardBody::Mask:
+        return name == QStringLiteral("image1") || name == QStringLiteral("image2") || name == QStringLiteral("mask");
+    case CardBody::Adjustment:
+        for (const auto &value : metadata["properties"].toArray()) {
+            if (value.toObject()["name"].toString() == name) {
+                return typeName(value) == QStringLiteral("image");
+            }
+        }
+        return false;
+    case CardBody::Generator:
+        return false;
+    case CardBody::GetVariable:
+        return name == QStringLiteral("trigger");
     default:
         return metadata["input_fields"].toArray().contains(name);
     }
@@ -374,18 +1027,101 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::Blur:
         layoutBlur(layout, input);
+        growPreview(layout, input);
         break;
     case CardBody::ResizeImage:
         layoutResizeImage(layout, input);
+        growPreview(layout, input);
+        break;
+    case CardBody::Adjustment:
+        layoutAdjustment(layout, input);
+        break;
+    case CardBody::SimpleFilter:
+        layoutSimpleFilter(layout, input);
+        break;
+    case CardBody::Mask:
+        layoutMask(layout, input);
+        break;
+    case CardBody::Scale:
+        layoutScale(layout, input);
+        break;
+    case CardBody::Offset:
+        layoutOffset(layout, input);
+        break;
+    // The slider specs of PadBody.tsx, ChromaKeyBody.tsx, OutlineBody.tsx, DropShadowBody.tsx and ColorOverlayBody.tsx.
+    case CardBody::Pad:
+        layoutSwatchGrid(layout, input, QStringLiteral("color"), QObject::tr("Fill"),
+                         {{QStringLiteral("left"), QObject::tr("Left"), 0, 4, 0.01, 0, false},
+                          {QStringLiteral("top"), QObject::tr("Top"), 0, 4, 0.01, 0, false},
+                          {QStringLiteral("right"), QObject::tr("Right"), 0, 4, 0.01, 0, false},
+                          {QStringLiteral("bottom"), QObject::tr("Bottom"), 0, 4, 0.01, 0, false}});
+        break;
+    case CardBody::ChromaKey:
+        layoutSwatchGrid(layout, input, QStringLiteral("key_color"), QObject::tr("Key color"),
+                         {{QStringLiteral("tolerance"), QObject::tr("Tolerance"), 0, 1, 0.01, 0.1, false},
+                          {QStringLiteral("softness"), QObject::tr("Softness"), 0, 1, 0.01, 0.05, false},
+                          {QStringLiteral("spill"), QObject::tr("Spill"), 0, 1, 0.01, 0.5, false}});
+        break;
+    case CardBody::Outline:
+        layoutColorRowBody(layout, input, QObject::tr("Color"),
+                           {{QStringLiteral("width"), QObject::tr("Width (px)"), 0, 32, 0.5, 2, false},
+                            {QStringLiteral("threshold"), QObject::tr("Alpha threshold"), 0, 1, 0.01, 0.5, false}});
+        break;
+    case CardBody::DropShadow:
+        layoutColorRowBody(layout, input, QObject::tr("Shadow color"),
+                           {{QStringLiteral("offset_x"), QObject::tr("Offset X"), -0.5, 0.5, 0.01, 0.02, true},
+                            {QStringLiteral("offset_y"), QObject::tr("Offset Y"), -0.5, 0.5, 0.01, 0.02, true},
+                            {QStringLiteral("blur_radius"), QObject::tr("Radius (px)"), 0, 40, 0.5, 8, false},
+                            {QStringLiteral("intensity"), QObject::tr("Intensity"), 0, 4, 0.05, 0.6, false}});
+        break;
+    case CardBody::ColorOverlay:
+        layoutColorRowBody(layout, input, QObject::tr("Color"), {{QStringLiteral("amount"), QObject::tr("Amount"), 0, 1, 0.01, 0.5, false}});
+        break;
+    case CardBody::Channels:
+        layoutChannels(layout, input);
+        break;
+    case CardBody::HslAdjust:
+        layoutHslAdjust(layout, input);
+        break;
+    case CardBody::Generator:
+        layoutGenerator(layout, input);
+        break;
+    case CardBody::GetVariable:
+        layoutGetVariable(layout, input);
         break;
     default:
         break;
     }
 }
 
+QStringList graphVariableNames(const QJsonArray &nodes) {
+    QStringList names;
+    for (const auto &value : nodes) {
+        const auto node = value.toObject();
+        if (node["type"].toString() != QLatin1String(setVariableType)) {
+            continue;
+        }
+        const auto name = node["data"].toObject()["name"].toString().trimmed();
+        if (!name.isEmpty() && !names.contains(name)) {
+            names.append(name);
+        }
+    }
+    // localeCompare order.
+    std::sort(names.begin(), names.end(), [](const QString &a, const QString &b) { return QString::localeAwareCompare(a, b) < 0; });
+    return names;
+}
+
+bool readsGraphVariables(CardBody body) {
+    return body == CardBody::Prompt || body == CardBody::GetVariable;
+}
+
 QRectF sliderTrack(const NodeRow &row) {
-    const auto left = row.rect.x() + nm::controlLabelWidth;
-    const auto right = row.rect.right() - nm::sliderValueWidth - nm::chipGap;
+    auto left = row.rect.x() + nm::controlLabelWidth;
+    auto right = row.rect.right() - nm::sliderValueWidth - nm::chipGap;
+    if (row.labelWidth > 0) {
+        left = row.rect.x() + row.labelWidth + row.columnGap;
+        right = row.rect.right() - row.valueWidth - row.columnGap;
+    }
     return QRectF(left, row.rect.center().y() - nm::sliderTrack / 2.0, std::max(0.0, right - left), nm::sliderTrack);
 }
 
@@ -401,7 +1137,9 @@ double sliderValueAt(const NodeRow &row, double x) {
 
 QString sliderText(const NodeRow &row, double value) {
     const auto decimals = row.step < 1 ? 2 : 0;
-    return row.value.arg(QString::number(value, 'f', decimals));
+    // A bipolar value shows its sign, as formatSliderValue in AdjustmentSlider.tsx.
+    const auto sign = row.bipolar && decimals > 0 && value > 0 ? QStringLiteral("+") : QString{};
+    return row.value.arg(sign + QString::number(value, 'f', decimals));
 }
 
 QVector<PromptToken> promptTokens(const QString &line) {

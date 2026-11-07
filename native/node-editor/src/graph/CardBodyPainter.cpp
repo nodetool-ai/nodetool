@@ -9,10 +9,10 @@ namespace nodetool {
 namespace {
 namespace nm = node_metrics;
 
-QFont sans(const CanvasTheme &theme, int pixels) {
+QFont sans(const CanvasTheme &theme, int pixels, QFont::Weight weight = QFont::Normal) {
     QFont font(theme.sansFamily);
     font.setPixelSize(pixels);
-    font.setWeight(QFont::Normal);
+    font.setWeight(weight);
     font.setHintingPreference(QFont::PreferNoHinting);
     return font;
 }
@@ -84,7 +84,9 @@ void paintComposer(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
     if (row.placeholder) {
         painter->setFont(text);
         painter->setPen(faded(theme.textSecondary, 0.7));
-        painter->drawText(QRectF(area.topLeft(), QSizeF(area.width(), nm::composerLineHeight)), Qt::AlignLeft | Qt::AlignVCenter, QObject::tr("Write a prompt"));
+        // PromptComposerBody's placeholder, i18n promptComposer.placeholder.
+        painter->drawText(QRectF(area.topLeft(), QSizeF(area.width(), nm::composerLineHeight)), Qt::AlignLeft | Qt::AlignVCenter,
+                          painter->fontMetrics().elidedText(QObject::tr("Write a prompt\u2026 @ to mention an asset"), Qt::ElideRight, int(area.width())));
         painter->restore();
         return;
     }
@@ -157,7 +159,8 @@ void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row
 }
 
 void paintSegmented(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
-    painter->setFont(sans(theme, nm::fontValue));
+    // A bare toggle uses the mono face, as the preview tabs' fontFamily2.
+    painter->setFont(row.bare ? mono(theme, nm::fontValue) : sans(theme, nm::fontValue));
     for (int i = 0; i < row.parts.size() && i < row.options.size(); ++i) {
         const auto active = i == row.selected;
         if (active) {
@@ -172,22 +175,66 @@ void paintSegmented(QPainter *painter, const CanvasTheme &theme, const NodeRow &
 
 void paintSlider(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, double value) {
     painter->setPen(theme.textSecondary);
-    painter->setFont(sans(theme, nm::fontValue));
-    painter->drawText(QRectF(row.rect.x(), row.rect.y(), nm::controlLabelWidth, row.rect.height()), Qt::AlignLeft | Qt::AlignVCenter, row.label);
+    // AdjustmentSlider labels use the medium face and wrap within their column.
+    painter->setFont(sans(theme, nm::fontValue, row.tracksDefault ? QFont::Medium : QFont::Normal));
+    const auto labelWidth = row.labelWidth > 0 ? row.labelWidth : double(nm::controlLabelWidth);
+    painter->drawText(QRectF(row.rect.x(), row.rect.y(), labelWidth, row.rect.height()),
+                      Qt::AlignLeft | Qt::AlignVCenter | (row.wrap ? Qt::TextWordWrap : 0), row.label);
     const auto track = sliderTrack(row);
     const auto span = row.maximum - row.minimum;
-    const auto fraction = span > 0 ? std::clamp((value - row.minimum) / span, 0.0, 1.0) : 0.0;
+    const auto position = [&](double number) {
+        return track.x() + track.width() * (span > 0 ? std::clamp((number - row.minimum) / span, 0.0, 1.0) : 0.0);
+    };
     painter->setPen(Qt::NoPen);
     painter->setBrush(theme.divider);
     painter->drawRoundedRect(track, track.height() / 2, track.height() / 2);
+    // A bipolar slider fills outward from zero, as the Slider primitive's origin.
+    const auto origin = row.bipolar ? position(0) : track.x();
+    const auto thumb = position(value);
     painter->setBrush(theme.primary);
-    painter->drawRoundedRect(QRectF(track.topLeft(), QSizeF(track.width() * fraction, track.height())), track.height() / 2, track.height() / 2);
-    painter->setBrush(theme.textPrimary);
-    painter->drawEllipse(QPointF(track.x() + track.width() * fraction, track.center().y()), nm::sliderThumb / 2 - nm::micro, nm::sliderThumb / 2 - nm::micro);
+    painter->drawRoundedRect(QRectF(QPointF(std::min(origin, thumb), track.y()), QPointF(std::max(origin, thumb), track.bottom())),
+                             track.height() / 2, track.height() / 2);
+    // A 12 px thumb with a 2 px ring in the card color. It is neutral until the
+    // value leaves its default, and a bare NodeSlider always passes changed=false.
+    const auto changed = row.tracksDefault && !qFuzzyCompare(1 + value, 1 + row.defaultNumber);
+    painter->setBrush(theme.node);
+    painter->drawEllipse(QPointF(thumb, track.center().y()), nm::sliderThumb / 2, nm::sliderThumb / 2);
+    painter->setBrush(changed ? theme.primary : theme.textSecondary);
+    painter->drawEllipse(QPointF(thumb, track.center().y()), nm::sliderThumb / 2 - nm::micro, nm::sliderThumb / 2 - nm::micro);
     painter->setPen(theme.textPrimary);
     painter->setFont(mono(theme, nm::fontValue));
-    painter->drawText(QRectF(row.rect.right() - nm::sliderValueWidth, row.rect.y(), nm::sliderValueWidth, row.rect.height()),
+    const auto valueWidth = row.valueWidth > 0 ? row.valueWidth : double(nm::sliderValueWidth);
+    // AdjustmentSlider's value cell pads its text 4 px from the right.
+    const auto valueInset = row.tracksDefault ? double(nm::chipGap) : 0.0;
+    painter->drawText(QRectF(row.rect.right() - valueWidth, row.rect.y(), valueWidth - valueInset, row.rect.height()),
                       Qt::AlignRight | Qt::AlignVCenter, sliderText(row, value));
+}
+
+// A ColorPicker button: the property color over a checker for transparency, with its label.
+void paintSwatch(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    if (!row.parts.isEmpty()) {
+        painter->setPen(theme.textSecondary);
+        painter->setFont(sans(theme, nm::fontValue, QFont::Medium));
+        painter->drawText(row.parts.first(), Qt::AlignLeft | Qt::AlignVCenter,
+                          painter->fontMetrics().elidedText(row.label, Qt::ElideRight, int(row.parts.first().width())));
+    }
+    const auto box = row.rect.adjusted(0.5, 0.5, -0.5, -0.5);
+    painter->save();
+    QPainterPath clip;
+    clip.addRoundedRect(box, nm::chipRadius, nm::chipRadius);
+    painter->setClipPath(clip, Qt::IntersectClip);
+    painter->fillRect(box, theme.field);
+    const auto half = box.width() / 2;
+    painter->fillRect(QRectF(box.topLeft(), QSizeF(half, half)), theme.checker);
+    painter->fillRect(QRectF(box.center(), QSizeF(half, half)), theme.checker);
+    const QColor color(row.value);
+    if (color.isValid()) {
+        painter->fillRect(box, color);
+    }
+    painter->restore();
+    painter->setPen(QPen(theme.divider, nm::borderWidth));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRoundedRect(box, nm::chipRadius, nm::chipRadius);
 }
 
 void paintField(QPainter *painter, const CanvasTheme &theme, const NodeLayout &layout, const NodeRow &row) {
@@ -318,13 +365,16 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
     case NodeRowKind::DropZone:
         paintDropZone(painter, theme, row);
         return true;
+    case NodeRowKind::Swatch:
+        paintSwatch(painter, theme, row);
+        return true;
     case NodeRowKind::Label:
         if (row.rect.isEmpty()) {
             return false;
         }
         painter->setPen(theme.textSecondary);
-        painter->setFont(sans(theme, nm::fontValue));
-        painter->drawText(row.rect, Qt::AlignLeft | Qt::AlignVCenter, row.label);
+        painter->setFont(sans(theme, row.textSize > 0 ? row.textSize : nm::fontValue));
+        painter->drawText(row.rect, row.wrap ? Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap : Qt::AlignLeft | Qt::AlignVCenter, row.label);
         return true;
     case NodeRowKind::Field:
         if (row.rect.isEmpty()) {

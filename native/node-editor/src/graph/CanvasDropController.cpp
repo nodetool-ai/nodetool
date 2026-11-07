@@ -1,7 +1,9 @@
 #include "CanvasDropController.h"
 #include "WorkflowGraphModel.h"
+#include <QApplication>
 #include <QDropEvent>
 #include <QFile>
+#include <QFileDialog>
 #include <QFileInfo>
 #include <QGraphicsView>
 #include <QJsonDocument>
@@ -10,6 +12,7 @@
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
 #include <QRegularExpression>
+#include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -179,6 +182,23 @@ bool CanvasDropController::accepts(const QMimeData *mime) const {
   return false;
 }
 bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
+  // A click on a drop zone opens a file picker. The scene still sees the click and selects the card.
+  if (object == view_.viewport() && (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease)) {
+    auto *mouse = static_cast<QMouseEvent *>(event);
+    if (mouse->button() != Qt::LeftButton) return QObject::eventFilter(object, event);
+    const auto point = mouse->position().toPoint();
+    if (event->type() == QEvent::MouseButtonPress) {
+      pressZone_ = dropZone(point);
+      pressPoint_ = point;
+    } else {
+      const auto zone = pressZone_;
+      pressZone_.clear();
+      if (!zone.isEmpty() && dropZone(point) == zone && (point - pressPoint_).manhattanLength() < QApplication::startDragDistance()) {
+        QTimer::singleShot(0, this, [this, zone, point] { pickFile(zone, point); });
+      }
+    }
+    return QObject::eventFilter(object, event);
+  }
   if (object != view_.viewport() || (event->type() != QEvent::DragEnter && event->type() != QEvent::DragMove && event->type() != QEvent::Drop)) return QObject::eventFilter(object, event);
   auto *dropEvent = static_cast<QDropEvent *>(event);
   if (dropEvent->mimeData()->hasFormat("application/x-nodetool-node-type")) return false;
@@ -200,6 +220,24 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
     drop(dropEvent->mimeData(), inverse.map(dropEvent->position()), zone);
   }
   return true;
+}
+void CanvasDropController::pickFile(const QStringList &zone, const QPoint &viewportPosition) {
+    const auto &kind = zone[2];
+    QString path;
+    if (chooseFile) {
+        path = chooseFile(kind);
+    } else {
+        const QHash<QString, QString> filters{{"image", tr("Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)")},
+                                              {"video", tr("Videos (*.mp4 *.mov *.webm *.mkv)")},
+                                              {"audio", tr("Audio (*.wav *.mp3 *.ogg *.flac *.m4a)")}};
+        path = QFileDialog::getOpenFileName(view_.window(), tr("Choose %1").arg(kind), {}, filters.value(kind, tr("All files (*)")));
+    }
+    bool invertible = false;
+    const auto inverse = view_.viewportTransform().inverted(&invertible);
+    if (path.isEmpty() || !invertible) return;
+    QMimeData mime;
+    mime.setUrls({QUrl::fromLocalFile(path)});
+    drop(&mime, inverse.map(QPointF(viewportPosition)), zone);
 }
 QStringList CanvasDropController::dropZone(const QPoint &viewportPosition) const {
     for (auto *entry : view_.items(viewportPosition)) {

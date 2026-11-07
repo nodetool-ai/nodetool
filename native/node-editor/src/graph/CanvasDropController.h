@@ -23,6 +23,9 @@ public:
   void setWorkflowId(const QString &serverWorkflowId);
   std::function<bool(const QJsonObject &)> applyCommand;
   std::function<QJsonObject(const QJsonObject &, const QPointF &, const QJsonObject &)> createNode;
+  // A click on a card's media drop zone asks for a file of that kind, as the
+  // web dropzone input does. Returns a local path, or empty when cancelled.
+  std::function<QString(const QString &kind)> chooseFile;
 public slots:
   void cancel(const QString &key);
   void retry(const QString &key);
@@ -66,5 +69,9 @@ private:
   // The node, property and media type of the drop zone under a viewport point.
   QStringList dropZone(const QPoint &viewportPosition) const;
   void drop(const QMimeData *, const QPointF &, const QStringList &zone);
+  // Asks for a file for the drop zone clicked at a viewport point, then uploads it as a drop.
+  void pickFile(const QStringList &zone, const QPoint &viewportPosition);
+  QStringList pressZone_;
+  QPoint pressPoint_;
 };
 }

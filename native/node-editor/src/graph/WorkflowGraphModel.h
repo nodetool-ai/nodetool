@@ -87,6 +87,9 @@ public:
   // the document.
   bool dimensionsLinked(QtNodes::NodeId id) const { return dimensionLinks_.contains(resourceId(id)); }
   void setDimensionsLinked(QtNodes::NodeId id, bool linked);
+  // The Before/After and Mask preview tabs are view state too, as the web
+  // bodies' useState, and never enter the document or undo.
+  void setPreviewTab(QtNodes::NodeId id, const QString &tab);
   // The command that writes a property, with the linked other dimension in the
   // same batch so one undo step reverts both.
   QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
@@ -146,6 +149,9 @@ private:
   QString runtimeJob_;
   void refreshRuntimeNode(const QString &id);
   QHash<QString, double> dimensionLinks_;
+  QHash<QString, QString> previewTabs_;
+  // Names Set Variable nodes publish, read by the Prompt and Get Variable bodies.
+  QStringList graphVariables_;
   QHash<QtNodes::NodeId, QPointF> positions_;
   QHash<QtNodes::NodeId, int> depths_;
   QHash<QtNodes::NodeId, QVector<QtNodes::NodeId>> children_;

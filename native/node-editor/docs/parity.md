@@ -3000,7 +3000,7 @@ is visible only on inspection.
 | W1 | Card fields | A node with `inline_fields` shows those fields as rows and `input_fields` as handles. Other properties stay in the inspector until an edge targets them, which makes them handles. The StringInput card is 129 px tall. | Every property was a row. The StringInput card was 419 px tall with Name, Value and Description. | High | Fixed in `WorkflowGraphModel.cpp`. Model properties keep a row, as web model chips do. Asserted by `cardsFollowWebFieldClassification`. |
 | W2 | Card title | Input nodes show their `name` value, such as "subject". | Input nodes showed the type title "String Input". | Medium | Fixed in `WorkflowGraphModel.cpp`. Asserted by `cardsFollowWebFieldClassification`. |
 | W3 | Unclassified metadata | Metadata without `inline_fields`, such as Prompt and Fake Generate Image, shows no field rows (`resolveInlineFieldNames` in `web/src/utils/exposedInputs.ts`). Fake Generate Image is 130 px tall. | The same rule. Other properties stay in the inspector until an edge targets them, and an unplaced model property shows a model chip. Fake Generate Image is 129 px tall. | Medium | Fixed in `WorkflowGraphModel.cpp` (`cardField`). Asserted by `CardBodiesTest::cardHeightsMatchWebCapture`. Test fixtures that relied on the old fallback now declare `inline_fields` or `input_fields`: `PropertyFixture.h`, `CompatiblePickerFixture.h`, `BodyConnectionFixture.h`, `InlinePropertyTest`, `IncrementalProjectionTest`, `CanvasMediaTest`, `DynamicPortsTest`, `CodePropertyTest`, `CompatiblePickerHostTest`, `EditorTest` and `BodyDropHostTest`. Not accepted. |
-| W4 | Bespoke bodies | Prompt shows a variable composer, Resize Image a mode switch, Blur a select and slider, Preview a 400×300 preview, Output a result placeholder, Image Input a drop zone, Agent a model chip and Add output. Header icons come from `IconForType.tsx`. | `CardBodies.cpp` lays out and `CardBodyPainter.cpp` paints these bodies. The Prompt composer draws each `{{ variable }}` as a chip, warning-colored when no input defines it, and its footer holds Variables, insert chips and Add another variable. Output and Preview draw their empty states. Blur has a type select and a size slider, and Resize Image a Scale, Dimensions and Fit switch with width, height and a lock that links them. Content cards such as Agent add a model chip that opens the shared picker and an Add output button that opens the output form. A file dropped on the Image Input drop zone uploads and sets the value. Card headers draw the web data type SVGs, so Output shows the text icon and Preview the eye. Heights: Prompt 168, Output 150, Preview 400×300, Blur 199, Resize Image 212, Agent 217, Image Input 120. | Medium | Part 1 fixed. Asserted by `CardBodiesTest` with pointer, key and drop events on the parity fixture. Open: the differences in [Card body differences after part 1](#card-body-differences-after-part-1) and the bodies in [Bespoke bodies for part 2](#bespoke-bodies-for-part-2). Not accepted. |
+| W4 | Bespoke bodies | Prompt shows a variable composer, Resize Image a mode switch, Blur a select and slider, Preview a 400×300 preview, Output a result placeholder, Image Input a drop zone, Agent a model chip and Add output. Header icons come from `IconForType.tsx`. | `CardBodies.cpp` lays out and `CardBodyPainter.cpp` paints these bodies. The Prompt composer draws each `{{ variable }}` as a chip, warning-colored when no input defines it, and its footer holds Variables, insert chips and Add another variable. Output and Preview draw their empty states. Blur has a type select and a size slider, and Resize Image a Scale, Dimensions and Fit switch with width, height and a lock that links them. Content cards such as Agent add a model chip that opens the shared picker and an Add output button that opens the output form. A file dropped on the Image Input drop zone uploads and sets the value. Card headers draw the web data type SVGs, so Output shows the text icon and Preview the eye. Heights: Prompt 168, Output 150, Preview 400×300, Blur 199, Resize Image 212, Agent 217, Image Input 120. | Medium | Part 1 fixed, part 2 partly fixed. Asserted by `CardBodiesTest` with pointer, key and drop events on the parity fixture and on added part 2 nodes. Open: the differences in [Card body differences after part 1](#card-body-differences-after-part-1) and the bodies listed as missing in [Bespoke bodies for part 2](#bespoke-bodies-for-part-2). Acceptance pending. |
 | W5 | Card typography and geometry | Width 280, radius 8, 1 px border at 8% white, Inter 13 title in the 400 face, first port at 46 and 28 px steps. | Same measurements. | Low | Matches. |
 | W6 | Ports and wires | 12 px handles with a 2 px ring in the card color. Wires are 1.5 px in the source type color. | Same measurements. | Low | Matches. |
 | W7 | Grid | 25-unit crosses 3 units wide, which scale with zoom. | Same pattern. | Low | Matches. |
@@ -3056,33 +3056,99 @@ viewport fit from the web and use an offline fixture.
 5. Prompt variable chips now insert at the active caret or replace the current
    selection, retaining the draft until commit. Escape cancels the draft. Asset
    and entity mentions draw as chips. `CardBodiesTest` covers insertion,
-   cancellation and undo. Set Variable names remains missing.
+   cancellation and undo. The insert bar now also offers every name a Set
+   Variable node publishes, after the node's own inputs and accented as coming
+   from the graph, and the composer treats those names as known. Renaming a
+   Set Variable node updates the Prompt card. The bar wraps as the web's
+   `flexWrap`, so a chip that does not fit moves the Add button to a second
+   line. `promptOffersSetVariableNames` and `addVariableAddsDynamicInput` cover
+   this. The graph chips use the primary color, where the web uses `info.main`,
+   which the canvas theme does not carry.
 6. Resize Image in Fit mode now has 256, 512, 768 and 1024 preset chips. A click
    commits both dimensions atomically with one undo entry. A connected dimension
    rejects the entire change. `CardBodiesTest` drives these pointer actions.
 7. The Agent content preview starts at y=47, retaining its 217-pixel card height
    and handle centers. Equal-layer overlap follows document order, including
    incremental reorders. `WindowParityTest` covers the fixture overlap.
-8. A click on the drop zone selects the card. The web opens a file picker.
-   Editing a slider re-runs nothing, because live previews are scope change SC1.
+8. A click on the drop zone selects the card and opens a file picker for its
+   media kind. The chosen file uploads and sets the value as a drop does, and a
+   cancelled picker changes nothing (`dropZoneClickOpensFilePicker`). Editing a
+   slider re-runs nothing, because live previews are scope change SC1.
+9. Blur and Resize Image previews are 96 px tall, the `.preview-area`
+   `minHeight` in `BlurBody.tsx` and `ResizeImageBody.tsx`, where native drew
+   90 px. The Resize Image mode switch follows the body's 2 px gap. The Resize
+   Image card is 213 px, 1 px from the web capture. Every preview-area is
+   `flex: 1 1 auto`, so an authored taller card now grows the preview and keeps
+   the controls at the bottom. `canvasResultBoundsMatchPainterGeometry` changed
+   for this reason.
+10. Slider thumbs are 12 px with a 2 px ring in the card color. They are
+    text.secondary until the value leaves its default and primary after, as
+    `AdjustmentSlider` passes `changed`. A bare `NodeSlider`, as on Blur and
+    Scale, always passes `changed={false}` and stays neutral
+    (`sliderThumbFollowsWebChangedFlag`). Bipolar sliders fill from zero and
+    sign positive values.
+11. The empty Prompt shows the web placeholder, "Write a prompt… @ to mention
+    an asset".
 
 ### Bespoke bodies for part 2
 
 [ReactFlowWrapper.tsx](../../../web/src/components/node/ReactFlowWrapper.tsx)
 and the bespoke registry in
 [bespokeRegistry.ts](../../../web/src/components/node_types/editing/bespokeRegistry.ts)
-route these node kinds to bodies that native still draws with the generic or
-content card body:
+route node kinds to bespoke bodies. `cardBodyFor` in `CardBodies.cpp` now
+routes these, and `CardBodiesTest` asserts their structure, handles and
+heights:
+
+| Body | Web source | Native height | Controls |
+|---|---|---|---|
+| Adjustment, 30 types | `AdjustmentBody.tsx`, `AdjustmentSlider.tsx` | 150 + 28 per slider. Lift Gamma Gain 580 and Split Toning 380 by default. | One 24 px slider per ranged number from metadata, in the 1 fr, 1.4 fr, auto grid. Long labels wrap at 1.3 em. Image properties are handles. |
+| Invert, Convert to Grayscale | `SimpleFilterBody.tsx` | 170 | Before and After tabs. |
+| Scale | `ScaleBody.tsx` | 170 | 0 to 10 slider shown as `1.00×`. |
+| Offset | `OffsetBody.tsx` | 228 | Offset X and Y, then the Wrap toggle. |
+| Pad | `PadBody.tsx` | 274 | Fill color and four sliders. |
+| Outline | `OutlineBody.tsx` | 226 | Color row and two sliders. |
+| Drop Shadow | `DropShadowBody.tsx` | 278 | Color row and four sliders. |
+| Color Overlay | `ColorOverlayBody.tsx` | 200 | Color row and one slider. |
+| Chroma Key | `ChromaKeyBody.tsx` | 248 | Key color and three sliders. |
+| Channels | `ChannelsBody.tsx` | 172 | R, G, B, A and L toggle. |
+| Mask | `MaskBody.tsx` | 170 | Img 1, Img 2, Mask and Result tabs, three image handles. |
+| HSL Adjust | `HSLAdjustBody.tsx` | 240 | Range select and Hue, Sat and Lum sliders. |
+| Generators, 6 types | `GeneratorBody.tsx` | 460 by default, natural 314 for Linear Gradient | Color rows and ranged sliders from metadata. No image handle. |
+| Get Variable | `GetVariableBody.tsx` | Follows the wrapped explanation | Explanation, a Variable select of Set Variable names or the empty hint, and the trigger handle. |
+
+The heights are derived from the body CSS and TSX, not from a web capture,
+because the parity fixture holds none of these nodes. Each image body is a
+96 px preview, 2 px block gaps, its controls block, and 13 px below it: a 2 px
+gap before the zero-height outputs row, 2 px body padding, 8 px card padding
+and the border. The rule reproduces the measured Blur height of 199 px. Control
+rows are 24 px for `AdjustmentSlider`, the compact `NodeSelect` and a quiet
+`ToggleGroup`, and 20 px for a bare `NodeSlider` and the `ColorPicker` button.
+
+Sliders, toggles and selects edit their property with one undo step
+(`imageBodyControlsEditProperties`). The preview tabs are view state, as the
+web's `useState`, and leave the document and undo unchanged. The Get Variable
+select opens the inline choice editor with the Set Variable names, and a stored
+name without a setter stays selectable
+(`getVariableBodyPicksSetVariableNames`). Card captures of every body in both
+themes are written by `capturePartTwoCards` to a directory outside the
+repository.
+
+Differences in these bodies:
+
+1. A color swatch click selects the card. The web opens a color popover, and
+   native edits the color in the inspector.
+2. The Before tab and the Mask input tabs show their empty-state message, not
+   the upstream image. The canvas painter draws only the node's own result.
+3. Rotate and Flip, and the Scale dimension badge, are not ported.
+
+Bodies native still draws with the generic or content card body:
 
 1. Node components: Compare Images, Constant String, Dynamic FAL, Dynamic KIE,
    Dynamic Replicate, Comfy nodes, Workflow, App and Sketch.
-2. Image editing bodies: Canvas Resize, Channels, Chroma Key, Color Overlay,
-   Compositor, Crop, Curves, Drop Shadow, Fit, HSL Adjust, Levels, Mask, Masks
-   Extractor, Offset, Outline, Pad, Painter, Paste, Resize, Rotate and Flip,
-   Scale, the simple filters and the adjustment sliders.
+2. Image editing bodies: Canvas Resize, Compositor, Crop, Curves, Fit, Levels,
+   Masks Extractor, Painter, Paste, Resize, and Rotate and Flip.
 3. Other bodies: Collection, Constant Sketch, Constant Timeline, Extract Video
-   Frame, Get Variable, List Generator, the generators, the synth modules, the
-   audio effects and Audio Output.
+   Frame, List Generator, the synth modules, the audio effects and Audio Output.
 4. The Code body (`CodeBody.tsx`), which native shows as a code row.
 
 ### Chrome entries without a native panel

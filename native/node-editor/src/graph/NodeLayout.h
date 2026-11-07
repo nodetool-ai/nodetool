@@ -67,10 +67,7 @@ inline constexpr int outputMinimumHeight = 150;
 inline constexpr int previewNodeWidth = 400;
 inline constexpr int previewNodeHeight = 300;
 inline constexpr double headerHandleY = 21;
-// The image preview, select, slider and mode switch of BlurBody.tsx and
-// ResizeImageBody.tsx.
-inline constexpr int imagePreviewHeight = 90;
-inline constexpr int controlGap = 10;
+// The select, slider and mode switch of BlurBody.tsx and ResizeImageBody.tsx.
 inline constexpr int controlHeight = 24;
 inline constexpr int controlLabelWidth = 36;
 inline constexpr int sliderRowHeight = 18;
@@ -83,6 +80,31 @@ inline constexpr int lockWidth = 28;
 inline constexpr int modelChipHeight = 30;
 inline constexpr int actionHeight = 28;
 inline constexpr int actionGap = 7;
+// The image editing bodies in web/src/components/node_types/editing share one
+// column: a 96 px preview-area, 2 px gaps between blocks, and a zero-height
+// outputs-row followed by the body padding, card padding and border.
+inline constexpr int imageBodyPreviewHeight = 96;
+inline constexpr int bodyGap = 2;
+inline constexpr int imageBodyBottom = 13;
+// AdjustmentSlider's 24 px slider-wrap, a bare NodeSlider's 20 px root, the
+// compact NodeSelect, a quiet ToggleGroup and the 20 px ColorPicker button.
+inline constexpr int adjustmentRowHeight = 24;
+inline constexpr int nodeSliderHeight = 20;
+inline constexpr int selectHeight = 24;
+inline constexpr int toggleHeight = 24;
+inline constexpr int swatchSize = 20;
+// AdjustmentSlider's value cell is at least 40 px, its label lines 1.3 em, and
+// its slider column takes 1.4 fr against the label's 1 fr.
+inline constexpr int adjustmentValueWidth = 40;
+inline constexpr double adjustmentSliderFraction = 1.4;
+// BESPOKE_DEFAULT_HEIGHTS in web/src/components/node_types/editing/bespokeNodeSizes.ts.
+inline constexpr int liftGammaGainHeight = 580;
+inline constexpr int splitToningHeight = 380;
+inline constexpr int generatorHeight = 460;
+inline constexpr double adjustmentLabelLineHeight = 1.3;
+// GetVariableBody's 1.4 em explanation text and its 4 px block gap.
+inline constexpr double hintLineHeight = 1.4;
+inline constexpr int getVariableGap = 4;
 // The media drop zone of an image input value.
 inline constexpr int dropZoneGap = 5;
 inline constexpr int dropZoneHeight = 46;
@@ -128,10 +150,12 @@ inline constexpr int fontValue = 11;
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
-                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone };
+                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
-enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage };
+enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
+                      Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
+                      ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable };
 
 struct NodeRow {
   NodeRowKind kind = NodeRowKind::Label;
@@ -164,7 +188,22 @@ struct NodeRow {
   double maximum = 0;
   double step = 1;
   double number = 0;
-  // The command an Action row requests: "addVariable" or "addOutput".
+  // A slider's label and value cells, and the grid gap between its columns,
+  // when they differ from the Blur row.
+  double labelWidth = 0;
+  double valueWidth = 0;
+  double columnGap = 0;
+  // A bespoke label wraps within its rect at this font size, or the 11 px caption when 0.
+  bool wrap = false;
+  int textSize = 0;
+  // A bipolar slider fills from zero and signs positive values.
+  bool bipolar = false;
+  // A slider thumb turns primary once its value leaves this default, as
+  // AdjustmentSlider's changed flag. A bare NodeSlider keeps a neutral thumb.
+  bool tracksDefault = false;
+  double defaultNumber = 0;
+  // The command an Action row requests: "addVariable" or "addOutput". A
+  // Segmented row with "previewTab" switches the body's preview, not a property.
   QString action;
 };
 
@@ -179,6 +218,9 @@ struct NodeLayout {
   CardBody body = CardBody::Generic;
   // A bespoke body paints a run result here instead of growing the card.
   QRectF resultRect;
+  // How far a flexible preview grew to fill an authored or default card height.
+  // The card's minimum height excludes it.
+  int flexHeight = 0;
   QColor accent;
   // The running ring's conic stops: output then property type colors, five
   // entries, as getNodeColors in web/src/components/node/BaseNode.tsx.

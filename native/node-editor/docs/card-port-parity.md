@@ -22,8 +22,9 @@ and `NumberProperty.tsx`, using `WindowParityFixture.json` as the comparison.
 
 Acceptance uses native geometry, pointer, canonical save/undo tests and matched
 whole-window captures at 1440×900 and 1024×700 in both themes. It does not claim
-platform desktop acceptance. Missing bespoke bodies, variable naming UI and
-file-picker behavior remain outside this change. SC1–SC3 and F42 are unchanged.
+platform desktop acceptance. The part 2 bodies, Set Variable names and the
+drop zone file picker followed later and are recorded in the
+[comparison](parity.md#bespoke-bodies-for-part-2). SC1–SC3 and F42 are unchanged.
 
 ## Image-viewer integration
 

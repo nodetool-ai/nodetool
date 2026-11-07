@@ -1307,7 +1307,8 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
 }
 
 bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
-    const auto &layout = model_.layout(id);
+    // A copy: selecting and every control action can rebuild this card's layout.
+    const auto layout = model_.layout(id);
     const auto resource = model_.resourceId(id);
     for (const auto &row : layout.rows) {
         if (!row.renameButtonRect.isEmpty() && row.renameButtonRect.contains(local)) {
@@ -1328,9 +1329,16 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
         if (row.kind == NodeRowKind::Segmented) {
             select();
             for (int i = 0; i < row.parts.size() && i < row.optionValues.size(); ++i) {
-                if (row.parts[i].contains(local) && i != row.selected && !row.checked && model_.commit) {
-                    model_.commit(model_.propertyCommand(id, row.propertyName, QJsonValue::fromVariant(row.optionValues[i])));
+                if (!row.parts[i].contains(local) || i == row.selected) { continue; }
+                // Both actions rebuild this card's layout, so `row` is not read afterwards.
+                const auto value = row.optionValues[i];
+                // A preview tab is view state and never enters the document.
+                if (row.action == QStringLiteral("previewTab")) {
+                    model_.setPreviewTab(id, value.toString());
+                } else if (!row.checked && model_.commit) {
+                    model_.commit(model_.propertyCommand(id, row.propertyName, QJsonValue::fromVariant(value)));
                 }
+                break;
             }
             return true;
         }

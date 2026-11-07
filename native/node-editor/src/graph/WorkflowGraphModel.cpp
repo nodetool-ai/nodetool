@@ -109,6 +109,9 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
     incident[source].append(e);
     if (target != source) { incident[target].append(e); }
   }
+  const auto graphVariables = graphVariableNames(rawNodes);
+  const bool variablesChanged = graphVariables != graphVariables_;
+  graphVariables_ = graphVariables;
   if (reset) {
     inputs_.clear();
     outputs_.clear();
@@ -129,7 +132,9 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
     const auto previous = nodes_.constFind(it.key());
     if (previous == nodes_.cend()) { created.append(it.key()); continue; }
     const auto resource = it.value()["id"].toString();
-    if (!samePresentation(*previous, it.value()) || incident_.value(resource) != incident.value(resource)) {
+    // A renamed Set Variable node changes the cards that offer its name.
+    if (!samePresentation(*previous, it.value()) || incident_.value(resource) != incident.value(resource)
+        || (variablesChanged && readsGraphVariables(cardBodyFor(it.value()["type"].toString(), {})))) {
       updated.append(it.key());
     }
   }
@@ -466,7 +471,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           position = nm::contentTop + nm::rowHeight / 2.0;
       }
       result.size.setWidth(width > 0 ? int(width) : nm::defaultWidth);
-      layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id))});
+      layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
+                                 graphVariables_, previewTabs_.value(resourceId(id))});
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
@@ -477,7 +483,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           result.size.rheight() += nm::progressHeight;
       }
       // A Preview card resizes freely above the web's 80 px minimum. Other bodies keep their controls.
-      result.minimumSize = QSize(150, result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height());
+      result.minimumSize = QSize(150, result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height() - result.flexHeight);
       result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
       addRenameControls();
       if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
@@ -932,10 +938,28 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
   for (const auto &value : node_editor::propertyFields(nodes_.value(id), metadata(id), edges_)) {
     const auto field = value.toMap();
     if (field["name"].toString() != name || !field["editable"].toBool() || field["connected"].toBool()) { continue; }
+    // A bespoke select offers its body's choices, such as Get Variable's Set Variable names.
+    for (const auto &row : layout(id).rows) {
+      if (row.propertyName != name || !row.choice || row.optionValues.isEmpty() || row.kind != NodeRowKind::Field) { continue; }
+      QVariantList options;
+      for (int i = 0; i < row.optionValues.size(); ++i) { options.append(QVariantMap{{"label", row.options.value(i)}, {"value", row.optionValues[i]}}); }
+      auto choice = field;
+      choice["kind"] = QStringLiteral("choice");
+      choice["options"] = options;
+      return choice;
+    }
     const auto kind = field["kind"].toString();
     if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean" || kind == "model") { return field; }
   }
   return {};
+}
+void WorkflowGraphModel::setPreviewTab(NodeId id, const QString &tab) {
+    const auto resource = resourceId(id);
+    if (resource.isEmpty() || previewTabs_.value(resource) == tab) {
+        return;
+    }
+    previewTabs_.insert(resource, tab);
+    refreshRuntimeNode(resource);
 }
 void WorkflowGraphModel::setDimensionsLinked(NodeId id, bool linked) {
     const auto resource = resourceId(id);
