@@ -5,6 +5,10 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import MorePanel from "../MorePanel";
 
+jest.mock("../../../serverState/useAdminUsers", () => ({
+  useIsAdmin: () => false
+}));
+
 const renderPanel = (onSelectView = jest.fn()) =>
   render(
     <ThemeProvider theme={mockTheme}>

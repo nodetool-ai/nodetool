@@ -15949,7 +15949,8 @@
         "memory": "Muisti",
         "settings": "Asetukset",
         "effects": "Tehosteet",
-        "lipsync": "Huulisynkronointi"
+        "lipsync": "Huulisynkronointi",
+        "admin": "Hallinta"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "Kuvaus",
     "autoHint": "Vaiheita ei ole asetettu. Widget näyttää jokaisen generatiivisen solmun.",
     "chooseNode": "Valitse solmu"
+  },
+  "admin": {
+    "page": {
+      "title": "Hallinta",
+      "subtitle": "Hallitse henkilöitä, jotka kirjautuvat tälle palvelimelle.",
+      "deniedTitle": "Ylläpitäjän oikeudet vaaditaan",
+      "deniedDescription": "Vain tämän palvelimen ylläpitäjät voivat avata tämän sivun."
+    },
+    "users": {
+      "searchPlaceholder": "Hae nimellä, sähköpostilla tai käyttäjätunnuksella",
+      "filter": {
+        "label": "Tila",
+        "all": "Kaikki",
+        "active": "Aktiivinen",
+        "disabled": "Poistettu käytöstä"
+      },
+      "columns": {
+        "person": "Henkilö",
+        "role": "Rooli",
+        "status": "Tila",
+        "lastSeen": "Viimeksi nähty",
+        "actions": "Toiminnot"
+      },
+      "role": {
+        "admin": "Ylläpitäjä",
+        "member": "Jäsen",
+        "viaGroup": "Ryhmän tai palvelinasetuksen kautta"
+      },
+      "status": {
+        "active": "Aktiivinen",
+        "disabled": "Poistettu käytöstä"
+      },
+      "never": "Ei koskaan",
+      "actions": {
+        "makeAdmin": "Tee ylläpitäjäksi",
+        "removeAdmin": "Poista ylläpitäjyys",
+        "disable": "Poista käytöstä",
+        "enable": "Ota käyttöön"
+      },
+      "loadFailed": "Käyttäjiä ei voitu ladata",
+      "retry": "Yritä uudelleen",
+      "noMatches": "Haulla ei löytynyt käyttäjiä",
+      "emptyTitle": "Ei vielä käyttäjiä",
+      "emptyDescription": "Henkilöt näkyvät täällä ensimmäisen kertakirjautumisen jälkeen.",
+      "range": "{{first}}–{{last}} / {{total}}",
+      "previous": "Edellinen",
+      "next": "Seuraava",
+      "updateFailed": "Käyttäjää ei voitu päivittää.",
+      "disableDialog": {
+        "title": "Poistetaanko {{name}} käytöstä?",
+        "body": "Hänet kirjataan heti ulos kaikkialta, eikä hän voi kirjautua ennen kuin otat tilin käyttöön. Hänen työnsä säilyy palvelimella.",
+        "cancel": "Peruuta"
+      }
+    }
   }
 }

@@ -15949,7 +15949,8 @@
         "memory": "Erinnerung",
         "settings": "Einstellungen",
         "effects": "Effekte",
-        "lipsync": "Lippensynchronisation"
+        "lipsync": "Lippensynchronisation",
+        "admin": "Verwaltung"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "Beschreibung",
     "autoHint": "Keine Schritte festgelegt. Das Widget zeigt jeden generativen Knoten.",
     "chooseNode": "Knoten wählen"
+  },
+  "admin": {
+    "page": {
+      "title": "Verwaltung",
+      "subtitle": "Verwalte die Personen, die sich bei diesem Server anmelden.",
+      "deniedTitle": "Administratorrechte erforderlich",
+      "deniedDescription": "Nur Administratoren dieses Servers können diese Seite öffnen."
+    },
+    "users": {
+      "searchPlaceholder": "Nach Name, E-Mail oder Benutzer-ID suchen",
+      "filter": {
+        "label": "Status",
+        "all": "Alle",
+        "active": "Aktiv",
+        "disabled": "Deaktiviert"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Rolle",
+        "status": "Status",
+        "lastSeen": "Zuletzt gesehen",
+        "actions": "Aktionen"
+      },
+      "role": {
+        "admin": "Administrator",
+        "member": "Mitglied",
+        "viaGroup": "Über eine Gruppe oder Servereinstellung"
+      },
+      "status": {
+        "active": "Aktiv",
+        "disabled": "Deaktiviert"
+      },
+      "never": "Nie",
+      "actions": {
+        "makeAdmin": "Zum Administrator machen",
+        "removeAdmin": "Administratorrechte entziehen",
+        "disable": "Deaktivieren",
+        "enable": "Aktivieren"
+      },
+      "loadFailed": "Benutzer konnten nicht geladen werden",
+      "retry": "Erneut versuchen",
+      "noMatches": "Keine Benutzer passen zu dieser Suche",
+      "emptyTitle": "Noch keine Benutzer",
+      "emptyDescription": "Personen erscheinen hier nach ihrer ersten Anmeldung per Single Sign-on.",
+      "range": "{{first}}–{{last}} von {{total}}",
+      "previous": "Zurück",
+      "next": "Weiter",
+      "updateFailed": "Der Benutzer konnte nicht geändert werden.",
+      "disableDialog": {
+        "title": "{{name}} deaktivieren?",
+        "body": "Die Person wird überall sofort abgemeldet und kann sich erst wieder anmelden, wenn du das Konto aktivierst. Ihre Arbeit bleibt auf dem Server.",
+        "cancel": "Abbrechen"
+      }
+    }
   }
 }

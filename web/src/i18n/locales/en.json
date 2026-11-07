@@ -15949,7 +15949,8 @@
         "memory": "Memory",
         "settings": "Settings",
         "effects": "Effects",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Admin"
       }
     },
     "script": {
@@ -19669,5 +19670,59 @@
     "description": "Description",
     "autoHint": "No steps set. The widget shows every generative node.",
     "chooseNode": "Choose a node"
+  },
+  "admin": {
+    "page": {
+      "title": "Admin",
+      "subtitle": "Manage the people who sign in to this server.",
+      "deniedTitle": "Admin access required",
+      "deniedDescription": "Only admins of this server can open this page."
+    },
+    "users": {
+      "searchPlaceholder": "Search by name, email or user ID",
+      "filter": {
+        "label": "Status",
+        "all": "All",
+        "active": "Active",
+        "disabled": "Disabled"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Role",
+        "status": "Status",
+        "lastSeen": "Last seen",
+        "actions": "Actions"
+      },
+      "role": {
+        "admin": "Admin",
+        "member": "Member",
+        "viaGroup": "Through a group or server setting"
+      },
+      "status": {
+        "active": "Active",
+        "disabled": "Disabled"
+      },
+      "never": "Never",
+      "actions": {
+        "makeAdmin": "Make admin",
+        "removeAdmin": "Remove admin",
+        "disable": "Disable",
+        "enable": "Enable"
+      },
+      "loadFailed": "Could not load users",
+      "retry": "Try again",
+      "noMatches": "No users match this search",
+      "emptyTitle": "No users yet",
+      "emptyDescription": "People appear here after they first sign in with single sign-on.",
+      "range": "{{first}}–{{last}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next",
+      "updateFailed": "Could not update the user.",
+      "disableDialog": {
+        "title": "Disable {{name}}?",
+        "body": "They are signed out everywhere at once and cannot sign in again until you enable the account. Their work stays on the server.",
+        "cancel": "Cancel"
+      }
+    }
   }
 }

@@ -16507,7 +16507,8 @@
         "memory": "Pamięć",
         "settings": "Ustawienia",
         "effects": "Efekty",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Administracja"
       }
     },
     "script": {
@@ -20291,5 +20292,59 @@
     "description": "Opis",
     "autoHint": "Brak kroków. Widżet pokazuje każdy węzeł generatywny.",
     "chooseNode": "Wybierz węzeł"
+  },
+  "admin": {
+    "page": {
+      "title": "Administracja",
+      "subtitle": "Zarządzaj osobami, które logują się na tym serwerze.",
+      "deniedTitle": "Wymagane uprawnienia administratora",
+      "deniedDescription": "Tylko administratorzy tego serwera mogą otworzyć tę stronę."
+    },
+    "users": {
+      "searchPlaceholder": "Szukaj po nazwie, e-mailu lub ID użytkownika",
+      "filter": {
+        "label": "Status",
+        "all": "Wszyscy",
+        "active": "Aktywni",
+        "disabled": "Wyłączeni"
+      },
+      "columns": {
+        "person": "Osoba",
+        "role": "Rola",
+        "status": "Status",
+        "lastSeen": "Ostatnio widziany",
+        "actions": "Akcje"
+      },
+      "role": {
+        "admin": "Administrator",
+        "member": "Członek",
+        "viaGroup": "Przez grupę lub ustawienie serwera"
+      },
+      "status": {
+        "active": "Aktywny",
+        "disabled": "Wyłączony"
+      },
+      "never": "Nigdy",
+      "actions": {
+        "makeAdmin": "Nadaj uprawnienia administratora",
+        "removeAdmin": "Odbierz uprawnienia administratora",
+        "disable": "Wyłącz",
+        "enable": "Włącz"
+      },
+      "loadFailed": "Nie udało się wczytać użytkowników",
+      "retry": "Spróbuj ponownie",
+      "noMatches": "Brak użytkowników pasujących do wyszukiwania",
+      "emptyTitle": "Brak użytkowników",
+      "emptyDescription": "Osoby pojawią się tutaj po pierwszym logowaniu jednokrotnym.",
+      "range": "{{first}}–{{last}} z {{total}}",
+      "previous": "Poprzednia",
+      "next": "Następna",
+      "updateFailed": "Nie udało się zaktualizować użytkownika.",
+      "disableDialog": {
+        "title": "Wyłączyć {{name}}?",
+        "body": "Ta osoba zostanie natychmiast wylogowana wszędzie i nie zaloguje się ponownie, dopóki nie włączysz konta. Jej praca zostaje na serwerze.",
+        "cancel": "Anuluj"
+      }
+    }
   }
 }
