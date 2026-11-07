@@ -457,18 +457,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: ["safeFetch", "loadMediaRefBytes"]
   },
   guardedSafeFetch(
-    "packages/minimax-nodes/src/minimax-base.ts",
-    "MiniMax audio / file downloads",
-    "provider-response",
-    "download_url and hosted-audio URLs; the poll endpoints beside them are fixed-host."
-  ),
-  guardedSafeFetch(
-    "packages/minimax-nodes/src/nodes/text-to-image.ts",
-    "MiniMax image download",
-    "provider-response",
-    "image_urls out of the generation response."
-  ),
-  guardedSafeFetch(
     "packages/runtime/src/providers/fal-provider.ts",
     "FAL provider result download",
     "provider-response",
@@ -544,7 +532,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/runtime/src/providers/minimax-provider.ts",
     "MiniMax provider downloads",
     "provider-response",
-    "download_url, fetched through the provider's own injected fetch under the same screening."
+    "download_url, image_urls and hosted-audio URLs, for the provider's own calls and through downloadMedia for minimax-nodes, fetched with the provider's injected fetch under the same screening."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/evolink-provider.ts",
@@ -1198,12 +1186,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "KIE API calls",
     "KIE_API_KEY",
     "kie.ai endpoints; the result downloads beside them are guarded."
-  ),
-  fixedHost(
-    "packages/minimax-nodes/src/minimax-base.ts",
-    "MiniMax API calls",
-    "MINIMAX_API_KEY",
-    "MiniMax endpoints; the downloads beside them are guarded."
   ),
   fixedHost(
     "packages/topaz-nodes/src/topaz-base.ts",

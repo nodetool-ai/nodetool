@@ -1,11 +1,12 @@
 /**
  * Pins the HTTP requests each MiniMax node sends, in order. The fixtures were
  * recorded from the pack's own transport before the nodes moved onto the
- * runtime provider, so a change to an endpoint, header or body byte fails
- * here. Result downloads are pinned by URL.
+ * runtime provider. The nodes now reach MiniMax through MinimaxProvider, with
+ * its fetch stubbed, and must send the same endpoints, headers and body bytes.
+ * Result downloads are pinned by URL.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { describe, expect, it, vi } from "vitest";
+import { MinimaxProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { BaseNode } from "@nodetool-ai/node-sdk";
 import { MinimaxTextToSpeechNode } from "../src/nodes/text-to-speech.js";
 import { MinimaxTextToImageNode } from "../src/nodes/text-to-image.js";
@@ -103,16 +104,19 @@ async function reply(url: string): Promise<Response> {
   return new Response(PNG);
 }
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 /** Run a node against a stubbed fetch and return every request it sent. */
 async function wireRequests(node: BaseNode): Promise<WireRequest[]> {
   const fetchMock = vi.fn(async (url: string) => reply(url));
-  vi.stubGlobal("fetch", fetchMock);
-  node.setDynamic("_secrets", { MINIMAX_API_KEY: "test-key" });
-  await node.process(new ProcessingContext({ jobId: "job-1" }));
+  const context = new ProcessingContext({ jobId: "job-1" });
+  context.setProviderResolver(
+    () =>
+      new MinimaxProvider(
+        { MINIMAX_API_KEY: "test-key" },
+        // SAFETY: the mock answers every call these nodes make.
+        { fetchFn: fetchMock as unknown as typeof fetch }
+      )
+  );
+  await node.process(context);
   return fetchMock.mock.calls.map((call) => {
     const [url, init] = call as unknown as [string, RequestInit | undefined];
     return {

@@ -121,8 +121,6 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | ToAPIs GPT Image and Seedance 2 result downloads | `packages/runtime/src/providers/toapis-provider.ts` | provider response |
 | KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
 | Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
-| MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
-| MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
 | default provider `downloadMedia` for endpoint results | `packages/runtime/src/providers/base-provider.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
