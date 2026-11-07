@@ -161,7 +161,7 @@ const oidcAuthRoutes: FastifyPluginAsync<OidcAuthRouteOptions> = async (
 
     try {
       const identity = await client.completeSignIn(code, loginState);
-      const session = mintOidcSessionToken(
+      const session = await mintOidcSessionToken(
         sessionKey(),
         { userId: identity.userId, email: identity.email, name: identity.name },
         config.sessionTtlSeconds,

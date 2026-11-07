@@ -17,14 +17,13 @@ const NOW = 1_800_000_000_000;
 
 /** A session token as the server shapes it. The signature is the server's to check. */
 const tokenFor = (payload: Record<string, unknown>): string =>
-  `nts_${Buffer.from(JSON.stringify(payload)).toString("base64url")}.signature`;
+  `nts_eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.signature`;
 
 const validToken = tokenFor({
-  v: 1,
-  u: "a".repeat(32),
-  e: NOW / 1000 + 3600,
-  m: "ada@example.com",
-  n: "Ada"
+  sub: "a".repeat(32),
+  exp: NOW / 1000 + 3600,
+  email: "ada@example.com",
+  name: "Ada"
 });
 
 describe("ssoSession", () => {
@@ -72,7 +71,7 @@ describe("ssoSession", () => {
   });
 
   it("drops an expired session and tells listeners", () => {
-    const expired = tokenFor({ v: 1, u: "u1", e: NOW / 1000 - 1 });
+    const expired = tokenFor({ sub: "u1", exp: NOW / 1000 - 1 });
     window.localStorage.setItem("nodetool.ssoSession", expired);
     const listener = jest.fn();
     const unsubscribe = onSsoSessionExpired(listener);

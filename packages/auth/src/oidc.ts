@@ -121,8 +121,12 @@ function requireHttpUrl(name: string, value: string): URL {
   );
 }
 
+/** `value` without trailing slashes. A loop, not a regex, so a long run of
+ * slashes in a provider's discovery document cannot cost quadratic time. */
 function withoutTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, "");
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47 /* "/" */) end--;
+  return value.slice(0, end);
 }
 
 /**

@@ -22,11 +22,12 @@ export interface SsoUser {
   name?: string;
 }
 
+/** The claims of the JWT inside a session token that the web app reads. */
 interface SsoPayload {
-  u: string;
-  e: number;
-  m?: string;
-  n?: string;
+  sub: string;
+  exp: number;
+  email?: string;
+  name?: string;
 }
 
 const readStorage = (): string | null => {
@@ -54,13 +55,12 @@ const decodePayload = (token: string): SsoPayload | null => {
   if (!token.startsWith(TOKEN_PREFIX)) {
     return null;
   }
-  const separator = token.lastIndexOf(".");
-  if (separator < 0) {
+  const segments = token.slice(TOKEN_PREFIX.length).split(".");
+  if (segments.length !== 3) {
     return null;
   }
   try {
-    const encoded = token
-      .slice(TOKEN_PREFIX.length, separator)
+    const encoded = segments[1]
       .replace(/-/g, "+")
       .replace(/_/g, "/");
     const json = new TextDecoder().decode(
@@ -70,15 +70,15 @@ const decodePayload = (token: string): SsoPayload | null => {
     if (typeof parsed !== "object" || parsed === null) {
       return null;
     }
-    const { u, e, m, n } = parsed as Record<string, unknown>;
-    if (typeof u !== "string" || typeof e !== "number") {
+    const { sub, exp, email, name } = parsed as Record<string, unknown>;
+    if (typeof sub !== "string" || typeof exp !== "number") {
       return null;
     }
     return {
-      u,
-      e,
-      m: typeof m === "string" ? m : undefined,
-      n: typeof n === "string" ? n : undefined
+      sub,
+      exp,
+      email: typeof email === "string" ? email : undefined,
+      name: typeof name === "string" ? name : undefined
     };
   } catch {
     return null;
@@ -138,7 +138,7 @@ export const getSsoToken = (): string | null => {
     return null;
   }
   const payload = decodePayload(token);
-  if (!payload || payload.e * 1000 <= Date.now()) {
+  if (!payload || payload.exp * 1000 <= Date.now()) {
     clearSsoSession();
     expiryListeners.forEach((listener) => listener());
     return null;
@@ -154,7 +154,7 @@ export const getSsoUser = (): SsoUser | null => {
   if (!payload) {
     return null;
   }
-  return { id: payload.u, email: payload.m, name: payload.n };
+  return { id: payload.sub, email: payload.email, name: payload.name };
 };
 
 /** Forget the session. The identity provider's own session is untouched. */
