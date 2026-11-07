@@ -821,3 +821,235 @@ describe("TogetherProvider", () => {
     );
   });
 });
+
+describe("TogetherProvider endpoint calls", () => {
+  const JSON_HEADERS = {
+    Authorization: "Bearer k",
+    "Content-Type": "application/json"
+  };
+  const make = (fetchFn: unknown) =>
+    new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: fetchFn as typeof fetch }
+    );
+  const call = (fetchFn: ReturnType<typeof vi.fn>, index = 0) =>
+    fetchFn.mock.calls[index] as unknown as [string, RequestInit];
+
+  it("supports endpoint calls", () => {
+    expect(make(vi.fn()).supportsEndpointCalls()).toBe(true);
+  });
+
+  it("posts the images route with the model in the body", async () => {
+    const reply = { id: "img-1", data: [{ b64_json: "aGk=" }] };
+    const fetchFn = vi.fn(async () => Response.json(reply));
+    const controller = new AbortController();
+
+    const result = await make(fetchFn).callEndpoint({
+      model: "black-forest-labs/FLUX.1-schnell",
+      route: "images",
+      input: { model: "black-forest-labs/FLUX.1-schnell", prompt: "a fox", n: 1 },
+      signal: controller.signal
+    });
+
+    expect(result).toEqual({ output: reply, requestId: "img-1" });
+    const [url, init] = call(fetchFn);
+    expect(url).toBe("https://api.together.xyz/v1/images/generations");
+    expect(init.headers).toEqual(JSON_HEADERS);
+    expect(init.body).toBe(
+      '{"model":"black-forest-labs/FLUX.1-schnell","prompt":"a fox","n":1}'
+    );
+    expect(init.signal).toBe(controller.signal);
+  });
+
+  it("returns speech audio as bytes", async () => {
+    const fetchFn = vi.fn(async () => new Response(Uint8Array.from([1, 2, 3])));
+    const result = await make(fetchFn).callEndpoint({
+      model: "canopylabs/orpheus-3b-0.1-ft",
+      route: "audio/speech",
+      input: { input: "hello", voice: "tara", response_format: "mp3" }
+    });
+    expect(result.requestId).toBeNull();
+    expect([...(result.output as Uint8Array)]).toEqual([1, 2, 3]);
+    const [url, init] = call(fetchFn);
+    expect(url).toBe("https://api.together.xyz/v1/audio/speech");
+    expect(init.body).toBe(
+      '{"input":"hello","voice":"tara","response_format":"mp3","model":"canopylabs/orpheus-3b-0.1-ft"}'
+    );
+  });
+
+  it("sends transcription input as multipart fields after file and model", async () => {
+    const fetchFn = vi.fn(async () => Response.json({ text: "hallo" }));
+    const result = await make(fetchFn).callEndpoint({
+      model: "openai/whisper-large-v3",
+      route: "audio/transcriptions",
+      input: {
+        file: Uint8Array.from([7, 8]),
+        response_format: "json",
+        language: "de",
+        prompt: null
+      }
+    });
+
+    expect(result).toEqual({ output: { text: "hallo" }, requestId: null });
+    const [url, init] = call(fetchFn);
+    expect(url).toBe("https://api.together.xyz/v1/audio/transcriptions");
+    expect(init.headers).toEqual({ Authorization: "Bearer k" });
+    const form = init.body as FormData;
+    expect([...form.keys()]).toEqual([
+      "file",
+      "model",
+      "response_format",
+      "language"
+    ]);
+    const file = form.get("file") as File;
+    expect(file.name).toBe("audio.wav");
+    expect([...new Uint8Array(await file.arrayBuffer())]).toEqual([7, 8]);
+    expect(form.get("model")).toBe("openai/whisper-large-v3");
+  });
+
+  it("rejects transcription input without audio bytes", async () => {
+    const fetchFn = vi.fn();
+    await expect(
+      make(fetchFn).callEndpoint({
+        model: "openai/whisper-large-v3",
+        route: "audio/transcriptions",
+        input: { file: "https://example.com/a.wav" }
+      })
+    ).rejects.toThrow("together audio/transcriptions needs input.file");
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("creates a video job, polls it and returns the final status", async () => {
+    const final = {
+      id: "job-7",
+      status: "completed",
+      outputs: { video_url: "https://cdn.together.ai/v.mp4" }
+    };
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ id: "job-7", status: "queued" }))
+      .mockResolvedValueOnce(
+        Response.json({ id: "job-7", status: "in_progress" })
+      )
+      .mockResolvedValueOnce(Response.json(final));
+    const progress: unknown[] = [];
+    vi.useFakeTimers();
+    try {
+      const pending = make(fetchFn).callEndpoint({
+        model: "minimax/hailuo-02",
+        route: "videos",
+        input: { model: "minimax/hailuo-02", prompt: "waves" },
+        onProgress: (event) => progress.push(event)
+      });
+      await vi.runAllTimersAsync();
+      expect(await pending).toEqual({ output: final, requestId: "job-7" });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(progress).toEqual([
+      { message: "in_progress" },
+      { message: "completed" }
+    ]);
+    expect(call(fetchFn, 0)[0]).toBe("https://api.together.xyz/v2/videos");
+    expect(call(fetchFn, 1)[0]).toBe("https://api.together.xyz/v2/videos/job-7");
+    expect(call(fetchFn, 1)[1].headers).toEqual({ Authorization: "Bearer k" });
+  });
+
+  it("throws the pack's messages for a failed video job and a missing id", async () => {
+    const failing = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ id: "job-8" }))
+      .mockResolvedValueOnce(
+        Response.json({ status: "failed", error: { message: "GPU OOM" } })
+      );
+    vi.useFakeTimers();
+    try {
+      const pending = make(failing).callEndpoint({
+        model: "m",
+        route: "videos",
+        input: {}
+      });
+      const assertion = expect(pending).rejects.toThrow(
+        "Together video generation failed: GPU OOM"
+      );
+      await vi.runAllTimersAsync();
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+    await expect(
+      make(vi.fn(async () => Response.json({}))).callEndpoint({
+        model: "m",
+        route: "videos",
+        input: {}
+      })
+    ).rejects.toThrow("Together video creation returned no job id.");
+  });
+
+  it("throws the pack's HTTP error labels", async () => {
+    const fetchFn = vi.fn(async () => new Response("quota", { status: 429 }));
+    const provider = make(fetchFn);
+    await expect(
+      provider.callEndpoint({ model: "m", route: "images", input: {} })
+    ).rejects.toThrow("Together image generation failed: quota");
+    await expect(
+      provider.callEndpoint({ model: "m", route: "audio/speech", input: {} })
+    ).rejects.toThrow("Together TTS failed: quota");
+    await expect(
+      provider.callEndpoint({
+        model: "m",
+        route: "audio/transcriptions",
+        input: { file: Uint8Array.from([1]) }
+      })
+    ).rejects.toThrow("Together transcription failed: quota");
+    await expect(
+      provider.callEndpoint({ model: "m", route: "videos", input: {} })
+    ).rejects.toThrow("Together video creation failed: quota");
+  });
+
+  it("rejects a missing or unknown route without calling Together", async () => {
+    const fetchFn = vi.fn();
+    const provider = make(fetchFn);
+    await expect(provider.callEndpoint({ model: "m", input: {} })).rejects.toThrow(
+      "together endpoint route must be one of images, audio/speech, audio/transcriptions, videos, got none"
+    );
+    await expect(
+      provider.callEndpoint({ model: "m", route: "chat", input: {} })
+    ).rejects.toThrow('got "chat"');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("downloads result URLs through safeFetch on the provider fetch", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(Uint8Array.from([5])))
+      .mockResolvedValueOnce(new Response("gone", { status: 404 }));
+    const provider = make(fetchFn);
+    expect([
+      ...(await provider.downloadMedia("https://cdn.together.ai/a.png"))
+    ]).toEqual([5]);
+    expect(call(fetchFn)[1]).toMatchObject({ redirect: "manual" });
+    await expect(
+      provider.downloadMedia("https://cdn.together.ai/b.png")
+    ).rejects.toThrow(
+      "Together asset fetch failed: HTTP 404 for https://cdn.together.ai/b.png"
+    );
+  });
+
+  it("refuses a private download URL before fetching it", async () => {
+    const fetchFn = vi.fn();
+    await expect(
+      make(fetchFn).downloadMedia("http://127.0.0.1/private.png")
+    ).rejects.toThrow();
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("does not upload media, because Together takes images inline", async () => {
+    await expect(
+      make(vi.fn()).uploadMedia({
+        bytes: Uint8Array.from([1]),
+        mimeType: "image/png"
+      })
+    ).rejects.toThrow("together does not support media uploads");
+  });
+});

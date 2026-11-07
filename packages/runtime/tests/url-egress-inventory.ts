@@ -325,7 +325,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   {
     file: "packages/runtime/src/providers/together-provider.ts",
-    owner: "Together image result downloads",
+    owner: "Together image and endpoint result downloads",
     inputSource: "provider-response",
     schemes: ["https"],
     authScope: "none",
@@ -333,7 +333,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     dnsRebinding: "deployment-egress",
     policy: "guarded",
     guardedBy: ["safeFetch"],
-    note: "Generated image URLs use safeFetch with the provider's injected transport. Fixed API requests and the existing video path retain their provider transport."
+    note: "Generated image URLs, and the image and video URLs together-nodes downloads through downloadMedia, use safeFetch with the provider's injected transport. Fixed API requests and the capability video path retain their provider transport."
   },
   guardedMedia(
     "packages/together-nodes/src/together-base.ts",
@@ -445,18 +445,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "resultUrls / audioUrl come out of a response body and reach downloadMedia; the API calls beside them are fixed-host."
   ),
   guardedSafeFetch(
-    "packages/minimax-nodes/src/minimax-base.ts",
-    "MiniMax audio / file downloads",
-    "provider-response",
-    "download_url and hosted-audio URLs; the poll endpoints beside them are fixed-host."
-  ),
-  guardedSafeFetch(
-    "packages/minimax-nodes/src/nodes/text-to-image.ts",
-    "MiniMax image download",
-    "provider-response",
-    "image_urls out of the generation response."
-  ),
-  guardedSafeFetch(
     "packages/runtime/src/providers/fal-provider.ts",
     "FAL provider result download",
     "provider-response",
@@ -532,7 +520,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/runtime/src/providers/minimax-provider.ts",
     "MiniMax provider downloads",
     "provider-response",
-    "download_url, fetched through the provider's own injected fetch under the same screening."
+    "download_url, image_urls and hosted-audio URLs, for the provider's own calls and through downloadMedia for minimax-nodes, fetched with the provider's injected fetch under the same screening."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/evolink-provider.ts",
@@ -1186,11 +1174,5 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "KIE endpoint API calls",
     "KIE_API_KEY",
     "kie.ai endpoints; a route path must be an /api/v1/ path. The result downloads beside them are guarded."
-  ),
-  fixedHost(
-    "packages/minimax-nodes/src/minimax-base.ts",
-    "MiniMax API calls",
-    "MINIMAX_API_KEY",
-    "MiniMax endpoints; the downloads beside them are guarded."
   ),
 ];
