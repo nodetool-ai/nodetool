@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { isGoogleWorkspaceEnabled } from "../google-workspace.js";
 
-const KEYS = ["SUPABASE_URL", "SUPABASE_KEY", "NODETOOL_GOOGLE_WORKSPACE"];
+const KEYS = [
+  "SUPABASE_URL",
+  "SUPABASE_KEY",
+  "OIDC_ISSUER",
+  "OIDC_CLIENT_ID",
+  "NODETOOL_GOOGLE_WORKSPACE"
+];
 
 describe("isGoogleWorkspaceEnabled", () => {
   let saved: Record<string, string | undefined>;
@@ -30,6 +36,12 @@ describe("isGoogleWorkspaceEnabled", () => {
 
   it("stays off when only one Supabase variable is set", () => {
     process.env.SUPABASE_URL = "https://project.supabase.co";
+    expect(isGoogleWorkspaceEnabled()).toBe(false);
+  });
+
+  it("stays off under SSO, whose login carries no Google token", () => {
+    process.env.OIDC_ISSUER = "https://idp.example.com";
+    process.env.OIDC_CLIENT_ID = "nodetool";
     expect(isGoogleWorkspaceEnabled()).toBe(false);
   });
 

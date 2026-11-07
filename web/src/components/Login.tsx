@@ -2,15 +2,19 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import useAuth from "../stores/useAuth";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
+import { getRuntimeConfig, isSsoMode } from "../lib/runtimeConfig";
 import {
   Text,
   Caption,
   Card,
   FlexColumn,
   ExternalLink,
+  EditorButton,
+  AlertBanner,
   BORDER_RADIUS,
   CONTROL,
   SPACING,
@@ -72,9 +76,64 @@ const styles = (theme: Theme) =>
     }
   });
 
+/**
+ * The sign-in card of a self-hosted server that uses single sign-on. It names
+ * the operator's identity provider and leaves out the cloud copy.
+ */
+function SsoLogin() {
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const signInWithSso = useAuth((state) => state.signInWithSso);
+  const authState = useAuth((state) => state.state);
+  const error = useAuth((state) => state.error);
+  const provider = getRuntimeConfig().ssoProviderName ?? "SSO";
+  const handleClick = useCallback(() => {
+    signInWithSso();
+  }, [signInWithSso]);
+
+  return (
+    <FlexColumn
+      css={styles(theme)}
+      align="center"
+      justify="center"
+      gap={SPACING.xl}
+      padding={SPACING.xl}
+    >
+      <Card className="login-card" variant="outlined" padding="spacious">
+        <FlexColumn align="center" gap={SPACING.xl}>
+          <img className="logo" src="/logo192.png" alt="NodeTool" />
+          <Text component="h1" size="big" className="headline">
+            {t("screen_remaining.login.ssoTitle")}
+          </Text>
+          {authState === "error" && error && (
+            <AlertBanner severity="error" compact>
+              {t("screen_remaining.login.ssoFailed", { reason: error })}
+            </AlertBanner>
+          )}
+          <FlexColumn fullWidth>
+            <EditorButton
+              variant="contained"
+              size="large"
+              fullWidth
+              onClick={handleClick}
+              disabled={authState === "loading"}
+            >
+              {t("screen_remaining.login.ssoSignIn", { provider })}
+            </EditorButton>
+          </FlexColumn>
+        </FlexColumn>
+      </Card>
+    </FlexColumn>
+  );
+}
+
 function Login() {
   const theme = useTheme();
   const { t } = useTranslation();
+
+  if (isSsoMode()) {
+    return <SsoLogin />;
+  }
 
   return (
     <FlexColumn

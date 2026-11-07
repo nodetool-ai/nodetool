@@ -50,6 +50,28 @@ describe("runtimeConfig", () => {
     expect(isAuthRequired()).toBe(true);
   });
 
+  it("applies SSO mode with the provider label", async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({ authMode: "oidc", ssoProviderName: "Acme Okta" })
+    );
+    const { loadRuntimeConfig, isAuthRequired, isSsoMode, getRuntimeConfig } =
+      await import("../runtimeConfig");
+    await loadRuntimeConfig();
+    expect(isAuthRequired()).toBe(true);
+    expect(isSsoMode()).toBe(true);
+    expect(getRuntimeConfig().ssoProviderName).toBe("Acme Okta");
+  });
+
+  it("treats an unknown auth mode as local", async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ authMode: "saml" }));
+    const { loadRuntimeConfig, isAuthRequired, isSsoMode } = await import(
+      "../runtimeConfig"
+    );
+    await loadRuntimeConfig();
+    expect(isAuthRequired()).toBe(false);
+    expect(isSsoMode()).toBe(false);
+  });
+
   it("reads the cloud profile flag, defaulting to false", async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({ authMode: "supabase", cloudProfile: true })

@@ -2292,7 +2292,10 @@
       "title": "Connectez-vous à NodeTool Cloud",
       "description": "Décrivez ce que vous voulez. L'agent le construit et vous pouvez prendre le relais à tout moment.",
       "ownKeys": "Utilisez vos propres clés API et payez les fournisseurs aux prix catalogue.",
-      "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez"
+      "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez",
+      "ssoTitle": "Connexion à NodeTool",
+      "ssoSignIn": "Se connecter avec {{provider}}",
+      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur."
     },
     "inspector": {
       "params": "Paramètres",

@@ -2272,7 +2272,10 @@
       "title": "Logg på NodeTool Cloud",
       "description": "Beskriv hva du ønsker. Agenten bygger den, og du kan ta over når som helst.",
       "ownKeys": "Bruk dine egne API-nøkler og betal leverandører til deres listepriser.",
-      "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk"
+      "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk",
+      "ssoTitle": "Logg inn på NodeTool",
+      "ssoSignIn": "Logg inn med {{provider}}",
+      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang."
     },
     "inspector": {
       "params": "Params",

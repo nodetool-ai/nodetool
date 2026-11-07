@@ -2272,7 +2272,10 @@
       "title": "Logga in på NodeTool Cloud",
       "description": "Beskriv vad du vill. Agenten bygger den, och du kan ta över när som helst.",
       "ownKeys": "Använd dina egna API-nycklar och betala leverantörer till deras listpriser.",
-      "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd"
+      "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd",
+      "ssoTitle": "Logga in på NodeTool",
+      "ssoSignIn": "Logga in med {{provider}}",
+      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst."
     },
     "inspector": {
       "params": "Params",
