@@ -105,9 +105,16 @@ class SubgraphTest : public QObject {
     return nullptr;
   }
   static bool click(EditorWindow &w, QString name) {
-    // Panels follow in the next pass, and their layout in the pass after.
-    QCoreApplication::processEvents();
-    QCoreApplication::processEvents();
+    // Panels follow in the next pass and their layout in the pass after. The card
+    // toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
+    QTest::qWaitFor([&] {
+      for (auto panel : w.findChildren<QQuickWidget *>()) {
+        if (!panel->isVisible() || !panel->rootObject()) continue;
+        auto item = find(panel->rootObject(), name);
+        if (item && item->isVisible()) return true;
+      }
+      return false;
+    }, 1000);
     for (auto panel : w.findChildren<QQuickWidget *>()) {
       if (!panel->isVisible() || !panel->rootObject()) {
         continue;

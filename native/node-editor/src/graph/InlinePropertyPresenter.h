@@ -33,6 +33,8 @@ public:
   int generation() const { return generation_; }
   bool expanded() const { return expanded_; }
   bool active() const { return !descriptor_.isEmpty(); }
+  // True while a choice editor's dropdown list is open.
+  bool popupOpen() const { return !popupRect_.isEmpty(); }
   QQuickWidget *editorWidget() const;
   std::function<bool(const QString &, const QString &, const QVariant &)> commitProperty;
   // Applies a batch, such as a linked width and height, as one undo step.
@@ -47,6 +49,7 @@ public slots:
 signals:
   void changed();
   void geometryChanged();
+  void popupChanged();
 protected:
   bool eventFilter(QObject *object, QEvent *event) override;
 private:

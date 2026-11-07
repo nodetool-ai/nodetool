@@ -2,6 +2,7 @@
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QPainter>
+#include <QSettings>
 #include <QGraphicsView>
 #include <QInputDialog>
 #include <QTimer>
@@ -19,6 +20,10 @@ using namespace nodetool;
 class GroupAuthoringTest final : public QObject {
   Q_OBJECT
 private slots:
+  // The chat window opens by default on a wide window (CanvasChatDockStore.ts), over the
+  // right of the canvas where the fitted group header sits. The tests seed it collapsed, as
+  // the window parity captures do, so the header controls are not under the chat.
+  void init() { QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true); }
   void pointerRunSubmitsGroupWithoutSelectingIt() {
     QWebSocketServer server("group run", QWebSocketServer::NonSecureMode);
     QVERIFY(server.listen(QHostAddress::LocalHost));

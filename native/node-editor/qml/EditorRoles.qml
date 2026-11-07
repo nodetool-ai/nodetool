@@ -14,6 +14,16 @@ QtObject {
     readonly property color panel: Ui.Theme.surfacePanel
     readonly property color paper: dark ? "#101113" : "#fafafb"
     readonly property color reroutePaper: dark ? "#101113" : "#ffffff"
+    // web themes c_node_header_bg_group: the edge of a card inside a group (selectionStyles.ts).
+    readonly property color groupHeader: dark ? "#2a2d33" : "#f5f5f6"
+    // BaseNode.tsx parentColor: #222 (dark) or #ccc (light) at GROUP_COLOR_OPACITY 0.55.
+    readonly property color groupFill: dark ? "#8c222222" : "#8ccccccc"
+    // selectionStyles.ts: the selected edge of a Preview card (grey 100) and of an Output card
+    // (info.main at 82 percent over white).
+    readonly property color previewSelected: dark ? "#d4d6db" : "#27272a"
+    readonly property color outputSelected: dark ? "#4adbf1" : "#398da4"
+    // palette grey[200], the card title color while zoomed out (nodes.zoomed.css).
+    readonly property color zoomedTitle: dark ? "#b4b7bd" : "#3f3f46"
     readonly property color rerouteBorder: dark ? "#808590" : "#71717a"
     readonly property color overlay: dark ? "#17181b" : "#f2f2f4"
     readonly property color divider: dark ? "#14ffffff" : "#e4e4e7"

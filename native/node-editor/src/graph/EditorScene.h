@@ -38,6 +38,14 @@ struct CanvasTheme {
   QColor warning{"#ffb86c"};
   // ControlEdge.tsx CONTROL_EDGE_COLOR, a fixed amber in both themes.
   QColor controlWire{"#f59e0b"};
+  // A card inside a group: the edge, and the fill that replaces the card color.
+  QColor groupHeader{"#2a2d33"};
+  QColor groupFill{0x22, 0x22, 0x22, 0x8c};
+  // The card title while zoomed out.
+  QColor zoomedTitle{"#b4b7bd"};
+  // The selected edge of a Preview and of an Output card.
+  QColor previewSelected{"#d4d6db"};
+  QColor outputSelected{"#4adbf1"};
   QColor selectionShadow{0, 0, 0, 77};
   QString sansFamily{"Inter"};
   QString monoFamily{"JetBrains Mono"};
@@ -45,6 +53,8 @@ struct CanvasTheme {
 
 // The curve of a wire. Painting, hit testing, and the bounds margin all use it.
 double groupLabelScale(double zoom);
+// nodes.states.css .bypassed: filter saturate(0.2) over the card.
+inline constexpr double disabledSaturation = 0.2;
 // The Disabled chip of a bypassed card header: NodeHeader.tsx's compact outlined
 // MuiChip, 24 px high with 8 px of label padding and a 1 px border and a 6 px left
 // margin (.bypass-badge). It sits at the right end of the header, centered on it.
@@ -55,6 +65,26 @@ QRectF disabledChipRect(const QRectF &header, double textWidth);
 // The web's branch-dimmed opacity for a node or wire off the selected branch,
 // styles/nodes.zoomed.css. Related items keep full opacity.
 inline constexpr double branchDimmedOpacity = 0.2;
+// web config/constants.ts ZOOMED_OUT: at or below this zoom the web hides handles and
+// property rows, thickens wires and rings a selected card (nodes.zoomed.css).
+inline constexpr double zoomedOutThreshold = 0.35;
+inline constexpr double zoomedOutBodyOpacity = 0.85;
+// Edge styles of handle_edge_tooltip.css and nodes.zoomed.css, in user units, not stroke widths.
+// .streaming-edge is 3 wide at 0.8 opacity dashed 30 3 (8 when selected). A flowing edge is
+// dashed 14 10 (4 2 under reduced motion) and scrolls 120 px a second. A bypassed edge is 5 5.
+// Overview zoom draws an edge 6 wide.
+inline constexpr double streamingWireOpacity = 0.8;
+inline constexpr double streamingWireWidth = 3;
+inline constexpr double zoomedWireWidth = 6;
+inline constexpr double flowDashOn = 14;
+inline constexpr double flowDashOff = 10;
+inline constexpr double flowReducedDashOn = 4;
+inline constexpr double flowReducedDashOff = 2;
+inline constexpr double streamingDashOn = 30;
+inline constexpr double streamingDashOff = 3;
+inline constexpr double streamingSelectedDash = 8;
+inline constexpr double bypassedDash = 5;
+inline constexpr double flowSpeed = 120;
 // web/src/components/node/CommentNode.tsx scale-to-fit floor for a card height.
 inline constexpr int commentMinimumHeight = 40;
 // The web's handle hover, styles/handle_edge_tooltip.css: scale 1.3, opacity 0.9.
@@ -63,6 +93,9 @@ inline constexpr double handleHoverOpacity = 0.9;
 // While a wire is dragged, compatible handles grow and the rest fade, shrink and
 // lose their color, and settled wires dim (web styles/handle_edge_tooltip.css .is-connecting).
 inline constexpr double handleConnectableScale = 1.2;
+// vars.css --node-handle-core-radius and --node-handle-core-feather of a collect handle.
+inline constexpr double handleCollectCore = 2;
+inline constexpr double handleCollectFeather = 2.5;
 inline constexpr double handleBlockedOpacity = 0.15;
 inline constexpr double handleBlockedScaleX = 0.4;
 inline constexpr double handleBlockedScaleY = 0.6;
@@ -203,6 +236,9 @@ private:
   bool draftFeedback_ = false;
   void repaintCards();
   void updateHandleHover(const QPointF &scenePosition);
+  void refreshHandleCursor(bool drafting);
+  QtNodes::NodeId cursorNode_ = QtNodes::InvalidNodeId;
+  bool blankCursor_ = false;
   void updateBranchDimming();
   bool branchDimmingPending_ = false;
   QSet<QtNodes::NodeId> dimmedNodes_;

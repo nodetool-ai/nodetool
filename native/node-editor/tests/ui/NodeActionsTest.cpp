@@ -1,4 +1,5 @@
 #include "graph/EditorScene.h"
+#include "graph/InlinePropertyPresenter.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QContextMenuEvent>
@@ -87,7 +88,8 @@ private:
     static void click(EditorWindow &window, const QString &resource, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
         centerOn(window, resource);
         QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, modifiers, headerPoint(window, resource));
-        QTest::qWait(60);
+        // The card toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
+        QTest::qWait(260);
     }
 
     static QQuickWidget *toolbar(EditorWindow &window) {
@@ -146,6 +148,48 @@ private slots:
         }
         click(window, "b");
         expectAbove(window, "b");
+    }
+
+    // NodeSelectionToolbar.tsx wraps the selection in useDelayedVisibility(200 ms) so a click
+    // that turns into a drag does not flash the toolbar. Deselecting hides it at once and
+    // selecting again restarts the delay.
+    void toolbarShowsTwoHundredMillisecondsAfterTheSelection() {
+        EditorWindow window;
+        load(window);
+        centerOn(window, "a");
+        auto *bar = toolbar(window);
+        QVERIFY(bar);
+        QVERIFY(!bar->isVisible());
+        QElapsedTimer clock;
+        clock.start();
+        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        QCOMPARE(window.scene()->selectedItems().size(), 1);
+        QTest::qWait(100);
+        QVERIFY2(!bar->isVisible(), "the toolbar waits 200 ms");
+        QTRY_VERIFY_WITH_TIMEOUT(bar->isVisible(), 1000);
+        QVERIFY2(clock.elapsed() >= 195, qPrintable(QString::number(clock.elapsed())));
+        window.scene()->clearSelection();
+        QCoreApplication::processEvents();
+        QVERIFY2(!bar->isVisible(), "deselecting hides the toolbar at once");
+        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        QTest::qWait(100);
+        QVERIFY2(!bar->isVisible(), "selecting again restarts the delay");
+        QTRY_VERIFY_WITH_TIMEOUT(bar->isVisible(), 1000);
+    }
+
+    // The toolbar also hides while a Select dropdown is open (NodeSelectionToolbar.tsx reads
+    // useSelect activeSelect, which is the dropdown store, not a box selection).
+    void toolbarHidesWhileADropdownIsOpen() {
+        EditorWindow window;
+        load(window);
+        click(window, "a");
+        expectAbove(window, "a");
+        auto *presenter = window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        presenter->popupRect(QRectF(0, 0, 40, 40));
+        QVERIFY(!toolbar(window)->isVisible());
+        presenter->popupRect({});
+        expectAbove(window, "a");
     }
 
     // The toolbar tracks the card through a pan, a zoom, a resize and a move.

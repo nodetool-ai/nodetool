@@ -17,6 +17,7 @@
 #include <QEasingCurve>
 #include <QTextDocument>
 #include <QAbstractTextDocumentLayout>
+#include <QScopeGuard>
 #include <QTextCursor>
 #include <QPainterPath>
 #include <QSvgRenderer>
@@ -177,11 +178,69 @@ void paintDisabledBadge(QPainter *painter, const QRectF &chip, const CanvasTheme
   painter->restore();
 }
 
+// The CSS saturate() filter matrix on premultiplied pixels. The filter is linear in
+// the color channels, so premultiplied values need no unpremultiply.
+void saturate(QImage &image, double amount) {
+  const double rr = 0.213 + 0.787 * amount, rg = 0.715 - 0.715 * amount, rb = 0.072 - 0.072 * amount;
+  const double gr = 0.213 - 0.213 * amount, gg = 0.715 + 0.285 * amount, gb = rb;
+  const double br = gr, bg = rg, bb = 0.072 + 0.928 * amount;
+  for (int y = 0; y < image.height(); ++y) {
+    auto *line = reinterpret_cast<QRgb *>(image.scanLine(y));
+    for (int x = 0; x < image.width(); ++x) {
+      const double r = qRed(line[x]), g = qGreen(line[x]), b = qBlue(line[x]);
+      line[x] = qRgba(int(std::clamp(rr * r + rg * g + rb * b, 0.0, 255.0) + 0.5), int(std::clamp(gr * r + gg * g + gb * b, 0.0, 255.0) + 0.5),
+                      int(std::clamp(br * r + bg * g + bb * b, 0.0, 255.0) + 0.5), qAlpha(line[x]));
+    }
+  }
+}
+
+QColor mixColors(const QColor &first, const QColor &second, double firstShare) {
+  QColor mixed;
+  mixed.setRgbF(first.redF() * firstShare + second.redF() * (1 - firstShare), first.greenF() * firstShare + second.greenF() * (1 - firstShare),
+                first.blueF() * firstShare + second.blueF() * (1 - firstShare));
+  return mixed;
+}
+
+// A collect handle (list[T] with a concrete T) is a ring: PropertyField.tsx isCollectType.
+bool collectPort(const QJsonValue &port) {
+  const auto type = port.toObject()["type"];
+  if (!type.isObject()) { return false; }
+  const auto declared = type.toObject();
+  const auto args = declared["type_args"].toArray();
+  return declared["type"] == "list" && args.size() == 1 && args[0].toObject()["type"] != "any";
+}
+
 QColor withOpacity(QColor color, double opacity);
 
 class NodePainter final : public AbstractNodePainter {
 public:
   explicit NodePainter(EditorScene &scene) : scene_(scene) {}
+  // The zoom the card is shown at. A bypassed card paints into an image first, whose
+  // own scale is the pixel density, so that pass carries the view zoom here.
+  double zoomOf(const QPainter *painter) const { return desaturating_ ? zoomOverride_ : std::abs(painter->worldTransform().m11()); }
+  // nodes.states.css .react-flow__node.bypassed: opacity 0.8 and filter saturate(0.2) over
+  // the whole node, handles included. Qt has no color filter, so the card is painted into
+  // an image at the view's pixel density, desaturated, and drawn at 0.8.
+  void paintDesaturated(QPainter *painter, NodeGraphicsObject &item, double zoom) const {
+    const auto bounds = item.boundingRect();
+    const double scale = std::max(0.01, std::abs(painter->worldTransform().m11()) * painter->device()->devicePixelRatio());
+    QImage image(QSize(int(std::ceil(bounds.width() * scale)), int(std::ceil(bounds.height() * scale))), QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    {
+      QPainter inner(&image);
+      inner.scale(scale, scale);
+      inner.translate(-bounds.topLeft());
+      desaturating_ = true;
+      zoomOverride_ = zoom;
+      paint(&inner, item);
+      desaturating_ = false;
+    }
+    saturate(image, disabledSaturation);
+    painter->save();
+    painter->setOpacity(painter->opacity() * nm::disabledOpacity);
+    painter->drawImage(QRectF(bounds.topLeft(), QSizeF(image.width() / scale, image.height() / scale)), image);
+    painter->restore();
+  }
   void paint(QPainter *painter, NodeGraphicsObject &item) const override {
     const auto &theme = scene_.theme();
     const auto &model = static_cast<const WorkflowGraphModel &>(item.graphModel());
@@ -270,12 +329,40 @@ public:
       return;
     }
     const bool disabled = model.bypassed(item.nodeId());
+    const double zoom = zoomOf(painter);
+    if (disabled && !desaturating_) { paintDesaturated(painter, item, zoom); return; }
+    const bool zoomedOut = zoom <= zoomedOutThreshold;
+    const bool grouped = model.depth(item.nodeId()) > 0;
+    const auto cardStatus = model.runtimeState(item.nodeId())["status"].toString();
+    // BaseNode.tsx isLoading: the card takes the group tint only while it is not loading.
+    const bool loading = !disabled && (cardStatus == "running" || cardStatus == "loading" || cardStatus == "queued");
     painter->save();
-    if (disabled) { painter->setOpacity(painter->opacity() * nm::disabledOpacity); }
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setRenderHint(QPainter::TextAntialiasing);
     const QRectF box(QPointF(0, 0), layout.size);
-    if (item.isSelected()) {
+    if (zoomedOut && item.isSelected()) {
+      // nodes.zoomed.css: a 4 px ring in the node color over a 0 2px 8px shadow, around the card.
+      auto shade = QColor(0, 0, 0);
+      for (int layer = 4; layer >= 1; --layer) {
+        shade.setAlphaF(0.4 / 8);
+        const double spread = 4 + 2 * layer - 2;
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(shade);
+        painter->drawRoundedRect(box.adjusted(-spread, 2 - spread, spread, 2 + spread), nm::radius + spread, nm::radius + spread);
+      }
+      QPainterPath ring;
+      ring.addRoundedRect(box.adjusted(-4, -4, 4, 4), nm::radius + 4, nm::radius + 4);
+      ring.addRoundedRect(box, nm::radius, nm::radius);
+      ring.setFillRule(Qt::OddEvenFill);
+      painter->setBrush(layout.subgraph ? theme.subgraphAccent : layout.accent);
+      painter->drawPath(ring);
+    }
+    // The zoomed-out node body is drawn at 0.85 and keeps no shadow of its own.
+    if (zoomedOut) { painter->setOpacity(painter->opacity() * zoomedOutBodyOpacity); }
+    const bool previewCard = layout.body == CardBody::Preview;
+    const bool outputCard = layout.body == CardBody::Output;
+    // selectionStyles.ts: Preview and Output cards carry SHADOW.sm in every state, other cards when selected.
+    if ((item.isSelected() || previewCard || outputCard) && !zoomedOut) {
       // SHADOW.sm: 0 1px 3px, stacked outlines in place of a blur.
       for (int spread = 3; spread >= 1; --spread) {
         auto shade = theme.selectionShadow;
@@ -286,12 +373,16 @@ public:
       }
     }
     auto borderColor = theme.divider;
+    // selectionStyles.ts: a grouped card's hairline is the group header over 18 percent primary.
+    if (grouped) { borderColor = mixColors(theme.groupHeader, theme.primary, 0.82); }
     if (layout.subgraph) {
         borderColor = theme.subgraphAccent;
         borderColor.setAlpha(64);
     }
-    painter->setPen(QPen(item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : layout.accent) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
-    painter->setBrush(theme.node);
+    // A selected Preview card is edged in grey 100 and an Output card in info.main over white.
+    const auto selectedEdge = previewCard ? theme.previewSelected : outputCard ? theme.outputSelected : layout.accent;
+    painter->setPen(QPen(item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : selectedEdge) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
+    painter->setBrush(grouped && !loading ? theme.groupFill : theme.node);
     painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
     if (disabled) { paintBypassStripes(painter, box, theme); }
 
@@ -299,7 +390,9 @@ public:
     auto iconColor = theme.textSecondary;
     iconColor.setAlphaF(0.65);
     const QRectF iconBox(inset + 2, inset + 4, nm::iconSize, nm::iconSize);
-    if (layout.subgraph) {
+    // nodes.zoomed.css hides the icon and sets the title to grey 200 at full opacity.
+    if (zoomedOut) {
+    } else if (layout.subgraph) {
         paintIcon(painter, layout.icon, iconBox, theme.subgraphAccent);
     } else {
         paintCardIcon(painter, layout.typeIcon, layout.icon, iconBox, iconColor);
@@ -308,16 +401,20 @@ public:
     const auto chipFont = canvasFont(theme, nm::fontValue, QFont::Normal);
     const auto chipLabel = QObject::tr("Disabled");
     const auto chip = disabledChipRect(headerBox, QFontMetricsF(chipFont).horizontalAdvance(chipLabel));
-    painter->setPen(theme.textPrimary);
+    painter->setPen(zoomedOut ? theme.zoomedTitle : theme.textPrimary);
     painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
     // The chip keeps its 6 px left margin (nodes.states.css .bypass-badge).
     const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? chip.width() + disabledChipMargin : 0), nm::headerHeight);
-    painter->drawText(title, Qt::AlignLeft | Qt::AlignVCenter,
-                      painter->fontMetrics().elidedText(layout.title, Qt::ElideRight, int(title.width())));
-
-    if (disabled) {
-      paintDisabledBadge(painter, chip, theme, chipFont, chipLabel);
+    {
+      // nodes.states.css: a bypassed title is drawn at 0.8 inside the card's own 0.8.
+      const auto cardOpacity = painter->opacity();
+      if (disabled && !zoomedOut) { painter->setOpacity(cardOpacity * nm::disabledOpacity); }
+      painter->drawText(title, Qt::AlignLeft | Qt::AlignVCenter,
+                        painter->fontMetrics().elidedText(layout.title, Qt::ElideRight, int(title.width())));
+      painter->setOpacity(cardOpacity);
     }
+
+    if (disabled) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
     CardBodyPaintState bodyState;
     bodyState.hasResult = model.hasRuntimeOutput(item.nodeId());
     if (scene_.sliderDraftNode() == item.nodeId()) {
@@ -326,9 +423,10 @@ public:
     }
     for (const auto &row : layout.rows) {
         if (!paintCardBodyRow(painter, theme, layout, row, bodyState)) {
-            paintRow(painter, layout, row, inset);
+            // nodes.zoomed.css hides property rows and their labels at overview zoom.
+            if (!zoomedOut) { paintRow(painter, layout, row, inset); }
         }
-        if (!row.renameLabelRect.isEmpty()) {
+        if (!row.renameLabelRect.isEmpty() && !zoomedOut) {
             if (row.kind == NodeRowKind::Handle) {
                 painter->setPen(theme.textSecondary);
                 painter->setFont(canvasFont(theme, nm::fontLabel, QFont::Normal));
@@ -491,7 +589,11 @@ private:
   void paintHandles(QPainter *painter, const WorkflowGraphModel &model, NodeId id, const NodeLayout &layout) const {
     const auto &theme = scene_.theme();
     const auto &hover = scene_.hoveredHandle();
+    // nodes.zoomed.css gives every handle opacity 0 at overview zoom.
+    if (zoomOf(painter) <= zoomedOutThreshold) { return; }
     const auto dot = [&](double x, double y, const QColor &color, PortType side, int index) {
+      const auto ports = model.ports(id, side);
+      const bool collect = side == PortType::In && index < ports.size() && collectPort(ports[index]);
       // A type-colored dot in a ring of the node's own background. The hovered
       // handle scales to 1.3 at opacity 0.9 about its center, as the web does.
       const bool hovered = hover.node == id && hover.type == side && hover.index == PortIndex(index);
@@ -523,6 +625,16 @@ private:
       painter->setBrush(fill);
       const auto r = nm::handleDiameter / 2 - nm::handleRing / 2;
       painter->drawEllipse(QPointF(x, y), r, r);
+      if (collect) {
+        // .collect-handle: a card-colored core, radial-gradient(bg 0 2px, transparent 2.5px).
+        QRadialGradient core(QPointF(x, y), handleCollectFeather);
+        core.setColorAt(0, theme.node);
+        core.setColorAt(handleCollectCore / handleCollectFeather, theme.node);
+        core.setColorAt(1, withOpacity(theme.node, 0));
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(core);
+        painter->drawEllipse(QPointF(x, y), handleCollectFeather, handleCollectFeather);
+      }
       painter->restore();
     };
     // The control handle sits at the top center of a card and the bottom center of a controller.
@@ -545,6 +657,8 @@ private:
     }
   }
   EditorScene &scene_;
+  mutable bool desaturating_ = false;
+  mutable double zoomOverride_ = 1;
 };
 
 QColor withOpacity(QColor color, double opacity) {
@@ -583,11 +697,18 @@ public:
     const auto path = control ? controlWireCurve(wire.endPoint(PortType::Out), wire.endPoint(PortType::In)) : curve(wire);
     if (control) {
       // ControlEdge.tsx: amber, dashed 8 4, 2 wide at 0.7 opacity and 3 wide at full opacity when selected.
+      // Hover widens it to 3 and lifts it to full opacity (handle_edge_tooltip.css .control-edge:hover).
       const bool selected = wire.isSelected();
-      const double width = selected ? nm::controlWireSelectedWidth : nm::controlWireWidth;
-      QPen pen(scene_.theme().controlWire, width);
+      const bool raised = selected || wire.connectionState().hovered();
+      const double width = raised ? nm::controlWireSelectedWidth : nm::controlWireWidth;
+      if (selected) {
+        // A selected control wire casts a 0 0 3px glow at 50 percent of its amber.
+        painter->setPen(QPen(withOpacity(scene_.theme().controlWire, 0.25), width + 4, Qt::SolidLine, Qt::RoundCap));
+        painter->drawPath(path);
+      }
+      QPen pen(scene_.theme().controlWire, width, Qt::CustomDashLine, Qt::FlatCap);
       pen.setDashPattern({nm::controlWireDashOn / width, nm::controlWireDashOff / width});
-      painter->setOpacity(painter->opacity() * (selected ? 1.0 : nm::controlWireOpacity));
+      painter->setOpacity(painter->opacity() * (raised ? 1.0 : nm::controlWireOpacity));
       painter->setPen(pen);
       painter->drawPath(path);
       return;
@@ -622,19 +743,28 @@ public:
       return object && object->isSelected();
     };
     const bool selected = wire.isSelected() || nodeSelected(id.outNodeId) || nodeSelected(id.inNodeId);
-    if (selected && !disabled) {
+    const bool hovered = wire.connectionState().hovered();
+    // A streaming output draws its own edge style (handle_edge_tooltip.css .streaming-edge).
+    const bool streaming = model_.metadata(id.outNodeId)["is_streaming_output"].toBool();
+    const bool flowing = model_.runtimeWireFlowing(id) && model_.runtimeConnected();
+    const bool messageSent = model_.runtimeEdgeState(id)["status"] == "message_sent";
+    const bool zoomedOut = std::abs(painter->worldTransform().m11()) <= zoomedOutThreshold;
+    // CustomEdge draws the selected glow and the hover filter applies for every edge,
+    // bypassed ones included.
+    if (selected) {
       painter->setPen(QPen(withOpacity(source, nm::wireGlowOpacity), nm::wireGlowWidth, Qt::SolidLine, Qt::RoundCap));
       painter->drawPath(path);
     }
     // The web's edge hover: 4 wide at full opacity with a brighter, more saturated stroke.
-    const bool hovered = wire.connectionState().hovered();
-    if (hovered && !disabled) {
+    if (hovered) {
       painter->setPen(QPen(withOpacity(Qt::white, nm::wireHoverGlowOpacity), nm::wireHoverWidth + nm::wireHoverGlowSpread, Qt::SolidLine, Qt::RoundCap));
       painter->drawPath(path);
     }
     const bool connecting = scene_.draftEnd().node != InvalidNodeId;
-    const auto opacity = connecting ? wireConnectingOpacity
-        : ((selected || hovered) ? 1.0 : nm::wireOpacity) * (disabled ? nm::disabledWireOpacity : 1.0);
+    // The most specific rule wins: selected and hover are 1, then a streaming edge's 0.8,
+    // then a flowing edge's 1, then the static 0.5. A bypassed edge's element opacity is 0.5.
+    const double strokeOpacity = (selected || hovered) ? 1.0 : streaming ? streamingWireOpacity : flowing ? 1.0 : nm::wireOpacity;
+    const auto opacity = connecting ? wireConnectingOpacity : strokeOpacity * (disabled ? nm::disabledWireOpacity : 1.0);
     const auto sourceStroke = hovered ? hoverTint(source) : source;
     const auto targetStroke = hovered ? hoverTint(target) : target;
     QBrush stroke(withOpacity(sourceStroke, opacity));
@@ -644,18 +774,32 @@ public:
       gradient.setColorAt(1, withOpacity(targetStroke, opacity));
       stroke = gradient;
     }
-    const auto width = hovered ? nm::wireHoverWidth : selected ? nm::wireSelectedWidth : nm::wireWidth;
-    painter->setPen(QPen(stroke, width, disabled ? Qt::DashLine : Qt::SolidLine, Qt::RoundCap));
-    painter->drawPath(path);
-    if (!disabled && model_.runtimeWireFlowing(id) && model_.runtimeConnected()) {
-      // A streaming output draws a wider flow, as the web's streaming-edge class.
-      const bool streaming = model_.metadata(id.outNodeId)["is_streaming_output"].toBool();
-      painter->setPen(QPen(withOpacity(source, 0.9), streaming ? nm::wireStreamingWidth : nm::wireSelectedWidth, Qt::DashLine, Qt::RoundCap));
-      auto pen = painter->pen();
-      pen.setDashOffset(-scene_.animationPhase() * 12);
-      painter->setPen(pen);
-      painter->drawPath(path);
+    // Hover wins, then a streaming edge (4 wide while selected or flowing, otherwise 3),
+    // then the overview width, then a selected edge's 2.
+    const auto width = hovered ? nm::wireHoverWidth
+        : streaming ? (selected || flowing ? nm::wireStreamingWidth : streamingWireWidth)
+        : zoomedOut ? zoomedWireWidth
+        : selected ? nm::wireSelectedWidth : nm::wireWidth;
+    // Dashes are in user units, not stroke widths. A status of message_sent sets 14 10 inline.
+    // Otherwise a flowing edge in reduced motion is 4 2, a streaming edge 30 3 (8 when
+    // selected) and a bypassed edge 5 5.
+    QVector<qreal> dash;
+    if (flowing && messageSent) { dash = {flowDashOn, flowDashOff}; }
+    else if (flowing && !scene_.animationActive() && !streaming) { dash = {flowReducedDashOn, flowReducedDashOff}; }
+    else if (streaming) { dash = selected ? QVector<qreal>{streamingSelectedDash, streamingSelectedDash} : QVector<qreal>{streamingDashOn, streamingDashOff}; }
+    else if (flowing) { dash = {flowDashOn, flowDashOff}; }
+    else if (disabled) { dash = {bypassedDash, bypassedDash}; }
+    // A flowing edge has round caps and scrolls 120 px a second (edgeFlow, MOTION.spin).
+    QPen pen(stroke, width, Qt::SolidLine, flowing ? Qt::RoundCap : Qt::FlatCap);
+    if (!dash.isEmpty()) {
+      pen.setStyle(Qt::CustomDashLine);
+      QVector<qreal> pattern;
+      for (const auto length : dash) { pattern.append(length / width); }
+      pen.setDashPattern(pattern);
+      if (flowing && scene_.animationActive()) { pen.setDashOffset(-flowSpeed * scene_.animationPhase() / width); }
     }
+    painter->setPen(pen);
+    painter->drawPath(path);
     // The web's CustomEdge shows the stream count of an edge that carried more
     // than one item, in a pill on the wire.
     const auto counter = model_.runtimeEdgeState(id)["counter"].toInt();
@@ -957,6 +1101,30 @@ void EditorScene::updateHandleHover(const QPointF &scenePosition) {
   handleHover_ = next;
   for (const auto id : {previous.node, next.node}) {
     if (const auto item = id == InvalidNodeId ? nullptr : nodeGraphicsObject(id)) { item->update(); }
+  }
+}
+
+// handle_edge_tooltip.css: a handle shows the cell cursor (a plus sign, Qt's cross), and
+// the cursor is hidden over a handle while a wire is connecting. A Graphics View resets
+// its viewport cursor from the item under the pointer, so the cursor is set on the card
+// item that owns the hovered handle.
+void EditorScene::refreshHandleCursor(bool drafting) {
+  if (gesture_ != Gesture::None) { return; }
+  const auto owner = handleHover_.node;
+  // A Graphics View keeps its viewport cursor while a button is down, which a wire drag is.
+  for (const auto view : views()) {
+    if (drafting && owner != InvalidNodeId) { view->viewport()->setCursor(Qt::BlankCursor); blankCursor_ = true; }
+    else if (blankCursor_) { view->viewport()->unsetCursor(); }
+  }
+  if (!(drafting && owner != InvalidNodeId)) { blankCursor_ = false; }
+  if (cursorNode_ != InvalidNodeId && cursorNode_ != owner) {
+    if (auto *previous = nodeGraphicsObject(cursorNode_)) { previous->unsetCursor(); }
+    cursorNode_ = InvalidNodeId;
+  }
+  if (owner == InvalidNodeId) { return; }
+  if (auto *item = nodeGraphicsObject(owner)) {
+    item->setCursor(Qt::CrossCursor);
+    cursorNode_ = owner;
   }
 }
 
@@ -1429,6 +1597,8 @@ void EditorScene::finishSlider(bool commit) {
 void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     // The connectable styling covers every card, so a drag start repaints them.
     const bool drafting = draftEnd().node != InvalidNodeId;
+    // The base class' hover handling resets a card's cursor, so the handle cursor is set last.
+    const auto cursorGuard = qScopeGuard([this, drafting] { refreshHandleCursor(drafting); });
     if (drafting != draftFeedback_) {
         draftFeedback_ = drafting;
         updateBranchDimming();
@@ -1492,6 +1662,7 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
 }
 
 void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+    refreshHandleCursor(false);
     // The paint after this release runs without the draft, so the cards return to normal.
     if (draftFeedback_) {
         draftFeedback_ = false;

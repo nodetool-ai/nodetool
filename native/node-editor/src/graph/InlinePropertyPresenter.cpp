@@ -107,7 +107,9 @@ void InlinePropertyPresenter::cancel() {
   descriptor_.clear();
   name_.clear();
   node_ = QtNodes::InvalidNodeId;
+  const bool popupWasOpen = popupOpen();
   popupRect_ = {};
+  if (popupWasOpen) { emit popupChanged(); }
   expanded_ = false;
   if (widget_) {
     auto old = widget_;
@@ -146,7 +148,12 @@ void InlinePropertyPresenter::expand() {
   emit changed();
   reposition();
 }
-void InlinePropertyPresenter::popupRect(const QRectF &rect) { popupRect_ = rect; updateMask(); }
+void InlinePropertyPresenter::popupRect(const QRectF &rect) {
+  const bool wasOpen = popupOpen();
+  popupRect_ = rect;
+  updateMask();
+  if (wasOpen != popupOpen()) { emit popupChanged(); }
+}
 void InlinePropertyPresenter::updateMask() {
   if (!widget_) { return; }
   auto region = QRegion(editorRect_.adjusted(-2, -2, 2, 2).toAlignedRect());

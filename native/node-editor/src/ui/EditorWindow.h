@@ -1,4 +1,7 @@
 #pragma once
+#include <QElapsedTimer>
+#include <QHash>
+#include <QTimer>
 #include <optional>
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
@@ -391,6 +394,12 @@ private:
   // Floats the selection toolbar over the selected card, or at the top center of
   // the canvas for a group, a comment or several nodes.
   void positionSelectionToolbar();
+  // NodeSelectionToolbar.tsx delays the card toolbar 200 ms (useDelayedVisibility) so a
+  // click that starts a drag does not flash it. Each selected card has its own delay,
+  // which restarts when the card is deselected or dragged.
+  QHash<QString, qint64> toolbarSelectedAt_;
+  QElapsedTimer toolbarClock_;
+  QTimer toolbarDelay_;
   QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach);
   void showActionMenu(const QString &kind, const QPoint &position);
   bool menuActionEnabled(const QString &name) const;

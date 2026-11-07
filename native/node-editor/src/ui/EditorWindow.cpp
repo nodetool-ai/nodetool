@@ -105,6 +105,8 @@ void EditorWindow::styleOutputMarkdown(QObject *source, const QColor &link,
 namespace {
 constexpr int narrowWindowWidth = 1000;
 constexpr int compactToolbarWidth = 480;
+// NodeSelectionToolbar.tsx TOOLBAR_SHOW_DELAY.
+constexpr qint64 toolbarShowDelayMs = 200;
 const QMap<QString, node_editor::layout::SelectionAction> selectionActions{
     {"Align left", node_editor::layout::SelectionAction::AlignLeft},
     {"Align center", node_editor::layout::SelectionAction::AlignCenter},
@@ -331,6 +333,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   };
   inlinePresenter_->commitCommand = [this](const QJsonObject &command) { return apply(command); };
   connect(this, &EditorWindow::zoomChanged, inlinePresenter_, &InlinePropertyPresenter::reposition);
+  connect(inlinePresenter_, &InlinePropertyPresenter::popupChanged, this, &EditorWindow::positionSelectionToolbar);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(this, &EditorWindow::documentEpochChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   inlineTitle_ = new InlineTitlePresenter(model_, *scene_, *view_, engine_, this);
@@ -1266,6 +1269,20 @@ void EditorWindow::positionSelectionToolbar() {
   // NodeSelectionToolbar.tsx shows the card toolbar only for one selected card
   // that is not being dragged, centered above it with an 8 px gap.
   const auto ids = selectedIds();
+  if (!toolbarClock_.isValid()) {
+    toolbarClock_.start();
+    toolbarDelay_.setSingleShot(true);
+    connect(&toolbarDelay_, &QTimer::timeout, this, &EditorWindow::positionSelectionToolbar);
+  }
+  const auto now = toolbarClock_.elapsed();
+  if (scene_->nodeDragActive()) {
+    toolbarSelectedAt_.clear();
+  } else {
+    for (auto it = toolbarSelectedAt_.begin(); it != toolbarSelectedAt_.end();) {
+      it = ids.contains(it.key()) ? std::next(it) : toolbarSelectedAt_.erase(it);
+    }
+    for (const auto &id : ids) { toolbarSelectedAt_.insert(id, toolbarSelectedAt_.value(id, now)); }
+  }
   if (visible && ids.size() == 1) {
     for (const auto id : model_.allNodeIds()) {
       if (model_.resourceId(id) != ids.first()) { continue; }
@@ -1275,6 +1292,15 @@ void EditorWindow::positionSelectionToolbar() {
       const auto card = view_->mapFromScene(QRectF(item->scenePos(), model_.layout(id).size)).boundingRect().translated(view_->viewport()->pos());
       constexpr int cardToolbarGap = 8;
       if (!QRect(QPoint(), area.size()).intersects(card) || scene_->nodeDragActive()) { visible = false; break; }
+      // The toolbar shows 200 ms after the card is selected, and not while one of the
+      // card's dropdowns is open (NodeSelectionToolbar.tsx: useSelect activeSelect).
+      const auto waited = now - toolbarSelectedAt_.value(ids.first(), now);
+      if (waited < toolbarShowDelayMs) {
+        toolbarDelay_.start(int(toolbarShowDelayMs - waited));
+        visible = false;
+        break;
+      }
+      if (inlinePresenter_ && inlinePresenter_->popupOpen()) { visible = false; break; }
       const int x = card.center().x() - selection.width() / 2;
       const int y = card.top() - cardToolbarGap - selection.height();
       origin = QPoint(std::clamp(x, 0, std::max(0, area.width() - selection.width())), std::clamp(y, 0, std::max(0, area.height() - selection.height())));
@@ -1282,8 +1308,14 @@ void EditorWindow::positionSelectionToolbar() {
       break;
     }
   }
-  selectionOverlay_->setGeometry(origin.x(), origin.y(), selection.width(), selection.height());
+  const QRect geometry(origin.x(), origin.y(), selection.width(), selection.height());
+  const bool changed = selectionOverlay_->geometry() != geometry || selectionOverlay_->isVisible() != visible;
+  selectionOverlay_->setGeometry(geometry);
   selectionOverlay_->setVisible(visible);
+  // The web keeps the card toolbar while a note is edited (NodeSelectionToolbar.tsx reads no
+  // editing state), so the 200 ms delay can show it after the editor was placed. A floating
+  // toolbar changes the room the editor may take, so the editor lays out again.
+  if (changed && inlineTitle_ && inlineTitle_->active()) { inlineTitle_->reposition(); }
 }
 void EditorWindow::layoutOverlays() {
   if (!toolbarOverlay_ || !viewportOverlay_) { return; }
@@ -2908,6 +2940,11 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   theme.node = color("node");
   theme.reroutePaper = color("reroutePaper");
   theme.rerouteBorder = color("rerouteBorder");
+  theme.groupHeader = color("groupHeader");
+  theme.groupFill = color("groupFill");
+  theme.zoomedTitle = color("zoomedTitle");
+  theme.previewSelected = color("previewSelected");
+  theme.outputSelected = color("outputSelected");
     theme.subgraphAccent = color("subgraphAccent");
   theme.divider = color("divider");
   theme.field = color("field");
