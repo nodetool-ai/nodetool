@@ -18,6 +18,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
+    // Collaborator names come from the user directory; these tests have none.
+    getUserAccounts: vi.fn(async () => new Map()),
     Workflow: {
       ...actual.Workflow,
       get: vi.fn(),

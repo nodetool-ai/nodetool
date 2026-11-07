@@ -19272,6 +19272,15 @@
       "invalidLink": "Este enlace para compartir no es válido o ha sido revocado. Solicite uno nuevo al propietario del documento.",
       "goToWorkspace": "Ir al espacio de trabajo",
       "opening": "Abrir documento compartido"
+    },
+    "invite": {
+      "label": "Invitar personas",
+      "placeholder": "Nombre o correo",
+      "role": "Rol",
+      "submit": "Invitar",
+      "typeMore": "Escribe al menos 2 caracteres",
+      "noMatches": "Nadie coincide",
+      "failed": "No se pudo dar acceso."
     }
   },
   "timelineAutomation": {
@@ -20117,6 +20126,38 @@
           "label": "Cambiar paquetes de nodos",
           "description": "Cambiar la confianza de paquetes, activar o desactivar paquetes integrados y recargar paquetes. Afecta a todos los usuarios."
         }
+      }
+    },
+    "sharing": {
+      "open": "Compartir",
+      "title": "Compartido por {{name}}",
+      "links": "Enlaces para compartir",
+      "noLinks": "No hay enlaces activos.",
+      "granted": "Dio acceso a",
+      "noGranted": "No ha dado acceso a nadie.",
+      "received": "Tiene acceso a",
+      "noReceived": "Nadie le ha dado acceso.",
+      "public": "Flujos públicos",
+      "noPublic": "No hay flujos públicos.",
+      "revoke": "Revocar",
+      "removeAccess": "Quitar acceso",
+      "makePrivate": "Hacer privado",
+      "untitled": "Sin título",
+      "loadFailed": "No se pudo cargar lo compartido.",
+      "actionFailed": "No se pudo hacer el cambio.",
+      "types": {
+        "workflow": "Flujo",
+        "storyboard": "Storyboard",
+        "script": "Guion",
+        "timeline": "Línea de tiempo",
+        "sketch": "Boceto",
+        "application": "App",
+        "jsscript": "Script JS"
+      },
+      "roles": {
+        "viewer": "Puede ver",
+        "editor": "Puede editar",
+        "public": "Público"
       }
     }
   }

@@ -185,3 +185,59 @@ export const useSetPermissions = () => {
       ])
   });
 };
+
+export type AdminSharingForUser = admin.AdminSharingForUserOutput;
+export type AdminShareLink = admin.AdminShareLink;
+export type AdminShareGrant = admin.AdminShareGrant;
+export type AdminSharedDocument = admin.AdminSharedDocument;
+export type AdminSharedDocumentType = admin.AdminSharedDocumentType;
+
+export const adminUserSharingQueryKey = (userId: string) =>
+  ["admin", "sharing", userId] as const;
+
+/** What one person shares and what is shared with them. */
+export const useAdminUserSharing = (userId: string | null) =>
+  useQuery({
+    queryKey: adminUserSharingQueryKey(userId ?? ""),
+    queryFn: () =>
+      trpcClient.admin.sharing.forUser.query({ user_id: userId as string }),
+    enabled: userId !== null
+  });
+
+export type AdminSharingAction =
+  | { kind: "revokeLink"; type: AdminSharedDocumentType; shareId: string }
+  | {
+      kind: "removeGrant";
+      type: AdminSharedDocumentType;
+      documentId: string;
+      userId: string;
+    }
+  | { kind: "makePrivate"; workflowId: string };
+
+/** Take back a link, a grant or a public workflow, then refresh every view. */
+export const useAdminSharingAction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: AdminSharingAction) => {
+      switch (action.kind) {
+        case "revokeLink":
+          return trpcClient.admin.sharing.revokeLink.mutate({
+            type: action.type,
+            share_id: action.shareId
+          });
+        case "removeGrant":
+          return trpcClient.admin.sharing.removeGrant.mutate({
+            type: action.type,
+            document_id: action.documentId,
+            user_id: action.userId
+          });
+        case "makePrivate":
+          return trpcClient.admin.sharing.makePrivate.mutate({
+            workflow_id: action.workflowId
+          });
+      }
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["admin", "sharing"] })
+  });
+};

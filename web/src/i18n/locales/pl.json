@@ -19582,6 +19582,15 @@
       "invalidLink": "Ten link do udostępniania jest nieprawidłowy lub został unieważniony. Poproś właściciela dokumentu o nowy.",
       "goToWorkspace": "Przejdź do obszaru roboczego",
       "opening": "Otwieranie udostępnionego dokumentu"
+    },
+    "invite": {
+      "label": "Zaproś osoby",
+      "placeholder": "Imię lub e-mail",
+      "role": "Rola",
+      "submit": "Zaproś",
+      "typeMore": "Wpisz co najmniej 2 znaki",
+      "noMatches": "Brak wyników",
+      "failed": "Nie udało się nadać dostępu."
     }
   },
   "timelineAutomation": {
@@ -20428,6 +20437,38 @@
           "label": "Zmiana pakietów węzłów",
           "description": "Zmiana zaufania do pakietów, włączanie i wyłączanie pakietów wbudowanych oraz ponowne ładowanie pakietów. Dotyczy wszystkich użytkowników."
         }
+      }
+    },
+    "sharing": {
+      "open": "Udostępnianie",
+      "title": "Udostępnienia: {{name}}",
+      "links": "Linki udostępniania",
+      "noLinks": "Brak aktywnych linków.",
+      "granted": "Dał dostęp",
+      "noGranted": "Nikomu nie dał dostępu.",
+      "received": "Ma dostęp do",
+      "noReceived": "Nikt nie dał dostępu.",
+      "public": "Publiczne przepływy",
+      "noPublic": "Brak publicznych przepływów.",
+      "revoke": "Unieważnij",
+      "removeAccess": "Usuń dostęp",
+      "makePrivate": "Ustaw jako prywatny",
+      "untitled": "Bez tytułu",
+      "loadFailed": "Nie udało się wczytać udostępnień.",
+      "actionFailed": "Nie udało się wprowadzić zmiany.",
+      "types": {
+        "workflow": "Przepływ",
+        "storyboard": "Storyboard",
+        "script": "Scenariusz",
+        "timeline": "Oś czasu",
+        "sketch": "Szkic",
+        "application": "Aplikacja",
+        "jsscript": "Skrypt JS"
+      },
+      "roles": {
+        "viewer": "Może wyświetlać",
+        "editor": "Może edytować",
+        "public": "Publiczny"
       }
     }
   }

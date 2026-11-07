@@ -105,7 +105,17 @@ export const useDocumentSharing = (
     onSuccess: invalidate
   });
 
-  return { query, createLink, revokeLink, setRole, removeCollaborator };
+  const invite = useMutation({
+    mutationFn: (opts: { userId: string; role: CollaboratorRole }) =>
+      trpcClient.documentSharing.invite.mutate({
+        ...ref(),
+        user_id: opts.userId,
+        role: opts.role
+      }),
+    onSuccess: invalidate
+  });
+
+  return { query, createLink, revokeLink, setRole, removeCollaborator, invite };
 };
 
 /** Redeem a document share token; resolves to the document and the role. */

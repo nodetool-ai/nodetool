@@ -168,6 +168,11 @@ export {
   removeDocumentSharing,
   type SharedDocumentType
 } from "./document-sharing.js";
+export {
+  getUserSharing,
+  listPublicWorkflows,
+  type UserSharing
+} from "./sharing-admin.js";
 
 export { Asset } from "./asset.js";
 export type { AssetRow, AssetInsert } from "./asset.js";
@@ -619,6 +624,7 @@ export {
   USER_ROLES,
   USER_STATUSES,
   getUserAccount,
+  getUserAccounts,
   isUserRole,
   isUserStatus,
   listUserAccounts,

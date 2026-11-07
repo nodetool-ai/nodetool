@@ -39,6 +39,7 @@ import {
 } from "../ui_primitives";
 import { formatDateTime } from "../../utils/formatUtils";
 import PermissionsDialog from "./PermissionsDialog";
+import SharingDialog from "./SharingDialog";
 import QuotaDialog from "./QuotaDialog";
 
 const PAGE_SIZE = 50;
@@ -95,6 +96,7 @@ const UsersAdmin: React.FC = () => {
   const [quotaTarget, setQuotaTarget] = useState<QuotaTarget | null>(null);
   const [permissionsTarget, setPermissionsTarget] =
     useState<PermissionsTarget | null>(null);
+  const [sharingTarget, setSharingTarget] = useState<AdminUser | null>(null);
 
   const users = useAdminUsers({ query, status, offset, limit: PAGE_SIZE });
   const update = useUpdateAdminUser();
@@ -326,6 +328,9 @@ const UsersAdmin: React.FC = () => {
               >
                 {t("admin.permissions.edit")}
               </EditorButton>
+              <EditorButton variant="text" onClick={() => setSharingTarget(user)}>
+                {t("admin.sharing.open")}
+              </EditorButton>
               {user.role === "admin" ? (
                 <EditorButton
                   variant="text"
@@ -547,6 +552,15 @@ const UsersAdmin: React.FC = () => {
         }
         onClose={closePermissions}
         onSave={savePermissions}
+      />
+      <SharingDialog
+        userId={sharingTarget?.user_id ?? null}
+        title={
+          sharingTarget
+            ? t("admin.sharing.title", { name: userLabel(sharingTarget) })
+            : ""
+        }
+        onClose={() => setSharingTarget(null)}
       />
       <ConfirmDialog
         open={pendingDisable !== null}

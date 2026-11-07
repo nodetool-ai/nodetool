@@ -18962,6 +18962,15 @@
       "invalidLink": "Denne delingslenken er ugyldig eller har blitt opphevet. Be dokumenteieren om et nytt.",
       "goToWorkspace": "Gå til arbeidsområdet",
       "opening": "Åpner delt dokument"
+    },
+    "invite": {
+      "label": "Inviter personer",
+      "placeholder": "Navn eller e-post",
+      "role": "Rolle",
+      "submit": "Inviter",
+      "typeMore": "Skriv minst 2 tegn",
+      "noMatches": "Ingen treff",
+      "failed": "Kunne ikke gi tilgang."
     }
   },
   "timelineAutomation": {
@@ -19806,6 +19815,38 @@
           "label": "Endre nodepakker",
           "description": "Endre pakketillit, slå innebygde pakker av eller på og laste inn pakker på nytt. Dette gjelder alle brukere."
         }
+      }
+    },
+    "sharing": {
+      "open": "Deling",
+      "title": "Deling for {{name}}",
+      "links": "Delingslenker",
+      "noLinks": "Ingen aktive delingslenker.",
+      "granted": "Ga tilgang til",
+      "noGranted": "Har ikke gitt noen tilgang.",
+      "received": "Har tilgang til",
+      "noReceived": "Ingen har gitt tilgang.",
+      "public": "Offentlige arbeidsflyter",
+      "noPublic": "Ingen offentlige arbeidsflyter.",
+      "revoke": "Tilbakekall",
+      "removeAccess": "Fjern tilgang",
+      "makePrivate": "Gjør privat",
+      "untitled": "Uten tittel",
+      "loadFailed": "Kunne ikke laste deling.",
+      "actionFailed": "Kunne ikke gjøre endringen.",
+      "types": {
+        "workflow": "Arbeidsflyt",
+        "storyboard": "Storyboard",
+        "script": "Manus",
+        "timeline": "Tidslinje",
+        "sketch": "Skisse",
+        "application": "App",
+        "jsscript": "JS-skript"
+      },
+      "roles": {
+        "viewer": "Kan se",
+        "editor": "Kan redigere",
+        "public": "Offentlig"
       }
     }
   }

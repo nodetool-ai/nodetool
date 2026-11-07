@@ -12,6 +12,8 @@ const mockMutate = jest.fn();
 const mockSetUserQuota = jest.fn();
 const mockSetDefaultQuota = jest.fn();
 const mockSetPermissions = jest.fn();
+const mockSharingAction = jest.fn();
+const mockUseAdminUserSharing = jest.fn();
 const FLAGS = [
   "use_llm",
   "generate_media",
@@ -61,7 +63,15 @@ jest.mock("../../../serverState/useAdminUsers", () => ({
   useSetUserQuota: () => idleMutation(mockSetUserQuota),
   ADMIN_PERMISSION_FLAGS: FLAGS,
   useAdminDefaultPermissions: () => mockDefaultPermissions,
-  useSetPermissions: () => idleMutation(mockSetPermissions)
+  useSetPermissions: () => idleMutation(mockSetPermissions),
+  useAdminUserSharing: (userId: string | null) =>
+    mockUseAdminUserSharing(userId) ?? {
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null
+    },
+  useAdminSharingAction: () => idleMutation(mockSharingAction)
 }));
 
 import UsersAdmin from "../UsersAdmin";
@@ -365,5 +375,82 @@ describe("UsersAdmin", () => {
     expect(
       within(rowFor("Ada Lovelace")).getByRole("button", { name: "Permissions" })
     ).toBeDisabled();
+  });
+
+  describe("sharing", () => {
+    const plan = { type: "workflow", id: "w1", name: "Plan", owner_id: "u1" };
+    const board = { type: "storyboard", id: "s1", name: "Trailer", owner_id: "u2" };
+    const grace = { user_id: "u2", display_name: "Grace Hopper", email: "grace@example.com" };
+
+    beforeEach(() => {
+      mockSharingAction.mockReset();
+      mockUseAdminUserSharing.mockImplementation((userId: string | null) =>
+        userId === null
+          ? { data: undefined, isLoading: false, isError: false, error: null }
+          : {
+              data: {
+                links: [
+                  { share_id: "l1", document: plan, role: "viewer", created_at: null }
+                ],
+                granted: [
+                  { document: plan, person: grace, role: "editor", created_at: null }
+                ],
+                received: [
+                  {
+                    document: board,
+                    person: { user_id: "u1", display_name: null, email: null },
+                    role: "viewer",
+                    created_at: null
+                  }
+                ],
+                public_workflows: [plan]
+              },
+              isLoading: false,
+              isError: false,
+              error: null
+            }
+      );
+    });
+
+    it("shows what one person shares and takes each part back", async () => {
+      mockUseAdminUsers.mockReturnValue(loaded([account({})]));
+      const user = userEvent.setup();
+      renderUsers();
+      await user.click(
+        within(rowFor("Ada Lovelace")).getByRole("button", { name: "Sharing" })
+      );
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("Sharing for Ada Lovelace")).toBeInTheDocument();
+      expect(mockUseAdminUserSharing).toHaveBeenLastCalledWith("u1");
+      expect(within(dialog).getByText("Grace Hopper")).toBeInTheDocument();
+      expect(within(dialog).getByText("Trailer")).toBeInTheDocument();
+
+      await user.click(within(dialog).getByRole("button", { name: "Revoke" }));
+      expect(mockSharingAction).toHaveBeenCalledWith({
+        kind: "revokeLink",
+        type: "workflow",
+        shareId: "l1"
+      });
+      const removes = within(dialog).getAllByRole("button", { name: "Remove access" });
+      await user.click(removes[0]);
+      expect(mockSharingAction).toHaveBeenCalledWith({
+        kind: "removeGrant",
+        type: "workflow",
+        documentId: "w1",
+        userId: "u2"
+      });
+      await user.click(removes[1]);
+      expect(mockSharingAction).toHaveBeenCalledWith({
+        kind: "removeGrant",
+        type: "storyboard",
+        documentId: "s1",
+        userId: "u1"
+      });
+      await user.click(within(dialog).getByRole("button", { name: "Make private" }));
+      expect(mockSharingAction).toHaveBeenCalledWith({
+        kind: "makePrivate",
+        workflowId: "w1"
+      });
+    });
   });
 });

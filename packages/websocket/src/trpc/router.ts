@@ -29,6 +29,7 @@ import { scriptsRouter } from "./routers/scripts.js";
 import { settingsRouter } from "./routers/settings.js";
 import { fontsRouter } from "./routers/fonts.js";
 import { openverseRouter } from "./routers/openverse.js";
+import { peopleRouter } from "./routers/people.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
@@ -79,6 +80,7 @@ type AppRouterRecord = {
   models: typeof modelsRouter;
   nodes: typeof nodesRouter;
   openverse: typeof openverseRouter;
+  people: typeof peopleRouter;
   packs: typeof packsRouter;
   projects: typeof projectsRouter;
   scripts: typeof scriptsRouter;
@@ -132,6 +134,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   models: modelsRouter,
   nodes: nodesRouter,
   openverse: openverseRouter,
+  people: peopleRouter,
   packs: packsRouter,
   projects: projectsRouter,
   scripts: scriptsRouter,

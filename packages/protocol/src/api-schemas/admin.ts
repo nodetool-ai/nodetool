@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { sharedDocumentTypeSchema } from "./document-sharing.js";
+import { collaboratorRoleSchema, shareRoleSchema } from "./workflows.js";
+
 // ── Admin: the user directory ─────────────────────────────────────
 // Every procedure is admin-only. A directory row exists for each person who
 // has signed in through SSO.
@@ -167,3 +170,85 @@ export const adminPermissionsSetUserInput = adminUserRef.extend({
 export type AdminPermissionsSetUserInput = z.infer<
   typeof adminPermissionsSetUserInput
 >;
+
+// ── sharing.* ────────────────────────────────────────────────────
+// What one person shares and what is shared with them, across every kind
+// of document, for an admin to review and take back.
+
+export const adminSharedDocumentType = z.enum([
+  "workflow",
+  ...sharedDocumentTypeSchema.options
+]);
+export type AdminSharedDocumentType = z.infer<typeof adminSharedDocumentType>;
+
+export const adminSharedDocument = z.object({
+  type: adminSharedDocumentType,
+  id: z.string(),
+  /** Null when the document no longer exists. */
+  name: z.string().nullable(),
+  owner_id: z.string()
+});
+export type AdminSharedDocument = z.infer<typeof adminSharedDocument>;
+
+/** A person from the directory, or just an id when they have no row. */
+export const adminPersonRef = z.object({
+  user_id: z.string(),
+  display_name: z.string().nullable(),
+  email: z.string().nullable()
+});
+export type AdminPersonRef = z.infer<typeof adminPersonRef>;
+
+export const adminShareLink = z.object({
+  share_id: z.string(),
+  document: adminSharedDocument,
+  role: shareRoleSchema,
+  created_at: z.string().nullable()
+});
+export type AdminShareLink = z.infer<typeof adminShareLink>;
+
+export const adminShareGrant = z.object({
+  document: adminSharedDocument,
+  /** Who holds the access. */
+  person: adminPersonRef,
+  role: collaboratorRoleSchema,
+  created_at: z.string().nullable()
+});
+export type AdminShareGrant = z.infer<typeof adminShareGrant>;
+
+export const adminSharingForUserOutput = z.object({
+  /** Active links the person created on their documents. */
+  links: z.array(adminShareLink),
+  /** People who can open the person's documents. */
+  granted: z.array(adminShareGrant),
+  /** Other people's documents the person can open. */
+  received: z.array(adminShareGrant),
+  /** The person's workflows that anyone can view. */
+  public_workflows: z.array(adminSharedDocument)
+});
+export type AdminSharingForUserOutput = z.infer<typeof adminSharingForUserOutput>;
+
+export const adminSharingRevokeLinkInput = z.object({
+  type: adminSharedDocumentType,
+  share_id: z.string().min(1)
+});
+export type AdminSharingRevokeLinkInput = z.infer<
+  typeof adminSharingRevokeLinkInput
+>;
+
+export const adminSharingRemoveGrantInput = z.object({
+  type: adminSharedDocumentType,
+  document_id: z.string().min(1),
+  user_id: z.string().min(1)
+});
+export type AdminSharingRemoveGrantInput = z.infer<
+  typeof adminSharingRemoveGrantInput
+>;
+
+export const adminSharingMakePrivateInput = z.object({
+  workflow_id: z.string().min(1)
+});
+export type AdminSharingMakePrivateInput = z.infer<
+  typeof adminSharingMakePrivateInput
+>;
+
+export const adminSharingOkOutput = z.object({ ok: z.literal(true) });

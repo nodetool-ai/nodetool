@@ -19272,6 +19272,15 @@
       "invalidLink": "Questo collegamento di condivisione non è valido o è stato revocato. Chiedine uno nuovo al proprietario del documento.",
       "goToWorkspace": "Vai all'area di lavoro",
       "opening": "Apertura del documento condiviso"
+    },
+    "invite": {
+      "label": "Invita persone",
+      "placeholder": "Nome o email",
+      "role": "Ruolo",
+      "submit": "Invita",
+      "typeMore": "Scrivi almeno 2 caratteri",
+      "noMatches": "Nessun risultato",
+      "failed": "Impossibile dare l'accesso."
     }
   },
   "timelineAutomation": {
@@ -20117,6 +20126,38 @@
           "label": "Modificare i pacchetti di nodi",
           "description": "Modificare la fiducia nei pacchetti, attivare o disattivare i pacchetti integrati e ricaricare i pacchetti. Riguarda tutti gli utenti."
         }
+      }
+    },
+    "sharing": {
+      "open": "Condivisione",
+      "title": "Condivisioni di {{name}}",
+      "links": "Link di condivisione",
+      "noLinks": "Nessun link attivo.",
+      "granted": "Ha dato accesso a",
+      "noGranted": "Non ha dato accesso a nessuno.",
+      "received": "Ha accesso a",
+      "noReceived": "Nessuno gli ha dato accesso.",
+      "public": "Workflow pubblici",
+      "noPublic": "Nessun workflow pubblico.",
+      "revoke": "Revoca",
+      "removeAccess": "Rimuovi accesso",
+      "makePrivate": "Rendi privato",
+      "untitled": "Senza titolo",
+      "loadFailed": "Impossibile caricare le condivisioni.",
+      "actionFailed": "Impossibile applicare la modifica.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Sceneggiatura",
+        "timeline": "Timeline",
+        "sketch": "Schizzo",
+        "application": "App",
+        "jsscript": "Script JS"
+      },
+      "roles": {
+        "viewer": "Può vedere",
+        "editor": "Può modificare",
+        "public": "Pubblico"
       }
     }
   }

@@ -18962,6 +18962,15 @@
       "invalidLink": "この共有リンクは無効であるか、取り消されています。ドキュメントの所有者に新しいドキュメントを要求してください。",
       "goToWorkspace": "ワークスペースに移動",
       "opening": "共有ドキュメントを開く"
+    },
+    "invite": {
+      "label": "ユーザーを招待",
+      "placeholder": "名前またはメール",
+      "role": "ロール",
+      "submit": "招待",
+      "typeMore": "2文字以上入力してください",
+      "noMatches": "一致するユーザーがいません",
+      "failed": "アクセスを付与できませんでした。"
     }
   },
   "timelineAutomation": {
@@ -19806,6 +19815,38 @@
           "label": "ノードパックを変更する",
           "description": "パックの信頼設定の変更、組み込みパックのオン・オフ、パックの再読み込み。すべてのユーザーに影響します。"
         }
+      }
+    },
+    "sharing": {
+      "open": "共有",
+      "title": "{{name}} の共有",
+      "links": "共有リンク",
+      "noLinks": "有効な共有リンクはありません。",
+      "granted": "アクセスを付与した相手",
+      "noGranted": "誰にもアクセスを付与していません。",
+      "received": "アクセスできるもの",
+      "noReceived": "誰からもアクセスを付与されていません。",
+      "public": "公開ワークフロー",
+      "noPublic": "公開ワークフローはありません。",
+      "revoke": "取り消す",
+      "removeAccess": "アクセスを削除",
+      "makePrivate": "非公開にする",
+      "untitled": "無題",
+      "loadFailed": "共有情報を読み込めませんでした。",
+      "actionFailed": "変更できませんでした。",
+      "types": {
+        "workflow": "ワークフロー",
+        "storyboard": "ストーリーボード",
+        "script": "スクリプト",
+        "timeline": "タイムライン",
+        "sketch": "スケッチ",
+        "application": "アプリ",
+        "jsscript": "JSスクリプト"
+      },
+      "roles": {
+        "viewer": "閲覧可",
+        "editor": "編集可",
+        "public": "公開"
       }
     }
   }

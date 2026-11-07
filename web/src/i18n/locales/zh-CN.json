@@ -18962,6 +18962,15 @@
       "invalidLink": "此共享链接无效或已被撤销。请向文档所有者索取新链接。",
       "goToWorkspace": "前往工作区",
       "opening": "正在打开共享文档"
+    },
+    "invite": {
+      "label": "邀请成员",
+      "placeholder": "姓名或邮箱",
+      "role": "角色",
+      "submit": "邀请",
+      "typeMore": "至少输入 2 个字符",
+      "noMatches": "没有匹配的人",
+      "failed": "无法授予访问权限。"
     }
   },
   "timelineAutomation": {
@@ -19806,6 +19815,38 @@
           "label": "更改节点包",
           "description": "更改节点包信任设置、开关内置节点包并重新加载节点包。这会影响所有用户。"
         }
+      }
+    },
+    "sharing": {
+      "open": "共享",
+      "title": "{{name}} 的共享",
+      "links": "共享链接",
+      "noLinks": "没有有效的共享链接。",
+      "granted": "已授权给",
+      "noGranted": "尚未授权给任何人。",
+      "received": "可访问",
+      "noReceived": "没有人授予其访问权限。",
+      "public": "公开工作流",
+      "noPublic": "没有公开工作流。",
+      "revoke": "撤销",
+      "removeAccess": "移除访问权限",
+      "makePrivate": "设为私有",
+      "untitled": "未命名",
+      "loadFailed": "无法加载共享信息。",
+      "actionFailed": "无法完成更改。",
+      "types": {
+        "workflow": "工作流",
+        "storyboard": "故事板",
+        "script": "脚本",
+        "timeline": "时间线",
+        "sketch": "草图",
+        "application": "应用",
+        "jsscript": "JS 脚本"
+      },
+      "roles": {
+        "viewer": "可查看",
+        "editor": "可编辑",
+        "public": "公开"
       }
     }
   }

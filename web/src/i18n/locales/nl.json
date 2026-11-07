@@ -18962,6 +18962,15 @@
       "invalidLink": "Deze deellink is ongeldig of is ingetrokken. Vraag de documenteigenaar om een ​​nieuw document.",
       "goToWorkspace": "Ga naar werkruimte",
       "opening": "Gedeeld document openen"
+    },
+    "invite": {
+      "label": "Mensen uitnodigen",
+      "placeholder": "Naam of e-mail",
+      "role": "Rol",
+      "submit": "Uitnodigen",
+      "typeMore": "Typ minstens 2 tekens",
+      "noMatches": "Niemand gevonden",
+      "failed": "Kon geen toegang geven."
     }
   },
   "timelineAutomation": {
@@ -19806,6 +19815,38 @@
           "label": "Nodepakketten wijzigen",
           "description": "Pakketvertrouwen wijzigen, ingebouwde pakketten aan- of uitzetten en pakketten herladen. Dit geldt voor alle gebruikers."
         }
+      }
+    },
+    "sharing": {
+      "open": "Delen",
+      "title": "Gedeeld door {{name}}",
+      "links": "Deellinks",
+      "noLinks": "Geen actieve deellinks.",
+      "granted": "Gaf toegang aan",
+      "noGranted": "Heeft niemand toegang gegeven.",
+      "received": "Heeft toegang tot",
+      "noReceived": "Niemand heeft toegang gegeven.",
+      "public": "Openbare workflows",
+      "noPublic": "Geen openbare workflows.",
+      "revoke": "Intrekken",
+      "removeAccess": "Toegang verwijderen",
+      "makePrivate": "Privé maken",
+      "untitled": "Naamloos",
+      "loadFailed": "Kon delen niet laden.",
+      "actionFailed": "Kon de wijziging niet uitvoeren.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "timeline": "Tijdlijn",
+        "sketch": "Schets",
+        "application": "App",
+        "jsscript": "JS-script"
+      },
+      "roles": {
+        "viewer": "Kan bekijken",
+        "editor": "Kan bewerken",
+        "public": "Openbaar"
       }
     }
   }

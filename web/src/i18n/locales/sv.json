@@ -18962,6 +18962,15 @@
       "invalidLink": "Denna delningslänk är ogiltig eller har återkallats. Be dokumentägaren om ett nytt.",
       "goToWorkspace": "Gå till arbetsytan",
       "opening": "Öppnar delat dokument"
+    },
+    "invite": {
+      "label": "Bjud in personer",
+      "placeholder": "Namn eller e-post",
+      "role": "Roll",
+      "submit": "Bjud in",
+      "typeMore": "Skriv minst 2 tecken",
+      "noMatches": "Ingen träff",
+      "failed": "Kunde inte ge åtkomst."
     }
   },
   "timelineAutomation": {
@@ -19806,6 +19815,38 @@
           "label": "Ändra nodpaket",
           "description": "Ändra pakettillit, slå på eller av inbyggda paket och läsa in paket på nytt. Det påverkar alla användare."
         }
+      }
+    },
+    "sharing": {
+      "open": "Delning",
+      "title": "Delning för {{name}}",
+      "links": "Delningslänkar",
+      "noLinks": "Inga aktiva delningslänkar.",
+      "granted": "Gav åtkomst till",
+      "noGranted": "Har inte gett någon åtkomst.",
+      "received": "Har åtkomst till",
+      "noReceived": "Ingen har gett åtkomst.",
+      "public": "Offentliga arbetsflöden",
+      "noPublic": "Inga offentliga arbetsflöden.",
+      "revoke": "Återkalla",
+      "removeAccess": "Ta bort åtkomst",
+      "makePrivate": "Gör privat",
+      "untitled": "Namnlös",
+      "loadFailed": "Kunde inte läsa in delning.",
+      "actionFailed": "Kunde inte göra ändringen.",
+      "types": {
+        "workflow": "Arbetsflöde",
+        "storyboard": "Storyboard",
+        "script": "Manus",
+        "timeline": "Tidslinje",
+        "sketch": "Skiss",
+        "application": "App",
+        "jsscript": "JS-skript"
+      },
+      "roles": {
+        "viewer": "Kan visa",
+        "editor": "Kan redigera",
+        "public": "Offentlig"
       }
     }
   }
