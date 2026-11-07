@@ -325,7 +325,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   {
     file: "packages/runtime/src/providers/together-provider.ts",
-    owner: "Together image result downloads",
+    owner: "Together image and endpoint result downloads",
     inputSource: "provider-response",
     schemes: ["https"],
     authScope: "none",
@@ -333,7 +333,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     dnsRebinding: "deployment-egress",
     policy: "guarded",
     guardedBy: ["safeFetch"],
-    note: "Generated image URLs use safeFetch with the provider's injected transport. Fixed API requests and the existing video path retain their provider transport."
+    note: "Generated image URLs, and the image and video URLs together-nodes downloads through downloadMedia, use safeFetch with the provider's injected transport. Fixed API requests and the capability video path retain their provider transport."
   },
   guardedMedia(
     "packages/together-nodes/src/together-base.ts",

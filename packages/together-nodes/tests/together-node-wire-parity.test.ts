@@ -1,11 +1,12 @@
 /**
  * Pins the HTTP requests each kind of Together node sends, in order. The
  * fixtures were recorded from the pack's own transport before the nodes moved
- * onto the runtime provider, so a change to an endpoint, header, JSON byte or
- * multipart field fails here. Result downloads are pinned by URL.
+ * onto the runtime provider. The nodes now reach Together through
+ * TogetherProvider, with its fetch stubbed, and must send the same endpoints,
+ * headers, JSON bytes and multipart fields. Result downloads are pinned by URL.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, TogetherProvider } from "@nodetool-ai/runtime";
 import {
   createTogetherNodeClass,
   type TogetherManifestEntry
@@ -152,7 +153,6 @@ function node(className: string, props: Record<string, unknown>): TestNode {
 const realSetTimeout = globalThis.setTimeout;
 afterEach(() => {
   globalThis.setTimeout = realSetTimeout;
-  vi.unstubAllGlobals();
 });
 
 /** Run a node against a stubbed fetch and return every request it sent. */
@@ -161,9 +161,16 @@ async function wireRequests(instance: TestNode): Promise<WireRequest[]> {
   globalThis.setTimeout = ((fn: () => void) =>
     realSetTimeout(fn, 0)) as typeof setTimeout;
   const fetchMock = vi.fn(async (url: string) => reply(url));
-  vi.stubGlobal("fetch", fetchMock);
-  instance.setDynamic("_secrets", { TOGETHER_API_KEY: "tk" });
-  await instance.process(new ProcessingContext({ jobId: "job-1" }));
+  const context = new ProcessingContext({ jobId: "job-1" });
+  context.setProviderResolver(
+    () =>
+      new TogetherProvider(
+        { TOGETHER_API_KEY: "tk" },
+        // SAFETY: the mock answers every call these nodes make.
+        { fetchFn: fetchMock as unknown as typeof fetch }
+      )
+  );
+  await instance.process(context);
   const requests: WireRequest[] = [];
   for (const call of fetchMock.mock.calls) {
     const [url, init] = call as unknown as [string, RequestInit | undefined];
