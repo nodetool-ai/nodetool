@@ -30,7 +30,7 @@ import { SegmentTool } from "../tools/SegmentTool";
 import type { SketchTool } from "../types";
 import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
 import { aff } from "./_transformFixtures";
-import { rectSelectionMask } from "../selection";
+import { rectSelectionMask, selectionHitTest } from "../selection";
 import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
 import { makeToolContext } from "./_toolContextFixture";
@@ -54,6 +54,7 @@ function makePointerEvent(
     pressure: 0.5,
     nativeEvent: stub<React.PointerEvent>({
       altKey: false,
+      shiftKey: false,
       button: 0,
       clientX: 10,
       clientY: 10,
@@ -816,12 +817,72 @@ describe("SelectTool", () => {
     );
   });
 
+  it("adds to a marquee after subtracting when the Alt keyup is missed", () => {
+    jest.useFakeTimers();
+    try {
+      const tool = new SelectTool();
+      const ctx = makeToolContext({
+        activeTool: "select",
+        selection: rectSelectionMask(64, 64, 0, 0, 32, 32),
+        onSelectionChange: (selection) => {
+          ctx.selection = selection;
+        }
+      });
+
+      ctx.altHeldRef.current = true;
+      tool.onDown(ctx, makePointerEvent({
+        point: { x: 20, y: 20 },
+        nativeEvent: stub<React.PointerEvent>({
+          altKey: true,
+          shiftKey: false,
+          clientX: 20,
+          clientY: 20
+        })
+      }));
+      tool.onMove(ctx, makePointerEvent({ point: { x: 25, y: 25 } }));
+      ctx.mousePositionRef.current = { x: 25, y: 25 };
+      tool.onUp(ctx);
+      jest.runAllTimers();
+      expect(selectionHitTest(ctx.selection!, 5, 5)).toBe(true);
+      expect(selectionHitTest(ctx.selection!, 20, 20)).toBe(false);
+
+      ctx.shiftHeldRef.current = true;
+      tool.onDown(ctx, makePointerEvent({
+        point: { x: 40, y: 40 },
+        nativeEvent: stub<React.PointerEvent>({
+          altKey: false,
+          shiftKey: true,
+          clientX: 40,
+          clientY: 40
+        })
+      }));
+      tool.onMove(ctx, makePointerEvent({ point: { x: 50, y: 50 } }));
+      ctx.mousePositionRef.current = { x: 50, y: 50 };
+      tool.onUp(ctx);
+      jest.runAllTimers();
+      expect(ctx.selection).not.toBeNull();
+      expect(selectionHitTest(ctx.selection!, 5, 5)).toBe(true);
+      expect(selectionHitTest(ctx.selection!, 20, 20)).toBe(false);
+      expect(selectionHitTest(ctx.selection!, 45, 45)).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("marquee: Shift held from pointer-down for add does not constrain until Shift is released and pressed again", () => {
     const tool = new SelectTool();
     const shiftHeldRef = { current: true };
     const ctx = makeToolContext({ shiftHeldRef });
 
-    tool.onDown(ctx, makePointerEvent({ point: { x: 5, y: 5 } }));
+    tool.onDown(ctx, makePointerEvent({
+      point: { x: 5, y: 5 },
+      nativeEvent: stub<React.PointerEvent>({
+        altKey: false,
+        shiftKey: true,
+        clientX: 5,
+        clientY: 5
+      })
+    }));
 
     tool.onMove!(ctx, makePointerEvent({ point: { x: 20, y: 25 } }), []);
     expect(ctx.drawOverlaySelection).toHaveBeenLastCalledWith(

@@ -211,5 +211,31 @@ describe("SketchEditor dock", () => {
       );
       expect(active?.name).toBe(name);
     });
+
+    it("reorders the layer stack when a row is dragged and records one undo step", () => {
+      renderDesktopEditor();
+      fireEvent.click(screen.getByTestId("sketch-simple-add-layer"));
+      const [bottom, top] = useSketchStore.getState().document.layers;
+      const getLayerOrder = () =>
+        useSketchStore.getState().document.layers.map(({ id }) => id);
+      const source = screen.getByRole("button", { name: bottom.name });
+      const target = screen.getByRole("button", { name: top.name });
+      expect(source).toHaveAttribute("draggable", "true");
+
+      const payload = new Map<string, string>();
+      const dataTransfer = {
+        setData: (type: string, data: string) => payload.set(type, data),
+        getData: (type: string) => payload.get(type) ?? "",
+        get types() { return [...payload.keys()]; }
+      };
+      fireEvent.dragStart(source, { dataTransfer });
+      fireEvent.dragOver(target, { dataTransfer });
+      fireEvent.drop(target, { dataTransfer });
+
+      expect(getLayerOrder()).toEqual([top.id, bottom.id]);
+      expect(screen.getAllByTestId("sketch-simple-layer")[0]).toBe(source);
+      act(() => { useSketchStore.getState().undo(); });
+      expect(getLayerOrder()).toEqual([bottom.id, top.id]);
+    });
   });
 });
