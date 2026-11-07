@@ -49,6 +49,8 @@ export interface VideoModel {
   durations?: number[];
   resolutions?: string[];
   aspectRatios?: string[];
+  /** Exact media counts a graph-backed model consumes, when the provider knows them. */
+  inputs?: { image: number; video: number; audio: number };
   /** Execution adapter facts for a model whose files run on this host. */
   adapter?: ModelAdapterInfo;
 }

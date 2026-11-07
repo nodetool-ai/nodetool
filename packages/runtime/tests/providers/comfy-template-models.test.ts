@@ -114,6 +114,7 @@ describe("official Comfy API templates", () => {
     await expect(provider.textToVideo({ model: { id: video.id, provider: "comfy_cloud", name: video.name }, prompt: "p" })).resolves.toEqual(new Uint8Array([1, 2, 3]));
     expect(sdk.getOutputs).toHaveBeenCalledWith(video.output);
     expect(sdk.submit).toHaveBeenCalledTimes(2);
+    for (const call of sdk.submit.mock.calls) {expect(call[1]).toMatchObject({ apiKey: "key" });}
   });
 
   it("cancels a job when abort arrives during submission", async () => {
@@ -138,5 +139,27 @@ describe("official Comfy API templates", () => {
     const models = await provider.getAvailableTTSModels();
     expect(models.some((m) => m.id.startsWith("comfyui-template/"))).toBe(false);
     await expect(runComfyTemplate(template("audio_yue2_text2music"), "key", { prompt: "p" })).rejects.toThrow("speech provider");
+  });
+});
+
+describe("Comfy template job errors", () => {
+  it("names the template and job and adds the API key hint", async () => {
+    completedJob("image");
+    sdk.submit.mockResolvedValue({ id: "job-1", status: "failed", error: { message: "Invalid credentials" }, wait: sdk.wait, cancel: sdk.cancel, getOutputs: sdk.getOutputs });
+    const selected = template("image_z_image_turbo");
+    const error = await runComfyTemplate(selected, "key", { prompt: "p" }).catch((caught: unknown) => caught);
+    expect((error as Error).message).toBe(`Comfy ${selected.name} job job-1 failed: Invalid credentials. A step inside this Comfy graph calls a hosted model and needs your Comfy API key.`);
+    expect((error as Error).cause).toBeInstanceOf(Error);
+    expect(sdk.submit).toHaveBeenCalledOnce();
+  });
+
+  it("omits the job id when submission fails", async () => {
+    completedJob("image");
+    const original = new Error("HTTP 503");
+    sdk.submit.mockRejectedValue(original);
+    const selected = template("image_z_image_turbo");
+    const error = await runComfyTemplate(selected, "key", { prompt: "p" }).catch((caught: unknown) => caught);
+    expect((error as Error).message).toBe(`Comfy ${selected.name} failed: HTTP 503`);
+    expect((error as Error).cause).toBe(original);
   });
 });
