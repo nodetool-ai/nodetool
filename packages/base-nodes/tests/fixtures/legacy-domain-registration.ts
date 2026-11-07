@@ -22219,7 +22219,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Prompt',
-        description: 'Describe the video using image 1, image 2, video 1, and video 2 numbering in list order.',
+        description: 'Describe the video using image 1, image 2, video 1, and video 2 numbering in list order. An image mentioned in the prompt joins the references after the wired ones and takes the next number.',
         min: undefined,
         max: undefined,
         values: undefined,
