@@ -287,10 +287,13 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   private gpuModels(task: string) {
-    return listedComfyGpuTemplates().filter((entry) => entry.task === task && comfyGpuTemplateFits(entry)).map((entry) => ({
-      id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task],
-      ...(entry.inputs ? { inputs: entry.inputs } : {})
-    }));
+    return listedComfyGpuTemplates().filter((entry) => entry.task === task && comfyGpuTemplateFits(entry)).map((entry) => {
+      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs } = {
+        id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
+      };
+      if (entry.inputs) { model.inputs = entry.inputs; }
+      return model;
+    });
   }
 
   static override requiredSecrets(): string[] {
