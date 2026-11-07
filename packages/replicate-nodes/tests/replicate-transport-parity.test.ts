@@ -2,21 +2,13 @@
  * Request parity for the Replicate transport (docs/plans/provider-endpoint-interface.md,
  * Testing strategy item 4). Three manifest nodes, one per media output, run
  * with the same properties, and the model id, input JSON and uploads they send
- * are pinned below. A transport change must leave these fixtures unchanged.
+ * are pinned below. The fixtures were recorded against the pack's former SDK
+ * transport (`replicate.run()` and `files.create()` in the node) and must stay
+ * unchanged now that the nodes call the runtime provider.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
-
-const mockRun = vi.fn();
-const mockFilesCreate = vi.fn();
-
-vi.mock("replicate", () => ({
-  default: class {
-    run = mockRun;
-    files = { create: mockFilesCreate };
-  }
-}));
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 
 const { createReplicateNodeClass } = await import("../src/replicate-factory.js");
 const { default: manifest } = await import("../src/replicate-manifest.json", {
@@ -149,71 +141,43 @@ const CASES: ParityCase[] = [
   }
 ];
 
-/** The SDK swaps every https string in the output for a FileOutput. */
-function asFileOutputs(value: unknown): unknown {
-  if (typeof value === "string" && value.startsWith("https:")) {
-    return { url: () => new URL(value) };
-  }
-  if (Array.isArray(value)) return value.map(asFileOutputs);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, asFileOutputs(v)])
-    );
-  }
-  return value;
-}
-
-function makeContext(): ProcessingContext {
+async function runCase(c: ParityCase) {
+  const provider = new ScriptedProvider([], {
+    providerId: "replicate",
+    endpoints: { "*": { output: c.output, requestId: "pred-parity" } },
+    uploadUrl: (upload, n) =>
+      `https://replicate.delivery/uploads/${n}/${upload.filename}`
+  });
   const ctx = new ProcessingContext({ jobId: "parity-job" });
+  ctx.setProviderResolver(async () => provider);
   vi.spyOn(ctx, "resolveAssetBytes").mockImplementation(async (uri) => ({
     bytes: ASSET_BYTES[uri] ?? null,
     attempts: []
   }));
-  return ctx;
-}
-
-async function runCase(c: ParityCase) {
-  const uploads: Array<{ mimeType: string; filename: string; size: number }> =
-    [];
-  mockFilesCreate.mockImplementation(
-    async (blob: Blob, opts: { filename: string }) => {
-      uploads.push({
-        mimeType: blob.type,
-        filename: opts.filename,
-        size: blob.size
-      });
-      return {
-        urls: {
-          get: `https://replicate.delivery/uploads/${uploads.length}/${opts.filename}`
-        }
-      };
-    }
-  );
-  mockRun.mockResolvedValue(asFileOutputs(c.output));
 
   const spec = (manifest as ManifestEntry[]).find(
     (entry) => entry.className === c.className
   )!;
   const node = new (createReplicateNodeClass(spec))({});
   Object.assign(node, c.properties);
-  const result = await node.process(makeContext());
+  const result = await node.process(ctx);
 
-  expect(mockRun).toHaveBeenCalledTimes(1);
-  const [model, options] = mockRun.mock.calls[0] as [
-    string,
-    { input: Record<string, unknown> }
-  ];
-  return { model, input: options.input, uploads, nodeOutput: result.output };
+  expect(provider.endpointCalls).toHaveLength(1);
+  const [call] = provider.endpointCalls;
+  expect(call.route).toBeUndefined();
+  return {
+    model: call.model,
+    input: call.input,
+    uploads: provider.uploadCalls.map((u) => ({
+      mimeType: u.mimeType,
+      filename: u.filename,
+      size: u.bytes.length
+    })),
+    nodeOutput: result.output
+  };
 }
 
-beforeEach(() => {
-  mockRun.mockReset();
-  mockFilesCreate.mockReset();
-  vi.stubEnv("REPLICATE_API_TOKEN", "r8_parity");
-});
-
 afterEach(() => {
-  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
