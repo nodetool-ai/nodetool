@@ -721,7 +721,7 @@ export class WorkflowRunner {
 
       // Pre-flight node validation: catch missing required fields and
       // unset model selections before spawning any actors.
-      this._validateNodes();
+      this._validateNodes(request.params ?? {});
       this._validateRequiredInputs(request.params ?? {});
 
       // Detect multi-edge list inputs
@@ -1077,13 +1077,17 @@ export class WorkflowRunner {
    * passing the set of property handles that have an incoming data edge.
    * Aggregates issues across nodes and throws a single GraphValidationError.
    */
-  private _validateNodes(): void {
+  private _validateNodes(params: Record<string, unknown> = {}): void {
     const validator = this._options.validateNode;
     if (!validator) return;
 
     // Build map: nodeId -> set of targetHandles with an incoming data edge.
     const connectedByNode = new Map<string, Set<string>>();
+    const nodesWithIncomingEdges = new Set<string>();
     for (const edge of this._graph.edges) {
+      if (isDataEdge(edge) || isControlEdge(edge)) {
+        nodesWithIncomingEdges.add(edge.target);
+      }
       if (!isDataEdge(edge)) continue;
       let handles = connectedByNode.get(edge.target);
       if (!handles) {
@@ -1096,7 +1100,15 @@ export class WorkflowRunner {
     const issues: NodeValidationIssue[] = [];
     for (const node of this._graph.nodes) {
       const handles = connectedByNode.get(node.id) ?? new Set<string>();
-      const nodeIssues = validator(node, handles);
+      const inputName =
+        this._isExternalInputNode(node) && !nodesWithIncomingEdges.has(node.id)
+          ? this._getExternalInputName(node)
+          : undefined;
+      const effectiveNode =
+        inputName !== undefined && hasDefinedOwnProperty(params, inputName)
+          ? { ...node, properties: { ...node.properties, value: params[inputName] } }
+          : node;
+      const nodeIssues = validator(effectiveNode, handles);
       if (nodeIssues && nodeIssues.length > 0) {
         for (const issue of nodeIssues) {
           issues.push({
@@ -2574,7 +2586,9 @@ export class WorkflowRunner {
    * `nodetool.output.` keeps other terminal sinks keyed by id.
    */
   private _outputCollectionKey(node: NodeDescriptor): string {
-    if (isString(node.name) && node.name.trim()) return node.name;
+    // The property wins over the descriptor name, as on the input side: a
+    // graph loaded from a saved workflow carries the type title ("Output") as
+    // the descriptor name, so two Output nodes collapsed into one key.
     if (node.type.startsWith("nodetool.output.")) {
       const properties = isObjectValue(node.properties) ? node.properties : {};
       const propertyName = isString(properties.name)
@@ -2582,6 +2596,7 @@ export class WorkflowRunner {
         : "";
       if (propertyName) return propertyName;
     }
+    if (isString(node.name) && node.name.trim()) return node.name;
     return node.id;
   }
 

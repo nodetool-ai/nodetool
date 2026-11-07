@@ -1,0 +1,335 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-06T12:00:00.000Z",
+  "updated_at": "2026-11-06T12:00:00.000Z",
+  "name": "Read a Product Catalog",
+  "tool_name": null,
+  "description": "Check a product catalog before you render it. Reads a CSV, finds the image and name columns, and fills the video prompt template for every row, so a wrong column or a missing image shows before any video is paid for.",
+  "tags": [
+    "data",
+    "example"
+  ],
+  "thumbnail": "Read a Product Catalog.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Read a Product Catalog\n\nReads a product catalog CSV and shows what each row would be animated with.\n\n**How it works:** \"Catalog CSV\" takes the file. \"Read the catalog\" detects the delimiter, finds the image and name columns when the fields are blank, and fills \"Prompt template\" for every row. Write `{{title}}` or `{{color}}` to insert that column's value. \"Products\" is the table and \"Summary\" names the columns you can use.\n\n**Try this:** Upload a Shopify product export and leave both column fields blank. It finds `Image Src` and `Title`."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "catalog",
+        "type": "nodetool.input.DocumentInput",
+        "data": {
+          "name": "catalog",
+          "value": {
+            "type": "document",
+            "uri": "package://nodetool-base/recipe-inputs/catalog/products.csv",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The product catalog as a CSV file, one product per row with a header row"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Catalog CSV"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt_template",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "prompt_template",
+          "value": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+          "description": "The video prompt. {{column}} inserts that product's value",
+          "line_mode": "multi_line"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Prompt template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_column",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "image_column",
+          "value": "",
+          "description": "The column with each product's image URL. Blank finds it"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 760
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Image column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "name_column",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "name_column",
+          "value": "",
+          "description": "The column with each product's name. Blank finds it"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Name column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "reference_roles",
+        "type": "nodetool.input.BooleanInput",
+        "data": {
+          "name": "reference_roles",
+          "value": false,
+          "description": "Keep {{product_image}}, {{background_image}} and {{decoration_image}} in the prompt and offer them as fields"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1040
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Reference roles"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "read",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const PREVIEW_ROWS = 500;\nconst catalog = inputs.catalog;\nconst hasCatalog = catalog && (catalog.uri || catalog.asset_id || catalog.data);\nif (!hasCatalog) throw new Error(\"Upload your product catalog as a CSV file.\");\nconst text = String(await media.text(catalog)).replace(/^﻿/, \"\");\nif (!text.trim()) throw new Error(\"The catalog file is empty.\");\n\n// Comma, semicolon or tab: whichever the header row uses most.\nconst headerLine = text.split(/\\r?\\n/, 1)[0];\nconst countOf = (ch) => headerLine.split(ch).length - 1;\nconst delimiter = [\";\", \"\\t\"].reduce((best, ch) => (countOf(ch) > countOf(best) ? ch : best), \",\");\n\n// RFC 4180: quoted fields may hold the delimiter, line breaks and \"\" quotes.\nconst records = [];\nlet record = [];\nlet field = \"\";\nlet quoted = false;\nfor (let i = 0; i < text.length; i++) {\n  const ch = text[i];\n  if (quoted) {\n    if (ch === '\"') {\n      if (text[i + 1] === '\"') {\n        field += '\"';\n        i++;\n      } else quoted = false;\n    } else field += ch;\n  } else if (ch === '\"' && field === \"\") quoted = true;\n  else if (ch === delimiter) {\n    record.push(field);\n    field = \"\";\n  } else if (ch === \"\\n\" || ch === \"\\r\") {\n    if (ch === \"\\r\" && text[i + 1] === \"\\n\") i++;\n    record.push(field);\n    records.push(record);\n    record = [];\n    field = \"\";\n  } else field += ch;\n}\nif (field !== \"\" || record.length > 0) {\n  record.push(field);\n  records.push(record);\n}\nconst lines = records.filter((r) => r.some((cell) => cell.trim() !== \"\"));\nif (lines.length < 2) throw new Error(\"The catalog needs a header row and at least one product row.\");\n\nconst headers = lines[0].map((h) => h.trim());\nconst keyOf = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\");\nconst byKey = new Map(headers.map((h) => [keyOf(h), h]));\nconst columnList = headers.map((h) => '\"' + h + '\"').join(\", \");\nconst products = lines.slice(1).map((cells) => {\n  const product = {};\n  headers.forEach((h, i) => (product[h] = String(cells[i] ?? \"\").trim()));\n  return product;\n});\n\n// A blank column field means \"find it\": the first header that looks right.\nconst findColumn = (asked, patterns) => {\n  const wanted = String(asked ?? \"\").trim();\n  if (wanted) {\n    const hit = byKey.get(keyOf(wanted));\n    if (!hit) throw new Error('The catalog has no \"' + wanted + '\" column. Its columns are ' + columnList + \".\");\n    return hit;\n  }\n  for (const pattern of patterns) {\n    const hit = headers.find((h) => pattern.test(keyOf(h)));\n    if (hit) return hit;\n  }\n  return null;\n};\nconst imageColumn = findColumn(inputs.image_column, [\n  /^(image|image_src|image_url|image_link|img|photo|packshot)$/,\n  /image|img|photo|picture|packshot/\n]);\nif (!imageColumn) {\n  throw new Error(\"No column looks like an image link. Name the column that holds each product's image URL. The columns are \" + columnList + \".\");\n}\nconst nameColumn = findColumn(inputs.name_column, [/^(title|name|product|product_name)$/, /title|name/]) ?? headers[0];\n\nconst template = String(inputs.prompt_template ?? \"\").trim();\nif (!template) throw new Error(\"Write the prompt template. Use {{column}} to insert a product's value.\");\nconst PLACEHOLDER = /\\{\\{\\s*([^{}]+?)\\s*\\}\\}/g;\n// With reference_roles on, the image role placeholders stay in the prompt for\n// the animate graph to number.\nconst ROLES = inputs.reference_roles ? [\"product_image\", \"background_image\", \"decoration_image\"] : [];\nconst isRole = (name) => ROLES.includes(keyOf(name));\nconst missing = [...new Set([...template.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((name) => !byKey.has(keyOf(name)) && !isRole(name)))];\n// Reading still succeeds, so the new catalog shows. Rendering refuses below.\nconst missingText = missing.length > 0\n  ? \"The template uses \" + missing.map((name) => \"{{\" + name + \"}}\").join(\", \") +\n    \", which the catalog has no column for. The columns are \" + columnList + \".\"\n  : \"\";\nconst fill = (product) =>\n  template.replace(PLACEHOLDER, (_, name) => (isRole(name) ? \"{{\" + keyOf(name) + \"}}\" : product[byKey.get(keyOf(name))] ?? \"\")).replace(/\\s+/g, \" \").trim();\n\n// A Shopify export writes \"//cdn.shopify.com/…\"; a bare file name is not a link.\nconst imageOf = (product) => {\n  let value = String(product[imageColumn] ?? \"\").trim();\n  if (value.startsWith(\"//\")) value = \"https:\" + value;\n  if (/^(https?|package|asset|data):/i.test(value) || value.startsWith(\"/api/storage/\")) {\n    return { type: \"image\", uri: value };\n  }\n  return null;\n};\n\nconst total = products.length;\nconst first = Math.max(1, Math.floor(Number(inputs.first_row) || 1));\nconst askedLast = Math.floor(Number(inputs.last_row) || 0);\nconst last = askedLast <= 0 ? total : Math.min(total, askedLast);\nif (first > total) throw new Error(\"Row \" + first + \" is past the end. The catalog has \" + total + \" products.\");\nif (last < first) throw new Error(\"The last row (\" + last + \") comes before the first row (\" + first + \").\");\n\nconst items = [];\nconst skipped = [];\nfor (let row = first; row <= last; row++) {\n  const product = products[row - 1];\n  const image = imageOf(product);\n  if (!image) {\n    skipped.push(row);\n    continue;\n  }\n  items.push({ row, product: product[nameColumn] || \"Row \" + row, image, prompt: fill(product) });\n}\n\nconst seconds = Math.max(0, Number(inputs.duration) || 0);\nconst placeholders = headers.map((h) => \"{{\" + keyOf(h) + \"}}\").join(\" \");\nconst summary = [\n  missingText ? \"⚠️ \" + missingText + \" Those placeholders stay blank until you change the template.\" : \"\",\n  \"**\" + total + (total === 1 ? \" product\" : \" products\") + \"** in the catalog. Images come from **\" + imageColumn + \"**, names from **\" + nameColumn + \"**.\",\n  \"Placeholders for the prompt: \" + placeholders,\n  first === 1 && last === total\n    ? \"All \" + total + (total === 1 ? \" row: \" : \" rows: \") + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\")\n    : \"Rows \" + first + \" to \" + last + \": \" + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\"),\n  skipped.length > 0\n    ? \"Skipped for a missing or unusable image link: \" + (skipped.length === 1 ? \"row \" : \"rows \") + skipped.join(\", \") + \".\"\n    : \"\"\n].filter(Boolean).join(\"\\n\\n\");\n\nconst table = products.slice(0, PREVIEW_ROWS).map((product, i) => ({\n  Row: i + 1,\n  Product: product[nameColumn],\n  Prompt: fill(product),\n  // The file name, not the whole link: the table has a narrow column for it.\n  Image: imageOf(product) ? String(product[imageColumn]).split(/[?#]/)[0].split(\"/\").pop() : \"missing\"\n}));\n\nawait output(\"summary\", summary);\nawait output(\"products\", table);\nawait output(\"fields\", [...new Set([...headers.map(keyOf).filter(Boolean), ...ROLES])]);",
+          "timeout": 60,
+          "max_response_mb": 4,
+          "allow_local_network": false,
+          "allow_host_filesystem": false,
+          "secrets": [],
+          "script": {}
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Read the catalog"
+        },
+        "dynamic_properties": {
+          "catalog": null,
+          "prompt_template": "",
+          "image_column": "",
+          "name_column": "",
+          "first_row": 1,
+          "last_row": 0,
+          "duration": 0
+        },
+        "dynamic_outputs": {
+          "summary": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "products": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "any",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          },
+          "fields": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "products",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "products",
+          "description": "Every row with its filled prompt and image link"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "6  Products"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "summary",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "summary",
+          "description": "Columns, placeholders and rows that will be skipped"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 700
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "7  Summary"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fields",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "fields",
+          "description": "Catalog column names available as prompt placeholders"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 880
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "8  Prompt fields"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-catalog",
+        "source": "catalog",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "catalog"
+      },
+      {
+        "id": "e-template",
+        "source": "prompt_template",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "prompt_template"
+      },
+      {
+        "id": "e-image-column",
+        "source": "image_column",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "image_column"
+      },
+      {
+        "id": "e-name-column",
+        "source": "name_column",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "name_column"
+      },
+      {
+        "id": "e-reference-roles",
+        "source": "reference_roles",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "reference_roles"
+      },
+      {
+        "id": "e-products",
+        "source": "read",
+        "sourceHandle": "products",
+        "target": "products",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e-summary",
+        "source": "read",
+        "sourceHandle": "summary",
+        "target": "summary",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e-fields",
+        "source": "read",
+        "sourceHandle": "fields",
+        "target": "fields",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

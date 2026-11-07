@@ -62,7 +62,7 @@ These primitives exist but are barely adopted:
 `Text` | `Label` | `Caption` | `TruncatedText` | `TextLink` | `ExternalLink`
 
 ### Inputs (replace raw TextField/Select/Switch)
-`NodeTextField` | `TextInput` | `TextArea` | `NumericField` | `InspectorValueInput` | `NodeSelect` | `SelectField` | `InspectorSelect` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
+`NodeTextField` | `TextInput` | `TextArea` | `TemplateTextArea` (editable text with highlighted `{{placeholders}}`) | `NumericField` | `InspectorValueInput` | `NodeSelect` | `SelectField` | `InspectorSelect` | `NodeSwitch` | `LabeledSwitch` | `NodeSlider` | `Checkbox` | `Autocomplete` | `AutocompleteTagInput` | `TagInput` | `SearchInput`
 
 ### Buttons (replace raw Button/IconButton)
 `EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `LabeledToggle`

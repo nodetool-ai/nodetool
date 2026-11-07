@@ -955,6 +955,8 @@ export const appConfig: Config = {
         label: { type: "text", label: "Label" },
         placeholder: { type: "text", label: "Placeholder" },
         hint: { type: "text", label: "Hint" },
+        placeholderFieldsBinding: bindingField("read", "Placeholder fields"),
+        cameraPresets: { type: "radio", label: "Camera presets", options: [{ label: "No", value: false }, { label: "Yes", value: true }] },
         multiline: {
           type: "radio",
           label: "Multiline",

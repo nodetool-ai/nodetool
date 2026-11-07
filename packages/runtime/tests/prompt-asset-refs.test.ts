@@ -300,6 +300,16 @@ describe("mapPromptAssetsToInputs", () => {
     );
   });
 
+  it("labels list items through labelAt when the field supplies it", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "put asset://a.png next to asset://b.jpg" }],
+      [{ name: "images", kind: "image", list: true, hasSource: false, labelAt: (index) => `image ${index + 2}` }],
+      fakeContext(bytes)
+    );
+    expect((overrides.images as InjectedAssetRef[]).map((r) => r.uri)).toEqual(["asset://a.png", "asset://b.jpg"]);
+    expect(overrides.prompt).toBe("put image 2 next to image 3");
+  });
+
   it("routes mentions to inputs by kind and labels each", async () => {
     const overrides = await mapPromptAssetsToInputs(
       [{ name: "prompt", value: "speak asset://v.mp3 over asset://a.png" }],
