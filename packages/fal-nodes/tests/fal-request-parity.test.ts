@@ -3,26 +3,15 @@
  *
  * The pinned requests below were recorded from the pack's own transport
  * (`@fal-ai/client` storage upload plus the queue POST) before the nodes moved
- * to `context.callProviderEndpoint`. The migrated nodes must send the same
- * endpoint and the same input JSON.
+ * to `context.callProviderEndpoint`, in commit 5d5af278ff. The migrated nodes
+ * must send the same endpoint, no route, the same input JSON and the same
+ * upload.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 import { loadFalNodesFromManifest } from "../src/fal-factory.js";
 import type { FalManifestEntry } from "../src/fal-factory.js";
 import manifest from "../src/fal-manifest.json" with { type: "json" };
-
-const upload = vi.fn(
-  async (_blob: Blob) => `https://v3.fal.media/files/uploaded-${upload.mock.calls.length}.bin`
-);
-
-vi.mock("@fal-ai/client", () => ({
-  createFalClient: vi.fn(() => ({
-    queue: {},
-    subscribe: vi.fn(),
-    storage: { upload }
-  }))
-}));
 
 const VIDEO_BYTES = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
 
@@ -62,70 +51,41 @@ function nodeClass(endpointId: string) {
   return NodeClass;
 }
 
-interface WireRequest {
-  endpoint: string;
-  input: Record<string, unknown>;
-}
-
-/** Answers the FAL queue protocol and records each submission body. */
-function stubQueue(result: Record<string, unknown>): WireRequest[] {
-  const sent: WireRequest[] = [];
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: URL | string, init?: RequestInit) => {
-      const href = String(url);
-      if (init?.method === "POST") {
-        sent.push({
-          endpoint: new URL(href).pathname.slice(1),
-          input: JSON.parse(String(init.body)) as Record<string, unknown>
-        });
-        return Response.json({ request_id: "req-parity" });
-      }
-      if (href.endsWith("/status")) {
-        return Response.json({ status: "COMPLETED" });
-      }
-      if (href.includes("/requests/req-parity")) {
-        return Response.json(result);
-      }
-      throw new Error(`unexpected fetch ${href}`);
-    })
-  );
-  return sent;
-}
-
-function context(): ProcessingContext {
+function scripted(
+  endpoint: string,
+  output: Record<string, unknown>
+): { provider: ScriptedProvider; ctx: ProcessingContext } {
+  const provider = new ScriptedProvider([], {
+    providerId: "fal_ai",
+    endpoints: { [endpoint]: { output, requestId: "req-parity" } },
+    uploadUrl: (_upload, n) => `https://v3.fal.media/files/uploaded-${n}.bin`
+  });
   const ctx = new ProcessingContext({ jobId: "job-parity" });
-  ctx.setProviderResolver(
-    async () => new ScriptedProvider([], { providerId: "fal_ai" })
-  );
-  return ctx;
+  ctx.setProviderResolver(async () => provider);
+  return { provider, ctx };
+}
+
+/** The endpoint calls the provider received, in the pinned shape. */
+function sent(provider: ScriptedProvider) {
+  return provider.endpointCalls.map((call) => ({
+    endpoint: call.model,
+    input: call.input,
+    ...(call.route === undefined ? {} : { route: call.route })
+  }));
 }
 
 describe("FAL request parity", () => {
-  beforeEach(() => {
-    upload.mockClear();
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("sends the pinned FluxDev request", async () => {
-    const sent = stubQueue({
+    const { provider, ctx } = scripted("fal-ai/flux/dev", {
       images: [{ url: "https://v3.fal.media/files/out.jpg" }]
     });
     const NodeClass = nodeClass("fal-ai/flux/dev");
 
-    const result = await new NodeClass({}).toExecutor().process(
-      {
-        _secrets: { FAL_API_KEY: "test-key" },
-        prompt: "a red fox in snow",
-        seed: 42
-      },
-      context()
-    );
+    const result = await new NodeClass({})
+      .toExecutor()
+      .process({ prompt: "a red fox in snow", seed: 42 }, ctx);
 
-    expect(sent).toEqual([FLUX_DEV_REQUEST]);
+    expect(sent(provider)).toEqual([FLUX_DEV_REQUEST]);
     expect(result.output).toMatchObject({
       type: "image",
       uri: "https://v3.fal.media/files/out.jpg"
@@ -133,28 +93,26 @@ describe("FAL request parity", () => {
   });
 
   it("uploads the video and sends the pinned AMTInterpolation request", async () => {
-    const sent = stubQueue({
+    const { provider, ctx } = scripted("fal-ai/amt-interpolation", {
       video: { url: "https://v3.fal.media/files/out.mp4" }
     });
     const NodeClass = nodeClass("fal-ai/amt-interpolation");
 
     const result = await new NodeClass({}).toExecutor().process(
       {
-        _secrets: { FAL_API_KEY: "test-key" },
         video: {
           type: "video",
           uri: "",
           data: Buffer.from(VIDEO_BYTES).toString("base64")
         }
       },
-      context()
+      ctx
     );
 
-    expect(upload).toHaveBeenCalledOnce();
-    const blob = upload.mock.calls[0][0];
-    expect(blob.type).toBe("video/mp4");
-    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(VIDEO_BYTES);
-    expect(sent).toEqual([AMT_INTERPOLATION_REQUEST]);
+    expect(provider.uploadCalls).toHaveLength(1);
+    expect(provider.uploadCalls[0].mimeType).toBe("video/mp4");
+    expect(provider.uploadCalls[0].bytes).toEqual(VIDEO_BYTES);
+    expect(sent(provider)).toEqual([AMT_INTERPOLATION_REQUEST]);
     expect(result.output).toEqual({
       type: "video",
       uri: "https://v3.fal.media/files/out.mp4"

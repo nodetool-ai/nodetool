@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const falSubmit = vi.fn();
+const endpointCall = vi.fn();
 
 vi.mock("../src/fal-base.js", () => ({
   assetToFalUrl: vi.fn(),
@@ -8,21 +8,14 @@ vi.mock("../src/fal-base.js", () => ({
     type: "image",
     uri: image.url
   }),
-  falSubmit,
-  falSubmitWithMeta: async (...args) => ({
-    data: await falSubmit(...args),
-    requestId: "req-test"
-  }),
-  falSubmitWithGeneration: async (
-    apiKey: string,
-    endpoint: string,
-    args: Record<string, unknown>
+  callFalEndpoint: async (
+    _context: unknown,
+    request: { endpoint: string; args: Record<string, unknown> }
   ) => ({
-    data: await falSubmit(apiKey, endpoint, args),
+    data: await endpointCall(request.endpoint, request.args),
     requestId: "req-test"
   }),
   falCapabilityForOutputType: () => "text_to_image",
-  getFalApiKey: () => "test-key",
   imageToDataUrl: vi.fn(async () => null),
   isRefSet: () => false,
   removeNulls: (obj: Record<string, unknown>) => {
@@ -72,7 +65,7 @@ function makeNode() {
 
 describe("FAL single-output image generation", () => {
   beforeEach(() => {
-    falSubmit.mockReset();
+    endpointCall.mockReset();
   });
 
   it("does not register num_images as a declared property", () => {
@@ -82,7 +75,7 @@ describe("FAL single-output image generation", () => {
   });
 
   it("forces num_images=1 even when an instance value is set", async () => {
-    falSubmit.mockResolvedValue({ images: [{ url: "u1" }] });
+    endpointCall.mockResolvedValue({ images: [{ url: "u1" }] });
 
     const NodeClass = makeNode();
     const instance = new (NodeClass as new () => InstanceType<
@@ -92,13 +85,13 @@ describe("FAL single-output image generation", () => {
 
     await instance.process();
 
-    expect(falSubmit).toHaveBeenCalledTimes(1);
-    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    expect(endpointCall).toHaveBeenCalledTimes(1);
+    const args = endpointCall.mock.calls[0][1] as Record<string, unknown>;
     expect(args.num_images).toBe(1);
   });
 
   it("process() returns the first image even when the API returns several", async () => {
-    falSubmit.mockResolvedValue({
+    endpointCall.mockResolvedValue({
       images: [{ url: "u1" }, { url: "u2" }, { url: "u3" }, { url: "u4" }]
     });
 

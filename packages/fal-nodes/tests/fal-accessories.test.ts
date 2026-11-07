@@ -4,10 +4,10 @@ import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import type { FalManifestEntry } from "../src/fal-factory.js";
 
 const assetToFalUrl = vi.fn(
-  async (_apiKey: string, ref: Record<string, unknown>) =>
+  async (ref: Record<string, unknown>, _context?: unknown) =>
     ref.uri ? `uploaded:${String(ref.uri)}` : null
 );
-const falSubmit = vi.fn(async () => ({ video: { url: "https://fal/out.mp4" } }));
+const endpointCall = vi.fn(async () => ({ video: { url: "https://fal/out.mp4" } }));
 
 vi.mock("../src/fal-base.js", () => ({
   assetToFalUrl,
@@ -15,14 +15,14 @@ vi.mock("../src/fal-base.js", () => ({
     type: "image",
     uri: image.url
   }),
-  falSubmit,
-  falSubmitWithGeneration: async (
-    apiKey: string,
-    endpoint: string,
-    args: Record<string, unknown>
-  ) => ({ data: await falSubmit(apiKey, endpoint, args), requestId: "req" }),
+  callFalEndpoint: async (
+    _context: unknown,
+    request: { endpoint: string; args: Record<string, unknown> }
+  ) => ({
+    data: await endpointCall(request.endpoint, request.args),
+    requestId: "req-test"
+  }),
   falCapabilityForOutputType: () => "image_to_video",
-  getFalApiKey: () => "test-key",
   imageToDataUrl: async () => null,
   isRefSet: (ref: unknown) =>
     Boolean(ref && typeof ref === "object" && (ref as { uri?: string }).uri),
@@ -56,17 +56,16 @@ const keyframe = (name: string, time: number) => ({
 });
 
 function sentArgs(): Record<string, unknown> {
-  const call = falSubmit.mock.calls.at(-1) as unknown as [
-    string,
+  const call = endpointCall.mock.calls.at(-1) as unknown as [
     string,
     Record<string, unknown>
   ];
-  return call[2];
+  return call[1];
 }
 
 describe("fal keyframes", () => {
   beforeEach(() => {
-    falSubmit.mockClear();
+    endpointCall.mockClear();
     assetToFalUrl.mockClear();
   });
 
@@ -103,7 +102,7 @@ describe("fal keyframes", () => {
       keyframes: [keyframe("a", 6), keyframe("b", 9)]
     });
     await expect(node.process()).rejects.toThrow(/same frame/);
-    expect(falSubmit).not.toHaveBeenCalled();
+    expect(endpointCall).not.toHaveBeenCalled();
   });
 
   it("refuses a run with no keyframes", async () => {
@@ -117,7 +116,7 @@ describe("fal keyframes", () => {
 
 describe("fal Kling elements and shots", () => {
   beforeEach(() => {
-    falSubmit.mockClear();
+    endpointCall.mockClear();
   });
 
   const element = (name: string) => ({
