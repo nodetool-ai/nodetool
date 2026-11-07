@@ -197,8 +197,10 @@ export {
   hasSecret,
   getSecretSync,
   clearSecretCache,
-  clearAllSecretCache
+  clearAllSecretCache,
+  credentialSource
 } from "./secret-helper.js";
+export type { CredentialSource } from "./secret-helper.js";
 export {
   isOnePasswordReference,
   parseOnePasswordReference,
@@ -634,6 +636,29 @@ export type {
   UserStatus
 } from "./user-account.js";
 export { userAccounts } from "./schema/user-accounts.js";
+
+export {
+  DEFAULT_QUOTA_SUBJECT,
+  QUOTA_PERIODS,
+  clearQuota,
+  getEffectiveQuota,
+  getProviderCredentialKeyResolver,
+  getQuota,
+  isQuotaPeriod,
+  providerKeySource,
+  quotaUsage,
+  setProviderCredentialKeyResolver,
+  setQuota
+} from "./user-quota.js";
+export type {
+  EffectiveQuota,
+  ProviderCredentialKey,
+  QuotaChange,
+  QuotaPeriod,
+  QuotaUsage,
+  UserQuota
+} from "./user-quota.js";
+export { userQuotas } from "./schema/user-quotas.js";
 
 export * from "./app-instance.js";
 

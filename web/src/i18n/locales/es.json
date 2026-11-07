@@ -20001,6 +20001,7 @@
         "person": "Persona",
         "role": "Rol",
         "status": "Estado",
+        "usage": "Uso",
         "lastSeen": "Última actividad",
         "actions": "Acciones"
       },
@@ -20034,6 +20035,36 @@
         "body": "Se cerrará su sesión en todas partes al instante y no podrá volver a entrar hasta que actives la cuenta. Su trabajo se queda en el servidor.",
         "cancel": "Cancelar"
       }
+    },
+    "quotas": {
+      "editDefault": "Editar límites predeterminados",
+      "editLimits": "Límites",
+      "defaultTitle": "Límites predeterminados",
+      "userTitle": "Límites de {{name}}",
+      "defaultNone": "No hay límites predeterminados. Todos pueden gastar sin tope con las claves de este servidor.",
+      "defaultSummaryDay": "Predeterminado para todos: {{tokens}} tokens de modelo y {{media}} para medios al día.",
+      "defaultSummaryMonth": "Predeterminado para todos: {{tokens}} tokens de modelo y {{media}} para medios al mes.",
+      "unlimited": "sin límite",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Medios:",
+      "usedOf": "{{used}} de {{limit}}",
+      "usedNoLimit": "{{used}}, sin límite",
+      "ownLimits": "Límites propios",
+      "period": {
+        "label": "Periodo",
+        "day": "Por día",
+        "month": "Por mes"
+      },
+      "tokenLimit": "Tokens de modelo",
+      "mediaLimit": "Presupuesto de medios (USD)",
+      "noLimit": "Sin límite",
+      "invalid": "Escribe un número de 0 o más, o deja el campo vacío para no poner límite.",
+      "useDefault": "Usar el valor predeterminado del servidor",
+      "useDefaultDescription": "Desactívalo para dar a esta persona límites propios.",
+      "ownKeysNote": "Solo cuenta el trabajo con las claves de proveedor de este servidor. El trabajo con una clave que la persona guardó en Ajustes nunca cuenta.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "saveFailed": "No se pudieron guardar los límites."
     }
   }
 }

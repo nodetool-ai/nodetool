@@ -9,6 +9,24 @@ import type { AdminUser } from "../../../serverState/useAdminUsers";
 
 const mockUseAdminUsers = jest.fn();
 const mockMutate = jest.fn();
+const mockSetUserQuota = jest.fn();
+const mockSetDefaultQuota = jest.fn();
+const mockDefaultQuota = {
+  data: {
+    period: "month",
+    token_limit: 1000000,
+    media_usd_limit: 20,
+    configured: true
+  }
+};
+
+const idleMutation = (mutate: jest.Mock) => ({
+  mutate,
+  reset: jest.fn(),
+  isPending: false,
+  isError: false,
+  error: null
+});
 
 jest.mock("../../../serverState/useAdminUsers", () => ({
   useAdminUsers: (filter: unknown) => mockUseAdminUsers(filter),
@@ -18,7 +36,10 @@ jest.mock("../../../serverState/useAdminUsers", () => ({
     isError: false,
     variables: undefined,
     error: null
-  })
+  }),
+  useAdminDefaultQuota: () => mockDefaultQuota,
+  useSetDefaultQuota: () => idleMutation(mockSetDefaultQuota),
+  useSetUserQuota: () => idleMutation(mockSetUserQuota)
 }));
 
 import UsersAdmin from "../UsersAdmin";
@@ -36,6 +57,15 @@ const account = (overrides: Partial<AdminUser>): AdminUser => ({
   updated_at: "2026-11-01T10:00:00.000Z",
   last_sign_in_at: "2026-11-01T10:00:00.000Z",
   last_seen_at: "2026-11-01T10:00:00.000Z",
+  quota: {
+    period: "month",
+    token_limit: 1000000,
+    media_usd_limit: 20,
+    custom: false,
+    since: "2026-11-01T00:00:00.000Z",
+    tokens_used: 4200,
+    media_usd_used: 1.5
+  },
   ...overrides
 });
 
@@ -142,6 +172,112 @@ describe("UsersAdmin", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(mockUseAdminUsers).toHaveBeenLastCalledWith(
       expect.objectContaining({ offset: 50, limit: 50 })
+    );
+  });
+
+  it("shows each person's usage against their limits", () => {
+    mockUseAdminUsers.mockReturnValue(
+      loaded([
+        account({}),
+        account({
+          user_id: "u2",
+          display_name: "Grace Hopper",
+          quota: {
+            period: "day",
+            token_limit: null,
+            media_usd_limit: 5,
+            custom: true,
+            since: "2026-11-07T00:00:00.000Z",
+            tokens_used: 10,
+            media_usd_used: 0
+          }
+        })
+      ])
+    );
+    renderUsers();
+    expect(
+      screen.getByText(
+        "Default for everyone: 1,000,000 model tokens and $20.00 for media per month."
+      )
+    ).toBeInTheDocument();
+    const ada = rowFor("Ada Lovelace");
+    expect(within(ada).getByText("Tokens: 4,200 of 1,000,000")).toBeInTheDocument();
+    expect(within(ada).getByText("Media: $1.50 of $20.00")).toBeInTheDocument();
+    const grace = rowFor("Grace Hopper");
+    expect(within(grace).getByText("Tokens: 10, no limit")).toBeInTheDocument();
+    expect(within(grace).getByText("Own limits")).toBeInTheDocument();
+  });
+
+  it("gives one person limits of their own", async () => {
+    mockUseAdminUsers.mockReturnValue(loaded([account({})]));
+    const user = userEvent.setup();
+    renderUsers();
+    await user.click(
+      within(rowFor("Ada Lovelace")).getByRole("button", { name: "Limits" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Limits for Ada Lovelace")).toBeInTheDocument();
+    const tokens = within(dialog).getByLabelText("Model tokens");
+    expect(tokens).toBeDisabled();
+    await user.click(within(dialog).getByRole("switch", { name: /Use the server default/ }));
+    expect(tokens).toBeEnabled();
+    await user.clear(tokens);
+    await user.type(tokens, "50,000");
+    await user.clear(within(dialog).getByLabelText("Media budget (USD)"));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(mockSetUserQuota).toHaveBeenCalledWith(
+      {
+        userId: "u1",
+        limits: { period: "month", token_limit: 50000, media_usd_limit: null }
+      },
+      expect.anything()
+    );
+  });
+
+  it("puts a person with own limits back on the default", async () => {
+    mockUseAdminUsers.mockReturnValue(
+      loaded([
+        account({
+          quota: {
+            period: "day",
+            token_limit: 10,
+            media_usd_limit: null,
+            custom: true,
+            since: "2026-11-07T00:00:00.000Z",
+            tokens_used: 0,
+            media_usd_used: 0
+          }
+        })
+      ])
+    );
+    const user = userEvent.setup();
+    renderUsers();
+    await user.click(screen.getByRole("button", { name: "Limits" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("switch", { name: /Use the server default/ }));
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(mockSetUserQuota).toHaveBeenCalledWith(
+      { userId: "u1", limits: null },
+      expect.anything()
+    );
+  });
+
+  it("refuses a limit that is not a number", async () => {
+    mockUseAdminUsers.mockReturnValue(loaded([account({})]));
+    const user = userEvent.setup();
+    renderUsers();
+    await user.click(screen.getByRole("button", { name: "Edit default limits" }));
+    const dialog = await screen.findByRole("dialog");
+    const media = within(dialog).getByLabelText("Media budget (USD)");
+    await user.clear(media);
+    await user.type(media, "lots");
+    expect(within(dialog).getByRole("button", { name: "Save" })).toBeDisabled();
+    await user.clear(media);
+    await user.type(media, "12.5");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(mockSetDefaultQuota).toHaveBeenCalledWith(
+      { period: "month", token_limit: 1000000, media_usd_limit: 12.5 },
+      expect.anything()
     );
   });
 });

@@ -2,10 +2,15 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  useAdminDefaultQuota,
   useAdminUsers,
+  useSetDefaultQuota,
+  useSetUserQuota,
   useUpdateAdminUser,
+  type AdminQuotaLimits,
   type AdminUser,
   type AdminUserChange,
+  type AdminUserQuota,
   type AdminUserStatus
 } from "../../serverState/useAdminUsers";
 import {
@@ -28,6 +33,7 @@ import {
   type DataTableColumn
 } from "../ui_primitives";
 import { formatDateTime } from "../../utils/formatUtils";
+import QuotaDialog from "./QuotaDialog";
 
 const PAGE_SIZE = 50;
 
@@ -39,6 +45,23 @@ interface PendingChange extends AdminUserChange {
 
 const userLabel = (user: AdminUser): string =>
   user.display_name ?? user.email ?? user.user_id;
+
+const formatTokens = (value: number): string =>
+  Math.round(value).toLocaleString();
+
+const formatUsd = (value: number): string => `$${value.toFixed(2)}`;
+
+const errorText = (error: unknown): string | null =>
+  error instanceof Error ? error.message : null;
+
+/** Whose limits the open dialog edits: the default, or one user's. */
+type QuotaTarget = { kind: "default" } | { kind: "user"; user: AdminUser };
+
+const limitsOf = (quota: AdminUserQuota): AdminQuotaLimits => ({
+  period: quota.period,
+  token_limit: quota.token_limit,
+  media_usd_limit: quota.media_usd_limit
+});
 
 /**
  * The Users tab of the admin area: search the directory, then promote,
@@ -54,8 +77,75 @@ const UsersAdmin: React.FC = () => {
     null
   );
 
+  const [quotaTarget, setQuotaTarget] = useState<QuotaTarget | null>(null);
+
   const users = useAdminUsers({ query, status, offset, limit: PAGE_SIZE });
   const update = useUpdateAdminUser();
+  const defaultQuota = useAdminDefaultQuota();
+  const setDefaultQuota = useSetDefaultQuota();
+  const setUserQuota = useSetUserQuota();
+
+  const usageLine = useCallback(
+    (used: string, limit: string | null) =>
+      limit === null
+        ? t("admin.quotas.usedNoLimit", { used })
+        : t("admin.quotas.usedOf", { used, limit }),
+    [t]
+  );
+
+  const defaultSummary = useMemo(() => {
+    const quota = defaultQuota.data;
+    if (!quota || (quota.token_limit === null && quota.media_usd_limit === null)) {
+      return t("admin.quotas.defaultNone");
+    }
+    return t(
+      quota.period === "day"
+        ? "admin.quotas.defaultSummaryDay"
+        : "admin.quotas.defaultSummaryMonth",
+      {
+        tokens:
+          quota.token_limit === null
+            ? t("admin.quotas.unlimited")
+            : formatTokens(quota.token_limit),
+        media:
+          quota.media_usd_limit === null
+            ? t("admin.quotas.unlimited")
+            : formatUsd(quota.media_usd_limit)
+      }
+    );
+  }, [defaultQuota.data, t]);
+
+  const quotaInitial = useMemo((): AdminQuotaLimits => {
+    if (quotaTarget?.kind === "user") return limitsOf(quotaTarget.user.quota);
+    const quota = defaultQuota.data;
+    return {
+      period: quota?.period ?? "month",
+      token_limit: quota?.token_limit ?? null,
+      media_usd_limit: quota?.media_usd_limit ?? null
+    };
+  }, [quotaTarget, defaultQuota.data]);
+
+  const quotaMutation =
+    quotaTarget?.kind === "user" ? setUserQuota : setDefaultQuota;
+
+  const closeQuota = useCallback(() => {
+    setQuotaTarget(null);
+    setUserQuota.reset();
+    setDefaultQuota.reset();
+  }, [setUserQuota, setDefaultQuota]);
+
+  const saveQuota = useCallback(
+    (limits: AdminQuotaLimits | null) => {
+      if (!quotaTarget) return;
+      const done = { onSuccess: () => setQuotaTarget(null) };
+      if (quotaTarget.kind === "user") {
+        setUserQuota.mutate({ userId: quotaTarget.user.user_id, limits }, done);
+      } else if (limits) {
+        setDefaultQuota.mutate(limits, done);
+      }
+    },
+    [quotaTarget, setUserQuota, setDefaultQuota]
+  );
 
   const applyChange = useCallback(
     (change: AdminUserChange) => {
@@ -88,6 +178,7 @@ const UsersAdmin: React.FC = () => {
       { key: "person", label: t("admin.users.columns.person") },
       { key: "role", label: t("admin.users.columns.role") },
       { key: "status", label: t("admin.users.columns.status") },
+      { key: "usage", label: t("admin.users.columns.usage") },
       { key: "lastSeen", label: t("admin.users.columns.lastSeen") },
       { key: "actions", label: t("admin.users.columns.actions"), align: "right" }
     ],
@@ -138,6 +229,31 @@ const UsersAdmin: React.FC = () => {
                 : t("admin.users.status.disabled")}
             </StatusPill>
           ),
+          usage: (
+            <FlexColumn gap={GAP.none} sx={{ whiteSpace: "nowrap" }}>
+              <Caption>
+                {t("admin.quotas.tokensLabel")}{" "}
+                {usageLine(
+                  formatTokens(user.quota.tokens_used),
+                  user.quota.token_limit === null
+                    ? null
+                    : formatTokens(user.quota.token_limit)
+                )}
+              </Caption>
+              <Caption>
+                {t("admin.quotas.mediaLabel")}{" "}
+                {usageLine(
+                  formatUsd(user.quota.media_usd_used),
+                  user.quota.media_usd_limit === null
+                    ? null
+                    : formatUsd(user.quota.media_usd_limit)
+                )}
+              </Caption>
+              {user.quota.custom ? (
+                <Caption>{t("admin.quotas.ownLimits")}</Caption>
+              ) : null}
+            </FlexColumn>
+          ),
           lastSeen: (
             <Caption sx={{ whiteSpace: "nowrap" }}>
               {user.last_seen_at
@@ -147,6 +263,12 @@ const UsersAdmin: React.FC = () => {
           ),
           actions: (
             <FlexRow gap={GAP.tight} justify="flex-end" sx={{ whiteSpace: "nowrap" }}>
+              <EditorButton
+                variant="text"
+                onClick={() => setQuotaTarget({ kind: "user", user })}
+              >
+                {t("admin.quotas.editLimits")}
+              </EditorButton>
               {user.role === "admin" ? (
                 <EditorButton
                   variant="text"
@@ -198,7 +320,7 @@ const UsersAdmin: React.FC = () => {
           )
         };
       }),
-    [users.data, update.isPending, update.variables, applyChange, t]
+    [users.data, update.isPending, update.variables, applyChange, usageLine, t]
   );
 
   const total = users.data?.total ?? 0;
@@ -289,6 +411,15 @@ const UsersAdmin: React.FC = () => {
           hideLabel
         />
       </FlexRow>
+      <FlexRow gap={GAP.normal} align="center" justify="space-between" wrap>
+        <Caption>{defaultSummary}</Caption>
+        <EditorButton
+          variant="outlined"
+          onClick={() => setQuotaTarget({ kind: "default" })}
+        >
+          {t("admin.quotas.editDefault")}
+        </EditorButton>
+      </FlexRow>
       {update.isError ? (
         <AlertBanner severity="error" compact>
           {update.error instanceof Error
@@ -297,6 +428,26 @@ const UsersAdmin: React.FC = () => {
         </AlertBanner>
       ) : null}
       {body}
+      <QuotaDialog
+        open={quotaTarget !== null}
+        title={
+          quotaTarget?.kind === "user"
+            ? t("admin.quotas.userTitle", { name: userLabel(quotaTarget.user) })
+            : t("admin.quotas.defaultTitle")
+        }
+        initial={quotaInitial}
+        usesDefault={
+          quotaTarget?.kind === "user" ? !quotaTarget.user.quota.custom : undefined
+        }
+        saving={quotaMutation.isPending}
+        error={
+          quotaMutation.isError
+            ? (errorText(quotaMutation.error) ?? t("admin.quotas.saveFailed"))
+            : null
+        }
+        onClose={closeQuota}
+        onSave={saveQuota}
+      />
       <ConfirmDialog
         open={pendingDisable !== null}
         onClose={() => setPendingDisable(null)}

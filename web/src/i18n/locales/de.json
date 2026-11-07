@@ -19690,6 +19690,7 @@
         "person": "Person",
         "role": "Rolle",
         "status": "Status",
+        "usage": "Verbrauch",
         "lastSeen": "Zuletzt gesehen",
         "actions": "Aktionen"
       },
@@ -19723,6 +19724,36 @@
         "body": "Die Person wird überall sofort abgemeldet und kann sich erst wieder anmelden, wenn du das Konto aktivierst. Ihre Arbeit bleibt auf dem Server.",
         "cancel": "Abbrechen"
       }
+    },
+    "quotas": {
+      "editDefault": "Standardlimits bearbeiten",
+      "editLimits": "Limits",
+      "defaultTitle": "Standardlimits",
+      "userTitle": "Limits für {{name}}",
+      "defaultNone": "Keine Standardlimits. Alle können die Schlüssel dieses Servers ohne Obergrenze nutzen.",
+      "defaultSummaryDay": "Standard für alle: {{tokens}} Modell-Tokens und {{media}} für Medien pro Tag.",
+      "defaultSummaryMonth": "Standard für alle: {{tokens}} Modell-Tokens und {{media}} für Medien pro Monat.",
+      "unlimited": "kein Limit",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Medien:",
+      "usedOf": "{{used}} von {{limit}}",
+      "usedNoLimit": "{{used}}, kein Limit",
+      "ownLimits": "Eigene Limits",
+      "period": {
+        "label": "Zeitraum",
+        "day": "Pro Tag",
+        "month": "Pro Monat"
+      },
+      "tokenLimit": "Modell-Tokens",
+      "mediaLimit": "Medienbudget (USD)",
+      "noLimit": "Kein Limit",
+      "invalid": "Gib eine Zahl ab 0 ein oder lass das Feld für kein Limit leer.",
+      "useDefault": "Serverstandard verwenden",
+      "useDefaultDescription": "Schalte das aus, um dieser Person eigene Limits zu geben.",
+      "ownKeysNote": "Es zählt nur Arbeit mit den Anbieterschlüsseln dieses Servers. Arbeit mit einem Schlüssel, den die Person in den Einstellungen gespeichert hat, zählt nie.",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "saveFailed": "Die Limits konnten nicht gespeichert werden."
     }
   }
 }

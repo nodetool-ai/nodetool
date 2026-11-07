@@ -20001,6 +20001,7 @@
         "person": "Personne",
         "role": "Rôle",
         "status": "Statut",
+        "usage": "Consommation",
         "lastSeen": "Dernière activité",
         "actions": "Actions"
       },
@@ -20034,6 +20035,36 @@
         "body": "La personne est déconnectée partout immédiatement et ne peut plus se connecter tant que vous n’avez pas réactivé le compte. Son travail reste sur le serveur.",
         "cancel": "Annuler"
       }
+    },
+    "quotas": {
+      "editDefault": "Modifier les limites par défaut",
+      "editLimits": "Limites",
+      "defaultTitle": "Limites par défaut",
+      "userTitle": "Limites de {{name}}",
+      "defaultNone": "Aucune limite par défaut. Tout le monde peut dépenser sans plafond avec les clés de ce serveur.",
+      "defaultSummaryDay": "Par défaut pour tous : {{tokens}} jetons de modèle et {{media}} pour les médias par jour.",
+      "defaultSummaryMonth": "Par défaut pour tous : {{tokens}} jetons de modèle et {{media}} pour les médias par mois.",
+      "unlimited": "aucune limite",
+      "tokensLabel": "Jetons :",
+      "mediaLabel": "Médias :",
+      "usedOf": "{{used}} sur {{limit}}",
+      "usedNoLimit": "{{used}}, aucune limite",
+      "ownLimits": "Limites propres",
+      "period": {
+        "label": "Période",
+        "day": "Par jour",
+        "month": "Par mois"
+      },
+      "tokenLimit": "Jetons de modèle",
+      "mediaLimit": "Budget médias (USD)",
+      "noLimit": "Aucune limite",
+      "invalid": "Saisissez un nombre supérieur ou égal à 0, ou laissez le champ vide pour aucune limite.",
+      "useDefault": "Utiliser la valeur par défaut du serveur",
+      "useDefaultDescription": "Désactivez pour donner à cette personne ses propres limites.",
+      "ownKeysNote": "Seul le travail sur les clés de fournisseur de ce serveur compte. Le travail sur une clé que la personne a enregistrée dans les réglages ne compte jamais.",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saveFailed": "Impossible d’enregistrer les limites."
     }
   }
 }

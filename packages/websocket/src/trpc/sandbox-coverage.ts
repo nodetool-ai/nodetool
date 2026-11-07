@@ -54,6 +54,26 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Whether the caller is an admin steers the admin UI. A run has no " +
       "admin surface to steer."
   },
+  "admin.quotas.clearUser": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.quotas.getDefault": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.quotas.setDefault": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.quotas.setUser": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
   "admin.users.get": {
     withheld:
       "Account administration reaches every tenant on the install, " +

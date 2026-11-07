@@ -19690,6 +19690,7 @@
         "person": "사용자",
         "role": "역할",
         "status": "상태",
+        "usage": "사용량",
         "lastSeen": "마지막 활동",
         "actions": "작업"
       },
@@ -19723,6 +19724,36 @@
         "body": "모든 곳에서 즉시 로그아웃되며 계정을 다시 활성화할 때까지 로그인할 수 없습니다. 작업은 서버에 그대로 남습니다.",
         "cancel": "취소"
       }
+    },
+    "quotas": {
+      "editDefault": "기본 한도 편집",
+      "editLimits": "한도",
+      "defaultTitle": "기본 한도",
+      "userTitle": "{{name}}의 한도",
+      "defaultNone": "기본 한도가 없습니다. 누구나 이 서버의 키를 제한 없이 사용할 수 있습니다.",
+      "defaultSummaryDay": "모두의 기본값: 하루 모델 토큰 {{tokens}}개, 미디어 {{media}}.",
+      "defaultSummaryMonth": "모두의 기본값: 한 달 모델 토큰 {{tokens}}개, 미디어 {{media}}.",
+      "unlimited": "한도 없음",
+      "tokensLabel": "토큰:",
+      "mediaLabel": "미디어:",
+      "usedOf": "{{limit}} 중 {{used}}",
+      "usedNoLimit": "{{used}}, 한도 없음",
+      "ownLimits": "개별 한도",
+      "period": {
+        "label": "기간",
+        "day": "하루",
+        "month": "한 달"
+      },
+      "tokenLimit": "모델 토큰",
+      "mediaLimit": "미디어 예산(USD)",
+      "noLimit": "한도 없음",
+      "invalid": "0 이상의 숫자를 입력하거나, 한도를 두지 않으려면 비워 두세요.",
+      "useDefault": "서버 기본값 사용",
+      "useDefaultDescription": "끄면 이 사용자에게 개별 한도를 줄 수 있습니다.",
+      "ownKeysNote": "이 서버의 제공자 키로 한 작업만 집계됩니다. 사용자가 설정에 저장한 키로 한 작업은 집계되지 않습니다.",
+      "save": "저장",
+      "cancel": "취소",
+      "saveFailed": "한도를 저장하지 못했습니다."
     }
   }
 }

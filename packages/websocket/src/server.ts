@@ -47,6 +47,7 @@ import {
   denyDraining
 } from "./lib/ws-upgrade.js";
 import { enforceAccountStatus } from "./lib/user-directory.js";
+import { installQuotaLedger } from "./quota-gate.js";
 import { getInstanceId } from "./lib/instance-id.js";
 import {
   resourceChangeBus,
@@ -1339,6 +1340,10 @@ app.addHook("onRequest", async (req, reply) => {
 // tokens that outlive that change, so every request the auth hook above
 // resolved to a user is checked here.
 app.addHook("onRequest", enforceAccountStatus);
+
+// Every prediction row records whose provider key paid, so a user's quota
+// leaves out spend on keys they saved themselves.
+installQuotaLedger();
 
 registerHttpTracing(app, {
   async authorizeTraceParent(request, parent) {

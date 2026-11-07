@@ -230,6 +230,16 @@ A session is a signed token, not a database row. Signing out in NodeTool drops i
 
 An admin can disable an account through `admin.users.update`. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
+Admins manage the directory on the **Admin** page, which the app menu shows only to admins in SSO mode.
+
+### Spend limits
+
+An admin can cap what each person spends on the server's own provider keys, on the Admin page or through `admin.quotas.*`. There are two budgets: language-model tokens (input plus output), and media generation (image, video, audio and 3D) in USD. Each applies per UTC day or month. A default applies to everyone. A person given limits of their own uses those instead, and an empty limit there means no limit.
+
+Only work paid with the server's keys counts. Each prediction row records whose key paid (`key_source`): `user` when the person saved that provider's key in Settings, `server` otherwise. Rows written before this column existed count as `server`. A local model with no key counts as `server` too, because it runs on the server.
+
+The limit is checked before a chat turn, a workflow run, or a direct generation starts, using the price estimate for media work. A run already admitted finishes even when it crosses the limit, and the next one is refused with a message that names the budget. Workflow runs are checked by the models their nodes select, so a node that calls a model without selecting one is not checked. With several replicas, a limit change reaches the others within 30 seconds.
+
 Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
 
 ### Sign-in failures

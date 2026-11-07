@@ -6,18 +6,32 @@
  *   users.list    (query)    — search and page the directory (admin)
  *   users.get     (query)    — one account (admin)
  *   users.update  (mutation) — set role or status (admin)
+ *   quotas.getDefault (query)    — the limits every user gets (admin)
+ *   quotas.setDefault (mutation) — change them (admin)
+ *   quotas.setUser    (mutation) — give one user limits of their own (admin)
+ *   quotas.clearUser  (mutation) — put one user back on the default (admin)
  *
  * Disabling an account takes effect on this process at once: the cached
  * status is dropped and the user's open WebSockets are closed. Other replicas
  * follow within `ACCOUNT_STATUS_TTL_MS`. An admin cannot disable or demote
  * themselves, so a server cannot lose its last admin from the UI.
+ *
+ * Quota changes reach this process's gate at once and other replicas within
+ * `QUOTA_CACHE_TTL_MS`.
  */
 
 import {
+  DEFAULT_QUOTA_SUBJECT,
+  clearQuota,
+  getEffectiveQuota,
+  getQuota,
   getUserAccount,
   listUserAccounts,
+  quotaUsage,
+  setQuota,
   updateUserAccount,
-  type UserAccount
+  type UserAccount,
+  type UserQuota
 } from "@nodetool-ai/models";
 import {
   adminMeOutput,
@@ -26,7 +40,13 @@ import {
   adminUsersListInput,
   adminUsersListOutput,
   adminUsersUpdateInput,
-  type AdminUser
+  adminDefaultQuotaOutput,
+  adminQuotasSetDefaultInput,
+  adminQuotasSetUserInput,
+  adminUserQuota,
+  type AdminQuotaLimits,
+  type AdminUser,
+  type AdminUserQuota
 } from "@nodetool-ai/protocol/api-schemas/admin.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { isAdmin } from "../../lib/admin.js";
@@ -34,6 +54,7 @@ import {
   closeUserSockets,
   forgetAccountStatus
 } from "../../lib/user-directory.js";
+import { forgetQuota } from "../../quota-gate.js";
 import { throwApiError } from "../error-formatter.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -41,6 +62,37 @@ import { protectedProcedure } from "../middleware.js";
 async function requireAdmin(userId: string): Promise<void> {
   if (!(await isAdmin(userId))) {
     throwApiError(ApiErrorCode.FORBIDDEN, "Admin access required");
+  }
+}
+
+const toLimits = (quota: UserQuota | null): AdminQuotaLimits => ({
+  period: quota?.period ?? "month",
+  token_limit: quota?.tokenLimit ?? null,
+  media_usd_limit: quota?.mediaUsdLimit ?? null
+});
+
+async function userQuota(userId: string): Promise<AdminUserQuota> {
+  const { quota, custom } = await getEffectiveQuota(userId);
+  const limits = toLimits(quota);
+  const usage = await quotaUsage(userId, limits.period);
+  return {
+    ...limits,
+    custom,
+    since: usage.since,
+    tokens_used: usage.tokens,
+    media_usd_used: usage.mediaUsd
+  };
+}
+
+const quotaChange = (input: AdminQuotaLimits) => ({
+  period: input.period,
+  tokenLimit: input.token_limit,
+  mediaUsdLimit: input.media_usd_limit
+});
+
+async function requireAccount(userId: string): Promise<void> {
+  if (!(await getUserAccount(userId))) {
+    throwApiError(ApiErrorCode.NOT_FOUND, "User not found");
   }
 }
 
@@ -57,7 +109,8 @@ async function toAdminUser(account: UserAccount): Promise<AdminUser> {
     created_at: account.createdAt,
     updated_at: account.updatedAt,
     last_sign_in_at: account.lastSignInAt,
-    last_seen_at: account.lastSeenAt
+    last_seen_at: account.lastSeenAt,
+    quota: await userQuota(account.userId)
   };
 }
 
@@ -122,6 +175,52 @@ export const adminRouter = router({
         forgetAccountStatus(account.userId);
         if (account.status === "disabled") closeUserSockets(account.userId);
         return toAdminUser(account);
+      })
+  }),
+
+  quotas: router({
+    getDefault: protectedProcedure
+      .output(adminDefaultQuotaOutput)
+      .query(async ({ ctx }) => {
+        await requireAdmin(ctx.userId);
+        const quota = await getQuota(DEFAULT_QUOTA_SUBJECT);
+        return { ...toLimits(quota), configured: quota !== null };
+      }),
+
+    setDefault: protectedProcedure
+      .input(adminQuotasSetDefaultInput)
+      .output(adminDefaultQuotaOutput)
+      .mutation(async ({ ctx, input }) => {
+        await requireAdmin(ctx.userId);
+        const quota = await setQuota(
+          DEFAULT_QUOTA_SUBJECT,
+          quotaChange(input),
+          ctx.userId
+        );
+        forgetQuota();
+        return { ...toLimits(quota), configured: true };
+      }),
+
+    setUser: protectedProcedure
+      .input(adminQuotasSetUserInput)
+      .output(adminUserQuota)
+      .mutation(async ({ ctx, input }) => {
+        await requireAdmin(ctx.userId);
+        await requireAccount(input.user_id);
+        await setQuota(input.user_id, quotaChange(input), ctx.userId);
+        forgetQuota(input.user_id);
+        return userQuota(input.user_id);
+      }),
+
+    clearUser: protectedProcedure
+      .input(adminUserRef)
+      .output(adminUserQuota)
+      .mutation(async ({ ctx, input }) => {
+        await requireAdmin(ctx.userId);
+        await requireAccount(input.user_id);
+        await clearQuota(input.user_id);
+        forgetQuota(input.user_id);
+        return userQuota(input.user_id);
       })
   })
 });

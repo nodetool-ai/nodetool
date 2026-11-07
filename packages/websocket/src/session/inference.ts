@@ -36,6 +36,7 @@ import type {
 } from "@nodetool-ai/runtime";
 
 import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
+import { admitQuota, type QuotaNeed } from "../quota-gate.js";
 import { retrieveAssetBytes } from "../lib/asset-paths.js";
 import { trimVideoWindow } from "../lib/media.js";
 import { resolveImageSize } from "../lib/media-size.js";
@@ -599,6 +600,14 @@ export class DirectInferenceHandler {
       })
       .filter((t) => t.name.length > 0);
 
+    const quota = await admitQuota(this.session.requireUserId(), [
+      { kind: "tokens", provider: providerId }
+    ]);
+    if (!quota.allowed) {
+      await this.session.send({ type: "error", message: quota.reason });
+      return;
+    }
+
     const provider = await this.session.resolveProvider(
       providerId,
       this.session.requireUserId()
@@ -656,7 +665,9 @@ export class DirectInferenceHandler {
     const userId = this.session.requireUserId();
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
-      // BYOK: the user's own keys, never metered.
+      // Outside the managed provider, only a self-hosted server's quota
+      // applies, and only when the server's key pays.
+      await this.requireQuota(userId, [{ kind: "tokens", provider: req.provider }]);
       return this.runDirectTextGenerationInner(req, provider);
     }
 
@@ -906,7 +917,15 @@ export class DirectInferenceHandler {
       }
     }
     if (req.provider !== "nodetool") {
-      // BYOK: the user's own keys, never metered.
+      // Outside the managed provider, only a self-hosted server's quota
+      // applies, and only when the server's key pays.
+      await this.requireQuota(userId, [
+        {
+          kind: "media",
+          provider: req.provider,
+          estimatedUsd: this.estimateMediaUsd(req)
+        }
+      ]);
       try {
         return await this.runDirectMediaGenerationInner(req, provider, presets, undefined, videoEditReferences);
       } catch (error) {
@@ -1638,6 +1657,32 @@ export class DirectInferenceHandler {
    * one shot. Timestamps are returned in milliseconds relative to the start of
    * the audio.
    */
+  /** Throw the quota refusal as the call's error, so the caller sees why. */
+  private async requireQuota(
+    userId: string,
+    needs: readonly QuotaNeed[]
+  ): Promise<void> {
+    const decision = await admitQuota(userId, needs);
+    if (!decision.allowed) throw new Error(decision.reason);
+  }
+
+  /** The catalog price of a direct media request, or 0 when it has none. */
+  private estimateMediaUsd(req: DirectMediaGenerationRequest): number {
+    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const unit = getModelUnitPrice(
+      { id: req.model, provider: req.provider },
+      extractPricingParams({
+        resolution: req.resolution,
+        duration_seconds: req.durationSeconds,
+        width: req.width,
+        height: req.height
+      })
+    );
+    return unit && !unit.declined && isFiniteNumber(unit.unit_price)
+      ? unit.unit_price * variations
+      : 0;
+  }
+
   async runDirectTranscription(req: {
     provider: string;
     model: string;
@@ -1663,6 +1708,8 @@ export class DirectInferenceHandler {
       if (!creditDecision.allowed) {
         throw new Error(creditDecision.reason);
       }
+    } else {
+      await this.requireQuota(userId, [{ kind: "media", provider: req.provider }]);
     }
     const asset = await Asset.find(userId, req.assetId);
     if (!asset) {

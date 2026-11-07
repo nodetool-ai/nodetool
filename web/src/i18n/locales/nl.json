@@ -19690,6 +19690,7 @@
         "person": "Persoon",
         "role": "Rol",
         "status": "Status",
+        "usage": "Verbruik",
         "lastSeen": "Laatst gezien",
         "actions": "Acties"
       },
@@ -19723,6 +19724,36 @@
         "body": "Deze persoon wordt overal meteen afgemeld en kan pas weer inloggen als je het account inschakelt. Het werk blijft op de server.",
         "cancel": "Annuleren"
       }
+    },
+    "quotas": {
+      "editDefault": "Standaardlimieten bewerken",
+      "editLimits": "Limieten",
+      "defaultTitle": "Standaardlimieten",
+      "userTitle": "Limieten voor {{name}}",
+      "defaultNone": "Geen standaardlimieten. Iedereen kan zonder plafond de sleutels van deze server gebruiken.",
+      "defaultSummaryDay": "Standaard voor iedereen: {{tokens}} modeltokens en {{media}} voor media per dag.",
+      "defaultSummaryMonth": "Standaard voor iedereen: {{tokens}} modeltokens en {{media}} voor media per maand.",
+      "unlimited": "geen limiet",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} van {{limit}}",
+      "usedNoLimit": "{{used}}, geen limiet",
+      "ownLimits": "Eigen limieten",
+      "period": {
+        "label": "Periode",
+        "day": "Per dag",
+        "month": "Per maand"
+      },
+      "tokenLimit": "Modeltokens",
+      "mediaLimit": "Mediabudget (USD)",
+      "noLimit": "Geen limiet",
+      "invalid": "Vul een getal van 0 of hoger in, of laat het veld leeg voor geen limiet.",
+      "useDefault": "Serverstandaard gebruiken",
+      "useDefaultDescription": "Zet uit om deze persoon eigen limieten te geven.",
+      "ownKeysNote": "Alleen werk op de providersleutels van deze server telt. Werk op een sleutel die de persoon in Instellingen heeft opgeslagen telt nooit.",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "saveFailed": "De limieten konden niet worden opgeslagen."
     }
   }
 }

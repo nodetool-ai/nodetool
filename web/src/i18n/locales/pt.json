@@ -20001,6 +20001,7 @@
         "person": "Pessoa",
         "role": "Função",
         "status": "Status",
+        "usage": "Uso",
         "lastSeen": "Visto por último",
         "actions": "Ações"
       },
@@ -20034,6 +20035,36 @@
         "body": "A pessoa é desconectada de todos os lugares na hora e não pode entrar de novo até você ativar a conta. O trabalho dela continua no servidor.",
         "cancel": "Cancelar"
       }
+    },
+    "quotas": {
+      "editDefault": "Editar limites padrão",
+      "editLimits": "Limites",
+      "defaultTitle": "Limites padrão",
+      "userTitle": "Limites de {{name}}",
+      "defaultNone": "Sem limites padrão. Todos podem gastar sem teto com as chaves deste servidor.",
+      "defaultSummaryDay": "Padrão para todos: {{tokens}} tokens de modelo e {{media}} para mídia por dia.",
+      "defaultSummaryMonth": "Padrão para todos: {{tokens}} tokens de modelo e {{media}} para mídia por mês.",
+      "unlimited": "sem limite",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Mídia:",
+      "usedOf": "{{used}} de {{limit}}",
+      "usedNoLimit": "{{used}}, sem limite",
+      "ownLimits": "Limites próprios",
+      "period": {
+        "label": "Período",
+        "day": "Por dia",
+        "month": "Por mês"
+      },
+      "tokenLimit": "Tokens de modelo",
+      "mediaLimit": "Orçamento de mídia (USD)",
+      "noLimit": "Sem limite",
+      "invalid": "Digite um número igual ou maior que 0, ou deixe o campo vazio para não ter limite.",
+      "useDefault": "Usar o padrão do servidor",
+      "useDefaultDescription": "Desative para dar a esta pessoa limites próprios.",
+      "ownKeysNote": "Só conta o trabalho com as chaves de provedor deste servidor. O trabalho com uma chave que a pessoa salvou em Configurações nunca conta.",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "saveFailed": "Não foi possível salvar os limites."
     }
   }
 }

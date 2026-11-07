@@ -21,6 +21,7 @@ import { operationTarget, parseInputStateKey } from "@nodetool-ai/app-runtime";
 import { ApiErrorCode } from "../error-codes.js";
 import { captureError } from "../error-traces.js";
 import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
+import { admitQuota, quotaNeedsForGraph } from "../quota-gate.js";
 import { JobConcurrencyQueue } from "../job-queue.js";
 import {
   isBoolean,
@@ -1327,6 +1328,40 @@ export class JobExecutionManager {
   }
 
   /**
+   * Refuse a run that would spend from a token or media budget the user has
+   * used up on this server's keys. Nodes on the user's own keys never count.
+   */
+  private async admitQuotaRun(req: RunJobRequest): Promise<boolean> {
+    const nodes = req.graph?.nodes;
+    const getMetadata = this.session.getNodeMetadata;
+    if (!nodes || !getMetadata) return true;
+    let needs;
+    try {
+      needs = quotaNeedsForGraph(
+        nodes.map((node) => ({
+          id: String(node.id),
+          type: String(node.type),
+          data: (node.data ?? {}) as Record<string, unknown>
+        })),
+        (nodeType) => getMetadata(nodeType),
+        this.estimateGraphCost(req)?.items ?? []
+      );
+    } catch (err) {
+      this.session.logError("quota needs failed", err);
+      return true;
+    }
+    const decision = await admitQuota(this.session.requireUserId(), needs);
+    if (decision.allowed) return true;
+    req.job_id ??= randomUUID();
+    return this.refuseRun(
+      req,
+      req.job_id,
+      ApiErrorCode.BUDGET_EXCEEDED,
+      decision.reason
+    );
+  }
+
+  /**
    * Narrow a run started by a deployed app's visitor to the one run the
    * session allows, or refuse it.
    *
@@ -1413,7 +1448,7 @@ export class JobExecutionManager {
     if (!req) return;
     req._accepted_at_ms ??= performance.now();
     if (!(await this.admitApplicationRun(req))) return;
-    if (!(await this.admitCreditRun(req))) {
+    if (!(await this.admitCreditRun(req)) || !(await this.admitQuotaRun(req))) {
       if (req.app_run_id) {
         await settleAppRun(this.session.requireUserId(), req.app_run_id, {
           status: "failed",
