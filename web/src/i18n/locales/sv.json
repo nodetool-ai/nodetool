@@ -19690,6 +19690,7 @@
         "person": "Person",
         "role": "Roll",
         "status": "Status",
+        "usage": "Användning",
         "lastSeen": "Senast sedd",
         "actions": "Åtgärder"
       },
@@ -19723,6 +19724,36 @@
         "body": "Personen loggas ut överallt direkt och kan inte logga in igen förrän du aktiverar kontot. Arbetet finns kvar på servern.",
         "cancel": "Avbryt"
       }
+    },
+    "quotas": {
+      "editDefault": "Redigera standardgränser",
+      "editLimits": "Gränser",
+      "defaultTitle": "Standardgränser",
+      "userTitle": "Gränser för {{name}}",
+      "defaultNone": "Inga standardgränser. Alla kan använda serverns nycklar utan tak.",
+      "defaultSummaryDay": "Standard för alla: {{tokens}} modelltokens och {{media}} för media per dag.",
+      "defaultSummaryMonth": "Standard för alla: {{tokens}} modelltokens och {{media}} för media per månad.",
+      "unlimited": "ingen gräns",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} av {{limit}}",
+      "usedNoLimit": "{{used}}, ingen gräns",
+      "ownLimits": "Egna gränser",
+      "period": {
+        "label": "Period",
+        "day": "Per dag",
+        "month": "Per månad"
+      },
+      "tokenLimit": "Modelltokens",
+      "mediaLimit": "Mediebudget (USD)",
+      "noLimit": "Ingen gräns",
+      "invalid": "Ange ett tal från 0 och uppåt, eller lämna fältet tomt för ingen gräns.",
+      "useDefault": "Använd serverns standard",
+      "useDefaultDescription": "Stäng av för att ge den här personen egna gränser.",
+      "ownKeysNote": "Bara arbete med serverns leverantörsnycklar räknas. Arbete med en nyckel som personen sparat i Inställningar räknas aldrig.",
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "saveFailed": "Det gick inte att spara gränserna."
     }
   }
 }

@@ -19690,6 +19690,7 @@
         "person": "Person",
         "role": "Role",
         "status": "Status",
+        "usage": "Usage",
         "lastSeen": "Last seen",
         "actions": "Actions"
       },
@@ -19723,6 +19724,36 @@
         "body": "They are signed out everywhere at once and cannot sign in again until you enable the account. Their work stays on the server.",
         "cancel": "Cancel"
       }
+    },
+    "quotas": {
+      "editDefault": "Edit default limits",
+      "editLimits": "Limits",
+      "defaultTitle": "Default limits",
+      "userTitle": "Limits for {{name}}",
+      "defaultNone": "No default limits. Everyone can spend without a cap on this server's keys.",
+      "defaultSummaryDay": "Default for everyone: {{tokens}} model tokens and {{media}} for media per day.",
+      "defaultSummaryMonth": "Default for everyone: {{tokens}} model tokens and {{media}} for media per month.",
+      "unlimited": "no limit",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} of {{limit}}",
+      "usedNoLimit": "{{used}}, no limit",
+      "ownLimits": "Own limits",
+      "period": {
+        "label": "Period",
+        "day": "Per day",
+        "month": "Per month"
+      },
+      "tokenLimit": "Model tokens",
+      "mediaLimit": "Media budget (USD)",
+      "noLimit": "No limit",
+      "invalid": "Enter a number of 0 or more, or leave the field empty for no limit.",
+      "useDefault": "Use the server default",
+      "useDefaultDescription": "Turn off to give this person limits of their own.",
+      "ownKeysNote": "Only work on this server's provider keys counts. Work on a key the person saved in Settings never does.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saveFailed": "Could not save the limits."
     }
   }
 }

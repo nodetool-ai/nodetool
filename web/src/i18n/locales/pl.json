@@ -20312,6 +20312,7 @@
         "person": "Osoba",
         "role": "Rola",
         "status": "Status",
+        "usage": "Zużycie",
         "lastSeen": "Ostatnio widziany",
         "actions": "Akcje"
       },
@@ -20345,6 +20346,36 @@
         "body": "Ta osoba zostanie natychmiast wylogowana wszędzie i nie zaloguje się ponownie, dopóki nie włączysz konta. Jej praca zostaje na serwerze.",
         "cancel": "Anuluj"
       }
+    },
+    "quotas": {
+      "editDefault": "Edytuj limity domyślne",
+      "editLimits": "Limity",
+      "defaultTitle": "Limity domyślne",
+      "userTitle": "Limity dla {{name}}",
+      "defaultNone": "Brak limitów domyślnych. Każdy może bez ograniczeń korzystać z kluczy tego serwera.",
+      "defaultSummaryDay": "Domyślnie dla wszystkich: {{tokens}} tokenów modelu i {{media}} na media dziennie.",
+      "defaultSummaryMonth": "Domyślnie dla wszystkich: {{tokens}} tokenów modelu i {{media}} na media miesięcznie.",
+      "unlimited": "bez limitu",
+      "tokensLabel": "Tokeny:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} z {{limit}}",
+      "usedNoLimit": "{{used}}, bez limitu",
+      "ownLimits": "Własne limity",
+      "period": {
+        "label": "Okres",
+        "day": "Dziennie",
+        "month": "Miesięcznie"
+      },
+      "tokenLimit": "Tokeny modelu",
+      "mediaLimit": "Budżet na media (USD)",
+      "noLimit": "Bez limitu",
+      "invalid": "Wpisz liczbę od 0 wzwyż albo zostaw pole puste, aby nie ustawiać limitu.",
+      "useDefault": "Użyj domyślnych ustawień serwera",
+      "useDefaultDescription": "Wyłącz, aby nadać tej osobie własne limity.",
+      "ownKeysNote": "Liczy się tylko praca na kluczach dostawców tego serwera. Praca na kluczu zapisanym przez tę osobę w Ustawieniach nigdy się nie liczy.",
+      "save": "Zapisz",
+      "cancel": "Anuluj",
+      "saveFailed": "Nie udało się zapisać limitów."
     }
   }
 }

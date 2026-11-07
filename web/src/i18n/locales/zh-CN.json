@@ -19690,6 +19690,7 @@
         "person": "用户",
         "role": "角色",
         "status": "状态",
+        "usage": "用量",
         "lastSeen": "最近活动",
         "actions": "操作"
       },
@@ -19723,6 +19724,36 @@
         "body": "该用户会立即在所有地方退出登录，在你重新启用账户之前无法再次登录。其作品仍保留在服务器上。",
         "cancel": "取消"
       }
+    },
+    "quotas": {
+      "editDefault": "编辑默认限额",
+      "editLimits": "限额",
+      "defaultTitle": "默认限额",
+      "userTitle": "{{name}} 的限额",
+      "defaultNone": "没有默认限额。所有人都可以不受限制地使用此服务器的密钥。",
+      "defaultSummaryDay": "所有人默认：每天 {{tokens}} 个模型 token，媒体 {{media}}。",
+      "defaultSummaryMonth": "所有人默认：每月 {{tokens}} 个模型 token，媒体 {{media}}。",
+      "unlimited": "无限额",
+      "tokensLabel": "Token：",
+      "mediaLabel": "媒体：",
+      "usedOf": "{{used}} / {{limit}}",
+      "usedNoLimit": "{{used}}，无限额",
+      "ownLimits": "单独限额",
+      "period": {
+        "label": "周期",
+        "day": "每天",
+        "month": "每月"
+      },
+      "tokenLimit": "模型 token",
+      "mediaLimit": "媒体预算（美元）",
+      "noLimit": "无限额",
+      "invalid": "请输入 0 或更大的数字，留空表示无限额。",
+      "useDefault": "使用服务器默认值",
+      "useDefaultDescription": "关闭后可为此用户设置单独限额。",
+      "ownKeysNote": "只统计使用此服务器提供商密钥的工作。使用此人在设置中保存的密钥的工作从不计入。",
+      "save": "保存",
+      "cancel": "取消",
+      "saveFailed": "无法保存限额。"
     }
   }
 }

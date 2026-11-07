@@ -19690,6 +19690,7 @@
         "person": "Person",
         "role": "Rolle",
         "status": "Status",
+        "usage": "Forbruk",
         "lastSeen": "Sist sett",
         "actions": "Handlinger"
       },
@@ -19723,6 +19724,36 @@
         "body": "Personen logges ut overalt med en gang og kan ikke logge på igjen før du aktiverer kontoen. Arbeidet blir liggende på serveren.",
         "cancel": "Avbryt"
       }
+    },
+    "quotas": {
+      "editDefault": "Rediger standardgrenser",
+      "editLimits": "Grenser",
+      "defaultTitle": "Standardgrenser",
+      "userTitle": "Grenser for {{name}}",
+      "defaultNone": "Ingen standardgrenser. Alle kan bruke serverens nøkler uten tak.",
+      "defaultSummaryDay": "Standard for alle: {{tokens}} modelltokens og {{media}} til medier per dag.",
+      "defaultSummaryMonth": "Standard for alle: {{tokens}} modelltokens og {{media}} til medier per måned.",
+      "unlimited": "ingen grense",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Medier:",
+      "usedOf": "{{used}} av {{limit}}",
+      "usedNoLimit": "{{used}}, ingen grense",
+      "ownLimits": "Egne grenser",
+      "period": {
+        "label": "Periode",
+        "day": "Per dag",
+        "month": "Per måned"
+      },
+      "tokenLimit": "Modelltokens",
+      "mediaLimit": "Mediebudsjett (USD)",
+      "noLimit": "Ingen grense",
+      "invalid": "Skriv inn et tall fra 0 og oppover, eller la feltet stå tomt for ingen grense.",
+      "useDefault": "Bruk serverens standard",
+      "useDefaultDescription": "Slå av for å gi denne personen egne grenser.",
+      "ownKeysNote": "Bare arbeid med serverens leverandørnøkler teller. Arbeid med en nøkkel personen har lagret i Innstillinger teller aldri.",
+      "save": "Lagre",
+      "cancel": "Avbryt",
+      "saveFailed": "Kunne ikke lagre grensene."
     }
   }
 }

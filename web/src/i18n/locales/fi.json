@@ -19690,6 +19690,7 @@
         "person": "Henkilö",
         "role": "Rooli",
         "status": "Tila",
+        "usage": "Käyttö",
         "lastSeen": "Viimeksi nähty",
         "actions": "Toiminnot"
       },
@@ -19723,6 +19724,36 @@
         "body": "Hänet kirjataan heti ulos kaikkialta, eikä hän voi kirjautua ennen kuin otat tilin käyttöön. Hänen työnsä säilyy palvelimella.",
         "cancel": "Peruuta"
       }
+    },
+    "quotas": {
+      "editDefault": "Muokkaa oletusrajoja",
+      "editLimits": "Rajat",
+      "defaultTitle": "Oletusrajat",
+      "userTitle": "Rajat: {{name}}",
+      "defaultNone": "Ei oletusrajoja. Kaikki voivat käyttää tämän palvelimen avaimia rajatta.",
+      "defaultSummaryDay": "Oletus kaikille: {{tokens}} mallitokenia ja {{media}} mediaan päivässä.",
+      "defaultSummaryMonth": "Oletus kaikille: {{tokens}} mallitokenia ja {{media}} mediaan kuukaudessa.",
+      "unlimited": "ei rajaa",
+      "tokensLabel": "Tokenit:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} / {{limit}}",
+      "usedNoLimit": "{{used}}, ei rajaa",
+      "ownLimits": "Omat rajat",
+      "period": {
+        "label": "Jakso",
+        "day": "Päivässä",
+        "month": "Kuukaudessa"
+      },
+      "tokenLimit": "Mallitokenit",
+      "mediaLimit": "Mediabudjetti (USD)",
+      "noLimit": "Ei rajaa",
+      "invalid": "Anna luku 0 tai suurempi, tai jätä kenttä tyhjäksi, jos rajaa ei ole.",
+      "useDefault": "Käytä palvelimen oletusta",
+      "useDefaultDescription": "Poista käytöstä, jos haluat antaa henkilölle omat rajat.",
+      "ownKeysNote": "Vain tämän palvelimen palveluntarjoaja-avaimilla tehty työ lasketaan. Henkilön asetuksiin tallentamalla avaimella tehty työ ei koskaan laske.",
+      "save": "Tallenna",
+      "cancel": "Peruuta",
+      "saveFailed": "Rajoja ei voitu tallentaa."
     }
   }
 }

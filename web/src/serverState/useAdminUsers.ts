@@ -80,3 +80,50 @@ export const useUpdateAdminUser = () => {
       queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
   });
 };
+
+export type AdminQuotaLimits = admin.AdminQuotaLimits;
+export type AdminUserQuota = admin.AdminUserQuota;
+export type AdminDefaultQuota = admin.AdminDefaultQuotaOutput;
+
+export const adminDefaultQuotaQueryKey = ["admin", "quotas", "default"] as const;
+
+/** The limits every user gets unless an admin set their own. */
+export const useAdminDefaultQuota = () =>
+  useQuery({
+    queryKey: adminDefaultQuotaQueryKey,
+    queryFn: () => trpcClient.admin.quotas.getDefault.query(),
+    staleTime: 10 * 1000
+  });
+
+/** Change the default limits, then refresh them and the directory. */
+export const useSetDefaultQuota = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (limits: AdminQuotaLimits) =>
+      trpcClient.admin.quotas.setDefault.mutate(limits),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: adminDefaultQuotaQueryKey }),
+        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
+      ])
+  });
+};
+
+export interface UserQuotaChange {
+  userId: string;
+  /** Limits of the user's own, or null to put them back on the default. */
+  limits: AdminQuotaLimits | null;
+}
+
+/** Give one user limits of their own, or clear them. */
+export const useSetUserQuota = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, limits }: UserQuotaChange) =>
+      limits
+        ? trpcClient.admin.quotas.setUser.mutate({ user_id: userId, ...limits })
+        : trpcClient.admin.quotas.clearUser.mutate({ user_id: userId }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
+  });
+};

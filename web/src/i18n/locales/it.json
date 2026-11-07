@@ -20001,6 +20001,7 @@
         "person": "Persona",
         "role": "Ruolo",
         "status": "Stato",
+        "usage": "Utilizzo",
         "lastSeen": "Ultima attività",
         "actions": "Azioni"
       },
@@ -20034,6 +20035,36 @@
         "body": "La persona viene disconnessa ovunque subito e non può accedere finché non riattivi l’account. Il suo lavoro resta sul server.",
         "cancel": "Annulla"
       }
+    },
+    "quotas": {
+      "editDefault": "Modifica limiti predefiniti",
+      "editLimits": "Limiti",
+      "defaultTitle": "Limiti predefiniti",
+      "userTitle": "Limiti per {{name}}",
+      "defaultNone": "Nessun limite predefinito. Tutti possono spendere senza tetto con le chiavi di questo server.",
+      "defaultSummaryDay": "Predefinito per tutti: {{tokens}} token del modello e {{media}} per i media al giorno.",
+      "defaultSummaryMonth": "Predefinito per tutti: {{tokens}} token del modello e {{media}} per i media al mese.",
+      "unlimited": "nessun limite",
+      "tokensLabel": "Token:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} di {{limit}}",
+      "usedNoLimit": "{{used}}, nessun limite",
+      "ownLimits": "Limiti propri",
+      "period": {
+        "label": "Periodo",
+        "day": "Al giorno",
+        "month": "Al mese"
+      },
+      "tokenLimit": "Token del modello",
+      "mediaLimit": "Budget media (USD)",
+      "noLimit": "Nessun limite",
+      "invalid": "Inserisci un numero pari o superiore a 0, oppure lascia vuoto il campo per nessun limite.",
+      "useDefault": "Usa il valore predefinito del server",
+      "useDefaultDescription": "Disattiva per dare a questa persona limiti propri.",
+      "ownKeysNote": "Conta solo il lavoro sulle chiavi dei provider di questo server. Il lavoro su una chiave salvata dalla persona nelle Impostazioni non conta mai.",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "saveFailed": "Impossibile salvare i limiti."
     }
   }
 }

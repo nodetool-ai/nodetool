@@ -19690,6 +19690,7 @@
         "person": "ユーザー",
         "role": "ロール",
         "status": "状態",
+        "usage": "使用量",
         "lastSeen": "最終アクセス",
         "actions": "操作"
       },
@@ -19723,6 +19724,36 @@
         "body": "すべての場所ですぐにサインアウトされ、アカウントを再び有効にするまでサインインできません。作業内容はサーバーに残ります。",
         "cancel": "キャンセル"
       }
+    },
+    "quotas": {
+      "editDefault": "既定の上限を編集",
+      "editLimits": "上限",
+      "defaultTitle": "既定の上限",
+      "userTitle": "{{name}} の上限",
+      "defaultNone": "既定の上限はありません。誰でもこのサーバーのキーを無制限に使えます。",
+      "defaultSummaryDay": "全員の既定値: 1 日あたりモデルトークン {{tokens}}、メディア {{media}}。",
+      "defaultSummaryMonth": "全員の既定値: 1 か月あたりモデルトークン {{tokens}}、メディア {{media}}。",
+      "unlimited": "上限なし",
+      "tokensLabel": "トークン:",
+      "mediaLabel": "メディア:",
+      "usedOf": "{{used}} / {{limit}}",
+      "usedNoLimit": "{{used}}、上限なし",
+      "ownLimits": "個別の上限",
+      "period": {
+        "label": "期間",
+        "day": "1 日あたり",
+        "month": "1 か月あたり"
+      },
+      "tokenLimit": "モデルトークン",
+      "mediaLimit": "メディア予算 (USD)",
+      "noLimit": "上限なし",
+      "invalid": "0 以上の数値を入力してください。上限なしにするには空欄のままにします。",
+      "useDefault": "サーバーの既定値を使う",
+      "useDefaultDescription": "オフにすると、このユーザーに個別の上限を設定できます。",
+      "ownKeysNote": "このサーバーのプロバイダーキーを使った作業だけが集計されます。本人が設定に保存したキーでの作業は集計されません。",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saveFailed": "上限を保存できませんでした。"
     }
   }
 }
