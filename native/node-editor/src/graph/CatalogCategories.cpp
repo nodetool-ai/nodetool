@@ -145,4 +145,47 @@ QString catalogProviderName(const QString &providerId) {
     const auto name = apiProviderNames().value(providerId);
     return name.isEmpty() ? providerId.left(1).toUpper() + providerId.mid(1) : name;
 }
+
+QStringList catalogTypeNames(const QJsonArray &fields) {
+    QStringList names;
+    for (const auto &value : fields) {
+        const auto type = value.toObject()["type"];
+        const auto name = type.isString() ? type.toString() : type.toObject()["type"].toString();
+        if (!name.isEmpty() && !names.contains(name)) {
+            names << name;
+        }
+    }
+    return names;
+}
+
+QVariantList catalogQuickActionSections() {
+    const auto tile = [](const char *label, const char *type) {
+        return QVariantMap{{"label", QString::fromLatin1(label)}, {"type", QString::fromLatin1(type)}};
+    };
+    const QVariantList tasks{tile("Agent", "nodetool.agents.Agent"), tile("Code", "nodetool.code.Code"),
+                             tile("Text to image", "nodetool.image.TextToImage"),
+                             tile("Image to image", "nodetool.image.ImageToImage"), tile("Upscale", "nodetool.image.Upscale"),
+                             tile("Remove background", "nodetool.image.RemoveBackground"), tile("Relight", "nodetool.image.Relight"),
+                             tile("Vectorize", "nodetool.image.Vectorize"), tile("Text to video", "nodetool.video.TextToVideo"),
+                             tile("Image to video", "nodetool.video.ImageToVideo"),
+                             tile("Reference to video", "nodetool.video.ReferenceToVideo"),
+                             tile("Video to video", "nodetool.video.VideoToVideo"), tile("Lip sync", "nodetool.video.LipSync"),
+                             tile("Text to speech", "nodetool.audio.TextToSpeech"),
+                             tile("Speech to text", "nodetool.text.AutomaticSpeechRecognition")};
+    const QVariantList providers{tile("FalAI", "fal.DynamicFal"), tile("KieAI", "kie.dynamic_schema.KieAI"),
+                                 tile("Replicate", "replicate.DynamicReplicate")};
+    // The web sorts the constants by label.
+    const QVariantList constants{tile("Audio", "nodetool.constant.Audio"), tile("Bool", "nodetool.constant.Bool"),
+                                 tile("Data Frame", "nodetool.constant.DataFrame"), tile("Date", "nodetool.constant.Date"),
+                                 tile("Date Time", "nodetool.constant.DateTime"), tile("Dict", "nodetool.constant.Dict"),
+                                 tile("Document", "nodetool.constant.Document"), tile("Float", "nodetool.constant.Float"),
+                                 tile("Image", "nodetool.constant.Image"), tile("Integer", "nodetool.constant.Integer"),
+                                 tile("JSON", "nodetool.constant.JSON"), tile("List", "nodetool.constant.List"),
+                                 tile("3D Model", "nodetool.constant.Model3D"), tile("String", "nodetool.constant.String"),
+                                 tile("Video", "nodetool.constant.Video")};
+    const auto section = [](const char *title, const QVariantList &tiles) {
+        return QVariantMap{{"title", QString::fromLatin1(title)}, {"tiles", tiles}};
+    };
+    return {section("AI nodes", tasks), section("Provider models", providers), section("Constants", constants)};
+}
 } // namespace nodetool

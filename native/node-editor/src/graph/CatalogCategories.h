@@ -1,4 +1,5 @@
 #pragma once
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QStringList>
 #include <QVariantList>
@@ -21,4 +22,11 @@ QString catalogProviderName(const QString &providerId);
 // Claude Code) depend on the server's provider list and are not gated here.
 // Source: web/src/utils/providerPacks.ts getKeyGateForNamespace.
 QString catalogKeyGate(const QString &nameSpace);
+// The top-level type names of a node's properties or outputs, in order and
+// without repeats. A type given as a string or as {"type": ...} both count.
+// Source: web/src/components/node_menu/typeFilterUtils.ts filterTypesByInputExact.
+QStringList catalogTypeNames(const QJsonArray &fields);
+// The quick-action tile sections of the node menu home, each {title, tiles:[{label, type}]}.
+// Source: web/src/components/node_menu/QuickActionTiles.constants.tsx.
+QVariantList catalogQuickActionSections();
 } // namespace nodetool

@@ -8,6 +8,7 @@
 #include <QEasingCurve>
 #include <QVariantAnimation>
 #include "graph/CatalogCategories.h"
+#include "graph/CatalogSearch.h"
 #include "layout/AutoLayout.h"
 #include "layout/SelectionLayout.h"
 #include <QMap>
@@ -1749,6 +1750,8 @@ QVariantList EditorWindow::catalog() const {
                          {"namespace", ns}, {"categories", catalogCategoryIds(m)},
                          {"description", m["description"].toString()},
                          {"deprecated", m["deprecated"].toBool()},
+                         {"inputTypes", catalogTypeNames(m["properties"].toArray())},
+                         {"outputTypes", catalogTypeNames(outputs)},
                          {"provider", catalogProviderId(ns)}, {"providerName", catalogProviderName(catalogProviderId(ns))},
                          {"keyGate", catalogKeyGate(ns)},
                          {"icon", typeIcon(outputType)}, {"color", typeColor(outputType)}});
@@ -1908,6 +1911,20 @@ bool EditorWindow::addConnectedNode(const QString &sourceId, const QString &outp
   }
   return false;
 }
+QVariantList EditorWindow::rankCatalog(const QVariantList &nodes, const QString &query) const {
+    QList<CatalogSearchNode> searchNodes;
+    searchNodes.reserve(nodes.size());
+    for (const auto &value : nodes) {
+        const auto node = value.toMap();
+        searchNodes.append({node["type"].toString(), node["label"].toString(), node["namespace"].toString(),
+                            node["description"].toString(), node["deprecated"].toBool()});
+    }
+    QVariantList order;
+    for (const int index : rankCatalogNodes(searchNodes, query, catalogRecent())) {
+        order.append(index);
+    }
+    return order;
+}
 QStringList EditorWindow::catalogRecent() const {
     return QSettings().value("catalog/recentNodes").toStringList();
 }
@@ -1921,6 +1938,36 @@ void EditorWindow::rememberRecentNode(const QString &type) {
     const auto owner = tabOwner_ ? tabOwner_ : this;
     for (auto tab : owner->tabs_) { emit tab->catalogRecentChanged(); }
     emit owner->catalogRecentChanged();
+}
+// Up to 12 favorites, newest first (web stores/FavoriteNodesStore.ts).
+QStringList EditorWindow::catalogFavorites() const {
+    return QSettings().value("catalog/favoriteNodes").toStringList();
+}
+void EditorWindow::toggleCatalogFavorite(const QString &type) {
+    auto favorites = catalogFavorites();
+    if (favorites.removeAll(type) == 0) {
+        favorites.prepend(type);
+        while (favorites.size() > 12) { favorites.removeLast(); }
+    }
+    QSettings().setValue("catalog/favoriteNodes", favorites);
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    for (auto tab : owner->tabs_) { emit tab->catalogFavoritesChanged(); }
+    emit owner->catalogFavoritesChanged();
+}
+void EditorWindow::clearCatalogFavorites() {
+    QSettings().remove("catalog/favoriteNodes");
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    for (auto tab : owner->tabs_) { emit tab->catalogFavoritesChanged(); }
+    emit owner->catalogFavoritesChanged();
+}
+void EditorWindow::clearCatalogRecent() {
+    QSettings().remove("catalog/recentNodes");
+    const auto owner = tabOwner_ ? tabOwner_ : this;
+    for (auto tab : owner->tabs_) { emit tab->catalogRecentChanged(); }
+    emit owner->catalogRecentChanged();
+}
+QVariantList EditorWindow::catalogQuickActions() const {
+    return catalogQuickActionSections();
 }
 void EditorWindow::addNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->addNode(type); return; }

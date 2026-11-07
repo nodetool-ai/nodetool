@@ -287,29 +287,33 @@ menu's pointer placement.
 | 9 | Space in an empty search closes the menu (`SearchInput.tsx` 159-166) | Missing | Implemented while pointer placement is armed. The docked library keeps Space as text otherwise |
 | 10 | Ctrl+Backspace or Ctrl+Delete clears the search (`SearchInput.tsx` 129-135) | Missing | Implemented |
 | 11 | Enter or Space on a focused row adds it (`components/node_menu/NodeLibraryRow.tsx` 167-171) | Implemented | Implemented |
-| 12 | Title 6, node type 4, namespace 2 and description 1 score per term, a whole token adds twice the weight, core namespaces score 1.5 times and deprecated nodes 0.15 times (`utils/ranking.ts` 98-134, `utils/nodeRanking.ts` 42-47, 95-104) | Partial. Title and namespace substrings in catalog order | Implemented |
-| 13 | The query, its pieces split on whitespace and commas, and its last dotted segment are terms (`ranking.ts` 98-108, `utils/nodeSearch.ts` 328-335) | Missing | Implemented |
-| 14 | With no literal match, separator-free matches score 0.6 and subsequences of four or more characters 0.3 (`ranking.ts` 82-95, 140-171, 196-205) | Missing | Implemented |
-| 15 | Recent nodes add 10 / (rank + 1) and quick-action types add 6, with or without a query, then node type breaks ties (`ranking.ts` 225-253, `config/quickActionNodeTypes.ts`, `stores/RecentNodesStore.ts` 23, 51) | Missing. Browse order was catalog order | Implemented. Twelve recent types persist in settings |
-| 16 | Prefix-tree, BM25 and Fuse candidate boosts (`nodeSearch.ts` 215-313, 355-374) | Missing | Gap. Ties between near-equal scores can still order differently. The field scoring above decides the result set |
+| 12 | Title 6, node type 4, namespace 2 and description 1 score per term, a whole token adds twice the weight, core namespaces score 1.5 times and deprecated nodes 0.15 times (`utils/ranking.ts` 98-134, `utils/nodeRanking.ts` 42-47, 95-104) | Partial. Title and namespace substrings in catalog order | Implemented in `src/graph/CatalogSearch.cpp` |
+| 13 | The query, its pieces split on whitespace and commas, and its last dotted segment are terms. The two expansions are not merged, so a piece that both produce counts twice (`ranking.ts` 98-108, `utils/nodeSearch.ts` 328-335) | Missing | Implemented, including the double count. Native had merged the pieces |
+| 14 | The loose pass (separator-free matches at 0.6, subsequences at 0.3) is off for nodes. It serves the model menu only (`ranking.ts` 82-95, 196-205, `nodeRanking.ts` `buildConfig` sets no `fuzzyFallback`) | Wrongly implemented for nodes | Removed. The fuzzy boost below replaces it |
+| 15 | Recent nodes add 10 / (rank + 1) and quick-action types add 6, with or without a query, then node type breaks ties with the locale collation (`ranking.ts` 225-253, `config/quickActionNodeTypes.ts`, `stores/RecentNodesStore.ts` 23, 51) | Missing. Browse order was catalog order | Implemented. Twelve recent types persist in settings. The quick-action list now includes the three dynamic provider nodes that native had lacked |
+| 16 | Prefix-tree boosts (title 8, namespace 4, description 2, times the field weight and 2 for an exact title), BM25 boosts (six fields, k1 1.5, b 0.75, 200 results, scale 1.5) and fuzzy boosts under 100 results (`nodeSearch.ts` 215-374, `PrefixTreeSearch.ts`, `bm25.ts`, `fuzzyMatch.ts`) | Missing | Implemented. `CatalogTest::rankingMatchesTheWebAlgorithmOnRealMetadata` compares the order of 25 queries over 718 real node names with the output of `rankSearchNodes` run under Node (`scripts/generate-catalog-search-fixture.mjs`, `tests/ui/CatalogSearchFixture.json`). Removing the prefix, BM25 or fuzzy boosts each fails it |
 | 17 | A provider chip in the search row lists All providers, Local and each API provider with counts, and narrows the list and counts (`NodeLibrary.tsx` 363-430, 537-544, `components/node_menu/NodeProviderFilter.tsx`, `utils/nodeProvider.ts` 140-175) | Missing | Implemented. `CatalogCategories.cpp` ports the provider table |
-| 18 | Nodes whose provider key is missing stay hidden behind a notice with Show them (`hooks/useNodeProviderFilter.ts`, `components/node_menu/MissingKeyNodesNotice.tsx`, `NodeLibrary.tsx` 547) | Missing | Gap. The catalog does not read the authenticated secret list. The model picker owns that state in this wave |
+| 18 | Nodes whose provider key is missing stay hidden behind a notice with Show them. Hidden nodes stay out of the list, the counts and the search (`hooks/useNodeProviderFilter.ts`, `components/node_menu/MissingKeyNodesNotice.tsx`, `NodeLibrary.tsx` 336-353, `NodeMenu.tsx` 238-246) | Implemented | Implemented. Sign-in and machine gates (Vertex AI, Codex, Claude Code) depend on the server provider list and are not gated. `ChromeParityTest::catalogHidesNodesThatNeedAMissingKey` covers it |
 | 19 | Hovering a row shows its description, with a hint when nothing is hovered (`NodeLibrary.tsx` 443-448, 608-617) | Implemented | Implemented |
 | 20 | No match shows an empty state (`NodeLibrary.tsx` 561-568) | Implemented | Implemented |
 | 21 | No metadata clears the list (`NodeMenuStore.ts` 368-371) | Implemented as "No nodes loaded" | Implemented |
-| 22 | The floating menu's favorites, recents and quick-action tiles, type chips and namespace tree (`components/node_menu/NamespaceList.tsx` 450-500, `TypeFilterChips.tsx`, `FavoritesTiles.tsx`, `RecentNodesTiles.tsx`) | Missing | Gap. Native has one catalog surface, the docked library. The floating menu's home layout is not built |
+| 22 | The floating menu's home: Favorites, Recent nodes (without quick actions) and the AI nodes, Provider models and Constants tiles, shown while nothing is typed, picked or filtered. The toolbar holds Local and API chips, five output type chips, input and output type filters and a node count (`components/node_menu/NamespaceList.tsx` 450-500, `TypeFilterChips.tsx`, `FavoritesTiles.tsx`, `RecentNodesTiles.tsx`, `QuickActionTiles.tsx`, `typeFilterUtils.ts` `filterDataByExactType`) | Missing | Partial. Native has no second surface. The library becomes the node menu while Space or a pane double-click arms pointer placement, and shows the chips and the home then. The toolbar Add node and the sidebar open the docked library, which keeps the web library layout. Tiles use the node's output type icon and color, not the web's per-tile icons and gradients. A tile for a node that the catalog lacks stays and cannot add, where the web warns on click. The input and output type menus sit inline, where the web opens them from a Filters button. Favorites persist as twelve types, newest first, and a star on a row toggles one. The clear buttons act at once, where the web confirms. The menu is not draggable or resizable |
+| 22a | A filter applies to the search too, and the result is ranked over the filtered set, so BM25 weights follow that set (`utils/nodeSearch.ts` `computeSearchResults`) | Missing | Implemented |
 | 23 | An add from the menu clears the cards it would cover vertically (`hooks/useCreateNode.ts` 64-75, 89-110) | Missing. Repeated adds stacked on one spot | Implemented with `compatibleNodeY` and the card's real size |
 | 24 | The menu closes after an add, and a pane press closes it (`useCreateNode.ts` 115, `usePaneEvents.ts` 95-98) | Partial | Implemented. A replaced workflow also drops the pointer point |
 | 25 | One add creates one undo entry. The web can write two (`useCreateNode.ts` 84-110) | Implemented | Implemented |
 | 26 | Read-only documents. The web has no check | Implemented as a refusal | Implemented |
 
 Evidence: [CatalogTest](../tests/ui/CatalogTest.cpp) types into the real search,
-presses arrows, Enter, Escape, Space and Ctrl+Backspace, clicks rows and the
-provider chip, double-clicks the pane and a card, and presses Space over the
-viewport. It checks the result order, the pick, pointer placement under zoom,
-focus return, overlap clearing, one undo entry per add, read-only refusal and
-document replacement. Set `NODETOOL_CATALOG_CAPTURE_DIR` to write
-`catalog-search`, `catalog-pointer` and `catalog-providers` in dark and light.
+presses arrows, Enter, Escape, Space and Ctrl+Backspace, clicks rows, chips,
+tiles, stars and the provider chip, double-clicks the pane and a card, and
+presses Space over the viewport. It checks the result order against the web
+ranking fixture, the pick, pointer placement under zoom, focus return, overlap
+clearing, one undo entry per add, read-only refusal and document replacement.
+Regenerate the fixture with `node native/node-editor/scripts/generate-catalog-search-fixture.mjs`
+after `npm run build:packages`. Its `--check` flag fails when the web output moves.
+Set `NODETOOL_CATALOG_CAPTURE_DIR` to write `catalog-search`, `catalog-pointer`,
+`catalog-providers` and `catalog-menu` in dark and light.
 
 ### F02 drag nodes, assets and files onto the canvas
 

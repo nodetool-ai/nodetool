@@ -43,6 +43,7 @@ add_library(node_editor_core STATIC
  src/graph/BodyConnectionRules.cpp src/graph/BodyConnectionRules.h
  src/graph/NodeCreation.cpp src/graph/NodeCreation.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
+ src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
  src/graph/RerouteTypes.cpp src/graph/RerouteTypes.h
  src/run/RunTraceController.cpp src/run/RunTraceController.h
  src/run/GenerationHistory.cpp src/run/GenerationHistory.h
