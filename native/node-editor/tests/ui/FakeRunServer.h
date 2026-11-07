@@ -27,6 +27,11 @@ public:
     // Saves wait for releaseSaves() while this is set.
     bool holdSaves = false;
     int saves = 0;
+    // The summary that POST /api/sdk/v1/preflight returns, and the request bodies it received.
+    QJsonObject preflight;
+    QList<QJsonObject> preflights;
+    // The rows of the settings.secrets.list tRPC query.
+    QJsonArray secrets;
 
     FakeRunServer() {
         http.listen(QHostAddress::LocalHost);
@@ -112,7 +117,12 @@ private:
             finishSave(socket, trpcSave);
             return;
         }
-        if (path.startsWith(QStringLiteral("/api/nodes/metadata"))) {
+        if (path == QStringLiteral("/api/sdk/v1/preflight")) {
+            preflights.append(QJsonDocument::fromJson(bytes.mid(end + 4, length)).object());
+            reply(socket, preflight);
+        } else if (path.startsWith(QStringLiteral("/trpc/settings.secrets.list"))) {
+            reply(socket, QJsonObject{{"result", QJsonObject{{"data", QJsonObject{{"secrets", secrets}}}}}});
+        } else if (path.startsWith(QStringLiteral("/api/nodes/metadata"))) {
             reply(socket, QJsonObject{{"nodes", metadata}});
         } else if (!workflow.isEmpty() && path == workflowPath) {
             reply(socket, workflow);

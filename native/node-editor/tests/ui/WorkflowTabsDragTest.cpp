@@ -185,6 +185,8 @@ private slots:
     }
     void init() {
         QSettings().clear();
+        // These tests count workflow sockets. An open chat window adds its own.
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
     }
     void dragReorderPersistsAndRestores() {
         {

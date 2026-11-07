@@ -279,6 +279,19 @@ void WorkflowSession::request(const QByteArray &method, const QString &path,
            status, {});
       });
 }
+void WorkflowSession::preflightCost(std::function<void(QJsonObject, QString)> done) {
+  if (!serverBound()) {
+    done({}, QStringLiteral("Save the workflow to the server first"));
+    return;
+  }
+  const QJsonObject body{{"workflow_id", m_id}, {"workspace_id", QJsonValue::Null},
+                         {"workflow_etag", QJsonValue::Null}, {"interface_version", 1},
+                         {"level", "static"}, {"inputs", QJsonObject{}}};
+  request("POST", "/api/sdk/v1/preflight", body,
+          [done = std::move(done)](QJsonObject summary, int, QString error) {
+            done(summary["cost"].toObject(), error);
+          });
+}
 void WorkflowSession::loadCatalog() {
   request("GET", "/api/nodes/metadata?fields=full", {},
           [this](QJsonObject o, int, QString error) {

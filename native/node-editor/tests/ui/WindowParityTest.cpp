@@ -8,6 +8,7 @@
 #include <QPainter>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
@@ -151,6 +152,8 @@ private:
 private slots:
     void initTestCase() {
         QStandardPaths::setTestModeEnabled(true);
+        // The web captures seed the chat window collapsed (scripts/capture-web-window-parity.mjs).
+        QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true);
         QVERIFY(!fixture().isEmpty());
         captureDir_ = qEnvironmentVariable("NODETOOL_WINDOW_PARITY_CAPTURE_DIR");
         if (!captureDir_.isEmpty()) {

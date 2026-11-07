@@ -20,6 +20,7 @@
 #include "server/WorkflowBrowser.h"
 #include "server/WorkflowVersions.h"
 #include "runtime/ChatSession.h"
+#include <QDateTime>
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QPointer>
@@ -29,6 +30,7 @@ class QDialog;
 class QQmlEngine;
 class QQuickWidget;
 class QDockWidget;
+class QBoxLayout;
 class QGraphicsView;
 class QStackedWidget;
 namespace nodetool {
@@ -103,6 +105,15 @@ class EditorWindow final : public QMainWindow {
     Q_PROPERTY(QString documentSaveStatus READ documentSaveStatus NOTIFY panelChanged)
     Q_PROPERTY(bool workflowRenamable READ workflowRenamable NOTIFY panelChanged)
     Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelChanged)
+    // The tab bar bell lists these. See web/src/stores/NotificationStore.ts.
+    Q_PROPERTY(QVariantList notifications READ notifications NOTIFY notificationsChanged)
+    Q_PROPERTY(int unreadNotifications READ unreadNotifications NOTIFY notificationsChanged)
+    // The per-run cost the server's preflight reports: available, caption.
+    Q_PROPERTY(QVariantMap costEstimate READ costEstimate NOTIFY costEstimateChanged)
+    // The inspector's repeated Run selected: current and total, or empty.
+    Q_PROPERTY(QVariantMap runProgress READ runProgress NOTIFY panelChanged)
+    Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelChanged)
+    Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelChanged)
 public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
@@ -205,6 +216,24 @@ public:
     bool workflowRenamable() const;
     Q_INVOKABLE void renameWorkflow(const QString &name);
     bool chatVisible() const;
+    QVariantList notifications() const;
+    int unreadNotifications() const;
+    // Adds a notification for every tab. type is error, warning, info or success.
+    void notify(const QString &type, const QString &content);
+    // Opens the notification list below the bell and marks every notification read.
+    Q_INVOKABLE void showNotifications(const QPointF &global);
+    // The web settings page of the connected server (SettingsHeaderButton.tsx).
+    Q_INVOKABLE void openSettings();
+    Q_INVOKABLE void copyText(const QString &text);
+    QVariantMap costEstimate() const;
+    // Runs the selection `runs` times, each after the previous one completes
+    // (web hooks/nodes/useRunSelectedNodes.ts).
+    Q_INVOKABLE void runSelectedNodes(int runs);
+    QVariantMap runProgress() const;
+    bool traceVisible() const;
+    bool versionsVisible() const;
+    // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
+    Q_INVOKABLE void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
     EditorScene *scene() const {
@@ -277,6 +306,8 @@ public:
 signals:
   void catalogPlacementChanged();
   void catalogRecentChanged();
+  void notificationsChanged();
+  void costEstimateChanged();
   void tabsChanged();
     void tabRenameRequested(int index);
   void documentEpochChanged();
@@ -460,7 +491,22 @@ private:
   QQuickWidget *setupGuide_ = nullptr;
   QQmlEngine *engine_ = nullptr;
   QMainWindow *dockHost_ = nullptr;
-  QDockWidget *catalogDock_ = nullptr;
+  // The node library overlays the canvas column, as the fixed web left panel does.
+  QQuickWidget *catalogPanel_ = nullptr;
+  void layoutCatalog();
+  // The status bar is the bottom panel's tab strip while the Output panel is open (PanelBottom.tsx).
+  QQuickWidget *statusBar_ = nullptr;
+  QBoxLayout *statusColumn_ = nullptr;
+  void placeStatusBar();
+  QVariantList notifications_;
+  QDateTime notificationsSeen_;
+  QPointer<QQuickWidget> notificationPopup_;
+  QVariantMap costEstimate_;
+  QTimer *costTimer_ = nullptr;
+  void requestCostEstimate();
+  void initializePanels();
+  int runsTotal_ = 0, runsCurrent_ = 0;
+  QString runsJob_;
   QDockWidget *inspectorDock_ = nullptr;
     nt::chat::ChatSession chat_;
     QQuickWidget *chatOverlay_ = nullptr;

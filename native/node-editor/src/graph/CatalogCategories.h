@@ -16,4 +16,9 @@ QString catalogProviderId(const QString &nameSpace);
 // The provider filter label, such as "FAL", "xAI" or "Local".
 // Source: web/src/utils/nodeProvider.ts getNodeProviderName.
 QString catalogProviderName(const QString &providerId);
+// The secret a namespace waits on before the node library lists its nodes, or
+// empty when it needs none. Sign-in and machine gates (Vertex AI, Codex,
+// Claude Code) depend on the server's provider list and are not gated here.
+// Source: web/src/utils/providerPacks.ts getKeyGateForNamespace.
+QString catalogKeyGate(const QString &nameSpace);
 } // namespace nodetool

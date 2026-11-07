@@ -130,7 +130,11 @@ void EditorWindow::layoutChat(const QSize &available) {
         QSettings settings;
         chatOffset_ = settings.value("canvas-chat-dock/position", chatOffset_).toPoint();
         chatSize_ = settings.value("canvas-chat-dock/size", chatSize_).toSize();
-        chatVisible_ = !settings.value("canvas-chat-dock/collapsed", !chatVisible_).toBool();
+        // Until the user opens or closes it, the chat window starts open unless the
+        // window is narrower than 1200 px (web stores/CanvasChatDockStore.ts).
+        chatVisible_ = settings.contains("canvas-chat-dock/collapsed")
+            ? !settings.value("canvas-chat-dock/collapsed").toBool()
+            : window()->width() >= 1200;
     }
     const int width = std::min(std::clamp(chatSize_.width(), 320, 960), std::max(0, available.width() - 32));
     const int height = std::min(std::clamp(chatSize_.height(), 280, 2000), std::max(0, available.height() - 32));

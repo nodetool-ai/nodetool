@@ -13,6 +13,11 @@ class PackSetup final : public QObject {
     Q_PROPERTY(QVariantList packs READ packs NOTIFY changed)
     Q_PROPERTY(QVariantList categories READ categories NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    // The node library leaves out nodes whose key is missing once the secrets
+    // have loaded, unless the user shows them (web hooks/useNodeProviderFilter.ts).
+    Q_PROPERTY(bool secretsLoaded READ secretsLoaded NOTIFY changed)
+    Q_PROPERTY(QStringList configuredKeys READ configuredKeys NOTIFY changed)
+    Q_PROPERTY(bool showNodesWithoutKey READ showNodesWithoutKey WRITE setShowNodesWithoutKey NOTIFY changed)
 public:
     explicit PackSetup(QObject *parent = nullptr);
     QVariantList packs() const;
@@ -21,6 +26,10 @@ public:
     Q_INVOKABLE void setAllCategories(bool enabled);
     Q_INVOKABLE bool namespaceVisible(const QString &name) const;
     QString error() const { return error_; }
+    bool secretsLoaded() const { return secretsLoaded_; }
+    QStringList configuredKeys() const;
+    bool showNodesWithoutKey() const { return showNodesWithoutKey_; }
+    void setShowNodesWithoutKey(bool show);
     void configure(const QUrl &origin, const QString &token, const QString &user);
     void setNodeTypes(const QStringList &types);
     void activeEditorChanged() { sync(); }
@@ -44,6 +53,8 @@ private:
     QStringList enabledCategories_;
     QStringList nodeTypes_;
     QSet<QString> pending_;
+    bool secretsLoaded_ = false;
+    bool showNodesWithoutKey_ = false;
     quint64 epoch_ = 0;
 };
 }

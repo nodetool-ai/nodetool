@@ -120,6 +120,24 @@ QString catalogProviderId(const QString &nameSpace) {
     return root != "huggingface" && apiProviderNames().contains(root) ? root : QStringLiteral("local");
 }
 
+QString catalogKeyGate(const QString &nameSpace) {
+    // web/src/utils/nodeProvider.ts namespaceToSecretKey, without the local
+    // huggingface namespace and the sign-in gates.
+    static const QHash<QString, QString> keys{
+        {"openai", "OPENAI_API_KEY"}, {"anthropic", "ANTHROPIC_API_KEY"}, {"mistral", "MISTRAL_API_KEY"},
+        {"google", "GEMINI_API_KEY"}, {"gemini", "GEMINI_API_KEY"}, {"meshy", "MESHY_API_KEY"},
+        {"rodin", "RODIN_API_KEY"}, {"trellis", "TRELLIS_API_KEY"}, {"tripo", "TRIPO_API_KEY"},
+        {"hunyuan3d", "HUNYUAN3D_API_KEY"}, {"shap_e", "SHAP_E_API_KEY"}, {"point_e", "POINT_E_API_KEY"},
+        {"shap-e", "SHAP_E_API_KEY"}, {"point-e", "POINT_E_API_KEY"}, {"apify", "APIFY_API_TOKEN"},
+        {"replicate", "REPLICATE_API_TOKEN"}, {"calendly", "CALENDLY_API_TOKEN"}, {"kie", "KIE_API_KEY"},
+        {"topaz", "TOPAZ_API_KEY"}, {"reve", "REVE_API_KEY"}, {"fal", "FAL_API_KEY"},
+        {"elevenlabs", "ELEVENLABS_API_KEY"}, {"search", "SERPAPI_API_KEY"}, {"atlascloud", "ATLASCLOUD_API_KEY"},
+        {"higgsfield", "HIGGSFIELD_API_KEY_ID"}, {"xai", "XAI_API_KEY"}, {"together", "TOGETHER_API_KEY"},
+        {"minimax", "MINIMAX_API_KEY"},
+    };
+    return keys.value(nameSpace.section('.', 0, 0).toLower());
+}
+
 QString catalogProviderName(const QString &providerId) {
     if (providerId == "local") {
         return QStringLiteral("Local");

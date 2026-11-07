@@ -69,7 +69,7 @@ function seedStorage(page, scheme, panels) {
             localStorage.setItem(key, JSON.stringify({ state: { panel }, version }));
         };
         write("left-panel-storage", 360, "workflows", 3, panels.left);
-        write("right-panel-storage", 380, "inspector", 3, panels.right);
+        write("right-panel-storage", 350, "inspector", 3, panels.right);
         write("bottom-panel-storage", 320, "logs", 2, panels.bottom);
     }, { scheme, panels });
 }

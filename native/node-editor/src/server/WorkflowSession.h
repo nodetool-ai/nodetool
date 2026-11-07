@@ -91,6 +91,9 @@ public:
   Q_INVOKABLE void cancelJob(const QString &jobId);
   Q_INVOKABLE void reconnectRuns();
   Q_INVOKABLE void reconnectTransport();
+  // Static preflight of the stored workflow (POST /api/sdk/v1/preflight). done gets
+  // the summary's cost object, or an error. Needs a server-bound workflow.
+  void preflightCost(std::function<void(QJsonObject, QString)> done);
 signals:
   void workflowChanged();
   void generationsChanged();

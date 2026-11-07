@@ -15,11 +15,25 @@ Rectangle {
     property string category: "all"
     property var hovered: null
     readonly property var nodes: editor ? editor.catalog : []
+    // Nodes whose provider key is missing stay out of the lists unless the user
+    // shows them (web hooks/useNodeProviderFilter.ts, MissingKeyNodesNotice.tsx).
+    // Before the server's secrets arrive nothing is known, so every node is listed.
+    readonly property var configuredKeys: editor ? editor.packSetup.configuredKeys : []
+    readonly property bool keyFilterActive: !!editor && editor.packSetup.secretsLoaded
+    readonly property bool showWithoutKey: !!editor && editor.packSetup.showNodesWithoutKey
+    function needsMissingKey(node) {
+        return keyFilterActive && !!node.keyGate && !configuredKeys.includes(node.keyGate)
+    }
+    readonly property int missingKeyCount: nodes.filter(node => needsMissingKey(node)).length
+    readonly property var listedNodes: showWithoutKey ? nodes : nodes.filter(node => !needsMissingKey(node))
+    function focusSearch() {
+        search.forceActiveFocus(Qt.OtherFocusReason)
+    }
     readonly property var categoryList: editor ? editor.catalogCategories : []
     // Optional packs that are off hide their nodes. A search still finds them.
     readonly property var browsable: {
         const optionalCategories = editor.packSetup.categories
-        return nodes.filter(node => editor.packSetup.namespaceVisible(node.namespace))
+        return listedNodes.filter(node => editor.packSetup.namespaceVisible(node.namespace))
     }
     // The web counts every category over the nodes it lists, so the counts ignore the search.
     readonly property var categories: categoryList.map(entry => ({
@@ -170,7 +184,7 @@ Rectangle {
     readonly property var visibleNodes: {
         const optionalCategories = editor.packSetup.categories
         const terms = searchTerms(query)
-        const listed = nodes.filter(node => (terms.length > 0 || editor.packSetup.namespaceVisible(node.namespace))
+        const listed = listedNodes.filter(node => (terms.length > 0 || editor.packSetup.namespaceVisible(node.namespace))
             && (category === "all" || node.categories.includes(category))
             && (activeProvider === "" || node.provider === activeProvider))
         const strict = rankPass(listed, terms, false)
@@ -209,8 +223,32 @@ Rectangle {
             Layout.leftMargin: Ui.Metrics.lg
             Layout.rightMargin: Ui.Metrics.lg
             spacing: Ui.Metrics.sm
-            Ui.Text { text: "Nodes"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; lineHeight: 1 }
+            Ui.Text {
+                text: "Nodes"
+                role: Ui.Typography.SansLabel
+                font.weight: Font.Normal
+                lineHeight: 1
+                // The PanelHeader title tooltip (config/quickAccessCategories.tsx, nodes).
+                HoverHandler { onHoveredChanged: if (editor) editor.showToolTip(hovered ? qsTr("Browse, search, and add nodes to the current workflow.") : "") }
+            }
             Ui.Text { objectName: "catalog-count"; text: root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
+            // DocsHelpLink.tsx in its label variant: an open-in-new icon to the docs topic.
+            Ui.EditorButton {
+                id: docsLink
+                objectName: "catalog-docs"
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                iconName: "openInNew"
+                iconSize: Ui.Metrics.iconXs
+                iconTone: hovered ? Ui.Text.Primary : Ui.Text.Disabled
+                implicitWidth: Ui.Metrics.small
+                implicitHeight: Ui.Metrics.small
+                leftPadding: Ui.Metrics.none
+                rightPadding: Ui.Metrics.none
+                accessibleName: qsTr("Nodes documentation")
+                onHoveredChanged: if (editor) editor.showToolTip(hovered ? accessibleName : "")
+                onClicked: Qt.openUrlExternally("https://docs.nodetool.ai/nodes/")
+            }
             Item { Layout.fillWidth: true }
         }
         Ui.TextField {
@@ -280,6 +318,32 @@ Rectangle {
                 options: root.providerOptions
                 value: root.activeProvider
                 onValueCommitted: value => root.provider = value
+            }
+        }
+        RowLayout {
+            objectName: "catalog-missing-key"
+            visible: root.missingKeyCount > 0
+            Layout.fillWidth: true
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.rightMargin: Ui.Metrics.lg
+            Layout.bottomMargin: Ui.Metrics.sm
+            spacing: Ui.Metrics.xs
+            Ui.Text {
+                objectName: "catalog-missing-key-text"
+                Layout.fillWidth: true
+                text: root.showWithoutKey
+                    ? (root.missingKeyCount === 1 ? qsTr("Showing 1 node that needs an API key.") : qsTr("Showing %1 nodes that need an API key.").arg(root.missingKeyCount))
+                    : (root.missingKeyCount === 1 ? qsTr("1 node needs an API key you have not added.") : qsTr("%1 nodes need an API key you have not added.").arg(root.missingKeyCount))
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+                wrapMode: Text.WordWrap
+            }
+            Ui.EditorButton {
+                objectName: "catalog-missing-key-toggle"
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                text: root.showWithoutKey ? qsTr("Hide them") : qsTr("Show them")
+                onClicked: editor.packSetup.showNodesWithoutKey = !root.showWithoutKey
             }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }

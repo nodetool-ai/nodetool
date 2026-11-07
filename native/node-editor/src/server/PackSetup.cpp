@@ -20,6 +20,7 @@ QString keyFor(const QString &id) {
 }
 PackSetup::PackSetup(QObject *parent) : QObject(parent) {
     enabledCategories_ = QSettings().value("catalog/optionalCategories").toStringList();
+    showNodesWithoutKey_ = QSettings().value("catalog/showNodesWithoutKey", false).toBool();
     secretTimer_.setInterval(30000);
     connect(&secretTimer_, &QTimer::timeout, this, &PackSetup::refreshSecrets);
 }
@@ -51,6 +52,7 @@ void PackSetup::configure(const QUrl &origin, const QString &token, const QStrin
     user_ = user;
     packs_ = {};
     secrets_ = {};
+    secretsLoaded_ = false;
     pending_.clear();
     error_.clear();
     secretTimer_.stop();
@@ -97,6 +99,24 @@ void PackSetup::request(const QString &route, const QJsonObject &body, bool muta
         emit changed();
     });
 }
+QStringList PackSetup::configuredKeys() const {
+    QStringList keys;
+    for (const auto &secret : secrets_) {
+        const auto row = secret.toObject();
+        if (row["is_configured"].toBool()) {
+            keys.append(row["key"].toString());
+        }
+    }
+    return keys;
+}
+void PackSetup::setShowNodesWithoutKey(bool show) {
+    if (showNodesWithoutKey_ == show) {
+        return;
+    }
+    showNodesWithoutKey_ = show;
+    QSettings().setValue("catalog/showNodesWithoutKey", show);
+    emit changed();
+}
 void PackSetup::openProviderSettings() {
     if (!origin_.isEmpty()) {
         QDesktopServices::openUrl(origin_.resolved(QUrl("/settings?tab=1")));
@@ -111,6 +131,7 @@ void PackSetup::refresh() {
 void PackSetup::refreshSecrets() {
     request("settings.secrets.list", {}, false, [this](const QJsonObject &data) {
         const auto secrets = data["secrets"].toArray();
+        secretsLoaded_ = true;
         if (secrets_ != secrets) {
             secrets_ = secrets;
             sync();

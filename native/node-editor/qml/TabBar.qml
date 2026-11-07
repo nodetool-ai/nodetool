@@ -172,7 +172,7 @@ Rectangle {
             id: strip
             objectName: "workflow-tab-strip"
             height: bar.height
-            width: Math.max(0, Math.min(tabRow.implicitWidth, root.width - selector.width - newTabSlot.width - Ui.Metrics.xl))
+            width: Math.max(0, Math.min(tabRow.implicitWidth, root.width - selector.width - newTabSlot.width - rightActions.width - Ui.Metrics.xl))
             contentWidth: tabRow.implicitWidth
             contentHeight: height
             clip: true
@@ -391,6 +391,68 @@ Rectangle {
                 onPressed: root.unhint()
                 onClicked: editor.newTab()
             }
+        }
+    }
+    // The notification bell and the settings button end the bar
+    // (WorkspaceTabBar.tsx right-actions: 28 px buttons, 4 px apart and from the edge).
+    Row {
+        id: rightActions
+        objectName: "tabbar-right-actions"
+        anchors.right: parent.right
+        anchors.rightMargin: Ui.Metrics.xs
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Ui.Metrics.xs
+        readonly property int unread: editor ? editor.unreadNotifications : 0
+        Ui.EditorButton {
+            id: bell
+            objectName: "tabbar-notifications"
+            width: Ui.Metrics.compact
+            height: Ui.Metrics.compact
+            implicitWidth: Ui.Metrics.compact
+            implicitHeight: Ui.Metrics.compact
+            leftPadding: Ui.Metrics.none
+            rightPadding: Ui.Metrics.none
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            iconName: "notifications"
+            iconSize: Ui.Metrics.iconSm
+            iconTone: hovered ? Ui.Text.Primary : Ui.Text.Secondary
+            accessibleName: rightActions.unread === 0 ? qsTr("Notifications, no unread notifications")
+                : rightActions.unread === 1 ? qsTr("Notifications, 1 unread notification")
+                : qsTr("Notifications, %1 unread notifications").arg(rightActions.unread)
+            onHoveredChanged: root.hint(bell, hovered ? qsTr("Notifications") : "", Ui.Metrics.tooltipDelay)
+            onPressed: root.unhint()
+            onClicked: editor.showNotifications(bell.mapToGlobal(bell.width, bell.height))
+            // The web CountBadge in its dot form, in the secondary color.
+            Rectangle {
+                objectName: "tabbar-notifications-unread"
+                visible: rightActions.unread > 0
+                width: Ui.Metrics.md
+                height: Ui.Metrics.md
+                radius: Ui.Metrics.radiusPill
+                x: parent.width - width - Ui.Metrics.micro
+                y: Ui.Metrics.micro
+                color: Ui.Theme.accentSecondary
+            }
+        }
+        Ui.EditorButton {
+            id: settingsButton
+            objectName: "tabbar-settings"
+            width: Ui.Metrics.compact
+            height: Ui.Metrics.compact
+            implicitWidth: Ui.Metrics.compact
+            implicitHeight: Ui.Metrics.compact
+            leftPadding: Ui.Metrics.none
+            rightPadding: Ui.Metrics.none
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            iconName: "settings"
+            iconSize: Ui.Metrics.iconSm
+            iconTone: hovered ? Ui.Text.Primary : Ui.Text.Secondary
+            accessibleName: qsTr("Settings")
+            onHoveredChanged: root.hint(settingsButton, hovered ? qsTr("Open settings") : "", Ui.Metrics.tooltipDelay)
+            onPressed: root.unhint()
+            onClicked: editor.openSettings()
         }
     }
     function openProjects() {

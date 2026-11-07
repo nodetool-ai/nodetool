@@ -517,7 +517,8 @@ private slots:
     QTest::mouseClick(output->quickWindow(), Qt::LeftButton, Qt::NoModifier,
         clear->mapToScene(QPointF(clear->width() / 2, clear->height() / 2)).toPoint());
     QTRY_VERIFY(w.runOutput()->runs().isEmpty());
-    QVERIFY(containsText(output->rootObject(), "No run output"));
+    // The web Logs view names its empty state "No recorded runs" (components/panels/TracePanel.tsx).
+    QVERIFY(containsText(output->rootObject(), "No recorded runs"));
     w.action("Output");
     QVERIFY(!w.outputVisible());
     emit w.session()->errorOccurred("Fixture connection failure");

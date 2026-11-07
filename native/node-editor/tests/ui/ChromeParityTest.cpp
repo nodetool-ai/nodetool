@@ -1,6 +1,9 @@
+#include "FakeRunServer.h"
 #include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
+#include <QDesktopServices>
 #include <QDockWidget>
+#include <QGraphicsView>
 #include <QFile>
 #include <QJsonDocument>
 #include <QQuickItem>
@@ -55,6 +58,37 @@ QJsonObject nodeMetadata(const QString &type, const QString &outputType, bool au
         metadata["auto_save_asset"] = true;
     }
     return metadata;
+}
+// Records the URLs the editor hands to the desktop instead of opening a browser.
+class UrlCatcher final : public QObject {
+    Q_OBJECT
+public:
+    QList<QUrl> urls;
+public slots:
+    void open(const QUrl &url) { urls.append(url); }
+};
+
+QList<QQuickItem *> findAll(QQuickItem *root, const QString &name) {
+    QList<QQuickItem *> found;
+    if (root->objectName() == name) {
+        found.append(root);
+    }
+    for (auto *child : root->childItems()) {
+        found += findAll(child, name);
+    }
+    return found;
+}
+
+bool showsText(QQuickItem *root, const QString &text) {
+    if (root->isVisible() && root->property("text").toString() == text) {
+        return true;
+    }
+    for (auto *child : root->childItems()) {
+        if (child->isVisible() && showsText(child, text)) {
+            return true;
+        }
+    }
+    return false;
 }
 } // namespace
 
@@ -133,6 +167,9 @@ private slots:
 
     void init() {
         QSettings().remove(QStringLiteral("minimap/visible"));
+        QSettings().remove(QStringLiteral("catalog/showNodesWithoutKey"));
+        // The web captures seed the chat window collapsed (scripts/capture-web-window-parity.mjs).
+        QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true);
     }
 
     // web/src/stores/PanelStore.ts opens with every side panel closed.
@@ -504,6 +541,436 @@ private slots:
         EditorWindow window;
         show(window, fixture()["metadata"].toArray());
         QVERIFY(!window.miniMapVisible());
+    }
+    // W16: web/src/components/workspace/WorkspaceTabBar.tsx ends the bar with the
+    // notification bell and the settings button (NotificationButton.tsx, SettingsHeaderButton.tsx).
+    void tabBarEndsWithNotificationsAndSettings() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        auto *bar = panel(window, QStringLiteral("TabBar"));
+        QVERIFY(bar);
+        auto *root = bar->rootObject();
+        auto *bell = find(root, QStringLiteral("tabbar-notifications"));
+        auto *settings = find(root, QStringLiteral("tabbar-settings"));
+        auto *newTab = find(root, QStringLiteral("new-workflow-tab"));
+        QVERIFY(bell);
+        QVERIFY(settings);
+        const auto left = [root](QQuickItem *item) { return item->mapToItem(root, QPointF()).x(); };
+        QVERIFY(left(newTab) < left(bell));
+        QVERIFY(left(bell) < left(settings));
+        // 28 px buttons, 4 px apart, 4 px from the right edge.
+        QCOMPARE(bell->width(), 28.0);
+        QCOMPARE(settings->height(), 28.0);
+        QCOMPARE(left(settings) - left(bell), 32.0);
+        QCOMPARE(root->width() - (left(settings) + settings->width()), 4.0);
+        QCOMPARE(bell->property("accessibleName").toString(), QStringLiteral("Notifications, no unread notifications"));
+        QCOMPARE(settings->property("accessibleName").toString(), QStringLiteral("Settings"));
+        auto *dot = find(root, QStringLiteral("tabbar-notifications-unread"));
+        QVERIFY(dot);
+        QVERIFY(!dot->isVisible());
+
+        // An error becomes an unread notification.
+        QMetaObject::invokeMethod(window.session(), "errorOccurred", Q_ARG(QString, QStringLiteral("Upload failed")));
+        QTRY_VERIFY(dot->isVisible());
+        QCOMPARE(bell->property("accessibleName").toString(), QStringLiteral("Notifications, 1 unread notification"));
+        click(bar, bell);
+        QQuickWidget *popup = nullptr;
+        QTRY_VERIFY((popup = panel(window, QStringLiteral("NotificationsPanel"))) && popup->isVisible());
+        QTRY_VERIFY(showsText(popup->rootObject(), QStringLiteral("Upload failed")));
+        QTRY_VERIFY(!dot->isVisible());
+        QCOMPARE(bell->property("accessibleName").toString(), QStringLiteral("Notifications, no unread notifications"));
+        popup->close();
+
+        // Settings opens the settings page of the connected server.
+        UrlCatcher catcher;
+        QDesktopServices::setUrlHandler(QStringLiteral("http"), &catcher, "open");
+        FakeRunServer server;
+        window.session()->connectToServer(server.url(), {});
+        QTRY_VERIFY(window.session()->connected());
+        click(bar, settings);
+        QTRY_COMPARE(catcher.urls.size(), 1);
+        QCOMPARE(catcher.urls.first(), server.url().resolved(QUrl(QStringLiteral("/settings"))));
+        QDesktopServices::unsetUrlHandler(QStringLiteral("http"));
+    }
+
+    // W17: the web left panel is position: fixed over the canvas (PanelLeft.tsx), so
+    // opening it changes neither the canvas size nor the zoom. It covers the header row's left end.
+    void catalogOverlaysTheCanvasWithoutChangingTheZoom() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
+        QTest::qWait(150);
+        window.fit();
+        QTest::qWait(150);
+        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        QVERIFY(view);
+        const auto canvasWidth = view->width();
+        const auto zoom = window.zoomPercent();
+        const auto transform = view->transform();
+        openCatalog(window);
+        QTest::qWait(300);
+        QCOMPARE(view->width(), canvasWidth);
+        QCOMPARE(window.zoomPercent(), zoom);
+        QCOMPARE(view->transform(), transform);
+        auto *catalog = panel(window, QStringLiteral("Catalog"));
+        auto *header = panel(window, QStringLiteral("HeaderRow"));
+        const auto catalogRect = QRect(catalog->mapTo(&window, QPoint()), catalog->size());
+        const auto headerRect = QRect(header->mapTo(&window, QPoint()), header->size());
+        QCOMPARE(catalogRect.left(), headerRect.left());
+        QCOMPARE(catalogRect.top(), headerRect.top());
+        QCOMPARE(catalog->width(), 310);
+        QVERIFY(catalogRect.bottom() >= QRect(view->mapTo(&window, QPoint()), view->size()).bottom());
+    }
+
+    // W17: NodeLibrary.tsx focuses the search when the library opens.
+    void catalogFocusesTheSearchWhenItOpens() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        openCatalog(window);
+        auto *catalog = panel(window, QStringLiteral("Catalog"));
+        auto *search = find(catalog->rootObject(), QStringLiteral("nodeSearch"));
+        QVERIFY(search);
+        QTRY_VERIFY(catalog->hasFocus());
+        QTRY_VERIFY(search->hasActiveFocus());
+        for (const char key : {'b', 'l', 'u', 'r'}) {
+            QTest::keyClick(catalog->quickWindow(), key);
+        }
+        auto *rows = find(catalog->rootObject(), QStringLiteral("catalog-rows"));
+        QTRY_COMPARE(rows->property("count").toInt(), 1);
+    }
+
+    // W17: the PanelHeader in NodeLibrary.tsx names the docs topic "nodes", which
+    // DocsHelpLink.tsx draws as an open-in-new link to docs.nodetool.ai/nodes/.
+    void catalogHeaderLinksTheNodesDocumentation() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        openCatalog(window);
+        auto *catalog = panel(window, QStringLiteral("Catalog"));
+        auto *link = find(catalog->rootObject(), QStringLiteral("catalog-docs"));
+        QVERIFY(link);
+        auto *count = find(catalog->rootObject(), QStringLiteral("catalog-count"));
+        QVERIFY(link->mapToItem(catalog->rootObject(), QPointF()).x() > count->mapToItem(catalog->rootObject(), QPointF()).x());
+        QCOMPARE(link->property("accessibleName").toString(), QStringLiteral("Nodes documentation"));
+        hover(catalog, link);
+        QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QStringLiteral("Nodes documentation"), 1500);
+        UrlCatcher catcher;
+        QDesktopServices::setUrlHandler(QStringLiteral("https"), &catcher, "open");
+        click(catalog, link);
+        QTRY_COMPARE(catcher.urls.size(), 1);
+        QCOMPARE(catcher.urls.first(), QUrl(QStringLiteral("https://docs.nodetool.ai/nodes/")));
+        QDesktopServices::unsetUrlHandler(QStringLiteral("https"));
+    }
+
+    // W17: useNodeProviderFilter.ts leaves out nodes whose provider key is not set,
+    // and MissingKeyNodesNotice.tsx counts them with a link that shows them.
+    void catalogHidesNodesThatNeedAMissingKey() {
+        FakeRunServer server;
+        server.metadata = QJsonArray{nodeMetadata("fal.image.Flux", "image"), nodeMetadata("fal.image.Recraft", "image"),
+            nodeMetadata("openai.text.Chat", "str"), nodeMetadata("nodetool.image.Resize", "image"),
+            nodeMetadata("huggingface.image.Upscale", "image")};
+        server.secrets = QJsonArray{QJsonObject{{"key", "OPENAI_API_KEY"}, {"is_configured", true}},
+            QJsonObject{{"key", "FAL_API_KEY"}, {"is_configured", false}}};
+        EditorWindow window;
+        show(window, server.metadata);
+        openCatalog(window);
+        auto *catalog = panel(window, QStringLiteral("Catalog"));
+        auto *rows = find(catalog->rootObject(), QStringLiteral("catalog-rows"));
+        auto *notice = find(catalog->rootObject(), QStringLiteral("catalog-missing-key"));
+        QVERIFY(notice);
+        // Without the server's secrets the editor cannot tell, so it lists every node.
+        QTRY_COMPARE(rows->property("count").toInt(), 5);
+        QVERIFY(!notice->isVisible());
+        window.session()->connectToServer(server.url(), {});
+        QTRY_COMPARE(rows->property("count").toInt(), 3);
+        QVERIFY(!find(catalog->rootObject(), QStringLiteral("catalog-node-fal.image.Flux")));
+        QCOMPARE(counts(window)["all"], 3);
+        QTRY_VERIFY(notice->isVisible());
+        auto *text = find(catalog->rootObject(), QStringLiteral("catalog-missing-key-text"));
+        auto *toggle = find(catalog->rootObject(), QStringLiteral("catalog-missing-key-toggle"));
+        QCOMPARE(text->property("text").toString(), QStringLiteral("2 nodes need an API key you have not added."));
+        QCOMPARE(toggle->property("text").toString(), QStringLiteral("Show them"));
+        click(catalog, toggle);
+        QTRY_COMPARE(rows->property("count").toInt(), 5);
+        QCOMPARE(text->property("text").toString(), QStringLiteral("Showing 2 nodes that need an API key."));
+        QCOMPARE(toggle->property("text").toString(), QStringLiteral("Hide them"));
+        QVERIFY(QSettings().value(QStringLiteral("catalog/showNodesWithoutKey")).toBool());
+        click(catalog, toggle);
+        QTRY_COMPARE(rows->property("count").toInt(), 3);
+    }
+
+    // W20: Inspector.tsx ends with RunSelectedNodesSection: a Runs stepper from 1 to 32
+    // and Run selected, which runs the selection that many times in sequence
+    // (hooks/nodes/useRunSelectedNodes.ts).
+    void inspectorFooterRunsTheSelectionRepeatedly() {
+        auto *server = new FakeRunServer;
+        server->setParent(this);
+        server->metadata = fixture()["metadata"].toArray();
+        server->workflow = fixture()["workflow"].toObject();
+        server->workflow["updated_at"] = QStringLiteral("r1");
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        window.session()->setAutosaveDelay(60000);
+        window.session()->connectToServer(server->url(), {});
+        QTRY_VERIFY(window.session()->connected());
+        window.session()->openWorkflow(server->workflow["id"].toString());
+        QTRY_VERIFY(window.session()->serverBound());
+        QTest::qWait(120);
+        QVERIFY(window.selectNode(QStringLiteral("generate")));
+        auto *inspector = panel(window, QStringLiteral("Inspector"));
+        QTRY_VERIFY(inspector->isVisible());
+        auto *root = inspector->rootObject();
+        auto *label = find(root, QStringLiteral("inspector-runs-label"));
+        auto *value = find(root, QStringLiteral("inspector-runs-value"));
+        auto *decrease = find(root, QStringLiteral("inspector-runs-decrease"));
+        auto *increase = find(root, QStringLiteral("inspector-runs-increase"));
+        auto *run = find(root, QStringLiteral("inspector-run-selected"));
+        QVERIFY(label && value && decrease && increase && run);
+        QTRY_VERIFY(run->isVisible());
+        QCOMPARE(label->property("text").toString(), QStringLiteral("Runs"));
+        QCOMPARE(value->property("text").toString(), QStringLiteral("1"));
+        QVERIFY(!decrease->isEnabled());
+        QCOMPARE(decrease->property("accessibleName").toString(), QStringLiteral("Decrease runs"));
+        QCOMPARE(increase->property("accessibleName").toString(), QStringLiteral("Increase runs"));
+        QCOMPARE(run->property("text").toString(), QStringLiteral("Run selected"));
+        QCOMPARE(run->property("accessibleName").toString(), QStringLiteral("Run selected nodes"));
+        // The footer sits under the fields, at the bottom of the panel.
+        auto *scroll = find(root, QStringLiteral("property-scroll"));
+        QTRY_VERIFY(run->mapToItem(root, QPointF()).y() > root->height() / 2);
+        QVERIFY(run->mapToItem(root, QPointF()).y() > scroll->mapToItem(root, QPointF()).y() + scroll->height() - 1);
+        click(inspector, increase);
+        QTRY_COMPARE(value->property("text").toString(), QStringLiteral("2"));
+        QVERIFY(decrease->isEnabled());
+        click(inspector, run);
+        QTRY_COMPARE(server->commands.size(), 1);
+        QCOMPARE(server->commands.first()["command"].toString(), QStringLiteral("run_job"));
+        auto *progress = find(root, QStringLiteral("inspector-run-progress"));
+        QVERIFY(progress);
+        QTRY_COMPARE(progress->property("text").toString(), QStringLiteral("Run 1/2"));
+        QVERIFY(!run->isEnabled());
+        const auto first = server->commands.first()["data"].toObject()["job_id"].toString();
+        server->update(first, QStringLiteral("running"));
+        server->update(first, QStringLiteral("completed"));
+        QTRY_COMPARE(server->commands.size(), 2);
+        QCOMPARE(server->commands.last()["command"].toString(), QStringLiteral("run_job"));
+        QTRY_COMPARE(progress->property("text").toString(), QStringLiteral("Run 2/2"));
+        const auto second = server->commands.last()["data"].toObject()["job_id"].toString();
+        QVERIFY(second != first);
+        server->update(second, QStringLiteral("running"));
+        server->update(second, QStringLiteral("completed"));
+        QTRY_VERIFY(!progress->isVisible());
+        QTest::qWait(100);
+        QCOMPARE(server->commands.size(), 2);
+        QTRY_VERIFY(run->isEnabled());
+    }
+
+    // W20: PanelRight.tsx puts the cost estimate under the inspector. It is a
+    // collapsed "Cost estimate" row whose caption is the per-run total
+    // (costs/WorkflowCostEstimatePanel.tsx). Native asks the server's preflight,
+    // which runs the same estimateWorkflowCost (sdk-static-preflight-service.ts).
+    void inspectorShowsTheServerCostEstimate() {
+        auto *server = new FakeRunServer;
+        server->setParent(this);
+        server->metadata = fixture()["metadata"].toArray();
+        server->workflow = fixture()["workflow"].toObject();
+        server->workflow["updated_at"] = QStringLiteral("r1");
+        const auto summary = [](const QJsonValue &amount, const QString &confidence, const QJsonArray &unknown) {
+            return QJsonObject{{"version", 1}, {"level", "static"}, {"workflow_id", "a1windowparity0000000000000000a1"},
+                {"workflow_etag", QJsonValue::Null}, {"runnable", true}, {"issues", QJsonArray{}}, {"requirements", QJsonArray{}},
+                {"cost", QJsonObject{{"amount", amount}, {"currency", "USD"}, {"confidence", confidence},
+                    {"unknown_cost_nodes", unknown}, {"approval_required", false}}}};
+        };
+        server->preflight = summary(0.12, QStringLiteral("estimate"), {});
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        window.session()->setAutosaveDelay(60000);
+        window.session()->connectToServer(server->url(), {});
+        QTRY_VERIFY(window.session()->connected());
+        window.session()->openWorkflow(server->workflow["id"].toString());
+        QTRY_VERIFY(window.session()->serverBound());
+        QVERIFY(window.selectNode(QStringLiteral("agent")));
+        auto *inspector = panel(window, QStringLiteral("Inspector"));
+        QTRY_VERIFY(inspector->isVisible());
+        auto *root = inspector->rootObject();
+        auto *title = find(root, QStringLiteral("inspector-cost-title"));
+        auto *caption = find(root, QStringLiteral("inspector-cost-caption"));
+        QVERIFY(title && caption);
+        QCOMPARE(title->property("text").toString(), QStringLiteral("Cost estimate"));
+        QTRY_COMPARE(caption->property("text").toString(), QStringLiteral("~$0.12 / run"));
+        QVERIFY(!server->preflights.isEmpty());
+        const auto request = server->preflights.last();
+        QCOMPARE(request["workflow_id"].toString(), server->workflow["id"].toString());
+        QCOMPARE(request["level"].toString(), QStringLiteral("static"));
+        QCOMPARE(request["interface_version"].toInt(), 1);
+        // The row sits under the run footer.
+        auto *run = find(root, QStringLiteral("inspector-run-selected"));
+        QTRY_VERIFY(title->mapToItem(root, QPointF()).y() > run->mapToItem(root, QPointF()).y());
+        // A save prices the graph again. An unpriced node marks the total incomplete.
+        server->preflight = summary(0.12, QStringLiteral("partial"), QJsonArray{"generate"});
+        const auto asked = server->preflights.size();
+        window.session()->save();
+        QTRY_VERIFY(server->preflights.size() > asked);
+        QTRY_COMPARE(caption->property("text").toString(), QStringLiteral("$0.12 · incomplete"));
+        // Nothing priceable reads "Per run".
+        server->preflight = summary(0, QStringLiteral("exact"), {});
+        window.session()->save();
+        QTRY_COMPARE(caption->property("text").toString(), QStringLiteral("Per run"));
+    }
+
+    // W21: ImageListProperty.tsx gives a media list one click-or-drop zone and no search,
+    // browse or select controls.
+    void inspectorMediaListHasOneDropZone() {
+        EditorWindow window;
+        const QJsonObject listType{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "image"}}}}};
+        window.setCatalog({QJsonObject{{"node_type", "fixture.MediaList"}, {"title", "Image references"},
+            {"properties", QJsonArray{QJsonObject{{"name", "images"}, {"title", "Reference images"}, {"type", listType}}}}}});
+        window.resize(1440, 900);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(window.document()->load(QJsonObject{{"name", "Media list"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            QJsonObject{{"id", "media"}, {"type", "fixture.MediaList"}, {"data", QJsonObject{{"images", QJsonArray{}}}}}}}, {"edges", QJsonArray{}}}}}));
+        QTest::qWait(120);
+        QVERIFY(window.selectNode(QStringLiteral("media")));
+        auto *inspector = panel(window, QStringLiteral("Inspector"));
+        QTRY_VERIFY(inspector->isVisible());
+        QQuickItem *editor = nullptr;
+        QTRY_VERIFY((editor = find(inspector->rootObject(), QStringLiteral("media-list-editor-images"))));
+        QTest::qWait(60);
+        const auto zones = findAll(editor, QStringLiteral("media-list-drop-images"));
+        QCOMPARE(zones.size(), 1);
+        QVERIFY(zones.first()->isVisible());
+        QVERIFY(zones.first()->height() >= 80);
+        QVERIFY(showsText(zones.first(), QStringLiteral("Click or drop images here")));
+        for (const auto &name : {"asset-search-images", "asset-refresh-images", "asset-upload-images", "asset-select-images", "asset-drop-images"}) {
+            auto *control = find(editor, QString::fromLatin1(name));
+            QVERIFY2(!control || !control->isVisible(), name);
+        }
+    }
+
+    // W23: PanelBottom.tsx draws the status bar as the bottom panel's tab strip, so an open
+    // panel puts the bar above its body.
+    void outputPanelUsesTheStatusBarAsItsTabStrip() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
+        QTest::qWait(120);
+        auto *status = panel(window, QStringLiteral("StatusBar"));
+        auto *output = panel(window, QStringLiteral("RunOutput"));
+        const auto top = [&window](QWidget *widget) { return widget->mapTo(&window, QPoint()).y(); };
+        QCOMPARE(top(status) + status->height(), window.height());
+        click(status, find(status->rootObject(), QStringLiteral("status-logs")));
+        QTRY_VERIFY(window.outputVisible());
+        QTRY_VERIFY(output->isVisible());
+        QTRY_COMPARE(top(status) + status->height(), top(output));
+        QVERIFY(top(output) + output->height() <= window.height());
+        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        QVERIFY(top(view) + view->height() <= top(status));
+        // The open view's tab closes the panel and the bar returns to the window bottom.
+        click(status, find(status->rootObject(), QStringLiteral("status-logs")));
+        QTRY_VERIFY(!window.outputVisible());
+        QTRY_COMPARE(top(status) + status->height(), window.height());
+    }
+
+    // W23: the web Logs view always shows the run picker and, without runs, the
+    // "No recorded runs" empty state (TracePanel.tsx RunPicker and EmptyState). It has no title row.
+    void outputPanelShowsARunPickerAndAnEmptyState() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        window.action(QStringLiteral("Output"));
+        auto *output = panel(window, QStringLiteral("RunOutput"));
+        QTRY_VERIFY(output->isVisible());
+        auto *root = output->rootObject();
+        auto *picker = find(root, QStringLiteral("run-history"));
+        QVERIFY(picker);
+        QTRY_VERIFY(picker->isVisible());
+        QVERIFY(!picker->isEnabled());
+        QCOMPARE(picker->property("placeholderText").toString(), QStringLiteral("No recent runs"));
+        QVERIFY(showsText(root, QStringLiteral("No recorded runs")));
+        QVERIFY(!find(root, QStringLiteral("close-output")));
+        QVERIFY(!showsText(root, QStringLiteral("Output")));
+    }
+
+    // W23: web log rows are CONTROL.height.md, 32 px (TracePanel.tsx SPAN_ROW_HEIGHT).
+    void outputRowsAreCompact() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        window.runOutput()->beginRun(QStringLiteral("job-1"));
+        for (const auto *node : {"subject", "size", "reference"}) {
+            window.runOutput()->ingest(QStringLiteral("job-1"), QJsonObject{{"type", "node_update"}, {"job_id", "job-1"},
+                {"node_id", QString::fromLatin1(node)}, {"node_name", QString::fromLatin1(node)}, {"status", "completed"}});
+        }
+        window.action(QStringLiteral("Output"));
+        auto *output = panel(window, QStringLiteral("RunOutput"));
+        QTRY_VERIFY(output->isVisible());
+        QList<QQuickItem *> rows;
+        QTRY_COMPARE((rows = findAll(output->rootObject(), QStringLiteral("run-output-row"))).size(), 3);
+        QTest::qWait(60);
+        for (auto *row : rows) {
+            QVERIFY2(row->height() <= 33, qPrintable(QString::number(row->height())));
+        }
+    }
+
+    // W24: a status bar tab shows whether its panel is open, and the open view's tab closes it
+    // (PanelBottom.tsx handleTabToggle). The bar carries no run message.
+    void statusBarTabsShowAndToggleTheirPanels() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
+        QTest::qWait(120);
+        auto *status = panel(window, QStringLiteral("StatusBar"));
+        auto *root = status->rootObject();
+        QVERIFY(!find(root, QStringLiteral("status-message")));
+        auto *trace = find(root, QStringLiteral("status-trace"));
+        auto *versions = find(root, QStringLiteral("status-versions"));
+        click(status, trace);
+        QTRY_VERIFY(trace->property("active").toBool());
+        QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("run-trace-dock")));
+        click(status, trace);
+        QTRY_VERIFY(!trace->property("active").toBool());
+        QTRY_VERIFY(!window.findChild<QDockWidget *>(QStringLiteral("run-trace-dock")) || !window.findChild<QDockWidget *>(QStringLiteral("run-trace-dock"))->isVisible());
+        click(status, versions);
+        QTRY_VERIFY(versions->property("active").toBool());
+        QVERIFY(!trace->property("active").toBool());
+        click(status, versions);
+        QTRY_VERIFY(!versions->property("active").toBool());
+    }
+
+    // W22: the web inspector opens at 350 px (stores/RightPanelStore.ts sizes.initial).
+    void inspectorOpensAtTheWebWidth() {
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
+        QTest::qWait(120);
+        QVERIFY(window.selectNode(QStringLiteral("agent")));
+        auto *inspector = panel(window, QStringLiteral("Inspector"));
+        QTRY_VERIFY(inspector->isVisible());
+        QTRY_COMPARE(inspector->width(), 350);
+    }
+
+    // W28: the web chat window starts open unless the viewport is narrower than 1200 px
+    // (stores/CanvasChatDockStore.ts defaultConversationCollapsed), until the user toggles it.
+    void chatOpensByDefaultOnAWideWindow() {
+        QSettings().remove(QStringLiteral("canvas-chat-dock"));
+        {
+            EditorWindow window;
+            show(window, fixture()["metadata"].toArray());
+            QTRY_VERIFY(window.chatVisible());
+        }
+        {
+            EditorWindow window;
+            window.resize(1024, 700);
+            window.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&window));
+            QTest::qWait(60);
+            QVERIFY(!window.chatVisible());
+            window.resize(1440, 900);
+            QTRY_VERIFY(window.chatVisible());
+            window.toggleChat();
+            QVERIFY(!window.chatVisible());
+        }
+        EditorWindow window;
+        show(window, fixture()["metadata"].toArray());
+        QTest::qWait(60);
+        QVERIFY(!window.chatVisible());
     }
 };
 

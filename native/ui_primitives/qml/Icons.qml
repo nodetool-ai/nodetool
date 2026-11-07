@@ -35,6 +35,10 @@ QtObject {
     readonly property string photoCamera: "M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"
     readonly property string wrench: "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"
     readonly property string settings: "M19.14 12.94a7 7 0 0 0 0-1.88l2.03-1.58-2-3.46-2.39.96a7 7 0 0 0-1.63-.94L14.79 3h-4l-.36 3.04c-.6.23-1.14.55-1.63.94l-2.39-.96-2 3.46 2.03 1.58a7 7 0 0 0 0 1.88l-2.03 1.58 2 3.46 2.39-.96c.49.39 1.03.71 1.63.94l.36 3.04h4l.36-3.04c.6-.23 1.14-.55 1.63-.94l2.39.96 2-3.46zM12.79 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6"
+    // Notifications
+    readonly property string notifications: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2m6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1z"
+    // OpenInNew
+    readonly property string openInNew: "M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3z"
     readonly property string toolSelect: "M5 3.5 5 19.5 9.2 15.2 11.7 21 14.5 19.8 12 14.2 18 14.2 Z"
     readonly property string toolTrackSelect: "M5 5 V19 M9 12 H20 M16 8 L20 12 L16 16 M9 7 H14 M9 17 H14"
     readonly property string toolTrackSelectBackward: "M19 5 V19 M15 12 H4 M8 8 L4 12 L8 16 M15 7 H10 M15 17 H10"

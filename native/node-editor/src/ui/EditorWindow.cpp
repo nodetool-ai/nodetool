@@ -463,6 +463,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     canvasLayout->addWidget(canvasTabs);
     canvasLayout->addWidget(view_, 1);
     dockHost_->setCentralWidget(canvasColumn);
+    canvasColumn->installEventFilter(this);
   dockHost_->setDockOptions(QMainWindow::AnimatedDocks);
   const auto dock = [this](const QString &title, const QString &file, Qt::DockWidgetArea area) {
     auto widget = new QDockWidget(title, dockHost_);
@@ -472,18 +473,33 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     dockHost_->addDockWidget(area, widget);
     return widget;
   };
-  catalogDock_ = dock(tr("Nodes"), "Catalog", Qt::LeftDockWidgetArea);
+  // The web node library is a fixed panel over the canvas, so opening it keeps
+  // the canvas size and zoom (web/src/components/panels/PanelLeft.tsx).
+  catalogPanel_ = panel("Catalog");
+  catalogPanel_->setParent(dockHost_);
+  catalogPanel_->setObjectName("catalog-panel");
+  catalogPanel_->setFocusPolicy(Qt::StrongFocus);
+  catalogPanel_->installEventFilter(this);
   browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
   inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea);
   outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea);
+  {
+    // placeStatusBar() moves the status bar above the output while the panel is open.
+    auto *body = new QWidget(outputDock_);
+    auto *bodyLayout = new QVBoxLayout(body);
+    bodyLayout->setContentsMargins(0, 0, 0, 0);
+    bodyLayout->setSpacing(0);
+    bodyLayout->addWidget(outputDock_->widget(), 1);
+    outputDock_->setWidget(body);
+  }
   outputDock_->setObjectName("run-output-dock");
   outputDock_->setAllowedAreas(Qt::BottomDockWidgetArea);
   outputDock_->hide();
   inspectorDock_->hide();
   // The web opens with its side panels closed. See web/src/stores/PanelStore.ts.
-  catalogDock_->hide();
+  catalogPanel_->hide();
   auto rail = panel("Rail");
   rail->setFixedWidth(rail->initialSize().width());
   auto tabs = panel("TabBar");
@@ -496,7 +512,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     resizeTabs();
   auto status = panel("StatusBar");
   status->setFixedHeight(status->initialSize().height());
+  statusBar_ = status;
   auto column = new QVBoxLayout;
+  statusColumn_ = column;
   column->setContentsMargins(0, 0, 0, 0);
   column->setSpacing(0);
   column->addWidget(tabs);
@@ -509,6 +527,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   row->addWidget(rail);
   row->addLayout(column, 1);
   setCentralWidget(root);
+  initializePanels();
   const auto overlay = [this](const QString &file) {
     auto widget = panel(file);
     widget->setParent(view_);
@@ -557,10 +576,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
   connect(scene_, &EditorScene::nodeDragChanged, this, followCard);
-  connect(catalogDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
-          [this] { schedulePanelChanged(); });
+          [this] { placeStatusBar(); schedulePanelChanged(); });
   connect(scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); }
   });
@@ -847,6 +865,9 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
     dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
     connect(this, &EditorWindow::documentEpochChanged, dock, &QDockWidget::close);
     connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+    // The status bar Versions tab shows whether the panel is open.
+    connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+    connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
     versions_.load(kind); dock->show(); return;
   }
   for (auto *existing : findChildren<QDialog *>("workflow-details-dialog")) { existing->close(); }
@@ -887,6 +908,9 @@ void EditorWindow::showRunTrace() {
   connect(this, &EditorWindow::documentEpochChanged, dock, &QDockWidget::close);
   connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
   connect(dock, &QObject::destroyed, &runTrace_, [this] { runTrace_.setActive(false); });
+  // The status bar Trace tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
   runTrace_.setWorkflow(document_.snapshot().value("id").toString(), document_.snapshot().value("name").toString());
   outputDock_->hide();
   dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
@@ -1032,13 +1056,13 @@ void EditorWindow::showBrowser(bool visible) {
   if (!browserDock_ || browserVisible() == visible) { return; }
   if (visible) {
     browserRestoreCatalog_ = catalogVisible();
-    catalogDock_->hide();
+    catalogPanel_->hide();
     inspectorDock_->hide();
     browserDock_->show();
     loadBrowser();
   } else {
     browserDock_->hide();
-    if (browserRestoreCatalog_) { catalogDock_->show(); }
+    if (browserRestoreCatalog_) { catalogPanel_->show(); }
     syncInspector();
   }
   schedulePanelChanged();
@@ -1079,7 +1103,7 @@ bool EditorWindow::runActive() const {
 bool EditorWindow::outputVisible() const {
   if (!tabOwner_) { return activeEditor_->outputVisible(); } return outputDock_ && !outputDock_->isHidden(); }
 bool EditorWindow::catalogVisible() const {
-  if (!tabOwner_) { return activeEditor_->catalogVisible(); } return catalogDock_ && !catalogDock_->isHidden(); }
+  if (!tabOwner_) { return activeEditor_->catalogVisible(); } return catalogPanel_ && !catalogPanel_->isHidden(); }
 bool EditorWindow::inspectorVisible() const {
   if (!tabOwner_) { return activeEditor_->inspectorVisible(); } return inspectorDock_ && !inspectorDock_->isHidden(); }
 QString EditorWindow::workflowName() const {
@@ -1200,10 +1224,10 @@ void EditorWindow::syncInspector() {
   // A narrow window shows one side panel at a time and restores the catalog afterward.
   if (show && width() < narrowWindowWidth && catalogVisible()) {
     catalogAutoHidden_ = true;
-    catalogDock_->hide();
+    catalogPanel_->hide();
   } else if (catalogAutoHidden_ && (!show || width() >= narrowWindowWidth)) {
     catalogAutoHidden_ = false;
-    catalogDock_->show();
+    catalogPanel_->show();
   }
 }
 // useDragHandlers.ts and useAddToGroup.ts: a card dropped on a group joins it
@@ -1721,6 +1745,7 @@ QVariantList EditorWindow::catalog() const {
                          {"description", m["description"].toString()},
                          {"deprecated", m["deprecated"].toBool()},
                          {"provider", catalogProviderId(ns)}, {"providerName", catalogProviderName(catalogProviderId(ns))},
+                         {"keyGate", catalogKeyGate(ns)},
                          {"icon", typeIcon(outputType)}, {"color", typeColor(outputType)}});
   }
   return r;
@@ -2495,9 +2520,9 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Toggle nodes") {
-    if (browserVisible()) { showBrowser(false); catalogDock_->show(); return; }
+    if (browserVisible()) { showBrowser(false); catalogPanel_->show(); return; }
     catalogAutoHidden_ = false;
-    catalogDock_->setVisible(!catalogVisible());
+    catalogPanel_->setVisible(!catalogVisible());
     return;
   }
   if (name == "Toggle inspector") {
@@ -2559,16 +2584,10 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Add node") {
-    auto widgets = findChildren<QQuickWidget *>();
-    for (auto panel : widgets) {
-      if (panel->source().fileName() == "Catalog.qml") {
-        panel->parentWidget()->show();
-        panel->setFocus();
-        if (auto field =
-                panel->rootObject()->findChild<QQuickItem *>("nodeSearch")) {
-          field->forceActiveFocus();
-        }
-      }
+    catalogPanel_->show();
+    catalogPanel_->setFocus();
+    if (auto field = catalogPanel_->rootObject()->findChild<QQuickItem *>("nodeSearch")) {
+      field->forceActiveFocus();
     }
     return;
   }
@@ -2727,6 +2746,25 @@ void EditorWindow::action(const QString &name) {
   }
 }
 bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
+  // The catalog panel and the canvas column are watched only for these events. The
+  // keyboard handling below is for the canvas.
+  if (catalogPanel_ && object == catalogPanel_) {
+    if (event->type() != QEvent::Show && event->type() != QEvent::Hide) { return false; }
+    if (event->type() == QEvent::Show) {
+      layoutCatalog();
+      // NodeLibrary.tsx focuses its search when the library opens.
+      catalogPanel_->setFocus(Qt::OtherFocusReason);
+      if (auto *root = catalogPanel_->rootObject()) { QMetaObject::invokeMethod(root, "focusSearch"); }
+    } else if (catalogPanel_->hasFocus() || catalogPanel_->isAncestorOf(QApplication::focusWidget())) {
+      view_->setFocus(Qt::OtherFocusReason);
+    }
+    schedulePanelChanged();
+    return false;
+  }
+  if (dockHost_ && object == dockHost_->centralWidget()) {
+    if (event->type() == QEvent::Resize || event->type() == QEvent::Move) { layoutCatalog(); }
+    return false;
+  }
   if (object == view_->viewport() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop) && static_cast<QDropEvent *>(event)->mimeData()->hasFormat("application/x-nodetool-node-type")) {
     auto drop = static_cast<QDropEvent *>(event);
     const auto bytes = drop->mimeData()->data("application/x-nodetool-node-type");
@@ -3014,6 +3052,28 @@ void EditorWindow::presentation(const QVariantMap &roles) {
       QJsonDocument(QJsonObject{{"ConnectionStyle", connection}}).toJson()));
   scene_->setTheme(theme);
 }
+void EditorWindow::layoutCatalog() {
+  if (!catalogPanel_ || !dockHost_ || !dockHost_->centralWidget() || !catalogPanel_->rootObject()) { return; }
+  const auto area = dockHost_->centralWidget()->geometry();
+  const int width = std::min(qCeil(catalogPanel_->rootObject()->implicitWidth()), area.width());
+  catalogPanel_->setGeometry(area.left(), area.top(), width, area.height());
+  catalogPanel_->raise();
+}
+void EditorWindow::placeStatusBar() {
+  if (!statusBar_ || !statusColumn_ || !outputDock_ || !outputDock_->widget()) { return; }
+  auto *panelLayout = qobject_cast<QBoxLayout *>(outputDock_->widget()->layout());
+  if (!panelLayout) { return; }
+  if (!outputDock_->isHidden()) {
+    if (panelLayout->indexOf(statusBar_) < 0) {
+      statusColumn_->removeWidget(statusBar_);
+      panelLayout->insertWidget(0, statusBar_);
+    }
+  } else if (statusColumn_->indexOf(statusBar_) < 0) {
+    panelLayout->removeWidget(statusBar_);
+    statusColumn_->addWidget(statusBar_);
+  }
+  statusBar_->show();
+}
 void EditorWindow::resizeEvent(QResizeEvent *event) {
   if (!tabOwner_) { QMainWindow::resizeEvent(event); return; }
   QMainWindow::resizeEvent(event);
@@ -3047,7 +3107,7 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
     }
     if (name == "choose") {
         guideStarted_ = true;
-        catalogDock_->show();
+        catalogPanel_->show();
         refresh();
         return;
     }
@@ -3068,7 +3128,7 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
             }
         }
         if (inputMeta.isEmpty() || outputMeta.isEmpty()) {
-            catalogDock_->show();
+            catalogPanel_->show();
             message_ = tr("Choose String Input from the node catalog. Connect "
                           "to a server if it is unavailable.");
             schedulePanelChanged();

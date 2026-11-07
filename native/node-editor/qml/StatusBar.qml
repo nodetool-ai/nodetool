@@ -112,7 +112,7 @@ Rectangle {
             label: "Logs"
             glyph: "article"
             active: editor && editor.outputVisible
-            onActivated: editor.action("Output")
+            onActivated: editor.toggleStatusView("logs")
         }
         StatusTab {
             objectName: "status-queue"
@@ -138,24 +138,19 @@ Rectangle {
             objectName: "status-versions"
             label: "Versions"
             glyph: "history"
-            onActivated: editor.action("Version history")
+            active: editor && editor.versionsVisible
+            onActivated: editor.toggleStatusView("versions")
         }
         StatusTab {
             objectName: "status-trace"
             label: "Trace"
             glyph: "timeline"
-            onActivated: editor.action("Run trace")
+            active: editor && editor.traceVisible
+            onActivated: editor.toggleStatusView("trace")
         }
-        Ui.Text {
-            objectName: "status-message"
-            Layout.fillWidth: true
-            Layout.leftMargin: Ui.Metrics.lg
-            text: editor ? editor.message : ""
-            role: Ui.Typography.SansCaption
-            tone: Ui.Text.Secondary
-            elide: Text.ElideRight
-            lineHeight: 1
-        }
+        // The web bar carries no run message. Messages reach the inspector and the
+        // tab bar notifications.
+        Item { Layout.fillWidth: true }
         RowLayout {
             objectName: "status-readout"
             visible: root.width > root.readoutMinWidth
