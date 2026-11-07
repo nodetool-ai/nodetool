@@ -92,6 +92,17 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
   projected_ = true;
   workflowId_ = workflowId;
   readOnly_ = readOnly;
+  if (reset) {
+    catalogIndex_.clear();
+    for (int i = 0; i < catalog.size(); ++i) {
+      const auto entry = catalog[i].toObject();
+      // The first entry naming a type wins, as the scan it replaces did.
+      for (const auto key : {"node_type", "type"}) {
+        const auto type = entry[key];
+        if (type.isString() && !catalogIndex_.contains(type.toString())) { catalogIndex_.insert(type.toString(), i); }
+      }
+    }
+  }
   catalog_ = catalog;
   const auto rawNodes = graph["nodes"].toArray();
   QHash<NodeId, QJsonObject> nodes;
@@ -227,14 +238,11 @@ void WorkflowGraphModel::deriveProjection(const QJsonArray &rawNodes) {
     }
   }
 }
-QJsonObject WorkflowGraphModel::metadata(NodeId id) const {
-  const QJsonValue type = nodes_.value(id).value("type");
-  for (const auto &v : catalog_) {
-    const auto m = v.toObject();
-    if (m["node_type"] == type || m["type"] == type) { return m; }
-  }
-  return {};
+QJsonObject WorkflowGraphModel::catalogEntry(const QJsonValue &type) const {
+  const auto found = type.isString() ? catalogIndex_.constFind(type.toString()) : catalogIndex_.cend();
+  return found == catalogIndex_.cend() ? QJsonObject{} : catalog_[*found].toObject();
 }
+QJsonObject WorkflowGraphModel::metadata(NodeId id) const { return catalogEntry(nodes_.value(id).value("type")); }
 void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime) {
   if (runtime_ == runtime) { return; }
   if (runtime_) { disconnect(runtime_, nullptr, this, nullptr); }
@@ -761,38 +769,34 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     names.insert(name);
     result.append(port);
   };
-  for (const auto &value : catalog_) {
-    const auto metadata = value.toObject();
-    if (metadata["node_type"] == n["type"] || metadata["type"] == n["type"]) {
-      QSet<QString> connectedInputs;
-      if (type == PortType::In) {
-        for (const auto &value : edges_) {
-          const auto edge = value.toObject();
-          if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
-        }
+  if (const auto metadata = catalogEntry(n["type"]); !metadata.isEmpty()) {
+    QSet<QString> connectedInputs;
+    if (type == PortType::In) {
+      for (const auto &value : edges_) {
+        const auto edge = value.toObject();
+        if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
       }
-      for (const auto &port : metadata[type == PortType::In ? "properties" : "outputs"].toArray()) {
-        const auto declaration = port.toObject();
-        const auto name = declaration["name"];
-        if (n["type"] == "nodetool.workflows.subgraph.Subgraph" && name == "graph") { continue; }
-        const auto ui = n["ui_properties"].toObject();
-        const bool handleOnly = (metadata["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)) &&
-            !ui["exposed_inputs_hidden"].toArray().contains(name) && !ui["exposed_inputs_labeled"].toArray().contains(name);
-        // A bespoke body draws its own fixed handles and controls, as rendersExposedInputHandles.
-        const auto body = cardBodyFor(n["type"].toString(), metadata);
-        const bool bespoke = drawsOwnHandles(body);
-        if (type == PortType::In && bespoke && !bespokeHandle(body, metadata, name.toString()) && !connectedInputs.contains(name.toString())) {
-          names.insert(declaration["name"].toString());
-          continue;
-        }
-        if (type == PortType::In && !bespoke && !handleOnly && !connectedInputs.contains(name.toString()) &&
-            (!cardField(metadata, ui, declaration) || !node_editor::propertyConditionSatisfied(declaration, n["data"].toObject()))) {
-          names.insert(declaration["name"].toString());
-          continue;
-        }
-        append(declaration);
+    }
+    for (const auto &port : metadata[type == PortType::In ? "properties" : "outputs"].toArray()) {
+      const auto declaration = port.toObject();
+      const auto name = declaration["name"];
+      if (n["type"] == "nodetool.workflows.subgraph.Subgraph" && name == "graph") { continue; }
+      const auto ui = n["ui_properties"].toObject();
+      const bool handleOnly = (metadata["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)) &&
+          !ui["exposed_inputs_hidden"].toArray().contains(name) && !ui["exposed_inputs_labeled"].toArray().contains(name);
+      // A bespoke body draws its own fixed handles and controls, as rendersExposedInputHandles.
+      const auto body = cardBodyFor(n["type"].toString(), metadata);
+      const bool bespoke = drawsOwnHandles(body);
+      if (type == PortType::In && bespoke && !bespokeHandle(body, metadata, name.toString()) && !connectedInputs.contains(name.toString())) {
+        names.insert(declaration["name"].toString());
+        continue;
       }
-      break;
+      if (type == PortType::In && !bespoke && !handleOnly && !connectedInputs.contains(name.toString()) &&
+          (!cardField(metadata, ui, declaration) || !node_editor::propertyConditionSatisfied(declaration, n["data"].toObject()))) {
+        names.insert(declaration["name"].toString());
+        continue;
+      }
+      append(declaration);
     }
   }
   const auto declarations = n[type == PortType::In ? "dynamic_inputs" : "dynamic_outputs"].toObject();

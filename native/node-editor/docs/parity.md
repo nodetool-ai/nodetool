@@ -2911,6 +2911,14 @@ The CMake build has no optimization or sanitizer flags.
 | Shown window | 1,000 | 468.14 | 636.35 | 440.15 | 407.35 | 104,600.00 |
 | Shown window | 2,000 | 549.87 | 771.88 | 497.76 | 444.45 | 208,066.00 |
 
+The `drag` case drags a card with real pointer moves across 72 parity-fixture
+cards and a 3,400-entry catalog, the size of the server catalog, and repaints
+after each move. Each card's bounds were recomputed on every view query, and
+each port visibility check scanned the catalog, so one move took over 5 s. The
+layout now caches its bounds and the model indexes the catalog by node type, so
+a move takes about 10 ms in the unoptimized build. Most of that is painting the
+grid and wires.
+
 Add averages cover the interval since the previous checkpoint. The 2,000-node
 cost is 0.99× the 250-node cost without a window and 1.25× with a shown window,
 within the test's 3× bound. Before indexed storage and delta undo, document adds

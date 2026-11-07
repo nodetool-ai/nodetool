@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QVariantList>
 #include <QVector>
+#include <optional>
 
 namespace nodetool {
 // Measurements from web/src/components/node and web/src/styles. The native
@@ -239,6 +240,9 @@ struct NodeLayout {
   QVector<NodeRow> rows;
   QVector<double> inputY;
   QVector<double> outputY;
+  // The card and its visible handles. The view asks for it on every move and
+  // paint, so it is computed once per layout.
+  mutable std::optional<QRectF> bounds;
 };
 
 // Port colors from web/src/config/data_types.ts.

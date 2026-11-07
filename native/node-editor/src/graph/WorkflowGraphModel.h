@@ -135,6 +135,9 @@ private:
   QHash<QtNodes::NodeId, QJsonObject> nodes_;
   QHash<QString, QtNodes::NodeId> ids_;
   QJsonArray edges_, catalog_;
+  // Catalog positions by node type, so card queries skip a scan of thousands of entries.
+  QHash<QString, int> catalogIndex_;
+  QJsonObject catalogEntry(const QJsonValue &type) const;
   // Edges that touch each resource id, which its ports and layout read.
   QHash<QString, QJsonArray> incident_;
   QString workflowId_;

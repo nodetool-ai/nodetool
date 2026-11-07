@@ -64,6 +64,7 @@ class NodeGeometry final : public AbstractNodeGeometry {
 public:
   explicit NodeGeometry(WorkflowGraphModel &model) : AbstractNodeGeometry(model), model_(model) {}
   QRectF boundingRect(NodeId id) const override {
+    if (const auto &cached = model_.layout(id).bounds) { return *cached; }
     const auto margin = nm::handleDiameter / 2 + 2;
     auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : -margin, margin, margin);
     for (const auto side : {PortType::In, PortType::Out}) {
@@ -74,6 +75,7 @@ public:
         bounds = bounds.united(QRectF(point - QPointF(margin, margin), QSizeF(2 * margin, 2 * margin)));
       }
     }
+    model_.layout(id).bounds = bounds;
     return bounds;
   }
   QSize size(NodeId id) const override { return model_.layout(id).size; }

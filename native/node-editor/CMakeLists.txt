@@ -76,6 +76,8 @@ if(BUILD_TESTING)
     set_tests_properties(node_editor_run_trace PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(node_editor_large_graph_tests tests/perf/LargeGraphTest.cpp)
     target_link_libraries(node_editor_large_graph_tests PRIVATE node_editor_core Qt6::Test)
+    target_compile_definitions(node_editor_large_graph_tests PRIVATE
+        WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
     nodetool_use_ui_primitives(node_editor_large_graph_tests)
     add_test(NAME node_editor_large_graph COMMAND node_editor_large_graph_tests)
     set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
