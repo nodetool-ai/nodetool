@@ -37,6 +37,7 @@ QtObject {
     readonly property color destructivePrimary: dark ? "#c62828" : "#b42318"
     readonly property color destructiveHover: dark ? "#a32020" : "#912018"
     readonly property color accentHover: dark ? "#2a4d80" : "#244e9e"
+    readonly property color accentSecondary: dark ? "#e879f9" : "#b13bcf"
     readonly property color statusWarningSurface: dark ? "#3d2b10" : "#fff1d6"
     readonly property color statusWarningOnSurface: dark ? "#ffd08a" : "#825100"
     readonly property color statusErrorSurface: dark ? "#441d21" : "#ffebeb"

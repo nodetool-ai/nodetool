@@ -18,5 +18,5 @@ Image {
     source: pathData === "" ? "" : "data:image/svg+xml;utf8," + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path ' + (name.startsWith("tool") ? 'fill="none" stroke="rgb(' + Math.round(ink.r * 255) + ',' + Math.round(ink.g * 255) + ',' + Math.round(ink.b * 255) + ')" stroke-opacity="' + ink.a + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"' : 'fill="rgb(' + Math.round(ink.r * 255) + ',' + Math.round(ink.g * 255) + ',' + Math.round(ink.b * 255) + ')" fill-opacity="' + ink.a + '"') + ' d="' + pathData + '"/></svg>')
     Accessible.ignored: true
-    onNameChanged: if (name && pathData === "") console.warn("Unknown native icon: " + name)
+    onNameChanged: if (name && Icons[name] === undefined) console.warn("Unknown native icon: " + name)
 }
