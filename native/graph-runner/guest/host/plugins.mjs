@@ -10,6 +10,7 @@
 // node files and every other export stay as they are. The shader catalog
 // (gpu-catalog.mjs) is built in Node here and embedded as the module
 // `nodetool:gpu-catalog`.
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,6 +80,27 @@ export function capabilityPlugins() {
             };
           });
         }
+        // liteparse imports its vendored pdf.js through a URL built from
+        // import.meta.url, which a bundle cannot follow. Import it and its
+        // worker statically instead. Font and CMap files then resolve under a
+        // directory the guest filesystem does not grant, so pdf.js falls back
+        // to its built-in metrics, which is enough for text extraction.
+        b.onLoad({ filter: /[\\/]liteparse[\\/]dist[\\/]src[\\/]engines[\\/]pdf[\\/]pdfjsImporter\.js$/ }, (args) => {
+          const source = readFileSync(args.path, "utf8");
+          const start = source.indexOf("export async function importPdfJs()");
+          if (start < 0) throw new Error(`liteparse: ${args.path} no longer defines importPdfJs`);
+          return {
+            contents: [
+              'import * as pdfjs from "../../vendor/pdfjs/pdf.mjs";',
+              'import * as pdfjsWorker from "../../vendor/pdfjs/pdf.worker.mjs";',
+              source.slice(0, start).replace(/^import .*$/gm, ""),
+              "globalThis.pdfjsWorker ??= pdfjsWorker;",
+              'export async function importPdfJs() { return { fn: pdfjs.getDocument, dir: "/liteparse/pdfjs" }; }'
+            ].join("\n"),
+            loader: "js",
+            resolveDir: dirname(args.path)
+          };
+        });
         b.onResolve({ filter: /^nodetool:gpu-catalog$/ }, () => ({ path: "gpu-catalog", namespace: "gpu-catalog" }));
         b.onLoad({ filter: /.*/, namespace: "gpu-catalog" }, async () => {
           catalog ??= JSON.stringify(await buildGpuCatalog());

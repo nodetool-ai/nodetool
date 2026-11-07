@@ -14,5 +14,6 @@ export const HOST_MODULES = {
   "@nodetool-ai/agents/js-sandbox": join(here, "sandbox.mjs"),
   "@nodetool-ai/gpu/node": join(here, "gpu-node.mjs"),
   "better-sqlite3": join(here, "sqlite.mjs"),
-  "sqlite-vec": join(here, "sqlite-vec.mjs")
+  "sqlite-vec": join(here, "sqlite-vec.mjs"),
+  "file-type": join(here, "..", "shims", "file-type.mjs")
 };

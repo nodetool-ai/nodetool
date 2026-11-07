@@ -7,6 +7,8 @@ import {
 } from "web-streams-polyfill";
 import { Buffer } from "buffer";
 import DOMMatrix from "happy-dom/lib/dom/dom-matrix/DOMMatrix.js";
+import Blob from "happy-dom/lib/file/Blob.js";
+import { Response } from "../env/response.mjs";
 import { loadCanvas } from "./canvas.mjs";
 import { loadSharp } from "./image.mjs";
 const loaders = {
@@ -41,6 +43,13 @@ const loaders = {
     };
   },
   "pdf-lib": () => import("pdf-lib"),
+  "@llamaindex/liteparse": async () => {
+    // Its pdf.js patches Blob.prototype and Response.prototype when it loads.
+    globalThis.DOMMatrix ??= DOMMatrix;
+    globalThis.Blob ??= Blob;
+    globalThis.Response ??= Response;
+    return import("@llamaindex/liteparse");
+  },
   "pdf-parse": async () => {
     globalThis.DOMMatrix ??= DOMMatrix;
     globalThis.pdfjsWorker =
