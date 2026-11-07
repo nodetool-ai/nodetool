@@ -1,6 +1,7 @@
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include <QDialog>
+#include <QMenu>
 #include <QDir>
 #include <QGraphicsView>
 #include <QQuickItem>
@@ -63,6 +64,14 @@ struct Host {
         return nullptr;
     }
 };
+NodeRow dynamicRow(const WorkflowGraphModel &model, QtNodes::NodeId id, const QString &name) {
+    for (const auto &row : model.layout(id).rows) { if (row.propertyName == name) { return row; } }
+    return {};
+}
+QMenu *typeMenu(EditorWindow &window) {
+    for (auto *menu : window.findChildren<QMenu *>("dynamic-slot-type-menu")) { if (menu->isVisible()) { return menu; } }
+    return nullptr;
+}
 QQuickItem *find(QQuickItem *root, const QString &name) {
     if (!root) { return nullptr; }
     if (root->objectName() == name) { return root; }
@@ -309,6 +318,71 @@ private slots:
             QCOMPARE(row.rect.left(), double(node_metrics::borderWidth + node_metrics::padding));
         }
         QVERIFY(input); QVERIFY(output);
+    }
+    void cardTypeChipRetypesInOneStep() {
+        Host h;
+        auto typed = node("n", "test.Dynamic");
+        typed["dynamic_inputs"] = QJsonObject{{"typed", QJsonObject{{"type", QJsonObject{{"type", "str"}, {"type_args", QJsonArray{}}, {"optional", false}}}}}};
+        typed["dynamic_properties"] = QJsonObject{{"extra", "keep"}, {"typed", "hello"}};
+        QVERIFY(h.window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{typed, node("source", "test.Dynamic", 500)}}, {"edges", QJsonArray{}}}}}));
+        QTest::qWait(30); h.window.fit(); QTest::qWait(30);
+        const auto before = h.window.document()->snapshot();
+        auto row = dynamicRow(*h.model, h.id(), "typed");
+        QVERIFY2(!row.typeChipRect.isEmpty(), "An unconnected dynamic input of a user-owned node shows a type chip");
+        QCOMPARE(row.typeChip, QString("str"));
+        QVERIFY(!row.removeButtonRect.isEmpty());
+        // An undeclared slot reads as any, as slotType(normalizeDynamicSlot(undefined)) does.
+        QCOMPARE(dynamicRow(*h.model, h.id(), "extra").typeChip, QString("any"));
+        // The chip, rename and remove controls share the label row without overlapping.
+        QVERIFY(!row.typeChipRect.intersects(row.renameButtonRect));
+        QVERIFY(!row.typeChipRect.intersects(row.removeButtonRect));
+        QVERIFY(row.typeChipRect.right() <= h.model->layout(h.id()).size.width());
+        h.click(row.typeChipRect);
+        QMenu *menu = nullptr;
+        QTRY_VERIFY((menu = typeMenu(h.window)));
+        QAction *current = nullptr, *integer = nullptr;
+        for (auto *action : menu->actions()) {
+            if (action->isChecked()) { current = action; }
+            if (action->text() == "int") { integer = action; }
+        }
+        QVERIFY(current); QCOMPARE(current->text(), QString("str"));
+        QVERIFY(integer);
+        QTest::mouseClick(menu, Qt::LeftButton, {}, menu->actionGeometry(integer).center());
+        QTRY_COMPARE(h.window.document()->node("n")["dynamic_inputs"].toObject()["typed"].toObject()["type"].toObject()["type"].toString(), QString("int"));
+        QVERIFY(h.window.document()->node("n")["dynamic_properties"].toObject()["typed"].isDouble());
+        QCOMPARE(h.window.document()->undoStack()->count(), 1);
+        QTRY_COMPARE(dynamicRow(*h.model, h.id(), "typed").typeChip, QString("int"));
+        h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(), before);
+    }
+    void cardTypeChipHiddenForConnectedAndSchemaDrivenSlots() {
+        const QJsonObject edge{{"id", "e"}, {"source", "source"}, {"sourceHandle", "out"}, {"target", "n"}, {"targetHandle", "extra"}};
+        Host h("test.Dynamic", QJsonArray{edge});
+        const auto connected = dynamicRow(*h.model, h.id(), "extra");
+        QVERIFY(!connected.renameLabelRect.isEmpty());
+        QVERIFY(connected.typeChipRect.isEmpty());
+        QVERIFY(!connected.removeButtonRect.isEmpty());
+        auto meta = catalog()[0].toObject(); meta["node_type"] = "fal.Dynamic";
+        WorkflowGraphModel model;
+        model.project({{"graph", QJsonObject{{"nodes", QJsonArray{node("n", "fal.Dynamic")}}, {"edges", QJsonArray{}}}}}, QJsonArray{meta});
+        const auto schemaDriven = dynamicRow(model, *model.allNodeIds().begin(), "extra");
+        QVERIFY(!schemaDriven.renameLabelRect.isEmpty());
+        QVERIFY(schemaDriven.typeChipRect.isEmpty());
+        model.project({{"graph", QJsonObject{{"nodes", QJsonArray{node("n", "test.Dynamic")}}, {"edges", QJsonArray{}}}}}, catalog(), true);
+        QVERIFY(dynamicRow(model, *model.allNodeIds().begin(), "extra").typeChipRect.isEmpty());
+        QVERIFY(dynamicRow(model, *model.allNodeIds().begin(), "extra").removeButtonRect.isEmpty());
+    }
+    void cardRemoveControlDeletesSlotAndWires() {
+        const QJsonObject edge{{"id", "e"}, {"source", "source"}, {"sourceHandle", "out"}, {"target", "n"}, {"targetHandle", "extra"}};
+        Host h("test.Dynamic", QJsonArray{edge});
+        const auto before = h.window.document()->snapshot();
+        const auto remove = dynamicRow(*h.model, h.id(), "extra").removeButtonRect;
+        QVERIFY2(!remove.isEmpty(), "A dynamic input shows the web's remove control on the card");
+        h.click(remove);
+        QTRY_VERIFY(!h.window.document()->node("n")["dynamic_properties"].toObject().contains("extra"));
+        QVERIFY(h.window.document()->edges().isEmpty());
+        QCOMPARE(h.window.document()->undoStack()->count(), 1);
+        QVERIFY(!h.dialog());
+        h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(), before);
     }
     void contentFooterSkipsStaticNamesAndUndoes() {
         Host h("test.Content"); const auto before = h.window.document()->snapshot();

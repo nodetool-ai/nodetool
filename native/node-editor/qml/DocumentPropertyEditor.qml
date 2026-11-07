@@ -8,6 +8,8 @@ ColumnLayout {
     required property var value
     required property bool writable
     required property string nodeId
+    // A card's own open button stands beside the select, so its overlay hides this one.
+    property bool showOpen: true
     property var controller: typeof documentPickerController === "undefined" ? null : documentPickerController
     readonly property string kind: descriptor.dataType.type
     readonly property string selectedId: value && value.id ? value.id : ""
@@ -45,6 +47,8 @@ ColumnLayout {
         error = ""
         controller.load(key, kind)
     }
+    readonly property var popup: select.popup
+    function openPicker() { select.popup.open() }
     function choose(id) {
         if (!writable || id === selectedId || !rows.some(row => row.id === id)) { return }
         const reference = {type: kind, id: id}
@@ -102,6 +106,7 @@ ColumnLayout {
         }
         Ui.ToolbarIconButton {
             objectName: "document-open"
+            visible: root.showOpen
             accessibleName: root.openEditorLabel
             iconName: root.kind === "timeline" ? "movieOutlined" : root.kind === "sketch" ? "brushOutlined" : root.kind === "storyboard" ? "viewCarouselOutlined" : "descriptionOutlined"
             enabled: root.writable && root.controller && root.selectedId !== ""

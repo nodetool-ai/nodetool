@@ -1,11 +1,13 @@
 #include "CardBodies.h"
 #include <QFont>
 #include <QFontMetricsF>
+#include <QTextLayout>
 #include <QObject>
 #include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
 #include <cmath>
+#include <tuple>
 
 namespace nodetool {
 namespace {
@@ -262,6 +264,57 @@ void layoutBlur(NodeLayout &layout, const CardBodyInput &input) {
     layout.size.setHeight(int(std::ceil(slider.bottom() + nm::padding + nm::padding + nm::borderWidth)));
 }
 
+// The two number boxes of ResizeImageBody, ResizeBody, FitBody and PasteBody:
+// 12 px labels over 24 px boxes, with the aspect lock between them when `lock`
+// is set. The boxes edit width and height unless other names are given.
+// Returns the bottom of the boxes.
+double dimensionRow(NodeLayout &layout, const CardBodyInput &input, double y, bool lock,
+                    const QStringList &names = {QStringLiteral("width"), QStringLiteral("height")},
+                    const QStringList &labels = {QObject::tr("Width"), QObject::tr("Height")}) {
+    const auto x = double(nm::borderWidth + nm::padding + nm::micro);
+    const auto gap = lock ? double(nm::lockWidth) : double(nm::micro) * 2;
+    const auto boxWidth = (layout.size.width() - 2 * x - gap) / 2;
+    layout.rows.append(labelRow(labels[0], QRectF(x, y, boxWidth, nm::dimensionLabelHeight)));
+    layout.rows.append(labelRow(labels[1], QRectF(x + boxWidth + gap, y, boxWidth, nm::dimensionLabelHeight)));
+    y += nm::dimensionLabelHeight + nm::borderWidth;
+    const QRectF widthBox(x, y, boxWidth, nm::controlHeight);
+    const QRectF heightBox(widthBox.right() + gap, y, boxWidth, nm::controlHeight);
+    layout.rows.append(numberBox(input.fields.value(names[0]), names[0], widthBox));
+    layout.rows.append(numberBox(input.fields.value(names[1]), names[1], heightBox));
+    placePort(layout, input.inputs, names[0], widthBox.center().y());
+    placePort(layout, input.inputs, names[1], heightBox.center().y());
+    if (lock) {
+        auto link = controlRow(NodeRowKind::Lock, {}, input.dimensionsLinked ? QObject::tr("Unlock aspect ratio") : QObject::tr("Lock aspect ratio"),
+                               QRectF(widthBox.right(), y, gap, nm::controlHeight));
+        link.checked = input.dimensionsLinked;
+        link.icon = input.dimensionsLinked ? QStringLiteral("link") : QStringLiteral("linkOff");
+        layout.rows.append(link);
+    }
+    return widthBox.bottom();
+}
+
+// The 256, 512, 768 and 1024 chips that set both dimensions at once. Returns their bottom.
+double presetRow(NodeLayout &layout, const CardBodyInput &input, double bottom) {
+    const auto x = double(nm::borderWidth + nm::padding + nm::micro);
+    const auto presetY = bottom + nm::padding;
+    const auto label = QObject::tr("Presets");
+    layout.rows.append(labelRow(label, QRectF(x, presetY, textWidth(label), nm::chipHeight)));
+    auto presetX = x + textWidth(label) + nm::chipGap;
+    for (const auto size : {256, 512, 768, 1024}) {
+        const auto text = QString::number(size);
+        auto preset = controlRow(NodeRowKind::Action, {}, text,
+                                 QRectF(presetX, presetY, textWidth(text) + 2 * nm::micro, nm::chipHeight));
+        preset.action = QStringLiteral("resizePreset");
+        preset.number = size;
+        preset.bare = true;
+        preset.checked = fieldValue(input.fields.value(QStringLiteral("width"))).toInt() == size
+            && fieldValue(input.fields.value(QStringLiteral("height"))).toInt() == size;
+        layout.rows.append(preset);
+        presetX = preset.rect.right() + nm::chipGap;
+    }
+    return presetY + nm::chipHeight;
+}
+
 void layoutResizeImage(NodeLayout &layout, const CardBodyInput &input) {
     const auto width = double(layout.size.width());
     const auto x = double(nm::borderWidth + nm::padding + nm::micro);
@@ -291,45 +344,35 @@ void layoutResizeImage(NodeLayout &layout, const CardBodyInput &input) {
         layout.size.setHeight(int(std::ceil(slider.bottom() + nm::padding + nm::padding + nm::borderWidth)));
         return;
     }
-    const auto lock = mode == QStringLiteral("dimensions") ? double(nm::lockWidth) : double(nm::micro) * 2;
-    const auto boxWidth = (width - 2 * x - lock) / 2;
-    y = modes.rect.bottom() + nm::micro;
-    layout.rows.append(labelRow(QObject::tr("Width"), QRectF(x, y, boxWidth, nm::dimensionLabelHeight)));
-    layout.rows.append(labelRow(QObject::tr("Height"), QRectF(x + boxWidth + lock, y, boxWidth, nm::dimensionLabelHeight)));
-    y += nm::dimensionLabelHeight + nm::borderWidth;
-    const QRectF widthBox(x, y, boxWidth, nm::controlHeight);
-    const QRectF heightBox(widthBox.right() + lock, y, boxWidth, nm::controlHeight);
-    layout.rows.append(numberBox(input.fields.value(QStringLiteral("width")), QStringLiteral("width"), widthBox));
-    layout.rows.append(numberBox(input.fields.value(QStringLiteral("height")), QStringLiteral("height"), heightBox));
-    placePort(layout, input.inputs, QStringLiteral("width"), widthBox.center().y());
-    placePort(layout, input.inputs, QStringLiteral("height"), heightBox.center().y());
-    if (mode == QStringLiteral("dimensions")) {
-        auto link = controlRow(NodeRowKind::Lock, {}, input.dimensionsLinked ? QObject::tr("Unlock aspect ratio") : QObject::tr("Lock aspect ratio"),
-                               QRectF(widthBox.right(), y, lock, nm::controlHeight));
-        link.checked = input.dimensionsLinked;
-        link.icon = input.dimensionsLinked ? QStringLiteral("link") : QStringLiteral("linkOff");
-        layout.rows.append(link);
-    }
-    auto bottom = widthBox.bottom();
+    auto bottom = dimensionRow(layout, input, modes.rect.bottom() + nm::micro, mode == QStringLiteral("dimensions"));
     if (mode == QStringLiteral("fit")) {
-        const auto presetY = bottom + nm::padding;
-        const auto label = QObject::tr("Presets");
-        layout.rows.append(labelRow(label, QRectF(x, presetY, textWidth(label), nm::chipHeight)));
-        auto presetX = x + textWidth(label) + nm::chipGap;
-        for (const auto size : {256, 512, 768, 1024}) {
-            const auto text = QString::number(size);
-            auto preset = controlRow(NodeRowKind::Action, {}, text,
-                                     QRectF(presetX, presetY, textWidth(text) + 2 * nm::micro, nm::chipHeight));
-            preset.action = QStringLiteral("resizePreset");
-            preset.number = size;
-            preset.bare = true;
-            preset.checked = fieldValue(input.fields.value(QStringLiteral("width"))).toInt() == size
-                && fieldValue(input.fields.value(QStringLiteral("height"))).toInt() == size;
-            layout.rows.append(preset);
-            presetX = preset.rect.right() + nm::chipGap;
-        }
-        bottom = presetY + nm::chipHeight;
+        bottom = presetRow(layout, input, bottom);
     }
+    layout.size.setHeight(int(std::ceil(bottom + nm::padding + nm::padding + nm::borderWidth)));
+}
+
+// ResizeBody.tsx: the Resize Image dimension row with its lock, below the preview.
+void layoutResize(NodeLayout &layout, const CardBodyInput &input) {
+    const auto bottom = dimensionRow(layout, input, imagePreview(layout, input) + nm::bodyGap, true);
+    layout.size.setHeight(int(std::ceil(bottom + nm::padding + nm::padding + nm::borderWidth)));
+}
+
+// PasteBody.tsx: the base and paste handles, and Left and Top in the dimension row.
+void layoutPaste(NodeLayout &layout, const CardBodyInput &input) {
+    const auto x = double(nm::borderWidth + nm::padding + nm::micro);
+    const QRectF area(x, nm::bodyTop, layout.size.width() - 2 * x, nm::imageBodyPreviewHeight);
+    layout.rows.append(placeholderRow(QObject::tr("Connect Image and Paste, then run"), QStringLiteral("image"), area));
+    layout.resultRect = area;
+    placePort(layout, input.inputs, QStringLiteral("image"), nm::contentTop + nm::rowHeight / 2.0);
+    placePort(layout, input.inputs, QStringLiteral("paste"), nm::contentTop + nm::rowHeight / 2.0 + nm::handleRowStep);
+    const auto bottom = dimensionRow(layout, input, area.bottom() + nm::bodyGap, false, {QStringLiteral("left"), QStringLiteral("top")},
+                                     {QObject::tr("Left"), QObject::tr("Top")});
+    layout.size.setHeight(int(std::ceil(bottom + nm::padding + nm::padding + nm::borderWidth)));
+}
+
+// FitBody.tsx: the dimension row without a lock, then the size presets.
+void layoutFit(NodeLayout &layout, const CardBodyInput &input) {
+    const auto bottom = presetRow(layout, input, dimensionRow(layout, input, imagePreview(layout, input) + nm::bodyGap, false));
     layout.size.setHeight(int(std::ceil(bottom + nm::padding + nm::padding + nm::borderWidth)));
 }
 
@@ -886,6 +929,134 @@ void layoutGetVariable(NodeLayout &layout, const CardBodyInput &input) {
     // The 4 px gap before the outputs-row, the body padding, the card padding and the border.
     layout.size.setHeight(int(std::ceil(y + nm::getVariableGap + nm::micro + nm::padding + nm::borderWidth)));
 }
+
+void layoutCompareImages(NodeLayout &layout, const CardBodyInput &input) {
+    // The card has no content that sizes it, so it takes its 300 by 250 minimum.
+    const auto ui = input.node["ui_properties"].toObject();
+    layout.size.setWidth(std::max(nm::compareMinimumWidth, ui["width"].toInt()));
+    layout.size.setHeight(std::max(nm::compareMinimumHeight, ui["height"].toInt()));
+    layout.minimumSize.setWidth(nm::compareMinimumWidth);
+    layout.flexHeight = layout.size.height() - nm::compareMinimumHeight;
+    // Both handles start under the header on the 28 px pitch, level with the outputs.
+    placePort(layout, input.inputs, QStringLiteral("image_a"), nm::contentTop + nm::rowHeight / 2.0);
+    placePort(layout, input.inputs, QStringLiteral("image_b"), nm::contentTop + nm::rowHeight / 2.0 + nm::handleRowStep);
+    const auto inset = double(nm::borderWidth + nm::padding);
+    const QRectF area(inset, nm::contentTop, layout.size.width() - 2 * inset, layout.size.height() - nm::contentTop - inset);
+    layout.rows.append(placeholderRow(QObject::tr("Connect two images, then run"), QStringLiteral("compare"), area));
+    layout.resultRect = area;
+}
+
+} // namespace
+
+std::vector<std::unique_ptr<QTextLayout>> textAreaLayouts(const QString &text, const QFont &font, double width, double lineHeight) {
+    std::vector<std::unique_ptr<QTextLayout>> layouts;
+    double y = 0;
+    // Each paragraph wraps on its own, and an empty one, such as after a trailing newline, still takes a line.
+    for (const auto &paragraph : text.split(QLatin1Char('\n'))) {
+        auto layout = std::make_unique<QTextLayout>(paragraph, font);
+        QTextOption option;
+        option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        layout->setTextOption(option);
+        layout->beginLayout();
+        for (auto line = layout->createLine(); line.isValid(); line = layout->createLine()) {
+            line.setLineWidth(std::max(1.0, width));
+            // Center the line in its line box, as CSS line-height does.
+            line.setPosition(QPointF(0, y + (lineHeight - line.height()) / 2));
+            y += lineHeight;
+        }
+        layout->endLayout();
+        layouts.push_back(std::move(layout));
+    }
+    return layouts;
+}
+
+namespace {
+// A header icon button, such as Constant String's Open editor and Copy, or the
+// Rotate and Flip toggles. `number` turns the icon, as the Flip V icon is the
+// Flip icon at 90 degrees.
+NodeRow iconAction(const QString &action, const QString &name, const QString &icon, const QString &label, const QRectF &rect) {
+    auto row = controlRow(NodeRowKind::Action, name, label, rect);
+    row.action = action;
+    row.icon = icon;
+    return row;
+}
+
+void layoutConstantString(NodeLayout &layout, const CardBodyInput &input) {
+    layout.size.setWidth(std::max(nm::stringMinimumWidth, layout.size.width()));
+    layout.minimumSize.setWidth(nm::stringMinimumWidth);
+    const auto width = double(layout.size.width());
+    const auto inset = double(nm::borderWidth + nm::padding);
+    // The value handle and the first output sit on the header line.
+    placePort(layout, input.inputs, QStringLiteral("value"), nm::headerHandleY);
+    for (auto &y : layout.outputY) {
+        y = nm::headerHandleY;
+    }
+    const auto button = double(nm::headerButtonSize);
+    const auto top = inset + (nm::headerHeight - button) / 2;
+    const QRectF copy(width - inset - nm::headerButtonInset - button, top, button, button);
+    const QRectF expand(copy.x() - nm::micro - button, top, button, button);
+    // The buttons name their property in `value`, so the text area keeps the
+    // property's inline editor bounds.
+    for (const auto &[action, icon, label, rect] : {std::tuple{QStringLiteral("expandEditor"), QStringLiteral("openInFull"), QObject::tr("Open editor"), expand},
+                                                    std::tuple{QStringLiteral("copyValue"), QStringLiteral("contentCopy"), QObject::tr("Copy"), copy}}) {
+        auto row = iconAction(action, {}, icon, label, rect);
+        row.value = QStringLiteral("value");
+        layout.rows.append(row);
+    }
+    // The text area auto-grows to its wrapped text, as the web's scrollHeight measure.
+    const auto field = input.fields.value(QStringLiteral("value"));
+    const auto text = fieldValue(field).toString();
+    const auto font = bodyFont(nm::fontValue);
+    int lines = 0;
+    for (const auto &paragraph : textAreaLayouts(text, font, width - 2 * inset - 2 * nm::stringTextPadding, nm::fontValue * nm::stringLineHeight)) {
+        lines += paragraph->lineCount();
+    }
+    const auto content = std::max<double>(nm::stringTextMinimum, 2 * nm::stringTextPadding + lines * nm::fontValue * nm::stringLineHeight);
+    const auto overhead = nm::contentTop + inset;
+    const auto natural = int(std::ceil(std::min<double>(overhead + content, nm::stringMaximumHeight)));
+    const auto height = std::max(natural, input.node["ui_properties"].toObject()["height"].toInt());
+    layout.size.setHeight(height);
+    // The card can shrink to the 60 px text area, which then scrolls.
+    layout.flexHeight = height - int(overhead + nm::stringTextMinimum);
+    auto area = controlRow(NodeRowKind::Multiline, QStringLiteral("value"), {}, QRectF(inset, nm::contentTop, width - 2 * inset, height - overhead));
+    area.value = text;
+    area.placeholder = text.isEmpty();
+    area.checked = field.value("connected").toBool();
+    layout.rows.append(area);
+}
+
+void layoutRotateFlip(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    // .controls pads 2 px. The angle row pads 2 px on each side and puts a
+    // 48 px degree readout 2 px after the slider.
+    column.y += nm::micro;
+    QRectF slider(column.x, column.y, column.width - nm::micro, nm::nodeSliderHeight);
+    auto angle = sliderRow(input.fields.value(QStringLiteral("angle")), QStringLiteral("angle"), {}, slider, -360, 360, 1, QStringLiteral("%1°"));
+    angle.labelWidth = 0;
+    angle.columnGap = nm::micro;
+    angle.valueWidth = nm::angleReadoutWidth;
+    // ANGLE_MARKS: a snap mark every 90 degrees.
+    for (int mark = -360; mark <= 360; mark += 90) {
+        angle.optionValues.append(mark);
+    }
+    layout.rows.append(angle);
+    // The column's 2 px gap and the action row's 2 px padding.
+    column.y = slider.bottom() + nm::micro + nm::micro;
+    const auto size = double(nm::iconButtonSize);
+    auto flipH = iconAction(QStringLiteral("toggleProperty"), QStringLiteral("flip_horizontal"), QStringLiteral("flip"),
+                            QObject::tr("Flip horizontal"), QRectF(column.x, column.y, size, size));
+    flipH.checked = fieldValue(input.fields.value(QStringLiteral("flip_horizontal"))).toBool();
+    auto flipV = iconAction(QStringLiteral("toggleProperty"), QStringLiteral("flip_vertical"), QStringLiteral("flip"),
+                            QObject::tr("Flip vertical"), QRectF(flipH.rect.right() + nm::micro, column.y, size, size));
+    flipV.checked = fieldValue(input.fields.value(QStringLiteral("flip_vertical"))).toBool();
+    flipV.number = 90;
+    layout.rows.append(flipH);
+    layout.rows.append(flipV);
+    layout.rows.append(iconAction(QStringLiteral("resetTransform"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset"),
+                                  QRectF(column.x + column.width - size, column.y, size, size)));
+    column.y += size;
+    column.finish();
+}
 } // namespace
 
 CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
@@ -925,7 +1096,11 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"lib.image.effects.Outline", CardBody::Outline}, {"lib.image.effects.DropShadow", CardBody::DropShadow},
         {"lib.image.effects.ColorOverlay", CardBody::ColorOverlay}, {"lib.image.keyer.ChromaKey", CardBody::ChromaKey},
         {"nodetool.image.Channels", CardBody::Channels}, {"lib.image.Mask", CardBody::Mask},
-        {"lib.image.color_grading.HSLAdjust", CardBody::HslAdjust}, {"nodetool.variable.GetVariable", CardBody::GetVariable}};
+        {"lib.image.color_grading.HSLAdjust", CardBody::HslAdjust}, {"nodetool.variable.GetVariable", CardBody::GetVariable},
+        // The node components ReactFlowWrapper.tsx registers, and the remaining image bodies.
+        {"nodetool.compare.CompareImages", CardBody::CompareImages}, {"nodetool.constant.String", CardBody::ConstantString},
+        {"nodetool.image.RotateAndFlip", CardBody::RotateFlip}, {"nodetool.image.Resize", CardBody::Resize},
+        {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -961,7 +1136,16 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::ChromaKey:
     case CardBody::Channels:
     case CardBody::HslAdjust:
+    case CardBody::RotateFlip:
+    case CardBody::Resize:
+    case CardBody::Fit:
         return name == QStringLiteral("image");
+    case CardBody::Paste:
+        return name == QStringLiteral("image") || name == QStringLiteral("paste");
+    case CardBody::CompareImages:
+        return name == QStringLiteral("image_a") || name == QStringLiteral("image_b");
+    case CardBody::ConstantString:
+        return name == QStringLiteral("value");
     case CardBody::Mask:
         return name == QStringLiteral("image1") || name == QStringLiteral("image2") || name == QStringLiteral("mask");
     case CardBody::Adjustment:
@@ -1005,6 +1189,10 @@ QStringList modelChipNames(const QJsonObject &metadata, const QJsonObject &ui) {
 QString headerIconType(CardBody body, const QJsonObject &metadata) {
     if (body == CardBody::Preview) {
         return QStringLiteral("preview");
+    }
+    // CompareImagesNode passes iconType="image".
+    if (body == CardBody::CompareImages) {
+        return QStringLiteral("image");
     }
     const auto outputs = metadata["outputs"].toArray();
     const auto properties = metadata["properties"].toArray();
@@ -1089,6 +1277,27 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
     case CardBody::GetVariable:
         layoutGetVariable(layout, input);
         break;
+    case CardBody::CompareImages:
+        layoutCompareImages(layout, input);
+        break;
+    case CardBody::ConstantString:
+        layoutConstantString(layout, input);
+        break;
+    case CardBody::RotateFlip:
+        layoutRotateFlip(layout, input);
+        break;
+    case CardBody::Resize:
+        layoutResize(layout, input);
+        growPreview(layout, input);
+        break;
+    case CardBody::Fit:
+        layoutFit(layout, input);
+        growPreview(layout, input);
+        break;
+    case CardBody::Paste:
+        layoutPaste(layout, input);
+        growPreview(layout, input);
+        break;
     default:
         break;
     }
@@ -1111,6 +1320,44 @@ QStringList graphVariableNames(const QJsonArray &nodes) {
     return names;
 }
 
+SchemaProvider schemaProvider(const QString &type) {
+    // The accents and copy of DynamicFalSchemaNode, DynamicKieSchemaNode and
+    // DynamicReplicateNode, and the i18n-next78 dynamicSchema strings.
+    if (type == QStringLiteral("fal.DynamicFal")) {
+        return {QStringLiteral("fal.ai"), QColor(0x8B, 0x5C, 0xF6), QStringLiteral("endpoint_id"), QStringLiteral("fal-ai/"),
+                QObject::tr("Run any model on fal.ai."),
+                QObject::tr("Paste the llms.txt from a fal.ai model page into the model_info field.")};
+    }
+    if (type == QStringLiteral("kie.dynamic_schema.KieAI") || type == QStringLiteral("kie.DynamicKie")) {
+        return {QStringLiteral("kie.ai"), QColor(0xE5, 0x5C, 0x20), QStringLiteral("model_id"), {},
+                QObject::tr("Run any model on kie.ai."),
+                QObject::tr("Paste the API documentation from a kie.ai model page into the model_info field.")};
+    }
+    if (type == QStringLiteral("replicate.DynamicReplicate")) {
+        return {QStringLiteral("replicate"), QColor(0x3D, 0x6C, 0xEB), QStringLiteral("model_id"), {},
+                QObject::tr("Run any model on replicate.com."),
+                QObject::tr("Enter a Replicate model identifier (e.g. runwayml/gen-4.5) into the model_info field.")};
+    }
+    return {};
+}
+
+QString schemaTitleDetail(const SchemaProvider &provider, const QJsonObject &ui) {
+    auto detail = ui[provider.detailKey].toString();
+    // endpoint_id.replace("fal-ai/", "") drops the first occurrence.
+    if (!provider.titlePrefix.isEmpty()) {
+        const auto at = detail.indexOf(provider.titlePrefix);
+        if (at >= 0) {
+            detail.remove(at, provider.titlePrefix.size());
+        }
+    }
+    return detail;
+}
+
+QString schemaFooter(const SchemaProvider &provider, const QJsonObject &ui) {
+    const auto model = ui[provider.detailKey].toString();
+    return model.isEmpty() ? provider.label : QStringLiteral("%1 · %2").arg(provider.label, model);
+}
+
 bool readsGraphVariables(CardBody body) {
     return body == CardBody::Prompt || body == CardBody::GetVariable;
 }
@@ -1118,7 +1365,8 @@ bool readsGraphVariables(CardBody body) {
 QRectF sliderTrack(const NodeRow &row) {
     auto left = row.rect.x() + nm::controlLabelWidth;
     auto right = row.rect.right() - nm::sliderValueWidth - nm::chipGap;
-    if (row.labelWidth > 0) {
+    // A row with its own cells, including one without a label such as the Rotate and Flip angle.
+    if (row.labelWidth > 0 || row.valueWidth > 0) {
         left = row.rect.x() + row.labelWidth + row.columnGap;
         right = row.rect.right() - row.valueWidth - row.columnGap;
     }

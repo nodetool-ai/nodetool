@@ -35,6 +35,11 @@ QtObject {
     // web/src/styles/AlphaSurface.ts: alphaSurfaceBg, fixed dark in both schemes.
     readonly property color alphaBase: "#1e1e1e"
     readonly property color alphaChecker: "#2a2a2a"
+    // web themes c_scrim and grey 100: the image dimensions badge and the media asset actions.
+    readonly property color mediaScrim: "#99000000"
+    readonly property color mediaScrimInk: dark ? "#d4d6db" : "#27272a"
+    // web themes c_scrim_strong: the backdrop of a video on a card (special_nodes.css).
+    readonly property color mediaScrimStrong: "#d9000000"
     // web/src/components/widgets/ImageComparer.tsx: metadata is white at 80 percent over the scrim.
     readonly property color comparisonMetadataInk: "#ccffffff"
     // web/src/components/widgets/ImageComparer.tsx: minHeight 200px.

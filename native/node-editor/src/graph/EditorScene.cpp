@@ -4,6 +4,8 @@
 #include "CardBodyPainter.h"
 #include "CardBodies.h"
 #include "document/ConnectionTypes.h"
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QHash>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsSceneContextMenuEvent>
@@ -64,6 +66,7 @@ class NodeGeometry final : public AbstractNodeGeometry {
 public:
   explicit NodeGeometry(WorkflowGraphModel &model) : AbstractNodeGeometry(model), model_(model) {}
   QRectF boundingRect(NodeId id) const override {
+    if (const auto &cached = model_.layout(id).bounds) { return *cached; }
     const auto margin = nm::handleDiameter / 2 + 2;
     auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : -margin, margin, margin);
     for (const auto side : {PortType::In, PortType::Out}) {
@@ -74,6 +77,7 @@ public:
         bounds = bounds.united(QRectF(point - QPointF(margin, margin), QSizeF(2 * margin, 2 * margin)));
       }
     }
+    model_.layout(id).bounds = bounds;
     return bounds;
   }
   QSize size(NodeId id) const override { return model_.layout(id).size; }
@@ -133,6 +137,30 @@ void paintIcon(QPainter *painter, const QString &name, const QRectF &rect, QColo
   const auto svg = QStringLiteral("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"%1\" fill-opacity=\"%2\" d=\"%3\"/></svg>")
                        .arg(color.name()).arg(color.alphaF()).arg(path);
   QSvgRenderer(svg.toUtf8()).render(painter, rect);
+}
+
+// A square icon centered in a row control, as the web's 14 px action icons.
+QRectF iconSquare(const QRectF &rect) {
+  const auto side = std::min({rect.width(), rect.height(), 14.0});
+  return QRectF(rect.center() - QPointF(side / 2, side / 2), QSizeF(side, side));
+}
+
+// DynamicSlotTypePicker's compact Chip: the slot type color as text, a half
+// opacity border and a 12 percent fill.
+void paintTypeChip(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+  painter->save();
+  const auto accent = typeColor(row.typeChip.startsWith("list[") ? row.typeChip.mid(5, row.typeChip.size() - 6) : row.typeChip);
+  auto border = accent; border.setAlphaF(0.5);
+  auto fill = accent; fill.setAlphaF(0.12);
+  painter->setPen(QPen(border, 1));
+  painter->setBrush(fill);
+  painter->drawRoundedRect(row.typeChipRect.adjusted(0.5, 0.5, -0.5, -0.5), nm::chipHeight / 2.0, nm::chipHeight / 2.0);
+  QFont mono(theme.monoFamily);
+  mono.setPixelSize(nm::fontValue);
+  painter->setFont(mono);
+  painter->setPen(accent);
+  painter->drawText(row.typeChipRect, Qt::AlignCenter, row.typeChip);
+  painter->restore();
 }
 
 void paintResizeHandle(QPainter *painter, const QSize &size, const QColor &color) {
@@ -375,6 +403,8 @@ public:
     auto borderColor = theme.divider;
     // selectionStyles.ts: a grouped card's hairline is the group header over 18 percent primary.
     if (grouped) { borderColor = mixColors(theme.groupHeader, theme.primary, 0.82); }
+    // DynamicSchemaNodeShell keeps its provider edge inside a group too.
+    if (layout.edge.isValid()) { borderColor = layout.edge; }
     if (layout.subgraph) {
         borderColor = theme.subgraphAccent;
         borderColor.setAlpha(64);
@@ -417,6 +447,7 @@ public:
     if (disabled) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
     CardBodyPaintState bodyState;
     bodyState.hasResult = model.hasRuntimeOutput(item.nodeId());
+    bodyState.hovered = item.nodeState().hovered();
     if (scene_.sliderDraftNode() == item.nodeId()) {
         bodyState.draftProperty = scene_.sliderDraftProperty();
         bodyState.draftValue = scene_.sliderDraftValue();
@@ -432,7 +463,9 @@ public:
                 painter->setFont(canvasFont(theme, nm::fontLabel, QFont::Normal));
                 painter->drawText(row.renameLabelRect, Qt::AlignLeft | Qt::AlignVCenter, row.label);
             }
-            if (!model.readOnly()) { paintIcon(painter, "edit", row.renameButtonRect, theme.textSecondary); }
+            if (!model.readOnly()) { paintIcon(painter, "edit", iconSquare(row.renameButtonRect), theme.textSecondary); }
+            if (!row.typeChipRect.isEmpty()) { paintTypeChip(painter, theme, row); }
+            if (!row.removeButtonRect.isEmpty()) { paintIcon(painter, "close", iconSquare(row.removeButtonRect), theme.textSecondary); }
         }
     }
     if (layout.addOutput) {
@@ -1400,7 +1433,13 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
       continue;
     }
     const auto handle = QRectF(bounds.bottomRight() - QPointF(25, 25), QSizeF(25, 25));
-    if (handle.contains(point) && !layout.collapsed) {
+    // A button in the last row, such as a document select's open button, takes the press
+    // before the corner resize zone that overlaps it.
+    const auto local = node->mapFromScene(point);
+    const bool overButton = std::any_of(layout.rows.cbegin(), layout.rows.cend(), [&local](const NodeRow &row) {
+      return row.kind == NodeRowKind::Action && !row.rect.isEmpty() && row.rect.contains(local);
+    });
+    if (handle.contains(point) && !layout.collapsed && !overButton) {
       target = id;
       edges = Qt::RightEdge | Qt::BottomEdge;
       break;
@@ -1463,7 +1502,7 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
   resizeEdges_ = edges;
   minimumSize_ = model_.layout(target).minimumSize;
   // Web edge controls use a 200px minimum; its corner control permits 150px.
-  if (!model_.isGroup(target) && !model_.isComment(target) && edges != (Qt::RightEdge | Qt::BottomEdge)) { minimumSize_.setWidth(200); }
+  if (!model_.isGroup(target) && !model_.isComment(target) && edges != (Qt::RightEdge | Qt::BottomEdge)) { minimumSize_.setWidth(std::max(200, minimumSize_.width())); }
   gestureSelected_.clear();
   gesturePositions_.clear();
   for (const auto id : model_.allNodeIds()) {
@@ -1483,6 +1522,17 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             if (auto *item = nodeGraphicsObject(id)) {
                 emit dynamicPortFormRequested(resource, false, row.propertyName, item->mapRectToScene(row.renameLabelRect));
             }
+            return true;
+        }
+        if (!row.typeChipRect.isEmpty() && row.typeChipRect.contains(local)) {
+            if (auto *item = nodeGraphicsObject(id)) {
+                emit dynamicTypeMenuRequested(resource, row.propertyName, item->mapRectToScene(row.typeChipRect));
+            }
+            return true;
+        }
+        // The X removes the value, the declaration and the wires in one step.
+        if (!row.removeButtonRect.isEmpty() && row.removeButtonRect.contains(local)) {
+            if (model_.commit) { model_.commit({{"op", "removeDynamicInput"}, {"id", resource}, {"name", row.propertyName}}); }
             return true;
         }
         if (!row.rect.contains(local)) { continue; }
@@ -1523,6 +1573,23 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 }
                 return true;
             }
+            // Constant String's header buttons name their property in `value`.
+            if (row.action == QStringLiteral("copyValue")) {
+                select();
+                QGuiApplication::clipboard()->setText(model_.nodeSnapshot(id)["data"].toObject()[row.value].toString());
+                return true;
+            }
+            if (row.action == QStringLiteral("openDocument")) {
+                select();
+                const auto reference = model_.nodeSnapshot(id)["data"].toObject()[row.propertyName].toObject();
+                if (!reference["id"].toString().isEmpty()) { emit documentOpenRequested(row.value, reference["id"].toString()); }
+                return true;
+            }
+            if (row.action == QStringLiteral("expandEditor")) {
+                select();
+                emit inlineExpandRequested(id, row.value);
+                return true;
+            }
             if (row.action == QStringLiteral("addInput")) {
                 if (auto *item = nodeGraphicsObject(id)) {
                     emit dynamicPortFormRequested(resource, false, {}, item->mapRectToScene(row.rect));
@@ -1555,6 +1622,16 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             } else if (row.action == QStringLiteral("insertVariable")) {
                 const auto prompt = node["data"].toObject()["prompt"].toString();
                 model_.commit(model_.propertyCommand(id, QStringLiteral("prompt"), prompt + QStringLiteral("{{ %1 }}").arg(row.value)));
+            } else if (row.action == QStringLiteral("addColumn")) {
+                model_.commit(model_.addDataframeColumnCommand(id, row.propertyName));
+            } else if (row.action == QStringLiteral("toggleProperty")) {
+                model_.commit(model_.propertyCommand(id, row.propertyName, !row.checked));
+            } else if (row.action == QStringLiteral("resetTransform")) {
+                // RotateAndFlipBody's Reset writes the angle and both flips together.
+                model_.commit({{"op", "batch"}, {"commands", QJsonArray{
+                    model_.propertyCommand(id, QStringLiteral("angle"), 0),
+                    model_.propertyCommand(id, QStringLiteral("flip_horizontal"), false),
+                    model_.propertyCommand(id, QStringLiteral("flip_vertical"), false)}}});
             }
             return true;
         }

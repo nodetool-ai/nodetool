@@ -1,11 +1,13 @@
 #pragma once
 #include <QColor>
+#include <QImage>
 #include <QSize>
 #include <QRectF>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
 #include <QVector>
+#include <optional>
 
 namespace nodetool {
 // Measurements from web/src/components/node and web/src/styles. The native
@@ -78,6 +80,12 @@ inline constexpr int dimensionLabelHeight = 12;
 inline constexpr int lockWidth = 28;
 // NodeModelChips.tsx and AddDynamicOutputButton.tsx under a content card.
 inline constexpr int modelChipHeight = 30;
+// The preset name under an image size's boxes, ImageSizeProperty.tsx's matched-preset-label.
+inline constexpr int imageSizeCaptionHeight = 12;
+// DataframeProperty.tsx: the Add column tab, its drop zone and the table preview under it.
+inline constexpr int dataframeButtonHeight = 22;
+inline constexpr int dataframeDropHeight = 64;
+inline constexpr int dataframeTableHeight = 65;
 inline constexpr int actionHeight = 28;
 inline constexpr int actionGap = 7;
 // The image editing bodies in web/src/components/node_types/editing share one
@@ -105,6 +113,34 @@ inline constexpr double adjustmentLabelLineHeight = 1.3;
 // GetVariableBody's 1.4 em explanation text and its 4 px block gap.
 inline constexpr double hintLineHeight = 1.4;
 inline constexpr int getVariableGap = 4;
+// CompareImagesNode.tsx: the card is at least 300 by 250 and its comparer fills the padded body.
+inline constexpr int compareMinimumWidth = 300;
+inline constexpr int compareMinimumHeight = 250;
+// ConstantStringNode.tsx: a text area 4 px below the header, at least 60 px,
+// with 6 px padding and 11 px text on 1.2 em lines. The card grows to fit
+// its text up to 600 px and is at least 200 px wide.
+inline constexpr int stringGap = 4;
+inline constexpr int stringTextMinimum = 60;
+inline constexpr int stringTextPadding = 6;
+inline constexpr double stringLineHeight = 1.2;
+inline constexpr int stringMaximumHeight = 600;
+inline constexpr int stringMinimumWidth = 200;
+// A small ToolbarIconButton in a header: 4 px padding around a 13 px icon,
+// 2 px apart and 4 px from the header's right edge.
+inline constexpr int headerButtonSize = 21;
+inline constexpr int headerButtonIcon = 13;
+inline constexpr int headerButtonInset = 4;
+// A small StateIconButton: 5 px padding around a 20 px icon.
+inline constexpr int iconButtonSize = 30;
+inline constexpr int iconButtonIcon = 20;
+// RotateAndFlipBody.tsx: the degree readout is at least 48 px wide.
+inline constexpr int angleReadoutWidth = 48;
+// DynamicSchemaNodeShell.tsx: the content column is at least 120 px tall. The
+// hint is padded 4 px by 6 px, and the footer caption 2 px by 4 px, 2 px below the inputs.
+inline constexpr int schemaContentMinimum = 120;
+inline constexpr int schemaHintPaddingX = 6;
+inline constexpr int schemaHintPaddingY = 4;
+inline constexpr int schemaFooterPadding = 2;
 // The media drop zone of an image input value.
 inline constexpr int dropZoneGap = 5;
 inline constexpr int dropZoneHeight = 46;
@@ -150,12 +186,27 @@ inline constexpr int fontValue = 11;
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
-                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch };
+                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
-                      ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable };
+                      ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste };
+
+// One media value on a card: an image, video or audio reference and, for an
+// image, the thumbnail CardMediaLoader decoded. rect is card-local.
+enum class CardMediaState { Unrequested, Loading, Ready, Failed };
+struct CardMediaItem {
+  QVariant locator;
+  // The asset id or uri the item loads, so a changed value loads again.
+  QString identity;
+  CardMediaState state = CardMediaState::Unrequested;
+  QImage image;
+  // The image's or video's own size, before scaling.
+  QSize natural;
+  QRectF rect;
+};
 
 struct NodeRow {
   NodeRowKind kind = NodeRowKind::Label;
@@ -164,6 +215,11 @@ struct NodeRow {
   // Dynamic input label and its visible rename control, in card coordinates.
   QRectF renameLabelRect;
   QRectF renameButtonRect;
+  // The web's slot type chip, which retypes an unconnected input of a
+  // user-owned node, and the remove control of every dynamic input.
+  QRectF typeChipRect;
+  QString typeChip;
+  QRectF removeButtonRect;
   QString value;
   QString typeName;
   bool conditionalUnavailable = false;
@@ -205,6 +261,12 @@ struct NodeRow {
   // The command an Action row requests: "addVariable" or "addOutput". A
   // Segmented row with "previewTab" switches the body's preview, not a property.
   QString action;
+  // A media drop zone's value kind ("image", "video" or "audio") and items. A
+  // list draws its items in a grid above listZone, its own drop zone.
+  QString mediaKind;
+  QVector<CardMediaItem> media;
+  bool mediaList = false;
+  QRectF listZone;
 };
 
 struct NodeLayout {
@@ -222,6 +284,8 @@ struct NodeLayout {
   // The card's minimum height excludes it.
   int flexHeight = 0;
   QColor accent;
+  // An unselected edge color other than the divider, such as a provider node's tinted edge.
+  QColor edge;
   // The running ring's conic stops: output then property type colors, five
   // entries, as getNodeColors in web/src/components/node/BaseNode.tsx.
   QVector<QColor> runningColors;
@@ -239,6 +303,9 @@ struct NodeLayout {
   QVector<NodeRow> rows;
   QVector<double> inputY;
   QVector<double> outputY;
+  // The card and its visible handles. The view asks for it on every move and
+  // paint, so it is computed once per layout.
+  mutable std::optional<QRectF> bounds;
 };
 
 // Port colors from web/src/config/data_types.ts.

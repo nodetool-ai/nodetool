@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QRectF>
 #include "NodeLayout.h"
+#include "CardMedia.h"
 #include "RerouteTypes.h"
 #include <unordered_map>
 #include <QSize>
@@ -52,6 +53,9 @@ public:
   // A status alone changes no card size. The web shows no status text on a card.
   bool hasRuntimeOutput(QtNodes::NodeId id) const;
   void setCanvasMediaNodes(const QSet<QString> &nodes);
+  // Thumbnails and load states of the media values cards show, from CardMediaLoader.
+  void setCardMedia(const QString &nodeId, const QString &property, int index, const CardMediaItem &item);
+  void clearCardMedia();
   QRectF canvasPlaybackRect(QtNodes::NodeId id) const;
   // Card-local result bounds used by the raster/text painter, before image
   // aspect fitting. Empty for invalid, collapsed, group, comment or reroute nodes.
@@ -93,6 +97,8 @@ public:
   // The command that writes a property, with the linked other dimension in the
   // same batch so one undo step reverts both.
   QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
+  // DataframeProperty.tsx's Add column: appends the first free "Column N" as a string column.
+  QJsonObject addDataframeColumnCommand(QtNodes::NodeId id, const QString &name) const;
   // The media drop zone row under a card-local point, or -1.
   int dropZoneAt(QtNodes::NodeId id, const QPointF &point) const;
   bool readOnly() const { return readOnly_; }
@@ -135,6 +141,9 @@ private:
   QHash<QtNodes::NodeId, QJsonObject> nodes_;
   QHash<QString, QtNodes::NodeId> ids_;
   QJsonArray edges_, catalog_;
+  // Catalog positions by node type, so card queries skip a scan of thousands of entries.
+  QHash<QString, int> catalogIndex_;
+  QJsonObject catalogEntry(const QJsonValue &type) const;
   // Edges that touch each resource id, which its ports and layout read.
   QHash<QString, QJsonArray> incident_;
   QString workflowId_;
@@ -146,6 +155,7 @@ private:
   QPointer<node_editor::NodeRuntimeModel> runtime_;
   QHash<QString, QImage> previews_;
   QSet<QString> canvasMediaNodes_;
+  CardMediaStore cardMedia_;
   QString runtimeJob_;
   void refreshRuntimeNode(const QString &id);
   QHash<QString, double> dimensionLinks_;

@@ -39,6 +39,7 @@ class EditorScene;
 class InlinePropertyPresenter;
 class InlineTitlePresenter;
 class CanvasMediaPresenter;
+class CardMediaLoader;
 class CanvasDropController;
 class CompatibleNodePicker;
 class EditorWindow final : public QMainWindow {
@@ -83,6 +84,8 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
   // Recently added node types, which the catalog ranks first (web stores/RecentNodesStore.ts).
   Q_PROPERTY(QStringList catalogRecent READ catalogRecent NOTIFY catalogRecentChanged)
+  // Favorite node types, newest first, shown as tiles on the node menu home (web stores/FavoriteNodesStore.ts).
+  Q_PROPERTY(QStringList catalogFavorites READ catalogFavorites NOTIFY catalogFavoritesChanged)
   Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelChanged)
   Q_PROPERTY(QString workflowName READ workflowName NOTIFY panelChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
@@ -96,6 +99,7 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool zoomIsPreset READ zoomIsPreset NOTIFY zoomChanged)
   Q_PROPERTY(QVariantMap systemStats READ systemStats NOTIFY panelChanged)
   Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY panelChanged)
+  Q_PROPERTY(QString connectionDetail READ connectionDetail NOTIFY panelChanged)
   Q_PROPERTY(int nodeCount READ nodeCount NOTIFY panelChanged)
   Q_PROPERTY(int edgeCount READ edgeCount NOTIFY panelChanged)
   Q_PROPERTY(int queuedCount READ queuedCount NOTIFY panelChanged)
@@ -188,6 +192,8 @@ public:
   QString workflowName() const;
   QString graphSummary() const;
   QVariantList catalogCategories() const;
+  // Indexes into `nodes` in the web search order for a query (src/graph/CatalogSearch.h).
+  Q_INVOKABLE QVariantList rankCatalog(const QVariantList &nodes, const QString &query) const;
   bool miniMapVisible() const;
   // The web hides the mini-map until the user turns it on, and keeps the choice
   // for every workflow. See web/src/stores/MiniMapStore.ts.
@@ -201,8 +207,10 @@ public:
   Q_INVOKABLE void closeMiniMapPopup();
   bool zoomIsPreset() const;
   QVariantMap systemStats() const;
-  // The connection as the web status bar names it: connected, offline or idle.
+  // The connection as the web status bar names it: connected, connecting, offline or idle.
   QString connectionStatus() const;
+  // "Reconnecting… (attempt N)" while the session retries and "Connection failed" after it gave up.
+  QString connectionDetail() const;
   int nodeCount() const;
   int edgeCount() const;
   int queuedCount() const;
@@ -284,6 +292,11 @@ public:
   Q_INVOKABLE void cancelCatalogPlacement();
   Q_INVOKABLE void focusCanvas();
   QStringList catalogRecent() const;
+  QStringList catalogFavorites() const;
+  Q_INVOKABLE void toggleCatalogFavorite(const QString &type);
+  Q_INVOKABLE void clearCatalogFavorites();
+  Q_INVOKABLE void clearCatalogRecent();
+  Q_INVOKABLE QVariantList catalogQuickActions() const;
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
   Q_INVOKABLE bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
   Q_INVOKABLE bool removeProperty(const QString &nodeId, const QString &name);
@@ -306,6 +319,7 @@ public:
 signals:
   void catalogPlacementChanged();
   void catalogRecentChanged();
+  void catalogFavoritesChanged();
   void notificationsChanged();
   void costEstimateChanged();
   void tabsChanged();
@@ -329,6 +343,7 @@ private slots:
 private:
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
+  void showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor);
   QPointer<QDialog> dynamicPortDialog_;
   EditorWindow(QWidget *parent, EditorWindow *tabOwner);
   EditorWindow *tabOwner_ = nullptr;
@@ -536,6 +551,7 @@ private:
   InlinePropertyPresenter *inlinePresenter_ = nullptr;
   InlineTitlePresenter *inlineTitle_ = nullptr;
   CanvasMediaPresenter *canvasMedia_ = nullptr;
+  CardMediaLoader *cardMediaLoader_ = nullptr;
   CanvasDropController *canvasDrops_ = nullptr;
   CompatibleNodePicker *compatiblePicker_ = nullptr;
   QQuickWidget *viewportOverlay_ = nullptr;

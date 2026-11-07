@@ -67,6 +67,42 @@ private slots:
     QCoreApplication::processEvents();
     QCOMPARE(window.document()->snapshot(), baseline);
   }
+  void structuredPanelStaysOpenThroughHostProjection() {
+    const QJsonObject list{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "str"}}}}};
+    const QJsonArray catalog{QJsonObject{{"node_type", "Tags"}, {"title", "Tags"}, {"inline_fields", QJsonArray{"tags"}},
+      {"properties", QJsonArray{QJsonObject{{"name", "tags"}, {"type", list}}}}}};
+    EditorWindow window;
+    window.setCatalog(catalog);
+    QVERIFY(window.document()->load({{"graph", QJsonObject{{"edges", QJsonArray{}}, {"nodes", QJsonArray{QJsonObject{{"id", "a"}, {"type", "Tags"},
+      {"data", QJsonObject{{"tags", QJsonArray{"red"}}}}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}}}}}}}}}));
+    window.show();
+    QVERIFY(window.selectNode("a"));
+    window.action("Reset zoom");
+    QTest::qWait(80);
+    auto view = window.findChild<QGraphicsView *>();
+    auto presenter = window.findChild<InlinePropertyPresenter *>();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto id = *model.allNodeIds().begin();
+    const auto baseline = window.document()->snapshot();
+    const auto point = window.scene()->nodeGraphicsObject(id)->scenePos() + model.inlineFieldRect(id, "tags").center();
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
+    QTRY_VERIFY(presenter->active());
+    const auto add = [&] {
+      QQuickItem *button = nullptr;
+      QTRY_VERIFY((button = presenter->editorWidget()->rootObject()->findChild<QQuickItem *>("structured-add")));
+      QTest::mouseClick(presenter->editorWidget(), Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+    };
+    add();
+    QTRY_COMPARE(window.document()->node("a")["data"].toObject()["tags"].toArray().size(), 2);
+    QVERIFY(presenter->active());
+    add();
+    QTRY_COMPARE(window.document()->node("a")["data"].toObject()["tags"].toArray().size(), 3);
+    QVERIFY(presenter->active());
+    QCOMPARE(window.document()->undoStack()->count(), 2);
+    window.action("Undo");
+    window.action("Undo");
+    QCOMPARE(window.document()->snapshot(), baseline);
+  }
 };
 QTEST_MAIN(InlineHostTest)
 #include "InlineHostTest.moc"
