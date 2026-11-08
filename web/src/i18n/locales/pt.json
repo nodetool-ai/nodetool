@@ -19272,6 +19272,15 @@
       "invalidLink": "Este link de compartilhamento é inválido ou foi revogado. Peça ao proprietário do documento um novo.",
       "goToWorkspace": "Ir para o espaço de trabalho",
       "opening": "Abrindo documento compartilhado"
+    },
+    "invite": {
+      "label": "Convidar pessoas",
+      "placeholder": "Nome ou e-mail",
+      "role": "Função",
+      "submit": "Convidar",
+      "typeMore": "Digite pelo menos 2 caracteres",
+      "noMatches": "Ninguém encontrado",
+      "failed": "Não foi possível dar acesso."
     }
   },
   "timelineAutomation": {
@@ -20195,6 +20204,38 @@
           "label": "Alterar pacotes de nós",
           "description": "Alterar a confiança dos pacotes, ativar ou desativar pacotes integrados e recarregar pacotes. Isso afeta todos os usuários."
         }
+      }
+    },
+    "sharing": {
+      "open": "Compartilhamento",
+      "title": "Compartilhamentos de {{name}}",
+      "links": "Links de compartilhamento",
+      "noLinks": "Nenhum link ativo.",
+      "granted": "Deu acesso a",
+      "noGranted": "Não deu acesso a ninguém.",
+      "received": "Tem acesso a",
+      "noReceived": "Ninguém deu acesso.",
+      "public": "Fluxos públicos",
+      "noPublic": "Nenhum fluxo público.",
+      "revoke": "Revogar",
+      "removeAccess": "Remover acesso",
+      "makePrivate": "Tornar privado",
+      "untitled": "Sem título",
+      "loadFailed": "Não foi possível carregar os compartilhamentos.",
+      "actionFailed": "Não foi possível fazer a alteração.",
+      "types": {
+        "workflow": "Fluxo",
+        "storyboard": "Storyboard",
+        "script": "Roteiro",
+        "timeline": "Linha do tempo",
+        "sketch": "Esboço",
+        "application": "App",
+        "jsscript": "Script JS"
+      },
+      "roles": {
+        "viewer": "Pode ver",
+        "editor": "Pode editar",
+        "public": "Público"
       }
     }
   }

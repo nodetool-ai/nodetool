@@ -18962,6 +18962,15 @@
       "invalidLink": "이 공유 링크는 유효하지 않거나 취소되었습니다. 문서 소유자에게 새 문서를 요청하세요.",
       "goToWorkspace": "작업공간으로 이동",
       "opening": "공유 문서 열기"
+    },
+    "invite": {
+      "label": "사용자 초대",
+      "placeholder": "이름 또는 이메일",
+      "role": "역할",
+      "submit": "초대",
+      "typeMore": "2자 이상 입력하세요",
+      "noMatches": "일치하는 사용자가 없습니다",
+      "failed": "액세스 권한을 줄 수 없습니다."
     }
   },
   "timelineAutomation": {
@@ -19884,6 +19893,38 @@
           "label": "노드 팩 변경",
           "description": "팩 신뢰 설정 변경, 기본 제공 팩 켜기/끄기, 팩 다시 불러오기. 모든 사용자에게 영향을 줍니다."
         }
+      }
+    },
+    "sharing": {
+      "open": "공유",
+      "title": "{{name}}의 공유",
+      "links": "공유 링크",
+      "noLinks": "활성 공유 링크가 없습니다.",
+      "granted": "액세스를 준 사람",
+      "noGranted": "아무에게도 액세스를 주지 않았습니다.",
+      "received": "액세스할 수 있는 항목",
+      "noReceived": "아무도 액세스를 주지 않았습니다.",
+      "public": "공개 워크플로",
+      "noPublic": "공개 워크플로가 없습니다.",
+      "revoke": "취소",
+      "removeAccess": "액세스 제거",
+      "makePrivate": "비공개로 전환",
+      "untitled": "제목 없음",
+      "loadFailed": "공유 정보를 불러올 수 없습니다.",
+      "actionFailed": "변경할 수 없습니다.",
+      "types": {
+        "workflow": "워크플로",
+        "storyboard": "스토리보드",
+        "script": "스크립트",
+        "timeline": "타임라인",
+        "sketch": "스케치",
+        "application": "앱",
+        "jsscript": "JS 스크립트"
+      },
+      "roles": {
+        "viewer": "보기 가능",
+        "editor": "편집 가능",
+        "public": "공개"
       }
     }
   }

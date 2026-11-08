@@ -19272,6 +19272,15 @@
       "invalidLink": "Ce lien de partage n'est pas valide ou a été révoqué. Demandez-en un nouveau au propriétaire du document.",
       "goToWorkspace": "Aller à l'espace de travail",
       "opening": "Ouverture d'un document partagé"
+    },
+    "invite": {
+      "label": "Inviter des personnes",
+      "placeholder": "Nom ou e-mail",
+      "role": "Rôle",
+      "submit": "Inviter",
+      "typeMore": "Saisissez au moins 2 caractères",
+      "noMatches": "Aucun résultat",
+      "failed": "Impossible de donner l'accès."
     }
   },
   "timelineAutomation": {
@@ -20195,6 +20204,38 @@
           "label": "Modifier les packs de nœuds",
           "description": "Modifier la confiance des packs, activer ou désactiver les packs intégrés et recharger les packs. Cela concerne tous les utilisateurs."
         }
+      }
+    },
+    "sharing": {
+      "open": "Partage",
+      "title": "Partages de {{name}}",
+      "links": "Liens de partage",
+      "noLinks": "Aucun lien actif.",
+      "granted": "A donné accès à",
+      "noGranted": "N'a donné accès à personne.",
+      "received": "A accès à",
+      "noReceived": "Personne ne lui a donné accès.",
+      "public": "Workflows publics",
+      "noPublic": "Aucun workflow public.",
+      "revoke": "Révoquer",
+      "removeAccess": "Retirer l'accès",
+      "makePrivate": "Rendre privé",
+      "untitled": "Sans titre",
+      "loadFailed": "Impossible de charger les partages.",
+      "actionFailed": "Impossible d'effectuer la modification.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "timeline": "Timeline",
+        "sketch": "Croquis",
+        "application": "App",
+        "jsscript": "Script JS"
+      },
+      "roles": {
+        "viewer": "Peut voir",
+        "editor": "Peut modifier",
+        "public": "Public"
       }
     }
   }

@@ -18962,6 +18962,15 @@
       "invalidLink": "Dieser Freigabelink ist ungültig oder wurde widerrufen. Bitten Sie die Person, der das Dokument gehört, um einen neuen Link.",
       "goToWorkspace": "Zum Arbeitsbereich",
       "opening": "Geteiltes Dokument wird geöffnet"
+    },
+    "invite": {
+      "label": "Personen einladen",
+      "placeholder": "Name oder E-Mail",
+      "role": "Rolle",
+      "submit": "Einladen",
+      "typeMore": "Mindestens 2 Zeichen eingeben",
+      "noMatches": "Niemand gefunden",
+      "failed": "Zugriff konnte nicht erteilt werden."
     }
   },
   "timelineAutomation": {
@@ -19884,6 +19893,38 @@
           "label": "Node-Pakete ändern",
           "description": "Paketvertrauen ändern, eingebaute Pakete ein- oder ausschalten und Pakete neu laden. Das betrifft alle Nutzer."
         }
+      }
+    },
+    "sharing": {
+      "open": "Freigaben",
+      "title": "Freigaben von {{name}}",
+      "links": "Freigabelinks",
+      "noLinks": "Keine aktiven Freigabelinks.",
+      "granted": "Zugriff gegeben an",
+      "noGranted": "Hat niemandem Zugriff gegeben.",
+      "received": "Hat Zugriff auf",
+      "noReceived": "Niemand hat Zugriff gegeben.",
+      "public": "Öffentliche Workflows",
+      "noPublic": "Keine öffentlichen Workflows.",
+      "revoke": "Widerrufen",
+      "removeAccess": "Zugriff entfernen",
+      "makePrivate": "Privat machen",
+      "untitled": "Ohne Titel",
+      "loadFailed": "Freigaben konnten nicht geladen werden.",
+      "actionFailed": "Die Änderung konnte nicht ausgeführt werden.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Skript",
+        "timeline": "Timeline",
+        "sketch": "Skizze",
+        "application": "App",
+        "jsscript": "JS-Skript"
+      },
+      "roles": {
+        "viewer": "Kann ansehen",
+        "editor": "Kann bearbeiten",
+        "public": "Öffentlich"
       }
     }
   }

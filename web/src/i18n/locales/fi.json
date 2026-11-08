@@ -18962,6 +18962,15 @@
       "invalidLink": "Tämä jakolinkki on virheellinen tai se on kumottu. Pyydä asiakirjan omistajalta uusi linkki.",
       "goToWorkspace": "Siirry työtilaan",
       "opening": "Avataan jaettua asiakirjaa"
+    },
+    "invite": {
+      "label": "Kutsu henkilöitä",
+      "placeholder": "Nimi tai sähköposti",
+      "role": "Rooli",
+      "submit": "Kutsu",
+      "typeMore": "Kirjoita vähintään 2 merkkiä",
+      "noMatches": "Ei osumia",
+      "failed": "Käyttöoikeutta ei voitu antaa."
     }
   },
   "timelineAutomation": {
@@ -19884,6 +19893,38 @@
           "label": "Muuta solmupaketteja",
           "description": "Muuta pakettien luottamusta, kytke sisäänrakennettuja paketteja päälle tai pois ja lataa paketit uudelleen. Tämä koskee kaikkia käyttäjiä."
         }
+      }
+    },
+    "sharing": {
+      "open": "Jakaminen",
+      "title": "Henkilön {{name}} jaot",
+      "links": "Jakolinkit",
+      "noLinks": "Ei aktiivisia jakolinkkejä.",
+      "granted": "Antoi pääsyn",
+      "noGranted": "Ei ole antanut kenellekään pääsyä.",
+      "received": "Pääsy kohteisiin",
+      "noReceived": "Kukaan ei ole antanut pääsyä.",
+      "public": "Julkiset työnkulut",
+      "noPublic": "Ei julkisia työnkulkuja.",
+      "revoke": "Peruuta",
+      "removeAccess": "Poista pääsy",
+      "makePrivate": "Tee yksityiseksi",
+      "untitled": "Nimetön",
+      "loadFailed": "Jakoja ei voitu ladata.",
+      "actionFailed": "Muutosta ei voitu tehdä.",
+      "types": {
+        "workflow": "Työnkulku",
+        "storyboard": "Kuvakäsikirjoitus",
+        "script": "Käsikirjoitus",
+        "timeline": "Aikajana",
+        "sketch": "Luonnos",
+        "application": "Sovellus",
+        "jsscript": "JS-skripti"
+      },
+      "roles": {
+        "viewer": "Voi katsoa",
+        "editor": "Voi muokata",
+        "public": "Julkinen"
       }
     }
   }
