@@ -391,7 +391,7 @@ task depends on T1 only, so all of them run in parallel.
   - Each migrated pack's README or AGENTS overlay where it describes the old
     transport.
 - Run `npm run check:agents-docs` if agent docs changed.
-- Run the verification in the [mandatory post-change checks](../../AGENTS.md#mandatory-post-change-verification):
+- Run the verification in the [mandatory post-change checks](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification):
   `npm run build:packages`, then `npm run test:affected`, `npm run typecheck`,
   `npm run lint`, `npm run dev:nodetool -- harness gate --base origin/main`.
 - Open the pull request against `main`.
