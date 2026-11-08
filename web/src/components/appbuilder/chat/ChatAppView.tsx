@@ -515,7 +515,6 @@ const ChatAppView: React.FC<ChatAppViewProps> = ({
             systemPrompt={systemPrompt}
             chatSource="app_run"
             uiContext={uiContext}
-            hideModePicker
             requireToolSupport
             noMessagesPlaceholder={starter}
             composerPlaceholder={t("i18n-next8.appBuilder.chatApp.composerPlaceholder")}
