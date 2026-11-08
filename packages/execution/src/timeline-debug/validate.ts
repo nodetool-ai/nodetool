@@ -269,6 +269,28 @@ function checkFieldStripping(
   }));
 }
 
+/**
+ * A clip's media must outlive the run that placed it. A local path, a data
+ * URI or a blob URL is a run's temporary file or one browser's memory, and
+ * the player and renderer cannot load it later. Save it as an asset first.
+ */
+const UNPLAYABLE_SOURCE = /^(file:|data:|blob:|\/)/i;
+
+function checkMediaSources(doc: TimelineDocument): TimelineDebugIssue[] {
+  return doc.clips.flatMap((clip): TimelineDebugIssue[] => {
+    const source = clip.currentAssetId;
+    if (typeof source !== "string" || !UNPLAYABLE_SOURCE.test(source.trim())) {
+      return [];
+    }
+    return [{
+      severity: "error",
+      code: "media_source_unplayable",
+      clipId: clip.id,
+      message: `Clip "${clip.name}" plays ${source.slice(0, 80)}, which is not a library asset. Save the file as an asset and use its asset id.`
+    }];
+  });
+}
+
 function checkDuplicateIds(doc: TimelineDocument): TimelineDebugIssue[] {
   const issues: TimelineDebugIssue[] = [];
   const check = (kind: string, ids: string[]): void => {
@@ -1698,6 +1720,7 @@ export function validateTimelineSequence(
   const issues: TimelineDebugIssue[] = [
     ...checkFieldStripping(raw, doc),
     ...checkDuplicateIds(doc),
+    ...checkMediaSources(doc),
     ...doc.clips.flatMap((clip) => checkClip(clip, trackIds, fps, canvas)),
     ...doc.clips.flatMap((clip) => checkClipMotion(clip, canvas)),
     ...checkLegibility(doc, canvas),
