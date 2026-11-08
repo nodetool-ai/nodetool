@@ -8930,8 +8930,6 @@
       "studio": "estudio",
       "switchToProject": "Cambiar al proyecto {{name}}",
       "personal": "personales",
-      "newChatInMode": "Nuevo chat: {{mode}}",
-      "newChatInModeValue": "Nuevo chat {{mode}}",
       "newTextFileValue": "Nuevo archivo de texto {{label}}",
       "newTextFile": "Nuevo archivo de texto: {{label}}",
       "newStoryboard": "Nuevo guión gráfico",
@@ -8963,8 +8961,7 @@
         "script": "Nuevo guión",
         "jsscript": "Nuevo script JS",
         "skill": "Nueva habilidad",
-        "model3d": "Nuevo modelo 3D",
-        "create": "Crea imágenes y vídeos."
+        "model3d": "Nuevo modelo 3D"
       },
       "templates": {
         "markdown": "Rebaja (.md)",
@@ -8973,6 +8970,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Texto sin formato (.txt)"
+      },
+      "createSession": {
+        "image": "Nueva imagen",
+        "video": "Nuevo vídeo",
+        "audio": "Leer en voz alta",
+        "music": "Generar música"
       }
     },
     "googleWorkspace": {
@@ -19835,7 +19838,8 @@
     "empty": {
       "title": "Nada creado todavía",
       "description": "Escribe un prompt arriba y pulsa Generar. Tus imágenes, vídeos y audios aparecen aquí, los más recientes primero.",
-      "action": "Escribe un mensaje"
+      "action": "Escribe un mensaje",
+      "sessionTitle": "Todavía no hay nada en esta pestaña"
     },
     "item": {
       "open": "Abrir {{title}}",
@@ -19910,7 +19914,15 @@
       "uploadFailed": "No se pudo subir {{name}}: {{reason}}"
     },
     "switched": "Se cambió a {{mode}} porque añadiste una imagen.",
-    "undoSwitch": "Volver a {{from}}"
+    "undoSwitch": "Volver a {{from}}",
+    "scope": {
+      "label": "Qué tomas mostrar",
+      "session": "Esta pestaña",
+      "all": "Todas las tomas"
+    },
+    "renameFailed": "No se pudo renombrar la pestaña: {{reason}}",
+    "sessionFailed": "No se pudieron cargar las tomas de esta pestaña.",
+    "sessionKind": "Sesión de Create"
   },
   "effectsGallery": {
     "title": "Efectos",

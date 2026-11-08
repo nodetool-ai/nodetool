@@ -317,6 +317,9 @@ const USER_QUOTAS_DDL: readonly string[] = [
   )`
 ];
 
+const THREAD_KIND_DDL =
+  "ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'";
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -333,7 +336,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...USER_ACCOUNTS_DDL,
   ...USER_QUOTAS_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT",
-  ...USER_PERMISSIONS_DDL
+  ...USER_PERMISSIONS_DDL,
+  THREAD_KIND_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4385,6 +4389,23 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_user_permissions");
+    }
+  },
+
+  // A thread is either a conversation or a Create session, whose takes are
+  // generations tagged with its id rather than chat messages.
+  {
+    version: "20261110_000000",
+    name: "add_thread_kind",
+    createsTables: [],
+    modifiesTables: ["nodetool_threads"],
+    async up(db) {
+      if (!(await db.columnExists("nodetool_threads", "kind"))) {
+        await db.execute(THREAD_KIND_DDL);
+      }
+    },
+    async down() {
+      // Keep kind: dropping it would turn Create sessions into empty chats.
     }
   }
 ];

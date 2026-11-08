@@ -5,15 +5,23 @@
  * An older render has no request record, so its settings are read back from the
  * generation metadata stamped on the asset. Assets without that metadata are
  * uploads or workflow outputs, not renders, and stay out of the grid.
+ *
+ * A Create tab lists only its own takes: the tracked ones tagged with its
+ * thread, then the generation rows the server recorded for that thread.
  */
 import { readAssetGenerationMetadata } from "@nodetool-ai/protocol";
 import type { Asset } from "../../stores/ApiTypes";
-import type {
-  GenerationActivity,
-  GenerationActivityStatus,
-  GenerationMediaKind,
-  GenerationRequestSettings
+import {
+  mediaKindOf,
+  type GenerationActivity,
+  type GenerationActivityStatus,
+  type GenerationMediaKind,
+  type GenerationRequestSettings
 } from "../../stores/GenerationActivityStore";
+import type { RouterOutputs } from "../../trpc/client";
+
+/** One generation row from `generations.list`. */
+export type GenerationRecord = RouterOutputs["generations"]["list"]["generations"][number];
 
 export interface CreateFeedItem {
   /** Stable across renders: `<generation id>:<asset id>`, or the asset id. */
@@ -153,6 +161,77 @@ export const buildCreateFeed = (
     .map(fromAsset)
     .filter((item): item is CreateFeedItem => item !== null);
   return [...tracked, ...older].sort((a, b) => b.createdAt - a.createdAt);
+};
+
+const recordStatus = (status: string): GenerationActivityStatus => {
+  switch (status) {
+    case "completed":
+      return "generated";
+    case "cancelled":
+      return "cancelled";
+    case "failed":
+    case "needs_attention":
+    case "interrupted":
+      return "failed";
+    default:
+      return "generating";
+  }
+};
+
+const recordError = (record: GenerationRecord): string | null =>
+  record.generation_error ??
+  record.provider_error ??
+  record.submission_error ??
+  record.output_error ??
+  null;
+
+/** A server generation row as grid items, one per asset it produced. */
+export const fromGenerationRecord = (record: GenerationRecord): CreateFeedItem[] => {
+  const startedAt = Date.parse(record.started_at ?? "");
+  const base = {
+    kind: mediaKindOf(record.capability),
+    status: recordStatus(record.status),
+    prompt: record.prompt,
+    model: record.model || null,
+    presetIds: [],
+    asset: null,
+    createdAt: Number.isNaN(startedAt) ? 0 : startedAt,
+    error: recordError(record),
+    generation: null,
+    // The row keeps provider parameters, not the request, so a reloaded take
+    // offers Reuse prompt rather than Retake.
+    request: null
+  };
+  if (base.status !== "generated" || record.asset_ids.length === 0) {
+    return [{ ...base, key: record.generation_id, assetId: null }];
+  }
+  return record.asset_ids.map((assetId) => ({
+    ...base,
+    key: `${record.generation_id}:${assetId}`,
+    assetId
+  }));
+};
+
+/**
+ * One Create tab's takes, newest first: the generations this app tracked for
+ * its thread, then the rows the server recorded for it. A row the app also
+ * tracked, matched by request id or asset, is listed once, as the tracked one.
+ */
+export const buildSessionFeed = (
+  sessionId: string,
+  generations: readonly GenerationActivity[],
+  records: readonly GenerationRecord[]
+): CreateFeedItem[] => {
+  const tracked = generations
+    .filter((generation) => generation.threadId === sessionId && GRID_KINDS.has(generation.kind))
+    .flatMap(fromGeneration);
+  const trackedIds = new Set(generations.map((generation) => generation.id));
+  const seenAssets = new Set(tracked.flatMap((item) => (item.assetId ? [item.assetId] : [])));
+  const recorded = records
+    .filter((record) => !(record.request_id && trackedIds.has(record.request_id)))
+    .flatMap(fromGenerationRecord)
+    .filter((item) => GRID_KINDS.has(item.kind) && !(item.assetId && seenAssets.has(item.assetId)));
+  return [...tracked, ...recorded].sort((a, b) => b.createdAt - a.createdAt);
 };
 
 /** The `generate_media` modes a retake can send again as they were. */

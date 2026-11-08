@@ -8791,8 +8791,6 @@
       "studio": "Studio",
       "switchToProject": "Switch to project {{name}}",
       "personal": "Personal",
-      "newChatInMode": "New chat: {{mode}}",
-      "newChatInModeValue": "New chat {{mode}}",
       "newTextFileValue": "New text file {{label}}",
       "newTextFile": "New text file: {{label}}",
       "newStoryboard": "New storyboard",
@@ -8824,8 +8822,7 @@
         "script": "New script",
         "jsscript": "New JS script",
         "skill": "New skill",
-        "model3d": "New 3D model",
-        "create": "Create images and videos"
+        "model3d": "New 3D model"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8831,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Plain text (.txt)"
+      },
+      "createSession": {
+        "image": "New image",
+        "video": "New video",
+        "audio": "Read aloud",
+        "music": "Generate music"
       }
     },
     "googleWorkspace": {
@@ -19525,7 +19528,8 @@
     "empty": {
       "title": "Nothing created yet",
       "description": "Write a prompt above and press Generate. Your images, videos and audio appear here, newest first.",
-      "action": "Write a prompt"
+      "action": "Write a prompt",
+      "sessionTitle": "Nothing in this tab yet"
     },
     "item": {
       "open": "Open {{title}}",
@@ -19599,7 +19603,15 @@
       "uploadFailed": "Could not upload {{name}}: {{reason}}"
     },
     "switched": "Switched to {{mode}} because you added a picture.",
-    "undoSwitch": "Back to {{from}}"
+    "undoSwitch": "Back to {{from}}",
+    "scope": {
+      "label": "Which takes to show",
+      "session": "This tab",
+      "all": "All takes"
+    },
+    "renameFailed": "The tab could not be renamed: {{reason}}",
+    "sessionFailed": "This tab's takes could not be loaded.",
+    "sessionKind": "Create session"
   },
   "effectsGallery": {
     "title": "Effects",

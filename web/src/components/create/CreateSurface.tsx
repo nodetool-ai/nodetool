@@ -1,10 +1,16 @@
 /**
- * The Create view: a prompt bar over a grid of image, video and audio takes.
+ * A Create tab: a prompt bar over a grid of image, video and audio takes.
  *
- * It submits through `generate_media`, so a take makes no thread or message
- * row. The grid reads GenerationActivityStore, which already lists every
- * generation the app started, and fills the rest from the asset list, so the
- * view survives a reload with everything it showed.
+ * A tab is a Create session, a thread row of kind "create". It submits
+ * through `generate_media`, one request per take, each tagged with the
+ * session's thread, so a take makes no message row and a running render is
+ * not stopped by a chat. The grid shows the session's takes (This tab) or
+ * every take (All takes). It reads GenerationActivityStore, which lists every
+ * generation the app started, and fills the rest from the server, so the tab
+ * survives a reload with everything it showed.
+ *
+ * The Create view opened before tabs had sessions has no thread, and always
+ * shows every take.
  */
 import React, { Suspense, lazy, useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +22,12 @@ import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useAssetStore } from "../../stores/AssetStore";
 import type { Asset } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useCreateViewStore } from "../../stores/CreateViewStore";
+import {
+  GLOBAL_CREATE_SESSION,
+  createDraftOf,
+  useCreateViewStore,
+  type CreateScope
+} from "../../stores/CreateViewStore";
 import {
   creationProjectId,
   useWorkspaceTabsStore
@@ -27,14 +38,18 @@ import {
   Box,
   EmptyState,
   FlexColumn,
+  FlexRow,
   LoadingSpinner,
   ScrollArea,
-  SPACING
+  SPACING,
+  ToggleGroup,
+  ToggleOption
 } from "../ui_primitives";
 import CreateGridItem, { type CreateGridItemActions } from "./CreateGridItem";
 import CreatePromptBar from "./CreatePromptBar";
 import { generationToWorkflowGraph, referenceFromItem, retakeRequest } from "./createActions";
 import type { CreateFeedItem } from "./createFeed";
+import { nameSessionAfterPrompt } from "./openCreateSession";
 import { submitCreateBatch } from "./submitCreateBatch";
 import { useCreateFeed } from "./useCreateFeed";
 
@@ -47,10 +62,28 @@ const TILE_MIN_WIDTH = 200;
 const errorText = (cause: unknown): string =>
   cause instanceof Error ? cause.message : String(cause);
 
-const CreateSurface = () => {
+interface CreateSurfaceProps {
+  /** The session's thread id, or null for the Create view that has none. */
+  sessionId?: string | null;
+  /** The project the session's takes are filed into. */
+  projectId?: string;
+}
+
+const CreateSurface = ({ sessionId = null, projectId }: CreateSurfaceProps) => {
   const { t } = useTranslation();
   const promptRef = useRef<HTMLTextAreaElement>(null);
-  const feed = useCreateFeed();
+  const draftId = sessionId ?? GLOBAL_CREATE_SESSION;
+  const scope = useCreateViewStore((s) => createDraftOf(s, draftId).scope);
+  const setScope = useCreateViewStore((s) => s.setScope);
+  const showsSession = sessionId !== null && scope === "session";
+  const feed = useCreateFeed(showsSession ? sessionId : null);
+  const requestTags = useMemo(
+    () =>
+      sessionId
+        ? { thread_id: sessionId, ...(projectId && { project_id: projectId }) }
+        : undefined,
+    [sessionId, projectId]
+  );
   const addNotification = useNotificationStore((s) => s.addNotification);
   const createWorkflow = useWorkflowManager((s) => s.createNew);
   const openForegroundTab = useWorkspaceTabsStore((s) => s.openForegroundTab);
@@ -144,7 +177,7 @@ const CreateSurface = () => {
       onUseAsReference: (item) => {
         const reference = referenceFromItem(item, t);
         if (reference) {
-          useCreateViewStore.getState().addReferences([reference]);
+          useCreateViewStore.getState().addReferences(draftId, [reference]);
           promptRef.current?.focus();
         }
       },
@@ -154,9 +187,9 @@ const CreateSurface = () => {
           return;
         }
         const store = useCreateViewStore.getState();
-        store.setMode(mode);
-        store.clearReferences();
-        store.addReferences([reference]);
+        store.setMode(draftId, mode);
+        store.clearReferences(draftId);
+        store.addReferences(draftId, [reference]);
         promptRef.current?.focus();
       },
       onOpenInSketch: (item) => {
@@ -173,7 +206,7 @@ const CreateSurface = () => {
       },
       onReusePrompt: (item) => {
         if (item.prompt) {
-          useCreateViewStore.getState().setPrompt(item.prompt);
+          useCreateViewStore.getState().setPrompt(draftId, item.prompt);
           promptRef.current?.focus();
         }
       },
@@ -192,11 +225,29 @@ const CreateSurface = () => {
         }
       }
     }),
-    [addNotification, createWorkflow, editVideoAsset, fail, loadAsset, openForegroundTab, t]
+    [addNotification, createWorkflow, draftId, editVideoAsset, fail, loadAsset, openForegroundTab, t]
   );
 
   const handleClose = useCallback(() => setViewing(null), []);
   const focusPrompt = useCallback(() => promptRef.current?.focus(), []);
+  const handleSent = useCallback(
+    (prompt: string) => {
+      if (sessionId) {
+        void nameSessionAfterPrompt(sessionId, prompt).catch((cause: unknown) =>
+          fail(t("create_view.renameFailed", { reason: errorText(cause) }))
+        );
+      }
+    },
+    [fail, sessionId, t]
+  );
+  const handleScope = useCallback(
+    (_event: React.MouseEvent<HTMLElement>, next: CreateScope | null) => {
+      if (next) {
+        setScope(draftId, next);
+      }
+    },
+    [draftId, setScope]
+  );
 
   return (
     <FlexColumn
@@ -206,18 +257,40 @@ const CreateSurface = () => {
       aria-label={t("create_view.title")}
       sx={{ overflow: "hidden" }}
     >
-      <CreatePromptBar promptRef={promptRef} />
+      <CreatePromptBar
+        promptRef={promptRef}
+        sessionId={draftId}
+        requestTags={requestTags}
+        onSent={handleSent}
+      />
+      {sessionId !== null && (
+        <FlexRow justify="flex-end" sx={{ px: SPACING.lg, pb: SPACING.sm }}>
+          <ToggleGroup
+            segmented
+            exclusive
+            size="small"
+            value={scope}
+            onChange={handleScope}
+            aria-label={t("create_view.scope.label")}
+          >
+            <ToggleOption value="session">{t("create_view.scope.session")}</ToggleOption>
+            <ToggleOption value="all">{t("create_view.scope.all")}</ToggleOption>
+          </ToggleGroup>
+        </FlexRow>
+      )}
       {feed.olderError && (
         <Box sx={{ px: SPACING.lg, pb: SPACING.sm }}>
           <ErrorBanner
             report={{
               source: "operation-failure",
-              summary: "Create view could not list older renders",
+              summary: showsSession
+                ? "Create tab could not list its takes"
+                : "Create view could not list older renders",
               errorText: feed.olderError.message
             }}
             onRetry={feed.refetchOlder}
           >
-            {t("create_view.olderFailed")}
+            {t(showsSession ? "create_view.sessionFailed" : "create_view.olderFailed")}
           </ErrorBanner>
         </Box>
       )}
@@ -228,7 +301,7 @@ const CreateSurface = () => {
           ) : (
             <EmptyState
               icon={<AutoAwesomeOutlinedIcon />}
-              title={t("create_view.empty.title")}
+              title={t(showsSession ? "create_view.empty.sessionTitle" : "create_view.empty.title")}
               description={t("create_view.empty.description")}
               actionText={t("create_view.empty.action")}
               onAction={focusPrompt}

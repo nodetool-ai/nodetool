@@ -180,7 +180,7 @@ export {
   isCompactionMessage
 } from "./message.js";
 
-export { Thread } from "./thread.js";
+export { Thread, type ThreadKind } from "./thread.js";
 
 export { Memory, memorySearchTerms } from "./memory.js";
 export type {

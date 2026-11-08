@@ -163,7 +163,6 @@ import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { MAX_IMAGE_REFERENCES } from "../setup/image/setupContext";
 import { useCreateScript } from "../../hooks/script/useScripts";
-import { MEDIA_MODES } from "../chat/composer/mediaModes";
 import ModeChips from "../chat/composer/ModeChips";
 import ModeSelectChip from "../chat/composer/ModeSelectChip";
 import type { ModelPickerHandle } from "../chat/composer/ModelChip";
@@ -181,11 +180,7 @@ import {
 import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
-import {
-  openImageChat,
-  openSpeechChat,
-  openVideoChat
-} from "../chat/openSpeechChat";
+import { openCreateSession, referencesFromAttachments } from "../create/openCreateSession";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
   composeFirstTurn,
@@ -676,7 +671,6 @@ const NewProjectSurface = ({
   // project being described does not exist yet.
   const {
     entries,
-    createChat,
     createTextFile,
     createBlankStoryboard,
     installStoryboardExample,
@@ -685,12 +679,6 @@ const NewProjectSurface = ({
     setSubmenu(null);
     useOnboardingStore.getState().markStep("keep-creating");
   });
-  // "Create" opens the same picture and video view as the Create image and
-  // Create video cards above, so the blank row leaves it out.
-  const blankEntries = useMemo(
-    () => entries.filter((entry) => entry.key !== "create"),
-    [entries]
-  );
   const { entries: projectEntries } = useNewDocumentCatalog({}, () => {
     useOnboardingStore.getState().markStep("keep-creating");
   });
@@ -1218,7 +1206,9 @@ const NewProjectSurface = ({
           name: ref.name,
           assetUri: ref.uri
         }));
-        noteUncarriedContext("video", { entities: true, references: true });
+        // Create sends no entity mentions yet, so selected entities are named
+        // as left behind.
+        noteUncarriedContext("video", { entities: false, references: true });
         if (!(await showDocumentProject(projectId, name))) {
           return;
         }
@@ -1230,11 +1220,11 @@ const NewProjectSurface = ({
             title: t("pass3_32.projects.home.homeTab")
           });
         }
-        await openVideoChat(projectId, {
+        await openCreateSession(projectId, {
           title: name,
-          draft: text,
-          attachments,
-          mediaMode: attachments.some((f) => f.type.startsWith("image/"))
+          prompt: text,
+          references: referencesFromAttachments(attachments),
+          mode: attachments.some((f) => f.type.startsWith("image/"))
             ? "image_to_video"
             : "video"
         });
@@ -1338,7 +1328,7 @@ const NewProjectSurface = ({
           assetUri: ref.uri
         }));
         noteUncarriedContext("image", {
-          entities: true,
+          entities: false,
           references: Math.min(references.length, MAX_IMAGE_REFERENCES)
         });
         if (!(await showDocumentProject(projectId, name))) {
@@ -1352,11 +1342,11 @@ const NewProjectSurface = ({
             title: t("pass3_32.projects.home.homeTab")
           });
         }
-        await openImageChat(projectId, {
+        await openCreateSession(projectId, {
           title: name,
-          draft: text,
-          attachments,
-          mediaMode: attachments.length > 0 ? "image_edit" : "image"
+          prompt: text,
+          references: referencesFromAttachments(attachments),
+          mode: attachments.length > 0 ? "image_edit" : "image"
         });
         closeTab(
           tabId(
@@ -1580,7 +1570,7 @@ const NewProjectSurface = ({
   const startSpeechFlow = useCallback(
     async (projectId: string) => {
       try {
-        await openSpeechChat(projectId, flowPrompt.trim());
+        await openCreateSession(projectId, { mode: "audio", prompt: flowPrompt.trim() });
         noteUncarriedContext("chat", { entities: false, references: false });
         closeTab(
           tabId(flowRef ? "guided-flow" : "project-new", flowRef ?? PROJECT_NEW_REF)
@@ -2830,7 +2820,7 @@ const NewProjectSurface = ({
               }
             }}
           >
-            {blankEntries.map((entry) => (
+            {entries.map((entry) => (
               <EditorButton
                 key={entry.key}
                 type="button"
@@ -2911,22 +2901,6 @@ const NewProjectSurface = ({
         maxHeight="50vh"
         paperSx={{ width: SUBMENU_WIDTH, maxWidth: SUBMENU_MAX_WIDTH }}
       >
-        {submenu?.kind === "chats" &&
-          MEDIA_MODES.filter((mode) => mode.enabled).map((mode) => (
-            <MenuItemPrimitive
-              key={mode.id}
-              label={t(`i18n-next22.chat.composer.mediaMode.modes.${mode.labelKey}`)}
-              secondary={
-                mode.descriptionKey &&
-                t(`i18n-next22.chat.composer.mediaMode.modes.${mode.descriptionKey}`)
-              }
-              icon={mode.icon}
-              disabled={creating !== null}
-              onClick={() => {
-                void createChat(mode.id);
-              }}
-            />
-          ))}
         {submenu?.kind === "texts" &&
           TEXT_FILE_TEMPLATES.map((template) => (
             <MenuItemPrimitive

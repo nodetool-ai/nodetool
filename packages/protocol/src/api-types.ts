@@ -542,6 +542,8 @@ export interface Thread {
   /** Workflow this conversation belongs to, or null for global chat. */
   workflow_id?: string | null;
   title: string | null;
+  /** "chat" for a conversation, "create" for a Create session. */
+  kind?: "chat" | "create";
   created_at: string;
   updated_at: string;
   etag?: string | null;

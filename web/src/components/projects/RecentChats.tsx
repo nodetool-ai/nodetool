@@ -159,7 +159,7 @@ const RecentChats = () => {
   const openChat = useCallback(
     (thread: Thread) => {
       openTab({
-        type: "chat",
+        type: thread.kind === "create" ? "create" : "chat",
         ref: thread.id,
         mode: "view",
         title: chatTitle(thread, t("pass3_35.recentChats.newChat")),

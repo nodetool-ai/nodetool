@@ -8791,8 +8791,6 @@
       "studio": "Studio",
       "switchToProject": "Vaihda projektiin {{name}}",
       "personal": "Henkilökohtainen",
-      "newChatInMode": "Uusi keskustelu: {{mode}}",
-      "newChatInModeValue": "Uusi keskustelu {{mode}}",
       "newTextFileValue": "Uusi tekstitiedosto {{label}}",
       "newTextFile": "Uusi tekstitiedosto: {{label}}",
       "newStoryboard": "Uusi kuvakäsikirjoitus",
@@ -8824,8 +8822,7 @@
         "script": "Uusi skripti",
         "jsscript": "Uusi JS-skripti",
         "skill": "Uusi taito",
-        "model3d": "Uusi 3D-malli",
-        "create": "Luo kuvia ja videoita"
+        "model3d": "Uusi 3D-malli"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8831,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Pelkkä teksti (.txt)"
+      },
+      "createSession": {
+        "image": "Uusi kuva",
+        "video": "Uusi video",
+        "audio": "Lue ääneen",
+        "music": "Luo musiikkia"
       }
     },
     "googleWorkspace": {
@@ -19525,7 +19528,8 @@
     "empty": {
       "title": "Mitään ei ole vielä luotu",
       "description": "Kirjoita kehote yllä ja paina Generoi. Kuvasi, videosi ja äänesi näkyvät täällä, uusimmat ensin.",
-      "action": "Kirjoita kehote"
+      "action": "Kirjoita kehote",
+      "sessionTitle": "Tällä välilehdellä ei ole vielä mitään"
     },
     "item": {
       "open": "Avaa {{title}}",
@@ -19599,7 +19603,15 @@
       "uploadFailed": "Tiedoston {{name}} lataus epäonnistui: {{reason}}"
     },
     "switched": "Vaihdettiin tilaan {{mode}}, koska lisäsit kuvan.",
-    "undoSwitch": "Takaisin tilaan {{from}}"
+    "undoSwitch": "Takaisin tilaan {{from}}",
+    "scope": {
+      "label": "Näytettävät otot",
+      "session": "Tämä välilehti",
+      "all": "Kaikki otot"
+    },
+    "renameFailed": "Välilehteä ei voitu nimetä uudelleen: {{reason}}",
+    "sessionFailed": "Tämän välilehden ottoja ei voitu ladata.",
+    "sessionKind": "Create-istunto"
   },
   "effectsGallery": {
     "title": "Tehosteet",

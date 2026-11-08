@@ -8791,8 +8791,6 @@
       "studio": "Studio",
       "switchToProject": "Byt till projekt {{name}}",
       "personal": "Personligt",
-      "newChatInMode": "Ny chatt: {{mode}}",
-      "newChatInModeValue": "Ny chatt {{mode}}",
       "newTextFileValue": "Ny textfil {{label}}",
       "newTextFile": "Ny textfil: {{label}}",
       "newStoryboard": "Ny storyboard",
@@ -8824,8 +8822,7 @@
         "script": "Nytt manus",
         "jsscript": "Nytt JS-skript",
         "skill": "Ny färdighet",
-        "model3d": "Ny 3D-modell",
-        "create": "Skapa bilder och videor"
+        "model3d": "Ny 3D-modell"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8831,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Oformaterad text (.txt)"
+      },
+      "createSession": {
+        "image": "Ny bild",
+        "video": "Ny video",
+        "audio": "Läs upp",
+        "music": "Generera musik"
       }
     },
     "googleWorkspace": {
@@ -19525,7 +19528,8 @@
     "empty": {
       "title": "Inget skapat ännu",
       "description": "Skriv en prompt ovan och tryck på Generera. Dina bilder, videor och ljud visas här, nyaste först.",
-      "action": "Skriv en uppmaning"
+      "action": "Skriv en uppmaning",
+      "sessionTitle": "Inget i den här fliken än"
     },
     "item": {
       "open": "Öppna {{title}}",
@@ -19599,7 +19603,15 @@
       "uploadFailed": "Kunde inte ladda upp {{name}}: {{reason}}"
     },
     "switched": "Bytte till {{mode}} eftersom du lade till en bild.",
-    "undoSwitch": "Tillbaka till {{from}}"
+    "undoSwitch": "Tillbaka till {{from}}",
+    "scope": {
+      "label": "Vilka tagningar som visas",
+      "session": "Den här fliken",
+      "all": "Alla tagningar"
+    },
+    "renameFailed": "Fliken kunde inte byta namn: {{reason}}",
+    "sessionFailed": "Tagningarna i den här fliken kunde inte läsas in.",
+    "sessionKind": "Create-session"
   },
   "effectsGallery": {
     "title": "Effekter",

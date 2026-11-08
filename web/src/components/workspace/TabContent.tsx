@@ -1,6 +1,7 @@
 import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { CREATE_REF, type WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
 
@@ -37,6 +38,19 @@ const NewProjectSurface = React.lazy(
   () => import("../projects/NewProjectSurface")
 );
 const CreateSurface = React.lazy(() => import("../create/CreateSurface"));
+
+/**
+ * A thread opened as a chat tab by a caller that did not check its kind: a
+ * Create session still opens as Create.
+ */
+const ThreadSurface = ({ tab, active }: { tab: WorkspaceTab; active: boolean }) => {
+  const kind = useGlobalChatStore((state) => state.threads[tab.ref]?.kind);
+  return kind === "create" ? (
+    <CreateSurface sessionId={tab.ref} projectId={tab.projectId} />
+  ) : (
+    <ChatSurface refId={tab.ref} active={active} />
+  );
+};
 
 interface TabContentProps {
   tab: WorkspaceTab;
@@ -131,7 +145,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "game":
       return <GameSurface refId={tab.ref} active={active} mode={tab.mode} tab={tab} />;
     case "chat":
-      return <ChatSurface refId={tab.ref} active={active} />;
+      return <ThreadSurface tab={tab} active={active} />;
     case "page":
       return isPageTabKey(tab.ref) ? <PageSurface pageKey={tab.ref} /> : null;
     case "project-list":
@@ -150,7 +164,12 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "project-new":
       return <NewProjectSurface active={active} />;
     case "create":
-      return <CreateSurface />;
+      return (
+        <CreateSurface
+          sessionId={tab.ref === CREATE_REF ? null : tab.ref}
+          projectId={tab.projectId}
+        />
+      );
     default: {
       // Exhaustiveness guard — a new WorkspaceTabType must add a case here.
       const exhaustive: never = tab.type;

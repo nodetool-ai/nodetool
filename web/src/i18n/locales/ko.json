@@ -8791,8 +8791,6 @@
       "studio": "스튜디오",
       "switchToProject": "{{name}} 프로젝트로 전환",
       "personal": "개인",
-      "newChatInMode": "새 채팅: {{mode}}",
-      "newChatInModeValue": "새 채팅 {{mode}}",
       "newTextFileValue": "새 텍스트 파일 {{label}}",
       "newTextFile": "새 텍스트 파일: {{label}}",
       "newStoryboard": "새로운 스토리보드",
@@ -8824,8 +8822,7 @@
         "script": "새 스크립트",
         "jsscript": "새로운 JS 스크립트",
         "skill": "새로운 스킬",
-        "model3d": "새로운 3D 모델",
-        "create": "이미지 및 비디오 만들기"
+        "model3d": "새로운 3D 모델"
       },
       "templates": {
         "markdown": "마크다운(.md)",
@@ -8834,6 +8831,12 @@
         "csv": "CSV(.csv)",
         "tsv": "TSV(.tsv)",
         "plainText": "일반 텍스트(.txt)"
+      },
+      "createSession": {
+        "image": "새 이미지",
+        "video": "새 동영상",
+        "audio": "소리 내어 읽기",
+        "music": "음악 생성"
       }
     },
     "googleWorkspace": {
@@ -19525,7 +19528,8 @@
     "empty": {
       "title": "아직 생성된 항목이 없습니다.",
       "description": "위에 프롬프트를 쓰고 생성을 누르세요. 이미지, 동영상, 오디오가 최신순으로 여기에 표시됩니다.",
-      "action": "프롬프트 작성"
+      "action": "프롬프트 작성",
+      "sessionTitle": "이 탭에는 아직 아무것도 없습니다"
     },
     "item": {
       "open": "{{title}} 열기",
@@ -19599,7 +19603,15 @@
       "uploadFailed": "{{name}}을(를) 업로드하지 못했습니다: {{reason}}"
     },
     "switched": "이미지를 추가해서 {{mode}}(으)로 바꿨습니다.",
-    "undoSwitch": "{{from}}(으)로 돌아가기"
+    "undoSwitch": "{{from}}(으)로 돌아가기",
+    "scope": {
+      "label": "표시할 테이크",
+      "session": "이 탭",
+      "all": "모든 테이크"
+    },
+    "renameFailed": "탭 이름을 바꾸지 못했습니다: {{reason}}",
+    "sessionFailed": "이 탭의 테이크를 불러오지 못했습니다.",
+    "sessionKind": "Create 세션"
   },
   "effectsGallery": {
     "title": "효과",

@@ -8930,8 +8930,6 @@
       "studio": "Atelier",
       "switchToProject": "Passer au projet {{name}}",
       "personal": "Personnel",
-      "newChatInMode": "Nouveau chat : {{mode}}",
-      "newChatInModeValue": "Nouveau chat {{mode}}",
       "newTextFileValue": "Nouveau fichier texte {{label}}",
       "newTextFile": "Nouveau fichier texte : {{label}}",
       "newStoryboard": "Nouveau story-board",
@@ -8963,8 +8961,7 @@
         "script": "Nouveau scénario",
         "jsscript": "Nouveau script JS",
         "skill": "Nouvelle compétence",
-        "model3d": "Nouveau modèle 3D",
-        "create": "Créer des images et des vidéos"
+        "model3d": "Nouveau modèle 3D"
       },
       "templates": {
         "markdown": "Démarquage (.md)",
@@ -8973,6 +8970,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Texte brut (.txt)"
+      },
+      "createSession": {
+        "image": "Nouvelle image",
+        "video": "Nouvelle vidéo",
+        "audio": "Lire à voix haute",
+        "music": "Générer de la musique"
       }
     },
     "googleWorkspace": {
@@ -19835,7 +19838,8 @@
     "empty": {
       "title": "Rien de créé pour l'instant",
       "description": "Écris un prompt ci-dessus et appuie sur Générer. Tes images, vidéos et audios apparaissent ici, les plus récents en premier.",
-      "action": "Écrivez une invite"
+      "action": "Écrivez une invite",
+      "sessionTitle": "Rien dans cet onglet pour l'instant"
     },
     "item": {
       "open": "Ouvrir {{title}}",
@@ -19910,7 +19914,15 @@
       "uploadFailed": "Impossible d’envoyer {{name}} : {{reason}}"
     },
     "switched": "Passé en mode {{mode}} parce que tu as ajouté une image.",
-    "undoSwitch": "Revenir à {{from}}"
+    "undoSwitch": "Revenir à {{from}}",
+    "scope": {
+      "label": "Prises à afficher",
+      "session": "Cet onglet",
+      "all": "Toutes les prises"
+    },
+    "renameFailed": "Impossible de renommer l'onglet : {{reason}}",
+    "sessionFailed": "Impossible de charger les prises de cet onglet.",
+    "sessionKind": "Session Create"
   },
   "effectsGallery": {
     "title": "Effets",

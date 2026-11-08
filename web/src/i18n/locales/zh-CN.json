@@ -8791,8 +8791,6 @@
       "studio": "工作室",
       "switchToProject": "切换到项目{{name}}",
       "personal": "个人",
-      "newChatInMode": "新建聊天：{{mode}}",
-      "newChatInModeValue": "新建聊天{{mode}}",
       "newTextFileValue": "新建文本文件{{label}}",
       "newTextFile": "新建文本文件：{{label}}",
       "newStoryboard": "新建分镜脚本",
@@ -8824,8 +8822,7 @@
         "script": "新建脚本",
         "jsscript": "新建 JS 脚本",
         "skill": "新建技能",
-        "model3d": "新建 3D 模型",
-        "create": "创作图像和视频"
+        "model3d": "新建 3D 模型"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8831,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "纯文本 (.txt)"
+      },
+      "createSession": {
+        "image": "新建图像",
+        "video": "新建视频",
+        "audio": "朗读",
+        "music": "生成音乐"
       }
     },
     "googleWorkspace": {
@@ -19525,7 +19528,8 @@
     "empty": {
       "title": "还没有创作内容",
       "description": "在上方输入提示词并点击生成。你的图片、视频和音频会显示在这里，最新的在前。",
-      "action": "写提示词"
+      "action": "写提示词",
+      "sessionTitle": "此标签页中还没有内容"
     },
     "item": {
       "open": "打开 {{title}}",
@@ -19599,7 +19603,15 @@
       "uploadFailed": "无法上传 {{name}}：{{reason}}"
     },
     "switched": "你添加了图片，已切换到{{mode}}。",
-    "undoSwitch": "返回{{from}}"
+    "undoSwitch": "返回{{from}}",
+    "scope": {
+      "label": "显示哪些作品",
+      "session": "此标签页",
+      "all": "全部作品"
+    },
+    "renameFailed": "无法重命名标签页：{{reason}}",
+    "sessionFailed": "无法加载此标签页的作品。",
+    "sessionKind": "Create 会话"
   },
   "effectsGallery": {
     "title": "特效",

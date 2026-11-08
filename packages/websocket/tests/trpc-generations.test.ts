@@ -46,6 +46,24 @@ describe("generation activity router", () => {
     });
   });
 
+  it("lists one thread's takes with their prompt and assets", async () => {
+    const take = await generation({
+      thread_id: "session", request_id: "req-1", asset_ids: ["asset-1"],
+      parameters: { prompt: "a lighthouse", width: 1024 }
+    });
+    await generation({ thread_id: "other-session" });
+    await generation();
+    const result = await caller().list({ thread_id: "session" });
+    expect(result.generations.map((row) => row.generation_id)).toEqual([take.id]);
+    expect(result.generations[0]).toMatchObject({
+      thread_id: "session", request_id: "req-1", prompt: "a lighthouse", asset_ids: ["asset-1"]
+    });
+    const untagged = await caller().list({ project_id: "project" });
+    expect(untagged.generations.find((row) => row.thread_id === null)).toMatchObject({
+      prompt: null, asset_ids: []
+    });
+  });
+
   it("preserves recovery, cancellation intent, cost provenance, and billing units", async () => {
     await generation({
       lifecycle_owner: "durable", status: "completed", provider_status: "succeeded",
