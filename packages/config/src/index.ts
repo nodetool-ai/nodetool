@@ -157,3 +157,15 @@ export {
 } from "./storage-config.js";
 
 export { createTraceTextRedactor, redactPrivateKeys, redactTraceText } from "./trace-redaction.js";
+export {
+  fetchPackageMedia,
+  findPackageMedia,
+  packageMediaCacheDir,
+  packageMediaKey,
+  readPackageMedia,
+  readPackageMediaManifest,
+  readMissingPackageMedia,
+  resetPackageMediaManifests,
+  type PackageMediaEntry,
+  type PackageMediaManifest
+} from "./package-media.js";

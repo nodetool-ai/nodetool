@@ -17,7 +17,7 @@
 import { readdirSync, statSync } from "node:fs";
 import { extname, join, posix, resolve } from "node:path";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, readPackageMediaManifest } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.websocket.package-assets");
 
@@ -145,14 +145,25 @@ export function listPackageAssets(
   const assets: PackageAsset[] = [];
   if (limit <= 0) return assets;
 
+  const roots = source.packageAssetsRoots ?? [];
   for (const [packageName, dir] of assetDirectories(source)) {
+    // Local files, then the media a manifest lists that this install lacks.
+    const sizes = new Map<string, number>();
     for (const name of filesUnder(dir)) {
-      let size: number;
       try {
-        size = statSync(join(dir, ...name.split("/"))).size;
+        sizes.set(name, statSync(join(dir, ...name.split("/"))).size);
       } catch {
-        continue;
+        // Gone between the listing and the stat.
       }
+    }
+    for (const root of roots) {
+      const manifest = readPackageMediaManifest(resolve(root), packageName);
+      for (const [name, entry] of Object.entries(manifest?.files ?? {})) {
+        if (!sizes.has(name)) sizes.set(name, entry.size);
+      }
+    }
+    for (const name of [...sizes.keys()].sort()) {
+      const size = sizes.get(name) ?? 0;
       assets.push({
         package_name: packageName,
         name,
