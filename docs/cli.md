@@ -1716,6 +1716,27 @@ scanned 0, would move 0, already migrated 0, absent 0, failed 0
 Dry run — nothing was written. Re-run without --dry-run.
 ```
 
+### `nodetool storage refresh-cache-control`
+
+Give asset objects stored before uploads set `Cache-Control` the header new
+uploads carry, `max-age=` the signed URL lifetime. Supabase Storage stored
+`no-cache` on those objects, and a signed URL cannot be revalidated, so a
+browser downloaded the whole object again every time an image or video
+mounted. Each stale asset file and thumbnail is read and written back under
+the same key with its content type. The rewrite downloads every stale object
+once, so run `--dry-run` first to see the total.
+
+**Options:**
+
+- `--dry-run` — report what would be rewritten and its size without writing anything.
+- `--user-id <id>` — refresh only this user's objects.
+- `--json` — output the report as JSON.
+
+```bash
+nodetool storage refresh-cache-control --dry-run
+nodetool storage refresh-cache-control
+```
+
 ## Vector Collections
 
 ### `nodetool collections`

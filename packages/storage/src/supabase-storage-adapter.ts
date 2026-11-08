@@ -15,6 +15,7 @@ import type {
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import { normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
+import { objectCacheControl } from "./cache-control.js";
 
 /** Supabase upload tokens last two hours and the sign call takes no TTL. */
 const SUPABASE_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
@@ -77,7 +78,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     contentType?: string
   ): Promise<string> {
     assertUploadWithinLimit(key, data.byteLength);
-    const uploadOptions: SupabaseUploadOptions = { upsert: true };
+    const uploadOptions: SupabaseUploadOptions = {
+      upsert: true,
+      cacheControl: objectCacheControl()
+    };
     if (contentType) {
       uploadOptions.contentType = contentType;
     }
@@ -215,6 +219,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (data.contentType) {
       stat.contentType = data.contentType;
     }
+    if (data.cacheControl) {
+      stat.cacheControl = data.cacheControl;
+    }
     return stat;
   }
 
@@ -243,7 +250,11 @@ export class SupabaseStorageAdapter implements StorageAdapter {
         `Supabase upload URL failed for key "${key}": ${error?.message ?? "no data"}`
       );
     }
-    const headers: Record<string, string> = {};
+    // The browser sends these with its PUT, and Supabase stores the
+    // Cache-Control on the object as it does for a server upload.
+    const headers: UploadTarget["headers"] = {
+      "cache-control": objectCacheControl()
+    };
     if (opts.contentType) headers["content-type"] = opts.contentType;
     return {
       url: data.signedUrl,

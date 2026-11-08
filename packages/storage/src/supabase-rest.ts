@@ -29,6 +29,7 @@ export interface SupabaseObjectInfo {
   contentType?: string;
   /** Epoch milliseconds, absent when the response has no `Last-Modified`. */
   modifiedAt?: number;
+  cacheControl?: string;
 }
 
 /** One entry from the Storage `list` endpoint. */
@@ -58,6 +59,8 @@ export interface SupabaseSignedUrlEntry {
 export interface SupabaseUploadOptions {
   contentType?: string;
   upsert?: boolean;
+  /** Stored on the object and sent back on every download of it. */
+  cacheControl?: string;
 }
 
 export interface SupabaseBucketApi {
@@ -254,6 +257,9 @@ export function createSupabaseStorageClient(
             if (options.upsert) {
               headers["x-upsert"] = "true";
             }
+            if (options.cacheControl) {
+              headers["cache-control"] = options.cacheControl;
+            }
             const response = await send(objectUrl(key), {
               method: "POST",
               headers,
@@ -300,6 +306,8 @@ export function createSupabaseStorageClient(
               response.headers.get("last-modified") ?? ""
             );
             if (Number.isFinite(lastModified)) info.modifiedAt = lastModified;
+            const cacheControl = response.headers.get("cache-control");
+            if (cacheControl) info.cacheControl = cacheControl;
             return { data: info, error: null };
           },
 

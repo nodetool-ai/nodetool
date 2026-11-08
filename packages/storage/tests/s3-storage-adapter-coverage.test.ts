@@ -59,6 +59,7 @@ describe("S3StorageAdapter store", () => {
       bucket: "b",
       key: "runs/r1/out.bin",
       body: expect.any(Uint8Array),
+      cacheControl: "max-age=604800",
       contentType: "image/png"
     });
   });
@@ -71,7 +72,8 @@ describe("S3StorageAdapter store", () => {
     expect(client.putObject).toHaveBeenCalledWith({
       bucket: "b",
       key: "k.bin",
-      body: expect.any(Uint8Array)
+      body: expect.any(Uint8Array),
+      cacheControl: "max-age=604800"
     });
   });
 
