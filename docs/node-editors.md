@@ -5,11 +5,7 @@ permalink: /node-editors
 description: "The interactive editors that render inside image, prompt, and code nodes on the workflow canvas, and how each edit maps to node properties."
 ---
 
-Many image nodes do not show a plain list of fields. They show a preview and controls made for the job: a crop rectangle you drag, a layer stack, a histogram, a paint surface. These editors render inside the node on the canvas. A few also open a larger window. The Prompt node has a composer with inline asset and variable chips, and the Code node has an AI-assisted code dialog.
-
-Every edit writes to the node's ordinary properties, so the Inspector, saved workflows, and the API see the same values. Nothing here is hidden state, with the exceptions noted under [Painter](#painter).
-
-> **Quick Access:** Add the node from the node menu, or select one already on the canvas. The editor is the node's body.
+Some nodes render an interactive editor as their body on the canvas: a crop rectangle, a layer stack, a histogram, a paint surface, a prompt composer, a code dialog. Every edit writes the node's ordinary properties, so the Inspector, saved workflows, and the API see the same values. The one exception is noted under [Painter](#painter). Add the node from the node menu and the editor is its body.
 
 ---
 
@@ -19,8 +15,6 @@ Every edit writes to the node's ordinary properties, so the Inspector, saved wor
 - **Slider drags are live, and release commits.** Dragging a slider writes the value as you go. Releasing the slider records one undo step for the whole drag.
 - **Input handles stay on the left edge.** You connect images and masks to the same handles as on any node.
 - **Reset buttons** return the editor's controls to their defaults in one undoable step.
-
-For the canvas itself, see [Workflow Editor](workflow-editor.md).
 
 ---
 

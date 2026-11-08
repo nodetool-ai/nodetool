@@ -2,97 +2,101 @@
 layout: page
 title: "Audio Editor"
 permalink: /audio-editor
-description: "Trim, fade, normalize, reverse, and otherwise edit an audio asset as a waveform, then save it back as WAV."
+description: "Trim, fade, normalize, reverse, and apply effects to an audio asset as a waveform, then save it back as WAV."
 ---
 
-The audio editor edits an audio asset in place. It decodes the file into samples in your browser, shows the waveform, and lets you cut, fade, normalize, reverse, and re-level a region. Every edit can be undone. **Save to audio** writes the result back to the asset as a WAV file.
-
-> **Quick Access:** Open an audio asset in a workspace tab and click **Edit** in the View / Edit toggle at the top right of the tab bar.
-
-Audio tabs have two modes. **View** shows the waveform viewer. **Edit** shows the editor described here. Switching back to **View** with the toggle, or clicking **Done**, keeps your unsaved edits in the editor until you close the tab.
+The audio editor decodes an audio asset into samples in your browser, shows the waveform, and edits a selected region or the whole clip. **Save** writes the result back to the asset as WAV.
 
 ![Audio Editor with a trailer score open: the edit toolbar above a stereo waveform](assets/screenshots/audio-editor.png)
 
----
+> **Runs:** locally in the browser (Web Audio). **Needs:** no API key. An LLM provider is needed only for the assistant (see [Providers](providers.md)).
+{: .callout-note}
 
-## The layout
+Open an audio asset in a workspace tab and switch the **View / Edit** toggle to **Edit**. Unsaved edits stay in the editor when you switch back to **View** until you close the tab.
 
-| Area | What it holds |
+| Area | Contents |
 |---|---|
-| Toolbar | Transport, zoom, region edits, undo and redo, **Save to audio**, **Done** |
-| Waveform | The audio as a waveform, with the playhead and your selection |
-| Footer | The selection start, end, and length on the left. The playhead time and total length on the right |
+| Toolbar | Transport, zoom, selection and level edits, **Effects**, undo and redo, **Save** |
+| Waveform | Playhead and selection. Drag selects, click clears the selection and seeks |
+| Footer | Selection start, end, and length on the left. Playhead time and total length on the right |
+| Assistant | Docked chat beside the editor (desktop only). See [Ask the assistant](#ask-the-assistant) |
 
-Times show as `minutes:seconds.milliseconds`. With no selection the footer reads "Drag to select · Click to seek".
+The ⋮ menu holds **Transform with workflow…**, which runs the file through one of your workflows. If the asset cannot be fetched or decoded, the editor shows "Could not open audio editor" with the reason.
 
-If the asset cannot be fetched or decoded, the editor shows "Could not open audio editor" with the reason and a **Done** button.
+## Play and zoom
 
----
+**Play** (becomes **Pause**), **Stop**, and **Loop**. With a selection, Play plays only the selection and Stop returns to its start. With none, Play runs from the playhead to the end and Stop returns to the start. With **Loop** on, the selection repeats. Playback stops when the audio changes, including undo and redo.
 
-## Select and play
+Zoom runs from 100 percent (whole clip) to 6400 percent. The buttons change it by a factor of 1.5, and **Fit to window** resets it.
 
-- **Drag** across the waveform to select a region.
-- **Click** to clear the selection and move the playhead to that point.
+## Edits
 
-The transport buttons are **Play** (which becomes **Pause**), **Stop**, and **Loop**.
-
-| Situation | Play does |
-|---|---|
-| A region is selected | Plays only the selection. **Stop** returns the playhead to the selection start |
-| No selection | Plays from the playhead to the end of the audio. **Stop** returns the playhead to the start |
-| **Loop** is on and a region is selected | Repeats the selection until you pause or stop |
-
-Playback stops whenever the audio changes, including undo and redo.
-
----
-
-## Zoom
-
-**Zoom out**, **Zoom in**, and **Fit to window** sit beside a logarithmic zoom slider with a percentage readout. The zoom runs from 100 percent (the whole clip fits the window) to 6400 percent. Each button click changes the zoom by a factor of 1.5. When zoomed in, scroll the waveform sideways.
-
----
-
-## Edit operations
-
-Edits are destructive to the in-editor copy only. Nothing reaches the asset until you save.
-
-Some buttons need a selection and stay disabled without one. Others work on the selection when there is one and on the whole clip when there is not.
+Edits change the in-editor copy only. Nothing reaches the asset until you save. All edits apply to every channel.
 
 | Button | Needs selection | What it does |
 |---|---|---|
-| **Trim** | Yes | Keeps the selection and discards everything outside it |
-| **Delete** | Yes | Removes the selection and joins the audio on either side. The playhead moves to where the cut was |
-| **Silence** | Yes | Replaces the selection with silence and keeps the length |
-| **Fade in** | Yes | Ramps the selection linearly from silence to its original level |
-| **Fade out** | Yes | Ramps the selection linearly from its original level to silence |
-| **Normalize** | No | Scales the selection, or the whole clip, so its loudest sample reaches full scale. A silent region is left unchanged |
-| **Amplify** | No | Multiplies the level by 1.4. Peaks above full scale are clipped |
+| **Trim to selection** | Yes | Keeps the selection and discards the rest |
+| **Delete selection** | Yes | Removes it and joins both sides. The playhead moves to the cut |
+| **Silence selection** | Yes | Replaces it with silence and keeps the length |
+| **Fade in selection**, **Fade out selection** | Yes | Linear ramp from silence, or to silence |
+| **Normalize** | No | Scales the selection or clip so its loudest sample reaches full scale. A silent region is unchanged |
+| **Amplify** | No | Multiplies the level by 1.4. Peaks above full scale clip |
 | **Quieten** | No | Multiplies the level by 0.7 |
-| **Reverse** | No | Reverses the selection, or the whole clip, end to end |
+| **Reverse** | No | Reverses the selection or clip |
 
-**Trim** and **Delete** clear the selection after they run. The other edits keep it, so you can chain them, for example **Fade out** followed by **Normalize** on the same region.
+Trim and Delete clear the selection. The other edits keep it, so you can chain a fade and a normalize on one region. Undo and redo keep the last 50 states, and a new edit after an undo discards the redo branch.
 
-All edits apply to every channel of a stereo or multichannel file.
+### Effects
 
----
+**Effects** opens effects in five groups. Most open a dialog with parameters, a **Preview** (the first 15 seconds of the range), **Reset**, and **Apply**. The dialog states whether it applies to the selection or the whole clip. Each effect is one undo step.
 
-## Undo and redo
+| Group | Effects |
+|---|---|
+| Tone | Equalizer, Low cut, High cut, Remove DC offset |
+| Dynamics | Compressor, Limiter, Noise gate |
+| Space | Reverb, Echo, Chorus |
+| Character | Distortion, Bitcrusher, Tremolo, Invert |
+| Time | Change speed (0.25x to 4x, changes the length) |
 
-**Undo** and **Redo** step through your edits. The editor keeps the last 50 states. A new edit after an undo discards the redo branch.
-
----
+Reverb and echo tails mix onto the audio after the range. If an effect fails, the editor shows an error and the audio is unchanged.
 
 ## Save
 
-Click **Save to audio**. The editor encodes the clip as a 16-bit PCM WAV file and overwrites the asset's data. The asset's content type becomes `audio/wav`, whatever format it had before. The sample rate and channel count are kept. On success a "Saved edits to audio." notification appears and the editor counts the clip as saved. On failure an error notification shows the reason and your edits stay in the editor.
+**Save** encodes the clip as 16-bit PCM WAV and overwrites the asset. The content type becomes `audio/wav` whatever it was before. Sample rate and channel count are kept. A "Saved edits to audio." notification confirms it. On failure a "Failed to save audio: ..." notification shows the reason and your edits stay in the editor. Workflows that reference the asset use the edited audio from the next run.
 
-The save replaces the original file, so any workflow that references the asset uses the edited audio from the next run.
+## Ask the assistant
 
-Click **Done** to return to **View** mode. Done does not save.
+The assistant edits the open audio through the `ui_audio_*` tools. Each edit is one undo step, and nothing is saved until the assistant calls `ui_audio_save`, which you can ask for. The tools are `ui_audio_get_state`, `ui_audio_edit`, `ui_audio_list_effects`, `ui_audio_apply_effect`, and `ui_audio_save`.
 
----
+`ui_audio_get_state` returns the duration, sample rate, channel count, unsaved state, your selection, and a peak level from 0 to 1 per window, which is how the assistant finds silence. `ui_audio_edit` takes `op` (`trim`, `delete`, `silence`, `fade_in`, `fade_out`, `normalize`, `reverse`, `gain` with `gain_db` from -60 to 24) and an optional `start` and `end` in seconds.
+
+A trace from `packages/agents/tests/audio-tool-loop.test.ts` (the `trim-leading-silence` case, on a 5 second recording with 2 seconds of silence first). The audio fixture is the test's, and the call order is its golden transcript.
+
+```text
+User: This recording starts with dead air before anyone speaks. Remove the silence at the start and save the audio.
+```
+
+```json
+[
+  { "tool": "ui_audio_get_state", "arguments": {} },
+  { "tool": "ui_audio_edit", "arguments": { "op": "delete", "start": 0, "end": 2 } },
+  { "tool": "ui_audio_save", "arguments": {} }
+]
+```
+
+The state call shows peaks of 0 for the first 2 seconds. After the delete, the duration is 3 seconds and the first peaks are above 0.1. After the save, the draft is clean.
+
+### If a call fails
+
+The tool throws and the audio is unchanged. Messages from the same test file:
+
+- `trim` or `delete` without a range: `"trim" needs a range`.
+- `start` without `end`: "Pass both `start` and `end`".
+- `gain` without `gain_db`: "needs gain_db".
+- Unknown effect id: `Unknown effect "nope"`. Unknown or out-of-range parameter: `"reverb" has no parameter "wet"` or `"mix" must be between 0 and 100`.
+- If the audio changed while an effect rendered, the result is dropped and the tool asks the assistant to read the state again and retry.
 
 ## Related
 
-- [Asset Management](asset-management.md) for uploading, organizing, and viewing audio assets
-- [Workspaces](workspaces.md) for tabs and the View / Edit toggle
+- [Asset Management](asset-management.md)
+- [Workspaces](workspaces.md): tabs and the View / Edit toggle

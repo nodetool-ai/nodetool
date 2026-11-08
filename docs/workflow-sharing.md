@@ -5,9 +5,7 @@ permalink: /workflow-sharing
 description: "Share a workflow or document with collaborators through view, edit, or public links, and manage who has access."
 ---
 
-You share a workflow by creating a link and sending it to someone. Storyboards, scripts, timelines, sketches, apps and JS scripts share the same way. See [Other documents](#other-documents) for how they differ. The link carries a permission level. When the other person opens it, they get that level of access to your workflow. Only the owner of a workflow can create links or change who has access.
-
-Sharing depends on user accounts, so it matters which [authentication mode](authentication.md) your server runs in.
+A share link carries a permission level, and opening it gives the visitor that level of access. Only the owner can create links or change access. Storyboards, scripts, timelines, sketches, apps, and JS scripts share the same way (see [Other documents](#other-documents)). Sharing depends on user accounts, so it depends on your server's [authentication mode](authentication.md).
 
 ## Which deployments support sharing
 

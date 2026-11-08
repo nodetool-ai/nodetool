@@ -4,23 +4,15 @@ title: "Tutorials"
 description: "Short videos that show NodeTool at work: edit a sketch, voice a script, board a storyboard, build a mini app, cut a scene, and repeat the result with a workflow."
 ---
 
-Each video is under a minute and replays a real session in the NodeTool editor.
-You see what to ask for, what the assistant does, and where the result lands.
-The same videos play in the app: open the logo menu and choose **Tutorials**.
+Each video is under a minute and replays a real session in the NodeTool editor. The same videos play in the app under the logo menu → **Tutorials**.
 
-The first group shows how to make something by asking.
-The second shows how to steer the assistant when the first answer is not right.
-The last group shows how to repeat a result with a workflow, one node at a time.
-
-New to NodeTool? Start with the [Quick Start](getting-started.md).
-The [Glossary](glossary.md) explains the terms used below.
+Groups: [make it by asking](#make-it-by-asking), [steer the assistant](#steer-the-assistant), [repeat it with a workflow](#repeat-it-with-a-workflow). Start with the [Quick Start](getting-started.md). Terms are in the [Glossary](glossary.md).
 
 ## Make it by asking
 
 ### Edit a sketch by asking
 
-Say what you want changed. The Sketch Assistant uses the real layer tools:
-it adds a layer, sets the blend mode, and sets the opacity while you watch the layer panel.
+The Sketch Assistant calls the layer tools: it adds a layer, sets the blend mode, and sets the opacity.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/sketch-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/sketch-assistant.mp4' | relative_url }}" type="video/mp4">
@@ -33,8 +25,7 @@ Read more: [Sketch Editor](sketch-editor.md), [Chat & Agents](global-chat-agents
 
 ### Write and voice a script
 
-Go from a blank page to voiced audio in one request.
-The Script Assistant casts the speakers first, writes their lines, then records a take for each line.
+The Script Assistant casts the speakers, writes their lines, then records a take for each line.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/script-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/script-assistant.mp4' | relative_url }}" type="video/mp4">
@@ -154,9 +145,7 @@ Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.
 
 ## Repeat it with a workflow
 
-A workflow saves the steps behind a result so you can run them again with new inputs.
-These videos build small workflows on the canvas.
-To build one yourself from an empty canvas, follow [Your First Workflow](first-workflow.md).
+A workflow saves the steps behind a result so you can rerun them with new inputs. To build one yourself, follow [Your First Workflow](first-workflow.md).
 
 ### Build your first workflow
 
@@ -166,9 +155,6 @@ Watch the nodes run and the image appear on the canvas.
 <video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">
 </video>
-
-You see how nodes pass data through their handles, how a running node shows progress,
-and where the generated image appears.
 
 Read more: [Your First Workflow](first-workflow.md), [Workflow Editor](workflow-editor.md).
 
@@ -180,8 +166,6 @@ and a Preview that shows HELLO NODETOOL.
 <video controls preload="metadata" poster="{{ '/assets/tutorials/connect-run.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/connect-run.mp4' | relative_url }}" type="video/mp4">
 </video>
-
-You see how outputs connect to inputs, how nodes report completion, and where a result appears.
 
 Read more: [Workflow Editor](workflow-editor.md#connections), [Key Concepts](key-concepts.md).
 
@@ -214,7 +198,7 @@ Two text inputs flow into one Prompt node, which fills a template and produces o
   <source src="{{ '/assets/tutorials/combine-inputs.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You see how several inputs connect to one node and how `{% raw %}{{ placeholders }}{% endraw %}` build a prompt from reusable parts.
+The Prompt node fills `{% raw %}{{ placeholders }}{% endraw %}` from its connected inputs.
 
 Read more: [Workflow Editor](workflow-editor.md#connections), [Key Concepts](key-concepts.md).
 
@@ -241,5 +225,4 @@ Read more: [Image to Audio Story](workflows/image-to-audio-story.md), [Models & 
 
 ---
 
-Ready to make something? Read the [Quick Start](getting-started.md), then
-browse the [Examples]({{ '/workflows/' | relative_url }}).
+More: [Examples]({{ '/workflows/' | relative_url }}).

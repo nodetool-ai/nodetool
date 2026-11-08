@@ -1,14 +1,15 @@
 ---
 layout: page
 title: "Connect OpenAI, Anthropic, Gemini & Ollama to NodeTool"
-description: "Bring your own keys: connect OpenAI, Anthropic, Gemini, Ollama, and 30+ providers to NodeTool workflows. Local or cloud, swap models without rewiring the graph."
+description: "Provider reference: capability matrix, the secret each provider needs, local servers, and what happens on a missing key or rate limit."
 ---
 
-A provider is the adapter between a NodeTool node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the 40+ others below. Every node that calls an LLM or a media model exposes a `model` property backed by a provider id. Pick a different provider from that same dropdown and the rest of the graph stays the same.
+A provider is the adapter between a node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the others below. Each node that calls an LLM or media model has a `model` property backed by a provider id, so changing provider is a dropdown change.
 
-This is bring-your-own-key (BYOK). NodeTool does not mark up a provider's price, and cloud usage is billed directly by the provider. The one exception is the `nodetool` provider, which exists only in NodeTool's hosted cloud (see [NodeTool managed models](#nodetool-managed-models)). Add a key in **Settings → Models & Providers**, or skip keys and run everything through local models (Ollama, vLLM, LM Studio, llama.cpp).
+> **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
+{: .callout-note}
 
-New to models and providers generally? Start with [Models & Providers](models-and-providers.md) for the local-vs-cloud overview, or [Supported Models](models.md) for the full model catalog. This page is the provider reference: what each one does, which key it needs, and where to read more.
+Add keys in **Settings → Models & Providers**. For the local-versus-cloud overview see [Models & Providers](models-and-providers.md), and for the model catalog see [Supported Models](models.md).
 
 ## Capability matrix
 
@@ -383,7 +384,7 @@ Nodes in the `nodetool.*` namespace take a `model` property and route to whichev
 
 A generic node drops parameters the selected provider doesn't support instead of erroring. Negative prompt, guidance scale, and seed apply mostly to diffusion-style backends, and GPT-Image and similar API-only models ignore them.
 
-Reach for a provider-specific node only when you need something the generic interface doesn't carry, such as MiniMax text to speech with its `emotion` and `pitch` controls.
+Use a provider-specific node only for controls the generic interface lacks, such as MiniMax text to speech with `emotion` and `pitch`.
 
 ## Getting keys in
 
@@ -408,6 +409,16 @@ nodetool secrets get OPENAI_API_KEY     # print a stored value
 Or set the variable directly in `.env.development.local` or your shell environment. A secret stored in the database wins over an environment variable of the same name, and the environment variable is the fallback when nothing is stored (the exceptions are `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `SERVER_AUTH_TOKEN`, where the environment wins). `FAL_KEY` is accepted in place of `FAL_API_KEY`. See [Configuration](configuration.md) for the full load order.
 
 Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key. Point NodeTool at the server's URL instead. For vLLM (`VLLM_BASE_URL`), llama.cpp (`LLAMA_CPP_URL`), and LM Studio (`LMSTUDIO_API_URL`), set it under **Settings → Integrations → Local Model Servers** or as an environment variable. Ollama reads `OLLAMA_API_URL` from the environment or the secret store. In NodeTool's hosted cloud these local providers are not registered, unless the server runs with `NODETOOL_NODE_PROFILE=full`.
+
+## If it fails
+
+- **Missing key:** the provider throws when called, naming the secret. Examples: `OPENAI_API_KEY is required`, `CEREBRAS_API_KEY is required`, `AKI_API_KEY is not configured`, `AZURE_OPENAI_ENDPOINT is required`, and for Anthropic `Anthropic authentication is not configured (API key, auth token, credentials, config, or profile required)`. The node fails with that message.
+- **Rejected key:** HTTP 401 or 403 is classified `auth`. **Test** on the provider in **Settings → Models & Providers** probes the provider's listing endpoint and reports `valid`, `invalid`, or `unverifiable` (a 429, a 5xx, a timeout, or a provider with no probe).
+- **Rate limit:** HTTP 429 is classified `rate_limit`. Replicate calls wait with backoff and honor `Retry-After` before the original error is thrown. Other providers pass the provider's message through.
+- **Insufficient balance:** HTTP 402 is classified `payment`.
+- **Failure report:** a failed provider call produces a `provider_call_failed` message with provider, model, operation, kind, status, and message. A cancelled run produces none.
+
+Sources: `provider-call-failure.ts`, `credential-check.ts`, `replicate-retry.ts` in `packages/runtime/src/providers/`.
 
 ## Tracking spend
 

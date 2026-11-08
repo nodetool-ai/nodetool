@@ -4,31 +4,12 @@ title: "App Builder"
 description: "Design the screen of a Mini App: place widgets, wire them to workflow inputs and outputs, publish."
 ---
 
-App Builder is the **Design** view of an app tab. You drag widgets onto a canvas,
-wire them to the inputs and outputs of the workflows the app runs, and save.
+App Builder is the **Design** view of an app tab. You drag widgets onto a canvas, wire them to the inputs and outputs of the workflows the app runs, and save. Concepts are in [Mini Apps](mini-apps.md), recipes in [Building Mini Apps](mini-apps-guide.md), and every widget in the [Reference](mini-apps-reference.md).
 
-This page covers the editor itself. For what Mini Apps are and how they run, see
-[Mini Apps](mini-apps.md); for step-by-step recipes, see
-[Building Mini Apps](mini-apps-guide.md); for every widget and setting, see the
-[Reference](mini-apps-reference.md).
+> **Runs:** locally or cloud, wherever the app's workflows run. **Needs:** workflows with Input and Output nodes. Provider keys come from those workflows' nodes. The assistant needs a configured chat provider (see [Providers](providers.md)).
+{: .callout-note}
 
-## What it does
-
-- Lays out the app screen: boxes, fields, buttons, and result displays.
-- Wires widgets to the Input and Output nodes of the workflows the app runs.
-- Runs a workflow from a button, or when a field changes.
-- Shows results as they stream in.
-- Declares operations, variables, and resources in the **App Data** panel.
-- Previews the screen at phone, tablet, or full width.
-- Publishes a version that locks in the current state of every workflow it runs.
-
-## Where it fits
-
-A Mini App is how your work reaches people who shouldn't have to read a node
-graph. App Builder wraps one or more workflows in a screen: fields feed the
-workflow's inputs, buttons start runs, and result widgets show what comes back.
-
-See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together).
+The editor previews the screen at phone, tablet, or full width, and publishes a version that locks in the current state of every workflow the app runs.
 
 ## Open it
 
@@ -38,20 +19,14 @@ See [Key Concepts → How everything fits together](key-concepts.md#how-everythi
 
 ![App Builder — Design view](assets/screenshots/mini-app-design.png)
 
-**Run** shows the app the way its users see it, using the released version when
-there is one. **Preview draft**, in the bar's ⋮ menu, runs the unpublished draft instead. **Settings**
-holds publishing, versions, the spend budget, the public link, and recent runs.
-Rename an app from the right-click menu in the Apps panel.
+**Run** shows the released version when there is one. **Preview draft** (⋮ menu) runs the unpublished draft. **Settings** holds publishing, versions, the spend budget, the public link, and recent runs. Rename an app from the right-click menu in the Apps panel.
 
 ![The same app in Run](assets/screenshots/mini-app-run.png)
 
 ## Build an app
 
-1. Check that each workflow has the Input and Output nodes the app needs. Open
-   one from **Linked workflows** in the bar's ⋮ menu; it opens as its own workflow tab.
-2. Add fields: Text Input, Number Input, Slider, Switch, Select, or a Workflow
-   Form that renders every input of an operation at once. The palette groups
-   widgets as Inputs, Chat & AI, Actions, Display, and Layout.
+1. Check that each workflow has the Input and Output nodes the app needs. Open one from **Linked workflows** (⋮ menu).
+2. Add fields: Text Input, Number Input, Slider, Switch, Select, or a Workflow Form that renders every input of an operation. The palette groups widgets as Inputs, Chat & AI, Actions, Display, and Layout.
 3. Wire each field to the matching Input node.
 4. Add a Button with the **Run workflow** action, pointing at the workflow to
    run.
@@ -60,20 +35,11 @@ Rename an app from the right-click menu in the Apps panel.
 
 5. Add result widgets: Text, Markdown, Image, JSON, Progress.
 6. Wire each result widget to the matching Output node.
-7. Click **Save**. The bar shows **Unsaved changes** until you do. In Design the bar also
-   has Undo and Redo, the phone, tablet, and fit-width preview toggle, the Layout menu,
-   and the **App data** toggle. The root settings hold the app
-   title and a **Theme** (Default, Centered, or Card).
+7. Click **Save**. The bar shows **Unsaved changes** until you do. The Design bar also has Undo and Redo, the preview-width toggle, the Layout menu, and the **App data** toggle. The root settings hold the app title and a **Theme** (Default, Centered, or Card).
 
 ## Letting the agent do it
 
-The assistant sits on the right of Design, Run, and Settings. It can read the
-app's workflows, add widgets, wire them up, declare operations and variables,
-and even edit a graph when the app needs new Input, Output, or Variable nodes.
-It can also check its work with the same wiring check as `nodetool app debug`,
-including unsaved edits, and run the app once to read the verdict.
-
-Good prompts describe the result you want:
+The assistant on the right of Design, Run, and Settings reads the app's workflows, adds and wires widgets, declares operations and variables, and edits a graph when the app needs new Input, Output, or Variable nodes. It runs the same check as `nodetool app debug` on the open draft, including unsaved edits, and can run the app once to read the verdict. Example prompt:
 
 > Build a compact app with all inputs on the left, a run button below them, and
 > outputs on the right.
@@ -105,25 +71,15 @@ so renaming a node doesn't break the app.
 | Result displays | A workflow output (`op:<opId>/out:<nodeId>`) or a variable |
 | Toggles and selects | A variable (`var:<variableId>`) |
 
-Wiring that points at nothing is reported as an error, both in the editor and in
-`nodetool app debug`. The full list is in the
-[Reference](mini-apps-reference.md#bindings).
+Wiring that points at nothing is an error in the editor and in `nodetool app debug`. See [Bindings](mini-apps-reference.md#bindings).
 
 ## Several workflows in one app
 
-Each workflow the app runs is an **operation**, edited under **Operations**. Give
-each one its own input and output wiring, its own rule for overlapping runs, and
-an optional time limit. Buttons point at an operation by name, so a two-step app
-is two operations and two buttons — not two apps.
+Each workflow the app runs is an **operation**, edited under **Operations**, with its own wiring, overlap rule, and optional time limit. Buttons point at an operation by name, so a two-step app is two operations and two buttons.
 
 ## Publish and share
 
-**Publish new version** in Settings saves the draft, then takes a snapshot of the
-screen and of every workflow the app runs. The snapshot becomes the released
-version, so the published app keeps working while you keep editing the drafts.
-Settings also rolls back to an older version, sets the spend budget, and creates
-a public link on servers that offer it. See
-[Publishing and sharing](mini-apps.md#publishing-and-sharing).
+**Publish new version** in Settings saves the draft, then snapshots the screen and every workflow the app runs. The snapshot becomes the released version. Settings also rolls back, sets the spend budget, and creates a public link on servers that offer it. See [Publishing and sharing](mini-apps.md#publishing-and-sharing).
 
 The editor has no export button. Move an app and its workflows as one JSON file
 with `nodetool apps export-bundle` and `nodetool apps import-bundle`
@@ -131,8 +87,8 @@ with `nodetool apps export-bundle` and `nodetool apps import-bundle`
 
 ## Related topics
 
-- [Mini Apps](mini-apps.md) — concepts and runtime
-- [Building Mini Apps](mini-apps-guide.md) — recipes per use case
-- [Mini App Reference](mini-apps-reference.md) — widgets, bindings, schema
+- [Mini Apps](mini-apps.md)
+- [Building Mini Apps](mini-apps-guide.md)
+- [Mini App Reference](mini-apps-reference.md)
 - [Workflow Editor](workflow-editor.md)
 - [Chat & Agents](global-chat-agents.md)

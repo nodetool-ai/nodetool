@@ -4,7 +4,7 @@ title: "Costs and credits"
 description: "How NodeTool estimates what a run will cost, tracks what it did cost, and limits spend, with your own provider keys or on hosted credits."
 ---
 
-NodeTool prices a run before you start it, records what each provider call cost afterward, and lets you cap spend in the places where a run can get expensive. This page covers all three, and the one case where NodeTool itself meters usage: hosted credits.
+NodeTool estimates a run's cost before it starts, records each provider call's cost afterward, and caps spend in agent runs, mini apps, workflow runs, and storyboards. Hosted credits are the one case where NodeTool itself meters usage.
 
 ---
 

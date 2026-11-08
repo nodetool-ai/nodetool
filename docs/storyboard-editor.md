@@ -5,9 +5,34 @@ permalink: /storyboard-editor
 description: "Plan a film as scenes and shots, render stills and clips with the models you choose, and hand the cut to the timeline."
 ---
 
-Plan a film as a board of shots. Each shot has a prompt, a camera setup, and the characters and locations it shows. Render a still, then a clip, compare takes, and send the shots you keep to a timeline.
+A storyboard is a board of shots. Each shot has a prompt, a camera setup, and the entities it shows, and holds a still, a clip, and their takes. Selected clips go to a timeline.
 
-> **Quick access:** Click the **+** button in the workspace tab bar, choose **New storyboard…**, then pick **Blank storyboard** or an example. You can also start from the **Storyboard** guided flow or ask the agent to create one.
+> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a language model for **Direct**, an image model for stills, and a video model for clips. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** stills, clips, still edits that call a model, and **Iterate** are billed by paid providers at provider rates. **Adjust**, reordering, and slideshow call no provider.
+{: .callout-note}
+
+Open it with **+** in the tab bar, **New storyboard…**, then **Blank storyboard** or an example.
+
+## Trace: agent builds a board
+
+Without an open editor, the agent uses the backend tools in `packages/agents/src/capabilities/storyboards.specs.ts`. With the editor open, it uses the `ui_storyboard_*` tools (see [Creative Agent](creative-agent.md#trace-brief-to-timeline)).
+
+User prompt: "Break this brief into six shots and render stills."
+
+```json
+{ "tool": "create_storyboard", "args": { "name": "Trail shoe ad", "aspect_ratio": "16:9" } }
+{ "tool": "edit_storyboard", "args": { "storyboard_id": "<id>", "ops": [ { "op": "set_setup", "brief": "30-second trail-running shoe ad" } ] } }
+{ "tool": "direct_storyboard", "args": { "storyboard_id": "<id>", "shot_count": 6 } }
+{ "tool": "render_storyboard_stills", "args": { "storyboard_id": "<id>" } }
+```
+
+| Call | Change to the board document |
+|---|---|
+| `create_storyboard` | A new board row. `name` is required. Passing an existing `id` you own returns that row instead of a duplicate. |
+| `edit_storyboard` `set_setup` | The brief is stored. `direct_storyboard` needs it. |
+| `direct_storyboard` | Scenes with sluglines and shots with action, camera, and motion are written. A board that already has shots is refused unless `redirect: true`. Renders nothing. |
+| `render_storyboard_stills` | With no `targets`, one still renders for every shot that has none and is not set to render directly. Each still is saved as an asset and becomes the shot's selected keyframe. Earlier stills stay as versions. |
+
+`render_storyboard_clips` then animates each selected still (`mode` overrides the shot's `render_mode` for one call). A keyframe-mode shot with no still is reported, not rendered. `assemble_storyboard_timeline` takes `storyboard_id`, optional `name` and `fps` (default 30). `revise_storyboard_clip` takes `target` and `instruction`, and swaps the result in as the selected take while keeping the previous one as a version. `edit_storyboard` takes `expected_revision` and rejects the edit if the board changed since it was read.
 
 ---
 
@@ -15,7 +40,7 @@ Plan a film as a board of shots. Each shot has a prompt, a camera setup, and the
 
 ![Storyboard editor](assets/screenshots/storyboard-board.png)
 
-The Storyboard opens as a workspace tab. The board is on the left. The assistant panel opens beside it on request. Running renders are listed in the bottom panel's **Generations** view.
+The board opens as a workspace tab with the assistant panel beside it on request. Running renders are listed in the bottom panel's **Generations** view.
 
 | Area | What it holds |
 |---|---|
@@ -27,7 +52,7 @@ The Storyboard opens as a workspace tab. The board is on the left. The assistant
 
 The ⋮ menu holds **Slideshow**, **One take**, **Open script** or **Extract script**, **Create timeline** or **Rebuild linked timeline**, **Change style**, **Download ZIP**, and **Send to workflow**.
 
-The board is the working copy of a film. Stills, clips, and takes stay in your asset library, so closing the tab loses nothing.
+Stills, clips, and takes stay in your asset library, so closing the tab loses nothing.
 
 ---
 
@@ -47,19 +72,19 @@ A blank board is named "Untitled storyboard". The left panel also has a **New st
 
 ## Direct a screenplay
 
-Open **Board settings** to write the brief. Press **Direct** and the screenplay model turns it into scenes and shots. A board with shots shows **Re-direct** instead, which asks for confirmation because it replaces every shot. Generated stills and clips stay in your asset library.
+In **Board settings**, write the brief and press **Direct**. The screenplay model turns it into scenes and shots. A board with shots shows **Re-direct**, which asks for confirmation because it replaces every shot. Generated stills and clips stay in your asset library.
 
 | Field | Use |
 |---|---|
-| Title | Shown on the board and the tab. Placeholder: "Untitled film" |
-| Brief | The film in one or two sentences |
+| Title | Placeholder: "Untitled film" |
+| Brief | |
 | Style | Palette, light, lens, texture |
-| Entities | Characters, locations, styles, and props that apply to the whole board |
-| Screenplay model | The language model that writes the screenplay |
+| Entities | Apply to the whole board |
+| Screenplay model | |
 | Aspect ratio | 16:9, 9:16, 1:1, 4:3, or 21:9 |
 | Shots | How many shots **Direct** writes |
 
-You can skip directing. **Add shot** in the shot row adds one shot at a time, and the **+** that appears between two cards inserts a shot after the first.
+To skip directing, use **Add shot** in the shot row, or the **+** between two cards to insert a shot after the first.
 
 ---
 
@@ -94,18 +119,18 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 
 | Field | Notes |
 |---|---|
-| Description | "What the shot shows" |
-| Dialogue | "What is said in shot". Edit it in place, or jump to the linked script |
+| Description | |
+| Dialogue | Edit in place, or jump to the linked script |
 | In this shot | The entities that appear. Pick a character, location, style, or prop to keep it consistent. See [Entities](entities.md) |
 | Size, Focal length, Perspective, Equipment | Camera setup, chosen from lists |
 | Movement | Free text, or camera presets from the picker. See [Camera movement presets](#camera-movement-presets) |
 | Duration (seconds) | The length of the clip. With a linked script, the chip reads **From voice takes** or **Set by hand**. Click it to switch between the two. The shot card shows the duration next to the shot number |
 | Shot title | Optional, placeholder "Untitled shot" |
 | Render mode | **Keyframe** (still first, then animate it), **Direct** (clip straight from the prompt), or **Reference** |
-| Notes | Text the render should not read as direction |
+| Notes | Not sent as direction to the render |
 | Composition mode, graphic direction | **None**, **Overlay**, **Graphics first**, or **Hybrid** for on-screen text and graphics |
 
-Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board. It joins the shot at once, even before you save the text.
+Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board, and joins the shot at once, before you save the text.
 
 Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **Regenerate** button renders a new still. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
 
@@ -129,8 +154,6 @@ At render time the presets compile for the board's video model, so the same move
 
 ## Render stills and clips
 
-Render one shot or the whole board.
-
 ![A storyboard with a rendered still or clip on every shot](assets/screenshots/storyboard-shots.png)
 
 | Action | Where | What happens |
@@ -141,11 +164,11 @@ Render one shot or the whole board.
 | **Regenerate** | Card, inspector, editor | Re-renders the still with the model the shot used last |
 | **Iterate** | Card, inspector | Asks for a note such as "make it darker, add rain" and re-renders the current clip with it |
 
-The shot remembers the model you picked, so later renders skip the dialog choice. If an entity is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
+The shot remembers the model you picked. If an entity is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
 
-The Render button shows the next batch, stills until every shot has one and then clips. Its arrow offers both. The render buttons show a price in the dialog and on the confirm button, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. For how provider charges work, see [Costs and Credits](costs-and-credits.md).
+The Render button shows the next batch, stills until every shot has one and then clips. Its arrow offers both. The dialog and confirm button show a price, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. See [Costs and Credits](costs-and-credits.md).
 
-The bottom panel's **Generations** view lists every render with its status, next to generations from chat, other editors and workflow runs. Its tab shows how many are still running. Clicking a render opens its board on that shot, and **Stop generating** cancels it on the server. On a phone, where there is no bottom panel, a queue overlay over the board lists the renders instead. Its **Stop tracking** hides local progress only, and the provider may still finish the request and charge for it.
+The bottom panel's **Generations** view lists every render with its status, next to generations from chat, other editors and workflow runs. Its tab shows how many are still running. Clicking a render opens its board on that shot, and **Stop generating** cancels it on the server. On a phone a queue overlay lists the renders instead. Its **Stop tracking** hides local progress only, and the provider may still finish the request and charge for it.
 
 ---
 
@@ -218,7 +241,7 @@ Once a timeline exists, the button reads **Rebuild linked timeline…**. The con
 
 The **Assistant** button opens the Storyboard Assistant beside the board, and **Hide Assistant** or **Show Assistant** in the command palette toggles it. It sees the board and the selected shot. Try "break this brief into six shots", "add a close-up after shot 3", or "assemble the shots into a timeline". On phones, **Board** and **Assistant** are separate tabs.
 
-The agent tools for storyboards are `list_storyboards`, `create_storyboard`, `get_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard`, `extract_script_from_storyboard`, and `delete_storyboard`.
+The backend storyboard tools are `list_storyboards`, `create_storyboard`, `get_storyboard`, `direct_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard`, `extract_script_from_storyboard`, and `delete_storyboard`. `delete_storyboard` removes the board with its saved version history and cannot be undone.
 
 ---
 

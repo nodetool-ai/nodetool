@@ -4,14 +4,7 @@ title: "ComfyUI Recipes"
 description: "What a ComfyUI workflow is good for once it is a node in a NodeTool graph: LLM-written prompts, batches, stored assets, cuts, mini apps, and running the whole thing from the CLI, the DSL, or the API."
 ---
 
-A ComfyUI workflow loaded into a NodeTool node keeps doing exactly what it did
-in ComfyUI. What changes is everything on either side of it: where the prompt
-comes from, how many times it runs, where the files go, and who presses the
-button.
-
-This page is that second half. For the three nodes and their properties, see
-[ComfyUI](comfyui.md). For getting a server the node can reach, see
-[ComfyUI Setup](comfyui-setup.md).
+Patterns for what surrounds a ComfyUI node: where the prompt comes from, how often it runs, where the files go, and what triggers it. For the nodes and their properties see [ComfyUI](comfyui.md), and for the server see [ComfyUI Setup](comfyui-setup.md).
 
 ---
 

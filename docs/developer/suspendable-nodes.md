@@ -7,7 +7,7 @@ parent: Developer Guide
 
 # Suspendable Nodes
 
-**NodeTool has no suspend/resume API.** There is no `SuspendableState`, no
+NodeTool has no suspend/resume API. There is no `SuspendableState`, no
 `SuspendableNode` interface, no `suspendWorkflow()`, and no
 `WorkflowSuspendedError`. `RunResult.status` (`packages/kernel/src/runner.ts`)
 is `"completed" | "failed" | "cancelled"`, and `JobStatus`
@@ -25,15 +25,14 @@ a registered trigger and starts a run), the webhook route
 started with `interactive: true` parks on a failing node and waits for the
 caller's verdict (see [Workflow Supervisor](../workflow-supervisor-design.md)).
 
----
 
 ## The Built-in WaitNode (a delay, not a suspension)
 
-> **Important:** `WaitNode` (`nodetool.triggers.Wait`, in
-> `packages/automation-nodes/src/nodes/triggers.ts`) does not suspend anything.
-> It is a simple in-process delay: `process()` sleeps for `timeout_seconds` via
-> `setTimeout`, then passes its input through. The run stays alive and in
-> memory for the whole delay. Use it for rate-limiting and fixed delays.
+`WaitNode` (`nodetool.triggers.Wait`, in
+`packages/automation-nodes/src/nodes/triggers.ts`) does not suspend anything.
+It is an in-process delay: `process()` sleeps for `timeout_seconds` via
+`setTimeout`, then passes its input through. The run stays alive and in
+memory for the whole delay. Use it for rate-limiting and fixed delays.
 
 ```typescript
 import { WaitNode } from "@nodetool-ai/automation-nodes";
@@ -67,7 +66,6 @@ After the delay, the WaitNode outputs:
 > semantics, but they only reflect the `setTimeout` delay — nothing was
 > suspended.
 
----
 
 ## Writing a trigger node
 
@@ -83,7 +81,6 @@ async emitTriggerEvent(event: TriggerEvent, outputs: StreamingOutputs): Promise<
 
 `TriggerEvent` has `node_id`, `payload`, and `input_id` (the idempotency key of the stored trigger input). The default implementation on `BaseNode` copies each key of an object payload to the declared output of the same name and drops other keys. Override it to shape adapter payloads onto your outputs. `nodetool.triggers.ManualTrigger` in `packages/automation-nodes/src/nodes/triggers.ts` is a complete example. To fire a trigger from the CLI, pass `--trigger-event` to `nodetool workflows run` (see the [CLI reference](../cli.md)).
 
----
 
 ## See Also
 

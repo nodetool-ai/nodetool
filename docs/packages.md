@@ -4,9 +4,18 @@ title: "Package Registry Guide"
 description: "How NodeTool packages are structured, registered, and managed in the TypeScript ecosystem."
 ---
 
-NodeTool packages bundle reusable nodes, assets, and example workflows. The package registry discovers and registers node classes so workflows can reference them at runtime.
+A pack is an npm package that exports node classes and a `register(registry)` function. At startup the server registers the enabled built-in packs and every trusted installed pack:
 
-For the list of first-party workspace packages, see the [Package catalogue](#package-catalogue).
+```ts
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { ReverseTextNode } from "./nodes/reverse.js";
+
+export function register(registry: NodeRegistry): void {
+  registry.register(ReverseTextNode);
+}
+```
+
+First-party workspace packages are listed in the [Package catalogue](#package-catalogue).
 
 ## Manage packs in the app
 
@@ -143,7 +152,7 @@ This is the shape of `packages/text-nodes/package.json`, trimmed:
 {
   "name": "@nodetool-ai/text-nodes",
   "type": "module",
-  "version": "0.8.3",
+  "version": "0.8.11",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -177,17 +186,6 @@ Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseN
 
 ## Node Registration
 
-A node package exports its node classes and a registration function that takes a `NodeRegistry`. A minimal one looks like this:
-
-```ts
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { ReverseTextNode } from "./nodes/reverse.js";
-
-export function register(registry: NodeRegistry): void {
-  registry.register(ReverseTextNode);
-}
-```
-
 `@nodetool-ai/base-nodes` is the compatibility shell for the built-in domain packages (`core-nodes`, `text-nodes`, `llm-nodes`, and others). Its `registerBaseNodes(registry)` calls each domain package's `register*Nodes` function into a scratch registry, then registers every class in `ALL_BASE_NODES` into the real one.
 
 At startup the server (`bootstrapNodeRegistry` in `packages/websocket/src/node-registry-setup.ts`) creates one `NodeRegistry` and fills it in this order:
@@ -199,11 +197,7 @@ At startup the server (`bootstrapNodeRegistry` in `packages/websocket/src/node-r
 
 ### Allowlist
 
-Installed packs run in-process with full server privileges, so `loadInstalledPacks` gates them. A pack loads when its name (or `*`) is on the allowlist, or when `allowUnlisted` is true. The allowlist comes from `NODETOOL_PACKS_ALLOWLIST` (comma-separated), then the `allow` field of `~/.config/nodetool/packs.json` (`NODETOOL_PACKS_CONFIG` overrides the path). `allowUnlisted` defaults to true in development and false when `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` is set, so a production server loads only packs on the allowlist.
-
-The loader also skips a pack whose `nodetool.apiVersion` is higher than the supported version (`1`), rejects node types under first-party namespaces such as `nodetool.`, `lib.`, or provider names, and will not let a pack replace an already registered node type.
-
-Workflows referencing `nodetool.text.Concat` or `mypack.math.AddOffset` resolve through the registry without manual imports.
+Installed packs run in-process with full server privileges, so `loadInstalledPacks` gates them with an allowlist (`NODETOOL_PACKS_ALLOWLIST` or `~/.config/nodetool/packs.json`). `allowUnlisted` is true in development and false when `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1`. The loader also skips packs with a newer `apiVersion` than `1`, reserved namespaces, and node types that collide with registered ones. The rules and examples are in the [Custom Nodes Guide](developer/custom-nodes-guide.md#4-trust-model-and-governance).
 
 ## Managing Packages via CLI
 
@@ -260,20 +254,7 @@ npm run test --workspace=packages/<name>    # Vitest
 
 ## Publishing Packages
 
-1. Implement nodes under `src/nodes/` extending `BaseNode` with `@prop` decorators.
-2. Export all node classes and a registration function from `src/index.ts`.
-3. Run `npm run build` to compile.
-4. Add example workflows in `examples/` and assets in `assets/` if relevant.
-5. Publish to npm or provide a Git URL.
-
-To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`.
-
-## Workflow Integration
-
-Enabled and trusted packs register nodes with the runtime at startup:
-
-- Node metadata is merged during startup so workflows referencing `package.namespace.Node` resolve without manual imports.
-- Run `npm run codegen --workspace=packages/dsl` to regenerate typed factory functions from node metadata.
+Build with `npm run build`, then publish to npm or provide a Git URL. To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`. Run `npm run codegen --workspace=packages/dsl` to regenerate typed DSL factories from node metadata.
 
 ## Related Documentation
 

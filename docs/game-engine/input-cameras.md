@@ -5,7 +5,7 @@ permalink: /game-engine/input-cameras
 description: "Map physical controls to actions and configure 2D and 3D cameras."
 ---
 
-Declare what the game understands as actions and, in 3D, axes. Physical keyboard, mouse, gamepad, and touch bindings turn into the same input frames used by simulation and replay.
+Declare actions and, in 3D, axes. Keyboard, mouse, gamepad, and touch bindings turn into the input frames that simulation and replay use.
 
 ![Signal Forge HUD showing WASD movement, Space jump, E interaction, R recovery, and drag look](/assets/game-engine/signal-forge.png)
 

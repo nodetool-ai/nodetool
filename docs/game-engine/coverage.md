@@ -5,7 +5,7 @@ permalink: /game-engine/coverage
 description: "Map native game components and host limits to their guides and source implementations."
 ---
 
-This inventory covers the shipped document components and the authoring, runtime, renderer, and export surfaces behind this guide. A field's presence in a schema is not enough to establish that every host renders or edits it.
+This inventory maps each document component and host surface to its source and guide. A field present in a schema is not proof that every host renders or edits it.
 
 ![Diagram separating simulation state from renderer, audio, and particle presentation](/assets/game-engine/simulation-presentation.svg)
 
