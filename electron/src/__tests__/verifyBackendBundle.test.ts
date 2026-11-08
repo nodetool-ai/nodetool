@@ -334,7 +334,7 @@ describe("verify-backend-bundle", () => {
       path.join(tempDir, "assets", "nodetool-base.media.json"),
       JSON.stringify({
         version: 1,
-        base: "https://media.example.test/package-media/",
+        base: "https://media.nodetool.ai/package-media/",
         files: {
           "timelines/hello/video.mp4": { sha256: "a".repeat(64), size: 10 },
           "storyboards/hello/shot.jpg": { sha256: "b".repeat(64), size: 10 }

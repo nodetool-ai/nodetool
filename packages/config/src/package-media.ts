@@ -50,6 +50,9 @@ function extname(path: string): string {
 
 const log = createLogger("nodetool.config.package-media");
 
+/** The one host package media downloads from. */
+export const PACKAGE_MEDIA_ORIGIN = "https://media.nodetool.ai";
+
 const PackageMediaEntrySchema = z.object({
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   size: z.number().int().nonnegative()
@@ -60,7 +63,9 @@ const PackageMediaManifestSchema = z.object({
   /** Object URL prefix. An object's key is `<sha256><extension>`. */
   base: z
     .string()
-    .startsWith("https://")
+    .refine((base) => URL.canParse(base) && new URL(base).origin === PACKAGE_MEDIA_ORIGIN, {
+      message: `base must be on ${PACKAGE_MEDIA_ORIGIN}`
+    })
     .transform((base) => (base.endsWith("/") ? base : `${base}/`)),
   files: z.record(z.string(), PackageMediaEntrySchema)
 });

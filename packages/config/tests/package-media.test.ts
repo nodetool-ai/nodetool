@@ -19,7 +19,7 @@ let cache: string;
 function writeManifest(files: Record<string, { sha256: string; size: number }>): void {
   writeFileSync(
     join(root, "nodetool-base.media.json"),
-    JSON.stringify({ version: 1, base: "https://media.example.test/package-media", files })
+    JSON.stringify({ version: 1, base: "https://media.nodetool.ai/package-media", files })
   );
 }
 
@@ -53,7 +53,7 @@ describe("package media", () => {
     expect(second).toBe(first);
     expect(new Uint8Array(readFileSync(first ?? ""))).toEqual(BYTES);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe(`https://media.example.test/package-media/${SHA256}.png`);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`https://media.nodetool.ai/package-media/${SHA256}.png`);
   });
 
   it("returns null for a path no manifest lists, without a request", async () => {
@@ -78,14 +78,18 @@ describe("package media", () => {
     );
   });
 
-  it("ignores entries with a malformed hash and manifests without an https base", () => {
+  it("ignores entries with a malformed hash and manifests on another host", () => {
     writeManifest({ "games/a/bad.png": { sha256: "../../etc/passwd", size: 1 } });
     expect(findPackageMedia([root], "nodetool-base", "games/a/bad.png")).toBeNull();
 
     resetPackageMediaManifests();
     writeFileSync(
       join(root, "nodetool-base.media.json"),
-      JSON.stringify({ version: 1, base: "http://media.example.test/", files: {} })
+      JSON.stringify({
+        version: 1,
+        base: "https://media.example.test/",
+        files: { "games/a/bad.png": { sha256: SHA256, size: 1 } }
+      })
     );
     expect(findPackageMedia([root], "nodetool-base", "games/a/bad.png")).toBeNull();
   });

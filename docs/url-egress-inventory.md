@@ -207,6 +207,12 @@ FAL webhook verification fetches only
 after five seconds, coalesces concurrent refreshes, and caps key-cache freshness
 at 24 hours.
 
+Package media (`packages/config/src/package-media.ts`) downloads example media
+listed in a shipped manifest. It accepts only a manifest base on
+`https://media.nodetool.ai`, names each object by its SHA-256, rejects
+redirects, sends no credentials and checks the bytes against the manifest's
+hash and size.
+
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
 - `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
