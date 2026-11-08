@@ -1,5 +1,6 @@
 #include "WorkflowSession.h"
 #include "MsgPack.h"
+#include "../media/LocalMediaStore.h"
 #include "nodetool/graph_runner.h"
 #include <QCoreApplication>
 #include "../document/WorkflowMerge.h"
@@ -82,6 +83,13 @@ std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   // <user>/<id>.<ext> without listing the user's whole asset folder.
   options.context.userId = "1";
   options.gpu.enabled = true;
+  // Image outputs stay in this process as pixels. Run messages carry a
+  // local-media:// URI, so nothing encodes, copies or bounds them as data.
+  options.gpu.outputImages = [](gr::OutputImage output) {
+    return LocalMediaStore::instance()
+        .add(QString::fromStdString(output.run), output.width, output.height, std::move(output.rgba))
+        .toStdString();
+  };
   options.allowMedia = true;
   options.mediaEncoders = {"libx264", "aac", "libmp3lame", "libopus"};
   auto runner = std::make_shared<gr::GraphRunner>(QFile::encodeName(path).toStdString(), std::move(options));
@@ -178,6 +186,7 @@ WorkflowSession::~WorkflowSession() {
   }
   for (const auto &id : m_inProcessRuns) {
     if (!m_runs.value(id)["terminal"].toBool()) { m_localRunner->cancel(id.toStdString()); }
+    LocalMediaStore::instance().releaseRun(id);
   }
 }
 QString WorkflowSession::connectionState() const {
@@ -1076,7 +1085,7 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
     if (entry.toMap()["terminal"].toBool()) {
       const auto jobId = entry.toMap()["jobId"].toString();
       m_runs.remove(jobId);
-      m_inProcessRuns.remove(jobId);
+      if (m_inProcessRuns.remove(jobId)) { LocalMediaStore::instance().releaseRun(jobId); }
       --finished;
     }
   }

@@ -1,4 +1,8 @@
 #include "MediaResolver.h"
+#include "LocalMediaStore.h"
+#include <QBuffer>
+#include <QImage>
+#include <QImageWriter>
 #include <QDir>
 #include <QCryptographicHash>
 #include <QFile>
@@ -100,6 +104,17 @@ void MediaResolver::clear() {
   diskBytes_ = 0;
 
 }
+namespace {
+// A QImage over the store's pixels, which it keeps alive without a copy.
+QImage localImage(const QString &uri) {
+  const auto stored = LocalMediaStore::instance().image(uri);
+  if (stored.isNull()) { return {}; }
+  auto *owner = new std::shared_ptr<const std::vector<uint8_t>>(stored.rgba);
+  return QImage(stored.rgba->data(), int(stored.width), int(stored.height), int(stored.width) * 4,
+                QImage::Format_RGBA8888,
+                [](void *data) { delete static_cast<std::shared_ptr<const std::vector<uint8_t>> *>(data); }, owner);
+}
+}
 bool MediaResolver::current(const QString &key, quint64 serial) const { return serials_.value(key) == serial; }
 void MediaResolver::resolve(const QString &key, const QVariant &source) {
   cancel(key);
@@ -140,6 +155,31 @@ void MediaResolver::resolve(const QString &key, const QVariant &source) {
   if (id.isEmpty() && uri.startsWith("asset://")) {
     id = uri.mid(8).section('?', 0, 0).section('#', 0, 0).section('/', -1);
     if (id.contains('.')) { id = id.section('.', 0, -2); }
+  }
+  if (id.isEmpty() && LocalMediaStore::isLocalMedia(uri)) {
+    if (useCached(key, serial, uri)) { return; }
+    const auto image = localImage(uri);
+    if (image.isNull()) { emit failed(key, "This run's image is no longer kept"); return; }
+    // The cache file only feeds the preview, so it is written for speed: BMP
+    // when the image is opaque (Qt's BMP drops alpha), otherwise PNG without
+    // compression.
+    bool opaque = true;
+    for (int y = 0; y < image.height() && opaque; ++y) {
+      const auto *line = reinterpret_cast<const uchar *>(image.constScanLine(y));
+      for (int x = 0; x < image.width() && opaque; ++x) { opaque = line[x * 4 + 3] == 255; }
+    }
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    QImageWriter writer(&buffer, opaque ? "BMP" : "PNG");
+    writer.setQuality(100);
+    if (!writer.write(opaque ? image.convertToFormat(QImage::Format_RGB888) : image)) {
+      emit failed(key, "Could not prepare the run's image");
+      return;
+    }
+    // Cached under the URI that useCached recorded, so later resolves reuse it.
+    store(key, serial, bytes, opaque ? "bmp" : "png", opaque ? "image/bmp" : "image/png");
+    return;
   }
   if (!id.isEmpty()) {
     if (server_.isEmpty()) { emit failed(key, "Connect to a server to resolve assets"); return; }
@@ -250,7 +290,7 @@ QString MediaResolver::suggestedFilename(const QString &key, const QString &requ
       {"audio/aac", "aac"}, {"audio/aacp", "aac"}, {"audio/mp4", "m4a"}, {"audio/x-m4a", "m4a"},
       {"audio/aiff", "aiff"}, {"audio/x-aiff", "aiff"}, {"audio/basic", "au"}, {"audio/x-ms-wma", "wma"}
     };
-    extension = audioExtensions.value(mime);
+    extension = LocalMediaStore::isLocalMedia(identity) ? QStringLiteral("png") : audioExtensions.value(mime);
     if (extension.isEmpty() && mime.startsWith("audio/")) {
       extension = mime.mid(6);
       if (extension.startsWith("x-")) { extension.remove(0, 2); }
@@ -265,14 +305,34 @@ QString MediaResolver::suggestedFilename(const QString &key, const QString &requ
   if (name.isEmpty()) { name = kind == "audio" ? "audio" : kind == "video" ? "video" : "image"; }
   return extension.isEmpty() ? name : name + '.' + extension;
 }
+QByteArray MediaResolver::savedLocalImage(const QString &identity) const {
+  if (!LocalMediaStore::isLocalMedia(identity)) { return {}; }
+  auto image = localImage(identity);
+  if (image.isNull()) {
+    const auto entry = entries_.constFind(identity);
+    if (entry != entries_.cend()) { image.load(entry->url.toLocalFile()); }
+  }
+  QByteArray bytes;
+  QBuffer buffer(&bytes);
+  buffer.open(QIODevice::WriteOnly);
+  return !image.isNull() && image.save(&buffer, "PNG") ? bytes : QByteArray{};
+}
 bool MediaResolver::saveResolved(const QString &key, const QUrl &destination) {
   const auto identity = identities_.value(key);
   const auto entry = entries_.constFind(identity);
   if (!serials_.contains(key) || entry == entries_.cend() || !leases_.value(key).contains(identity) || !destination.isLocalFile()) {
     emit saveFailed(key, "The media preview is no longer available"); return false;
   }
-  QFile source(entry->url.toLocalFile());
   QSaveFile output(destination.toLocalFile());
+  if (LocalMediaStore::isLocalMedia(identity)) {
+    const auto png = savedLocalImage(identity);
+    if (png.isEmpty() || !output.open(QIODevice::WriteOnly) || output.write(png) != png.size() || !output.commit()) {
+      emit saveFailed(key, "Could not save media to the selected file"); return false;
+    }
+    emit saved(key, destination);
+    return true;
+  }
+  QFile source(entry->url.toLocalFile());
   if (!source.open(QIODevice::ReadOnly) || !output.open(QIODevice::WriteOnly)) {
     emit saveFailed(key, "Could not save media to the selected file"); return false;
   }
@@ -305,9 +365,17 @@ bool MediaResolver::saveToAssets(const QString &key, const QString &requested, c
   if (server_.isEmpty()) { emit assetSaveFailed(key, "Connect to a server to save assets"); return false; }
   if (uploads_.contains(key) && uploads_.value(key)) { emit assetSaveFailed(key, "This media is already being saved"); return false; }
   auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
-  auto *file = new QFile(entry->url.toLocalFile(), multipart.get());
-  if (!file->open(QIODevice::ReadOnly)) { emit assetSaveFailed(key, "Could not read the cached media"); return false; }
-  const auto mime = entry->contentType.section(';', 0, 0).trimmed();
+  QIODevice *file = nullptr;
+  auto mime = entry->contentType.section(';', 0, 0).trimmed();
+  if (LocalMediaStore::isLocalMedia(identity)) {
+    auto *buffer = new QBuffer(multipart.get());
+    buffer->setData(savedLocalImage(identity));
+    file = buffer;
+    mime = QStringLiteral("image/png");
+  } else {
+    file = new QFile(entry->url.toLocalFile(), multipart.get());
+  }
+  if (!file->open(QIODevice::ReadOnly) || file->size() == 0) { emit assetSaveFailed(key, "Could not read the cached media"); return false; }
   QHttpPart metadata;
   metadata.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"json\"");
   metadata.setBody(QJsonDocument(QJsonObject{{"name", suggestedFilename(key, requested, kind)},

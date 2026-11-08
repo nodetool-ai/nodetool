@@ -43,6 +43,9 @@ private:
   struct PendingFetch { QString key; quint64 serial; QUrl url; bool lookup; int redirects; };
   QQueue<PendingFetch> pending_;
   bool useCached(const QString &key, quint64 serial, const QString &identity);
+  // A compressed PNG of a local-media image, for saving. Its display cache is
+  // written for speed instead. Empty for any other identity.
+  QByteArray savedLocalImage(const QString &identity) const;
   bool makeRoom(qint64 bytes);
   struct CacheEntry { QUrl url; qint64 bytes; quint64 used; QString contentType; };
   QHash<QString, CacheEntry> entries_;

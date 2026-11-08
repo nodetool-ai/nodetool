@@ -70,6 +70,12 @@ Local runs use the local user's workspace, the folder the server keeps:
 may use the GPU, decode media through the native media host, and encode with libx264,
 aac, libmp3lame and libopus.
 
+Image outputs of local runs stay in the editor's process
+(`src/media/LocalMediaStore.h`): the runner hands each one over as pixels and
+run messages carry a `local-media://` URI, which `MediaResolver` resolves
+without a server. A run's images are released when the session drops the run.
+Saving one writes a PNG.
+
 CMake also fetches QuickJS-ng and nlohmann/json for the runner. Supply
 `-DFETCHCONTENT_SOURCE_DIR_QUICKJS` and `-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON`
 for offline builds. The `node_editor_local_run` test loads

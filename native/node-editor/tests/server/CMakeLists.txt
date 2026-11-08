@@ -23,6 +23,7 @@ nodetool_stage_graph_runner_runtime(node_editor_autosave_tests)
 add_test(NAME node_editor_autosave_tests COMMAND node_editor_autosave_tests)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia)
 add_executable(node_editor_local_run_tests LocalRunTests.cpp
+ ../../src/media/MediaResolver.cpp ../../src/media/MediaResolver.h ../../src/media/LocalMediaStore.h
  ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/document/WorkflowMerge.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp
  ../../src/run/NodeRuntimeModel.cpp ../../src/run/NodeRuntimeModel.h

@@ -1,6 +1,8 @@
 #include "../../src/run/NodeRuntimeModel.h"
 #include "../../src/run/RunOutputModel.h"
 #include "../../src/server/WorkflowSession.h"
+#include "../../src/media/LocalMediaStore.h"
+#include "../../src/media/MediaResolver.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
@@ -129,6 +131,54 @@ private slots:
     QVERIFY(session.runsInProcess(id));
     QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
     QCOMPARE(runtime.nodeState("out")["outputs"].toObject()["width"].toInt(), 3);
+  }
+  // A GPU image output stays in this process: messages carry a local-media://
+  // URI, the resolver turns it into a preview file, saving writes a PNG, and
+  // the image goes when its session does.
+  void keepsImageOutputsInProcess() {
+    const QString assetId = "fedcba9876543210fedcba9876543210";
+    QVERIFY(QDir(m_assets.path()).mkpath("1"));
+    QImage source(3, 2, QImage::Format_RGB32);
+    source.fill(QColor(40, 80, 120));
+    QVERIFY(source.save(QDir(m_assets.path()).filePath("1/" + assetId + ".png")));
+    const QJsonObject ref{{"type", "image"}, {"uri", "asset://" + assetId}, {"asset_id", assetId}};
+    QJsonArray nodes{node("img", "nodetool.constant.Image", {{"value", ref}}),
+                     node("grade", "lib.image.color.Grade", {{"brightness", 0.2}, {"contrast", 1}, {"saturation", 1}})};
+    QJsonArray edges{edge("e1", "img", "output", "grade", "image")};
+    QString id, uri;
+    QJsonObject output;
+    {
+      WorkflowSession session;
+      QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+      connect(&session, &WorkflowSession::runEvent, this, [&](const QString &, const QJsonObject &event) {
+        if (event["type"] == "output_update" && event["node_id"] == "grade") { output = event["value"].toObject(); }
+      });
+      id = session.run({{"id", "wf-media"}, {"name", "Media"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}});
+      QVERIFY(session.runsInProcess(id));
+      QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+      uri = output["uri"].toString();
+      QVERIFY2(LocalMediaStore::isLocalMedia(uri), qPrintable(QJsonDocument(output).toJson(QJsonDocument::Compact)));
+      QVERIFY(!output.contains("data"));
+      QCOMPARE(output["width"].toInt(), 3);
+      const auto kept = LocalMediaStore::instance().image(uri);
+      QCOMPARE(kept.width, 3u);
+      QCOMPARE(kept.height, 2u);
+      QVERIFY(kept.rgba->at(0) > 40);
+
+      MediaResolver resolver;
+      QSignalSpy resolved(&resolver, &MediaResolver::resolved);
+      resolver.resolve("card", output.toVariantMap());
+      QTRY_COMPARE(resolved.size(), 1);
+      QCOMPARE(QImage(resolved.first().at(1).toUrl().toLocalFile()).size(), QSize(3, 2));
+      QTemporaryDir saves;
+      const auto saved = QUrl::fromLocalFile(saves.filePath("graded.png"));
+      QVERIFY(resolver.saveResolved("card", saved));
+      QFile file(saved.toLocalFile());
+      QVERIFY(file.open(QIODevice::ReadOnly));
+      QVERIFY(file.read(8).startsWith("\x89PNG"));
+      QCOMPARE(QImage(saved.toLocalFile()).size(), QSize(3, 2));
+    }
+    QVERIFY(LocalMediaStore::instance().image(uri).isNull());
   }
   void cancelsThenRunsAgain() {
     WorkflowSession session;
