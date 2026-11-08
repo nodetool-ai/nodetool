@@ -217,7 +217,10 @@ ephemeral port per session: Claude Code's metadata document lists
 scope ⊆ {`mcp`}), then hands off to the web UI: a redirect to
 `/oauth/consent?request_id=…` inside the SPA, with the pending request parked
 server-side (same in-memory TTL-swept store pattern as `oauthStateStore` in
-`packages/websocket/src/oauth-api.ts`, 10-minute TTL).
+`packages/websocket/src/oauth-api.ts`, 10-minute TTL). When
+`NODETOOL_WEB_URL` names a separate web app origin, the redirect goes to
+`/oauth/consent` on that origin, because the browser's session and the
+post-login return path live in that origin's storage.
 
 The consent page runs inside the normal web app, so user authentication is
 whatever the install already enforces: Supabase session in cloud mode, the

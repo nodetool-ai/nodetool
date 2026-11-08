@@ -87,6 +87,13 @@ Then, in Claude, open **Settings → Connectors → Add custom connector**, ente
 Claude opens NodeTool's consent page. Sign in there if the browser has no
 NodeTool session on that host, then approve.
 
+When the web app runs on its own origin, set `NODETOOL_WEB_URL` to that
+origin, such as `https://app.example.com`. `/oauth/authorize` then sends the
+browser to the consent page there, where the user's session lives. Unset, the
+consent page opens on `NODETOOL_PUBLIC_URL`. A user who must sign in there
+returns to wherever sign-in lands, usually the web app's start page, and the
+consent step is lost.
+
 - **The URL must be exact.** Claude compares the URL you enter with the
   `resource` in `/.well-known/oauth-protected-resource/mcp`, which is
   `NODETOOL_PUBLIC_URL` plus `/mcp`. A trailing slash or a different host
