@@ -29,6 +29,10 @@ bool StillImageSource::canRead(const QString& path) {
 }
 
 StillImageSource::StillImageSource(const QString& path) : m_decode(std::make_shared<Decode>()) {
+    // A reader that cannot open its file instantiates every image format
+    // plugin. Doing that on the detached worker races with the plugin
+    // teardown at exit (ThreadSanitizer). Instantiate them here, once.
+    [[maybe_unused]] static const QList<QByteArray> plugins = QImageReader::supportedImageFormats();
     QImageReader reader(path);
     m_size = orientedSize(reader);
     // The thread owns its share of the result, so closing the clip never

@@ -88,6 +88,10 @@ jobs:
         with:
           node-version-file: ".nvmrc"
 
+      # Motion contracts and golden checks read the shipped example media.
+      - name: Restore package media
+        uses: ./.github/actions/package-media
+
       # Scratch-server and golden checks also load decorated node packages.
       - name: Build the server and timeline packages
         env:
@@ -352,6 +356,8 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
+      - name: Restore package media
+        uses: ./.github/actions/package-media
       - name: Build the server and timeline packages
         working-directory: .
         run: |
