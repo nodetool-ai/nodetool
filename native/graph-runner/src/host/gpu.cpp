@@ -33,9 +33,10 @@ struct ContextGpu final : js::NativePayload {
   std::map<uint64_t, Texture> textures;
   uint64_t allocated = 0;
   // A texture never changes after it is created, and every message that
-  // carries it (output, result, generation, summary) needs the same PNG, so
-  // each texture is read back and encoded once.
-  struct Portable { std::string data; uint32_t width; uint32_t height; };
+  // carries it (output, result, generation, summary) needs the same image, so
+  // each texture is read back once: handed to GpuOptions::outputImages for a
+  // URI, or encoded as PNG data.
+  struct Portable { std::string uri; std::string data; uint32_t width; uint32_t height; };
   std::map<uint64_t, Portable> portables;
 
   ~ContextGpu() override { clear(); }
@@ -154,12 +155,25 @@ void portable(Json& v, const std::shared_ptr<ContextGpu>& state) {
       auto cached = state->portables.find(id);
       if (cached == state->portables.end()) {
         uint32_t w = 0, h = 0;
-        const auto rgba = state->ready().read(id, w, h);
-        const auto png = encodePng(rgba.data(), w, h);
-        cached = state->portables.emplace(id, ContextGpu::Portable{base64Encode(png.data(), png.size()), w, h}).first;
+        auto rgba = state->ready().read(id, w, h);
+        ContextGpu::Portable portable{{}, {}, w, h};
+        if (state->options.outputImages) {
+          portable.uri = state->options.outputImages(OutputImage{state->textures.at(id).run, w, h, rgba});
+        }
+        if (portable.uri.empty()) {
+          const auto png = encodePng(rgba.data(), w, h);
+          portable.data = base64Encode(png.data(), png.size());
+        }
+        cached = state->portables.emplace(id, std::move(portable)).first;
       }
-      v["mimeType"] = "image/png";
-      v["data"] = cached->second.data;
+      if (cached->second.uri.empty()) {
+        v["mimeType"] = "image/png";
+        v["data"] = cached->second.data;
+      } else {
+        v.erase("mimeType");
+        v.erase("data");
+        v["uri"] = cached->second.uri;
+      }
       v["width"] = cached->second.width;
       v["height"] = cached->second.height;
     } catch (const std::exception& e) {

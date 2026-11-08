@@ -302,8 +302,12 @@ QuickJS has no WebGPU, so the guest replaces those two functions
   as in the browser runner, and a downstream shader node samples it directly.
   When a message carries one, the gpu `boundary` reads it back and replaces it
   with `{type: "image", mimeType: "image/png", data: <base64 PNG>, width, height}`.
-  A texture never changes, so it is encoded once and every later message that
-  carries it reuses that PNG until the texture is released. Node code that wants pixels (`decodeRgba`) gets them through `readback`.
+  A texture never changes, so it is read back once and every later message
+  that carries it reuses the result until the texture is released. An
+  embedder that shows outputs in its own process sets
+  `GpuOptions::outputImages`: it receives the pixels and returns a URI, and
+  the message carries `{type: "image", uri, width, height}` with no data.
+  Node code that wants pixels (`decodeRgba`) gets them through `readback`.
   Handles belong to one engine and its current run. Guest run labels only
   group that engine's textures for early release. Readback, shader inputs,
   release and output conversion reject foreign, stale or unknown handles.

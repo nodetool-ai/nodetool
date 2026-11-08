@@ -19,6 +19,16 @@ namespace gr {
 // (src/host/gpu.cpp, through wgpu-native). Without it, or in a build with
 // NODETOOL_GRAPH_RUNNER_GPU off, those nodes fail with "WebGPU is not
 // available" and the reason.
+// A GPU-texture output read back for an embedder that shows it in its own
+// process: straight-alpha RGBA8, width * height * 4 bytes.
+struct OutputImage {
+  // The run label the texture belongs to, the guest's job id.
+  std::string run;
+  uint32_t width = 0;
+  uint32_t height = 0;
+  std::vector<uint8_t> rgba;
+};
+
 struct GpuOptions {
   bool enabled = false;
   // wgpu-native backends: "primary" (Vulkan, Metal, DX12), "vulkan",
@@ -27,6 +37,11 @@ struct GpuOptions {
   // Use only a software adapter, such as lavapipe or WARP. Otherwise a
   // hardware adapter is preferred and a software one is the fallback.
   bool softwareOnly = false;
+  // Takes a GPU-texture output as pixels and returns the URI messages carry
+  // in its place, such as a key into the embedder's own image store. Called
+  // on the runner thread, once per texture. Unset, or returning "", the
+  // output leaves the runner as base64 PNG data.
+  std::function<std::string(OutputImage)> outputImages;
 };
 
 // What the embedder lets node code reach: storage, files, secrets and

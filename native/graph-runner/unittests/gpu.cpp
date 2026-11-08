@@ -382,10 +382,10 @@ void javascriptFunctions() {
 
 // Catalog texture ids are untrusted guest data, even when devices are shared.
 void catalogOwnerIsolation() {
-  auto make = [] {
+  auto make = [](std::function<std::string(gr::OutputImage)> outputImages = {}) {
     auto engine = js::createQuickJsEngine();
     auto object = engine->object();
-    gr::HostOptions options; options.gpu = enabled();
+    gr::HostOptions options; options.gpu = enabled(); options.gpu.outputImages = std::move(outputImages);
     gr::host::installGpu(*engine, object, options);
     engine->set(engine->global(), "gpu", object);
     engine->set(engine->global(), "catalogJson", engine->string(catalogText));
@@ -467,6 +467,33 @@ void catalogOwnerIsolation() {
   auto released = gr::host::gpuBoundary(*b, ref(peer));
   CHECK(released && (*released)["value"].value("mimeType", std::string()) != "image/png");
   peer = upload(*b, "same-job");
+  {
+    // An embedder that shows outputs in process takes the pixels once and
+    // messages carry its URI instead of image data.
+    std::vector<gr::OutputImage> taken;
+    auto embedded = make([&](gr::OutputImage image) {
+      taken.push_back(std::move(image));
+      return "local-media://" + std::to_string(taken.size());
+    });
+    const auto texture = upload(*embedded, "embedded-job");
+    auto first = gr::host::gpuBoundary(*embedded, ref(texture));
+    auto second = gr::host::gpuBoundary(*embedded, ref(texture));
+    CHECK(first && (*first)["value"].value("uri", std::string()) == "local-media://1");
+    CHECK(first && !(*first)["value"].contains("data") && !(*first)["value"].contains("mimeType") && !(*first)["value"].contains("texture"));
+    CHECK(second && (*second)["value"] == (*first)["value"]);
+    CHECK(taken.size() == 1 && taken[0].run == "embedded-job" && taken[0].width == 1 && taken[0].height == 1);
+    CHECK(taken.size() == 1 && taken[0].rgba == std::vector<uint8_t>({17, 31, 59, 255}));
+    // A hook that returns no URI leaves the output as PNG data.
+    auto declined = make([](gr::OutputImage) { return std::string(); });
+    const auto kept = upload(*declined, "declined-job");
+    auto png = gr::host::gpuBoundary(*declined, ref(kept));
+    CHECK(png && (*png)["value"].value("mimeType", std::string()) == "image/png" && !(*png)["value"].contains("uri"));
+    for (auto* engine : {embedded.get(), declined.get()}) {
+      engine->releaseRunResources();
+    }
+    gr::host::gpuEndRun(*embedded, "embedded-job");
+    gr::host::gpuEndRun(*declined, "declined-job");
+  }
   b->releaseRunResources();
   gr::host::gpuEndRun(*b, "same-job");
   gr::host::gpuEndRun(*b, "guest-controlled-label");
