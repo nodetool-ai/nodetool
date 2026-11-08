@@ -6174,7 +6174,6 @@
         "checkingModels": "Kontrollerar fortfarande dina språkmodeller. Försök igen om ett ögonblick.",
         "chatNeedsModel": "Nästan där - chatten behöver en modell för att köra.",
         "pickModelToStartChat": "Välj en språkmodell och chatten startar.",
-        "pickMediaModel": "Välj en modell och generationen börjar.",
         "openChatError": "Kunde inte öppna chatten: {{error}}",
         "startFlowError": "Kunde inte starta {{flow}}: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Arbetsflödesexempel",
             "description": "Automationer, flersteg"
           }
+        },
+        "goals": {
+          "label": "Vad som startas",
+          "chat": "Chatt",
+          "image": "Bild",
+          "video": "Video",
+          "audio": "Ljud"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "Fliken kunde inte byta namn: {{reason}}",
     "sessionFailed": "Tagningarna i den här fliken kunde inte läsas in.",
-    "sessionKind": "Create-session"
+    "sessionKind": "Create-session",
+    "openInCreate": "Öppna i Create",
+    "openInCreateFailed": "Create kunde inte öppnas: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekter",

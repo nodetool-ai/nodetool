@@ -6174,7 +6174,6 @@
         "checkingModels": "Kielimalleja tarkistetaan vielä. Yritä hetken kuluttua uudelleen.",
         "chatNeedsModel": "Melkein valmista — keskustelu tarvitsee mallin toimiakseen.",
         "pickModelToStartChat": "Valitse kielimalli, niin keskustelu alkaa.",
-        "pickMediaModel": "Valitse malli, niin generointi alkaa.",
         "openChatError": "Keskustelua ei voitu avata: {{error}}",
         "startFlowError": "Kulkua {{flow}} ei voitu aloittaa: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Työnkulkuesimerkit",
             "description": "Monivaiheisia automaatioita"
           }
+        },
+        "goals": {
+          "label": "Mitä aloitetaan",
+          "chat": "Chat",
+          "image": "Kuva",
+          "video": "Video",
+          "audio": "Ääni"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "Välilehteä ei voitu nimetä uudelleen: {{reason}}",
     "sessionFailed": "Tämän välilehden ottoja ei voitu ladata.",
-    "sessionKind": "Create-istunto"
+    "sessionKind": "Create-istunto",
+    "openInCreate": "Avaa Createssa",
+    "openInCreateFailed": "Createa ei voitu avata: {{reason}}"
   },
   "effectsGallery": {
     "title": "Tehosteet",

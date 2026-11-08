@@ -1107,6 +1107,25 @@ describe("NewProjectSurface", () => {
     expect(text).toBe("A spot for our desk lamp");
   });
 
+  it("opens the prompt in a Create tab when a media goal is picked", async () => {
+    renderSurface();
+    const goals = screen.getByRole("group", { name: "What to start" });
+    expect(within(goals).getByRole("button", { name: "Chat" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.type(
+      screen.getByPlaceholderText(/Describe what you want to create/),
+      "A desk lamp at dusk"
+    );
+    await userEvent.click(within(goals).getByRole("button", { name: "Video" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open in Create" }));
+
+    await waitFor(() => expect(openCreateSession).toHaveBeenCalled());
+    expect(openCreateSession).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ mode: "video", prompt: "A desk lamp at dusk" })
+    );
+    expect(createNewThread).not.toHaveBeenCalled();
+  });
+
   it("opens blank documents outside any project", async () => {
     renderSurface();
     expect(catalogOptions).toHaveBeenCalledWith({ projectId: "default" });

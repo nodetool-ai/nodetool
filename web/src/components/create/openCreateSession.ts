@@ -14,6 +14,7 @@ import {
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { parseAssetUri } from "../node_types/editing/promptComposer/promptTokens";
 import type { DroppedFile } from "../chat/types/chat.types";
+import type { MessageContent } from "../../stores/ApiTypes";
 
 /** What a new tab is called until its first prompt names it. */
 export const CREATE_SESSION_TITLES: Record<CreateMode, string> = {
@@ -51,6 +52,34 @@ export const referencesFromAttachments = (
       ? [{ assetId: parseAssetUri(file.assetUri).assetId, contentType: file.type, name: file.name }]
       : []
   );
+
+/**
+ * What "Open in Create" carries from a chat reply: its prompt, and its stored
+ * pictures as sources to edit, or its first clip to retake. Audio carries the
+ * prompt only. `generatedMode` is the mode the reply was generated in, if any.
+ */
+export const createSeedFromMedia = (
+  prompt: string,
+  media: readonly MessageContent[],
+  generatedMode?: string | null
+): OpenCreateSessionOptions => {
+  const images: CreateReference[] = [];
+  const videos: CreateReference[] = [];
+  for (const item of media) {
+    if (item.type === "image_url" && item.image?.asset_id) {
+      images.push({ assetId: item.image.asset_id, contentType: "image/png", name: "Generated image" });
+    } else if (item.type === "video" && item.video?.asset_id) {
+      videos.push({ assetId: item.video.asset_id, contentType: "video/mp4", name: "Generated video" });
+    }
+  }
+  if (images.length > 0) {
+    return { mode: "image_edit", prompt, references: images };
+  }
+  if (videos.length > 0) {
+    return { mode: "retake", prompt, references: videos.slice(0, 1) };
+  }
+  return { mode: generatedMode === "music" ? "music" : "audio", prompt };
+};
 
 /** Create the session's thread in `projectId` and open its tab. Resolves to the thread id. */
 export const openCreateSession = async (

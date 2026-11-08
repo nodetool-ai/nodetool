@@ -4,7 +4,6 @@ import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
 import type { Message } from "../../stores/ApiTypes";
-import useMediaGenerationStore from "../../stores/MediaGenerationStore";
 
 const NO_MESSAGES: Message[] = [];
 
@@ -101,11 +100,7 @@ export const useChatViewThread = (
     async (message: Message) => {
       let id = threadId;
       if (!id && isolated) {
-        // Created for this send, so it keeps the mode the send was made in.
-        id = await createNewThread(undefined, null, {
-          makeCurrent: false,
-          mediaMode: useMediaGenerationStore.getState().mode
-        });
+        id = await createNewThread(undefined, null, { makeCurrent: false });
         setThreadId(id);
       }
       return sendToThread(message, id ?? undefined);

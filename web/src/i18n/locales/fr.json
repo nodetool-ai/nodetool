@@ -6253,7 +6253,6 @@
         "checkingModels": "Je vérifie toujours vos modèles linguistiques. Réessayez dans un instant.",
         "chatNeedsModel": "Nous y sommes presque : le chat a besoin d'un modèle pour fonctionner.",
         "pickModelToStartChat": "Choisissez un modèle de langue et le chat démarre.",
-        "pickMediaModel": "Choisissez un modèle et la génération commence.",
         "openChatError": "Impossible d'ouvrir le chat : {{error}}",
         "startFlowError": "Impossible de démarrer {{flow}} : {{error}}",
         "flowNames": {
@@ -6470,7 +6469,14 @@
         "entityCount_many": "Entités {{count}}",
         "attachedFileCountShort_many": "Fichiers · {{count}}",
         "moreStarters_many": "{{count}} plus",
-        "renderedExampleShots_many": "Plans {{count}}, déjà rendus"
+        "renderedExampleShots_many": "Plans {{count}}, déjà rendus",
+        "goals": {
+          "label": "Quoi commencer",
+          "chat": "Chat",
+          "image": "Image",
+          "video": "Vidéo",
+          "audio": "Audio"
+        }
       }
     }
   },
@@ -19931,7 +19937,9 @@
     },
     "renameFailed": "Impossible de renommer l'onglet : {{reason}}",
     "sessionFailed": "Impossible de charger les prises de cet onglet.",
-    "sessionKind": "Session Create"
+    "sessionKind": "Session Create",
+    "openInCreate": "Ouvrir dans Create",
+    "openInCreateFailed": "Impossible d'ouvrir Create : {{reason}}"
   },
   "effectsGallery": {
     "title": "Effets",

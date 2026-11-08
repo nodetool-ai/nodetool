@@ -7,7 +7,8 @@
  * uploads or workflow outputs, not renders, and stay out of the grid.
  *
  * A Create tab lists only its own takes: the tracked ones tagged with its
- * thread, then the generation rows the server recorded for that thread.
+ * thread, then the generation rows the server recorded for that thread, then,
+ * for a media thread from before Create sessions, the takes in its messages.
  */
 import { readAssetGenerationMetadata } from "@nodetool-ai/protocol";
 import type { Asset } from "../../stores/ApiTypes";
@@ -19,6 +20,7 @@ import {
   type GenerationRequestSettings
 } from "../../stores/GenerationActivityStore";
 import type { RouterOutputs } from "../../trpc/client";
+import type { GenerationTurn } from "../chat/generation/extractGenerationTurns";
 
 /** One generation row from `generations.list`. */
 export type GenerationRecord = RouterOutputs["generations"]["list"]["generations"][number];
@@ -213,14 +215,57 @@ export const fromGenerationRecord = (record: GenerationRecord): CreateFeedItem[]
 };
 
 /**
+ * A media chat turn as grid items, one per stored output. A turn that made
+ * nothing and answered with text failed.
+ */
+export const fromGenerationTurn = (turn: GenerationTurn): CreateFeedItem[] => {
+  const createdAt = Date.parse(turn.createdAt ?? "");
+  const base = {
+    prompt: turn.prompt || null,
+    model: turn.mediaGeneration?.model ?? null,
+    presetIds: [],
+    asset: null,
+    createdAt: Number.isNaN(createdAt) ? 0 : createdAt,
+    error: null,
+    generation: null,
+    // A chat turn's request is not a `generate_media` request.
+    request: null
+  };
+  const outputs: Array<{ kind: GenerationMediaKind; assetId: string | null | undefined }> = [
+    ...turn.imageOutputs.map((item) => ({ kind: "image" as const, assetId: item.image?.asset_id })),
+    ...turn.videoOutputs.map((item) => ({ kind: "video" as const, assetId: item.video?.asset_id })),
+    ...turn.audioOutputs.map((item) => ({ kind: "audio" as const, assetId: item.audio?.asset_id }))
+  ];
+  const stored = outputs.flatMap(({ kind, assetId }) =>
+    assetId
+      ? [{ ...base, key: `${turn.id}:${assetId}`, kind, status: "generated" as const, assetId }]
+      : []
+  );
+  if (stored.length > 0 || !turn.errorText) {
+    return stored;
+  }
+  const kind = mediaKindOfMode(turn.mediaGeneration?.mode);
+  return [{ ...base, key: turn.id, kind, status: "failed", assetId: null, error: turn.errorText }];
+};
+
+const mediaKindOfMode = (mode: string | null | undefined): GenerationMediaKind => {
+  if (mode === "audio" || mode === "music") {
+    return "audio";
+  }
+  return mode?.includes("video") || mode === "retake" || mode === "extend" ? "video" : "image";
+};
+
+/**
  * One Create tab's takes, newest first: the generations this app tracked for
- * its thread, then the rows the server recorded for it. A row the app also
- * tracked, matched by request id or asset, is listed once, as the tracked one.
+ * its thread, then the rows the server recorded for it, then the takes in the
+ * thread's messages. A take listed twice, matched by request id or asset, is
+ * listed once, as the tracked one.
  */
 export const buildSessionFeed = (
   sessionId: string,
   generations: readonly GenerationActivity[],
-  records: readonly GenerationRecord[]
+  records: readonly GenerationRecord[],
+  turns: readonly GenerationTurn[] = []
 ): CreateFeedItem[] => {
   const tracked = generations
     .filter((generation) => generation.threadId === sessionId && GRID_KINDS.has(generation.kind))
@@ -231,7 +276,15 @@ export const buildSessionFeed = (
     .filter((record) => !(record.request_id && trackedIds.has(record.request_id)))
     .flatMap(fromGenerationRecord)
     .filter((item) => GRID_KINDS.has(item.kind) && !(item.assetId && seenAssets.has(item.assetId)));
-  return [...tracked, ...recorded].sort((a, b) => b.createdAt - a.createdAt);
+  for (const item of recorded) {
+    if (item.assetId) {
+      seenAssets.add(item.assetId);
+    }
+  }
+  const fromMessages = turns
+    .flatMap(fromGenerationTurn)
+    .filter((item) => !(item.assetId && seenAssets.has(item.assetId)));
+  return [...tracked, ...recorded, ...fromMessages].sort((a, b) => b.createdAt - a.createdAt);
 };
 
 /** The `generate_media` modes a retake can send again as they were. */

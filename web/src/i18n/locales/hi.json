@@ -6174,7 +6174,6 @@
         "checkingModels": "फिर भी अपने भाषा मॉडल की जाँच करें। एक पल में फिर से कोशिश करें।",
         "chatNeedsModel": "लगभग वहाँ — चैट चलाने के लिए एक मॉडल की जरूरत है।",
         "pickModelToStartChat": "एक भाषा मॉडल चुनें और चैट शुरू हो जाती है।",
-        "pickMediaModel": "एक मॉडल चुनें और पीढ़ी शुरू होती है।",
         "openChatError": "चैट नहीं खुल सकता: {{error}}",
         "startFlowError": "शुरू नहीं किया जा सकता {{flow}}: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "वर्कफ़्लो उदाहरण",
             "description": "स्वचालन, बहु-चरण"
           }
+        },
+        "goals": {
+          "label": "क्या शुरू करें",
+          "chat": "चैट",
+          "image": "छवि",
+          "video": "वीडियो",
+          "audio": "ऑडियो"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "टैब का नाम नहीं बदला जा सका: {{reason}}",
     "sessionFailed": "इस टैब के टेक लोड नहीं हो सके।",
-    "sessionKind": "Create सत्र"
+    "sessionKind": "Create सत्र",
+    "openInCreate": "Create में खोलें",
+    "openInCreateFailed": "Create नहीं खुल सका: {{reason}}"
   },
   "effectsGallery": {
     "title": "प्रभाव",

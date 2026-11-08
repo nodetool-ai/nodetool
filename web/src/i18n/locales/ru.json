@@ -6332,7 +6332,6 @@
         "checkingModels": "Языковые модели ещё проверяются. Повторите попытку через минуту.",
         "chatNeedsModel": "Почти готово — для работы чата нужна модель.",
         "pickModelToStartChat": "Выберите языковую модель, и чат запустится.",
-        "pickMediaModel": "Выберите модель, и генерация начнётся.",
         "openChatError": "Не удалось открыть чат: {{error}}",
         "startFlowError": "Не удалось запустить сценарий «{{flow}}»: {{error}}",
         "flowNames": {
@@ -6556,6 +6555,13 @@
             "title": "Примеры рабочих процессов",
             "description": "Многошаговая автоматизация"
           }
+        },
+        "goals": {
+          "label": "Что начать",
+          "chat": "Чат",
+          "image": "Изображение",
+          "video": "Видео",
+          "audio": "Аудио"
         }
       }
     }
@@ -20242,7 +20248,9 @@
     },
     "renameFailed": "Не удалось переименовать вкладку: {{reason}}",
     "sessionFailed": "Не удалось загрузить дубли этой вкладки.",
-    "sessionKind": "Сеанс Create"
+    "sessionKind": "Сеанс Create",
+    "openInCreate": "Открыть в Create",
+    "openInCreateFailed": "Не удалось открыть Create: {{reason}}"
   },
   "effectsGallery": {
     "title": "Эффекты",

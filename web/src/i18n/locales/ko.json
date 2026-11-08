@@ -6174,7 +6174,6 @@
         "checkingModels": "아직 언어 모델을 확인 중입니다. 잠시 후에 다시 시도해 보세요.",
         "chatNeedsModel": "거의 다 왔습니다. 채팅을 실행하려면 모델이 필요합니다.",
         "pickModelToStartChat": "언어 모델을 선택하면 채팅이 시작됩니다.",
-        "pickMediaModel": "모델을 선택하면 세대가 시작됩니다.",
         "openChatError": "채팅을 열 수 없습니다: {{error}}",
         "startFlowError": "{{flow}}을(를) 시작할 수 없습니다: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "워크플로우 예시",
             "description": "자동화, 다단계"
           }
+        },
+        "goals": {
+          "label": "시작할 항목",
+          "chat": "채팅",
+          "image": "이미지",
+          "video": "동영상",
+          "audio": "오디오"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "탭 이름을 바꾸지 못했습니다: {{reason}}",
     "sessionFailed": "이 탭의 테이크를 불러오지 못했습니다.",
-    "sessionKind": "Create 세션"
+    "sessionKind": "Create 세션",
+    "openInCreate": "Create에서 열기",
+    "openInCreateFailed": "Create를 열지 못했습니다: {{reason}}"
   },
   "effectsGallery": {
     "title": "효과",

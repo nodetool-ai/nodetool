@@ -6332,7 +6332,6 @@
         "checkingModels": "Nadal sprawdzam modele językowe. Spróbuj ponownie za chwilę.",
         "chatNeedsModel": "Już prawie gotowe — chat potrzebuje modelu do działania.",
         "pickModelToStartChat": "Wybierz model języka i rozpocznie się czat.",
-        "pickMediaModel": "Wybierz model i rozpocznie się generacja.",
         "openChatError": "Nie można otworzyć czatu: {{error}}",
         "startFlowError": "Nie można uruchomić {{flow}}: {{error}}",
         "flowNames": {
@@ -6556,7 +6555,14 @@
         "moreStarters_few": "jeszcze {{count}}",
         "moreStarters_many": "jeszcze {{count}}",
         "renderedExampleShots_few": "{{count}} zdjęcia, już wyrenderowane",
-        "renderedExampleShots_many": "{{count}} zdjęć, już wyrenderowanych"
+        "renderedExampleShots_many": "{{count}} zdjęć, już wyrenderowanych",
+        "goals": {
+          "label": "Co rozpocząć",
+          "chat": "Czat",
+          "image": "Obraz",
+          "video": "Wideo",
+          "audio": "Dźwięk"
+        }
       }
     }
   },
@@ -20242,7 +20248,9 @@
     },
     "renameFailed": "Nie udało się zmienić nazwy karty: {{reason}}",
     "sessionFailed": "Nie udało się wczytać ujęć tej karty.",
-    "sessionKind": "Sesja Create"
+    "sessionKind": "Sesja Create",
+    "openInCreate": "Otwórz w Create",
+    "openInCreateFailed": "Nie udało się otworzyć Create: {{reason}}"
   },
   "effectsGallery": {
     "title": "Efekty",
