@@ -974,7 +974,14 @@ export function video(options = {}) {
       clip._pathPoints = points;
       return clip;
     };
-    const image = (assetId, o = {}) => makeClip("image", ctx, { ...o, currentAssetId: clipAssetId(assetId) });
+    const image = (assetId, o = {}) => {
+      // A still has no box of its own: it fits the frame (contain) and `s`
+      // scales it from there. A size option would be dropped without a word.
+      for (const key of ["w", "h", "width", "height", "size"]) {
+        if (o[key] !== undefined) throw new Error(`s.image() has no \`${key}\` option: the image fits the frame and \`s\` scales it. For a target width use s = targetWidth / fittedWidth, and \`crop\` or \`mask\` to frame it.`);
+      }
+      return makeClip("image", ctx, { ...o, currentAssetId: clipAssetId(assetId) });
+    };
 
     /**
      * `media(mediaType, assetId, o)` is the shared body for `video`/`audio`:
