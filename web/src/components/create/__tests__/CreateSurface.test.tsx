@@ -42,10 +42,6 @@ jest.mock("../../chat/composer/ModeChips", () => ({
   __esModule: true,
   default: () => <div data-testid="mode-chips" />
 }));
-jest.mock("../../chat/composer/ModeSelectChip", () => ({
-  __esModule: true,
-  default: () => <div data-testid="mode-select-chip" />
-}));
 jest.mock("../../chat/composer/MediaCostEstimate", () => ({
   __esModule: true,
   default: () => null
@@ -101,7 +97,13 @@ describe("CreateSurface", () => {
     send.mockClear();
     assetListData = { assets: [] };
     seedGenerations();
-    useCreateViewStore.setState({ mode: "image", prompt: "", batch: 1 });
+    useCreateViewStore.setState({
+      mode: "image",
+      kindModes: { image: "image", video: "video", audio: "audio" },
+      prompt: "",
+      batch: 1,
+      references: []
+    });
     useMediaGenerationStore.setState({
       image: {
         ...useMediaGenerationStore.getState().image,
@@ -152,6 +154,55 @@ describe("CreateSurface", () => {
       renderSurface();
       await user.click(screen.getByRole("button", { name: "Generate" }));
       expect(await screen.findByText(/Started 0 of 2 takes/)).toBeInTheDocument();
+    });
+  });
+
+  describe("modes", () => {
+    it("switches kind and keeps each kind's last mode", async () => {
+      const user = userEvent.setup();
+      renderSurface();
+      const kinds = screen.getByRole("group", { name: "What to create" });
+      await user.click(within(kinds).getByRole("button", { name: "Video" }));
+      const modes = screen.getByRole("group", { name: "How to create it" });
+      await user.click(within(modes).getByRole("button", { name: "Extend" }));
+      await user.click(within(kinds).getByRole("button", { name: "Audio" }));
+      expect(useCreateViewStore.getState().mode).toBe("audio");
+      await user.click(within(kinds).getByRole("button", { name: "Video" }));
+      expect(useCreateViewStore.getState().mode).toBe("extend");
+    });
+
+    it("asks for the picture to edit instead of sending an edit without one", async () => {
+      const user = userEvent.setup();
+      useCreateViewStore.setState({ mode: "image_edit", prompt: "make it night" });
+      renderSurface();
+      await user.click(screen.getByRole("button", { name: "Generate" }));
+      expect(send).not.toHaveBeenCalled();
+      expect(screen.getByText("Add the picture to edit.")).toBeInTheDocument();
+    });
+
+    it("sends an edit of the attached picture", async () => {
+      const user = userEvent.setup();
+      useMediaGenerationStore.setState({
+        imageEdit: {
+          ...useMediaGenerationStore.getState().imageEdit,
+          model: { type: "image_model", id: "kontext", provider: "fake" as never, name: "Kontext", path: "" }
+        }
+      });
+      useCreateViewStore.setState({
+        mode: "image_edit",
+        prompt: "make it night",
+        references: [{ assetId: "pic", contentType: "image/png", name: "pic" }]
+      });
+      renderSurface();
+      expect(screen.getByText("Source image")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Generate" }));
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0].data).toMatchObject({
+        mode: "image_edit",
+        model: "kontext",
+        source_asset_id: "pic",
+        prompt: "make it night"
+      });
     });
   });
 
@@ -233,6 +284,29 @@ describe("CreateSurface", () => {
       renderSurface();
       expect(screen.getByRole("button", { name: /Send prompt v to a timeline/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Open prompt v as a workflow/ })).toBeInTheDocument();
+    });
+
+    it("animates a picture from its More menu", async () => {
+      const user = userEvent.setup();
+      seedGenerations(generation("a"));
+      renderSurface();
+      await user.click(screen.getByRole("button", { name: "More actions for prompt a" }));
+      await user.click(screen.getByRole("menuitem", { name: "Animate this picture" }));
+      const state = useCreateViewStore.getState();
+      expect(state.mode).toBe("image_to_video");
+      expect(state.references).toEqual([
+        { assetId: "asset-a", contentType: "image/png", name: "prompt a" }
+      ]);
+      expect(screen.getByText("Start frame")).toBeInTheDocument();
+    });
+
+    it("plays an audio take in place rather than opening it", () => {
+      seedGenerations(
+        generation("s", { kind: "audio", request: { mode: "audio", provider: "fake", model: "tts" } })
+      );
+      renderSurface();
+      expect(screen.queryByRole("button", { name: "Open prompt s" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^Retake prompt s/ })).toBeInTheDocument();
     });
   });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 import {
   createAtlasNodeClass,
   resolveAssetForAtlas,
@@ -325,12 +326,11 @@ describe("resolveAssetForAtlas", () => {
 // createAtlasNodeClass — process() end-to-end
 // ---------------------------------------------------------------------------
 describe("createAtlasNodeClass.process", () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
-  });
+  type AtlasTestNode = {
+    process: (ctx?: ProcessingContext) => Promise<Record<string, unknown>>;
+    setDynamic: (key: string, value: unknown) => void;
+    [key: string]: unknown;
+  };
 
   function makeSpec(
     overrides: Partial<AtlasManifestEntry> = {}
@@ -359,10 +359,60 @@ describe("createAtlasNodeClass.process", () => {
     };
   }
 
+  function nodeOf(
+    spec: AtlasManifestEntry,
+    properties?: Record<string, unknown>
+  ): AtlasTestNode {
+    const Cls = createAtlasNodeClass(spec) as unknown as new (
+      properties?: Record<string, unknown>
+    ) => AtlasTestNode;
+    return new Cls(properties);
+  }
+
+  /** A provider that finishes every prediction with `outputUrl`. */
+  function scriptedAtlas(
+    outputUrl = "https://cdn/out.png",
+    bytes = Uint8Array.from([1])
+  ): ScriptedProvider {
+    return new ScriptedProvider([], {
+      providerId: "atlascloud",
+      endpoints: {
+        "*": { output: { status: "completed", outputs: [outputUrl] }, requestId: "pred-1" }
+      },
+      uploadUrl: () => "https://uploads.atlas/input-video",
+      downloads: { [outputUrl]: bytes }
+    });
+  }
+
+  function atlasContext(
+    provider: ScriptedProvider,
+    opts: {
+      store?: (key: string, bytes: Uint8Array, mime?: string) => Promise<string>;
+      resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }>;
+    } = {}
+  ): ProcessingContext {
+    const storage = opts.store
+      ? { store: opts.store, retrieve: async () => null, delete: async () => undefined, list: async () => ({ entries: [] }) }
+      : null;
+    const ctx = new ProcessingContext({ jobId: "job-1", storage: storage as never });
+    ctx.setProviderResolver(() => provider);
+    if (opts.resolveAssetBytes) {
+      Object.defineProperty(ctx, "resolveAssetBytes", { value: opts.resolveAssetBytes });
+    }
+    return ctx;
+  }
+
+  /** The first endpoint call as the flat body AtlasCloud receives: `{ model, ...input }`. */
+  function submittedBody(provider: ScriptedProvider): Record<string, unknown> {
+    const call = provider.endpointCalls[0];
+    if (!call) throw new Error("no endpoint call");
+    return { model: call.model, ...call.input };
+  }
+
   it.each([
     {
       modelId: "openai/gpt-image-2.5-sunburst/text-to-image",
-      submitPath: "/generateImage",
+      route: "image",
       outputUrl: "https://cdn/out.webp",
       outputType: "image",
       properties: { output_format: "webp" },
@@ -371,7 +421,7 @@ describe("createAtlasNodeClass.process", () => {
     },
     {
       modelId: "minimax/h3-fast/reference-to-video",
-      submitPath: "/generateVideo",
+      route: "video",
       outputUrl: "https://cdn/out.mp4",
       outputType: "video",
       properties: {
@@ -384,7 +434,7 @@ describe("createAtlasNodeClass.process", () => {
     },
     {
       modelId: "google/gemini-omni-1.1-flash/reference-to-video",
-      submitPath: "/generateVideo",
+      route: "video",
       outputUrl: "https://cdn/out.mp4",
       outputType: "video",
       properties: {
@@ -399,7 +449,7 @@ describe("createAtlasNodeClass.process", () => {
     "runs the real manifest contract for $modelId",
     async ({
       modelId,
-      submitPath,
+      route,
       outputUrl,
       outputType,
       properties,
@@ -418,60 +468,16 @@ describe("createAtlasNodeClass.process", () => {
       const spec = manifest.find((entry) => entry.modelId === modelId);
       expect(spec).toBeDefined();
 
-      let submittedBody: Record<string, unknown> | undefined;
-      global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-        const requestUrl = String(url);
-        if (requestUrl.endsWith(submitPath)) {
-          submittedBody = JSON.parse(init!.body as string);
-          return {
-            ok: true,
-            status: 200,
-            text: async () => JSON.stringify({ data: { id: "test-job" } })
-          } as Response;
-        }
-        if (requestUrl.includes("/prediction/test-job")) {
-          return {
-            ok: true,
-            status: 200,
-            headers: new Headers(),
-            text: async () =>
-              JSON.stringify({
-                data: { status: "completed", outputs: [outputUrl] }
-              })
-          } as Response;
-        }
-        if (requestUrl === outputUrl) {
-          return {
-            ok: true,
-            status: 200,
-            headers: new Headers(),
-            arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
-          } as Response;
-        }
-        throw new Error(`unexpected: ${requestUrl}`);
-      }) as unknown as typeof fetch;
+      const provider = scriptedAtlas(outputUrl, Uint8Array.from([1, 2, 3]));
+      const store = vi.fn().mockResolvedValue("memory://atlascloud-output");
+      const node = nodeOf(spec!, { prompt: "minimal contract test", ...properties });
+      const output = await node.process(atlasContext(provider, { store }));
 
-      const NodeClass = createAtlasNodeClass(spec!) as unknown as new (
-        properties?: Record<string, unknown>
-      ) => {
-        process: (ctx: unknown) => Promise<Record<string, unknown>>;
-        setDynamic: (key: string, value: unknown) => void;
-      };
-      const node = new NodeClass({
-        prompt: "minimal contract test",
-        ...properties
-      });
-      node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "test-key" });
-
-      const storage = {
-        store: vi.fn().mockResolvedValue("memory://atlascloud-output")
-      };
-      const output = await node.process({ storage });
-
-      expect(submittedBody?.model).toBe(modelId);
-      expect(submittedBody?.prompt).toBe("minimal contract test");
-      expect(submittedBody).toEqual(expect.objectContaining(expectedInput));
-      expect(storage.store).toHaveBeenCalledWith(
+      expect(provider.endpointCalls[0]).toMatchObject({ model: modelId, route });
+      expect(submittedBody(provider).prompt).toBe("minimal contract test");
+      expect(submittedBody(provider)).toEqual(expect.objectContaining(expectedInput));
+      expect(provider.downloadCalls.map((call) => call.url)).toEqual([outputUrl]);
+      expect(store).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(Uint8Array),
         expectedMime
@@ -495,112 +501,42 @@ describe("createAtlasNodeClass.process", () => {
     expect(Cls.metadataOutputTypes).toEqual({ output: "image" });
   });
 
-  it("submits, polls, downloads, and persists via storage", async () => {
-    const submitted: { url: string; body: unknown } = { url: "", body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateImage")) {
-        submitted.url = u;
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "pid-1" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/pid-1")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.png"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.png") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([0x89, 0x50]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(makeSpec()) as unknown as new () => {
-      _dyn: Record<string, unknown>;
-      prompt: string;
-      size: string;
-      steps: number;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-    };
-    const node = new Cls();
-    // BaseNode hands secrets via the `_secrets` accessor backed by dynamic
-    // state; populate the backing slot directly. (See base-node.ts.)
-    (
-      node as unknown as { setDynamic: (k: string, v: unknown) => void }
-    ).setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+  it("submits through the generation seam, downloads, and persists via storage", async () => {
+    const provider = scriptedAtlas("https://cdn/out.png", Uint8Array.from([0x89, 0x50]));
+    const node = nodeOf(makeSpec());
     node.prompt = "a cat";
     node.size = "1024x1024";
     // UI sends ints as strings — make sure coercion kicks in.
-    (node as unknown as Record<string, unknown>).steps = "30";
+    node.steps = "30";
+    const store = vi.fn().mockResolvedValue("memory://atlascloud-image-x.png");
+    const ctx = atlasContext(provider, { store });
 
-    const storage = {
-      store: vi.fn().mockResolvedValue("memory://atlascloud-image-x.png")
-    };
+    const out = await node.process(ctx);
 
-    const out = await node.process({ storage });
-
-    expect(submitted.url).toBe(
-      "https://api.atlascloud.ai/api/v1/model/generateImage"
-    );
+    expect(provider.endpointCalls[0]?.route).toBe("image");
     // FLAT body — no nesting under `input`.
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "a cat",
       size: "1024x1024",
       steps: 30
     });
-    expect(storage.store).toHaveBeenCalledTimes(1);
+    expect(store).toHaveBeenCalledTimes(1);
     expect(out).toEqual({
       output: { type: "image", uri: "memory://atlascloud-image-x.png" }
+    });
+    const predictions = ctx.getMessages().filter((m) => m.type === "prediction");
+    expect(predictions.at(-1)).toMatchObject({
+      status: "completed",
+      provider: "atlascloud",
+      capability: "text_to_image",
+      model: "test/model/t2i"
     });
   });
 
   it("falls back to a model enum default when a persisted value is stale", async () => {
-    let submittedBody: Record<string, unknown> | undefined;
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateImage")) {
-        submittedBody = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "pid-stale" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/pid-stale")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/stale.png"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/stale.png") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/stale.png");
+    const node = nodeOf(
       makeSpec({
         fields: [
           { name: "prompt", type: "str", default: "", required: true },
@@ -611,18 +547,14 @@ describe("createAtlasNodeClass.process", () => {
             values: ["480P"]
           }
         ]
-      })
-    ) as unknown as new (properties?: Record<string, unknown>) => {
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (key: string, value: unknown) => void;
-    };
-    const node = new Cls({ prompt: "stale", resolution: "2K" });
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "test-key" });
-    await node.process({
-      storage: { store: vi.fn().mockResolvedValue("memory://out") }
-    });
+      }),
+      { prompt: "stale", resolution: "2K" }
+    );
+    await node.process(
+      atlasContext(provider, { store: vi.fn().mockResolvedValue("memory://out") })
+    );
 
-    expect(submittedBody).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "stale",
       resolution: "480P"
@@ -630,38 +562,8 @@ describe("createAtlasNodeClass.process", () => {
   });
 
   it("wraps a single-image field with array:true into [url]", async () => {
-    const submitted: { body: unknown } = { body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateImage")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "p" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/p")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.png"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.png") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas();
+    const node = nodeOf(
       makeSpec({
         fields: [
           { name: "prompt", type: "str", default: "" },
@@ -674,20 +576,13 @@ describe("createAtlasNodeClass.process", () => {
           }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      images: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "edit this";
     node.images = { uri: "https://input/cat.jpg" };
 
-    await node.process({ storage: null });
+    await node.process(atlasContext(provider));
 
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "edit this",
       // array: true should have wrapped the single ref into a one-element array
@@ -696,38 +591,8 @@ describe("createAtlasNodeClass.process", () => {
   });
 
   it("merges wrapInto asset fields into one {url, type} array", async () => {
-    const submitted: { body: unknown } = { body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "r" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/r")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4");
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -754,16 +619,7 @@ describe("createAtlasNodeClass.process", () => {
           }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      reference_images: unknown;
-      reference_videos: unknown;
-      reference_audios: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "dance to this";
     node.reference_images = [
       { uri: "https://input/a.png" },
@@ -772,11 +628,11 @@ describe("createAtlasNodeClass.process", () => {
     node.reference_videos = [{ uri: "https://input/c.mp4" }];
     node.reference_audios = [{ uri: "https://input/d.mp3" }];
 
-    await node.process({ storage: null });
+    await node.process(atlasContext(provider));
 
     // One mixed array in manifest field order, each entry tagged with the
     // media kind its input declared — never the per-kind field names.
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/r2v",
       prompt: "dance to this",
       refers: [
@@ -786,41 +642,12 @@ describe("createAtlasNodeClass.process", () => {
         { url: "https://input/d.mp3", type: "audio" }
       ]
     });
+    expect(provider.endpointCalls[0]?.route).toBe("video");
   });
 
   it("omits the wrapInto array entirely when no reference is wired", async () => {
-    const submitted: { body: unknown } = { body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "r" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/r")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4");
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -835,56 +662,20 @@ describe("createAtlasNodeClass.process", () => {
           }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "no references";
 
-    await node.process({ storage: null });
+    await node.process(atlasContext(provider));
 
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/r2v",
       prompt: "no references"
     });
   });
 
   it("resolves list[image] fields element-by-element", async () => {
-    const submitted: { body: unknown } = { body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "v" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/v")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1, 2]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4", Uint8Array.from([1, 2]));
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -897,23 +688,16 @@ describe("createAtlasNodeClass.process", () => {
           }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      reference_images: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "compose";
     node.reference_images = [
       { uri: "https://a/1.jpg" },
       { uri: "https://b/2.png" }
     ];
 
-    const out = await node.process({ storage: null });
+    const out = await node.process(atlasContext(provider));
 
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "compose",
       reference_images: ["https://a/1.jpg", "https://b/2.png"]
@@ -925,38 +709,8 @@ describe("createAtlasNodeClass.process", () => {
   });
 
   it("groups Vidu Q2 subject images in ordered batches of at most three", async () => {
-    const submitted: { body: unknown } = { body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "v" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/v")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4");
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -966,22 +720,15 @@ describe("createAtlasNodeClass.process", () => {
           { name: "subjects", type: "list[image]", default: [] }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      subjects: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "compose";
     node.subjects = Array.from({ length: 7 }, (_, index) => ({
       uri: `https://input/${index + 1}.jpg`
     }));
 
-    await node.process({ storage: null });
+    await node.process(atlasContext(provider));
 
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "vidu/q2-pro/reference-to-video",
       prompt: "compose",
       subjects: [
@@ -1007,10 +754,8 @@ describe("createAtlasNodeClass.process", () => {
   });
 
   it("rejects more than seven Vidu Q2 subject images", async () => {
-    const fetchSpy = vi.fn();
-    global.fetch = fetchSpy as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4");
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -1020,66 +765,21 @@ describe("createAtlasNodeClass.process", () => {
           { name: "subjects", type: "list[image]", default: [] }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      subjects: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "compose";
     node.subjects = Array.from({ length: 8 }, (_, index) => ({
       uri: `https://input/${index + 1}.jpg`
     }));
 
-    await expect(node.process({ storage: null })).rejects.toThrow(
+    await expect(node.process(atlasContext(provider))).rejects.toThrow(
       'Test: "subjects" accepts at most 7 images'
     );
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(provider.endpointCalls).toEqual([]);
   });
 
   it("routes prompt @-mentions onto image / audio / video inputs", async () => {
-    const submitted: { body: Record<string, unknown> } = { body: {} };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/uploadMedia")) {
-        return {
-          ok: true,
-          status: 200,
-          text: async () =>
-            JSON.stringify({ url: "https://uploads.atlas/input-video" })
-        } as Response;
-      }
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "v" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/v")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1, 2]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4", Uint8Array.from([1, 2]));
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -1090,65 +790,34 @@ describe("createAtlasNodeClass.process", () => {
           { name: "video", type: "video", default: null }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt =
       "drive asset://clip.mp4 with asset://track.wav and asset://ref.png";
 
     const assetBytes = Uint8Array.from([1, 2, 3]);
     const b64 = Buffer.from(assetBytes).toString("base64");
-    await node.process({
-      storage: null,
-      resolveAssetBytes: async () => ({ bytes: assetBytes })
-    });
+    await node.process(
+      atlasContext(provider, {
+        resolveAssetBytes: async () => ({ bytes: assetBytes })
+      })
+    );
 
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "drive video with audio and image",
       image: `data:image/png;base64,${b64}`,
       audio: `data:audio/wav;base64,${b64}`,
       video: "https://uploads.atlas/input-video"
     });
+    // Video inputs go through the provider's upload, not inline data URIs.
+    expect(provider.uploadCalls).toMatchObject([
+      { bytes: assetBytes, mimeType: "video/mp4", filename: "input-video" }
+    ]);
   });
 
   it("does not override a wired media input from a mention", async () => {
-    const submitted: { body: Record<string, unknown> } = { body: {} };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "v" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/v")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(
+    const provider = scriptedAtlas("https://cdn/out.mp4");
+    const node = nodeOf(
       makeSpec({
         modality: "video",
         outputType: "video",
@@ -1157,65 +826,30 @@ describe("createAtlasNodeClass.process", () => {
           { name: "video", type: "video", default: null }
         ]
       })
-    ) as unknown as new () => {
-      prompt: string;
-      video: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    );
     node.prompt = "restyle asset://clip.mp4 now";
     node.video = { uri: "https://input/wired.mp4" };
 
-    await node.process({
-      storage: null,
-      resolveAssetBytes: async () => ({ bytes: Uint8Array.from([9]) })
-    });
+    await node.process(
+      atlasContext(provider, {
+        resolveAssetBytes: async () => ({ bytes: Uint8Array.from([9]) })
+      })
+    );
 
     // Wired slot wins; the mention is dropped from the prompt rather than left dangling.
-    expect(submitted.body).toEqual({
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "restyle now",
       video: "https://input/wired.mp4"
     });
+    expect(provider.uploadCalls).toEqual([]);
   });
 
   // An empty optional image (Seedance's `last_image`) must not fail the node —
   // it is simply omitted — while an empty *required* image fails locally with
   // a message naming the input instead of a resolver-internal one.
   it("omits an empty optional asset input and names an empty required one", async () => {
-    const submitted: { body: unknown } = { body: null };
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/generateVideo")) {
-        submitted.body = JSON.parse(init!.body as string);
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "v" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/v")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.mp4"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.mp4") {
-        return {
-          ok: true,
-          arrayBuffer: async () => Uint8Array.from([1]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
+    const provider = scriptedAtlas("https://cdn/out.mp4");
     const spec = makeSpec({
       title: "Seedance 2.0 — Image to Video",
       modality: "video",
@@ -1226,16 +860,8 @@ describe("createAtlasNodeClass.process", () => {
         { name: "last_image", type: "image", default: null }
       ]
     });
-    const Cls = createAtlasNodeClass(spec) as unknown as new () => {
-      prompt: string;
-      image: unknown;
-      last_image: unknown;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
 
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    const node = nodeOf(spec);
     node.prompt = "animate";
     node.image = { type: "image", uri: "https://input/first.png" };
     // The UI sends this shape for an image input the user never filled in.
@@ -1247,125 +873,42 @@ describe("createAtlasNodeClass.process", () => {
       metadata: null
     };
 
-    await node.process({ storage: null });
-    expect(submitted.body).toEqual({
+    await node.process(atlasContext(provider));
+    expect(submittedBody(provider)).toEqual({
       model: "test/model/t2i",
       prompt: "animate",
       image: "https://input/first.png"
     });
 
-    const missing = new Cls();
-    missing.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    const missing = nodeOf(spec);
     missing.prompt = "animate";
     missing.image = { type: "image", uri: "", asset_id: null, data: null };
-    await expect(missing.process({ storage: null })).rejects.toThrow(
+    await expect(missing.process(atlasContext(provider))).rejects.toThrow(
       'Seedance 2.0 — Image to Video: the image input "image" is empty'
     );
   });
 
-  it("propagates structured AtlasCloud job failures", async () => {
-    global.fetch = vi.fn(async (url: string | URL) => {
-      const u = String(url);
-      if (u.endsWith("/generateImage")) {
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "p" } })
-        } as Response;
+  it("propagates AtlasCloud job failures from the provider", async () => {
+    const provider = new ScriptedProvider([], {
+      providerId: "atlascloud",
+      endpoints: {
+        "*": new Error("AtlasCloud job failed: moderation flagged (predictionId: p)")
       }
-      if (u.includes("/prediction/p")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "failed", error: "moderation flagged" }
-            })
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(makeSpec()) as unknown as new () => {
-      prompt: string;
-      size: string;
-      steps: number;
-      process: (ctx: unknown) => Promise<unknown>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
+    });
+    const node = nodeOf(makeSpec());
     node.prompt = "x";
     node.size = "1024x1024";
     node.steps = 1;
 
-    await expect(node.process({ storage: null })).rejects.toThrow(
+    await expect(node.process(atlasContext(provider))).rejects.toThrow(
       "AtlasCloud job failed: moderation flagged"
     );
+    expect(provider.downloadCalls).toEqual([]);
   });
 
-  it("retries a transient 5xx on the (already-billed) output download", async () => {
-    let dlAttempts = 0;
-    global.fetch = vi.fn(async (url: string | URL) => {
-      const u = String(url);
-      if (u.endsWith("/generateImage")) {
-        return {
-          ok: true,
-          status: 200,
-          text: async () => JSON.stringify({ data: { id: "pid-1" } })
-        } as Response;
-      }
-      if (u.includes("/prediction/pid-1")) {
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          text: async () =>
-            JSON.stringify({
-              data: { status: "completed", outputs: ["https://cdn/out.png"] }
-            })
-        } as Response;
-      }
-      if (u === "https://cdn/out.png") {
-        dlAttempts++;
-        if (dlAttempts === 1) {
-          return {
-            ok: false,
-            status: 503,
-            headers: new Headers({ "Retry-After": "0" })
-          } as Response;
-        }
-        return {
-          ok: true,
-          status: 200,
-          headers: new Headers(),
-          arrayBuffer: async () => Uint8Array.from([0x89, 0x50]).buffer
-        } as Response;
-      }
-      throw new Error(`unexpected: ${u}`);
-    }) as unknown as typeof fetch;
-
-    const Cls = createAtlasNodeClass(makeSpec()) as unknown as new () => {
-      prompt: string;
-      size: string;
-      steps: number;
-      process: (ctx: unknown) => Promise<Record<string, unknown>>;
-      setDynamic: (k: string, v: unknown) => void;
-    };
-    const node = new Cls();
-    node.setDynamic("_secrets", { ATLASCLOUD_API_KEY: "tk" });
-    node.prompt = "a cat";
-    node.size = "1024x1024";
-    node.steps = 1;
-
-    const storage = { store: vi.fn().mockResolvedValue("memory://x.png") };
-    const out = await node.process({ storage });
-
-    // The CDN 503 was retried rather than throwing away the paid-for result.
-    expect(dlAttempts).toBe(2);
-    expect(storage.store).toHaveBeenCalledTimes(1);
-    expect(out).toEqual({ output: { type: "image", uri: "memory://x.png" } });
+  it("fails without a processing context instead of reading a key itself", async () => {
+    const node = nodeOf(makeSpec(), { prompt: "x" });
+    await expect(node.process()).rejects.toThrow("a processing context is required");
   });
 });
 

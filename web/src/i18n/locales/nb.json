@@ -19488,13 +19488,34 @@
     "takes_other": "{{count}} tar",
     "placeholder": {
       "image": "Et fyrtårn i skumringen, filmstille",
-      "video": "Slow dolly inn på et fyrtårn i skumringen"
+      "video": "Slow dolly inn på et fyrtårn i skumringen",
+      "image_edit": "Gjør det til natt og legg til regn",
+      "image_to_video": "Bølgene slår inn og lyset begynner å snu",
+      "reference_to_video": "Figuren fra referansene går langs brygga",
+      "retake": "Gjør himmelen om til en storm",
+      "extend": "Kameraet fortsetter å trekke seg tilbake",
+      "audio": "Skriv ordene som skal leses opp",
+      "music": "Rolig ambient-piano med stille regn"
     },
     "blocker": {
       "noPrompt": "Skriv en melding om å generere.",
       "noModel": {
         "image": "Velg en bildemodell du vil generere.",
-        "video": "Velg en videomodell du vil generere."
+        "video": "Velg en videomodell du vil generere.",
+        "image_edit": "Velg en bilderedigeringsmodell for å generere.",
+        "image_to_video": "Velg en bilde-til-video-modell for å generere.",
+        "reference_to_video": "Velg en referanse-til-video-modell for å generere.",
+        "retake": "Velg en videoredigeringsmodell for å generere.",
+        "extend": "Velg en modell for videoforlengelse for å generere.",
+        "audio": "Velg en talemodell for å generere.",
+        "music": "Velg en musikkmodell for å generere."
+      },
+      "needsInput": {
+        "image_edit": "Legg til bildet som skal redigeres.",
+        "image_to_video": "Legg til bildet som skal animeres.",
+        "reference_to_video": "Legg til minst ett referansebilde eller én referanseklipp.",
+        "retake": "Legg til klippet som skal endres.",
+        "extend": "Legg til klippet som skal forlenges."
       }
     },
     "sendFailed": "Startet {{sent}} av {{count}} opptak. Resten nådde ikke NodeTool. Sjekk tilkoblingen og prøv igjen.",
@@ -19503,7 +19524,7 @@
     "gridLabel": "Generasjoner",
     "empty": {
       "title": "Ingenting er opprettet ennå",
-      "description": "Skriv en melding ovenfor og trykk Generer. Bildene og videoene dine vises her, nyeste først.",
+      "description": "Skriv en prompt over og trykk Generer. Bildene, videoene og lydene dine vises her, nyeste først.",
       "action": "Skriv en melding"
     },
     "item": {
@@ -19520,8 +19541,65 @@
       "downloaded": "Lastet ned {{name}}",
       "downloadFailed": "Kunne ikke laste ned: {{reason}}",
       "workflowName": "Lag arbeidsflyt",
-      "workflowFailed": "Kunne ikke bygge en arbeidsflyt: {{reason}}"
-    }
+      "workflowFailed": "Kunne ikke bygge en arbeidsflyt: {{reason}}",
+      "more": "Flere handlinger",
+      "moreLabel": "Flere handlinger for {{title}}",
+      "useAsReference": "Bruk som referanse",
+      "startFrom": {
+        "image_edit": "Rediger dette bildet",
+        "image_to_video": "Animer dette bildet",
+        "retake": "Endre dette klippet",
+        "extend": "Forleng dette klippet"
+      },
+      "openInSketch": "Åpne i skisse",
+      "reusePrompt": "Bruk prompten på nytt",
+      "sketchTitle": "Laget bilde"
+    },
+    "kindLabel": "Hva du vil lage",
+    "modeLabel": "Hvordan det lages",
+    "kinds": {
+      "image": "Bilde",
+      "video": "Video",
+      "audio": "Lyd"
+    },
+    "modes": {
+      "image": "Fra tekst",
+      "image_edit": "Rediger",
+      "video": "Fra tekst",
+      "image_to_video": "Animer",
+      "reference_to_video": "Fra referanser",
+      "retake": "Endre",
+      "extend": "Forleng",
+      "audio": "Tale",
+      "music": "Musikk"
+    },
+    "references": {
+      "label": "Referanser",
+      "remove": "Fjern",
+      "removeLabel": "Fjern {{name}}",
+      "role": {
+        "source": "Kildebilde",
+        "startFrame": "Startbilde",
+        "sourceClip": "Kildeklipp",
+        "reference": "Referanse",
+        "unused": "Brukes ikke her"
+      },
+      "add": {
+        "image": "Legg til bilde",
+        "video": "Legg til klipp",
+        "image-or-video": "Legg til referanse"
+      },
+      "hint": {
+        "image_edit": "Legg til eller slipp bildet som skal redigeres. Flere bilder styrer uttrykket.",
+        "image_to_video": "Legg til eller slipp bildet klippet starter med.",
+        "reference_to_video": "Legg til eller slipp bilder og klipp av personene, stedene og stilen som skal beholdes.",
+        "retake": "Legg til eller slipp klippet som skal endres. Bilder du legger til styrer uttrykket.",
+        "extend": "Legg til eller slipp klippet som skal forlenges."
+      },
+      "uploadFailed": "Kunne ikke laste opp {{name}}: {{reason}}"
+    },
+    "switched": "Byttet til {{mode}} fordi du la til et bilde.",
+    "undoSwitch": "Tilbake til {{from}}"
   },
   "effectsGallery": {
     "title": "Effekter",
@@ -19754,6 +19832,59 @@
       "save": "Lagre",
       "cancel": "Avbryt",
       "saveFailed": "Kunne ikke lagre grensene."
+    },
+    "permissions": {
+      "edit": "Tillatelser",
+      "editDefault": "Rediger standardtillatelser",
+      "defaultTitle": "Standardtillatelser",
+      "userTitle": "Tillatelser for {{name}}",
+      "defaultAll": "Standardtillatelser: alt er tillatt.",
+      "defaultBlockedCount": "Standardtillatelser: {{count}} blokkert.",
+      "blockedCount": "Blokkerte tillatelser: {{count}}",
+      "defaultIntro": "Hva alle brukere kan gjøre, med mindre du setter en egen tillatelse for dem.",
+      "userIntro": "Hver tillatelse følger standarden til du tillater eller blokkerer den her.",
+      "allow": "Tillat",
+      "block": "Blokker",
+      "defaultAllowed": "Standard: tillatt",
+      "defaultBlocked": "Standard: blokkert",
+      "adminNote": "Administratorer har alltid alle tillatelser.",
+      "save": "Lagre",
+      "cancel": "Avbryt",
+      "saveFailed": "Kunne ikke lagre tillatelsene.",
+      "flags": {
+        "use_llm": {
+          "label": "Bruke språkmodeller",
+          "description": "Chat, agenter og tekstgenerering."
+        },
+        "generate_media": {
+          "label": "Generere medier",
+          "description": "Bilder, video, lyd og 3D."
+        },
+        "use_server_keys": {
+          "label": "Bruke serverens leverandørnøkler",
+          "description": "Når dette er blokkert, kan personen bare arbeide med nøkler de legger til i Innstillinger."
+        },
+        "manage_own_keys": {
+          "label": "Administrere egne leverandørnøkler",
+          "description": "Legge til, endre eller fjerne leverandørnøkler og egne leverandører."
+        },
+        "share_links": {
+          "label": "Lage delingslenker",
+          "description": "Lenker som lar påloggede personer se eller redigere en arbeidsflyt eller et dokument."
+        },
+        "share_public": {
+          "label": "Dele offentlig",
+          "description": "Gjøre en arbeidsflyt offentlig eller lage en offentlig lenke alle kan åpne."
+        },
+        "publish_apps": {
+          "label": "Publisere apper",
+          "description": "Publisere, frigi og distribuere miniapper."
+        },
+        "install_packs": {
+          "label": "Endre nodepakker",
+          "description": "Endre pakketillit, slå innebygde pakker av eller på og laste inn pakker på nytt. Dette gjelder alle brukere."
+        }
+      }
     }
   }
 }

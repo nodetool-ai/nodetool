@@ -61,3 +61,19 @@ export function redactGenerationParams(
     ? (redacted as RedactedParams)
     : {};
 }
+
+/**
+ * Redact a provider's output for the `prediction` message. An endpoint call
+ * returns the vendor's whole reply, which can carry hex audio or base64
+ * images. A plain object is redacted like a parameter bag. Anything else
+ * comes back unchanged. The durable terminal hook still receives the full
+ * output.
+ */
+export function redactGenerationOutput(output: unknown): unknown {
+  if (output === null || typeof output !== "object" || Array.isArray(output)) {
+    return output;
+  }
+  const proto = Object.getPrototypeOf(output);
+  if (proto !== Object.prototype && proto !== null) return output;
+  return redactValue(output, 0);
+}

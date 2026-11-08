@@ -27,6 +27,7 @@ import {
 
 type ExampleLoadOptions = NonNullable<Parameters<typeof loadExampleGraph>[2]>;
 
+import { permissionRefusal, permissionsFor } from "./permissions.js";
 const log = createLogger("nodetool.websocket.workflow-service");
 
 export const WORKFLOW_CONFLICT_MESSAGE =
@@ -41,6 +42,17 @@ export class WorkflowServiceError extends Error {
   ) {
     super(message);
     this.name = "WorkflowServiceError";
+  }
+}
+
+/** Making a workflow public needs the `share_public` permission. */
+async function requirePublicSharing(userId: string): Promise<void> {
+  if (!(await permissionsFor(userId)).share_public) {
+    throw new WorkflowServiceError(
+      ApiErrorCode.FORBIDDEN,
+      permissionRefusal("share_public"),
+      403
+    );
   }
 }
 
@@ -122,13 +134,14 @@ function requireGraph(input: WorkflowWriteInput): WorkflowGraphInput {
   return graph;
 }
 
-function createRow(
+async function createRow(
   userId: string,
   input: WorkflowWriteInput,
   graph: WorkflowGraphInput,
   appDoc: Record<string, unknown> | null,
   id?: string
 ): Promise<unknown> {
+  if (input.access === "public") await requirePublicSharing(userId);
   const row: Record<string, unknown> = {
     user_id: userId,
     name: input.name,
@@ -242,6 +255,9 @@ export async function updateWorkflow(
     };
     // Only the owner can change visibility; editors keep it as-is.
     if (isOwner) {
+      if (input.access === "public" && existing.access !== "public") {
+        await requirePublicSharing(userId);
+      }
       fields.access = input.access === "public" ? "public" : "private";
     }
     if (input.thumbnail !== undefined) fields.thumbnail = input.thumbnail;

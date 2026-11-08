@@ -45,6 +45,7 @@ import {
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { requirePermission } from "../../lib/permissions.js";
 
 const NOT_FOUND = "Document not found";
 
@@ -118,6 +119,7 @@ export const documentSharingRouter = router({
     .output(documentShareItem)
     .mutation(async ({ ctx, input }) => {
       const document = await requireOwner(input.type, input.id, ctx.userId);
+      await requirePermission(ctx.userId, "share_links");
       const share = await DocumentShare.ensure({
         documentType: input.type,
         documentId: document.id,

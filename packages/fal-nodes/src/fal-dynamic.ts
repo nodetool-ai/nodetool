@@ -23,11 +23,10 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeValue } from "@nodetool-ai/node-sdk";
 import {
-  falSubmitWithGeneration,
+  callFalEndpoint,
   falCapabilityForOutputType,
-  getFalApiKey,
-  falUpload,
-  imageToDataUrl
+  imageToDataUrl,
+  uploadToFal
 } from "./fal-base.js";
 import { reportFalCost } from "./fal-cost.js";
 
@@ -359,7 +358,7 @@ type FalResponseValue =
   | { [key: string]: FalResponseValue };
 
 async function coerceInputValue(
-  apiKey: string,
+  context: ProcessingContext | undefined,
   openapi: Record<string, unknown>,
   propSchema: Record<string, unknown>,
   value: NodeValue
@@ -390,7 +389,7 @@ async function coerceInputValue(
                 ? "application/pdf"
                 : "application/octet-stream";
         const bytes = Uint8Array.from(Buffer.from(data, "base64"));
-        return falUpload(apiKey, bytes, contentType);
+        return uploadToFal(context, bytes, contentType);
       }
       return null;
     }
@@ -400,7 +399,7 @@ async function coerceInputValue(
   if (resolved.type === "array" && Array.isArray(value)) {
     const itemSchema = (resolved.items as Record<string, unknown>) ?? {};
     return Promise.all(
-      value.map((item) => coerceInputValue(apiKey, openapi, itemSchema, item))
+      value.map((item) => coerceInputValue(context, openapi, itemSchema, item))
     );
   }
 
@@ -517,7 +516,6 @@ export class FalRawNode extends BaseNode {
   declare arguments: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
     const endpointId = String(this.endpoint_id ?? "").trim();
     const argsStr = String(this.arguments ?? "{}");
 
@@ -530,14 +528,12 @@ export class FalRawNode extends BaseNode {
       throw new Error(`arguments must be valid JSON: ${argsStr}`);
     }
 
-    const { data: result, requestId } = await falSubmitWithGeneration(
-      apiKey,
-      endpointId,
+    const { data: result, requestId } = await callFalEndpoint(context, {
+      endpoint: endpointId,
       args,
-      context,
-      FalRawNode.nodeType,
-      falCapabilityForOutputType("image")
-    );
+      nodeType: FalRawNode.nodeType,
+      capability: falCapabilityForOutputType("image")
+    });
     reportFalCost(context, FalRawNode.nodeType, result, args, requestId);
     return { result };
   }
@@ -587,7 +583,6 @@ export class FalDynamicNode extends BaseNode {
   declare model_info: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const apiKey = getFalApiKey(this._secrets);
     const modelInfo = String(this.model_info ?? "").trim();
 
     if (!modelInfo) {
@@ -629,7 +624,7 @@ export class FalDynamicNode extends BaseNode {
         }
         continue;
       }
-      args[name] = await coerceInputValue(apiKey, openapi, propSchema, value);
+      args[name] = await coerceInputValue(context, openapi, propSchema, value);
     }
 
     // Second pass: any extra dynamic properties not in schema are forwarded as-is
@@ -639,14 +634,12 @@ export class FalDynamicNode extends BaseNode {
       if (value !== undefined && value !== null) args[key] = value;
     }
 
-    const { data: result, requestId } = await falSubmitWithGeneration(
-      apiKey,
-      endpointId,
+    const { data: result, requestId } = await callFalEndpoint(context, {
+      endpoint: endpointId,
       args,
-      context,
-      FalDynamicNode.nodeType,
-      falCapabilityForOutputType("image")
-    );
+      nodeType: FalDynamicNode.nodeType,
+      capability: falCapabilityForOutputType("image")
+    });
     reportFalCost(context, FalDynamicNode.nodeType, result, args, requestId);
 
     // Map output values

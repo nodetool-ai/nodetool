@@ -1,10 +1,10 @@
 import { loadPackageAssetJson, createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { recordGenerationReceiptAsync } from "../generation-receipt.js";
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { BaseProvider, type EndpointCallRequest, type EndpointCallResult, type MediaUpload, type ProviderCapability } from "./base-provider.js";
 import { providerGeneration, type ProviderGeneration, type ProviderGenerationLookup } from "./provider-generations.js";
 import type { ExtendVideoParams, ImageModel, ImageToImageParams, ImageToVideoParams, Message, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToVideoParams, VideoModel, VideoToVideoParams } from "./types.js";
-import { higgsfieldAwaitResult, higgsfieldCancelByRequestId, higgsfieldCreateUploadUrl, higgsfieldDownloadResult, higgsfieldEstimate, higgsfieldGetStatusByRequestId, higgsfieldOutputUrls, higgsfieldSubmit, higgsfieldUploadMedia, type HiggsfieldCredentials, type HiggsfieldEstimate } from "./higgsfield-transport.js";
+import { higgsfieldAwaitResult, higgsfieldCancelByRequestId, higgsfieldCreateUploadUrl, higgsfieldDownloadResult, higgsfieldEstimate, higgsfieldGetStatusByRequestId, higgsfieldOutputUrls, higgsfieldSubmit, higgsfieldUploadMedia, type HiggsfieldCredentials, type HiggsfieldEstimate, type HiggsfieldStatus } from "./higgsfield-transport.js";
 
 const log = createLogger("nodetool.runtime.providers.higgsfield");
 interface ManifestEntry { modelId: string; outputType: "image" | "video"; title: string; task: string; supportedTasks?: string[]; timeoutSeconds: number; }
@@ -12,9 +12,15 @@ function manifest(): ManifestEntry[] {
   return loadPackageAssetJson<ManifestEntry[]>({ pkg: "@nodetool-ai/higgsfield-nodes", path: "higgsfield-manifest.json" }, import.meta.url);
 }
 
+function manifestEntry(modelId: string): ManifestEntry {
+  const entry = manifest().find((candidate) => candidate.modelId === modelId);
+  if (!entry) throw new Error(`Unknown Higgsfield model: ${modelId}`);
+  return entry;
+}
+
 function asCredentials(secrets: Record<string, unknown>): HiggsfieldCredentials {
-  const keyId = typeof secrets.HIGGSFIELD_API_KEY_ID === "string" ? secrets.HIGGSFIELD_API_KEY_ID : "";
-  const secret = typeof secrets.HIGGSFIELD_API_KEY_SECRET === "string" ? secrets.HIGGSFIELD_API_KEY_SECRET : "";
+  const keyId = typeof secrets.HIGGSFIELD_API_KEY_ID === "string" ? secrets.HIGGSFIELD_API_KEY_ID.trim() : "";
+  const secret = typeof secrets.HIGGSFIELD_API_KEY_SECRET === "string" ? secrets.HIGGSFIELD_API_KEY_SECRET.trim() : "";
   if (!keyId || !secret) throw new Error("HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET are required");
   return { keyId, secret };
 }
@@ -73,26 +79,61 @@ export class HiggsfieldProvider extends BaseProvider {
     return higgsfieldEstimate(this.credentials, modelId, input, signal);
   }
 
-  private async run(modelId: string, input: Record<string, unknown>, signal?: AbortSignal, timeoutSeconds?: number): Promise<Uint8Array> {
-    const entry = manifest().find((candidate) => candidate.modelId === modelId);
-    if (!entry) throw new Error(`Unknown Higgsfield model: ${modelId}`);
+  override supportsEndpointCalls(): boolean { return true; }
+
+  /**
+   * Submit a manifest model with `input` as the request body and wait for the
+   * terminal status. Higgsfield has one request family, so `route` must be
+   * unset. `output` is the completed status body, whose media URLs
+   * `higgsfieldOutputUrls` lists, and `requestId` is the Higgsfield request id.
+   */
+  override async callEndpoint(req: EndpointCallRequest): Promise<EndpointCallResult> {
+    if (req.route !== undefined) throw new Error(`Higgsfield endpoint calls take no route, got "${req.route}"`);
+    const { submission, result } = await this.submitAndAwait(req.model, req.input, req.signal, undefined, req.onProgress);
+    return { output: result, requestId: submission.request_id };
+  }
+
+  /** Upload through a presigned URL and return the public URL model inputs accept. */
+  override async uploadMedia(upload: MediaUpload): Promise<string> {
+    const target = await higgsfieldCreateUploadUrl(this.credentials, upload.mimeType, upload.signal);
+    return higgsfieldUploadMedia(target, upload.bytes, upload.mimeType, upload.signal);
+  }
+
+  /** Result URLs need no credentials. This keeps the retried, screened download a billed result needs. */
+  override async downloadMedia(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+    return higgsfieldDownloadResult(url, signal);
+  }
+
+  private async submitAndAwait(
+    modelId: string,
+    input: Record<string, unknown>,
+    signal?: AbortSignal,
+    timeoutSeconds?: number,
+    onProgress?: EndpointCallRequest["onProgress"]
+  ): Promise<{ submission: { request_id: string }; result: HiggsfieldStatus }> {
+    const entry = manifestEntry(modelId);
     const submission = await higgsfieldSubmit(this.credentials, modelId, input, signal);
     await recordGenerationReceiptAsync({ provider_request_id: submission.request_id });
-    const result = await higgsfieldAwaitResult(this.credentials, submission.status_url, { signal, timeoutMs: (timeoutSeconds ?? entry.timeoutSeconds) * 1000 });
+    const options: Parameters<typeof higgsfieldAwaitResult>[2] = { timeoutMs: (timeoutSeconds ?? entry.timeoutSeconds) * 1000 };
+    if (signal) options.signal = signal;
+    if (onProgress) options.onStatus = (status) => onProgress({ message: status.status });
+    const result = await higgsfieldAwaitResult(this.credentials, submission.status_url, options);
+    log.debug("Higgsfield generation completed", { model: modelId, requestId: submission.request_id });
+    return { submission, result };
+  }
+
+  private async run(modelId: string, input: Record<string, unknown>, signal?: AbortSignal, timeoutSeconds?: number): Promise<Uint8Array> {
+    const { result } = await this.submitAndAwait(modelId, input, signal, timeoutSeconds);
     const url = higgsfieldOutputUrls(result)[0];
     if (!url) throw new Error(`Higgsfield ${modelId} completed without a result URL`);
-    log.debug("Higgsfield generation completed", { model: modelId, requestId: submission.request_id });
-    return higgsfieldDownloadResult(url, signal);
+    return this.downloadMedia(url, signal);
   }
 
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     return this.run(params.model.id, clean({ prompt: params.prompt, aspect_ratio: params.aspectRatio, resolution: params.resolution, quality: params.quality, seed: params.seed }), params.signal);
   }
   override async imageToImage(images: Uint8Array[], params: ImageToImageParams): Promise<Uint8Array> {
-    const urls = await Promise.all(images.map(async (bytes) => {
-      const upload = await higgsfieldCreateUploadUrl(this.credentials, "image/png", params.signal);
-      return higgsfieldUploadMedia(upload, bytes, "image/png", params.signal);
-    }));
+    const urls = await this.uploadImages(images, params.signal);
     return this.run(params.model.id, clean({ prompt: params.prompt, image_urls: urls, aspect_ratio: params.aspectRatio, resolution: params.resolution, quality: params.quality, seed: params.seed }), params.signal);
   }
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
@@ -100,8 +141,7 @@ export class HiggsfieldProvider extends BaseProvider {
     return this.run(params.model.id, clean({ prompt: params.prompt, duration: params.durationSeconds, aspect_ratio: params.aspectRatio, resolution: params.resolution, sound: isKling ? "on" : undefined, cfg_scale: isKling ? params.guidanceScale : undefined }), params.signal, params.timeoutSeconds ?? undefined);
   }
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
-    const upload = await higgsfieldCreateUploadUrl(this.credentials, "image/png", params.signal);
-    const imageUrl = await higgsfieldUploadMedia(upload, image, "image/png", params.signal);
+    const imageUrl = await this.upload(image, "image/png", params.signal);
     const isKling = params.model.id.startsWith("kling-video/");
     return this.run(params.model.id, clean({ prompt: params.prompt, image_url: imageUrl, duration: params.durationSeconds, aspect_ratio: params.aspectRatio, resolution: params.resolution, sound: isKling ? "on" : undefined, cfg_scale: isKling ? params.guidanceScale : undefined }), params.signal, params.timeoutSeconds ?? undefined);
   }
@@ -126,23 +166,19 @@ export class HiggsfieldProvider extends BaseProvider {
     const videoUrl = await this.uploadVideo(video, params.signal);
     return this.run(params.model.id, { prompt: params.prompt, video_url: videoUrl, duration: params.durationSeconds }, params.signal);
   }
+  private upload(bytes: Uint8Array, mimeType: string, signal?: AbortSignal): Promise<string> {
+    return signal ? this.uploadMedia({ bytes, mimeType, signal }) : this.uploadMedia({ bytes, mimeType });
+  }
   private async uploadImages(images: readonly Uint8Array[], signal?: AbortSignal): Promise<string[]> {
-    return Promise.all(images.map(async (bytes) => {
-      const upload = await higgsfieldCreateUploadUrl(this.credentials, "image/png", signal);
-      return higgsfieldUploadMedia(upload, bytes, "image/png", signal);
-    }));
+    return Promise.all(images.map((bytes) => this.upload(bytes, "image/png", signal)));
   }
   private async uploadVideo(video: Uint8Array, signal?: AbortSignal): Promise<string> {
-    const upload = await higgsfieldCreateUploadUrl(this.credentials, "video/mp4", signal);
-    return higgsfieldUploadMedia(upload, video, "video/mp4", signal);
+    return this.upload(video, "video/mp4", signal);
   }
   private async uploadVideos(videos: readonly Uint8Array[], signal?: AbortSignal): Promise<string[]> {
     return Promise.all(videos.map((video) => this.uploadVideo(video, signal)));
   }
   private async uploadAudios(audios: readonly Uint8Array[], signal?: AbortSignal): Promise<string[]> {
-    return Promise.all(audios.map(async (bytes) => {
-      const upload = await higgsfieldCreateUploadUrl(this.credentials, "audio/wav", signal);
-      return higgsfieldUploadMedia(upload, bytes, "audio/wav", signal);
-    }));
+    return Promise.all(audios.map((bytes) => this.upload(bytes, "audio/wav", signal)));
   }
 }

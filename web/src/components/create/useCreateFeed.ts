@@ -28,25 +28,32 @@ export const useCreateFeed = (): CreateFeed => {
     { content_type: "video", page_size: OLDER_RENDERS_PAGE },
     LIST_OPTIONS
   );
+  const audios = trpc.assets.list.useQuery(
+    { content_type: "audio", page_size: OLDER_RENDERS_PAGE },
+    LIST_OPTIONS
+  );
   const imageAssets = images.data?.assets;
   const videoAssets = videos.data?.assets;
+  const audioAssets = audios.data?.assets;
 
   const items = useMemo(
     () =>
       buildCreateFeed(Object.values(generations), [
         ...(imageAssets ?? []),
-        ...(videoAssets ?? [])
+        ...(videoAssets ?? []),
+        ...(audioAssets ?? [])
       ]),
-    [generations, imageAssets, videoAssets]
+    [generations, imageAssets, videoAssets, audioAssets]
   );
 
   return {
     items,
-    loadingOlder: images.isLoading || videos.isLoading,
-    olderError: (images.error ?? videos.error) as Error | null,
+    loadingOlder: images.isLoading || videos.isLoading || audios.isLoading,
+    olderError: (images.error ?? videos.error ?? audios.error) as Error | null,
     refetchOlder: () => {
       void images.refetch();
       void videos.refetch();
+      void audios.refetch();
     }
   };
 };

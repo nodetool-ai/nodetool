@@ -317,12 +317,23 @@ const USER_QUOTAS_DDL: readonly string[] = [
   )`
 ];
 
+const USER_PERMISSIONS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    flags TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    updated_by TEXT
+  )`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
   ...USER_ACCOUNTS_DDL,
   ...USER_QUOTAS_DDL,
-  "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT"
+  "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT",
+  ...USER_PERMISSIONS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4360,6 +4371,20 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_user_quotas");
       // Keep key_source: dropping it would lose which key paid.
+    }
+  },
+
+  // Permission flags for self-hosted servers.
+  {
+    version: "20261109_000000",
+    name: "create_user_permissions",
+    createsTables: ["nodetool_user_permissions"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of USER_PERMISSIONS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_user_permissions");
     }
   }
 ];

@@ -100,6 +100,14 @@ import {
 } from "@nodetool-ai/models";
 import { syncTriggerRegistrations } from "../src/lib/workflow-service.js";
 
+// Permission flags are covered in permissions.test.ts. Here every flag is held.
+vi.mock("../src/lib/permissions.js", () => ({
+  requirePermission: async () => undefined,
+  permissionsFor: async () => new Proxy({}, { get: () => true }),
+  permissionRefusal: (flag: string) => flag,
+  forgetPermissions: () => undefined
+}));
+
 const createCaller = createCallerFactory(appRouter);
 
 function makeCtx(overrides: Partial<Context> = {}): Context {

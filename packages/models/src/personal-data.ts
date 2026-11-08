@@ -57,6 +57,7 @@ import {
 import { accessTokens } from "./schema/access-tokens.js";
 import { userAccounts } from "./schema/user-accounts.js";
 import { userQuotas } from "./schema/user-quotas.js";
+import { userPermissions } from "./schema/user-permissions.js";
 import {
   applicationBudgets,
   applicationInvocations
@@ -438,6 +439,11 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("access_tokens", accessTokens, accessTokens.user_id),
   directStep("nodetool_user_accounts", userAccounts, userAccounts.user_id),
   directStep("nodetool_user_quotas", userQuotas, userQuotas.user_id),
+  directStep(
+    "nodetool_user_permissions",
+    userPermissions,
+    userPermissions.user_id
+  ),
   directStep(
     "external_identities",
     externalIdentities,
@@ -867,6 +873,10 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   nodetool_threads: directExport(threads, threads.user_id),
   nodetool_user_accounts: directExport(userAccounts, userAccounts.user_id),
   nodetool_user_quotas: directExport(userQuotas, userQuotas.user_id),
+  nodetool_user_permissions: directExport(
+    userPermissions,
+    userPermissions.user_id
+  ),
   nodetool_user_events: directExport(userEvents, userEvents.user_id),
   nodetool_user_subscriptions: directExport(
     userSubscriptions,

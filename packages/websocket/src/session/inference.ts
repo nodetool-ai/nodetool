@@ -864,16 +864,17 @@ export class DirectInferenceHandler {
       if (!req.sourceAssetId) {
         throw new Error(`source_asset_id is required for ${req.mode}`);
       }
+      // Without a source window the whole clip is extended: the Create view
+      // extends a library clip, the timeline a trimmed span of one.
       if (
         extension &&
-        (!context ||
-          (req.extensionMode !== "start" && req.extensionMode !== "end") ||
+        ((req.extensionMode !== "start" && req.extensionMode !== "end") ||
           !Number.isFinite(req.durationSeconds) ||
           (req.durationSeconds ?? 0) <= 0 ||
           (req.variations !== undefined && req.variations !== 1))
       ) {
         throw new Error(
-          "video_extend requires source_context, start/end extension_mode, a positive duration and one variation"
+          "video_extend requires start/end extension_mode, a positive duration and one variation"
         );
       }
       if (context && context.sourceAssetId !== req.sourceAssetId) {

@@ -19488,13 +19488,34 @@
     "takes_other": "{{count}} takes",
     "placeholder": {
       "image": "A lighthouse at dusk, film still",
-      "video": "Slow dolly in on a lighthouse at dusk"
+      "image_edit": "Make it night and add rain",
+      "video": "Slow dolly in on a lighthouse at dusk",
+      "image_to_video": "The waves crash and the light starts to turn",
+      "reference_to_video": "The character from the references walks along the pier",
+      "retake": "Change the sky to a storm",
+      "extend": "The camera keeps pulling back",
+      "audio": "Type the words to speak",
+      "music": "Slow ambient piano with soft rain"
     },
     "blocker": {
       "noPrompt": "Write a prompt to generate.",
       "noModel": {
         "image": "Pick an image model to generate.",
-        "video": "Pick a video model to generate."
+        "image_edit": "Pick an image editing model to generate.",
+        "video": "Pick a video model to generate.",
+        "image_to_video": "Pick an image-to-video model to generate.",
+        "reference_to_video": "Pick a reference-to-video model to generate.",
+        "retake": "Pick a video editing model to generate.",
+        "extend": "Pick a video extension model to generate.",
+        "audio": "Pick a speech model to generate.",
+        "music": "Pick a music model to generate."
+      },
+      "needsInput": {
+        "image_edit": "Add the picture to edit.",
+        "image_to_video": "Add the picture to animate.",
+        "reference_to_video": "Add at least one reference picture or clip.",
+        "retake": "Add the clip to change.",
+        "extend": "Add the clip to extend."
       }
     },
     "sendFailed": "Started {{sent}} of {{count}} takes. The rest did not reach NodeTool. Check your connection and try again.",
@@ -19503,7 +19524,7 @@
     "gridLabel": "Generations",
     "empty": {
       "title": "Nothing created yet",
-      "description": "Write a prompt above and press Generate. Your images and videos appear here, newest first.",
+      "description": "Write a prompt above and press Generate. Your images, videos and audio appear here, newest first.",
       "action": "Write a prompt"
     },
     "item": {
@@ -19520,8 +19541,65 @@
       "downloaded": "Downloaded {{name}}",
       "downloadFailed": "Could not download: {{reason}}",
       "workflowName": "Create workflow",
-      "workflowFailed": "Could not build a workflow: {{reason}}"
-    }
+      "workflowFailed": "Could not build a workflow: {{reason}}",
+      "more": "More actions",
+      "moreLabel": "More actions for {{title}}",
+      "useAsReference": "Use as reference",
+      "startFrom": {
+        "image_edit": "Edit this picture",
+        "image_to_video": "Animate this picture",
+        "retake": "Change this clip",
+        "extend": "Extend this clip"
+      },
+      "openInSketch": "Open in sketch",
+      "reusePrompt": "Reuse prompt",
+      "sketchTitle": "Created picture"
+    },
+    "kindLabel": "What to create",
+    "modeLabel": "How to create it",
+    "kinds": {
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio"
+    },
+    "modes": {
+      "image": "From text",
+      "image_edit": "Edit",
+      "video": "From text",
+      "image_to_video": "Animate",
+      "reference_to_video": "From references",
+      "retake": "Change",
+      "extend": "Extend",
+      "audio": "Speech",
+      "music": "Music"
+    },
+    "references": {
+      "label": "References",
+      "remove": "Remove",
+      "removeLabel": "Remove {{name}}",
+      "role": {
+        "source": "Source image",
+        "startFrame": "Start frame",
+        "sourceClip": "Source clip",
+        "reference": "Reference",
+        "unused": "Not used here"
+      },
+      "add": {
+        "image": "Add picture",
+        "video": "Add clip",
+        "image-or-video": "Add reference"
+      },
+      "hint": {
+        "image_edit": "Add or drop the picture to edit. Extra pictures guide the look.",
+        "image_to_video": "Add or drop the picture that starts the clip.",
+        "reference_to_video": "Add or drop pictures and clips of the people, places and style to keep.",
+        "retake": "Add or drop the clip to change. Pictures you add guide the look.",
+        "extend": "Add or drop the clip to extend."
+      },
+      "uploadFailed": "Could not upload {{name}}: {{reason}}"
+    },
+    "switched": "Switched to {{mode}} because you added a picture.",
+    "undoSwitch": "Back to {{from}}"
   },
   "effectsGallery": {
     "title": "Effects",
@@ -19754,6 +19832,59 @@
       "save": "Save",
       "cancel": "Cancel",
       "saveFailed": "Could not save the limits."
+    },
+    "permissions": {
+      "edit": "Permissions",
+      "editDefault": "Edit default permissions",
+      "defaultTitle": "Default permissions",
+      "userTitle": "Permissions for {{name}}",
+      "defaultAll": "Default permissions: everything is allowed.",
+      "defaultBlockedCount": "Default permissions: {{count}} blocked.",
+      "blockedCount": "Blocked permissions: {{count}}",
+      "defaultIntro": "What every user may do unless you set a permission for them.",
+      "userIntro": "Each permission follows the default until you allow or block it here.",
+      "allow": "Allow",
+      "block": "Block",
+      "defaultAllowed": "Default: allowed",
+      "defaultBlocked": "Default: blocked",
+      "adminNote": "Admins always have every permission.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saveFailed": "Could not save the permissions.",
+      "flags": {
+        "use_llm": {
+          "label": "Use language models",
+          "description": "Chat, agents and text generation."
+        },
+        "generate_media": {
+          "label": "Generate media",
+          "description": "Images, video, audio and 3D."
+        },
+        "use_server_keys": {
+          "label": "Use the server's provider keys",
+          "description": "When blocked, the person can only work with keys they add in Settings."
+        },
+        "manage_own_keys": {
+          "label": "Manage own provider keys",
+          "description": "Add, change or remove provider keys and custom providers."
+        },
+        "share_links": {
+          "label": "Create share links",
+          "description": "Links that let signed-in people view or edit a workflow or document."
+        },
+        "share_public": {
+          "label": "Share publicly",
+          "description": "Make a workflow public or create a public link anyone can open."
+        },
+        "publish_apps": {
+          "label": "Publish apps",
+          "description": "Publish, release and deploy mini apps."
+        },
+        "install_packs": {
+          "label": "Change node packs",
+          "description": "Change pack trust, turn built-in packs on or off, and reload packs. This affects every user."
+        }
+      }
     }
   }
 }

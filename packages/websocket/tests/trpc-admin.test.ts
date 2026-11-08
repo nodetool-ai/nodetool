@@ -20,6 +20,7 @@ import {
   resetUserDirectoryCache,
   trackUserSocket
 } from "../src/lib/user-directory.js";
+import { forgetPermissions, permissionsFor } from "../src/lib/permissions.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -42,6 +43,7 @@ describe("admin router", () => {
   beforeEach(async () => {
     initTestDb();
     resetUserDirectoryCache();
+    forgetPermissions();
     // No users.json admins: point the file manager at a path that does not exist.
     vi.stubEnv(
       "USERS_FILE",
@@ -228,6 +230,42 @@ describe("admin router", () => {
           media_usd_limit: null
         })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("permissions", () => {
+    it("is admin-only", async () => {
+      await expect(
+        callerFor(MEMBER).admin.permissions.setUser({
+          user_id: MEMBER,
+          overrides: { install_packs: true }
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("applies the default and then one user's flags, at once", async () => {
+      const admin = callerFor(ADMIN);
+      const initial = await admin.admin.permissions.getDefault();
+      expect(initial.overrides).toEqual({});
+      expect(Object.values(initial.flags).every(Boolean)).toBe(true);
+
+      // Read once so the member's flags are cached before the change.
+      expect((await permissionsFor(MEMBER)).install_packs).toBe(true);
+      await admin.admin.permissions.setDefault({
+        overrides: { install_packs: false, share_public: false }
+      });
+      expect((await permissionsFor(MEMBER)).install_packs).toBe(false);
+
+      const own = await admin.admin.permissions.setUser({
+        user_id: MEMBER,
+        overrides: { share_public: true }
+      });
+      expect(own.overrides).toEqual({ share_public: true });
+      expect(own.flags).toMatchObject({ share_public: true, install_packs: false });
+      expect((await permissionsFor(MEMBER)).share_public).toBe(true);
+
+      const member = await admin.admin.users.get({ user_id: MEMBER });
+      expect(member.permissions).toEqual(own);
     });
   });
 });

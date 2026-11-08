@@ -1356,7 +1356,9 @@ export class JobExecutionManager {
     return this.refuseRun(
       req,
       req.job_id,
-      ApiErrorCode.BUDGET_EXCEEDED,
+      decision.kind === "permission"
+        ? ApiErrorCode.FORBIDDEN
+        : ApiErrorCode.BUDGET_EXCEEDED,
       decision.reason
     );
   }

@@ -94,6 +94,7 @@ import type {
 } from "../turn-budget.js";
 import { isRunBudget } from "../turn-budget.js";
 import { countTokens } from "../token-counter.js";
+import { fetchExternalMedia } from "../external-media-fetch.js";
 import {
   isCallable,
   isObjectLike,
@@ -337,6 +338,48 @@ export interface ProviderUsageTotals {
   inputTokens: number;
   outputTokens: number;
   cachedTokens: number;
+}
+
+/** A progress report from a running endpoint call. */
+export interface EndpointProgress {
+  /** Human-readable status, such as a queue position or a vendor log line. */
+  message?: string;
+  /** 0 to 1 when the vendor reports it. */
+  progress?: number;
+}
+
+/** One raw call to a vendor endpoint, with arguments in the vendor's shape. */
+export interface EndpointCallRequest {
+  /** The vendor's endpoint or model id, such as "fal-ai/flux/dev",
+   * "owner/model:version" or a KIE model name. */
+  model: string;
+  /** Arguments exactly as the vendor expects them. Media inputs are URLs the
+   * caller obtained from uploadMedia or already had. */
+  input: Record<string, unknown>;
+  /** A vendor sub-route for providers with several endpoint families, such as
+   * a KIE custom endpoint path or the Suno route. Providers document the
+   * values they accept and reject others. */
+  route?: string;
+  signal?: AbortSignal;
+  onProgress?: (event: EndpointProgress) => void;
+}
+
+export interface EndpointCallResult {
+  /** The vendor's output JSON, unchanged. */
+  output: unknown;
+  /** The vendor's request, prediction or task id. */
+  requestId: string | null;
+  /** Vendor billing data the pack needs for cost reporting, such as KIE
+   * credits consumed. Opaque to the runtime. */
+  metadata?: Record<string, unknown>;
+}
+
+/** Bytes to store where a vendor can read them. */
+export interface MediaUpload {
+  bytes: Uint8Array;
+  mimeType: string;
+  filename?: string;
+  signal?: AbortSignal;
 }
 
 export abstract class BaseProvider {
@@ -2049,6 +2092,44 @@ export abstract class BaseProvider {
   /** Score each document against the query, most relevant first. */
   async rerank(_params: RerankParams): Promise<RerankResult[]> {
     throw new Error(`${this.provider} does not support rerank`);
+  }
+
+  /**
+   * True when callEndpoint is implemented. uploadMedia may still throw when
+   * the vendor has no standalone upload step (Topaz uploads inside a job,
+   * Hugging Face and ElevenLabs take inputs inline).
+   */
+  supportsEndpointCalls(): boolean {
+    return false;
+  }
+
+  /**
+   * Call one vendor endpoint with vendor-shaped arguments. Node packs reach
+   * this through `ProcessingContext.callProviderEndpoint`, which wraps it in
+   * the generation seam.
+   */
+  async callEndpoint(_req: EndpointCallRequest): Promise<EndpointCallResult> {
+    throw new Error(`${this.provider} does not support endpoint calls`);
+  }
+
+  /** Store bytes where the vendor can read them and return the URL. */
+  async uploadMedia(_upload: MediaUpload): Promise<string> {
+    throw new Error(`${this.provider} does not support media uploads`);
+  }
+
+  /**
+   * Fetch a result URL the vendor returned. The default uses
+   * fetchExternalMedia, which applies the media egress policy. A provider
+   * whose result URLs need credentials overrides it.
+   */
+  async downloadMedia(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+    const response = await fetchExternalMedia(url, signal ? { signal } : undefined);
+    if (!response.ok) {
+      throw new Error(
+        `${this.provider} media download failed: HTTP ${response.status}`
+      );
+    }
+    return new Uint8Array(await response.arrayBuffer());
   }
 
   /**

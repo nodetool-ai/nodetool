@@ -14,8 +14,9 @@ workflow nodes:
 ## Configuration
 
 Set the `REVE_API_KEY` secret (Settings → API Keys, or the `REVE_API_KEY`
-environment variable). Requests authenticate with `Authorization: Bearer
-<REVE_API_KEY>`.
+environment variable). The nodes call Reve through the runtime `ReveProvider`
+(`context.callProviderEndpoint`), which holds the key and records each call as
+a generation. Node code never reads the key.
 
 ## Shared parameters
 

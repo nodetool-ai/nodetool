@@ -20108,13 +20108,34 @@
     "takes_other": "{{count}} bierze",
     "placeholder": {
       "image": "Latarnia morska o zmroku, kadr z filmu",
-      "video": "Powolny wózek w latarni morskiej o zmierzchu"
+      "video": "Powolny wózek w latarni morskiej o zmierzchu",
+      "image_edit": "Zmień porę na noc i dodaj deszcz",
+      "image_to_video": "Fale się rozbijają, a światło zaczyna się obracać",
+      "reference_to_video": "Postać z odniesień idzie wzdłuż pomostu",
+      "retake": "Zmień niebo w burzę",
+      "extend": "Kamera dalej się oddala",
+      "audio": "Wpisz słowa do wypowiedzenia",
+      "music": "Spokojne ambientowe pianino z cichym deszczem"
     },
     "blocker": {
       "noPrompt": "Napisz zachętę do wygenerowania.",
       "noModel": {
         "image": "Wybierz model obrazu do wygenerowania.",
-        "video": "Wybierz model wideo do wygenerowania."
+        "video": "Wybierz model wideo do wygenerowania.",
+        "image_edit": "Wybierz model edycji obrazów, aby generować.",
+        "image_to_video": "Wybierz model obraz–wideo, aby generować.",
+        "reference_to_video": "Wybierz model odniesienia–wideo, aby generować.",
+        "retake": "Wybierz model edycji wideo, aby generować.",
+        "extend": "Wybierz model wydłużania wideo, aby generować.",
+        "audio": "Wybierz model mowy, aby generować.",
+        "music": "Wybierz model muzyki, aby generować."
+      },
+      "needsInput": {
+        "image_edit": "Dodaj obraz do edycji.",
+        "image_to_video": "Dodaj obraz do animacji.",
+        "reference_to_video": "Dodaj co najmniej jeden obraz lub klip odniesienia.",
+        "retake": "Dodaj klip do zmiany.",
+        "extend": "Dodaj klip do wydłużenia."
       }
     },
     "sendFailed": "Rozpoczęto {{sent}} z {{count}} ujęć. Reszta nie dotarła do NodeTool. Sprawdź połączenie i spróbuj ponownie.",
@@ -20123,7 +20144,7 @@
     "gridLabel": "Pokolenia",
     "empty": {
       "title": "Jeszcze nic nie powstało",
-      "description": "Napisz monit powyżej i naciśnij Generuj. Tutaj pojawiają się Twoje zdjęcia i filmy, najpierw najnowsze.",
+      "description": "Wpisz prompt powyżej i naciśnij Generuj. Twoje obrazy, filmy i nagrania pojawią się tutaj, od najnowszych.",
       "action": "Napisz podpowiedź"
     },
     "item": {
@@ -20140,10 +20161,67 @@
       "downloaded": "Pobrano {{name}}",
       "downloadFailed": "Nie można pobrać: {{reason}}",
       "workflowName": "Utwórz przepływ pracy",
-      "workflowFailed": "Nie można zbudować przepływu pracy: {{reason}}"
+      "workflowFailed": "Nie można zbudować przepływu pracy: {{reason}}",
+      "more": "Więcej działań",
+      "moreLabel": "Więcej działań dla {{title}}",
+      "useAsReference": "Użyj jako odniesienia",
+      "startFrom": {
+        "image_edit": "Edytuj ten obraz",
+        "image_to_video": "Animuj ten obraz",
+        "retake": "Zmień ten klip",
+        "extend": "Wydłuż ten klip"
+      },
+      "openInSketch": "Otwórz w szkicu",
+      "reusePrompt": "Użyj promptu ponownie",
+      "sketchTitle": "Utworzony obraz"
     },
     "takes_few": "{{count}} ujęcia",
-    "takes_many": "{{count}} ujęć"
+    "takes_many": "{{count}} ujęć",
+    "kindLabel": "Co utworzyć",
+    "modeLabel": "Jak to utworzyć",
+    "kinds": {
+      "image": "Obraz",
+      "video": "Wideo",
+      "audio": "Dźwięk"
+    },
+    "modes": {
+      "image": "Z tekstu",
+      "image_edit": "Edytuj",
+      "video": "Z tekstu",
+      "image_to_video": "Animuj",
+      "reference_to_video": "Z odniesień",
+      "retake": "Zmień",
+      "extend": "Wydłuż",
+      "audio": "Mowa",
+      "music": "Muzyka"
+    },
+    "references": {
+      "label": "Odniesienia",
+      "remove": "Usuń",
+      "removeLabel": "Usuń {{name}}",
+      "role": {
+        "source": "Obraz źródłowy",
+        "startFrame": "Klatka początkowa",
+        "sourceClip": "Klip źródłowy",
+        "reference": "Odniesienie",
+        "unused": "Nieużywane tutaj"
+      },
+      "add": {
+        "image": "Dodaj obraz",
+        "video": "Dodaj klip",
+        "image-or-video": "Dodaj odniesienie"
+      },
+      "hint": {
+        "image_edit": "Dodaj lub upuść obraz do edycji. Dodatkowe obrazy wyznaczają styl.",
+        "image_to_video": "Dodaj lub upuść obraz, od którego zaczyna się klip.",
+        "reference_to_video": "Dodaj lub upuść obrazy i klipy osób, miejsc i stylu, które mają zostać zachowane.",
+        "retake": "Dodaj lub upuść klip do zmiany. Dodane obrazy wyznaczają styl.",
+        "extend": "Dodaj lub upuść klip do wydłużenia."
+      },
+      "uploadFailed": "Nie udało się przesłać {{name}}: {{reason}}"
+    },
+    "switched": "Przełączono na {{mode}}, bo dodano obraz.",
+    "undoSwitch": "Wróć do {{from}}"
   },
   "effectsGallery": {
     "title": "Efekty",
@@ -20376,6 +20454,59 @@
       "save": "Zapisz",
       "cancel": "Anuluj",
       "saveFailed": "Nie udało się zapisać limitów."
+    },
+    "permissions": {
+      "edit": "Uprawnienia",
+      "editDefault": "Edytuj uprawnienia domyślne",
+      "defaultTitle": "Uprawnienia domyślne",
+      "userTitle": "Uprawnienia dla {{name}}",
+      "defaultAll": "Uprawnienia domyślne: wszystko dozwolone.",
+      "defaultBlockedCount": "Uprawnienia domyślne: zablokowane {{count}}.",
+      "blockedCount": "Zablokowane uprawnienia: {{count}}",
+      "defaultIntro": "Co może robić każdy użytkownik, o ile nie ustawisz mu osobnego uprawnienia.",
+      "userIntro": "Każde uprawnienie działa według ustawień domyślnych, dopóki go tu nie zezwolisz ani nie zablokujesz.",
+      "allow": "Zezwól",
+      "block": "Zablokuj",
+      "defaultAllowed": "Domyślnie: dozwolone",
+      "defaultBlocked": "Domyślnie: zablokowane",
+      "adminNote": "Administratorzy zawsze mają wszystkie uprawnienia.",
+      "save": "Zapisz",
+      "cancel": "Anuluj",
+      "saveFailed": "Nie udało się zapisać uprawnień.",
+      "flags": {
+        "use_llm": {
+          "label": "Korzystanie z modeli językowych",
+          "description": "Czat, agenci i generowanie tekstu."
+        },
+        "generate_media": {
+          "label": "Generowanie mediów",
+          "description": "Obrazy, wideo, dźwięk i 3D."
+        },
+        "use_server_keys": {
+          "label": "Korzystanie z kluczy dostawców serwera",
+          "description": "Po zablokowaniu osoba może pracować tylko na kluczach dodanych przez siebie w Ustawieniach."
+        },
+        "manage_own_keys": {
+          "label": "Zarządzanie własnymi kluczami dostawców",
+          "description": "Dodawanie, zmiana i usuwanie kluczy dostawców oraz własnych dostawców."
+        },
+        "share_links": {
+          "label": "Tworzenie linków udostępniania",
+          "description": "Linki, przez które zalogowane osoby mogą wyświetlać lub edytować przepływ albo dokument."
+        },
+        "share_public": {
+          "label": "Udostępnianie publiczne",
+          "description": "Upublicznianie przepływu lub tworzenie publicznego linku, który każdy może otworzyć."
+        },
+        "publish_apps": {
+          "label": "Publikowanie aplikacji",
+          "description": "Publikowanie, wydawanie i wdrażanie miniaplikacji."
+        },
+        "install_packs": {
+          "label": "Zmiana pakietów węzłów",
+          "description": "Zmiana zaufania do pakietów, włączanie i wyłączanie pakietów wbudowanych oraz ponowne ładowanie pakietów. Dotyczy wszystkich użytkowników."
+        }
+      }
     }
   }
 }

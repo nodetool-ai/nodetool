@@ -14,7 +14,6 @@ import type {
   GenerationMediaKind,
   GenerationRequestSettings
 } from "../../stores/GenerationActivityStore";
-import { isCreateMode } from "../../stores/CreateViewStore";
 
 export interface CreateFeedItem {
   /** Stable across renders: `<generation id>:<asset id>`, or the asset id. */
@@ -37,7 +36,7 @@ export interface CreateFeedItem {
   request: GenerationRequestSettings | null;
 }
 
-const GRID_KINDS: ReadonlySet<GenerationMediaKind> = new Set(["image", "video"]);
+const GRID_KINDS: ReadonlySet<GenerationMediaKind> = new Set(["image", "video", "audio"]);
 
 /** Whether the grid shows this asset's content type. */
 const assetKind = (contentType: string | null | undefined): GenerationMediaKind | null => {
@@ -47,12 +46,17 @@ const assetKind = (contentType: string | null | undefined): GenerationMediaKind 
   if (contentType?.startsWith("video/")) {
     return "video";
   }
+  if (contentType?.startsWith("audio/")) {
+    return "audio";
+  }
   return null;
 };
 
-const CAPABILITY_MODE: Record<string, "image" | "video"> = {
+const CAPABILITY_MODE: Record<string, "image" | "video" | "audio" | "music"> = {
   text_to_image: "image",
-  text_to_video: "video"
+  text_to_video: "video",
+  text_to_speech: "audio",
+  text_to_music: "music"
 };
 
 /** The `generate_media` settings an asset's metadata describes, or null. */
@@ -68,7 +72,7 @@ export const requestFromAsset = (asset: Asset): GenerationRequestSettings | null
     provider: generation.provider,
     model: generation.model
   };
-  for (const key of ["width", "height", "aspect_ratio", "resolution"] as const) {
+  for (const key of ["width", "height", "aspect_ratio", "resolution", "voice", "speed"] as const) {
     if (params[key] !== undefined) {
       request[key] = params[key];
     }
@@ -151,10 +155,21 @@ export const buildCreateFeed = (
   return [...tracked, ...older].sort((a, b) => b.createdAt - a.createdAt);
 };
 
-/** Whether a retake can resend this item as a Create mode. */
+/** The `generate_media` modes a retake can send again as they were. */
+const RETAKE_MODES: ReadonlySet<string> = new Set([
+  "image",
+  "image_edit",
+  "video",
+  "video_edit",
+  "video_extend",
+  "audio",
+  "music"
+]);
+
+/** Whether a retake can resend this item's request with a new seed. */
 export const canRetake = (item: CreateFeedItem): boolean =>
   item.request !== null &&
   item.prompt !== null &&
-  isCreateMode(String(item.request.mode)) &&
+  RETAKE_MODES.has(String(item.request.mode)) &&
   typeof item.request.provider === "string" &&
   typeof item.request.model === "string";

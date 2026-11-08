@@ -104,6 +104,7 @@ import {
   loadPublicShareWorkflow,
   parseSharedGraph
 } from "../../lib/public-workflow-share.js";
+import { requirePermission } from "../../lib/permissions.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -587,8 +588,12 @@ export const workflowsRouter = router({
       if (
         role === "owner" &&
         (input.access === "public" || input.access === "private")
-      )
+      ) {
+        if (input.access === "public" && workflow.access !== "public") {
+          await requirePermission(ctx.userId, "share_public");
+        }
         fields.access = input.access;
+      }
       const savedWorkflow = await Workflow.updateFieldsIfUnchanged(
         input.id,
         input.expected_updated_at ?? workflow.updated_at,
@@ -890,6 +895,10 @@ export const workflowsRouter = router({
       .output(shareItem)
       .mutation(async ({ ctx, input }) => {
         await requireWorkflowRole(input.id, ctx.userId, "owner");
+        await requirePermission(
+          ctx.userId,
+          input.role === "public" ? "share_public" : "share_links"
+        );
         const share = await WorkflowShare.ensure({
           workflowId: input.id,
           role: input.role,

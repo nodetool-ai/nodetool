@@ -32,10 +32,10 @@ FAL nodes in NodeTool are **generated**, not hand-written. A codegen pipeline fe
 | Codegen entry point | `packages/fal-codegen/src/generate.ts` |
 | **Generated manifest (do not edit)** | `packages/fal-nodes/src/fal-manifest.json` |
 | Runtime node class factory | `packages/fal-nodes/src/fal-factory.ts` |
-| FAL API call utilities | `packages/fal-nodes/src/fal-base.ts` |
+| Node utilities: endpoint call and upload through the provider, asset conversion | `packages/fal-nodes/src/fal-base.ts` |
 | Package entry point | `packages/fal-nodes/src/index.ts` |
 | Pricing bundle (generated) | `packages/fal-nodes/src/generated/fal-node-type-pricing.json` |
-| High-level provider (text→image, TTS, etc.) | `packages/runtime/src/providers/fal-provider.ts` |
+| Provider: queue, upload and API key for capability calls and node endpoint calls | `packages/runtime/src/providers/fal-provider.ts` |
 | Manifest model loading | `packages/runtime/src/providers/manifest-models.ts` |
 
 ---
@@ -227,7 +227,8 @@ Parser and codegen bugs go in `packages/fal-codegen/`. Runtime bugs go in `packa
 | Enum name conflicts across nodes | `enumOverrides` in the config entry |
 | Asset input defaults to `""` instead of `AssetRef` | `defaultForPropType()` in `packages/node-sdk/src/manifest-node-values.ts` |
 | Audio/video output missing preview | set `metadataOutputTypes` in the factory, not `outputTypes` |
-| API call behavior (retry, upload, mapping) | `packages/fal-nodes/src/fal-base.ts` |
+| Queue, upload or progress behavior | `packages/runtime/src/providers/fal-provider.ts` |
+| Input conversion or output mapping | `packages/fal-nodes/src/fal-base.ts`, `fal-factory.ts` |
 
 ---
 
