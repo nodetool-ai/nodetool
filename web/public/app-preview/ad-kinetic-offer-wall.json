@@ -161,37 +161,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: The offer",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "offer"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -212,25 +181,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -259,7 +210,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -380,6 +331,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The offer",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "offer"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -857,6 +839,24 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
                 }
               },
               {
@@ -2193,6 +2193,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Kinetic offer wall\".\nObjective: Make one legitimate offer readable while showing the product range.\nVisual rule: The offer is the hero; repetition creates texture but never competes with the readable offer.\nBeats, in order:\n- 0–1.5 s: Oversized offer occupies the upper-middle canvas; one pack is already visible. Shows Brand color, Hero product, Offer.\n- 1.5–4 s: Three products share a consistent center and baseline. Shows Brand color, Hero product, Product 2, Product 3, Range name.\n- 4–6.5 s: Hero product grows while repeated copy recedes. Shows Brand color, Hero product, Benefit.\n- 6.5–8.5 s: Offer, eligible product range and end date become a stable card. Shows Brand color, Hero product, Product 2, Product 3, Offer terms.\n- 8.5–10 s: Stable brand/product/CTA lockup. Shows Brand color, Hero product, Logo, Call to action.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (og:image, the header logo, large <img> files), then with an image search. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's main color as #RRGGBB, as the site shows it\n- fields: offerShort (Offer: hook, at most 7 words); collectionLabel (Range name: range, at most 7 words); benefitShort (Benefit: benefit, at most 7 words); offerTerms (Offer terms: proof of offer, at most 16 words); cta (Call to action: cta, at most 4 words)\n- images: product1 (Hero product: A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout. Shown in: Oversized offer occupies the upper-middle canvas; one pack is already visible. | Three products share a consistent center and baseline. | Hero product grows while repeated copy recedes. | Offer, eligible product range and end date become a stable card. | Stable brand/product/CTA lockup.); product2 (Product 2: A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout. Shown in: Three products share a consistent center and baseline. | Offer, eligible product range and end date become a stable card.); product3 (Product 3: A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout. Shown in: Three products share a consistent center and baseline. | Offer, eligible product range and end date become a stable card.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Stable brand/product/CTA lockup.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",

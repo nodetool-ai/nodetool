@@ -157,37 +157,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: Anchor",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "anchor"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -208,25 +177,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -255,7 +206,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -376,6 +327,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Anchor",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "anchor"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -955,6 +937,24 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
                 }
               },
               {
@@ -3359,6 +3359,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Fixed glyph, changing world\".\nObjective: Make a memorable product promise through a consistent visual anchor.\nVisual rule: The anchor never changes position or silhouette while the world around it changes.\nBeats, in order:\n- 0–1.5 s: One large glyph/icon and a short premise. Shows Brand color, Anchor glyph, Premise.\n- 1.5–4.5 s: Two worlds appear around the same anchor. Shows Brand color, World 1, Anchor glyph, Label for worlds 1 and 2.\n- 4.5–7.5 s: Two more worlds expand the range. Shows Brand color, World 2, Anchor glyph, Label for worlds 1 and 2.\n- 7.5–9.5 s: Worlds clear to reveal the concrete promise. Shows Brand color, World 3, Anchor glyph, Label for worlds 3 and 4.\n- 9.5–12 s: Anchor becomes part of the brand/CTA lockup. Shows Brand color, World 4, Anchor glyph, Label for worlds 3 and 4.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (og:image, the header logo, large <img> files), then with an image search. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's main color as #RRGGBB, as the site shows it\n- fields: premise (Premise: anchor, at most 7 words); label12 (Label for worlds 1 and 2: worlds 1, at most 7 words); label34 (Label for worlds 3 and 4: worlds 2, at most 7 words); promise (Promise: promise, at most 7 words); cta (Call to action: cta, at most 4 words)\n- images: glyph (Anchor glyph: A real photo or screenshot that matches the beats that show it. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup.); world1 (World 1: A real photo or screenshot that matches the beats that show it. Shown in: Two worlds appear around the same anchor.); world2 (World 2: A real photo or screenshot that matches the beats that show it. Shown in: Two worlds appear around the same anchor.); world3 (World 3: A real photo or screenshot that matches the beats that show it. Shown in: Two more worlds expand the range.); world4 (World 4: A real photo or screenshot that matches the beats that show it. Shown in: Two more worlds expand the range.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Anchor becomes part of the brand/CTA lockup.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",

@@ -26,6 +26,8 @@ import {
   SPACING,
   Text
 } from "../../ui_primitives";
+import { pickStepItems } from "@nodetool-ai/app-runtime";
+
 import { useChatApp } from "./ChatAppContext";
 import { useCardRuntime } from "./useCardRuntime";
 
@@ -51,18 +53,21 @@ const latestShowStepId = (messages: Message[]): string | null => {
 
 interface StepBodyProps {
   step: string;
+  /** Widget ids to show; all of the step's widgets when absent. */
+  only?: string[];
 }
 
 /** The step's widgets over the card runtime, which hands presses to the agent. */
-export const ChatAppStepBody: React.FC<StepBodyProps> = ({ step }) => {
+export const ChatAppStepBody: React.FC<StepBodyProps> = ({ step, only }) => {
   const chat = useChatApp();
   const config = useAppConfig();
   const runtime = useCardRuntime(step);
   const items = chat?.layout.steps.find((entry) => entry.value === step)?.items;
-  const data = useMemo<Data>(
-    () => ({ root: { props: {} }, content: (items ?? []) as Data["content"] }),
-    [items]
-  );
+  const onlyKey = only?.join("\n") ?? "";
+  const data = useMemo<Data>(() => {
+    const shown = items && onlyKey ? pickStepItems(items, onlyKey.split("\n")) : (items ?? []);
+    return { root: { props: {} }, content: shown as Data["content"] };
+  }, [items, onlyKey]);
   if (!items) return null;
   return (
     <AppRuntimeContext.Provider value={runtime}>
@@ -77,6 +82,14 @@ const stringArg = (args: unknown, key: string): string | undefined => {
   if (!args || typeof args !== "object") return undefined;
   const value = (args as Record<string, unknown>)[key];
   return typeof value === "string" && value.trim() ? value : undefined;
+};
+
+const stringListArg = (args: unknown, key: string): string[] | undefined => {
+  if (!args || typeof args !== "object") return undefined;
+  const value = (args as Record<string, unknown>)[key];
+  if (!Array.isArray(value)) return undefined;
+  const list = value.filter((entry): entry is string => typeof entry === "string" && entry !== "");
+  return list.length ? list : undefined;
 };
 
 const ChatAppStepCard: React.FC<InlineToolWidgetProps> = ({
@@ -96,6 +109,7 @@ const ChatAppStepCard: React.FC<InlineToolWidgetProps> = ({
 
   const step = stringArg(toolCall.args, "step") ?? "";
   const note = stringArg(toolCall.args, "note");
+  const only = stringListArg(toolCall.args, "only");
   const appRunId = stringArg(toolCall.args, "app_run_id");
   const index = chat?.layout.steps.findIndex((entry) => entry.value === step) ?? -1;
   const entry = index >= 0 ? chat?.layout.steps[index] : undefined;
@@ -139,7 +153,7 @@ const ChatAppStepCard: React.FC<InlineToolWidgetProps> = ({
         </FlexRow>
         {open ? (
           <Box sx={{ pt: SPACING.sm }}>
-            <ChatAppStepBody step={step} />
+            <ChatAppStepBody step={step} only={only} />
           </Box>
         ) : null}
       </Card>

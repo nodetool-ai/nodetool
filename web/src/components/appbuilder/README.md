@@ -214,6 +214,14 @@ conversation rather than a dead end.
   `chat/registerChatAppMessages.ts` renders as the card.
 - **The system prompt** is `buildChatAppSystemPrompt`: the steps with the
   values each holds, the operations, and the loop's rules.
+- **The chat's model does the LLM work.** The cards hide each `ModelSelect`
+  with `modelKind: "language_model"` and its `<id>-help` or `<id>-hint` text
+  (`chatModelVariableIds`). Before every run, the handler writes the chat's
+  model into those variables.
+- **An operation with `agentTask` is the agent's own job.** The prompt lists
+  its instructions and output variables. The agent does the work with its own
+  tools and writes the result with `ui_app_run_set_inputs`.
+  `ui_app_run_operation` refuses it. The page presentation runs the target.
 - The conversation is stored per app run (instance id, else application id)
   under `nodetool.chat-app-thread.v1.<id>`. The view keeps a Page view toggle.
 

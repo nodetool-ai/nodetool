@@ -161,37 +161,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: Hero shot",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "hero"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -212,25 +181,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -259,7 +210,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -380,6 +331,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Hero shot",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "hero"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -867,6 +849,24 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
                 }
               },
               {
@@ -2197,6 +2197,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Fast footage plus kinetic captions\".\nObjective: Repackage existing footage into a clear vertical ad.\nVisual rule: Each shot has one message; cuts and typography create speed without making the image unreadable.\nBeats, in order:\n- 0–1.5 s: Strongest result shot appears immediately with one hook. Shows Brand color, Hero shot, Hook.\n- 1.5–5 s: Two related shots show the first reason to care. Shows Brand color, Benefit shot 1, Benefit 1.\n- 5–8.5 s: Switch scene and caption together. Shows Brand color, Benefit shot 2, Benefit 2.\n- 8.5–12 s: Use the clearest proof/result footage. Shows Brand color, Benefit shot 3, Benefit 3.\n- 12–15 s: Cleanest hero shot becomes an end card. Shows Brand color, Hero shot, Logo, Call to action and offer.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (og:image, the header logo, large <img> files), then with an image search. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's main color as #RRGGBB, as the site shows it\n- fields: hook (Hook: hook, at most 7 words); benefit1 (Benefit 1: benefit 1, at most 7 words); benefit2 (Benefit 2: benefit 2, at most 7 words); benefit3 (Benefit 3: benefit 3, at most 7 words); ctaAndOffer (Call to action and offer: cta, at most 8 words)\n- images: heroShot (Hero shot: A real photo or screenshot that matches the beats that show it. Shown in: Strongest result shot appears immediately with one hook. | Cleanest hero shot becomes an end card.); benefitShot1 (Benefit shot 1: A real photo or screenshot that matches the beats that show it. Shown in: Two related shots show the first reason to care.); benefitShot2 (Benefit shot 2: A real photo or screenshot that matches the beats that show it. Shown in: Switch scene and caption together.); benefitShot3 (Benefit shot 3: A real photo or screenshot that matches the beats that show it. Shown in: Use the clearest proof/result footage.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Cleanest hero shot becomes an end card.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",

@@ -158,6 +158,32 @@ export const fillBrief = (manifest, concept) => {
 };
 
 /**
+ * The suggestion as a task for the chat app's agent, which does it with its
+ * own model and tools. The option shape is the one `APPLY_CODE` reads.
+ */
+export const suggestAgentTask = (brief) => [
+  `Read the website in \`sourceUrl\` and write three different ways to fill the ad ${JSON.stringify(brief.title)}.`,
+  `Objective: ${brief.objective}`,
+  `Visual rule: ${brief.direction}`,
+  "Beats, in order:",
+  ...brief.beats.map(beat => `- ${beat}`),
+  "",
+  "Use only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.",
+  "For images, choose real, large images of this brand and product: first from the page's own images (og:image, the header logo, large <img> files), then with an image search. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.",
+  "",
+  "Write `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:",
+  `- value: "1", "2" or "3"`,
+  "- title: a name for the direction in 2 to 4 words",
+  "- description: one sentence on what it emphasizes, then the first two copy lines in quotes",
+  "- image: the URL of its first image, for the option card",
+  "- brandColor: the brand's main color as #RRGGBB, as the site shows it",
+  `- fields: ${brief.fields.map(field => `${field.id} (${field.label}: ${field.purpose}, at most ${field.maxWords} words)`).join("; ")}`,
+  `- images: ${brief.images.map(image => `${image.id} (${image.label}: ${image.guidance})`).join("; ")}`,
+  "",
+  "Then show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps."
+].join("\n");
+
+/**
  * Adds the "Fill from a website" panel: the URL, the suggest button with its
  * live agent activity, the option cards, and a report of the images it could
  * not use. It shows once the user picks "Fill from a website" (`var:fillPath`).
@@ -208,7 +234,7 @@ export const addAiAssist = (bundle, manifest, concept) => {
     packages: [], secrets: [], timeoutSeconds: 120, tests: []}});
   const toVariables = (names, prefix = "") => Object.fromEntries(names.map(name => [prefix + name, {to: "variable", variableId: name}]));
   app.operations.push(
-    {id: "suggest", name: "Suggest options from a website", workflowId: "suggest", policy: "replace",
+    {id: "suggest", name: "Suggest options from a website", workflowId: "suggest", policy: "replace", agentTask: suggestAgentTask(brief),
       inputs: {"in-sourceUrl": {from: "variable", variableId: "sourceUrl"}, "in-model": {from: "variable", variableId: "finishModel"}},
       outputs: toVariables(suggestOutputs, "out-")},
     {id: "apply", name: "Fill the ad from the picked option", workflowId: "", policy: "replace", target: {kind: "script", scriptId: "apply_ad_option-v1", scriptVersion: 1},
@@ -218,7 +244,7 @@ export const addAiAssist = (bundle, manifest, concept) => {
 
   const panel = {type: "Container", props: {id: "ai-fill", variant: "plain", visibleWhen: {binding: "var:fillPath", op: "eq", value: "web"}, content: [
     {type: "Columns", props: {id: "source-row", layout: "main-aside", gap: 16,
-      left: [{type: "TextInput", props: {id: "sourceUrl", binding: "var:sourceUrl", label: "Website", placeholder: "https://your-product.com", hint: "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.", events: []}}],
+      left: [{type: "TextInput", props: {id: "sourceUrl", binding: "var:sourceUrl", label: "Website", placeholder: "https://your-product.com", hint: "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.", events: []}}],
       right: [
         {type: "Text", props: {id: "source-example-label", text: "No site at hand? Try this one.", tone: "hint"}},
         {type: "Button", props: {id: "source-example", label: exampleUrl.replace(/^https:\/\/(www\.)?/, "").replace(/\/$/, ""), variant: "outlined", fullWidth: false, events: [{trigger: "click", kind: "setVariable", key: "var:sourceUrl", value: exampleUrl}]}}

@@ -40,7 +40,11 @@ FrontendToolRegistry.register({
     note: z
       .string()
       .optional()
-      .describe("One short sentence shown above the card.")
+      .describe("One short sentence shown above the card."),
+    only: z
+      .array(z.string())
+      .optional()
+      .describe("Widget ids to show. The card shows only these widgets of the step.")
   }),
   async execute({ app_run_id, step }) {
     return { ok: true, ...getChatAppHandler(app_run_id).showStep(step) };

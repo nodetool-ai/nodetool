@@ -157,37 +157,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: The chaos",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "chaos"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -208,25 +177,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -255,7 +206,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -376,6 +327,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The chaos",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "chaos"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -876,6 +858,24 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
                 }
               },
               {
@@ -2266,6 +2266,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Desktop chaos to one clean result\".\nObjective: Visualize a workflow pain point and its resolution.\nVisual rule: The contrast is in visual density: a cluttered start resolves into one dominant result.\nBeats, in order:\n- 0–1.8 s: Several overlapping windows and a short pain statement. Shows Brand color, Window 1, Window 2, Problem.\n- 1.8–4.2 s: More windows accumulate around the center. Shows Brand color, Window 1, Window 2, Window 3, Pain detail.\n- 4.2–6.5 s: All window groups move toward one result anchor. Shows Brand color, Window 1, Window 2, Window 3, Turning point.\n- 6.5–9.5 s: One clean output dominates with a short benefit. Shows Brand color, Result card, Benefit.\n- 9.5–12 s: Product/result plus CTA. Shows Brand color, Result card, Logo, Call to action.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (og:image, the header logo, large <img> files), then with an image search. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's main color as #RRGGBB, as the site shows it\n- fields: problem (Problem: hook, at most 7 words); painDetail (Pain detail: pressure, at most 7 words); turningPoint (Turning point: turn, at most 7 words); benefit (Benefit: result, at most 7 words); cta (Call to action: cta, at most 4 words)\n- images: window1 (Window 1: A real photo or screenshot that matches the beats that show it. Shown in: Several overlapping windows and a short pain statement. | More windows accumulate around the center. | All window groups move toward one result anchor.); window2 (Window 2: A real photo or screenshot that matches the beats that show it. Shown in: Several overlapping windows and a short pain statement. | More windows accumulate around the center. | All window groups move toward one result anchor.); window3 (Window 3: A real photo or screenshot that matches the beats that show it. Shown in: More windows accumulate around the center. | All window groups move toward one result anchor.); resultCard (Result card: A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout. Shown in: One clean output dominates with a short benefit. | Product/result plus CTA.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Product/result plus CTA.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",

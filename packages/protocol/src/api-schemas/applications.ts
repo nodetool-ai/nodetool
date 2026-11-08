@@ -66,7 +66,9 @@ export const operationBinding = z.object({
   inputs: z.record(z.string(), inputMapping).default({}),
   outputs: z.record(z.string(), outputMapping).default({}),
   policy: z.enum(["parallel", "replace", "queue"]).default("replace"),
-  timeoutMs: z.number().optional()
+  timeoutMs: z.number().optional(),
+  /** In the chat presentation, the app agent does this operation itself. */
+  agentTask: z.string().optional()
 });
 
 export const resourceKind = z.enum([

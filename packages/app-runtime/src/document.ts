@@ -218,6 +218,13 @@ export interface OperationBinding {
   outputs: Record<string, OutputMapping>;
   policy: OperationPolicy;
   timeoutMs?: number;
+  /**
+   * In the chat presentation, the app agent does this operation itself
+   * instead of running its target: it follows these instructions and writes
+   * the operation's output variables with its own tools. The page
+   * presentation runs the target as usual.
+   */
+  agentTask?: string;
 }
 
 /** What a binding runs, normalized — the one place the union is derived. */
@@ -704,6 +711,7 @@ const parseOperation = (
     policy: policy === "parallel" || policy === "queue" ? policy : "replace",
     timeoutMs: isNumber(value.timeoutMs) ? value.timeoutMs : undefined
   };
+  if (isNonEmptyString(value.agentTask)) binding.agentTask = value.agentTask;
   if (script) {
     binding.target = script;
   }

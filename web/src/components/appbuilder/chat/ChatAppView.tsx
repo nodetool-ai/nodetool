@@ -17,6 +17,7 @@ import { Render, type Data } from "@puckeditor/core";
 import {
   buildChatAppSystemPrompt,
   chatAppSnapshot,
+  chatModelVariableIds,
   formatChatAppEvent,
   previewAppValue,
   resolveBinding,
@@ -32,6 +33,7 @@ import ChatView from "../../chat/containers/ChatView";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import type { ChatOutgoingMessage } from "../../../stores/MediaGenerationStore";
+import type { LanguageModel } from "../../../stores/ApiTypes";
 import { useChatViewThread } from "../../../hooks/chat/useChatViewThread";
 import useThreadModel from "../../../hooks/chat/useThreadModel";
 import type { BuildUiContextOptions } from "../../../lib/chat/uiContext";
@@ -47,6 +49,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  ScrollArea,
   SPACING,
   Text
 } from "../../ui_primitives";
@@ -56,6 +59,7 @@ import {
   type ChatAppRunResult
 } from "./chatAppBridge";
 import { ChatAppContext, type ChatAppContextValue } from "./ChatAppContext";
+import AppRestartButton from "../AppRestartButton";
 import { ChatAppStepBody } from "./ChatAppStepCard";
 import "./registerChatAppMessages";
 
@@ -104,8 +108,11 @@ const useChatAppHandler = (
   document: ApplicationDocument,
   layout: ChatAppLayout,
   appRunId: string,
-  onSettled: (settled: ChatAppSettled) => void
+  onSettled: (settled: ChatAppSettled) => void,
+  chatModel: LanguageModel | null
 ): void => {
+  const chatModelRef = useRef(chatModel);
+  chatModelRef.current = chatModel;
   const runtime = useAppRuntimeContext();
   const runtimeRef = useRef(runtime);
   runtimeRef.current = runtime;
@@ -159,6 +166,27 @@ const useChatAppHandler = (
           throw new Error(
             `Unknown operation "${operationId}". Operations: ${document.operations.map((op) => op.id).join(", ")}.`
           );
+        }
+        if (operation.agentTask) {
+          throw new Error(
+            `"${operation.name}" is your task, not a run. Do it yourself as the system prompt describes, then write the result with ui_app_run_set_inputs.`
+          );
+        }
+        // The chat's model does the app's language-model work.
+        const chatModel = chatModelRef.current;
+        if (chatModel?.provider && chatModel.id) {
+          for (const variableId of chatModelVariableIds(document)) {
+            store.getState().dispatchEvent({
+              type: "setVariable",
+              variableId,
+              value: {
+                type: "language_model",
+                provider: chatModel.provider,
+                id: chatModel.id,
+                name: chatModel.name ?? chatModel.id
+              }
+            });
+          }
         }
         const startState = store.getState();
         const startActive = startState.activeInvocation[operationId];
@@ -327,7 +355,7 @@ const ChatAppView: React.FC<ChatAppViewProps> = ({
   const queueSettled = useCallback((settled: ChatAppSettled) => {
     setSettledRuns((queue) => [...queue, settled]);
   }, []);
-  useChatAppHandler(document, layout, appRunId, queueSettled);
+  useChatAppHandler(document, layout, appRunId, queueSettled, model);
 
   const startThread = useCallback(async () => {
     const id = await createNewThread(title, null, { makeCurrent: false });
@@ -424,12 +452,14 @@ const ChatAppView: React.FC<ChatAppViewProps> = ({
   // Before the first turn, the first step is on screen at once, without a
   // model call. A press in it starts the conversation like any other.
   const starter = (
-    <FlexColumn gap={SPACING.md} fullWidth sx={{ px: SPACING.lg, py: SPACING.md }}>
-      <Text color="secondary">{t("i18n-next8.appBuilder.chatApp.starter")}</Text>
-      <Card variant="outlined" padding="normal" data-testid={`chat-app-card-${firstStep}`}>
-        <ChatAppStepBody step={firstStep} />
-      </Card>
-    </FlexColumn>
+    <ScrollArea thin sx={{ flex: 1, minHeight: 0, width: "100%" }}>
+      <FlexColumn gap={SPACING.md} fullWidth sx={{ px: SPACING.lg, py: SPACING.md }}>
+        <Text color="secondary">{t("i18n-next8.appBuilder.chatApp.starter")}</Text>
+        <Card variant="outlined" padding="normal" data-testid={`chat-app-card-${firstStep}`}>
+          <ChatAppStepBody step={firstStep} />
+        </Card>
+      </FlexColumn>
+    </ScrollArea>
   );
 
   return (
@@ -451,6 +481,7 @@ const ChatAppView: React.FC<ChatAppViewProps> = ({
               <EditorButton variant="text" onClick={() => void startThread()}>
                 {t("i18n-next8.appBuilder.chatApp.newChat")}
               </EditorButton>
+              <AppRestartButton onRestarted={() => void startThread()} />
               {onShowPage ? (
                 <EditorButton variant="text" onClick={onShowPage}>
                   {t("i18n-next8.appBuilder.chatApp.pageView")}

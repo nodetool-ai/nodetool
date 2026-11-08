@@ -95,6 +95,104 @@ const fieldsOf = (items: unknown[], stepBinding: string): ChatAppField[] => {
   return fields;
 };
 
+/**
+ * The variables a language-model picker binds. In chat the agent's own model
+ * fills them, so the cards do not show those pickers.
+ */
+export const chatModelVariableIds = (
+  document: Pick<ApplicationDocument, "ui">
+): string[] => {
+  const ids: string[] = [];
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      value.forEach(walk);
+      return;
+    }
+    if (!isPuckItem(value)) return;
+    const { binding, modelKind } = value.props;
+    if (
+      value.type === "ModelSelect" &&
+      modelKind === "language_model" &&
+      isString(binding) &&
+      binding.startsWith("var:") &&
+      !ids.includes(binding.slice(4))
+    ) {
+      ids.push(binding.slice(4));
+    }
+    for (const nested of Object.values(value.props)) {
+      if (Array.isArray(nested)) walk(nested);
+    }
+  };
+  walk(document.ui.content);
+  return ids;
+};
+
+/**
+ * Drop the language-model pickers, and the `<id>-help` or `<id>-hint` text
+ * that explains each one, from a step's widgets.
+ */
+const withoutModelPickers = (items: unknown[], modelIds: string[]): unknown[] => {
+  const hidden = new Set<string>();
+  for (const id of modelIds) {
+    hidden.add(id);
+    hidden.add(`${id}-help`);
+    hidden.add(`${id}-hint`);
+  }
+  const strip = (list: unknown[]): unknown[] =>
+    list
+      .filter((item) => {
+        if (!isPuckItem(item)) return true;
+        const { id, binding } = item.props;
+        if (item.type === "ModelSelect" && isString(binding) && modelIds.includes(binding.slice(4))) {
+          return false;
+        }
+        return !(isString(id) && hidden.has(id));
+      })
+      .map((item) => {
+        if (!isPuckItem(item)) return item;
+        const props: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(item.props)) {
+          props[key] = Array.isArray(value) ? strip(value) : value;
+        }
+        return { ...item, props };
+      });
+  return strip(items);
+};
+
+/**
+ * Keep only the widgets with one of `ids`, and the containers that hold them.
+ * A container keeps only its matching children. Returns all items when no id
+ * matches, so a wrong id never shows an empty card.
+ */
+export const pickStepItems = (items: unknown[], ids: string[]): unknown[] => {
+  const wanted = new Set(ids);
+  const pick = (list: unknown[]): unknown[] => {
+    const kept: unknown[] = [];
+    for (const item of list) {
+      if (!isPuckItem(item)) continue;
+      if (isString(item.props.id) && wanted.has(item.props.id)) {
+        kept.push(item);
+        continue;
+      }
+      let found = false;
+      const props: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(item.props)) {
+        if (Array.isArray(value) && value.some(isPuckItem)) {
+          const inner = pick(value);
+          if (inner.length) found = true;
+          props[key] = inner;
+        } else {
+          props[key] = value;
+        }
+      }
+      if (found) kept.push({ ...item, props });
+    }
+    return kept;
+  };
+  const picked = pick(items);
+  return picked.length ? picked : items;
+};
+
 const withoutGate = (item: PuckItem): PuckItem => {
   const props = { ...item.props };
   delete props.visibleWhen;
@@ -128,6 +226,7 @@ export const chatAppLayout = (
   }
   if (steps.length === 0) return null;
   const header: unknown[] = [];
+  const modelIds = chatModelVariableIds(document);
   for (const item of content) {
     if (item === stepper) continue;
     const gate = stepGate(item, stepBinding);
@@ -137,7 +236,10 @@ export const chatAppLayout = (
     }
     steps.find((step) => step.value === gate)?.items.push(withoutGate(item));
   }
-  for (const step of steps) step.fields = fieldsOf(step.items, stepBinding);
+  for (const step of steps) {
+    step.items = withoutModelPickers(step.items, modelIds);
+    step.fields = fieldsOf(step.items, stepBinding);
+  }
   return {
     stepperId: isString(stepper.props.id) ? stepper.props.id : "steps",
     stepBinding,
@@ -298,8 +400,20 @@ export const buildChatAppSystemPrompt = (
     })
     .join("\n");
   const operations = document.operations
-    .map((operation) => `- \`${operation.id}\` "${operation.name}"`)
+    .map((operation) =>
+      `- \`${operation.id}\` "${operation.name}"${operation.agentTask ? " (your task, see below)" : ""}`
+    )
     .join("\n");
+  const tasks = document.operations
+    .filter((operation) => operation.agentTask)
+    .map((operation) => {
+      const writes = Object.values(operation.outputs)
+        .flatMap((mapping) => (mapping.to === "variable" ? [mapping.variableId] : []))
+        .join(", ");
+      return `### \`${operation.id}\` "${operation.name}"\nWrites: ${writes || "nothing"}\n${operation.agentTask}`;
+    })
+    .join("\n\n");
+  const modelIds = chatModelVariableIds(document);
   return `# Running the app "${title}"
 You run this mini app for the user as a conversation. You own the loop: the
 user sees a steps bar, your messages, and the step cards you show. Cards show
@@ -316,11 +430,17 @@ ${operations || "- none"}
 ## Tools
 Call these directly, never from inside \`execute_code\`: each call shows in the chat.
 - \`ui_app_run_get_state\`: the current step, every value (with the empty required ones), and each operation's status and last error. Read it before deciding.
-- \`ui_app_run_show_step\`: show a step's card in the chat and make it the current step. Add a short \`note\` for the user when it helps.
+- \`ui_app_run_show_step\`: show a step's card in the chat and make it the current step. Add a short \`note\` for the user when it helps. Pass \`only\` with widget ids to show just those widgets of the step.
 - \`ui_app_run_set_inputs\`: write values the user gave you in chat, or a fix you proposed and they accepted.
 - \`ui_app_run_operation\`: run one operation and wait for it. It returns the outputs, the step the operation moved to, or the error with the run id. A long run returns \`status: "running"\` instead: say it is running and end the turn. An app event with \`settled\` arrives when it ends.
 - \`ui_app_run_cancel\`: stop a running operation.
 
+${modelIds.length ? `\nThe language-model values (${modelIds.join(", ")}) follow the model of this chat. The app fills them before each run, so never ask the user to pick one.\n` : ""}${tasks ? `
+## Your tasks
+These operations are yours. Do the work yourself with your own tools, such as reading web pages and searching images in a code action. Write the result with \`ui_app_run_set_inputs\`, then show the step that holds it. Never call \`ui_app_run_operation\` for them. When an app event asks to run one, that is the user asking you to do it now.
+
+${tasks}
+` : ""}
 ## App events
 A user turn that starts with \`[app event]\` is a press inside a card or on the steps bar, as JSON: \`step\` (the card), \`control\` (its label), \`requests\` (\`{"kind":"step","step":…}\` to go to a step, \`{"kind":"run","operationId":…}\` to run an operation, in the order the control lists them), \`changed\` (values edited in that card). An event with \`settled\` reports that an operation you started has ended: its \`status\`, \`error\` and the \`step\` it moved to. Treat it as that operation's result.
 

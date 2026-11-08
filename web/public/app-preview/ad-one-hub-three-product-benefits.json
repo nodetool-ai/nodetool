@@ -161,37 +161,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: The hub",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "hub"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -212,25 +181,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -259,7 +210,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -380,6 +331,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The hub",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "hub"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -867,6 +849,24 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
                 }
               },
               {
@@ -2269,6 +2269,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"One hub, three product benefits\".\nObjective: Explain a SaaS or service bundle without presenting a full unreadable dashboard.\nVisual rule: A single hub remains stable while one benefit card at a time receives attention.\nBeats, in order:\n- 0–2 s: Hub and plain-language problem are already visible. Shows Brand color, Hub icon, Problem.\n- 2–5 s: First card connects to the hub. Shows Brand color, Hub icon, Benefit card 1, Benefit 1.\n- 5–8 s: Second card replaces the first as focal point. Shows Brand color, Hub icon, Benefit card 2, Benefit 2.\n- 8–11.5 s: Third card enters; the completed hub becomes visible. Shows Brand color, Hub icon, Benefit card 3, Benefit 3.\n- 11.5–15 s: Three-card system, outcome and CTA hold together. Shows Brand color, Hub icon, Benefit card 1, Benefit card 2, Benefit card 3, Logo, Outcome and call to action.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (og:image, the header logo, large <img> files), then with an image search. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's main color as #RRGGBB, as the site shows it\n- fields: problem (Problem: hook, at most 7 words); benefit1 (Benefit 1: feature 1, at most 7 words); benefit2 (Benefit 2: feature 2, at most 7 words); benefit3 (Benefit 3: feature 3, at most 7 words); outcomeAndCta (Outcome and call to action: outcome and cta, at most 8 words)\n- images: hub (Hub icon: A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout. Shown in: Hub and plain-language problem are already visible. | First card connects to the hub. | Second card replaces the first as focal point. | Third card enters; the completed hub becomes visible. | Three-card system, outcome and CTA hold together.); featureCard1 (Benefit card 1: A real photo or screenshot that matches the beats that show it. Shown in: First card connects to the hub. | Three-card system, outcome and CTA hold together.); featureCard2 (Benefit card 2: A real photo or screenshot that matches the beats that show it. Shown in: Second card replaces the first as focal point. | Three-card system, outcome and CTA hold together.); featureCard3 (Benefit card 3: A real photo or screenshot that matches the beats that show it. Shown in: Third card enters; the completed hub becomes visible. | Three-card system, outcome and CTA hold together.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Three-card system, outcome and CTA hold together.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",

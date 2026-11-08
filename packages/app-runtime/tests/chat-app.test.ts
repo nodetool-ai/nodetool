@@ -10,6 +10,7 @@ import {
   isChatApp,
   parseApplicationDocument,
   parseChatAppEvent,
+  pickStepItems,
   settledInvocation,
   type ApplicationDocument
 } from "../src/index.js";
@@ -170,13 +171,81 @@ describe("the agent's view", () => {
 });
 
 describe("Calm breathing-shape loop", () => {
-  it("is a chat app with six steps", () => {
+  it("is a chat app whose agent builds the cut", () => {
     const path = fileURLToPath(new URL("../../base-nodes/nodetool/examples/apps/ad-calm-breathing-shape-loop.app.json", import.meta.url));
     const bundle = JSON.parse(readFileSync(path, "utf8")) as { app: unknown };
     const document = parseApplicationDocument(bundle.app);
     expect(document?.presentation).toBe("chat");
     const layout = chatAppLayout(document!);
-    expect(layout?.steps.map((step) => step.value)).toEqual(["start", "shape", "ending", "review", "build", "result"]);
+    expect(layout?.steps.map((step) => step.value)).toEqual(["start", "shape", "ending", "result"]);
     expect(layout?.steps.every((step) => step.items.length > 0)).toBe(true);
+  });
+});
+
+describe("chat model and agent tasks", () => {
+  const withModel = {
+    type: "Container",
+    props: {
+      id: "a",
+      visibleWhen: { binding: "var:step", op: "eq", value: "start" },
+      content: [
+        { type: "ModelSelect", props: { id: "llm", binding: "var:llm", modelKind: "language_model" } },
+        { type: "Text", props: { id: "llm-help", text: "Pick one." } },
+        { type: "ModelSelect", props: { id: "img", binding: "var:img", modelKind: "image_model" } },
+        { type: "TextInput", props: { id: "title", binding: "var:title", label: "Title" } }
+      ]
+    }
+  };
+
+  it("hides language-model pickers and their help, and keeps other models", () => {
+    const layout = chatAppLayout(doc([stepper, withModel]));
+    const content = (layout?.steps[0]?.items[0] as { props: { content: { props: { id: string } }[] } }).props.content;
+    expect(content.map((item) => item.props.id)).toEqual(["img", "title"]);
+  });
+
+  it("tells the agent the model follows the chat and lists its own tasks", () => {
+    const document = doc([stepper, withModel], {
+      operations: [
+        {
+          id: "suggest", name: "Suggest", workflowId: "wf", inputs: {}, policy: "replace",
+          outputs: { out: { to: "variable", variableId: "title" } },
+          agentTask: "Read the site and write a title."
+        }
+      ]
+    });
+    const layout = chatAppLayout(document);
+    if (!layout) throw new Error("no layout");
+    const prompt = buildChatAppSystemPrompt(document, layout, { appRunId: "run", title: "Demo" });
+    expect(prompt).toContain("language-model values (llm) follow the model of this chat");
+    expect(prompt).toContain("`suggest` \"Suggest\" (your task, see below)");
+    expect(prompt).toContain("Writes: title\nRead the site and write a title.");
+  });
+
+  it("keeps agentTask when it parses a document", () => {
+    const parsed = parseApplicationDocument({
+      ...doc([stepper]),
+      operations: [{ id: "s", name: "S", workflowId: "wf", inputs: {}, outputs: {}, policy: "replace", agentTask: "Do it." }]
+    });
+    expect(parsed?.operations[0]?.agentTask).toBe("Do it.");
+  });
+});
+
+describe("pickStepItems", () => {
+  const items = [
+    { type: "Heading", props: { id: "h" } },
+    { type: "Container", props: { id: "box", content: [
+      { type: "Text", props: { id: "t" } },
+      { type: "ChoiceCards", props: { id: "pick" } }
+    ] } }
+  ];
+
+  it("keeps the named widgets and the containers that hold them", () => {
+    const picked = pickStepItems(items, ["pick"]) as { props: { id: string; content?: { props: { id: string } }[] } }[];
+    expect(picked.map((item) => item.props.id)).toEqual(["box"]);
+    expect(picked[0]?.props.content?.map((item) => item.props.id)).toEqual(["pick"]);
+  });
+
+  it("shows the whole step when no id matches", () => {
+    expect(pickStepItems(items, ["nope"])).toBe(items);
   });
 });
