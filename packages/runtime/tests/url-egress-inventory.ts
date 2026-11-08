@@ -151,6 +151,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: [],
     note: "Fixed Google manifest endpoint; downloads require the official storage.googleapis.com bucket path, reject redirects, and verify the manifest SHA-512."
   },
+  {
+    file: "packages/config/src/package-media.ts",
+    owner: "Package media downloads",
+    inputSource: "fixed",
+    schemes: ["https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "fixed-host",
+    guardedBy: [],
+    note: "Downloads example media listed in a shipped manifest. The manifest base must be on https://media.nodetool.ai, the key is the file's SHA-256, redirects are rejected, and the bytes must match the manifest hash and size."
+  },
   // ---------------------------------------------------------------- screening
   {
     file: "packages/runtime-core/src/safe-url.ts",

@@ -2,36 +2,14 @@ name: Restore package media
 description: >-
   Put the example media that lives on media.nodetool.ai back into
   packages/base-nodes/nodetool/assets/nodetool-base (scripts/package-media.mjs).
-  Objects are cached by the manifest's hash, so a hit downloads nothing. The
-  calling job must check out the repository and set up Node first.
-
-inputs:
-  cache:
-    description: >-
-      `read-write` (default) restores and saves the object cache, `read-only`
-      only restores it, `off` downloads every object (setup-build's meanings).
-    required: false
-    default: "read-write"
+  It downloads from the CDN on every run and keeps no Actions cache, so no job
+  can plant objects for another. The pull checks each file's SHA-256 against
+  the manifest. The calling job must check out the repository and set up Node
+  first.
 
 runs:
   using: composite
   steps:
-    - name: Cache package media
-      if: inputs.cache == 'read-write'
-      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-      with:
-        path: ${{ runner.temp }}/package-media
-        key: package-media-${{ hashFiles('packages/base-nodes/nodetool/assets/nodetool-base.media.json') }}
-        restore-keys: package-media-
-
-    - name: Restore package media cache
-      if: inputs.cache == 'read-only'
-      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-      with:
-        path: ${{ runner.temp }}/package-media
-        key: package-media-${{ hashFiles('packages/base-nodes/nodetool/assets/nodetool-base.media.json') }}
-        restore-keys: package-media-
-
     - name: Pull package media
       shell: bash
       env:

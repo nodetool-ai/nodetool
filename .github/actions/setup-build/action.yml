@@ -151,8 +151,6 @@ runs:
     - name: Restore package media
       if: inputs.package-media == 'true'
       uses: ./.github/actions/package-media
-      with:
-        cache: ${{ inputs.cache }}
 
     - name: Build backend packages
       if: inputs.build-packages == 'true'

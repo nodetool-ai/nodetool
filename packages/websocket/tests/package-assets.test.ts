@@ -52,7 +52,7 @@ describe("listPackageAssets", () => {
       join(root, "nodetool-base.media.json"),
       JSON.stringify({
         version: 1,
-        base: "https://media.example.test/package-media/",
+        base: "https://media.nodetool.ai/package-media/",
         files: {
           "games/aether/sprite.png": { sha256: "a".repeat(64), size: 1234 },
           "logo.png": { sha256: "b".repeat(64), size: 99 }
