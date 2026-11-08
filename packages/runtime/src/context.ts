@@ -78,7 +78,7 @@ import {
   expandEntityRefs,
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
-import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import { getNodeBuiltinSync, readPackageMedia } from "@nodetool-ai/config";
 import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
 import type { Workspace } from "./workspace.js";
 
@@ -2695,6 +2695,21 @@ export class ProcessingContext {
               );
             }
           }
+        }
+        try {
+          const bytes = await readPackageMedia(
+            [root],
+            packageRef.packageName,
+            packageRef.path
+          );
+          if (bytes) {
+            attempts.push(`package media: ${trimmed}`);
+            return { bytes, attempts };
+          }
+        } catch (error) {
+          attempts.push(
+            `package media miss: ${trimmed} (${error instanceof Error ? error.message : String(error)})`
+          );
         }
       }
       const httpPath = packageAssetHttpPath(trimmed);

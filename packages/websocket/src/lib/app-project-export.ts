@@ -25,6 +25,7 @@ import {
   type HttpApiOptions
 } from "../http-api.js";
 import { exportApplicationBundle } from "./applications-service.js";
+import { readMissingPackageMedia } from "@nodetool-ai/config";
 
 export interface ApplicationProjectZip {
   /** `<project-name>.zip`. */
@@ -49,15 +50,23 @@ export async function exportApplicationProject(
   const registry =
     apiOptions.registry ??
     (await getWorkflowRuntimeEnvironment(apiOptions)).registry;
+  const assetUris = packageAssetUris(bundle);
+  const roots = apiOptions.packageAssetsRoots ?? [];
+  const localAssets = readPackageAssets(assetUris, roots);
+  const packageAssets = [
+    ...localAssets,
+    ...(await readMissingPackageMedia(
+      assetUris,
+      new Set(localAssets.map((file) => file.uri)),
+      roots
+    ))
+  ];
   const project = buildStandaloneProject(bundle, {
     secrets: requiredSecretNames(bundle, registry, getProviderSecretKey),
     providerSecrets: listRegisteredProviderIds()
       .map(getProviderSecretKey)
       .filter((key): key is string => Boolean(key)),
-    packageAssets: readPackageAssets(
-      packageAssetUris(bundle),
-      apiOptions.packageAssetsRoots ?? []
-    )
+    packageAssets
   });
   const entries: Record<string, Uint8Array> = {};
   for (const file of project.files) {

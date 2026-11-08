@@ -22,6 +22,12 @@ inputs:
       job restores. `off` skips both: use it for jobs that publish or deploy.
     required: false
     default: "read-write"
+  package-media:
+    description: >-
+      Whether to restore the example media that lives on media.nodetool.ai
+      (.github/actions/package-media). Tests and example checks read it.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -141,6 +147,12 @@ runs:
         key: ${{ runner.os }}-turbo-v2-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-turbo-v2-
+
+    - name: Restore package media
+      if: inputs.package-media == 'true'
+      uses: ./.github/actions/package-media
+      with:
+        cache: ${{ inputs.cache }}
 
     - name: Build backend packages
       if: inputs.build-packages == 'true'

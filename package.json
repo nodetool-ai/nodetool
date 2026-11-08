@@ -273,7 +273,10 @@
     "build:sandbox-flow": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs",
     "build:sandbox-flow:check": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs --check",
     "test:minimal:packed": "node scripts/minimal-packed-consumer.mjs",
-    "check:minimal:catalog": "node scripts/generate-minimal-feature-catalog.mjs --check"
+    "check:minimal:catalog": "node scripts/generate-minimal-feature-catalog.mjs --check",
+    "media:pull": "node scripts/package-media.mjs pull",
+    "media:push": "node scripts/package-media.mjs push",
+    "media:check": "node scripts/package-media.mjs check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
