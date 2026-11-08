@@ -264,6 +264,7 @@ export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 /** Mirrors DISCOVERY_TOOL_NAMES: providers, models, node types. */
 export const DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "list_providers",
   "find_model",
   "list_models",
   "list_provider_models",

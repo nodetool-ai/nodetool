@@ -21,6 +21,7 @@ import {
   MCP_GUEST_CONTRACT,
   MCP_SANDBOX_ASSET_SNIPPET,
   MCP_SANDBOX_PROBE_SNIPPET,
+  PROVIDER_TOOL_NAMES,
   loadSystemSkills
 } from "@nodetool-ai/agents";
 import { Asset, Skill, initTestDb } from "@nodetool-ai/models";
@@ -188,7 +189,9 @@ describe("MCP server surface", () => {
         ].includes(name)
       )
         continue;
-      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+      expect(
+        DIRECT_TOOL_NAMES.has(name) || PROVIDER_TOOL_NAMES.has(name)
+      ).toBe(true);
     }
     // The ones this session can actually build are all there. Node discovery
     // needs an injected registry, which this harness has none of, so the
@@ -202,10 +205,32 @@ describe("MCP server surface", () => {
         "download_asset",
         "find_model",
         "list_models",
+        "list_providers",
         "list_directory",
         "browser",
         "http_request",
         "download_file"
+      ])
+    );
+  });
+
+  it("offers the provider interface as top-level tools", () => {
+    // One tool per provider capability, so a client sees what this install
+    // can generate in the tool list rather than only inside the sandbox.
+    const names = toolNames(createMcpServer({ agentToolsScope: scope }));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "list_providers",
+        "generate_text",
+        "generate_image",
+        "edit_image",
+        "generate_video",
+        "animate_image",
+        "generate_video_from_references",
+        "generate_speech",
+        "generate_music",
+        "transcribe_audio",
+        "embed_text"
       ])
     );
   });
@@ -590,7 +615,9 @@ describe("MCP server surface", () => {
         ].includes(name)
       )
         continue;
-      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+      expect(
+        DIRECT_TOOL_NAMES.has(name) || PROVIDER_TOOL_NAMES.has(name)
+      ).toBe(true);
     }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");
     const listWorkflows = catalog.tools.find(
