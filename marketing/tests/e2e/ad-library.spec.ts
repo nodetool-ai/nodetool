@@ -252,14 +252,16 @@ test("the sequence preview moves the video to a beat and plays it", async ({
     .toBeGreaterThan(seconds);
 });
 
-test("marketing exposes the ad library alongside existing recipes", async ({
+test("marketing links to the ad library and the recipes", async ({
   page
 }) => {
   await page.goto("/marketing");
+  const more = page.getByRole("region", { name: "More for ad teams" });
+  await expect(more.getByRole("link", { name: /^Ad library/ })).toHaveAttribute(
+    "href",
+    "/ad-library"
+  );
   await expect(
-    page.getByRole("link", { name: "Explore the ad library" })
-  ).toHaveAttribute("href", "/ad-library");
-  await expect(
-    page.getByRole("link", { name: "Explore all recipes" })
+    more.getByRole("link", { name: /^Guided recipes/ })
   ).toHaveAttribute("href", "/recipes");
 });

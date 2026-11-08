@@ -309,6 +309,7 @@ export default function SurfaceShowcase({
           <p className="text-lg text-slate-300">{intro}</p>
         </div>
 
+        {surfaces.length > 1 && (
         <div
           role="tablist"
           aria-label="Editing surfaces"
@@ -350,13 +351,19 @@ export default function SurfaceShowcase({
             );
           })}
         </div>
+        )}
 
+        {/* A single surface renders without tabs, as a plain figure. */}
         {surfaces.map((surface, i) => (
           <div
             key={surface.id}
-            role="tabpanel"
+            {...(surfaces.length > 1
+              ? {
+                  role: "tabpanel",
+                  "aria-labelledby": `surface-tab-${surface.id}`,
+                }
+              : {})}
             id={`surface-panel-${surface.id}`}
-            aria-labelledby={`surface-tab-${surface.id}`}
             hidden={i !== active}
           >
             <div className="relative overflow-hidden rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5">

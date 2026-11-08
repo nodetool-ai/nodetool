@@ -7,7 +7,7 @@ product: NodeTool
 ---
 # NodeTool, the Open-Source Creative Harness
 
-NodeTool is open-source agentic creative software: an AI agent that operates creative tools and leaves work you can edit. Give a brief to the built-in agent, or connect Claude Code, Codex, or Cursor over MCP. The agent generates images, video, and audio, then builds the storyboard, timeline, sketch, game, or workflow. A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step.
+NodeTool is open-source software in which an AI agent operates creative tools and leaves work you can edit. Use the built-in agent, or connect Claude Code, Codex, or Cursor over MCP. A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step.
 
 ## Build. Run. Inspect. Repair.
 
@@ -31,10 +31,10 @@ The agent edits the same documents you open in Studio. When it stops, the work i
 - **Games**: Places entities, writes their behaviors, generates the art, and play-tests the level.
 - **Apps**: Places the widgets, binds them to a workflow, and checks that the app runs.
 
-## Your models and your keys
+## Every step is on the record
 
-- **Your models**: Run the agent on Claude, GPT, Gemini, or a local model through Ollama. Each node names its own model.
-- **Your keys**: Each generation is billed to your own provider account at its list price. NodeTool sells no credits.
+Read what the agent did, and take the work back at any point.
+
 - **A full record**: Read each tool call with its arguments, result, and error. Find the step that went wrong.
 - **Your hands**: Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.
 
@@ -63,18 +63,6 @@ For Cursor, Claude Desktop, or another MCP client, run `nodetool-mcp config` and
 ### What is NodeTool?
 
 NodeTool is an open-source app for making images, video, audio, and text with AI. You describe what you want, and a built-in AI agent does the work: it writes, generates, and edits inside NodeTool's editors. Then you can change any part yourself. You get an editable project, not just a finished file, so your steps, media, and edits stay together. Run supported AI models on your own computer, or connect online AI providers such as OpenAI, Google, and fal.ai with your own accounts.
-
-### What does "bring your own keys" mean for me?
-
-It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.
-
-### Can I use my ChatGPT, Claude, or Gemini subscription?
-
-Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.
-
-### Which models are supported?
-
-The leading models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, reached through providers such as FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Models can also run on your own computer through MLX, Ollama, llama.cpp, vLLM, and LM Studio.
 
 ### What does it mean that NodeTool is agent-first?
 
