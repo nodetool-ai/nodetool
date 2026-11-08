@@ -48,6 +48,10 @@ function(nt_render2d_tests)
         set(render2d_platform windows)
     endif()
     set_tests_properties(tst_render2d PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${render2d_platform}" FIXTURES_REQUIRED render2d_reference)
+    # The app shapes at the screen's logical DPI (72 on macOS). Its own process,
+    # because Qt caches font engines made at the 96 DPI the other slots use.
+    add_test(NAME tst_render2d_dpi72 COMMAND tst_render2d textAdvanceIgnoresDpi)
+    set_tests_properties(tst_render2d_dpi72 PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${render2d_platform};QT_FONT_DPI=72")
     add_test(NAME render2d_stills_script COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/check-example-stills.test.mjs)
     add_test(NAME render2d_serein_m0 COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/serein-m0.test.mjs)
     add_test(NAME render2d_window_dry_run COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/window-checks.test.mjs)

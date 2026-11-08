@@ -17,6 +17,8 @@ nt_sources(decode
     src/preview/FrameCache.cpp
     src/preview/SyntheticSource.h
     src/preview/SyntheticSource.cpp
+    src/preview/StillImageSource.h
+    src/preview/StillImageSource.cpp
     src/preview/RetireQueue.h
 )
 nt_qml_files(qml/preview/PreviewArea.qml)
