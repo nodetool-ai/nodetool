@@ -8791,8 +8791,6 @@
       "studio": "Studio",
       "switchToProject": "Bytt til prosjekt {{name}}",
       "personal": "Personlig",
-      "newChatInMode": "Ny chat: {{mode}}",
-      "newChatInModeValue": "Ny chat {{mode}}",
       "newTextFileValue": "Ny tekstfil {{label}}",
       "newTextFile": "Ny tekstfil: {{label}}",
       "newStoryboard": "Nytt storyboard",
@@ -8824,8 +8822,7 @@
         "script": "Nytt manus",
         "jsscript": "Nytt JS-skript",
         "skill": "Ny ferdighet",
-        "model3d": "Ny 3D-modell",
-        "create": "Lag bilder og videoer"
+        "model3d": "Ny 3D-modell"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8831,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Ren tekst (.txt)"
+      },
+      "createSession": {
+        "image": "Nytt bilde",
+        "video": "Ny video",
+        "audio": "Les høyt",
+        "music": "Generer musikk"
       }
     },
     "googleWorkspace": {
@@ -19534,7 +19537,8 @@
     "empty": {
       "title": "Ingenting er opprettet ennå",
       "description": "Skriv en prompt over og trykk Generer. Bildene, videoene og lydene dine vises her, nyeste først.",
-      "action": "Skriv en melding"
+      "action": "Skriv en melding",
+      "sessionTitle": "Ingenting i denne fanen ennå"
     },
     "item": {
       "open": "Åpne {{title}}",
@@ -19608,7 +19612,15 @@
       "uploadFailed": "Kunne ikke laste opp {{name}}: {{reason}}"
     },
     "switched": "Byttet til {{mode}} fordi du la til et bilde.",
-    "undoSwitch": "Tilbake til {{from}}"
+    "undoSwitch": "Tilbake til {{from}}",
+    "scope": {
+      "label": "Hvilke opptak som vises",
+      "session": "Denne fanen",
+      "all": "Alle opptak"
+    },
+    "renameFailed": "Fanen kunne ikke gis nytt navn: {{reason}}",
+    "sessionFailed": "Opptakene i denne fanen kunne ikke lastes inn.",
+    "sessionKind": "Create-økt"
   },
   "effectsGallery": {
     "title": "Effekter",

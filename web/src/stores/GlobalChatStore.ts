@@ -1571,6 +1571,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // An open tab for the deleted thread would recreate it as an empty
           // "New conversation" on the next load.
           useWorkspaceTabsStore.getState().closeTab(tabId("chat", threadId));
+          // A Create session is a thread too, opened as a Create tab.
+          useWorkspaceTabsStore.getState().closeTab(tabId("create", threadId));
 
           // Update local state
           set((state) => {

@@ -40,9 +40,10 @@ const useOpenThreadTab = () => {
   const location = useLocation();
 
   return useCallback(
-    (threadId: string, title?: string, projectId?: string) => {
+    (threadId: string, title?: string, projectId?: string, kind?: "chat" | "create") => {
       openTab({
-        type: "chat",
+        // A Create session opens as Create, not as an empty chat.
+        type: kind === "create" ? "create" : "chat",
         ref: threadId,
         mode: "view",
         title: title || t("i18n-next11.chat.newChat"),
@@ -169,6 +170,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
       result[id] = {
         id: thread.id,
         title: thread.title ?? undefined,
+        kind: thread.kind,
         updatedAt: thread.updated_at,
         messages: messageCache[id] ?? []
       };
@@ -181,7 +183,8 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
       openThreadTab(
         id,
         threads[id]?.title ?? undefined,
-        threads[id]?.project_id ?? "default"
+        threads[id]?.project_id ?? "default",
+        threads[id]?.kind
       );
     },
     [openThreadTab, threads]

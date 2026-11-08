@@ -8930,8 +8930,6 @@
       "studio": "Studio",
       "switchToProject": "Passa al progetto {{name}}",
       "personal": "Personale",
-      "newChatInMode": "Nuova chat: {{mode}}",
-      "newChatInModeValue": "Nuova chat {{mode}}",
       "newTextFileValue": "Nuovo file di testo {{label}}",
       "newTextFile": "Nuovo file di testo: {{label}}",
       "newStoryboard": "Nuovo storyboard",
@@ -8963,8 +8961,7 @@
         "script": "Nuova sceneggiatura",
         "jsscript": "Nuovo script JS",
         "skill": "Nuova abilità",
-        "model3d": "Nuovo modello 3D",
-        "create": "Crea immagini e video"
+        "model3d": "Nuovo modello 3D"
       },
       "templates": {
         "markdown": "Ribasso (.md)",
@@ -8973,6 +8970,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Testo normale (.txt)"
+      },
+      "createSession": {
+        "image": "Nuova immagine",
+        "video": "Nuovo video",
+        "audio": "Leggi ad alta voce",
+        "music": "Genera musica"
       }
     },
     "googleWorkspace": {
@@ -19844,7 +19847,8 @@
     "empty": {
       "title": "Non è stato ancora creato nulla",
       "description": "Scrivi un prompt qui sopra e premi Genera. Immagini, video e audio compaiono qui, i più recenti per primi.",
-      "action": "Scrivi un suggerimento"
+      "action": "Scrivi un suggerimento",
+      "sessionTitle": "Ancora niente in questa scheda"
     },
     "item": {
       "open": "Apri {{title}}",
@@ -19919,7 +19923,15 @@
       "uploadFailed": "Impossibile caricare {{name}}: {{reason}}"
     },
     "switched": "Passato a {{mode}} perché hai aggiunto un’immagine.",
-    "undoSwitch": "Torna a {{from}}"
+    "undoSwitch": "Torna a {{from}}",
+    "scope": {
+      "label": "Quali riprese mostrare",
+      "session": "Questa scheda",
+      "all": "Tutte le riprese"
+    },
+    "renameFailed": "Impossibile rinominare la scheda: {{reason}}",
+    "sessionFailed": "Impossibile caricare le riprese di questa scheda.",
+    "sessionKind": "Sessione Create"
   },
   "effectsGallery": {
     "title": "Effetti",

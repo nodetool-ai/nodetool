@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import { Asset, Prediction, Project, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
+import { Asset, Prediction, Project, Thread, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import { GenerationAlreadyAcceptedError, rasterizeSvgInput } from "@nodetool-ai/runtime";
@@ -127,6 +127,12 @@ export interface DirectMediaGenerationRequest {
   useReferenceVideoAudio?: boolean;
   /** Project captured when the request was accepted. */
   projectId?: string | null;
+  /**
+   * The thread the take belongs to: a Create session, or a chat whose takes
+   * a Create tab shows. Recorded on the generation row so the tab can list
+   * its takes again after a reload.
+   */
+  threadId?: string;
   destination?: GenerationRequest["destination"];
 }
 
@@ -862,6 +868,12 @@ export class DirectInferenceHandler {
     if (req.projectId && req.projectId !== "default") {
       await Project.requireOwned(userId, req.projectId);
     }
+    if (req.threadId) {
+      const thread = await Thread.find(userId, req.threadId);
+      if (!thread) {
+        throw new Error("Thread not found");
+      }
+    }
     await assertTimelineGenerationAllowed(userId, req);
     const videoEditReferenceIds = req.mode === "video_edit"
       ? await resolveVideoEditReferenceIds(userId, req)
@@ -1072,7 +1084,11 @@ export class DirectInferenceHandler {
       signal: req.signal,
       modelId: req.model,
       provider,
-      origin: { surface: "rpc", request_id: req.requestId ?? null },
+      origin: {
+        surface: "rpc",
+        request_id: req.requestId ?? null,
+        ...(req.threadId && { thread_id: req.threadId })
+      },
       workflowId: null,
       projectId: req.projectId ?? null,
       assetNamePrefix: req.mode,

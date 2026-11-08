@@ -9069,8 +9069,6 @@
       "studio": "Studio",
       "switchToProject": "Przejdź do projektu {{name}}",
       "personal": "Osobiste",
-      "newChatInMode": "Nowy czat: {{mode}}",
-      "newChatInModeValue": "Nowy czat {{mode}}",
       "newTextFileValue": "Nowy plik tekstowy {{label}}",
       "newTextFile": "Nowy plik tekstowy: {{label}}",
       "newStoryboard": "Nowy scenariusz",
@@ -9102,8 +9100,7 @@
         "script": "Nowy skrypt",
         "jsscript": "Nowy skrypt JS",
         "skill": "Nowa umiejętność",
-        "model3d": "Nowy model 3D",
-        "create": "Twórz obrazy i filmy"
+        "model3d": "Nowy model 3D"
       },
       "templates": {
         "markdown": "Przecena (.md)",
@@ -9112,6 +9109,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Zwykły tekst (.txt)"
+      },
+      "createSession": {
+        "image": "Nowy obraz",
+        "video": "Nowe wideo",
+        "audio": "Czytaj na głos",
+        "music": "Generuj muzykę"
       }
     },
     "googleWorkspace": {
@@ -20154,7 +20157,8 @@
     "empty": {
       "title": "Jeszcze nic nie powstało",
       "description": "Wpisz prompt powyżej i naciśnij Generuj. Twoje obrazy, filmy i nagrania pojawią się tutaj, od najnowszych.",
-      "action": "Napisz podpowiedź"
+      "action": "Napisz podpowiedź",
+      "sessionTitle": "Na tej karcie nic jeszcze nie ma"
     },
     "item": {
       "open": "Otwórz {{title}}",
@@ -20230,7 +20234,15 @@
       "uploadFailed": "Nie udało się przesłać {{name}}: {{reason}}"
     },
     "switched": "Przełączono na {{mode}}, bo dodano obraz.",
-    "undoSwitch": "Wróć do {{from}}"
+    "undoSwitch": "Wróć do {{from}}",
+    "scope": {
+      "label": "Które ujęcia pokazać",
+      "session": "Ta karta",
+      "all": "Wszystkie ujęcia"
+    },
+    "renameFailed": "Nie udało się zmienić nazwy karty: {{reason}}",
+    "sessionFailed": "Nie udało się wczytać ujęć tej karty.",
+    "sessionKind": "Sesja Create"
   },
   "effectsGallery": {
     "title": "Efekty",

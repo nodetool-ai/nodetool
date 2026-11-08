@@ -127,7 +127,8 @@ export const generationFromCommand = (
       prompt: readString(data.prompt),
       model: readString(data.model),
       source,
-      threadId: null,
+      // A Create tab tags its takes with its thread, so it can list them.
+      threadId: readString(data.thread_id),
       startedAt: now,
       endedAt: null,
       assetIds: [],

@@ -19,6 +19,7 @@ import {
   CREATE_BATCH_OPTIONS,
   CREATE_KIND_MODES,
   CREATE_KINDS,
+  createDraftOf,
   createKindOf,
   useCreateViewStore,
   type CreateKind,
@@ -109,20 +110,50 @@ const modeForAttachment = (
 
 interface CreatePromptBarProps {
   promptRef: React.Ref<HTMLTextAreaElement>;
+  /** The tab's draft key in CreateViewStore. */
+  sessionId: string;
+  /** Fields every take of this tab carries: its thread and project. */
+  requestTags?: Readonly<Record<string, string>>;
+  /** Called with the prompt once a press has sent at least one take. */
+  onSent?: (prompt: string) => void;
 }
 
-const CreatePromptBar = ({ promptRef }: CreatePromptBarProps) => {
+const CreatePromptBar = ({ promptRef, sessionId, requestTags, onSent }: CreatePromptBarProps) => {
   const { t } = useTranslation();
-  const mode = useCreateViewStore((s) => s.mode);
-  const prompt = useCreateViewStore((s) => s.prompt);
-  const batch = useCreateViewStore((s) => s.batch);
-  const references = useCreateViewStore((s) => s.references);
-  const setMode = useCreateViewStore((s) => s.setMode);
-  const setKind = useCreateViewStore((s) => s.setKind);
-  const setPrompt = useCreateViewStore((s) => s.setPrompt);
-  const setBatch = useCreateViewStore((s) => s.setBatch);
-  const addReferences = useCreateViewStore((s) => s.addReferences);
-  const removeReference = useCreateViewStore((s) => s.removeReference);
+  const mode = useCreateViewStore((s) => createDraftOf(s, sessionId).mode);
+  const prompt = useCreateViewStore((s) => createDraftOf(s, sessionId).prompt);
+  const batch = useCreateViewStore((s) => createDraftOf(s, sessionId).batch);
+  const references = useCreateViewStore((s) => createDraftOf(s, sessionId).references);
+  const setModeAction = useCreateViewStore((s) => s.setMode);
+  const setMode = useCallback(
+    (next: CreateMode) => setModeAction(sessionId, next),
+    [setModeAction, sessionId]
+  );
+  const setKindAction = useCreateViewStore((s) => s.setKind);
+  const setKind = useCallback(
+    (next: CreateKind) => setKindAction(sessionId, next),
+    [setKindAction, sessionId]
+  );
+  const setPromptAction = useCreateViewStore((s) => s.setPrompt);
+  const setPrompt = useCallback(
+    (next: string) => setPromptAction(sessionId, next),
+    [setPromptAction, sessionId]
+  );
+  const setBatchAction = useCreateViewStore((s) => s.setBatch);
+  const setBatch = useCallback(
+    (next: number) => setBatchAction(sessionId, next),
+    [setBatchAction, sessionId]
+  );
+  const addReferencesAction = useCreateViewStore((s) => s.addReferences);
+  const addReferences = useCallback(
+    (added: readonly CreateReference[]) => addReferencesAction(sessionId, added),
+    [addReferencesAction, sessionId]
+  );
+  const removeReferenceAction = useCreateViewStore((s) => s.removeReference);
+  const removeReference = useCallback(
+    (assetId: string) => removeReferenceAction(sessionId, assetId),
+    [removeReferenceAction, sessionId]
+  );
   const hasModel = useMediaGenerationStore((s) => {
     const model = createModelFor(mode, s);
     return Boolean(model?.id && model.provider);
@@ -181,7 +212,7 @@ const CreatePromptBar = ({ promptRef }: CreatePromptBarProps) => {
       if (added.length === 0) {
         return;
       }
-      const { mode: current } = useCreateViewStore.getState();
+      const { mode: current } = createDraftOf(useCreateViewStore.getState(), sessionId);
       addReferences(added);
       clearMessages();
       const next = modeForAttachment(current, added);
@@ -190,7 +221,7 @@ const CreatePromptBar = ({ promptRef }: CreatePromptBarProps) => {
         setSwitchedFrom(current);
       }
     },
-    [addReferences, clearMessages, setMode]
+    [addReferences, clearMessages, sessionId, setMode]
   );
 
   const undoSwitch = useCallback(() => {
@@ -260,9 +291,15 @@ const CreatePromptBar = ({ promptRef }: CreatePromptBarProps) => {
     }
     setSubmitting(true);
     setSendError(null);
-    const requests = buildCreateBatch(mode, settings, prompt.trim(), batch, references);
+    const text = prompt.trim();
+    const requests = buildCreateBatch(mode, settings, text, batch, references).map(
+      (request) => ({ ...request, ...requestTags })
+    );
     const result = await submitCreateBatch(requests);
     setSubmitting(false);
+    if (result.sent.length > 0) {
+      onSent?.(text);
+    }
     if (result.error) {
       setSendError(
         t("create_view.sendFailed", {
@@ -271,7 +308,7 @@ const CreatePromptBar = ({ promptRef }: CreatePromptBarProps) => {
         })
       );
     }
-  }, [mode, prompt, batch, references, t]);
+  }, [mode, prompt, batch, references, requestTags, onSent, t]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {

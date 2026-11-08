@@ -8930,8 +8930,6 @@
       "studio": "Estúdio",
       "switchToProject": "Mudar para o projeto {{name}}",
       "personal": "Pessoal",
-      "newChatInMode": "Novo bate-papo: {{mode}}",
-      "newChatInModeValue": "Novo bate-papo {{mode}}",
       "newTextFileValue": "Novo arquivo de texto {{label}}",
       "newTextFile": "Novo arquivo de texto: {{label}}",
       "newStoryboard": "Novo storyboard",
@@ -8963,8 +8961,7 @@
         "script": "Novo roteiro",
         "jsscript": "Novo script JS",
         "skill": "Nova habilidade",
-        "model3d": "Novo modelo 3D",
-        "create": "Crie imagens e vídeos"
+        "model3d": "Novo modelo 3D"
       },
       "templates": {
         "markdown": "Remarcação (.md)",
@@ -8973,6 +8970,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Texto simples (.txt)"
+      },
+      "createSession": {
+        "image": "Nova imagem",
+        "video": "Novo vídeo",
+        "audio": "Ler em voz alta",
+        "music": "Gerar música"
       }
     },
     "googleWorkspace": {
@@ -19844,7 +19847,8 @@
     "empty": {
       "title": "Nada criado ainda",
       "description": "Escreva um prompt acima e clique em Gerar. Suas imagens, vídeos e áudios aparecem aqui, os mais recentes primeiro.",
-      "action": "Escreva um prompt"
+      "action": "Escreva um prompt",
+      "sessionTitle": "Ainda não há nada neste separador"
     },
     "item": {
       "open": "Abra {{title}}",
@@ -19919,7 +19923,15 @@
       "uploadFailed": "Não foi possível enviar {{name}}: {{reason}}"
     },
     "switched": "Mudou para {{mode}} porque você adicionou uma imagem.",
-    "undoSwitch": "Voltar para {{from}}"
+    "undoSwitch": "Voltar para {{from}}",
+    "scope": {
+      "label": "Que tomadas mostrar",
+      "session": "Este separador",
+      "all": "Todas as tomadas"
+    },
+    "renameFailed": "Não foi possível mudar o nome do separador: {{reason}}",
+    "sessionFailed": "Não foi possível carregar as tomadas deste separador.",
+    "sessionKind": "Sessão do Create"
   },
   "effectsGallery": {
     "title": "Efeitos",

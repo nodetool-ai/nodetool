@@ -9069,8 +9069,6 @@
       "studio": "Студия",
       "switchToProject": "Переключиться на проект {{name}}",
       "personal": "Личное",
-      "newChatInMode": "Новый чат: {{mode}}",
-      "newChatInModeValue": "Новый чат {{mode}}",
       "newTextFileValue": "Новый текстовый файл {{label}}",
       "newTextFile": "Новый текстовый файл: {{label}}",
       "newStoryboard": "Новая раскадровка",
@@ -9102,8 +9100,7 @@
         "script": "Новый сценарий",
         "jsscript": "Новый JS-скрипт",
         "skill": "Новый навык",
-        "model3d": "Новая 3D-модель",
-        "create": "Создавать изображения и видео"
+        "model3d": "Новая 3D-модель"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -9112,6 +9109,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Обычный текст (.txt)"
+      },
+      "createSession": {
+        "image": "Новое изображение",
+        "video": "Новое видео",
+        "audio": "Прочитать вслух",
+        "music": "Создать музыку"
       }
     },
     "googleWorkspace": {
@@ -20156,7 +20159,8 @@
     "empty": {
       "title": "Пока ничего не создано",
       "description": "Напишите промпт выше и нажмите «Сгенерировать». Ваши изображения, видео и аудио появятся здесь, новые сверху.",
-      "action": "Написать запрос"
+      "action": "Написать запрос",
+      "sessionTitle": "В этой вкладке пока ничего нет"
     },
     "item": {
       "open": "Открыть {{title}}",
@@ -20230,7 +20234,15 @@
       "uploadFailed": "Не удалось загрузить {{name}}: {{reason}}"
     },
     "switched": "Режим переключён на «{{mode}}», потому что вы добавили изображение.",
-    "undoSwitch": "Вернуться к «{{from}}»"
+    "undoSwitch": "Вернуться к «{{from}}»",
+    "scope": {
+      "label": "Какие дубли показывать",
+      "session": "Эта вкладка",
+      "all": "Все дубли"
+    },
+    "renameFailed": "Не удалось переименовать вкладку: {{reason}}",
+    "sessionFailed": "Не удалось загрузить дубли этой вкладки.",
+    "sessionKind": "Сеанс Create"
   },
   "effectsGallery": {
     "title": "Эффекты",

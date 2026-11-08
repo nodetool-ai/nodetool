@@ -63,6 +63,12 @@ const createProject = jest.fn(async () => ({
 }));
 const openProject = jest.fn(async () => true);
 const createNewThread = jest.fn(async () => "chat-1");
+// Image, Video and Read aloud open Create tabs; that module has its own suite.
+const openCreateSession = jest.fn(async (..._args: unknown[]) => "session-1");
+jest.mock("../../create/openCreateSession", () => ({
+  ...jest.requireActual("../../create/openCreateSession"),
+  openCreateSession: (...args: unknown[]) => openCreateSession(...args)
+}));
 
 // The Workflow card creates through the manager store, as the workspace's own
 // surfaces do; the provider is mounted app-wide in `index.tsx`.
@@ -144,14 +150,6 @@ jest.mock("../../workspace/newDocumentCatalog", () => ({
             await createWorkflow();
             onCreated?.();
           }
-        },
-        {
-          key: "create",
-          label: "Create",
-          menuLabel: "Create images and videos",
-          type: "create",
-          icon: null,
-          create: jest.fn()
         },
         {
           key: "text",
@@ -893,12 +891,11 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", { name: "Start with a guided flow" });
     await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
 
-    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    await waitFor(() => expect(openCreateSession).toHaveBeenCalled());
     expect(createProject).toHaveBeenCalledWith({ name: "A spot for our desk lamp" });
-    expect(createNewThread).toHaveBeenCalledWith(
-      "A spot for our desk lamp",
-      null,
-      expect.objectContaining({ projectId: "p9", mediaMode: "image" })
+    expect(openCreateSession).toHaveBeenCalledWith(
+      "p9",
+      expect.objectContaining({ title: "A spot for our desk lamp", mode: "image" })
     );
   });
 
@@ -973,11 +970,13 @@ describe("NewProjectSurface", () => {
     });
     await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
 
-    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
-    expect(createNewThread).toHaveBeenCalledWith(
+    await waitFor(() => expect(openCreateSession).toHaveBeenCalled());
+    expect(openCreateSession).toHaveBeenCalledWith(
       expect.any(String),
-      null,
-      expect.objectContaining({ mediaMode: "image_edit" })
+      expect.objectContaining({
+        mode: "image_edit",
+        references: [expect.objectContaining({ assetId: "lamp-asset" })]
+      })
     );
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
@@ -1113,15 +1112,6 @@ describe("NewProjectSurface", () => {
     expect(catalogOptions).toHaveBeenCalledWith({ projectId: "default" });
     await userEvent.click(screen.getByRole("button", { name: "Workflow" }));
     expect(createWorkflow).toHaveBeenCalled();
-  });
-
-  // The Create image and Create video cards open the same view, and the row
-  // showed its untranslated key.
-  it("leaves the picture and video view out of the blank-document row", () => {
-    renderSurface();
-    expect(screen.getByRole("button", { name: "Workflow" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Create" })).not.toBeInTheDocument();
-    expect(screen.queryByText(/blankEntries|blank_items/)).not.toBeInTheDocument();
   });
 
   it("starts Game from its card with the current project's brief", async () => {
@@ -1787,20 +1777,17 @@ describe("NewProjectSurface", () => {
     await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await waitFor(() =>
-      expect(createNewThread).toHaveBeenCalledWith(
+      expect(openCreateSession).toHaveBeenCalledWith(
         expect.any(String),
-        null,
-        expect.objectContaining({ mediaMode: "video" })
+        expect.objectContaining({ mode: "video" })
       )
     );
-    expect(openTab).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "chat", ref: "chat-1" })
-    );
+    expect(createNewThread).not.toHaveBeenCalled();
   });
 
   it("reports an error when opening the Video generation tab fails", async () => {
     const user = userEvent.setup();
-    createNewThread.mockRejectedValueOnce(new Error("Thread refused"));
+    openCreateSession.mockRejectedValueOnce(new Error("Thread refused"));
     renderSurface();
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
@@ -1817,9 +1804,9 @@ describe("NewProjectSurface", () => {
 
   it.each([
     ["Entity", () => openTab],
-    ["Video", () => createNewThread],
+    ["Video", () => openCreateSession],
     ["Script", () => createScript],
-    ["Image", () => createNewThread],
+    ["Image", () => openCreateSession],
     ["Workflow", () => managerCreateWorkflow],
     ["Game", () => managerCreateWorkflow]
   ])("starts the %s flow from its own card", async (title, mock) => {
@@ -2341,8 +2328,9 @@ describe("NewProjectSurface", () => {
 
 
     await waitFor(() =>
-      expect(openTab).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "chat", projectId: "default" })
+      expect(openCreateSession).toHaveBeenCalledWith(
+        "default",
+        expect.objectContaining({ mode: "image" })
       )
     );
     expect(openProject).not.toHaveBeenCalled();
@@ -2466,10 +2454,16 @@ describe("NewProjectSurface", () => {
     );
 
     await waitFor(() =>
-      expect(createNewThread).toHaveBeenCalledWith(
+      expect(openCreateSession).toHaveBeenCalledWith(
         expect.any(String),
-        null,
-        expect.objectContaining({ mediaMode: "video" })
+        expect.objectContaining({ mode: "video" })
+      )
+    );
+    // Create sends no entity mentions yet, so the picked entity is named as
+    // left behind.
+    await waitFor(() =>
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining("Aurora lamp") })
       )
     );
   });
