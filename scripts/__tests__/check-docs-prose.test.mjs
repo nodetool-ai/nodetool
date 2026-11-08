@@ -32,6 +32,12 @@ describe("check-docs-prose", () => {
     expect(findViolations(text)).toEqual([]);
   });
 
+  it("checks text after a comment that spans lines", () => {
+    expect(findViolations("<!-- note\nseamless --> but powerful")).toEqual([
+      { line: 2, word: "powerful" },
+    ]);
+  });
+
   it("does not match words that only contain a banned word", () => {
     expect(findViolations("The empowerment-free seamlessness of supercharged-x.")).toEqual([]);
   });

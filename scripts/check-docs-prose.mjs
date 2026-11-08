@@ -51,8 +51,10 @@ export const BANNED = [
   "unleashes",
 ];
 
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
+
 const PATTERN = new RegExp(
-  `(?<![\\w-])(${BANNED.map((w) => w.replace(/[-]/g, "\\-").replace(/ /g, "\\s+")).join("|")})(?![\\w-])`,
+  `(?<![\\w-])(${BANNED.map((w) => escapeRegExp(w).replace(/ /g, "\\s+")).join("|")})(?![\\w-])`,
   "gi",
 );
 
@@ -109,41 +111,46 @@ function walk(dir, out) {
   return out;
 }
 
+// Replace every character inside an HTML comment with a space, keeping
+// newlines so line numbers stay intact. An unclosed comment runs to the end.
+function blankComments(text) {
+  let out = "";
+  let pos = 0;
+  while (pos < text.length) {
+    const open = text.indexOf("<!--", pos);
+    if (open === -1) {
+      out += text.slice(pos);
+      break;
+    }
+    out += text.slice(pos, open);
+    const close = text.indexOf("-->", open + 4);
+    const stop = close === -1 ? text.length : close + 3;
+    out += text.slice(open, stop).replace(/[^\n]/g, " ");
+    pos = stop;
+  }
+  return out;
+}
+
 // Blank out code and comments so their contents are never matched, keeping
 // line numbers intact.
 function stripCode(text) {
-  const lines = text.split("\n");
   let fence = null;
-  let inComment = false;
-  return lines.map((line) => {
-    const fenceMatch = line.match(/^\s*(```+|~~~+)/);
-    if (fence) {
-      if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) {
-        fence = null;
-      }
-      return "";
-    }
-    if (fenceMatch) {
-      fence = fenceMatch[1];
-      return "";
-    }
-    let out = line;
-    if (inComment) {
-      const end = out.indexOf("-->");
-      if (end === -1) {
+  return blankComments(text)
+    .split("\n")
+    .map((line) => {
+      const fenceMatch = line.match(/^\s*(```+|~~~+)/);
+      if (fence) {
+        if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) {
+          fence = null;
+        }
         return "";
       }
-      out = out.slice(end + 3);
-      inComment = false;
-    }
-    out = out.replace(/<!--.*?-->/g, "");
-    const open = out.indexOf("<!--");
-    if (open !== -1) {
-      out = out.slice(0, open);
-      inComment = true;
-    }
-    return out.replace(/`[^`]*`/g, "");
-  });
+      if (fenceMatch) {
+        fence = fenceMatch[1];
+        return "";
+      }
+      return line.replace(/`[^`]*`/g, "");
+    });
 }
 
 export function findViolations(text) {
