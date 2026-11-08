@@ -3,52 +3,12 @@ import {
   atlasDownload,
   atlasPoll,
   atlasSubmit,
+  pickOutputUrl
+} from "../../src/providers/atlascloud-transport.js";
+import {
   fetchWithRetry,
-  getApiKey,
-  pickOutputUrl,
   retryAfterMs
-} from "../src/atlascloud-base.js";
-
-// ---------------------------------------------------------------------------
-// getApiKey
-// ---------------------------------------------------------------------------
-describe("getApiKey", () => {
-  const originalEnv = process.env.ATLASCLOUD_API_KEY;
-
-  afterEach(() => {
-    if (originalEnv !== undefined) {
-      process.env.ATLASCLOUD_API_KEY = originalEnv;
-    } else {
-      delete process.env.ATLASCLOUD_API_KEY;
-    }
-  });
-
-  it("returns key from secrets object", () => {
-    expect(getApiKey({ ATLASCLOUD_API_KEY: "from-secrets" })).toBe(
-      "from-secrets"
-    );
-  });
-
-  it("falls back to process.env", () => {
-    delete process.env.ATLASCLOUD_API_KEY;
-    process.env.ATLASCLOUD_API_KEY = "env-key";
-    expect(getApiKey({})).toBe("env-key");
-  });
-
-  it("prefers secrets over process.env", () => {
-    process.env.ATLASCLOUD_API_KEY = "env-key";
-    expect(getApiKey({ ATLASCLOUD_API_KEY: "secrets-key" })).toBe("secrets-key");
-  });
-
-  it("trims whitespace from the resolved key", () => {
-    expect(getApiKey({ ATLASCLOUD_API_KEY: "  padded  " })).toBe("padded");
-  });
-
-  it("throws when the key is missing", () => {
-    delete process.env.ATLASCLOUD_API_KEY;
-    expect(() => getApiKey({})).toThrow("ATLASCLOUD_API_KEY is not configured");
-  });
-});
+} from "../../src/providers/http-transport.js";
 
 // ---------------------------------------------------------------------------
 // pickOutputUrl

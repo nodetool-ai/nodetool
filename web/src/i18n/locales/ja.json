@@ -6174,7 +6174,6 @@
         "checkingModels": "言語モデルをまだチェックしています。しばらくしてからもう一度試してください。",
         "chatNeedsModel": "もうすぐ完成します。チャットを実行するにはモデルが必要です。",
         "pickModelToStartChat": "言語モデルを選択すると、チャットが始まります。",
-        "pickMediaModel": "モデルを選択すると、生成が開始されます。",
         "openChatError": "チャットを開けませんでした: {{error}}",
         "startFlowError": "{{flow}} を開始できませんでした: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "ワークフローの例",
             "description": "自動化、マルチステップ"
           }
+        },
+        "goals": {
+          "label": "始めるもの",
+          "chat": "チャット",
+          "image": "画像",
+          "video": "動画",
+          "audio": "音声"
         }
       }
     }
@@ -8791,8 +8797,6 @@
       "studio": "スタジオ",
       "switchToProject": "プロジェクト {{name}} に切り替えます",
       "personal": "個人的な",
-      "newChatInMode": "新しいチャット: {{mode}}",
-      "newChatInModeValue": "新しいチャット {{mode}}",
       "newTextFileValue": "新しいテキスト ファイル {{label}}",
       "newTextFile": "新しいテキスト ファイル: {{label}}",
       "newStoryboard": "新しい絵コンテ",
@@ -8824,8 +8828,7 @@
         "script": "新しいスクリプト",
         "jsscript": "新しいJSスクリプト",
         "skill": "新しいスキル",
-        "model3d": "新しい3Dモデル",
-        "create": "画像とビデオを作成する"
+        "model3d": "新しい3Dモデル"
       },
       "templates": {
         "markdown": "マークダウン (.md)",
@@ -8834,6 +8837,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "プレーンテキスト (.txt)"
+      },
+      "createSession": {
+        "image": "新しい画像",
+        "video": "新しい動画",
+        "audio": "読み上げ",
+        "music": "音楽を生成"
       }
     },
     "googleWorkspace": {
@@ -18962,6 +18971,15 @@
       "invalidLink": "この共有リンクは無効であるか、取り消されています。ドキュメントの所有者に新しいドキュメントを要求してください。",
       "goToWorkspace": "ワークスペースに移動",
       "opening": "共有ドキュメントを開く"
+    },
+    "invite": {
+      "label": "ユーザーを招待",
+      "placeholder": "名前またはメール",
+      "role": "ロール",
+      "submit": "招待",
+      "typeMore": "2文字以上入力してください",
+      "noMatches": "一致するユーザーがいません",
+      "failed": "アクセスを付与できませんでした。"
     }
   },
   "timelineAutomation": {
@@ -19488,13 +19506,34 @@
     "takes_other": "{{count}} はかかります",
     "placeholder": {
       "image": "夕暮れの灯台、フィルム静止画",
-      "video": "夕暮れの灯台にゆっくりと乗り込む"
+      "video": "夕暮れの灯台にゆっくりと乗り込む",
+      "image_edit": "夜にして雨を加える",
+      "image_to_video": "波が砕け、灯りが回り始める",
+      "reference_to_video": "参照のキャラクターが桟橋を歩く",
+      "retake": "空を嵐に変える",
+      "extend": "カメラがさらに引いていく",
+      "audio": "読み上げる文章を入力",
+      "music": "やさしい雨とゆったりしたアンビエントピアノ"
     },
     "blocker": {
       "noPrompt": "生成するプロンプトを記述します。",
       "noModel": {
         "image": "生成する画像モデルを選択します。",
-        "video": "生成するビデオ モデルを選択します。"
+        "video": "生成するビデオ モデルを選択します。",
+        "image_edit": "生成するには画像編集モデルを選んでください。",
+        "image_to_video": "生成するには画像から動画のモデルを選んでください。",
+        "reference_to_video": "生成するには参照から動画のモデルを選んでください。",
+        "retake": "生成するには動画編集モデルを選んでください。",
+        "extend": "生成するには動画延長モデルを選んでください。",
+        "audio": "生成するには音声モデルを選んでください。",
+        "music": "生成するには音楽モデルを選んでください。"
+      },
+      "needsInput": {
+        "image_edit": "編集する画像を追加してください。",
+        "image_to_video": "アニメーションにする画像を追加してください。",
+        "reference_to_video": "参照画像か参照クリップを1つ以上追加してください。",
+        "retake": "変更するクリップを追加してください。",
+        "extend": "延長するクリップを追加してください。"
       }
     },
     "sendFailed": "{{count}} テイクの {{sent}} を開始しました。残りは NodeTool に到達しませんでした。接続を確認して、もう一度試してください。",
@@ -19503,8 +19542,9 @@
     "gridLabel": "世代",
     "empty": {
       "title": "まだ何も作成されていません",
-      "description": "上にプロンプトを記述し、「生成」を押します。画像とビデオが最新のものから順にここに表示されます。",
-      "action": "プロンプトを書く"
+      "description": "上にプロンプトを書いて「生成」を押してください。画像、動画、音声が新しい順にここに表示されます。",
+      "action": "プロンプトを書く",
+      "sessionTitle": "このタブにはまだ何もありません"
     },
     "item": {
       "open": "{{title}} を開く",
@@ -19520,8 +19560,75 @@
       "downloaded": "{{name}} をダウンロードしました",
       "downloadFailed": "ダウンロードできませんでした: {{reason}}",
       "workflowName": "ワークフローの作成",
-      "workflowFailed": "ワークフローを構築できませんでした: {{reason}}"
-    }
+      "workflowFailed": "ワークフローを構築できませんでした: {{reason}}",
+      "more": "その他の操作",
+      "moreLabel": "{{title}} のその他の操作",
+      "useAsReference": "参照として使う",
+      "startFrom": {
+        "image_edit": "この画像を編集",
+        "image_to_video": "この画像をアニメーションにする",
+        "retake": "このクリップを変更",
+        "extend": "このクリップを延長"
+      },
+      "openInSketch": "スケッチで開く",
+      "reusePrompt": "プロンプトを再利用",
+      "sketchTitle": "作成した画像"
+    },
+    "kindLabel": "作るもの",
+    "modeLabel": "作り方",
+    "kinds": {
+      "image": "画像",
+      "video": "動画",
+      "audio": "音声"
+    },
+    "modes": {
+      "image": "テキストから",
+      "image_edit": "編集",
+      "video": "テキストから",
+      "image_to_video": "アニメーション",
+      "reference_to_video": "参照から",
+      "retake": "変更",
+      "extend": "延長",
+      "audio": "読み上げ",
+      "music": "音楽"
+    },
+    "references": {
+      "label": "参照",
+      "remove": "削除",
+      "removeLabel": "{{name}} を削除",
+      "role": {
+        "source": "元画像",
+        "startFrame": "開始フレーム",
+        "sourceClip": "元クリップ",
+        "reference": "参照",
+        "unused": "このモードでは使いません"
+      },
+      "add": {
+        "image": "画像を追加",
+        "video": "クリップを追加",
+        "image-or-video": "参照を追加"
+      },
+      "hint": {
+        "image_edit": "編集する画像を追加するか、ここにドロップします。ほかの画像は見た目の参考になります。",
+        "image_to_video": "クリップの最初の画像を追加するか、ここにドロップします。",
+        "reference_to_video": "残したい人物、場所、スタイルの画像やクリップを追加するか、ここにドロップします。",
+        "retake": "変更するクリップを追加するか、ここにドロップします。追加した画像は見た目の参考になります。",
+        "extend": "延長するクリップを追加するか、ここにドロップします。"
+      },
+      "uploadFailed": "{{name}} をアップロードできませんでした: {{reason}}"
+    },
+    "switched": "画像を追加したため {{mode}} に切り替えました。",
+    "undoSwitch": "{{from}} に戻す",
+    "scope": {
+      "label": "表示するテイク",
+      "session": "このタブ",
+      "all": "すべてのテイク"
+    },
+    "renameFailed": "タブの名前を変更できませんでした: {{reason}}",
+    "sessionFailed": "このタブのテイクを読み込めませんでした。",
+    "sessionKind": "Create セッション",
+    "openInCreate": "Create で開く",
+    "openInCreateFailed": "Create を開けませんでした: {{reason}}"
   },
   "effectsGallery": {
     "title": "効果",
@@ -19754,6 +19861,91 @@
       "save": "保存",
       "cancel": "キャンセル",
       "saveFailed": "上限を保存できませんでした。"
+    },
+    "permissions": {
+      "edit": "権限",
+      "editDefault": "既定の権限を編集",
+      "defaultTitle": "既定の権限",
+      "userTitle": "{{name}} の権限",
+      "defaultAll": "既定の権限: すべて許可。",
+      "defaultBlockedCount": "既定の権限: {{count}} 件をブロック。",
+      "blockedCount": "ブロック中の権限: {{count}}",
+      "defaultIntro": "個別に設定しない限り、すべてのユーザーができること。",
+      "userIntro": "各権限は、ここで許可またはブロックするまで既定値に従います。",
+      "allow": "許可",
+      "block": "ブロック",
+      "defaultAllowed": "既定: 許可",
+      "defaultBlocked": "既定: ブロック",
+      "adminNote": "管理者は常にすべての権限を持ちます。",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saveFailed": "権限を保存できませんでした。",
+      "flags": {
+        "use_llm": {
+          "label": "言語モデルを使う",
+          "description": "チャット、エージェント、テキスト生成。"
+        },
+        "generate_media": {
+          "label": "メディアを生成する",
+          "description": "画像、動画、音声、3D。"
+        },
+        "use_server_keys": {
+          "label": "サーバーのプロバイダーキーを使う",
+          "description": "ブロックすると、本人が設定で追加したキーでのみ作業できます。"
+        },
+        "manage_own_keys": {
+          "label": "自分のプロバイダーキーを管理する",
+          "description": "プロバイダーキーとカスタムプロバイダーの追加、変更、削除。"
+        },
+        "share_links": {
+          "label": "共有リンクを作成する",
+          "description": "サインインした人がワークフローやドキュメントを閲覧・編集できるリンク。"
+        },
+        "share_public": {
+          "label": "公開共有する",
+          "description": "ワークフローを公開する、または誰でも開ける公開リンクを作成する。"
+        },
+        "publish_apps": {
+          "label": "アプリを公開する",
+          "description": "ミニアプリの公開、リリース、デプロイ。"
+        },
+        "install_packs": {
+          "label": "ノードパックを変更する",
+          "description": "パックの信頼設定の変更、組み込みパックのオン・オフ、パックの再読み込み。すべてのユーザーに影響します。"
+        }
+      }
+    },
+    "sharing": {
+      "open": "共有",
+      "title": "{{name}} の共有",
+      "links": "共有リンク",
+      "noLinks": "有効な共有リンクはありません。",
+      "granted": "アクセスを付与した相手",
+      "noGranted": "誰にもアクセスを付与していません。",
+      "received": "アクセスできるもの",
+      "noReceived": "誰からもアクセスを付与されていません。",
+      "public": "公開ワークフロー",
+      "noPublic": "公開ワークフローはありません。",
+      "revoke": "取り消す",
+      "removeAccess": "アクセスを削除",
+      "makePrivate": "非公開にする",
+      "untitled": "無題",
+      "loadFailed": "共有情報を読み込めませんでした。",
+      "actionFailed": "変更できませんでした。",
+      "types": {
+        "workflow": "ワークフロー",
+        "storyboard": "ストーリーボード",
+        "script": "スクリプト",
+        "timeline": "タイムライン",
+        "sketch": "スケッチ",
+        "application": "アプリ",
+        "jsscript": "JSスクリプト"
+      },
+      "roles": {
+        "viewer": "閲覧可",
+        "editor": "編集可",
+        "public": "公開"
+      }
     }
   }
 }

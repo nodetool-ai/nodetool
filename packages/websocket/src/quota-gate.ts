@@ -10,6 +10,11 @@
  * The check runs before work starts. A run already admitted finishes even if
  * it crosses the limit, and the next one is refused. Like the credit gate, it
  * fails open: metering must never take the runner down.
+ *
+ * The same call checks the permission flags that cover spending first:
+ * `use_llm` for token work, `generate_media` for media work, and
+ * `use_server_keys` for any work the server's key would pay for. Those fail
+ * closed, since a permission is an access rule (see `lib/permissions.ts`).
  */
 import { createLogger } from "@nodetool-ai/config";
 import {
@@ -28,6 +33,8 @@ import {
   getRegisteredProvider
 } from "@nodetool-ai/runtime";
 
+import { permissionRefusal, permissionsFor } from "./lib/permissions.js";
+
 const log = createLogger("nodetool.websocket.quota-gate");
 
 export type QuotaKind = "tokens" | "media";
@@ -42,7 +49,7 @@ export interface QuotaNeed {
 
 export type QuotaDecision =
   | { allowed: true }
-  | { allowed: false; kind: QuotaKind; reason: string };
+  | { allowed: false; kind: QuotaKind | "permission"; reason: string };
 
 /** How long a user's limits are reused before they are read again. */
 export const QUOTA_CACHE_TTL_MS = 30_000;
@@ -98,20 +105,37 @@ export async function admitQuota(
   now = new Date()
 ): Promise<QuotaDecision> {
   if (!userId || needs.length === 0) return { allowed: true };
+
+  const sources = new Map<string, Promise<string | null>>();
+  const keySource = (provider: string): Promise<string | null> => {
+    const source = sources.get(provider) ?? providerKeySource(userId, provider);
+    sources.set(provider, source);
+    return source;
+  };
+  const paidByServer = async (provider: string): Promise<boolean> =>
+    (await keySource(provider)) !== "user";
+
+  try {
+    const refusal = await spendPermissionRefusal(userId, needs, keySource);
+    if (refusal) return { allowed: false, kind: "permission", reason: refusal };
+  } catch (error) {
+    log.error("Permission check failed (refusing)", {
+      userId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return {
+      allowed: false,
+      kind: "permission",
+      reason: "Could not check your permissions. Try again in a moment."
+    };
+  }
+
   try {
     const { quota } = await limitsFor(userId, now.getTime());
     if (!quota) return { allowed: true };
     if (quota.tokenLimit === null && quota.mediaUsdLimit === null) {
       return { allowed: true };
     }
-
-    const sources = new Map<string, Promise<string | null>>();
-    const paidByServer = async (provider: string): Promise<boolean> => {
-      const source =
-        sources.get(provider) ?? providerKeySource(userId, provider);
-      sources.set(provider, source);
-      return (await source) !== "user";
-    };
 
     let wantsTokens = false;
     let wantsMedia = false;
@@ -163,6 +187,33 @@ export async function admitQuota(
     });
     return { allowed: true };
   }
+}
+
+/**
+ * The refusal for the first spending permission `needs` lack, else null. A
+ * provider with no credential (a local runtime) never uses a server key.
+ */
+async function spendPermissionRefusal(
+  userId: string,
+  needs: readonly QuotaNeed[],
+  keySource: (provider: string) => Promise<string | null>
+): Promise<string | null> {
+  const flags = await permissionsFor(userId);
+  if (!flags.use_llm && needs.some((need) => need.kind === "tokens")) {
+    return permissionRefusal("use_llm");
+  }
+  if (!flags.generate_media && needs.some((need) => need.kind === "media")) {
+    return permissionRefusal("generate_media");
+  }
+  if (!flags.use_server_keys) {
+    for (const need of needs) {
+      if (providerCredentialKey(need.provider) === null) continue;
+      if ((await keySource(need.provider)) === "server") {
+        return permissionRefusal("use_server_keys");
+      }
+    }
+  }
+  return null;
 }
 
 /** Model-selection property types that bill in tokens. */

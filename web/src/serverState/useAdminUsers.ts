@@ -127,3 +127,117 @@ export const useSetUserQuota = () => {
       queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
   });
 };
+
+export type AdminPermissionFlag = admin.AdminPermissionFlag;
+export type AdminPermissionOverrides = admin.AdminPermissionOverrides;
+export type AdminUserPermissions = admin.AdminUserPermissions;
+
+/** In the order the permissions dialog lists them. */
+export const ADMIN_PERMISSION_FLAGS: readonly AdminPermissionFlag[] = [
+  "use_llm",
+  "generate_media",
+  "use_server_keys",
+  "manage_own_keys",
+  "share_links",
+  "share_public",
+  "publish_apps",
+  "install_packs"
+];
+
+export const adminDefaultPermissionsQueryKey = [
+  "admin",
+  "permissions",
+  "default"
+] as const;
+
+/** The flags every user gets unless an admin set one for them. */
+export const useAdminDefaultPermissions = () =>
+  useQuery({
+    queryKey: adminDefaultPermissionsQueryKey,
+    queryFn: () => trpcClient.admin.permissions.getDefault.query(),
+    staleTime: 10 * 1000
+  });
+
+export interface PermissionsChange {
+  /** One user, or null for the default. */
+  userId: string | null;
+  /** Replaces the flags set at that level. */
+  overrides: AdminPermissionOverrides;
+}
+
+/** Set the default flags or one user's, then refresh both views. */
+export const useSetPermissions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, overrides }: PermissionsChange) =>
+      userId === null
+        ? trpcClient.admin.permissions.setDefault.mutate({ overrides })
+        : trpcClient.admin.permissions.setUser.mutate({
+            user_id: userId,
+            overrides
+          }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: adminDefaultPermissionsQueryKey
+        }),
+        queryClient.invalidateQueries({ queryKey: adminUsersQueryKey })
+      ])
+  });
+};
+
+export type AdminSharingForUser = admin.AdminSharingForUserOutput;
+export type AdminShareLink = admin.AdminShareLink;
+export type AdminShareGrant = admin.AdminShareGrant;
+export type AdminSharedDocument = admin.AdminSharedDocument;
+export type AdminSharedDocumentType = admin.AdminSharedDocumentType;
+
+export const adminUserSharingQueryKey = (userId: string) =>
+  ["admin", "sharing", userId] as const;
+
+/** What one person shares and what is shared with them. */
+export const useAdminUserSharing = (userId: string | null) =>
+  useQuery({
+    queryKey: adminUserSharingQueryKey(userId ?? ""),
+    queryFn: () =>
+      trpcClient.admin.sharing.forUser.query({ user_id: userId as string }),
+    enabled: userId !== null
+  });
+
+export type AdminSharingAction =
+  | { kind: "revokeLink"; type: AdminSharedDocumentType; shareId: string }
+  | {
+      kind: "removeGrant";
+      type: AdminSharedDocumentType;
+      documentId: string;
+      userId: string;
+    }
+  | { kind: "makePrivate"; workflowId: string };
+
+/** Take back a link, a grant or a public workflow, then refresh every view. */
+export const useAdminSharingAction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: AdminSharingAction) => {
+      switch (action.kind) {
+        case "revokeLink":
+          return trpcClient.admin.sharing.revokeLink.mutate({
+            type: action.type,
+            share_id: action.shareId
+          });
+        case "removeGrant":
+          return trpcClient.admin.sharing.removeGrant.mutate({
+            type: action.type,
+            document_id: action.documentId,
+            user_id: action.userId
+          });
+        case "makePrivate":
+          return trpcClient.admin.sharing.makePrivate.mutate({
+            workflow_id: action.workflowId
+          });
+      }
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["admin", "sharing"] })
+  });
+};

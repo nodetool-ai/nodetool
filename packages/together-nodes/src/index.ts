@@ -17,7 +17,6 @@ export type {
 } from "./together-factory.js";
 
 export {
-  getApiKey,
   isSafeHttpUrl,
   resolveAssetBytes,
   resolveVideoDimensions,

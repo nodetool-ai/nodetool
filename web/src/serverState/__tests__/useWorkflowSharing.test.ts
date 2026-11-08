@@ -109,13 +109,14 @@ describe("useWorkflowSharing", () => {
     );
   });
 
-  it("exposes the four sharing mutations", () => {
+  it("exposes the five sharing mutations", () => {
     const { result } = renderHook(() => useWorkflowSharing("wf-1"));
     expect(result.current.createLink).toBeDefined();
     expect(result.current.revokeLink).toBeDefined();
     expect(result.current.setRole).toBeDefined();
     expect(result.current.removeCollaborator).toBeDefined();
-    expect(mockUseMutation).toHaveBeenCalledTimes(4);
+    expect(result.current.invite).toBeDefined();
+    expect(mockUseMutation).toHaveBeenCalledTimes(5);
   });
 
   it("queries shared-with-me under its stable key", () => {

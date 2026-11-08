@@ -3,7 +3,6 @@ import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   generateVideo,
-  getMinimaxApiKey,
   MINIMAX_T2V_MODELS,
   MINIMAX_VIDEO_DURATIONS,
   MINIMAX_VIDEO_RESOLUTIONS,
@@ -74,8 +73,6 @@ export class MinimaxTextToVideoNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<MinimaxTextToVideoNodeOutputs> {
-    const apiKey = getMinimaxApiKey(this._secrets);
-
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
 
@@ -90,9 +87,15 @@ export class MinimaxTextToVideoNode extends BaseNode {
       )
     };
 
-    const bytes = await generateVideo(apiKey, body, {
-      signal: context?.signal
-    });
+    if (!context) {
+      throw new Error("MiniMax Text to Video requires a processing context");
+    }
+    const bytes = await generateVideo(
+      context,
+      body,
+      "text_to_video",
+      this.__node_id || undefined
+    );
     return { output: videoRefFromBytes(bytes) };
   }
 }

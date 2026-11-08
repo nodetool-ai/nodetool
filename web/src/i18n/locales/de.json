@@ -6174,7 +6174,6 @@
         "checkingModels": "Deine Sprachmodelle werden noch geprüft. Versuche es gleich noch einmal.",
         "chatNeedsModel": "Fast geschafft — der Chat braucht ein Modell.",
         "pickModelToStartChat": "Wähle ein Sprachmodell aus, dann startet der Chat.",
-        "pickMediaModel": "Wähle ein Modell, dann startet die Generierung.",
         "openChatError": "Chat konnte nicht geöffnet werden: {{error}}",
         "startFlowError": "{{flow}} konnte nicht gestartet werden: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Workflow-Beispiele",
             "description": "Automatisierungen, mehrstufig"
           }
+        },
+        "goals": {
+          "label": "Was gestartet wird",
+          "chat": "Chat",
+          "image": "Bild",
+          "video": "Video",
+          "audio": "Audio"
         }
       }
     }
@@ -8791,8 +8797,6 @@
       "studio": "Studio",
       "switchToProject": "Zum Projekt {{name}} wechseln",
       "personal": "Persönlich",
-      "newChatInMode": "Neuer Chat: {{mode}}",
-      "newChatInModeValue": "Neuer Chat {{mode}}",
       "newTextFileValue": "Neue Textdatei {{label}}",
       "newTextFile": "Neue Textdatei: {{label}}",
       "newStoryboard": "Neues Storyboard",
@@ -8824,8 +8828,7 @@
         "script": "Neues Skript",
         "jsscript": "Neues JS-Skript",
         "skill": "Neuer Skill",
-        "model3d": "Neues 3D-Modell",
-        "create": "Bilder und Videos erstellen"
+        "model3d": "Neues 3D-Modell"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8837,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Klartext (.txt)"
+      },
+      "createSession": {
+        "image": "Neues Bild",
+        "video": "Neues Video",
+        "audio": "Vorlesen",
+        "music": "Musik generieren"
       }
     },
     "googleWorkspace": {
@@ -18962,6 +18971,15 @@
       "invalidLink": "Dieser Freigabelink ist ungültig oder wurde widerrufen. Bitten Sie die Person, der das Dokument gehört, um einen neuen Link.",
       "goToWorkspace": "Zum Arbeitsbereich",
       "opening": "Geteiltes Dokument wird geöffnet"
+    },
+    "invite": {
+      "label": "Personen einladen",
+      "placeholder": "Name oder E-Mail",
+      "role": "Rolle",
+      "submit": "Einladen",
+      "typeMore": "Mindestens 2 Zeichen eingeben",
+      "noMatches": "Niemand gefunden",
+      "failed": "Zugriff konnte nicht erteilt werden."
     }
   },
   "timelineAutomation": {
@@ -19488,13 +19506,34 @@
     "takes_other": "{{count}} Takes",
     "placeholder": {
       "image": "Ein Leuchtturm in der Dämmerung, Filmstill",
-      "video": "Langsame Kamerafahrt auf einen Leuchtturm in der Dämmerung"
+      "video": "Langsame Kamerafahrt auf einen Leuchtturm in der Dämmerung",
+      "image_edit": "Mach es Nacht und lass es regnen",
+      "image_to_video": "Die Wellen brechen und das Licht beginnt sich zu drehen",
+      "reference_to_video": "Die Figur aus den Referenzen geht den Steg entlang",
+      "retake": "Ändere den Himmel zu einem Sturm",
+      "extend": "Die Kamera zieht sich weiter zurück",
+      "audio": "Gib den Text ein, der gesprochen werden soll",
+      "music": "Ruhiges Ambient-Klavier mit leisem Regen"
     },
     "blocker": {
       "noPrompt": "Schreibe einen Prompt, um zu generieren.",
       "noModel": {
         "image": "Wähle ein Bildmodell, um zu generieren.",
-        "video": "Wähle ein Videomodell, um zu generieren."
+        "video": "Wähle ein Videomodell, um zu generieren.",
+        "image_edit": "Wähle ein Bildbearbeitungsmodell, um zu generieren.",
+        "image_to_video": "Wähle ein Bild-zu-Video-Modell, um zu generieren.",
+        "reference_to_video": "Wähle ein Referenz-zu-Video-Modell, um zu generieren.",
+        "retake": "Wähle ein Videobearbeitungsmodell, um zu generieren.",
+        "extend": "Wähle ein Modell zum Verlängern von Videos, um zu generieren.",
+        "audio": "Wähle ein Sprachmodell, um zu generieren.",
+        "music": "Wähle ein Musikmodell, um zu generieren."
+      },
+      "needsInput": {
+        "image_edit": "Füge das Bild hinzu, das bearbeitet werden soll.",
+        "image_to_video": "Füge das Bild hinzu, das animiert werden soll.",
+        "reference_to_video": "Füge mindestens ein Referenzbild oder einen Referenzclip hinzu.",
+        "retake": "Füge den Clip hinzu, der geändert werden soll.",
+        "extend": "Füge den Clip hinzu, der verlängert werden soll."
       }
     },
     "sendFailed": "{{sent}} von {{count}} Takes gestartet. Die übrigen haben NodeTool nicht erreicht. Prüfe die Verbindung und versuche es erneut.",
@@ -19503,8 +19542,9 @@
     "gridLabel": "Generierungen",
     "empty": {
       "title": "Noch nichts erstellt",
-      "description": "Schreibe oben einen Prompt und drücke Generieren. Deine Bilder und Videos erscheinen hier, die neuesten zuerst.",
-      "action": "Prompt schreiben"
+      "description": "Schreibe oben einen Prompt und drücke Generieren. Deine Bilder, Videos und Audios erscheinen hier, die neuesten zuerst.",
+      "action": "Prompt schreiben",
+      "sessionTitle": "In diesem Tab ist noch nichts"
     },
     "item": {
       "open": "{{title}} öffnen",
@@ -19520,8 +19560,75 @@
       "downloaded": "{{name}} heruntergeladen",
       "downloadFailed": "Download nicht möglich: {{reason}}",
       "workflowName": "Create-Workflow",
-      "workflowFailed": "Workflow konnte nicht erstellt werden: {{reason}}"
-    }
+      "workflowFailed": "Workflow konnte nicht erstellt werden: {{reason}}",
+      "more": "Weitere Aktionen",
+      "moreLabel": "Weitere Aktionen für {{title}}",
+      "useAsReference": "Als Referenz verwenden",
+      "startFrom": {
+        "image_edit": "Dieses Bild bearbeiten",
+        "image_to_video": "Dieses Bild animieren",
+        "retake": "Diesen Clip ändern",
+        "extend": "Diesen Clip verlängern"
+      },
+      "openInSketch": "Im Sketch öffnen",
+      "reusePrompt": "Prompt wiederverwenden",
+      "sketchTitle": "Erstelltes Bild"
+    },
+    "kindLabel": "Was entstehen soll",
+    "modeLabel": "Wie es entstehen soll",
+    "kinds": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Audio"
+    },
+    "modes": {
+      "image": "Aus Text",
+      "image_edit": "Bearbeiten",
+      "video": "Aus Text",
+      "image_to_video": "Animieren",
+      "reference_to_video": "Aus Referenzen",
+      "retake": "Ändern",
+      "extend": "Verlängern",
+      "audio": "Sprache",
+      "music": "Musik"
+    },
+    "references": {
+      "label": "Referenzen",
+      "remove": "Entfernen",
+      "removeLabel": "{{name}} entfernen",
+      "role": {
+        "source": "Quellbild",
+        "startFrame": "Startbild",
+        "sourceClip": "Quellclip",
+        "reference": "Referenz",
+        "unused": "Hier nicht verwendet"
+      },
+      "add": {
+        "image": "Bild hinzufügen",
+        "video": "Clip hinzufügen",
+        "image-or-video": "Referenz hinzufügen"
+      },
+      "hint": {
+        "image_edit": "Füge das Bild hinzu, das bearbeitet werden soll, oder ziehe es hierher. Weitere Bilder bestimmen den Look.",
+        "image_to_video": "Füge das Bild hinzu, mit dem der Clip beginnt, oder ziehe es hierher.",
+        "reference_to_video": "Füge Bilder und Clips der Personen, Orte und des Stils hinzu, die erhalten bleiben sollen, oder ziehe sie hierher.",
+        "retake": "Füge den Clip hinzu, der geändert werden soll, oder ziehe ihn hierher. Bilder bestimmen den Look.",
+        "extend": "Füge den Clip hinzu, der verlängert werden soll, oder ziehe ihn hierher."
+      },
+      "uploadFailed": "{{name}} konnte nicht hochgeladen werden: {{reason}}"
+    },
+    "switched": "Zu {{mode}} gewechselt, weil du ein Bild hinzugefügt hast.",
+    "undoSwitch": "Zurück zu {{from}}",
+    "scope": {
+      "label": "Welche Takes angezeigt werden",
+      "session": "Dieser Tab",
+      "all": "Alle Takes"
+    },
+    "renameFailed": "Der Tab konnte nicht umbenannt werden: {{reason}}",
+    "sessionFailed": "Die Takes dieses Tabs konnten nicht geladen werden.",
+    "sessionKind": "Create-Sitzung",
+    "openInCreate": "In Create öffnen",
+    "openInCreateFailed": "Create konnte nicht geöffnet werden: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekte",
@@ -19754,6 +19861,91 @@
       "save": "Speichern",
       "cancel": "Abbrechen",
       "saveFailed": "Die Limits konnten nicht gespeichert werden."
+    },
+    "permissions": {
+      "edit": "Berechtigungen",
+      "editDefault": "Standardberechtigungen bearbeiten",
+      "defaultTitle": "Standardberechtigungen",
+      "userTitle": "Berechtigungen für {{name}}",
+      "defaultAll": "Standardberechtigungen: alles erlaubt.",
+      "defaultBlockedCount": "Standardberechtigungen: {{count}} gesperrt.",
+      "blockedCount": "Gesperrte Berechtigungen: {{count}}",
+      "defaultIntro": "Was alle Nutzer dürfen, solange du für sie nichts anderes festlegst.",
+      "userIntro": "Jede Berechtigung folgt dem Standard, bis du sie hier erlaubst oder sperrst.",
+      "allow": "Erlauben",
+      "block": "Sperren",
+      "defaultAllowed": "Standard: erlaubt",
+      "defaultBlocked": "Standard: gesperrt",
+      "adminNote": "Admins haben immer alle Berechtigungen.",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "saveFailed": "Die Berechtigungen konnten nicht gespeichert werden.",
+      "flags": {
+        "use_llm": {
+          "label": "Sprachmodelle nutzen",
+          "description": "Chat, Agenten und Textgenerierung."
+        },
+        "generate_media": {
+          "label": "Medien generieren",
+          "description": "Bilder, Video, Audio und 3D."
+        },
+        "use_server_keys": {
+          "label": "Anbieterschlüssel des Servers nutzen",
+          "description": "Wenn gesperrt, kann die Person nur mit Schlüsseln arbeiten, die sie in den Einstellungen hinzufügt."
+        },
+        "manage_own_keys": {
+          "label": "Eigene Anbieterschlüssel verwalten",
+          "description": "Anbieterschlüssel und eigene Anbieter hinzufügen, ändern oder entfernen."
+        },
+        "share_links": {
+          "label": "Freigabelinks erstellen",
+          "description": "Links, mit denen angemeldete Personen einen Workflow oder ein Dokument ansehen oder bearbeiten."
+        },
+        "share_public": {
+          "label": "Öffentlich teilen",
+          "description": "Einen Workflow öffentlich machen oder einen öffentlichen Link erstellen, den alle öffnen können."
+        },
+        "publish_apps": {
+          "label": "Apps veröffentlichen",
+          "description": "Mini-Apps veröffentlichen, freigeben und bereitstellen."
+        },
+        "install_packs": {
+          "label": "Node-Pakete ändern",
+          "description": "Paketvertrauen ändern, eingebaute Pakete ein- oder ausschalten und Pakete neu laden. Das betrifft alle Nutzer."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Freigaben",
+      "title": "Freigaben von {{name}}",
+      "links": "Freigabelinks",
+      "noLinks": "Keine aktiven Freigabelinks.",
+      "granted": "Zugriff gegeben an",
+      "noGranted": "Hat niemandem Zugriff gegeben.",
+      "received": "Hat Zugriff auf",
+      "noReceived": "Niemand hat Zugriff gegeben.",
+      "public": "Öffentliche Workflows",
+      "noPublic": "Keine öffentlichen Workflows.",
+      "revoke": "Widerrufen",
+      "removeAccess": "Zugriff entfernen",
+      "makePrivate": "Privat machen",
+      "untitled": "Ohne Titel",
+      "loadFailed": "Freigaben konnten nicht geladen werden.",
+      "actionFailed": "Die Änderung konnte nicht ausgeführt werden.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Skript",
+        "timeline": "Timeline",
+        "sketch": "Skizze",
+        "application": "App",
+        "jsscript": "JS-Skript"
+      },
+      "roles": {
+        "viewer": "Kann ansehen",
+        "editor": "Kann bearbeiten",
+        "public": "Öffentlich"
+      }
     }
   }
 }

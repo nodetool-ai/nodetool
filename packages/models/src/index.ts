@@ -168,6 +168,11 @@ export {
   removeDocumentSharing,
   type SharedDocumentType
 } from "./document-sharing.js";
+export {
+  getUserSharing,
+  listPublicWorkflows,
+  type UserSharing
+} from "./sharing-admin.js";
 
 export { Asset } from "./asset.js";
 export type { AssetRow, AssetInsert } from "./asset.js";
@@ -180,7 +185,7 @@ export {
   isCompactionMessage
 } from "./message.js";
 
-export { Thread } from "./thread.js";
+export { Thread, type ThreadKind } from "./thread.js";
 
 export { Memory, memorySearchTerms } from "./memory.js";
 export type {
@@ -619,6 +624,7 @@ export {
   USER_ROLES,
   USER_STATUSES,
   getUserAccount,
+  getUserAccounts,
   isUserRole,
   isUserStatus,
   listUserAccounts,
@@ -659,6 +665,22 @@ export type {
   UserQuota
 } from "./user-quota.js";
 export { userQuotas } from "./schema/user-quotas.js";
+export {
+  DEFAULT_PERMISSION_SUBJECT,
+  PERMISSION_FLAGS,
+  getEffectivePermissions,
+  getPermissionOverrides,
+  isPermissionFlag,
+  resolvePermissions,
+  setPermissionOverrides
+} from "./user-permissions.js";
+export type {
+  EffectivePermissions,
+  PermissionFlag,
+  PermissionOverrides,
+  Permissions
+} from "./user-permissions.js";
+export { userPermissions } from "./schema/user-permissions.js";
 
 export * from "./app-instance.js";
 

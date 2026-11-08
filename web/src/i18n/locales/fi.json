@@ -6174,7 +6174,6 @@
         "checkingModels": "Kielimalleja tarkistetaan vielä. Yritä hetken kuluttua uudelleen.",
         "chatNeedsModel": "Melkein valmista — keskustelu tarvitsee mallin toimiakseen.",
         "pickModelToStartChat": "Valitse kielimalli, niin keskustelu alkaa.",
-        "pickMediaModel": "Valitse malli, niin generointi alkaa.",
         "openChatError": "Keskustelua ei voitu avata: {{error}}",
         "startFlowError": "Kulkua {{flow}} ei voitu aloittaa: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Työnkulkuesimerkit",
             "description": "Monivaiheisia automaatioita"
           }
+        },
+        "goals": {
+          "label": "Mitä aloitetaan",
+          "chat": "Chat",
+          "image": "Kuva",
+          "video": "Video",
+          "audio": "Ääni"
         }
       }
     }
@@ -8791,8 +8797,6 @@
       "studio": "Studio",
       "switchToProject": "Vaihda projektiin {{name}}",
       "personal": "Henkilökohtainen",
-      "newChatInMode": "Uusi keskustelu: {{mode}}",
-      "newChatInModeValue": "Uusi keskustelu {{mode}}",
       "newTextFileValue": "Uusi tekstitiedosto {{label}}",
       "newTextFile": "Uusi tekstitiedosto: {{label}}",
       "newStoryboard": "Uusi kuvakäsikirjoitus",
@@ -8824,8 +8828,7 @@
         "script": "Uusi skripti",
         "jsscript": "Uusi JS-skripti",
         "skill": "Uusi taito",
-        "model3d": "Uusi 3D-malli",
-        "create": "Luo kuvia ja videoita"
+        "model3d": "Uusi 3D-malli"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8834,6 +8837,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Pelkkä teksti (.txt)"
+      },
+      "createSession": {
+        "image": "Uusi kuva",
+        "video": "Uusi video",
+        "audio": "Lue ääneen",
+        "music": "Luo musiikkia"
       }
     },
     "googleWorkspace": {
@@ -18962,6 +18971,15 @@
       "invalidLink": "Tämä jakolinkki on virheellinen tai se on kumottu. Pyydä asiakirjan omistajalta uusi linkki.",
       "goToWorkspace": "Siirry työtilaan",
       "opening": "Avataan jaettua asiakirjaa"
+    },
+    "invite": {
+      "label": "Kutsu henkilöitä",
+      "placeholder": "Nimi tai sähköposti",
+      "role": "Rooli",
+      "submit": "Kutsu",
+      "typeMore": "Kirjoita vähintään 2 merkkiä",
+      "noMatches": "Ei osumia",
+      "failed": "Käyttöoikeutta ei voitu antaa."
     }
   },
   "timelineAutomation": {
@@ -19488,13 +19506,34 @@
     "takes_other": "{{count}} otosta",
     "placeholder": {
       "image": "Majakka hämärässä, still-kuva elokuvasta",
-      "video": "Hidas lähestyvä kameraliike majakkaan hämärässä"
+      "video": "Hidas lähestyvä kameraliike majakkaan hämärässä",
+      "image_edit": "Tee siitä yö ja lisää sadetta",
+      "image_to_video": "Aallot iskevät ja valo alkaa kääntyä",
+      "reference_to_video": "Viitteiden hahmo kävelee laituria pitkin",
+      "retake": "Muuta taivas myrskyksi",
+      "extend": "Kamera jatkaa loitontamista",
+      "audio": "Kirjoita puhuttavat sanat",
+      "music": "Hidasta ambient-pianoa ja hiljaista sadetta"
     },
     "blocker": {
       "noPrompt": "Kirjoita kehote ennen luomista.",
       "noModel": {
         "image": "Valitse kuvamalli ennen luomista.",
-        "video": "Valitse videomalli ennen luomista."
+        "video": "Valitse videomalli ennen luomista.",
+        "image_edit": "Valitse kuvanmuokkausmalli generoidaksesi.",
+        "image_to_video": "Valitse kuvasta videoksi -malli generoidaksesi.",
+        "reference_to_video": "Valitse viitteistä videoksi -malli generoidaksesi.",
+        "retake": "Valitse videonmuokkausmalli generoidaksesi.",
+        "extend": "Valitse videon jatkamismalli generoidaksesi.",
+        "audio": "Valitse puhemalli generoidaksesi.",
+        "music": "Valitse musiikkimalli generoidaksesi."
+      },
+      "needsInput": {
+        "image_edit": "Lisää muokattava kuva.",
+        "image_to_video": "Lisää animoitava kuva.",
+        "reference_to_video": "Lisää vähintään yksi viitekuva tai -leike.",
+        "retake": "Lisää muutettava leike.",
+        "extend": "Lisää jatkettava leike."
       }
     },
     "sendFailed": "{{sent}}/{{count}} otosta käynnistyi. Loput eivät tavoittaneet NodeToolia. Tarkista yhteys ja yritä uudelleen.",
@@ -19503,8 +19542,9 @@
     "gridLabel": "Luodut",
     "empty": {
       "title": "Mitään ei ole vielä luotu",
-      "description": "Kirjoita kehote ylös ja paina Luo. Kuvasi ja videosi näkyvät tässä, uusimmat ensin.",
-      "action": "Kirjoita kehote"
+      "description": "Kirjoita kehote yllä ja paina Generoi. Kuvasi, videosi ja äänesi näkyvät täällä, uusimmat ensin.",
+      "action": "Kirjoita kehote",
+      "sessionTitle": "Tällä välilehdellä ei ole vielä mitään"
     },
     "item": {
       "open": "Avaa {{title}}",
@@ -19520,8 +19560,75 @@
       "downloaded": "{{name}} ladattu",
       "downloadFailed": "Lataus ei onnistunut: {{reason}}",
       "workflowName": "Create-työnkulku",
-      "workflowFailed": "Työnkulkua ei voitu luoda: {{reason}}"
-    }
+      "workflowFailed": "Työnkulkua ei voitu luoda: {{reason}}",
+      "more": "Lisää toimintoja",
+      "moreLabel": "Lisää toimintoja kohteelle {{title}}",
+      "useAsReference": "Käytä viitteenä",
+      "startFrom": {
+        "image_edit": "Muokkaa tätä kuvaa",
+        "image_to_video": "Animoi tämä kuva",
+        "retake": "Muuta tätä leikettä",
+        "extend": "Jatka tätä leikettä"
+      },
+      "openInSketch": "Avaa luonnoksessa",
+      "reusePrompt": "Käytä kehotetta uudelleen",
+      "sketchTitle": "Luotu kuva"
+    },
+    "kindLabel": "Mitä luodaan",
+    "modeLabel": "Miten se luodaan",
+    "kinds": {
+      "image": "Kuva",
+      "video": "Video",
+      "audio": "Ääni"
+    },
+    "modes": {
+      "image": "Tekstistä",
+      "image_edit": "Muokkaa",
+      "video": "Tekstistä",
+      "image_to_video": "Animoi",
+      "reference_to_video": "Viitteistä",
+      "retake": "Muuta",
+      "extend": "Jatka",
+      "audio": "Puhe",
+      "music": "Musiikki"
+    },
+    "references": {
+      "label": "Viitteet",
+      "remove": "Poista",
+      "removeLabel": "Poista {{name}}",
+      "role": {
+        "source": "Lähdekuva",
+        "startFrame": "Aloituskuva",
+        "sourceClip": "Lähdeleike",
+        "reference": "Viite",
+        "unused": "Ei käytössä tässä"
+      },
+      "add": {
+        "image": "Lisää kuva",
+        "video": "Lisää leike",
+        "image-or-video": "Lisää viite"
+      },
+      "hint": {
+        "image_edit": "Lisää tai pudota muokattava kuva. Lisäkuvat ohjaavat tyyliä.",
+        "image_to_video": "Lisää tai pudota kuva, josta leike alkaa.",
+        "reference_to_video": "Lisää tai pudota kuvia ja leikkeitä henkilöistä, paikoista ja tyylistä, jotka säilytetään.",
+        "retake": "Lisää tai pudota muutettava leike. Lisäämäsi kuvat ohjaavat tyyliä.",
+        "extend": "Lisää tai pudota jatkettava leike."
+      },
+      "uploadFailed": "Tiedoston {{name}} lataus epäonnistui: {{reason}}"
+    },
+    "switched": "Vaihdettiin tilaan {{mode}}, koska lisäsit kuvan.",
+    "undoSwitch": "Takaisin tilaan {{from}}",
+    "scope": {
+      "label": "Näytettävät otot",
+      "session": "Tämä välilehti",
+      "all": "Kaikki otot"
+    },
+    "renameFailed": "Välilehteä ei voitu nimetä uudelleen: {{reason}}",
+    "sessionFailed": "Tämän välilehden ottoja ei voitu ladata.",
+    "sessionKind": "Create-istunto",
+    "openInCreate": "Avaa Createssa",
+    "openInCreateFailed": "Createa ei voitu avata: {{reason}}"
   },
   "effectsGallery": {
     "title": "Tehosteet",
@@ -19754,6 +19861,91 @@
       "save": "Tallenna",
       "cancel": "Peruuta",
       "saveFailed": "Rajoja ei voitu tallentaa."
+    },
+    "permissions": {
+      "edit": "Oikeudet",
+      "editDefault": "Muokkaa oletusoikeuksia",
+      "defaultTitle": "Oletusoikeudet",
+      "userTitle": "Oikeudet: {{name}}",
+      "defaultAll": "Oletusoikeudet: kaikki sallittu.",
+      "defaultBlockedCount": "Oletusoikeudet: {{count}} estetty.",
+      "blockedCount": "Estetyt oikeudet: {{count}}",
+      "defaultIntro": "Mitä kaikki käyttäjät saavat tehdä, ellet aseta heille omaa oikeutta.",
+      "userIntro": "Jokainen oikeus noudattaa oletusta, kunnes sallit tai estät sen tässä.",
+      "allow": "Salli",
+      "block": "Estä",
+      "defaultAllowed": "Oletus: sallittu",
+      "defaultBlocked": "Oletus: estetty",
+      "adminNote": "Ylläpitäjillä on aina kaikki oikeudet.",
+      "save": "Tallenna",
+      "cancel": "Peruuta",
+      "saveFailed": "Oikeuksia ei voitu tallentaa.",
+      "flags": {
+        "use_llm": {
+          "label": "Käytä kielimalleja",
+          "description": "Chat, agentit ja tekstin luonti."
+        },
+        "generate_media": {
+          "label": "Luo mediaa",
+          "description": "Kuvat, video, ääni ja 3D."
+        },
+        "use_server_keys": {
+          "label": "Käytä palvelimen palveluntarjoaja-avaimia",
+          "description": "Kun estetty, henkilö voi käyttää vain avaimia, jotka hän lisää asetuksiin."
+        },
+        "manage_own_keys": {
+          "label": "Hallitse omia palveluntarjoaja-avaimia",
+          "description": "Lisää, muuta tai poista palveluntarjoaja-avaimia ja omia palveluntarjoajia."
+        },
+        "share_links": {
+          "label": "Luo jakolinkkejä",
+          "description": "Linkit, joilla kirjautuneet henkilöt voivat katsoa tai muokata työnkulkua tai dokumenttia."
+        },
+        "share_public": {
+          "label": "Jaa julkisesti",
+          "description": "Tee työnkulusta julkinen tai luo julkinen linkki, jonka kuka tahansa voi avata."
+        },
+        "publish_apps": {
+          "label": "Julkaise sovelluksia",
+          "description": "Julkaise ja ota käyttöön minisovelluksia."
+        },
+        "install_packs": {
+          "label": "Muuta solmupaketteja",
+          "description": "Muuta pakettien luottamusta, kytke sisäänrakennettuja paketteja päälle tai pois ja lataa paketit uudelleen. Tämä koskee kaikkia käyttäjiä."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Jakaminen",
+      "title": "Henkilön {{name}} jaot",
+      "links": "Jakolinkit",
+      "noLinks": "Ei aktiivisia jakolinkkejä.",
+      "granted": "Antoi pääsyn",
+      "noGranted": "Ei ole antanut kenellekään pääsyä.",
+      "received": "Pääsy kohteisiin",
+      "noReceived": "Kukaan ei ole antanut pääsyä.",
+      "public": "Julkiset työnkulut",
+      "noPublic": "Ei julkisia työnkulkuja.",
+      "revoke": "Peruuta",
+      "removeAccess": "Poista pääsy",
+      "makePrivate": "Tee yksityiseksi",
+      "untitled": "Nimetön",
+      "loadFailed": "Jakoja ei voitu ladata.",
+      "actionFailed": "Muutosta ei voitu tehdä.",
+      "types": {
+        "workflow": "Työnkulku",
+        "storyboard": "Kuvakäsikirjoitus",
+        "script": "Käsikirjoitus",
+        "timeline": "Aikajana",
+        "sketch": "Luonnos",
+        "application": "Sovellus",
+        "jsscript": "JS-skripti"
+      },
+      "roles": {
+        "viewer": "Voi katsoa",
+        "editor": "Voi muokata",
+        "public": "Julkinen"
+      }
     }
   }
 }

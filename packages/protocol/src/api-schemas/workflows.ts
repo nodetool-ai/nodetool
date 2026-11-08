@@ -616,7 +616,10 @@ export const collaboratorItem = z.object({
   user_id: z.string(),
   role: collaboratorRoleSchema,
   invited_by: z.string(),
-  created_at: z.string().nullable().optional()
+  created_at: z.string().nullable().optional(),
+  /** From the user directory, when the collaborator has signed in through SSO. */
+  display_name: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
 });
 export type CollaboratorItem = z.infer<typeof collaboratorItem>;
 
@@ -665,6 +668,10 @@ export const sharingRemoveCollaboratorInput = z.object({
 export type SharingRemoveCollaboratorInput = z.infer<
   typeof sharingRemoveCollaboratorInput
 >;
+
+/** Give a person from the user directory access by name, without a link. */
+export const sharingInviteInput = sharingSetRoleInput;
+export type SharingInviteInput = z.infer<typeof sharingInviteInput>;
 
 export const sharingOkOutput = z.object({ ok: z.literal(true) });
 export type SharingOkOutput = z.infer<typeof sharingOkOutput>;

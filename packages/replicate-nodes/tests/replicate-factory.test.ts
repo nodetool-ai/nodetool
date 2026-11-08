@@ -1,29 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 import type { ReplicateManifestEntry } from "../src/replicate-factory.js";
 
 const assetToUrl = vi.fn(
   async (ref: Record<string, unknown>) => `uploaded:${String(ref.uri)}`
 );
-const replicateSubmit = vi.fn(async () => ({ output: "ok" }));
 
-vi.mock("../src/replicate-base.js", () => ({
-  assetToUrl,
-  getReplicateApiKey: () => "test-key",
-  isRefSet: (ref: unknown) => {
-    if (!ref || typeof ref !== "object") return false;
-    const r = ref as Record<string, unknown>;
-    return Boolean(r.data || r.uri);
-  },
-  outputToAudioRef: (output: unknown) => ({ type: "audio", uri: output }),
-  outputToImageRef: (output: unknown) => ({ type: "image", uri: output }),
-  outputToString: (output: unknown) => String(output ?? ""),
-  outputToVideoRef: (output: unknown) => ({ type: "video", uri: output }),
-  removeNulls: (obj: Record<string, unknown>) => {
-    for (const key of Object.keys(obj)) {
-      if (obj[key] == null || obj[key] === "") delete obj[key];
-    }
-  },
-  replicateSubmit
+vi.mock("../src/replicate-base.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/replicate-base.js")>()),
+  assetToUrl
 }));
 
 const { createReplicateNodeClass } = await import("../src/replicate-factory.js");
@@ -32,9 +17,29 @@ const { default: manifest } = await import("../src/replicate-manifest.json", {
 });
 
 describe("Replicate factory argument building", () => {
+  let provider: ScriptedProvider;
+  let ctx: ProcessingContext;
+
+  /** Answer every endpoint call with `output`. */
+  function replyWith(output: unknown): void {
+    provider = new ScriptedProvider([], {
+      providerId: "replicate",
+      endpoints: { "*": { output } }
+    });
+    ctx = new ProcessingContext({ jobId: "job-1" });
+    ctx.setProviderResolver(() => provider);
+  }
+
+  /** The model and input of the one endpoint call the node made. */
+  function sent(): { model: string; input: Record<string, unknown> } {
+    expect(provider.endpointCalls).toHaveLength(1);
+    const { model, input } = provider.endpointCalls[0]!;
+    return { model, input };
+  }
+
   beforeEach(() => {
     assetToUrl.mockClear();
-    replicateSubmit.mockClear();
+    replyWith("ok");
   });
 
   it("uploads each item in list media inputs", async () => {
@@ -67,14 +72,17 @@ describe("Replicate factory argument building", () => {
       { type: "image", uri: "https://example.com/b.png" }
     ];
 
-    await instance.process();
+    await instance.process(ctx);
 
     expect(assetToUrl).toHaveBeenCalledTimes(2);
-    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
-      images: [
-        "uploaded:https://example.com/a.png",
-        "uploaded:https://example.com/b.png"
-      ]
+    expect(sent()).toEqual({
+      model: "owner/model",
+      input: {
+        images: [
+          "uploaded:https://example.com/a.png",
+          "uploaded:https://example.com/b.png"
+        ]
+      }
     });
   });
 
@@ -115,16 +123,19 @@ describe("Replicate factory argument building", () => {
     (instance as unknown as Record<string, unknown>).texts = ["alpha", "beta"];
     (instance as unknown as Record<string, unknown>).seed = 0;
 
-    await instance.process();
+    await instance.process(ctx);
 
-    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
-      texts: ["alpha", "beta"],
-      seed: 0
+    expect(sent()).toEqual({
+      model: "owner/model",
+      input: {
+        texts: ["alpha", "beta"],
+        seed: 0
+      }
     });
   });
 
   it("produces a single output per process() call for image-generation nodes", async () => {
-    replicateSubmit.mockResolvedValueOnce({ output: ["u1", "u2", "u3"] });
+    replyWith(["u1", "u2", "u3"]);
 
     const NodeClass = createReplicateNodeClass({
       endpointId: "owner/model",
@@ -141,7 +152,7 @@ describe("Replicate factory argument building", () => {
     const instance = new NodeClass({});
 
     // process() returns a single mapped output — no genProcess fan-out.
-    const result = await instance.process();
+    const result = await instance.process(ctx);
     expect(result).toHaveProperty("output");
     expect((result as { output: { type: string } }).output.type).toBe("image");
     expect(NodeClass.outputCorrelation).toBeUndefined();
@@ -152,7 +163,7 @@ describe("Replicate factory argument building", () => {
   });
 
   it("does not register num_outputs and forces num_outputs=1 in API args", async () => {
-    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+    replyWith("u1");
 
     const NodeClass = createReplicateNodeClass({
       endpointId: "owner/model",
@@ -196,16 +207,19 @@ describe("Replicate factory argument building", () => {
     (instance as unknown as Record<string, unknown>).prompt = "cat";
     (instance as unknown as Record<string, unknown>).num_outputs = 4;
 
-    await instance.process();
+    await instance.process(ctx);
 
-    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
-      prompt: "cat",
-      num_outputs: 1
+    expect(sent()).toEqual({
+      model: "owner/model",
+      input: {
+        prompt: "cat",
+        num_outputs: 1
+      }
     });
   });
 
   it("registers numeric enums as numbers and sends a number to the API", async () => {
-    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+    replyWith("u1");
 
     const NodeClass = createReplicateNodeClass({
       endpointId: "owner/model",
@@ -241,15 +255,18 @@ describe("Replicate factory argument building", () => {
     const instance = new NodeClass({});
     (instance as unknown as Record<string, unknown>).width = 1024;
 
-    await instance.process();
+    await instance.process(ctx);
 
-    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
-      width: 1024
+    expect(sent()).toEqual({
+      model: "owner/model",
+      input: {
+        width: 1024
+      }
     });
   });
 
   it("keeps string enums as strings", async () => {
-    replicateSubmit.mockResolvedValueOnce({ output: "u1" });
+    replyWith("u1");
 
     const NodeClass = createReplicateNodeClass({
       endpointId: "owner/model",
@@ -283,10 +300,13 @@ describe("Replicate factory argument building", () => {
     const instance = new NodeClass({});
     (instance as unknown as Record<string, unknown>).mode = "quality";
 
-    await instance.process();
+    await instance.process(ctx);
 
-    expect(replicateSubmit).toHaveBeenCalledWith("test-key", "owner/model", {
-      mode: "quality"
+    expect(sent()).toEqual({
+      model: "owner/model",
+      input: {
+        mode: "quality"
+      }
     });
   });
 
@@ -304,9 +324,9 @@ describe("Replicate factory argument building", () => {
       seed: 7
     });
 
-    await instance.process();
+    await instance.process(ctx);
 
-    const args = replicateSubmit.mock.calls[0]![2] as Record<string, unknown>;
+    const args = sent().input;
     expect(args).not.toHaveProperty("width");
     expect(args).not.toHaveProperty("height");
     expect(args).toMatchObject({ aspect_ratio: "16:9", seed: 7 });
@@ -320,9 +340,9 @@ describe("Replicate factory argument building", () => {
     // output_quality is min 0, so 0 is a real value.
     Object.assign(instance, { prompt: "a red cube", output_quality: 0 });
 
-    await instance.process();
+    await instance.process(ctx);
 
-    const args = replicateSubmit.mock.calls[0]![2] as Record<string, unknown>;
+    const args = sent().input;
     expect(args.output_quality).toBe(0);
   });
 
@@ -342,5 +362,89 @@ describe("Replicate factory argument building", () => {
 
     expect(NodeClass.outputCorrelation).toBeUndefined();
     expect(NodeClass.toDescriptor("text").is_streaming_output).toBe(false);
+  });
+
+  it("runs inside the generation seam and emits a prediction message", async () => {
+    replyWith("https://replicate.delivery/out/fox.mp4");
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/video-model",
+      className: "VideoModel",
+      moduleName: "video.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "video",
+      inputFields: [
+        {
+          name: "prompt",
+          propType: "str",
+          tsType: "string",
+          default: "",
+          description: "",
+          fieldType: "input",
+          required: true
+        }
+      ],
+      outputFields: [],
+      enums: []
+    });
+    const instance = new NodeClass({ __node_id: "node-7" });
+    (instance as unknown as Record<string, unknown>).prompt = "a fox";
+
+    const result = await instance.process(ctx);
+
+    expect(result).toEqual({
+      output: { type: "video", uri: "https://replicate.delivery/out/fox.mp4" }
+    });
+    const predictions = ctx
+      .getMessages()
+      .filter((m) => m.type === "prediction");
+    expect(predictions.map((m) => m.status)).toEqual(["running", "completed"]);
+    expect(predictions.at(-1)).toMatchObject({
+      status: "completed",
+      provider: "replicate",
+      capability: "text_to_video",
+      model: "owner/video-model",
+      node_id: "node-7",
+      params: { prompt: "a fox" }
+    });
+  });
+
+  it("fails without a processing context", async () => {
+    const NodeClass = createReplicateNodeClass({
+      endpointId: "owner/model",
+      className: "NoContextModel",
+      moduleName: "image.generate",
+      docstring: "test",
+      tags: [],
+      useCases: [],
+      outputType: "image",
+      inputFields: [],
+      outputFields: [],
+      enums: []
+    });
+
+    await expect(new NodeClass({}).process()).rejects.toThrow(
+      "replicate.image.generate.NoContextModel needs a processing context to call Replicate"
+    );
+  });
+});
+
+describe("replicateCapabilityForOutputType", () => {
+  it("records each manifest output type under a generation capability", async () => {
+    const { replicateCapabilityForOutputType } = await import(
+      "../src/replicate-base.js"
+    );
+    expect(
+      ["image", "video", "audio", "str", "dict"].map(
+        replicateCapabilityForOutputType
+      )
+    ).toEqual([
+      "text_to_image",
+      "text_to_video",
+      "text_to_speech",
+      "generate_message",
+      "text_to_image"
+    ]);
   });
 });

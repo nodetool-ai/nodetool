@@ -6174,7 +6174,6 @@
         "checkingModels": "Controleer nog steeds uw taalmodellen. Probeer het zo nog eens.",
         "chatNeedsModel": "Het is bijna zover: chat heeft een model nodig om te kunnen werken.",
         "pickModelToStartChat": "Kies een taalmodel en de chat begint.",
-        "pickMediaModel": "Kies een model en de generatie begint.",
         "openChatError": "Kan chat niet openen: {{error}}",
         "startFlowError": "Kan {{flow}}: {{error}} niet starten",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Voorbeelden van workflows",
             "description": "Automatiseringen, meerstaps"
           }
+        },
+        "goals": {
+          "label": "Wat er start",
+          "chat": "Chat",
+          "image": "Afbeelding",
+          "video": "Video",
+          "audio": "Audio"
         }
       }
     }
@@ -8791,8 +8797,6 @@
       "studio": "Studio",
       "switchToProject": "Schakel over naar project {{name}}",
       "personal": "Persoonlijk",
-      "newChatInMode": "Nieuwe chat: {{mode}}",
-      "newChatInModeValue": "Nieuwe chat {{mode}}",
       "newTextFileValue": "Nieuw tekstbestand {{label}}",
       "newTextFile": "Nieuw tekstbestand: {{label}}",
       "newStoryboard": "Nieuw storyboard",
@@ -8824,8 +8828,7 @@
         "script": "Nieuw script",
         "jsscript": "Nieuw JS-script",
         "skill": "Nieuwe vaardigheid",
-        "model3d": "Nieuw 3D-model",
-        "create": "Maak afbeeldingen en video's"
+        "model3d": "Nieuw 3D-model"
       },
       "templates": {
         "markdown": "Prijsverlaging (.md)",
@@ -8834,6 +8837,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Platte tekst (.txt)"
+      },
+      "createSession": {
+        "image": "Nieuwe afbeelding",
+        "video": "Nieuwe video",
+        "audio": "Voorlezen",
+        "music": "Muziek genereren"
       }
     },
     "googleWorkspace": {
@@ -18962,6 +18971,15 @@
       "invalidLink": "Deze deellink is ongeldig of is ingetrokken. Vraag de documenteigenaar om een ​​nieuw document.",
       "goToWorkspace": "Ga naar werkruimte",
       "opening": "Gedeeld document openen"
+    },
+    "invite": {
+      "label": "Mensen uitnodigen",
+      "placeholder": "Naam of e-mail",
+      "role": "Rol",
+      "submit": "Uitnodigen",
+      "typeMore": "Typ minstens 2 tekens",
+      "noMatches": "Niemand gevonden",
+      "failed": "Kon geen toegang geven."
     }
   },
   "timelineAutomation": {
@@ -19488,13 +19506,34 @@
     "takes_other": "{{count}} neemt",
     "placeholder": {
       "image": "Een vuurtoren in de schemering, filmstill",
-      "video": "Langzaam dolly binnen op een vuurtoren in de schemering"
+      "video": "Langzaam dolly binnen op een vuurtoren in de schemering",
+      "image_edit": "Maak er nacht van en voeg regen toe",
+      "image_to_video": "De golven breken en het licht begint te draaien",
+      "reference_to_video": "Het personage uit de referenties loopt over de pier",
+      "retake": "Verander de lucht in een storm",
+      "extend": "De camera blijft terugtrekken",
+      "audio": "Typ de woorden die uitgesproken worden",
+      "music": "Rustige ambient-piano met zachte regen"
     },
     "blocker": {
       "noPrompt": "Schrijf een prompt om te genereren.",
       "noModel": {
         "image": "Kies een afbeeldingsmodel om te genereren.",
-        "video": "Kies een videomodel om te genereren."
+        "video": "Kies een videomodel om te genereren.",
+        "image_edit": "Kies een model voor beeldbewerking om te genereren.",
+        "image_to_video": "Kies een afbeelding-naar-videomodel om te genereren.",
+        "reference_to_video": "Kies een referentie-naar-videomodel om te genereren.",
+        "retake": "Kies een model voor videobewerking om te genereren.",
+        "extend": "Kies een model voor videoverlenging om te genereren.",
+        "audio": "Kies een spraakmodel om te genereren.",
+        "music": "Kies een muziekmodel om te genereren."
+      },
+      "needsInput": {
+        "image_edit": "Voeg de afbeelding toe die je wilt bewerken.",
+        "image_to_video": "Voeg de afbeelding toe die je wilt animeren.",
+        "reference_to_video": "Voeg minstens één referentieafbeelding of -clip toe.",
+        "retake": "Voeg de clip toe die je wilt wijzigen.",
+        "extend": "Voeg de clip toe die je wilt verlengen."
       }
     },
     "sendFailed": "Gestart met {{sent}} van {{count}} opnames. De rest bereikte NodeTool niet. Controleer uw verbinding en probeer het opnieuw.",
@@ -19503,8 +19542,9 @@
     "gridLabel": "Generaties",
     "empty": {
       "title": "Er is nog niets aangemaakt",
-      "description": "Schrijf hierboven een prompt en druk op Genereren. Je afbeeldingen en video's verschijnen hier, de nieuwste eerst.",
-      "action": "Schrijf een prompt"
+      "description": "Schrijf hierboven een prompt en druk op Genereren. Je afbeeldingen, video’s en audio verschijnen hier, nieuwste eerst.",
+      "action": "Schrijf een prompt",
+      "sessionTitle": "Nog niets in dit tabblad"
     },
     "item": {
       "open": "Open {{title}}",
@@ -19520,8 +19560,75 @@
       "downloaded": "{{name}} gedownload",
       "downloadFailed": "Kon niet downloaden: {{reason}}",
       "workflowName": "Werkstroom creëren",
-      "workflowFailed": "Kon geen workflow bouwen: {{reason}}"
-    }
+      "workflowFailed": "Kon geen workflow bouwen: {{reason}}",
+      "more": "Meer acties",
+      "moreLabel": "Meer acties voor {{title}}",
+      "useAsReference": "Als referentie gebruiken",
+      "startFrom": {
+        "image_edit": "Deze afbeelding bewerken",
+        "image_to_video": "Deze afbeelding animeren",
+        "retake": "Deze clip wijzigen",
+        "extend": "Deze clip verlengen"
+      },
+      "openInSketch": "Openen in schets",
+      "reusePrompt": "Prompt hergebruiken",
+      "sketchTitle": "Gemaakte afbeelding"
+    },
+    "kindLabel": "Wat je maakt",
+    "modeLabel": "Hoe je het maakt",
+    "kinds": {
+      "image": "Afbeelding",
+      "video": "Video",
+      "audio": "Audio"
+    },
+    "modes": {
+      "image": "Uit tekst",
+      "image_edit": "Bewerken",
+      "video": "Uit tekst",
+      "image_to_video": "Animeren",
+      "reference_to_video": "Uit referenties",
+      "retake": "Wijzigen",
+      "extend": "Verlengen",
+      "audio": "Spraak",
+      "music": "Muziek"
+    },
+    "references": {
+      "label": "Referenties",
+      "remove": "Verwijderen",
+      "removeLabel": "{{name}} verwijderen",
+      "role": {
+        "source": "Bronafbeelding",
+        "startFrame": "Beginframe",
+        "sourceClip": "Bronclip",
+        "reference": "Referentie",
+        "unused": "Hier niet gebruikt"
+      },
+      "add": {
+        "image": "Afbeelding toevoegen",
+        "video": "Clip toevoegen",
+        "image-or-video": "Referentie toevoegen"
+      },
+      "hint": {
+        "image_edit": "Voeg de afbeelding toe die je wilt bewerken, of sleep hem hierheen. Extra afbeeldingen sturen de look.",
+        "image_to_video": "Voeg de afbeelding toe waarmee de clip begint, of sleep hem hierheen.",
+        "reference_to_video": "Voeg afbeeldingen en clips toe van de mensen, plekken en stijl die je wilt behouden, of sleep ze hierheen.",
+        "retake": "Voeg de clip toe die je wilt wijzigen, of sleep hem hierheen. Afbeeldingen die je toevoegt sturen de look.",
+        "extend": "Voeg de clip toe die je wilt verlengen, of sleep hem hierheen."
+      },
+      "uploadFailed": "Kon {{name}} niet uploaden: {{reason}}"
+    },
+    "switched": "Overgeschakeld naar {{mode}} omdat je een afbeelding hebt toegevoegd.",
+    "undoSwitch": "Terug naar {{from}}",
+    "scope": {
+      "label": "Welke takes worden getoond",
+      "session": "Dit tabblad",
+      "all": "Alle takes"
+    },
+    "renameFailed": "Het tabblad kon niet worden hernoemd: {{reason}}",
+    "sessionFailed": "De takes van dit tabblad konden niet worden geladen.",
+    "sessionKind": "Create-sessie",
+    "openInCreate": "Openen in Create",
+    "openInCreateFailed": "Create kon niet worden geopend: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effecten",
@@ -19754,6 +19861,91 @@
       "save": "Opslaan",
       "cancel": "Annuleren",
       "saveFailed": "De limieten konden niet worden opgeslagen."
+    },
+    "permissions": {
+      "edit": "Rechten",
+      "editDefault": "Standaardrechten bewerken",
+      "defaultTitle": "Standaardrechten",
+      "userTitle": "Rechten voor {{name}}",
+      "defaultAll": "Standaardrechten: alles toegestaan.",
+      "defaultBlockedCount": "Standaardrechten: {{count}} geblokkeerd.",
+      "blockedCount": "Geblokkeerde rechten: {{count}}",
+      "defaultIntro": "Wat elke gebruiker mag, tenzij je een eigen recht voor diegene instelt.",
+      "userIntro": "Elk recht volgt de standaard tot je het hier toestaat of blokkeert.",
+      "allow": "Toestaan",
+      "block": "Blokkeren",
+      "defaultAllowed": "Standaard: toegestaan",
+      "defaultBlocked": "Standaard: geblokkeerd",
+      "adminNote": "Beheerders hebben altijd alle rechten.",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "saveFailed": "De rechten konden niet worden opgeslagen.",
+      "flags": {
+        "use_llm": {
+          "label": "Taalmodellen gebruiken",
+          "description": "Chat, agents en tekstgeneratie."
+        },
+        "generate_media": {
+          "label": "Media genereren",
+          "description": "Afbeeldingen, video, audio en 3D."
+        },
+        "use_server_keys": {
+          "label": "Providersleutels van de server gebruiken",
+          "description": "Indien geblokkeerd kan de persoon alleen werken met sleutels die diegene in Instellingen toevoegt."
+        },
+        "manage_own_keys": {
+          "label": "Eigen providersleutels beheren",
+          "description": "Providersleutels en eigen providers toevoegen, wijzigen of verwijderen."
+        },
+        "share_links": {
+          "label": "Deellinks maken",
+          "description": "Links waarmee aangemelde personen een workflow of document kunnen bekijken of bewerken."
+        },
+        "share_public": {
+          "label": "Openbaar delen",
+          "description": "Een workflow openbaar maken of een openbare link maken die iedereen kan openen."
+        },
+        "publish_apps": {
+          "label": "Apps publiceren",
+          "description": "Mini-apps publiceren, uitbrengen en implementeren."
+        },
+        "install_packs": {
+          "label": "Nodepakketten wijzigen",
+          "description": "Pakketvertrouwen wijzigen, ingebouwde pakketten aan- of uitzetten en pakketten herladen. Dit geldt voor alle gebruikers."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Delen",
+      "title": "Gedeeld door {{name}}",
+      "links": "Deellinks",
+      "noLinks": "Geen actieve deellinks.",
+      "granted": "Gaf toegang aan",
+      "noGranted": "Heeft niemand toegang gegeven.",
+      "received": "Heeft toegang tot",
+      "noReceived": "Niemand heeft toegang gegeven.",
+      "public": "Openbare workflows",
+      "noPublic": "Geen openbare workflows.",
+      "revoke": "Intrekken",
+      "removeAccess": "Toegang verwijderen",
+      "makePrivate": "Privé maken",
+      "untitled": "Naamloos",
+      "loadFailed": "Kon delen niet laden.",
+      "actionFailed": "Kon de wijziging niet uitvoeren.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "timeline": "Tijdlijn",
+        "sketch": "Schets",
+        "application": "App",
+        "jsscript": "JS-script"
+      },
+      "roles": {
+        "viewer": "Kan bekijken",
+        "editor": "Kan bewerken",
+        "public": "Openbaar"
+      }
     }
   }
 }

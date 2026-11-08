@@ -54,6 +54,41 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Whether the caller is an admin steers the admin UI. A run has no " +
       "admin surface to steer."
   },
+  "admin.permissions.getDefault": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.permissions.setDefault": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.permissions.setUser": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.sharing.forUser": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.sharing.makePrivate": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.sharing.removeGrant": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.sharing.revokeLink": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
   "admin.quotas.clearUser": {
     withheld:
       "Spend limits are set by an admin for every user on the install, " +
@@ -433,6 +468,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "user's decision, as it is for `workflows.sharing`."
   },
   "documentSharing.revokeLink": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
+  "documentSharing.invite": {
     withheld:
       "Sharing grants named people and link holders access to a " +
       "document. Handing access to a *particular* account is the " +
@@ -853,6 +894,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "host will run and which SKILL.md is read as instructions " +
       "rather than as untrusted text. A run that could grant itself " +
       "trust could escalate a prompt injection into executed code."
+  },
+  "people.search": {
+    withheld:
+      "Looking people up in the user directory serves inviting them, " +
+      "which stays with the user."
   },
   "projects.assignDocument": {
     gap:
@@ -1444,6 +1490,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "exposed, and it is classified `external` so the gate asks; " +
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
+  },
+  "workflows.sharing.invite": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
   },
   "workflows.sharing.removeCollaborator": {
     withheld:

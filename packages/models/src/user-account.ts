@@ -6,7 +6,7 @@
  * sign-in, and admins manage `role` and `status` from there. A sign-in never
  * changes `role` or `status`: those belong to the admin.
  */
-import { and, desc, eq, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 
 import { getPortableDb } from "./db.js";
 import { userAccounts } from "./schema/user-accounts.js";
@@ -74,6 +74,21 @@ export async function getUserAccount(
     .where(eq(userAccounts.user_id, userId))
     .limit(1);
   return rows[0] ? toAccount(rows[0]) : null;
+}
+
+/** The directory rows for `userIds`, keyed by id. Ids with no row are left out. */
+export async function getUserAccounts(
+  userIds: readonly string[]
+): Promise<Map<string, UserAccount>> {
+  const unique = [...new Set(userIds)];
+  const accounts = new Map<string, UserAccount>();
+  if (unique.length === 0) return accounts;
+  const rows = await getPortableDb()
+    .select()
+    .from(userAccounts)
+    .where(inArray(userAccounts.user_id, unique));
+  for (const row of rows) accounts.set(row.user_id, toAccount(row));
+  return accounts;
 }
 
 /**

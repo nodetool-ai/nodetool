@@ -138,6 +138,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The token and media limits an admin of a self-hosted server set for this person. Deleted with the account, so a later sign-in gets the server default."
   },
   {
+    table: "nodetool_user_permissions",
+    schemaExport: "userPermissions",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The permission flags an admin of a self-hosted server set for this person. Deleted with the account, so a later sign-in gets the server default."
+  },
+  {
     table: "external_identities",
     schemaExport: "externalIdentities",
     disposition: "delete",

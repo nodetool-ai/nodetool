@@ -7,7 +7,8 @@ export async function openChatThread(threadId: string, signal?: AbortSignal): Pr
     await trpcClient.threads.get.query({ id: threadId }, { signal });
   if (signal?.aborted) return;
   useWorkspaceTabsStore.getState().openForegroundTab({
-    type: "chat",
+    // A Create session opens as Create, not as an empty chat.
+    type: thread.kind === "create" ? "create" : "chat",
     ref: thread.id,
     mode: "view",
     title: thread.title || "Chat",

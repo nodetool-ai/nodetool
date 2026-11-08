@@ -1,7 +1,11 @@
 /**
  * One generation in the Create grid: its result (or a fill while it runs), the
  * prompt, and the actions a result can take. The tile opens the result; the
- * buttons beneath it carry the rest, so no action hides behind a gesture.
+ * buttons beneath it carry the rest, so no action hides behind a gesture. The
+ * actions that start a new take from this one (edit, animate, extend, …) sit
+ * in its More menu, so a narrow tile keeps one row of buttons.
+ *
+ * An audio take plays in place: there is no picture to open.
  */
 import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +14,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import ReplayIcon from "@mui/icons-material/Replay";
 import StopIcon from "@mui/icons-material/Stop";
@@ -19,10 +24,12 @@ import {
   BORDER_RADIUS,
   Box,
   Caption,
+  ContextMenu,
   FlexColumn,
   FlexRow,
   MagicGenerationFill,
   MediaThumbnail,
+  MenuItemPrimitive,
   SPACING,
   StatusPill,
   Text,
@@ -49,7 +56,22 @@ export interface CreateGridItemActions {
   onSendToTimeline: (item: CreateFeedItem) => void;
   onOpenAsWorkflow: (item: CreateFeedItem) => void;
   onStop: (item: CreateFeedItem) => Promise<void>;
+  /** Attach the result to the prompt as a reference. */
+  onUseAsReference: (item: CreateFeedItem) => void;
+  /** Start a new take from the result in `mode`, with it as the only input. */
+  onStartFrom: (item: CreateFeedItem, mode: CreateFollowUpMode) => void;
+  onOpenInSketch: (item: CreateFeedItem) => void;
+  /** Put the result's prompt back in the composer. */
+  onReusePrompt: (item: CreateFeedItem) => void;
 }
+
+/** The modes a result can seed: an image is edited or animated, a clip changed or extended. */
+export type CreateFollowUpMode = "image_edit" | "image_to_video" | "retake" | "extend";
+
+const FOLLOW_UPS: Record<"image" | "video", readonly CreateFollowUpMode[]> = {
+  image: ["image_edit", "image_to_video"],
+  video: ["retake", "extend"]
+};
 
 interface CreateGridItemProps {
   item: CreateFeedItem;
@@ -62,18 +84,31 @@ const CreateGridItem = memo(function CreateGridItem({
 }: CreateGridItemProps) {
   const { t } = useTranslation();
   const [stopping, setStopping] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const running = item.status === "generating";
   const done = item.assetId !== null && item.status === "generated";
+  const audio = item.kind === "audio";
+  // An audio take's tile is its player, so the tile itself opens nothing.
+  const opens = done && !audio;
   const title =
     item.prompt ||
     t("generations.untitled", { kind: t(`generations.kind.${item.kind}`) });
   const canStop = running && item.generation?.channel === "rpc";
 
   const handleOpen = useCallback(() => {
-    if (done) {
+    if (opens) {
       actions.onOpen(item);
     }
-  }, [actions, done, item]);
+  }, [actions, opens, item]);
+
+  const closeMore = useCallback(() => setMoreAnchor(null), []);
+  const runMore = useCallback(
+    (run: () => void) => () => {
+      setMoreAnchor(null);
+      run();
+    },
+    []
+  );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -101,7 +136,7 @@ const CreateGridItem = memo(function CreateGridItem({
       <MovieOutlinedIcon />
     ) : item.kind === "image" ? (
       <ImageOutlinedIcon />
-    ) : (
+    ) : audio ? undefined : (
       <AutoAwesomeOutlinedIcon />
     );
 
@@ -112,12 +147,12 @@ const CreateGridItem = memo(function CreateGridItem({
       sx={(theme) => ({ ...selectableTileStyles(theme), p: SPACING.xs, minWidth: 0 })}
     >
       <Box
-        role={done ? "button" : undefined}
-        tabIndex={done ? 0 : undefined}
-        aria-label={done ? t("create_view.item.open", { title }) : undefined}
-        onClick={done ? handleOpen : undefined}
-        onKeyDown={done ? handleKeyDown : undefined}
-        sx={{ position: "relative", cursor: done ? "pointer" : "default" }}
+        role={opens ? "button" : undefined}
+        tabIndex={opens ? 0 : undefined}
+        aria-label={opens ? t("create_view.item.open", { title }) : undefined}
+        onClick={opens ? handleOpen : undefined}
+        onKeyDown={opens ? handleKeyDown : undefined}
+        sx={{ position: "relative", cursor: opens ? "pointer" : "default" }}
       >
         <MediaThumbnail
           {...(item.asset
@@ -129,6 +164,7 @@ const CreateGridItem = memo(function CreateGridItem({
           alt={title}
           aspectRatio="16/10"
           borderRadius={BORDER_RADIUS.md}
+          interactive={audio && done}
           icon={fallbackIcon}
           label={
             item.status === "generated" ? undefined : (
@@ -203,7 +239,45 @@ const CreateGridItem = memo(function CreateGridItem({
               onClick={() => actions.onOpenAsWorkflow(item)}
             />
           )}
+          {done && (
+            <ToolbarIconButton
+              icon={<MoreHorizIcon fontSize="inherit" />}
+              tooltip={t("create_view.item.more")}
+              ariaLabel={t("create_view.item.moreLabel", { title })}
+              onClick={(event) => setMoreAnchor(event.currentTarget)}
+            />
+          )}
         </FlexRow>
+      )}
+      {done && (
+        <ContextMenu open={moreAnchor !== null} anchorEl={moreAnchor} onClose={closeMore}>
+          {!audio && (
+            <MenuItemPrimitive
+              label={t("create_view.item.useAsReference")}
+              onClick={runMore(() => actions.onUseAsReference(item))}
+            />
+          )}
+          {(item.kind === "image" || item.kind === "video") &&
+            FOLLOW_UPS[item.kind].map((mode) => (
+              <MenuItemPrimitive
+                key={mode}
+                label={t(`create_view.item.startFrom.${mode}`)}
+                onClick={runMore(() => actions.onStartFrom(item, mode))}
+              />
+            ))}
+          {item.kind === "image" && (
+            <MenuItemPrimitive
+              label={t("create_view.item.openInSketch")}
+              onClick={runMore(() => actions.onOpenInSketch(item))}
+            />
+          )}
+          {item.prompt && (
+            <MenuItemPrimitive
+              label={t("create_view.item.reusePrompt")}
+              onClick={runMore(() => actions.onReusePrompt(item))}
+            />
+          )}
+        </ContextMenu>
       )}
     </FlexColumn>
   );
