@@ -6174,7 +6174,6 @@
         "checkingModels": "Kontrollerar fortfarande dina språkmodeller. Försök igen om ett ögonblick.",
         "chatNeedsModel": "Nästan där - chatten behöver en modell för att köra.",
         "pickModelToStartChat": "Välj en språkmodell och chatten startar.",
-        "pickMediaModel": "Välj en modell och generationen börjar.",
         "openChatError": "Kunde inte öppna chatten: {{error}}",
         "startFlowError": "Kunde inte starta {{flow}}: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Arbetsflödesexempel",
             "description": "Automationer, flersteg"
           }
+        },
+        "goals": {
+          "label": "Vad som startas",
+          "chat": "Chatt",
+          "image": "Bild",
+          "video": "Video",
+          "audio": "Ljud"
         }
       }
     }
@@ -19005,36 +19011,6 @@
     "laneLabel": "Automationsfil: {{name}}",
     "deletePoint": "Ta bort punkt"
   },
-  "generationFeed": {
-    "recent": "Nyligen",
-    "imageEmptyTitle": "Skapa bilder",
-    "imageEmptyDescription": "Beskriv en scen nedan och välj en modell och bildförhållande. Bifoga en bild för att redigera den.",
-    "videoEmptyTitle": "Skapa videor",
-    "videoEmptyDescription": "Beskriv bilden, kamerarörelserna och belysningen nedan. Fäst en ram för att animera den.",
-    "audioEmptyTitle": "Skapa tal och musik",
-    "audioEmptyDescription": "Skriv en rad för att höra den läsas upp. Växla till Skapa musik för att komponera ett spår.",
-    "editImage": "Redigera den här bilden",
-    "openInSketch": "Öppna i Sketch",
-    "addToCanvas": "Lägg till på duk",
-    "rerun": "Kör igen",
-    "copyPrompt": "Kopiera uppmaning",
-    "removeFromThread": "Ta bort från tråden",
-    "history": "Historik ({{total}})",
-    "tileSize": "Kakelstorlek",
-    "viewMode": "Visa läge",
-    "list": "Lista",
-    "grid": "Grid",
-    "video": "Video",
-    "speech": "Tal",
-    "music": "Musik",
-    "noVideoOutput": "Ingen video returnerades.",
-    "noAudioOutput": "Inget ljud returnerades.",
-    "untitledTrack": "Ljudspår",
-    "extendClip": "Förläng det här klippet",
-    "referenceAlt": "Referens {{index}}",
-    "sketchTitle": "Skiss",
-    "audio": "Ljud"
-  },
   "preset_chip": {
     "label": "Förinställningar",
     "title": "Välj förinställningar",
@@ -19620,7 +19596,9 @@
     },
     "renameFailed": "Fliken kunde inte byta namn: {{reason}}",
     "sessionFailed": "Tagningarna i den här fliken kunde inte läsas in.",
-    "sessionKind": "Create-session"
+    "sessionKind": "Create-session",
+    "openInCreate": "Öppna i Create",
+    "openInCreateFailed": "Create kunde inte öppnas: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekter",

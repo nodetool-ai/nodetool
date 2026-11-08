@@ -19,7 +19,8 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  type ReactElement
 } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -35,6 +36,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
@@ -163,14 +165,6 @@ import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { MAX_IMAGE_REFERENCES } from "../setup/image/setupContext";
 import { useCreateScript } from "../../hooks/script/useScripts";
-import ModeChips from "../chat/composer/ModeChips";
-import ModeSelectChip from "../chat/composer/ModeSelectChip";
-import type { ModelPickerHandle } from "../chat/composer/ModelChip";
-import { buildMediaGenerationRequest } from "../chat/composer/mediaGenerationRequest";
-import type { MediaGenerationRequest } from "../chat/types/media.types";
-import useMediaGenerationStore, {
-  type MediaMode
-} from "../../stores/MediaGenerationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
 import {
@@ -303,6 +297,23 @@ interface SubmenuAnchor {
  * filed into the open project, which stays where it is.
  */
 type SetupTarget = GuidedFlowTarget;
+
+/** What the home prompt starts: a chat, or a Create tab of one kind. */
+type HomeGoal = "chat" | "image" | "video" | "audio";
+
+const HOME_GOALS: readonly { goal: HomeGoal; icon: ReactElement }[] = [
+  { goal: "chat", icon: <ChatBubbleOutlineIcon /> },
+  { goal: "image", icon: <ImageOutlinedIcon /> },
+  { goal: "video", icon: <VideocamOutlinedIcon /> },
+  { goal: "audio", icon: <RecordVoiceOverOutlinedIcon /> }
+];
+
+/** The card flow each Create goal runs. */
+const HOME_GOAL_FLOWS: Record<Exclude<HomeGoal, "chat">, EntryFlowId> = {
+  image: "image",
+  video: "video",
+  audio: "speech"
+};
 
 /** The notice asking for a model; dismissed once the model is picked. */
 const PICK_MODEL_NOTICE_KEY = "new-project-pick-model";
@@ -649,10 +660,9 @@ const NewProjectSurface = ({
   const providerReadiness = useLanguageProviderReadiness();
   const hasConfiguredProvider = providerReadiness.ready;
   const selectedModel = useGlobalChatStore((state) => state.selectedModel);
-  // The start page opens in chat. Another mode sends the first turn as a
-  // generation, with that mode's own chips.
-  const [mode, setMode] = useState<MediaMode>("chat");
-  const modelPickerRef = useRef<ModelPickerHandle>(null);
+  // What the prompt starts: a chat, or a Create tab holding the prompt and the
+  // attached pictures.
+  const [goal, setGoal] = useState<HomeGoal>("chat");
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const setSelectedModel = useGlobalChatStore(
     (state) => state.setSelectedModel
@@ -862,75 +872,54 @@ const NewProjectSurface = ({
     if (text.length === 0 || starting || isUploading) {
       return;
     }
-    const isMedia = mode !== "chat";
-    let mediaRequest: MediaGenerationRequest | null = null;
-    if (isMedia) {
-      // A generation runs on a media model, not the language model.
-      mediaRequest = buildMediaGenerationRequest(
-        mode,
-        useMediaGenerationStore.getState()
-      );
-      if (!mediaRequest.model) {
-        modelPickerRef.current?.open();
-        addNotification({
-          type: "info",
-          alert: true,
-          content: t("pass3_32.projects.home.pickMediaModel"),
-          dedupeKey: PICK_MODEL_NOTICE_KEY
-        });
-        return;
+    // The first chat turn needs a model; route key-less users
+    // through provider onboarding first and resume the start once connected.
+    if (providerReadiness.loading) {
+      addNotification({
+        type: "info",
+        alert: true,
+        content: t("pass3_32.projects.home.checkingModels")
+      });
+      return;
+    }
+    if (!hasConfiguredProvider) {
+      setPendingStart(true);
+      openProviderOnboarding({
+        capability: "generate_message",
+        reason: t("pass3_32.projects.home.chatNeedsModel")
+      });
+      return;
+    }
+    // A configured provider is not a picked model: the chat's model selection
+    // starts on the "empty" sentinel, and a send with it never leaves the
+    // client. Open this surface's own model menu rather than point at a
+    // composer that is not on this screen, and start once a model is picked.
+    // The Settings default language model counts: a connected account starts
+    // the chat at once, and the model menu stays a way to change it.
+    let sendModel = selectedModel;
+    if (!isModelSelected(sendModel)) {
+      const languageDefault =
+        useModelPreferencesStore.getState().defaults["language_model"];
+      if (languageDefault) {
+        sendModel = {
+          type: "language_model",
+          provider: languageDefault.provider,
+          id: languageDefault.id,
+          name: languageDefault.name
+        } as LanguageModel;
+        setSelectedModel(sendModel);
       }
     }
-    if (!isMedia) {
-      // The first chat turn needs a model; route key-less users
-      // through provider onboarding first and resume the start once connected.
-      if (providerReadiness.loading) {
-        addNotification({
-          type: "info",
-          alert: true,
-          content: t("pass3_32.projects.home.checkingModels")
-        });
-        return;
-      }
-      if (!hasConfiguredProvider) {
-        setPendingStart(true);
-        openProviderOnboarding({
-          capability: "generate_message",
-          reason: t("pass3_32.projects.home.chatNeedsModel")
-        });
-        return;
-      }
-      // A configured provider is not a picked model: the chat's model selection
-      // starts on the "empty" sentinel, and a send with it never leaves the
-      // client. Open this surface's own model menu rather than point at a
-      // composer that is not on this screen, and start once a model is picked.
-      // The Settings default language model counts: a connected account starts
-      // the chat at once, and the model menu stays a way to change it.
-      let sendModel = selectedModel;
-      if (!isModelSelected(sendModel)) {
-        const languageDefault =
-          useModelPreferencesStore.getState().defaults["language_model"];
-        if (languageDefault) {
-          sendModel = {
-            type: "language_model",
-            provider: languageDefault.provider,
-            id: languageDefault.id,
-            name: languageDefault.name
-          } as LanguageModel;
-          setSelectedModel(sendModel);
-        }
-      }
-      if (!isModelSelected(sendModel)) {
-        setPendingModelStart(true);
-        setModelAnchor(modelButtonRef.current);
-        addNotification({
-          type: "info",
-          alert: true,
-          content: t("pass3_32.projects.home.pickModelToStartChat"),
-          dedupeKey: PICK_MODEL_NOTICE_KEY
-        });
-        return;
-      }
+    if (!isModelSelected(sendModel)) {
+      setPendingModelStart(true);
+      setModelAnchor(modelButtonRef.current);
+      addNotification({
+        type: "info",
+        alert: true,
+        content: t("pass3_32.projects.home.pickModelToStartChat"),
+        dedupeKey: PICK_MODEL_NOTICE_KEY
+      });
+      return;
     }
     setStarting(true);
     try {
@@ -947,10 +936,7 @@ const NewProjectSurface = ({
       ];
       const { projectId, created } = await resolveStartProject();
       const threadId = await createNewThread(undefined, null, { projectId });
-      stageChatTurn(threadId, content, mediaRequest);
-      if (isMedia) {
-        useMediaGenerationStore.getState().setThreadMode(threadId, mode);
-      }
+      stageChatTurn(threadId, content);
       // A chat started in a new project opens that project, or its tab
       // would be filed where it cannot be seen.
       if (
@@ -987,7 +973,6 @@ const NewProjectSurface = ({
     createNewThread,
     flowRef,
     getFileContents,
-    mode,
     hasConfiguredProvider,
     isUploading,
     providerReadiness.loading,
@@ -1650,6 +1635,23 @@ const NewProjectSurface = ({
     [isUploading, pendingFlow, runDestinationFlow, starting]
   );
 
+  // Send starts a chat, or opens a Create tab the way the Image, Video and
+  // Read aloud cards do.
+  const sendLabel =
+    goal === "chat"
+      ? t("pass3_32.projects.home.sendToChat")
+      : t("create_view.openInCreate");
+  const handleSend = useCallback(() => {
+    if (goal === "chat") {
+      void handleStart();
+      return;
+    }
+    if (pendingFlow !== null || starting || isUploading) {
+      return;
+    }
+    runDestinationFlow(HOME_GOAL_FLOWS[goal]);
+  }, [goal, handleStart, isUploading, pendingFlow, runDestinationFlow, starting]);
+
   const handleNewModel = async (): Promise<void> => {
     if (
       starting ||
@@ -2194,10 +2196,10 @@ const NewProjectSurface = ({
       }
       if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
-        void handleStart();
+        handleSend();
       }
     },
-    [handleMentionKeyDown, handleSkillKeyDown, handleStart]
+    [handleMentionKeyDown, handleSkillKeyDown, handleSend]
   );
 
   // The app no longer opens the plan sign-ins on launch (UX study 17: 9 of 9
@@ -2521,19 +2523,6 @@ const NewProjectSurface = ({
                   </FlexRow>
                 )}
 
-                {/* A generation's own settings get a row of their own, so the
-                    context pills and the send button keep one steady line. */}
-                {mode !== "chat" && (
-                  <FlexRow
-                    align="center"
-                    gap={SPACING.sm}
-                    wrap
-                    sx={{ px: SPACING.lg, pt: SPACING.md }}
-                  >
-                    <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
-                  </FlexRow>
-                )}
-
                 {/* The context a turn carries sits quietly on the left as
                     pills; the one primary action is the round send on the
                     right. */}
@@ -2577,8 +2566,7 @@ const NewProjectSurface = ({
                           entities: selectedEntities.map((entity) => entity.name).join(", ")
                         })}
                   </EditorButton>
-                  <ModeSelectChip mode={mode} onChange={setMode} />
-                  {mode === "chat" && (
+                  {goal === "chat" && (
                   <EditorButton
                     ref={modelButtonRef}
                     variant="text"
@@ -2644,15 +2632,19 @@ const NewProjectSurface = ({
                   </Caption>
                   <CircularActionButton
                     icon={<ArrowUpwardIcon />}
-                    ariaLabel={t("pass3_32.projects.home.sendToChat")}
-                    tooltip={t("pass3_32.projects.home.sendToChat")}
+                    ariaLabel={sendLabel}
+                    tooltip={sendLabel}
                     tooltipPlacement="top"
                     size={SEND_BUTTON_SIZE}
                     color="primary.contrastText"
                     disabled={
-                      prompt.trim().length === 0 || starting || isUploading
+                      // A Create tab can open empty; a chat needs a first message.
+                      (goal === "chat" && prompt.trim().length === 0) ||
+                      starting ||
+                      isUploading ||
+                      pendingFlow !== null
                     }
-                    onClick={() => void handleStart()}
+                    onClick={handleSend}
                     // The send keeps its colour while it waits for a prompt,
                     // faded rather than greyed out, as in the mockup.
                     sx={{
@@ -2665,6 +2657,24 @@ const NewProjectSurface = ({
                   />
                 </FlexRow>
               </FlexColumn>
+
+              <FlexRow
+                justify="center"
+                gap={SPACING.sm}
+                wrap
+                role="group"
+                aria-label={t("pass3_32.projects.home.goals.label")}
+              >
+                {HOME_GOALS.map((item) => (
+                  <Chip
+                    key={item.goal}
+                    icon={item.icon}
+                    label={t(`pass3_32.projects.home.goals.${item.goal}`)}
+                    active={goal === item.goal}
+                    onClick={() => setGoal(item.goal)}
+                  />
+                ))}
+              </FlexRow>
 
               {starters.length > 0 && (
                 <FlexColumn gap={SPACING.md} align="center">

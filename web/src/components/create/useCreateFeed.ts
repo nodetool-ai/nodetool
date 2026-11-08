@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { trpc } from "../../trpc/client";
 import { useGenerationActivityStore } from "../../stores/GenerationActivityStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
+import type { Message } from "../../stores/ApiTypes";
+import { extractGenerationTurns } from "../chat/generation/extractGenerationTurns";
 import { buildCreateFeed, buildSessionFeed, type CreateFeedItem } from "./createFeed";
 
 /** Older renders read per media type; the grid shows the newest of each. */
@@ -10,6 +13,8 @@ const OLDER_RENDERS_PAGE = 60;
 const SESSION_TAKES_PAGE = 200;
 
 const LIST_OPTIONS = { staleTime: 30_000, retry: false } as const;
+
+const NO_MESSAGES: Message[] = [];
 
 interface CreateFeed {
   items: CreateFeedItem[];
@@ -22,12 +27,16 @@ interface CreateFeed {
 
 /**
  * The takes a Create grid shows. With a `sessionId`, only that tab's takes:
- * tracked generations tagged with its thread, then the server's rows for it.
- * Without one, every take: tracked generations, then older renders from the
+ * tracked generations tagged with its thread, the server's rows for it, and
+ * the takes in the thread's messages when it was a media chat. Without one,
+ * every take: tracked generations, then older renders from the
  * asset list.
  */
 export const useCreateFeed = (sessionId: string | null): CreateFeed => {
   const generations = useGenerationActivityStore((state) => state.generations);
+  const messages = useGlobalChatStore((state) =>
+    sessionId ? state.messageCache[sessionId] ?? NO_MESSAGES : NO_MESSAGES
+  );
   const all = sessionId === null;
   const images = trpc.assets.list.useQuery(
     { content_type: "image", page_size: OLDER_RENDERS_PAGE },
@@ -58,8 +67,14 @@ export const useCreateFeed = (sessionId: string | null): CreateFeed => {
             ...(videoAssets ?? []),
             ...(audioAssets ?? [])
           ])
-        : buildSessionFeed(sessionId, Object.values(generations), records ?? []),
-    [sessionId, generations, imageAssets, videoAssets, audioAssets, records]
+        : buildSessionFeed(
+            sessionId,
+            Object.values(generations),
+            records ?? [],
+            // Old media turns are finished: new takes are tracked generations.
+            extractGenerationTurns(messages, "connected")
+          ),
+    [sessionId, generations, imageAssets, videoAssets, audioAssets, records, messages]
   );
 
   if (!all) {

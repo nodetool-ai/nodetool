@@ -266,6 +266,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   compile_presets: "read",
   list_provider_generations: "external",
   list_provider_models: "read",
+  list_providers: "read",
   list_sandbox_packages: "read",
   list_scripts: "read",
   list_secrets: "read",

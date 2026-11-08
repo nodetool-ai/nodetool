@@ -6253,7 +6253,6 @@
         "checkingModels": "Ainda verificando seus modelos de linguagem. Tente novamente em alguns instantes.",
         "chatNeedsModel": "Quase lá – o chat precisa de um modelo para funcionar.",
         "pickModelToStartChat": "Escolha um modelo de idioma e o chat começa.",
-        "pickMediaModel": "Escolha um modelo e a geração começa.",
         "openChatError": "Não foi possível abrir o bate-papo: {{error}}",
         "startFlowError": "Não foi possível iniciar o {{flow}}: {{error}}",
         "flowNames": {
@@ -6470,7 +6469,14 @@
         "entityCount_many": "{{count}} entidades",
         "attachedFileCountShort_many": "Arquivos · {{count}}",
         "moreStarters_many": "{{count}} mais",
-        "renderedExampleShots_many": "{{count}} fotos, já renderizadas"
+        "renderedExampleShots_many": "{{count}} fotos, já renderizadas",
+        "goals": {
+          "label": "O que começar",
+          "chat": "Chat",
+          "image": "Imagem",
+          "video": "Vídeo",
+          "audio": "Áudio"
+        }
       }
     }
   },
@@ -19315,36 +19321,6 @@
     "laneLabel": "Faixa de automação: {{name}}",
     "deletePoint": "Excluir ponto"
   },
-  "generationFeed": {
-    "recent": "Recente",
-    "imageEmptyTitle": "Crie imagens",
-    "imageEmptyDescription": "Descreva uma cena abaixo e escolha um modelo e proporção. Anexe uma imagem para editá-la.",
-    "videoEmptyTitle": "Crie vídeos",
-    "videoEmptyDescription": "Descreva a cena, o movimento da câmera e a iluminação abaixo. Anexe uma moldura para animá-la.",
-    "audioEmptyTitle": "Gerar fala e música",
-    "audioEmptyDescription": "Digite uma linha para ouvi-la lida em voz alta. Mude para Gerar música para compor uma faixa.",
-    "editImage": "Edite esta imagem",
-    "openInSketch": "Abrir no esboço",
-    "addToCanvas": "Adicionar à tela",
-    "rerun": "Repetir",
-    "copyPrompt": "Solicitação de cópia",
-    "removeFromThread": "Remover do tópico",
-    "history": "História ({{total}})",
-    "tileSize": "Tamanho do ladrilho",
-    "viewMode": "Modo de visualização",
-    "list": "Lista",
-    "grid": "Grade",
-    "video": "Vídeo",
-    "speech": "Discurso",
-    "music": "Música",
-    "noVideoOutput": "Nenhum vídeo foi retornado.",
-    "noAudioOutput": "Nenhum áudio foi retornado.",
-    "untitledTrack": "Faixa de áudio",
-    "extendClip": "Estender este clipe",
-    "referenceAlt": "Referência {{index}}",
-    "sketchTitle": "Esboço",
-    "audio": "Áudio"
-  },
   "preset_chip": {
     "label": "Predefinições",
     "title": "Escolha predefinições",
@@ -19931,7 +19907,9 @@
     },
     "renameFailed": "Não foi possível mudar o nome do separador: {{reason}}",
     "sessionFailed": "Não foi possível carregar as tomadas deste separador.",
-    "sessionKind": "Sessão do Create"
+    "sessionKind": "Sessão do Create",
+    "openInCreate": "Abrir no Create",
+    "openInCreateFailed": "Não foi possível abrir o Create: {{reason}}"
   },
   "effectsGallery": {
     "title": "Efeitos",

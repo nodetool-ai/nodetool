@@ -6253,7 +6253,6 @@
         "checkingModels": "Sto ancora controllando i tuoi modelli linguistici. Riprova tra un attimo.",
         "chatNeedsModel": "Ci siamo quasi: la chat ha bisogno di un modello per funzionare.",
         "pickModelToStartChat": "Scegli un modello linguistico e la chat inizia.",
-        "pickMediaModel": "Scegli un modello e la generazione inizia.",
         "openChatError": "Impossibile aprire la chat: {{error}}",
         "startFlowError": "Impossibile avviare {{flow}}: {{error}}",
         "flowNames": {
@@ -6470,7 +6469,14 @@
         "entityCount_many": "{{count}} entità",
         "attachedFileCountShort_many": "File · {{count}}",
         "moreStarters_many": "{{count}} altro",
-        "renderedExampleShots_many": "{{count}} scatti, già renderizzati"
+        "renderedExampleShots_many": "{{count}} scatti, già renderizzati",
+        "goals": {
+          "label": "Cosa avviare",
+          "chat": "Chat",
+          "image": "Immagine",
+          "video": "Video",
+          "audio": "Audio"
+        }
       }
     }
   },
@@ -19315,36 +19321,6 @@
     "laneLabel": "Corsia di automazione: {{name}}",
     "deletePoint": "Elimina punto"
   },
-  "generationFeed": {
-    "recent": "Recente",
-    "imageEmptyTitle": "Crea immagini",
-    "imageEmptyDescription": "Descrivi una scena qui sotto e scegli un modello e le proporzioni. Allega un'immagine per modificarla.",
-    "videoEmptyTitle": "Crea video",
-    "videoEmptyDescription": "Descrivi di seguito lo scatto, il movimento della fotocamera e l'illuminazione. Allega una cornice per animarla.",
-    "audioEmptyTitle": "Genera parlato e musica",
-    "audioEmptyDescription": "Digita una riga per ascoltarla letta ad alta voce. Passa a Genera musica per comporre una traccia.",
-    "editImage": "Modifica questa immagine",
-    "openInSketch": "Apri in Schizzo",
-    "addToCanvas": "Aggiungi alla tela",
-    "rerun": "Rieseguire",
-    "copyPrompt": "Copia richiesta",
-    "removeFromThread": "Rimuovi dal thread",
-    "history": "Cronologia ({{total}})",
-    "tileSize": "Dimensione della piastrella",
-    "viewMode": "Modalità di visualizzazione",
-    "list": "Elenco",
-    "grid": "Griglia",
-    "video": "Video",
-    "speech": "Discorso",
-    "music": "Musica",
-    "noVideoOutput": "Nessun video è stato restituito.",
-    "noAudioOutput": "Non è stato restituito alcun audio.",
-    "untitledTrack": "Traccia audio",
-    "extendClip": "Estendi questa clip",
-    "referenceAlt": "Riferimento {{index}}",
-    "sketchTitle": "Schizzo",
-    "audio": "Audio"
-  },
   "preset_chip": {
     "label": "Preimpostazioni",
     "title": "Scegli i preset",
@@ -19931,7 +19907,9 @@
     },
     "renameFailed": "Impossibile rinominare la scheda: {{reason}}",
     "sessionFailed": "Impossibile caricare le riprese di questa scheda.",
-    "sessionKind": "Sessione Create"
+    "sessionKind": "Sessione Create",
+    "openInCreate": "Apri in Create",
+    "openInCreateFailed": "Impossibile aprire Create: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effetti",

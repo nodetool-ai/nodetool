@@ -1,6 +1,6 @@
 import { stub } from "../../../../test-utils/doubles";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import MediaOutputGroup from "../MediaOutputGroup";
@@ -21,6 +21,22 @@ jest.mock("../../../../hooks/handlers/useGenerationToCanvas", () => ({
     isCanvasAvailable: false,
     addBlocksToCanvas: jest.fn()
   })
+}));
+
+// The image tile's viewer needs a router; the tile itself is not under test.
+jest.mock("../../../node/ImageView", () => ({
+  __esModule: true,
+  default: () => <div />
+}));
+
+const mockOpenCreateSession = jest.fn();
+jest.mock("../../../create/openCreateSession", () => ({
+  ...jest.requireActual("../../../create/openCreateSession"),
+  openCreateSession: (...args: unknown[]) => mockOpenCreateSession(...args)
+}));
+jest.mock("../../../../stores/WorkspaceTabsStore", () => ({
+  ...jest.requireActual("../../../../stores/WorkspaceTabsStore"),
+  creationProjectId: () => "project-1"
 }));
 
 const message = stub<Message>({
@@ -67,5 +83,32 @@ describe("MediaOutputGroup", () => {
       "src",
       "https://cdn.test/u1/v.mp4?token=sig"
     );
+  });
+
+  it("opens a reply's stored pictures in a new Create tab with its prompt", () => {
+    mockOpenCreateSession.mockResolvedValue("thread-2");
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MediaOutputGroup
+          message={{ ...message, content: "a lighthouse" }}
+          mediaContents={stub<MessageContent[]>([
+            { type: "image_url", image: { type: "image", uri: "", asset_id: "pic" } }
+          ])}
+        />
+      </ThemeProvider>
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open in Create" }));
+    expect(mockOpenCreateSession).toHaveBeenCalledWith("project-1", {
+      mode: "image_edit",
+      prompt: "a lighthouse",
+      references: [{ assetId: "pic", contentType: "image/png", name: "Generated image" }]
+    });
+  });
+
+  it("offers Create only for media that was stored", () => {
+    renderGroup(stub<MessageContent[]>([
+      { type: "video", video: { type: "video", uri: "https://cdn.test/u1/v.mp4" } }
+    ]));
+    expect(screen.queryByRole("button", { name: "Open in Create" })).not.toBeInTheDocument();
   });
 });

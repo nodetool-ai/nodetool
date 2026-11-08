@@ -6174,7 +6174,6 @@
         "checkingModels": "Kielimalleja tarkistetaan vielä. Yritä hetken kuluttua uudelleen.",
         "chatNeedsModel": "Melkein valmista — keskustelu tarvitsee mallin toimiakseen.",
         "pickModelToStartChat": "Valitse kielimalli, niin keskustelu alkaa.",
-        "pickMediaModel": "Valitse malli, niin generointi alkaa.",
         "openChatError": "Keskustelua ei voitu avata: {{error}}",
         "startFlowError": "Kulkua {{flow}} ei voitu aloittaa: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Työnkulkuesimerkit",
             "description": "Monivaiheisia automaatioita"
           }
+        },
+        "goals": {
+          "label": "Mitä aloitetaan",
+          "chat": "Chat",
+          "image": "Kuva",
+          "video": "Video",
+          "audio": "Ääni"
         }
       }
     }
@@ -19005,36 +19011,6 @@
     "laneLabel": "Automaatiokaista: {{name}}",
     "deletePoint": "Poista piste"
   },
-  "generationFeed": {
-    "recent": "Viimeisimmät",
-    "imageEmptyTitle": "Luo kuvia",
-    "imageEmptyDescription": "Kuvaile kohtaus alla ja valitse malli ja kuvasuhde. Liitä kuva, jos haluat muokata sitä.",
-    "videoEmptyTitle": "Luo videoita",
-    "videoEmptyDescription": "Kuvaile alla otos, kameran liike ja valaistus. Liitä kuva, jos haluat animoida sen.",
-    "audioEmptyTitle": "Luo puhetta ja musiikkia",
-    "audioEmptyDescription": "Kirjoita lause, niin se luetaan ääneen. Vaihda tilaan Luo musiikkia säveltääksesi kappaleen.",
-    "editImage": "Muokkaa tätä kuvaa",
-    "openInSketch": "Avaa Sketchissä",
-    "addToCanvas": "Lisää kankaalle",
-    "rerun": "Suorita uudelleen",
-    "copyPrompt": "Kopioi kehote",
-    "removeFromThread": "Poista keskustelusta",
-    "history": "Historia ({{total}})",
-    "tileSize": "Ruudun koko",
-    "viewMode": "Näkymä",
-    "list": "Luettelo",
-    "grid": "Ruudukko",
-    "video": "Video",
-    "speech": "Puhe",
-    "music": "Musiikki",
-    "noVideoOutput": "Videota ei palautettu.",
-    "noAudioOutput": "Ääntä ei palautettu.",
-    "untitledTrack": "Ääniraita",
-    "extendClip": "Jatka tätä leikettä",
-    "referenceAlt": "Viite {{index}}",
-    "sketchTitle": "Sketch",
-    "audio": "Ääni"
-  },
   "preset_chip": {
     "label": "Esiasetukset",
     "title": "Valitse esiasetuksia",
@@ -19620,7 +19596,9 @@
     },
     "renameFailed": "Välilehteä ei voitu nimetä uudelleen: {{reason}}",
     "sessionFailed": "Tämän välilehden ottoja ei voitu ladata.",
-    "sessionKind": "Create-istunto"
+    "sessionKind": "Create-istunto",
+    "openInCreate": "Avaa Createssa",
+    "openInCreateFailed": "Createa ei voitu avata: {{reason}}"
   },
   "effectsGallery": {
     "title": "Tehosteet",

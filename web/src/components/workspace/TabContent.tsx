@@ -4,6 +4,10 @@ import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { CREATE_REF, type WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
+import { inferMediaCategory } from "../chat/generation/extractGenerationTurns";
+import type { Message } from "../../stores/ApiTypes";
+
+const NO_MESSAGES: Message[] = [];
 
 // One surface per document type, each behind its own chunk. Imported eagerly
 // they landed in the workspace chunk together — opening the app downloaded the
@@ -41,15 +45,28 @@ const CreateSurface = React.lazy(() => import("../create/CreateSurface"));
 
 /**
  * A thread opened as a chat tab by a caller that did not check its kind: a
- * Create session still opens as Create.
+ * Create session still opens as Create. So does a media thread from before
+ * Create sessions, one whose prompts were all generation requests: its earlier
+ * takes come from its messages, and new takes are tagged with its id.
  */
 const ThreadSurface = ({ tab, active }: { tab: WorkspaceTab; active: boolean }) => {
   const kind = useGlobalChatStore((state) => state.threads[tab.ref]?.kind);
-  return kind === "create" ? (
-    <CreateSurface sessionId={tab.ref} projectId={tab.projectId} />
-  ) : (
-    <ChatSurface refId={tab.ref} active={active} />
+  const mediaCategory = useGlobalChatStore((state) =>
+    inferMediaCategory(state.messageCache[tab.ref] ?? NO_MESSAGES)
   );
+  if (kind === "create") {
+    return <CreateSurface sessionId={tab.ref} projectId={tab.projectId} />;
+  }
+  if (mediaCategory) {
+    return (
+      <CreateSurface
+        sessionId={tab.ref}
+        projectId={tab.projectId}
+        mediaThreadKind={mediaCategory}
+      />
+    );
+  }
+  return <ChatSurface refId={tab.ref} active={active} />;
 };
 
 interface TabContentProps {

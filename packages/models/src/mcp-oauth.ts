@@ -43,6 +43,15 @@ export const MCP_OAUTH_REFRESH_TOKEN_PREFIX = "ntr_";
 
 export const MCP_OAUTH_ACCESS_TTL_MS = 3_600_000;
 export const MCP_OAUTH_REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/**
+ * How long after a rotation the superseded refresh token may still be
+ * presented without revoking the grant. A client whose refresh response was
+ * lost, or that refreshed from two requests at once, presents the same token
+ * twice within seconds; treating that as theft revoked the grant and forced
+ * the user to reconnect. Inside this window the retry gets a fresh pair.
+ * Outside it, a superseded token still revokes the whole grant.
+ */
+export const MCP_OAUTH_REFRESH_REUSE_GRACE_MS = 60_000;
 
 const CLIENT_ID_BYTES = 16;
 const TOKEN_ID_BYTES = 8;
@@ -468,6 +477,23 @@ async function grantIdOfToken(tokenId: string): Promise<string | null> {
   return rows[0]?.grant_id ?? null;
 }
 
+/** One rotation attempt in its own transaction. */
+async function rotateOnce(parsed: ParsedToken): Promise<RefreshRotation> {
+  const db = getPortableDb();
+  const now = Date.now();
+  if (getDbType() === "sqlite") {
+    // better-sqlite3 transactions must be fully synchronous; an async
+    // callback returns a Promise the driver rejects.
+    return db.transaction((tx: DbTransaction): RefreshRotation =>
+      rotateSqlite(tx, parsed, now)
+    );
+  }
+  return await db.transaction(
+    async (tx: DbTransaction): Promise<RefreshRotation> =>
+      rotatePostgres(tx, parsed, now)
+  );
+}
+
 /** What one refresh rotation decided. */
 export type RefreshRotation =
   | {
@@ -487,6 +513,7 @@ interface ParsedToken {
 type RotationStep =
   | { verdict: "unknown" }
   | { verdict: "reuse"; grantId: string }
+  | { verdict: "retry"; record: McpOauthToken }
   | { verdict: "expired"; grantId: string }
   | { verdict: "rotate"; record: McpOauthToken };
 
@@ -505,15 +532,34 @@ function rotationStep(
   if (!digestsMatch(record.secret_hash, hashSecret(parsed.secret))) {
     return { verdict: "unknown" };
   }
-  if (hasSuccessor) return { verdict: "reuse", grantId: record.grant_id };
+  if (hasSuccessor) {
+    // `last_used_at` on a refresh row records when it was rotated.
+    const rotatedAt = record.last_used_at ? Date.parse(record.last_used_at) : NaN;
+    if (
+      now - rotatedAt <= MCP_OAUTH_REFRESH_REUSE_GRACE_MS &&
+      !isRowExpired(record.expires_at, now)
+    ) {
+      return { verdict: "retry", record };
+    }
+    return { verdict: "reuse", grantId: record.grant_id };
+  }
   if (isRowExpired(record.expires_at, now)) {
     return { verdict: "expired", grantId: record.grant_id };
   }
   return { verdict: "rotate", record };
 }
 
-/** The pair a rotation mints, given the row it replaces. */
-function rotationPair(record: McpOauthToken): {
+/**
+ * The pair a rotation mints, given the row it replaces. A grace-window retry
+ * mints a pair that links to no ancestor: the `rotated_from` slot already
+ * belongs to the first rotation's successor, and the unique index on it is
+ * what makes a concurrent first rotation detectable. The retry's chain keeps
+ * the original absolute expiry.
+ */
+function rotationPair(
+  record: McpOauthToken,
+  linkAncestor: boolean
+): {
   access: MintedTokenRow;
   refresh: MintedTokenRow;
 } {
@@ -523,7 +569,7 @@ function rotationPair(record: McpOauthToken): {
       record.grant_id,
       "refresh",
       MCP_OAUTH_REFRESH_TTL_MS,
-      record.id,
+      linkAncestor ? record.id : null,
       new Date(record.expires_at)
     )
   };
@@ -581,7 +627,10 @@ function rotateSqlite(
     tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id)).run();
     return null;
   }
-  const { access, refresh } = rotationPair(step.record);
+  const { access, refresh } = rotationPair(
+    step.record,
+    step.verdict === "rotate"
+  );
   // The refresh row goes first: the unique index on `rotated_from` makes it
   // the atomic claim on this rotation. Two concurrent presentations of the
   // same token both pass the successor check above, but only one insert
@@ -589,6 +638,12 @@ function rotateSqlite(
   // by `isRotatedFromConflict` and handled by the caller.
   tx.insert(mcpOauthTokens).values(tokenValues(refresh)).run();
   tx.insert(mcpOauthTokens).values(tokenValues(access)).run();
+  if (step.verdict === "rotate") {
+    tx.update(mcpOauthTokens)
+      .set({ last_used_at: new Date(now).toISOString() })
+      .where(eq(mcpOauthTokens.id, parsed.id))
+      .run();
+  }
   return rotated(access, refresh, step.record.grant_id);
 }
 
@@ -626,9 +681,18 @@ async function rotatePostgres(
     await tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.id, parsed.id));
     return null;
   }
-  const { access, refresh } = rotationPair(step.record);
+  const { access, refresh } = rotationPair(
+    step.record,
+    step.verdict === "rotate"
+  );
   await tx.insert(mcpOauthTokens).values(tokenValues(refresh));
   await tx.insert(mcpOauthTokens).values(tokenValues(access));
+  if (step.verdict === "rotate") {
+    await tx
+      .update(mcpOauthTokens)
+      .set({ last_used_at: new Date(now).toISOString() })
+      .where(eq(mcpOauthTokens.id, parsed.id));
+  }
   return rotated(access, refresh, step.record.grant_id);
 }
 
@@ -732,29 +796,22 @@ export class McpOauthToken extends DBModel {
   static async rotateRefresh(token: string): Promise<RefreshRotation> {
     const parsed = parseToken(token, MCP_OAUTH_REFRESH_TOKEN_PREFIX);
     if (!parsed) return null;
-    const db = getPortableDb();
-    const now = Date.now();
     try {
-      if (getDbType() === "sqlite") {
-        // better-sqlite3 transactions must be fully synchronous; an async
-        // callback returns a Promise the driver rejects.
-        return db.transaction((tx: DbTransaction): RefreshRotation =>
-          rotateSqlite(tx, parsed, now)
-        );
-      }
-      return await db.transaction(
-        async (tx: DbTransaction): Promise<RefreshRotation> =>
-          rotatePostgres(tx, parsed, now)
-      );
+      return await rotateOnce(parsed);
     } catch (err) {
       if (!isRotatedFromConflict(err)) throw err;
       // Another presentation of this same token claimed the rotation while
-      // this one was in flight — that, and only that, is reuse. The
-      // transaction rolled back, so nothing of this attempt survives; the
-      // grant goes.
-      const grantId = await grantIdOfToken(parsed.id);
-      if (grantId) await revokeGrantCompletely(grantId);
-      return { reuseDetected: true };
+      // this one was in flight. The transaction rolled back and the winner has
+      // committed, so a second pass sees the successor and decides between a
+      // grace-window retry and reuse.
+      try {
+        return await rotateOnce(parsed);
+      } catch (retryErr) {
+        if (!isRotatedFromConflict(retryErr)) throw retryErr;
+        const grantId = await grantIdOfToken(parsed.id);
+        if (grantId) await revokeGrantCompletely(grantId);
+        return { reuseDetected: true };
+      }
     }
   }
 

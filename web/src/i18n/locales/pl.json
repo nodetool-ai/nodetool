@@ -6332,7 +6332,6 @@
         "checkingModels": "Nadal sprawdzam modele językowe. Spróbuj ponownie za chwilę.",
         "chatNeedsModel": "Już prawie gotowe — chat potrzebuje modelu do działania.",
         "pickModelToStartChat": "Wybierz model języka i rozpocznie się czat.",
-        "pickMediaModel": "Wybierz model i rozpocznie się generacja.",
         "openChatError": "Nie można otworzyć czatu: {{error}}",
         "startFlowError": "Nie można uruchomić {{flow}}: {{error}}",
         "flowNames": {
@@ -6556,7 +6555,14 @@
         "moreStarters_few": "jeszcze {{count}}",
         "moreStarters_many": "jeszcze {{count}}",
         "renderedExampleShots_few": "{{count}} zdjęcia, już wyrenderowane",
-        "renderedExampleShots_many": "{{count}} zdjęć, już wyrenderowanych"
+        "renderedExampleShots_many": "{{count}} zdjęć, już wyrenderowanych",
+        "goals": {
+          "label": "Co rozpocząć",
+          "chat": "Czat",
+          "image": "Obraz",
+          "video": "Wideo",
+          "audio": "Dźwięk"
+        }
       }
     }
   },
@@ -19625,36 +19631,6 @@
     "laneLabel": "Pas automatyzacji: {{name}}",
     "deletePoint": "Usuń punkt"
   },
-  "generationFeed": {
-    "recent": "Najnowsze",
-    "imageEmptyTitle": "Twórz obrazy",
-    "imageEmptyDescription": "Opisz scenę poniżej i wybierz model oraz proporcje. Dołącz obraz, aby go edytować.",
-    "videoEmptyTitle": "Twórz filmy",
-    "videoEmptyDescription": "Opisz ujęcie, ruch kamery i oświetlenie poniżej. Dołącz ramkę, aby ją animować.",
-    "audioEmptyTitle": "Generuj mowę i muzykę",
-    "audioEmptyDescription": "Wpisz wiersz, aby usłyszeć go na głos. Przełącz na opcję Generuj muzykę, aby skomponować utwór.",
-    "editImage": "Edytuj ten obraz",
-    "openInSketch": "Otwórz w szkicu",
-    "addToCanvas": "Dodaj do płótna",
-    "rerun": "Uruchom ponownie",
-    "copyPrompt": "Skopiuj monit",
-    "removeFromThread": "Usuń z wątku",
-    "history": "Historia ({{total}})",
-    "tileSize": "Rozmiar płytki",
-    "viewMode": "Tryb przeglądania",
-    "list": "Lista",
-    "grid": "Siatka",
-    "video": "Wideo",
-    "speech": "Mowa",
-    "music": "Muzyka",
-    "noVideoOutput": "Nie zwrócono żadnego filmu.",
-    "noAudioOutput": "Nie zwrócono żadnego dźwięku.",
-    "untitledTrack": "Ścieżka dźwiękowa",
-    "extendClip": "Rozwiń ten klip",
-    "referenceAlt": "Numer referencyjny {{index}}",
-    "sketchTitle": "Szkic",
-    "audio": "Dźwięk"
-  },
   "preset_chip": {
     "label": "Ustawienia wstępne",
     "title": "Wybierz gotowe ustawienia",
@@ -20242,7 +20218,9 @@
     },
     "renameFailed": "Nie udało się zmienić nazwy karty: {{reason}}",
     "sessionFailed": "Nie udało się wczytać ujęć tej karty.",
-    "sessionKind": "Sesja Create"
+    "sessionKind": "Sesja Create",
+    "openInCreate": "Otwórz w Create",
+    "openInCreateFailed": "Nie udało się otworzyć Create: {{reason}}"
   },
   "effectsGallery": {
     "title": "Efekty",

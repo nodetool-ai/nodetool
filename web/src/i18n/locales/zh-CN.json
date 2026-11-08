@@ -6174,7 +6174,6 @@
         "checkingModels": "正在检查语言模型，请稍后重试。",
         "chatNeedsModel": "快好了，聊天需要模型才能运行。",
         "pickModelToStartChat": "选择语言模型即可开始聊天。",
-        "pickMediaModel": "选择一个模型，生成随即开始。",
         "openChatError": "无法打开聊天：{{error}}",
         "startFlowError": "无法启动{{flow}}：{{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "工作流示例",
             "description": "自动化、多步骤"
           }
+        },
+        "goals": {
+          "label": "要开始什么",
+          "chat": "聊天",
+          "image": "图像",
+          "video": "视频",
+          "audio": "音频"
         }
       }
     }
@@ -19005,36 +19011,6 @@
     "laneLabel": "自动化轨道：{{name}}",
     "deletePoint": "删除点"
   },
-  "generationFeed": {
-    "recent": "最近",
-    "imageEmptyTitle": "生成图像",
-    "imageEmptyDescription": "在下方描述场景，并选择模型和宽高比。附加图像即可对其进行编辑。",
-    "videoEmptyTitle": "生成视频",
-    "videoEmptyDescription": "在下方描述镜头、运镜和光线。附加一帧画面即可将其制作成动画。",
-    "audioEmptyTitle": "生成语音和音乐",
-    "audioEmptyDescription": "输入一句话即可朗读。切换到“生成音乐”可创作一段曲目。",
-    "editImage": "编辑此图像",
-    "openInSketch": "在 Sketch 中打开",
-    "addToCanvas": "添加到画布",
-    "rerun": "重新运行",
-    "copyPrompt": "复制提示词",
-    "removeFromThread": "从对话中移除",
-    "history": "历史（{{total}}）",
-    "tileSize": "图块大小",
-    "viewMode": "视图",
-    "list": "列表",
-    "grid": "网格",
-    "video": "视频",
-    "speech": "语音",
-    "music": "音乐",
-    "noVideoOutput": "未返回视频。",
-    "noAudioOutput": "未返回音频。",
-    "untitledTrack": "音轨",
-    "extendClip": "延长此片段",
-    "referenceAlt": "参考图 {{index}}",
-    "sketchTitle": "Sketch",
-    "audio": "音频"
-  },
   "preset_chip": {
     "label": "预设",
     "title": "选择预设",
@@ -19620,7 +19596,9 @@
     },
     "renameFailed": "无法重命名标签页：{{reason}}",
     "sessionFailed": "无法加载此标签页的作品。",
-    "sessionKind": "Create 会话"
+    "sessionKind": "Create 会话",
+    "openInCreate": "在 Create 中打开",
+    "openInCreateFailed": "无法打开 Create：{{reason}}"
   },
   "effectsGallery": {
     "title": "特效",

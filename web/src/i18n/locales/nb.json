@@ -6174,7 +6174,6 @@
         "checkingModels": "Sjekker fortsatt språkmodellene dine. Prøv igjen om et øyeblikk.",
         "chatNeedsModel": "Nesten der - chat trenger en modell for å kjøre.",
         "pickModelToStartChat": "Velg en språkmodell og chatten starter.",
-        "pickMediaModel": "Velg en modell og generasjonen starter.",
         "openChatError": "Kunne ikke åpne chat: {{error}}",
         "startFlowError": "Kunne ikke starte {{flow}}: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Eksempler på arbeidsflyt",
             "description": "Automatiseringer, flertrinn"
           }
+        },
+        "goals": {
+          "label": "Hva som startes",
+          "chat": "Chat",
+          "image": "Bilde",
+          "video": "Video",
+          "audio": "Lyd"
         }
       }
     }
@@ -19005,36 +19011,6 @@
     "laneLabel": "Automatiseringsfelt: {{name}}",
     "deletePoint": "Slett punkt"
   },
-  "generationFeed": {
-    "recent": "Nylig",
-    "imageEmptyTitle": "Lag bilder",
-    "imageEmptyDescription": "Beskriv en scene nedenfor og velg en modell og sideforhold. Legg ved et bilde for å redigere det.",
-    "videoEmptyTitle": "Lag videoer",
-    "videoEmptyDescription": "Beskriv bildet, kamerabevegelsen og lyssettingen nedenfor. Fest en ramme for å animere den.",
-    "audioEmptyTitle": "Generer tale og musikk",
-    "audioEmptyDescription": "Skriv inn en linje for å høre den lest opp. Bytt til Generer musikk for å komponere et spor.",
-    "editImage": "Rediger dette bildet",
-    "openInSketch": "Åpne i Sketch",
-    "addToCanvas": "Legg til lerret",
-    "rerun": "Kjør på nytt",
-    "copyPrompt": "Kopiér melding",
-    "removeFromThread": "Fjern fra tråden",
-    "history": "Historikk ({{total}})",
-    "tileSize": "Flisstørrelse",
-    "viewMode": "Visningsmodus",
-    "list": "Liste",
-    "grid": "Rutenett",
-    "video": "Video",
-    "speech": "Tale",
-    "music": "Musikk",
-    "noVideoOutput": "Ingen video ble returnert.",
-    "noAudioOutput": "Ingen lyd ble returnert.",
-    "untitledTrack": "Lydspor",
-    "extendClip": "Forleng dette klippet",
-    "referenceAlt": "Referanse {{index}}",
-    "sketchTitle": "Skisse",
-    "audio": "Lyd"
-  },
   "preset_chip": {
     "label": "Forhåndsinnstillinger",
     "title": "Velg forhåndsinnstillinger",
@@ -19620,7 +19596,9 @@
     },
     "renameFailed": "Fanen kunne ikke gis nytt navn: {{reason}}",
     "sessionFailed": "Opptakene i denne fanen kunne ikke lastes inn.",
-    "sessionKind": "Create-økt"
+    "sessionKind": "Create-økt",
+    "openInCreate": "Åpne i Create",
+    "openInCreateFailed": "Create kunne ikke åpnes: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekter",
