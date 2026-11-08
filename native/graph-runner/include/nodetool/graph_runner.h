@@ -67,6 +67,15 @@ struct HostOptions {
   // it, and context.createAsset writes `<id>.<ext>` into it. Empty: those
   // refs do not resolve and createAsset fails as it does without a database.
   std::string assetDir;
+  // Shipped sample media: `package://<pkg>/<path>` refs read <dir>/<pkg>/<path>,
+  // read-only. A path with `..`, a leading `/` or a symlink below the
+  // directory is refused. Empty: package:// refs fail with an error.
+  std::string packageAssetsDir;
+  // Every provider id resolves to the runtime's FakeProvider in the guest, one
+  // instance per id, and the context's provider:* and prediction:* grants are
+  // dropped. Provider calls then reach no grant, secret or network. For
+  // running example workflows offline.
+  bool fakeProviders = false;
   // What context.getSecret(key) returns. Keys not listed read as null.
   std::map<std::string, std::string> secrets;
   // Let media refs load http(s) URLs. Only https to a public address is
@@ -115,6 +124,8 @@ public:
   // Waits until the first load finishes or `timeoutMs` passes. Returns ready().
   bool waitUntilLoaded(int timeoutMs) const;
   // Node types the loaded guest runs. Empty until the first load succeeds.
+  // A type whose code reaches an export the native runner lacks (the
+  // bundle's node requirements) is not among them.
   std::vector<std::string> supportedNodeTypes() const;
   // Empty when the runner is ready and can run every node and edge of
   // `graphJson` ({nodes, edges}). Otherwise the reason it cannot.

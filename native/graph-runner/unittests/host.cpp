@@ -301,6 +301,53 @@ void assetsStoreAndRefuseEscapes() {
   CHECK(run(*e, "JSON.parse(__host.assets.list('')).length") == "0");  // symlinks are not listed
 }
 
+// --- package assets ---------------------------------------------------------
+
+void packageAssetsFailWithoutADirectory() {
+  auto e = engineWith({});
+  CHECK(run(*e, "__host.packageAssets.available()") == "false");
+  CHECK(run(*e, "__host.packageAssets.read('nodetool-base/voice.wav')") ==
+        "error: package://nodetool-base/voice.wav: the native runner has no package assets directory (--package-assets)");
+}
+
+void packageAssetsReadAndRefuseEscapes() {
+  TempDir t;
+  writeText(t.path("pkg/nodetool-base/recipe-inputs/voice.wav"), "wav");
+  writeText(t.path("outside.txt"), "outside");
+  gr::HostOptions o;
+  o.packageAssetsDir = t.path("pkg");
+  auto e = engineWith(o);
+  CHECK(run(*e, "__host.packageAssets.available()") == "true");
+  CHECK(run(*e, "text(__host.packageAssets.read('nodetool-base/recipe-inputs/voice.wav'))") == "wav");
+  CHECK(run(*e, "__host.packageAssets.read('nodetool-base/missing.wav')") == "null");
+  CHECK(run(*e, "typeof __host.packageAssets.write") == "undefined");  // read-only
+
+  CHECK(startsWith(run(*e, "__host.packageAssets.read('../outside.txt')"), "error: Invalid storage key"));
+  CHECK(startsWith(run(*e, "__host.packageAssets.read('nodetool-base/../../outside.txt')"), "error: Invalid storage key"));
+  CHECK(startsWith(run(*e, "__host.packageAssets.read(" + lit(t.path("outside.txt")) + ")"), "error: Invalid storage key"));
+  fs::create_symlink(t.path("outside.txt"), t.path("pkg/nodetool-base/link.wav"));
+  CHECK(startsWith(run(*e, "__host.packageAssets.read('nodetool-base/link.wav')"), "error: EACCES"));
+}
+
+// --- providers --------------------------------------------------------------
+
+void fakeProvidersDropProviderGrants() {
+  gr::HostOptions o;
+  for (const char* name : {"provider:p:open", "prediction:p:text_to_image", "provider:p:jobs:start", "model:getJob"}) {
+    o.context.operations[name] = [](const std::string&) { return std::string("null"); };
+  }
+  auto real = engineWith(o);
+  CHECK(run(*real, "__host.providers.fake()") == "false");
+  CHECK(run(*real, "__host.context.has('provider:p:open') && __host.context.has('prediction:p:text_to_image')") == "true");
+  o.fakeProviders = true;
+  auto e = engineWith(o);
+  CHECK(run(*e, "__host.providers.fake()") == "true");
+  CHECK(run(*e, "__host.context.has('provider:p:open')") == "false");
+  CHECK(run(*e, "__host.context.has('prediction:p:text_to_image')") == "false");
+  CHECK(run(*e, "__host.context.has('provider:p:jobs:start')") == "false");
+  CHECK(run(*e, "__host.context.has('model:getJob')") == "true");  // other grants stay
+}
+
 // --- secrets ----------------------------------------------------------------
 
 void secretsComeFromTheEmbedderOnly() {
@@ -366,6 +413,9 @@ int main() {
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},
       {"assetsGrantNothingByDefault", assetsGrantNothingByDefault},
       {"assetsStoreAndRefuseEscapes", assetsStoreAndRefuseEscapes},
+      {"packageAssetsFailWithoutADirectory", packageAssetsFailWithoutADirectory},
+      {"packageAssetsReadAndRefuseEscapes", packageAssetsReadAndRefuseEscapes},
+      {"fakeProvidersDropProviderGrants", fakeProvidersDropProviderGrants},
       {"secretsComeFromTheEmbedderOnly", secretsComeFromTheEmbedderOnly},
       {"httpIsOffByDefault", httpIsOffByDefault},
       {"httpPolicyMatchesSafeFetch", httpPolicyMatchesSafeFetch},

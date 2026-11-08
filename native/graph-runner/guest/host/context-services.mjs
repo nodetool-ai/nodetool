@@ -6,6 +6,19 @@ import { PERMISSION_GATE_CONTEXT_KEY } from "guest-real:@nodetool-ai/runtime/per
 import { BaseProvider } from "guest-real:@nodetool-ai/runtime/providers/base-provider.js";
 import { fromJson, toJson } from "../values.mjs";
 import { hasProviderJobs, runProviderJob } from "./provider-jobs.mjs";
+// The logic of these members is shared with ProcessingContext. The guest
+// supplies the hosts (runtime/src/node-context/context-host.ts): the context
+// itself for media and providers, generationHost() for the envelope.
+import { resolveMessageMediaUris } from "guest-real:@nodetool-ai/runtime/node-context/message-media.js";
+import { providerSupportsStreamingTTS } from "guest-real:@nodetool-ai/runtime/node-context/provider-dispatch.js";
+import {
+  audioToAudio,
+  runGeneration,
+  runGenerationWith,
+  streamGeneration,
+  textToMusic,
+  textToSpeechEncoded
+} from "guest-real:@nodetool-ai/runtime/node-context/generation.js";
 
 export function contextCall(context, name, args) {
   context.signal.throwIfAborted();
@@ -264,6 +277,15 @@ function guardedProvider(context, provider) {
   });
 }
 
+const NO_GENERATION_REGISTRY = Object.freeze({ register() {}, settle() {} });
+
+const PROVIDER_GRANT_METHODS = ["open", "generateMessage", "generateText", "generateObject", "postModel", "webSearch", "jobs:start"];
+
+/** Whether the host granted any provider method for this id. */
+function providerGranted(id) {
+  return PROVIDER_GRANT_METHODS.some((method) => globalThis.__host?.context?.has(`provider:${id}:${method}`));
+}
+
 export class ContextServices {
   initializeNativePermissions() {
     if (!globalThis.__host?.context?.has("permission:request")) return;
@@ -300,17 +322,7 @@ export class ContextServices {
     const pending = (async () => {
       const provider = this._providerResolver
         ? await this._providerResolver(id)
-        : [
-              "open",
-              "generateMessage",
-              "generateText",
-              "generateObject",
-              "postModel",
-              "webSearch",
-              "jobs:start"
-            ].some((method) =>
-              globalThis.__host?.context?.has(`provider:${id}:${method}`)
-            )
+        : providerGranted(id)
           ? nativeProvider(this, id)
           : null;
       this.signal.throwIfAborted();
@@ -480,47 +492,51 @@ export class ContextServices {
   listFolderAssets(folderId) {
     return this._callModel("listFolderAssets", { folderId });
   }
-  async runProviderPrediction(req) {
-    if (req.capability === "generate_message") {
-      const provider = await this.getProvider(req.provider);
-      const params = req.params ?? {};
-      const args = {
-        messages: params.messages ?? [],
-        model: req.model,
-        tools: params.tools,
-        toolChoice: params.tool_choice,
-        maxTokens: params.max_tokens,
-        temperature: params.temperature,
-        topP: params.top_p,
-        presencePenalty: params.presence_penalty,
-        frequencyPenalty: params.frequency_penalty,
-        signal: this.signal
-      };
-      const generate =
-        provider.generateMessageTraced ?? provider.generateMessage;
-      const result = await generate.call(provider, args);
-      this.signal.throwIfAborted();
-      return result;
-    }
-    // Host generation adapters own capability-specific media conversion and
-    // bookkeeping. Do not return raw provider bytes as a successful generation.
-    return contextCall(
-      this,
-      `prediction:${req.provider}:${req.capability}`,
-      req
-    );
+  /**
+   * The host of the shared generation envelope. The native runner has no
+   * durable generation lifecycle, no process-wide registry of live
+   * generations and no app runs, so those parts are empty.
+   */
+  generationHost() {
+    return { context: this, lifecycle: null, registry: NO_GENERATION_REGISTRY, insideAppRun: () => false };
   }
-  async *streamProviderPrediction(req) {
-    const provider = await this.getProvider(req.provider);
-    if (req.capability !== "generate_messages")
-      throw new Error(
-        `Streaming capability '${req.capability}' is not granted`
-      );
-    yield* provider.generateMessages({
-      ...req.params,
-      model: req.model,
-      signal: this.signal
-    });
+  /**
+   * The context resolves a provider for generate_message, and for other
+   * capabilities when the host has no prediction grant for them. A granted
+   * `prediction:<id>:<capability>` means the embedder's adapter makes the
+   * call and owns its media conversion, so the envelope runs without a
+   * provider around it. With fake providers the host drops those grants.
+   */
+  runGeneration(req) {
+    const grant = `prediction:${req.provider}:${req.capability}`;
+    const host = globalThis.__host?.context;
+    const local =
+      req.capability === "generate_message" ||
+      (!host?.has(grant) &&
+        (this._providers.has(req.provider) || this._providerResolver !== null || providerGranted(req.provider)));
+    if (local) return runGeneration(this.generationHost(), req);
+    return runGenerationWith(this.generationHost(), req, () => contextCall(this, grant, req), { withoutProvider: true });
+  }
+  async runProviderPrediction(req) {
+    return (await this.runGeneration(req)).output;
+  }
+  streamProviderPrediction(req) {
+    return streamGeneration(this, req);
+  }
+  resolveMessageMediaUris(messages) {
+    return resolveMessageMediaUris(this, messages);
+  }
+  providerSupportsStreamingTTS(providerId) {
+    return providerSupportsStreamingTTS(this, providerId);
+  }
+  textToSpeechEncoded(req) {
+    return textToSpeechEncoded(this.generationHost(), req);
+  }
+  textToMusic(req) {
+    return textToMusic(this.generationHost(), req);
+  }
+  audioToAudio(req) {
+    return audioToAudio(this.generationHost(), req);
   }
   emit(message) {
     this.postMessage(message);
@@ -548,6 +564,12 @@ export class ContextServices {
   }
   removeMessageListener(listener) {
     this._messageListeners.delete(listener);
+  }
+  addToTotalCost(cost) {
+    this._costs.add(cost);
+  }
+  getTotalCost() {
+    return this._costs.total;
   }
   setProviderCost(provider, amount, unit = "USD", extra = {}) {
     this._providerCost = { provider, amount, unit, ...extra };

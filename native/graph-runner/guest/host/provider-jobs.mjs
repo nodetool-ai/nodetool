@@ -4,6 +4,7 @@
 // closes it when it settles or the run is aborted. Requests and results
 // larger than one part travel as consecutive parts of their JSON text.
 import { fromJson, toJson } from "../values.mjs";
+import { fakeProvidersGranted } from "./fake-providers.mjs";
 
 // Characters of request JSON per put. Well under the host's part and payload
 // limits after the text is escaped again inside the put request.
@@ -13,9 +14,9 @@ const MAX_DELAY_MS = 500;
 
 const operation = (provider, name) => `provider:${provider}:jobs:${name}`;
 
-/** True when the embedder granted endpoint jobs for `provider`. */
+/** True when the embedder granted endpoint jobs for `provider`, and providers are not fake. */
 export function hasProviderJobs(provider) {
-  return globalThis.__host?.context?.has(operation(provider, "start")) === true;
+  return !fakeProvidersGranted() && globalThis.__host?.context?.has(operation(provider, "start")) === true;
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

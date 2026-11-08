@@ -155,6 +155,14 @@ void checksSupport() {
   bypassed["nodes"][1]["ui_properties"]["bypassed"] = true;
   CHECK(runner.canRun(bypassed.dump()));
   CHECK(!runner.canRun("not json"));
+  // A type whose code reaches an unavailable export of the module contract
+  // (the bundle's node requirements) does not run locally, with the reason.
+  Json watcher = Json::parse(editorGraph(3));
+  watcher["nodes"][0]["type"] = "nodetool.triggers.FileWatchTrigger";
+  CHECK(runner.unsupportedReason(watcher.dump()).find("it needs node:fs.watch (server-only)") != std::string::npos);
+  auto types = runner.supportedNodeTypes();
+  CHECK(std::find(types.begin(), types.end(), "nodetool.triggers.FileWatchTrigger") == types.end());
+  CHECK(std::find(types.begin(), types.end(), "nodetool.triggers.ManualTrigger") != types.end());
 }
 
 void runsEditorGraph() {

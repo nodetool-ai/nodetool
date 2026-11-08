@@ -16,6 +16,7 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildGpuCatalog } from "./gpu-catalog.mjs";
 import { canvasPlugins } from "./canvas-build.mjs";
+import { MODULES } from "../module-contract.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -57,7 +58,8 @@ export function capabilityPlugins() {
     {
       name: "host-capabilities",
       setup(b) {
-        b.onResolve({ filter: /^@napi-rs\/canvas$/ }, () => ({ path: join(here, "canvas.mjs") }));
+        // The contract resolves it too; build scripts that bundle without the contract plugin rely on this.
+        b.onResolve({ filter: /^@napi-rs\/canvas$/ }, () => ({ path: join(here, "..", MODULES["@napi-rs/canvas"].provider) }));
         b.onResolve({ filter: /^\.\.?\/(lib\/)?audio-context\.js$/ }, (args) => {
           if (args.importer.includes('/audio-nodes/')) return { path: join(here, 'offline-audio.mjs') };
         });

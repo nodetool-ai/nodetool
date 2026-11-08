@@ -1,8 +1,8 @@
 {
  "counts": {
-  "parity": 343,
-  "mismatch": 2,
-  "native-unsupported": 0,
+  "parity": 312,
+  "mismatch": 11,
+  "native-unsupported": 22,
   "reference-unavailable": 88,
   "skipped": 32
  },
@@ -63,9 +63,9 @@
    "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
   },
   "kie.dynamic_schema.KieAI": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/integration-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: model_info is empty. Paste kie.ai API documentation.\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Graph validation failed with 1..."
   },
   "lib.audio.Bitcrush": {
    "status": "parity",
@@ -543,14 +543,14 @@
    "reason": "2 case(s) match"
   },
   "lib.pdf.Pdftoppm": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/document-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
   },
   "lib.pdf.Screenshot": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/document-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
   },
   "lib.sqlite.GetDatabasePath": {
    "status": "parity",
@@ -1288,9 +1288,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.game.StageGameAssets": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/game-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [edge e_out_bindings] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_bindings\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
   },
   "nodetool.game.Tileset": {
    "status": "parity",
@@ -1653,9 +1653,9 @@
    "reason": "skip rule host-binary:manimgx: spawns ManimGX (Python)"
   },
   "nodetool.model3d.Boolean3D": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
   },
   "nodetool.model3d.CenterMesh": {
    "status": "parity",
@@ -1713,9 +1713,9 @@
    "reason": "1 case(s) match"
   },
   "nodetool.model3d.RenderToImage": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
   },
   "nodetool.model3d.RepairMesh": {
    "status": "parity",
@@ -1793,9 +1793,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.storyboard.AssembleTimeline": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [edge e_out_retimed] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_retimed\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
   },
   "nodetool.storyboard.CreateStoryboard": {
    "status": "reference-unavailable",
@@ -1953,44 +1953,44 @@
    "reason": "2 case(s) match"
   },
   "nodetool.video.AddAudio": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.AddAudio)"
   },
   "nodetool.video.AddSubtitles": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.AddSubtitles)"
   },
   "nodetool.video.Blur": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Blur)"
   },
   "nodetool.video.ChromaKey": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ChromaKey)"
   },
   "nodetool.video.ColorBalance": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ColorBalance)"
   },
   "nodetool.video.Concat": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.concatCopy is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Concat)"
   },
   "nodetool.video.Denoise": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Denoise)"
   },
   "nodetool.video.EaseCurve": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.EaseCurve)"
   },
   "nodetool.video.Element": {
    "status": "parity",
@@ -1998,19 +1998,19 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.video.ExtractAudio": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ExtractAudio)"
   },
   "nodetool.video.ExtractFrame": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.pngFrames is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ExtractFrame)"
   },
   "nodetool.video.ForEachFrame": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.pngFrames is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ForEachFrame)"
   },
   "nodetool.video.Fps": {
    "status": "parity",
@@ -2053,9 +2053,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.video.Overlay": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Overlay)"
   },
   "nodetool.video.ReferenceToVideo": {
    "status": "reference-unavailable",
@@ -2063,24 +2063,24 @@
    "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.video.Resize": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Resize)"
   },
   "nodetool.video.Reverse": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Reverse)"
   },
   "nodetool.video.Rotate": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Rotate)"
   },
   "nodetool.video.Saturation": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Saturation)"
   },
   "nodetool.video.SaveVideo": {
    "status": "parity",
@@ -2093,14 +2093,14 @@
    "reason": "1 case(s) match"
   },
   "nodetool.video.SetSpeed": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.SetSpeed)"
   },
   "nodetool.video.Sharpness": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Sharpness)"
   },
   "nodetool.video.Shot": {
    "status": "parity",
@@ -2108,9 +2108,9 @@
    "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
   },
   "nodetool.video.Stabilize": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Stabilize)"
   },
   "nodetool.video.TextToVideo": {
    "status": "reference-unavailable",
@@ -2118,14 +2118,14 @@
    "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.video.Transition": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Transition)"
   },
   "nodetool.video.Trim": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Trim)"
   },
   "nodetool.video.VideoToVideo": {
    "status": "reference-unavailable",
@@ -2133,9 +2133,9 @@
    "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.workflows.app_node.App": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Select an app to run.\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Graph validation failed with 1 issue(s):\\n  - @nodetool-ai/ke..."
   },
   "nodetool.workflows.base_node.Preview": {
    "status": "parity",
@@ -2148,9 +2148,9 @@
    "reason": "1 case(s) match"
   },
   "nodetool.workflows.workflow_node.Workflow": {
-   "status": "parity",
+   "status": "native-unsupported",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "1 case(s) match"
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/kernel.Graph is unavailable in the native runner (not-yet-ported: part of the TypeScript workflow kernel, which the C++ kernel in src/kernel/ replaces); @nodetool-ai/kernel.withExplicitNodeFlags is unavailable in the native runner (not-yet-po..."
   },
   "openai.agents.LiveAgent": {
    "status": "reference-unavailable",
@@ -2233,9 +2233,9 @@
    "reason": "2 case(s) match"
   },
   "vector.IndexAggregatedText": {
-   "status": "parity",
+   "status": "mismatch",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Collection name cannot be empty\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Graph validation failed with 1 issue(s):\\n  - @node..."
   },
   "vector.IndexEmbedding": {
    "status": "parity",

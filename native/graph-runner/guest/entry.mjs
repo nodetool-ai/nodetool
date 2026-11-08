@@ -39,6 +39,10 @@ import { supportsPlatform } from "@nodetool-ai/protocol";
 import { createContext } from "./host/context.mjs";
 import { outputValue } from "./host/output.mjs";
 import { fromJson, toJson } from "./values.mjs";
+// `{ nodeType: [{ spec, name, reason, note }] }`: the unavailable exports of
+// the module contract each node type's code reaches, computed when the
+// bundle is built (guest/module-contract-build.mjs).
+import nodeRequirements from "nodetool:node-requirements";
 
 const host = () => globalThis.__host;
 
@@ -80,8 +84,17 @@ function settle(promise) {
   );
 }
 
+/** The validation message for a node type that needs unavailable exports, or null. */
+function unavailableMessage(type) {
+  const needs = nodeRequirements[type];
+  if (!needs?.length) return null;
+  return needs.map((r) => `${r.spec}.${r.name} is unavailable in the native runner (${r.reason}: ${r.note})`).join("; ");
+}
+
 function describe(cls, node) {
+  const requires = nodeRequirements[cls.nodeType];
   return {
+    ...(requires?.length ? { requires } : {}),
     is_streaming_input: cls.resolveStreamingInput?.(node) ?? cls.isStreamingInput,
     is_streaming_output: hasStreamingOutput(cls),
     is_controlled: cls.isControlled,
@@ -242,14 +255,21 @@ globalThis.__nodetool = {
     ).then((entries) => JSON.stringify(Object.fromEntries(entries)));
   },
 
-  /** Flags the kernel reads from the class; json `null` for an unknown type. */
+  /**
+   * Flags the kernel reads from the class; json `null` for an unknown type.
+   * `requires` lists the unavailable exports the type's code reaches.
+   */
   describe(nodeJson) {
     const node = fromJson(nodeJson);
     const cls = classes.get(node.type);
     return cls ? JSON.stringify(describe(cls, node)) : "null";
   },
 
-  /** Property and platform issues, as `registry.createNodeValidator()` plus the "node" platform check. */
+  /**
+   * Property and platform issues, as `registry.createNodeValidator()` plus
+   * the "node" platform check, and one issue for a node type whose code
+   * reaches an unavailable export, so the run fails before any node starts.
+   */
   validate(nodeJson, connectedJson) {
     const node = fromJson(nodeJson);
     const cls = classes.get(node.type);
@@ -260,6 +280,10 @@ globalThis.__nodetool = {
       dynamicSlots: node.dynamic_inputs,
       dynamicValues: node.dynamic_properties
     });
+    const unavailable = unavailableMessage(node.type);
+    if (unavailable) {
+      issues.push({ nodeId: node.id, nodeType: node.type, property: "*", code: "unavailable_in_native_runner", message: unavailable });
+    }
     if (!supportsPlatform(cls.platforms, "node")) {
       const supported = cls.platforms?.length ? cls.platforms.join(", ") : "node";
       issues.push({

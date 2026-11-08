@@ -2,15 +2,18 @@
 // TypeScript node bodies in an embedded JavaScript engine.
 //
 //   nodetool-graph-runner run --bundle <guest.js|guest.bin> --graph <graph.json> [--params '<json>'] [--repeat <n>] [--job-summary]
-//                             [--sqlite-dir <dir>]
+//                             [--sqlite-dir <dir> [--models-db <file>]]
 //                             [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]
 //                             [--secrets <file.json>] [--allow-http] [--allow-media]
+//                             [--package-assets <dir>] [--fake-providers]
 //   nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>
 //
 // The host options grant node code what HostOptions describes: a workspace
 // directory (created when missing), read-only directories, an asset store,
 // secrets from a JSON object file, https media fetches, and media decoding
-// in the native media host (no encoders). Nothing is granted by default.
+// in the native media host (no encoders), a read-only directory for
+// package:// sample media, and fake providers (every provider id answers
+// with the runtime's FakeProvider). Nothing is granted by default.
 //
 // `run` prints every kernel ProcessingMessage as one JSON line on stdout.
 // The job summary the library sends after the terminal job_update is
@@ -19,7 +22,9 @@
 // or cancelled, 2 usage error. It runs through gr::GraphRunner, the same
 // library API the node editor uses. --sqlite-dir grants node code a directory
 // for SQLite database files (HostOptions::sqliteDirectory). Without it, node
-// code gets in-memory databases only.
+// code gets in-memory databases only. --models-db names the model database
+// inside that directory (ContextOptions::modelOptionsJson databasePath), so
+// context.createAsset can save media outputs into --asset-dir.
 #include "nodetool/graph_runner.h"
 
 #include <nlohmann/json.hpp>
@@ -45,9 +50,10 @@ int usage(const char* message) {
                "usage:\n"
                "  nodetool-graph-runner run --bundle <guest.js|guest.bin> --graph "
                "<graph.json> [--params '<json>'] [--repeat <n>] [--job-summary]\n"
-               "      [--sqlite-dir <dir>]\n"
+               "      [--sqlite-dir <dir> [--models-db <file>]]\n"
                "      [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]\n"
                "      [--secrets <file.json>] [--allow-http] [--allow-media]\n"
+               "      [--package-assets <dir>] [--fake-providers]\n"
                "  nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>\n");
   return 2;
 }
@@ -127,6 +133,10 @@ int main(int argc, char** argv) {
       host.allowMedia = true;
       continue;
     }
+    if (a == "--fake-providers") {
+      host.fakeProviders = true;
+      continue;
+    }
     if (a == "--read-root" && i + 1 < argc) {
       host.readRoots.push_back(absolute(argv[++i]));
       continue;
@@ -168,6 +178,10 @@ int main(int argc, char** argv) {
   }
 
   if (flags.count("sqlite-dir")) host.sqliteDirectory = absolute(flags["sqlite-dir"]);
+  if (flags.count("models-db")) {
+    if (host.sqliteDirectory.empty()) return usage("--models-db needs --sqlite-dir");
+    host.context.modelOptionsJson = nlohmann::json{{"databasePath", flags["models-db"]}}.dump();
+  }
   if (flags.count("workspace")) {
     host.workspaceDir = absolute(flags["workspace"]);
     std::error_code ec;
@@ -175,6 +189,11 @@ int main(int argc, char** argv) {
     if (ec) return usage("cannot create --workspace");
   }
   if (flags.count("asset-dir")) host.assetDir = absolute(flags["asset-dir"]);
+  if (flags.count("package-assets")) {
+    host.packageAssetsDir = absolute(flags["package-assets"]);
+    std::error_code ec;
+    if (!std::filesystem::is_directory(host.packageAssetsDir, ec)) return usage("--package-assets must name a directory");
+  }
   if (flags.count("secrets")) {
     std::string text;
     if (!readFile(flags["secrets"], text) || !nlohmann::json::accept(text)) {

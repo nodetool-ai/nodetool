@@ -192,6 +192,22 @@ remaining synchronous native calls or inline execution.
 
 ### 4.7 Budget
 
+**Parked.** The admission ledger and the JavaScript external-byte ledger
+described in this section move to rollout step 7. Until then:
+
+- Inputs are still copied at submission, as the synchronous host functions
+  copy them today. No reference to mutable JavaScript storage is kept, so
+  F22's mutation, detach and resize hazards do not arise.
+- There are no deferred starts. A job goes straight to its lane's FIFO
+  queue, with no admission check.
+- The existing per-operation hard limits stay in force, such as the media
+  pixel quota, the HTTP body limit and the file read limits.
+- Jobs carry no reservation. Invariant I1's reservation field and the
+  reservation steps in § 5.2 arrive with step 7.
+
+This leaves queued and finished-but-undrained results unbounded in count and
+bytes (R6). The rest of this section is the step 7 design.
+
 A shared process ledger mutex protects process, runner and run counters in
 one transaction. Default hard limits are 4 GiB and 256 admitted operations
 per process, and 1 GiB and 64 admitted operations per run. Configuration may
@@ -451,11 +467,12 @@ final outputs with existing examples without claiming full Node.js ordering.
 | Step | Component | Required gate |
 |---|---|---|
 | 1 | Mailbox, registry, cancellation snapshot, scheduling rounds, runner tracker and inline bridge. | Test deliver/close races, abandon and engine reuse, wake before and during waits with no timer, coherent cancellation publication, immediate interruption, deadlines with continuously ready steps and microtasks, completion K1/K2 ordering, timer and result alternation under a full mailbox, complete microtask draining before every timer and result in normal mode, unchanged parity and examples baselines with no cancellation, the switch to bounded slices on cancellation, done and stalled exits, and worker ownership assertions. |
-| 2 | Bounded pools, reservations, snapshots and shutdown supervisor. | Test deferred mutation, detach and resize after submission, revalidation and overflow, cross-run and cross-runner pressure, result retention, JavaScript transfer charges, queued cancellation, inline responsiveness limits, and shutdown timeout without joining live threads or invoking process exit. |
+| 2 | Pools, submission snapshots and shutdown supervisor. | Test that inputs are copied at submission so later guest mutation cannot reach a job, queued cancellation, inline responsiveness limits, and shutdown timeout without joining live threads or invoking process exit. |
 | 3 | Async context transport and shared grant enforcement. | Test retained done, move destruction, missing done, double done, done/throw/cancel races, retained work across teardown, owner lifetime, and shared limits. Attempt async provider and prediction grants in fake mode and assert no grant, secret or network side effect. |
 | 4 | Provider next and durable terminal states. | Test registration/production races, repeated next after stop/close, cancellation versus queued progress/parts/terminal results, second waiter rejection, closed-but-running maxJobs pressure and abort-listener removal. Remove provider polling only here. |
 | 5 | Resource retirement, destination serialization, image/media/files/assets/HTTP and async canvas conversion. | Require authoritative threading evidence and wrapper ownership audits per host before enabling it. Test serial session token rebinding, finish/abort/close races, staging cleanup dependencies, overlapping same-key asset writes including across run teardown and separate processes, commit cancellation, snapshot isolation and synchronous canvas compatibility. Verify each converted host's outputs and failure disposal. |
 | 6 | CLI and editor adoption of async grants. | Audit captures and shutdown ownership, exercise retained completions while destroying the public runner, validate examples in inline and threaded modes, and document each embedder's explicit timeout policy. |
+| 7 | Admission ledger and JavaScript external-byte ledger (§ 4.7). | Test deferred mutation, detach and resize after submission, revalidation and overflow, cross-run and cross-runner pressure, result retention, JavaScript transfer charges and cancellation of deferred starts. |
 
 ThreadSanitizer supplements race tests when the relevant component lands.
 It cannot replace authoritative evidence for cross-thread libvips operations
@@ -479,6 +496,10 @@ synchronous or disable its optional interruption hook. GPU work is excluded.
   test does not resolve them.
 - R5. Persistent effects can commit immediately before cancellation.
   Cross-process asset writes have last-rename semantics, not submission order.
+- R6. Until step 7, nothing bounds the number or bytes of queued jobs and
+  undrained results. A graph that starts many large operations at once, or a
+  series of cancelled runs with uncooperative jobs, can raise memory without
+  limit. The per-operation hard limits still apply.
 
 ## 10. Alternatives and later work
 
@@ -500,7 +521,7 @@ lock order and the separation between native jobs and abandoned frames.
 | F19 | Section 4.6 publishes a coherent cancellation snapshot, defines immediate destruction deadlines and preserves sticky wake behavior without timers. |
 | F20 | Section 4.5 dispatches results only at the macrotask point, after ready steps and microtasks are exhausted, and alternates timers with results. It limits determinism and removes the Node.js ordering claim. |
 | F31 | Section 4.5 splits scheduling into normal and cancellation modes. Normal mode drains microtasks completely and fires timers only when no step is ready, as today. Bounded slices apply only after cancellation. G7, R1 and the step 1 gate match. |
-| F21 | Section 4.7 reserves queue, execution and result memory across teardown, separately accounts JavaScript bytes and bounds process-wide admission. |
+| F21 | Section 4.7 reserves queue, execution and result memory across teardown, separately accounts JavaScript bytes and bounds process-wide admission. Parked to step 7, with R6 recording the interim risk. |
 | F22 | Section 4.7 snapshots at submission, bounds deferred bytes and revalidates cost at admission. Step 2 tests mutation, detach and resize. |
 | F23 | Section 5.2 specifies shared completion ownership, physical accounting lifetime, moved-from destruction, first-terminal precedence and embedder capture requirements. |
 | F24 | Section 4.8 inventories dependencies and persistent effects and unifies close, finish, abort and run cleanup through retirement and serialization. Destruction evidence remains a per-host gate. |

@@ -13,6 +13,14 @@
 //   list(prefix)         -> json [{key, size, mtimeMs}], every file below prefix, sorted
 //   find(dir, stem)      -> json [key], files directly in dir named <stem>.<ext>, sorted
 //   remove(key)          -> whether a file was removed
+//
+// `__host.packageAssets`: shipped sample media, read-only, from
+// HostOptions::packageAssetsDir. guest/host/context.mjs resolves
+// `package://<pkg>/<path>` refs through it, with the key `<pkg>/<path>` and
+// the same key checks as the asset store.
+//
+//   available()          -> whether a package assets directory is granted
+//   read(key)            -> Uint8Array, or null when missing
 #include "host/capabilities.h"
 #include "host/paths.h"
 
@@ -255,6 +263,23 @@ void installAssets(js::Engine& e, const js::Value& object, const HostOptions& op
   }));
   e.set(object, "remove", e.function("remove", 1, [assets, key](js::Engine& en, Args a) {
     return en.boolean(assets->remove(key(en, a)));
+  }));
+}
+
+void installPackageAssets(js::Engine& e, const js::Value& object, const HostOptions& options) {
+  auto assets = std::make_shared<Assets>();
+  if (!options.packageAssetsDir.empty()) assets->roots = canonicalRoots({{options.packageAssetsDir, false}});
+  e.set(object, "available", e.function("available", 0, [assets](js::Engine& en, Args) {
+    return en.boolean(!assets->roots.empty());
+  }));
+  e.set(object, "read", e.function("read", 1, [assets](js::Engine& en, Args a) {
+    const std::string key = a.empty() ? std::string() : en.toString(a[0]);
+    if (assets->roots.empty()) {
+      throw std::runtime_error("package://" + key +
+                               ": the native runner has no package assets directory (--package-assets)");
+    }
+    auto data = assets->read(key);
+    return data ? en.bytes(data->data(), data->size()) : en.null();
   }));
 }
 

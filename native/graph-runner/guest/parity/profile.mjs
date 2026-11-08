@@ -10,95 +10,25 @@
 // top-level await rejects, therefore removes only its own nodes, and the
 // probe node reports the error.
 //
-// Code a node imports but the guest cannot provide becomes a named stub: each
-// export of the real module is replaced by a function that throws
-// "guest: <module>.<name> is unavailable" when called or constructed, or by a
-// getter that throws the same error when read. Nothing is faked, so a node
-// that reaches a stub fails with the capability it lacks in the message.
+// Host packages, Node builtins and native packages resolve through the module
+// contract (guest/module-contract.mjs): an export the guest cannot provide is
+// a stub that throws "guest: <module>.<name> is unavailable in the native
+// runner (<reason>: <note>)" when called, constructed or read. Nothing is
+// faked, so a node that reaches a stub fails with what it lacks in the
+// message. A package esbuild cannot resolve at all becomes a module that
+// throws on load.
 import { readFileSync } from "node:fs";
-import { builtinModules, createRequire } from "node:module";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HOST_MODULES as HOST_WRAPPERS } from "../host/modules.mjs";
-import { hostModuleFor, hostModulesPlugin } from "../host-modules.mjs";
+import { hostModulesPlugin } from "../host-modules.mjs";
+import { contractPlugin, missingSource } from "../module-contract-build.mjs";
+import { contextUnavailable as declaredUnavailable } from "../context-unavailable.mjs";
+import { REASONS } from "../module-contract.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const guestDir = dirname(here);
 const entryPath = join(guestDir, "entry.mjs");
-
-/** Modules the native host must provide. Every specifier under these is stubbed. */
-const HOST_MODULES = /^@nodetool-ai\/(runtime|storage|config|kernel)(\/.*)?$/;
-
-/**
- * Real implementations that replace stubbed exports: the config and kernel
- * shims, and the guest's host modules (guest/host/) for the runtime and
- * storage packages and the Node builtins it provides.
- */
-const OVERRIDES = {
-  "@nodetool-ai/config": join(guestDir, "shims", "config.cjs"),
-  "@nodetool-ai/kernel": join(guestDir, "shims", "kernel.cjs")
-};
-const overrideFor = (spec) => OVERRIDES[spec] ?? hostModuleFor(spec);
-
-const BUILTINS = new Set([...builtinModules, ...builtinModules.map((m) => `node:${m}`)]);
-
-// Third-party packages that are native addons, WebAssembly or launchers for
-// host processes. QuickJS cannot run them, so they become stubs instead of
-// being bundled. Named here so a failure says which one a node needs.
-const NATIVE_PACKAGES = [
-  "sharp",
-  "webgpu",
-  "playwright",
-  "playwright-core",
-  "@hyzyla/pdfium",
-  "onnxruntime-node",
-  "onnxruntime-web",
-  "@huggingface/transformers",
-  "node-llama-cpp",
-  "canvas",
-  "@napi-rs/canvas",
-  "fsevents"
-];
-const nativePackage = (spec) =>
-  NATIVE_PACKAGES.find((p) => spec === p || spec.startsWith(`${p}/`));
-
-/** Export names of the real module, split into functions and other values. */
-async function realExports(spec) {
-  try {
-    const mod = await import(spec);
-    return Object.entries(mod).map(([name, value]) => ({ name, fn: typeof value === "function" }));
-  } catch {
-    return [];
-  }
-}
-
-/**
- * CommonJS source for a stub of `spec`. A function export becomes a function
- * that throws when called or constructed. Any other export throws when read.
- */
-function stubSource(spec, exports, override) {
-  return `
-const spec = ${JSON.stringify(spec)};
-const messageFor = (name) => \`guest: \${spec}.\${name} is unavailable in the native runner\`;
-function unavailableFunction(name) {
-  const fail = function () { throw new Error(messageFor(name)); };
-  return new Proxy(fail, { construct() { throw new Error(messageFor(name)); } });
-}
-const real = ${override ? `require(${JSON.stringify(override)})` : "{}"};
-const exportsList = ${JSON.stringify(exports)};
-// A callable default export is the module object itself, as for a CommonJS
-// package whose module.exports is a function.
-const out = exportsList.some((e) => e.name === "default" && e.fn) ? unavailableFunction("default") : {};
-for (const { name, fn } of exportsList) {
-  if (name === "default" && fn) { out.default = out; continue; }
-  if (Object.prototype.hasOwnProperty.call(real, name)) out[name] = real[name];
-  else if (fn) out[name] = unavailableFunction(name);
-  else Object.defineProperty(out, name, { enumerable: true, get() { throw new Error(messageFor(name)); } });
-}
-for (const name of Object.keys(real)) if (!(name in out)) out[name] = real[name];
-module.exports = out;
-`;
-}
 
 const CONTEXT_LINE = "const newContext = (jobId, workflowId) => createContext(jobId, workflowId);";
 
@@ -121,13 +51,19 @@ async function contextMembers() {
 /**
  * The guest context (guest/host/context.mjs) keeps its members. Any other
  * member of the real ProcessingContext throws "guest: ProcessingContext.<name>
- * is unavailable": a method when called, a value when read. Names the real
- * context lacks read as undefined, as they would there.
+ * is unavailable in the native runner (<reason>: <note>)": a method when
+ * called, a value when read. The reason is the one guest/context-unavailable.mjs
+ * declares, and a member outside NodeContext says so. Names the real context
+ * lacks read as undefined, as they would there.
  */
 function contextSource({ methods, values }) {
+  const reasons = Object.fromEntries(
+    Object.entries(declaredUnavailable).map(([name, reason]) => [name, `${reason}: ${REASONS[reason]}`])
+  );
   return `const contextMethods = new Set(${JSON.stringify(methods)});
 const contextValues = new Set(${JSON.stringify(values)});
-const contextUnavailable = (name) => new Error(\`guest: ProcessingContext.\${name} is unavailable in the native runner\`);
+const contextReasons = ${JSON.stringify(reasons)};
+const contextUnavailable = (name) => new Error(\`guest: ProcessingContext.\${name} is unavailable in the native runner (\${contextReasons[name] ?? "not a NodeContext member"})\`);
 const newContext = (jobId, workflowId) => new Proxy(createContext(jobId, workflowId), {
   get(target, key) {
     if (typeof key !== "string" || key in target) return target[key];
@@ -136,12 +72,6 @@ const newContext = (jobId, workflowId) => new Proxy(createContext(jobId, workflo
     return undefined;
   }
 });`;
-}
-
-/** CommonJS source for a module that cannot be bundled at all. */
-function missingSource(spec, reason) {
-  // `module.exports` makes it CommonJS, so any named import of it still bundles.
-  return `module.exports = {};\nthrow new Error(${JSON.stringify(`guest: ${spec} is unavailable in the native runner (${reason})`)});`;
 }
 
 /**
@@ -215,17 +145,16 @@ function hasBufferPackage() {
 const CONSTANT_IMPORT = 'import * as constant from "@nodetool-ai/core-nodes/nodes/constant";';
 
 /**
- * `builtinShims` maps Node builtins the guest implements (without the
- * `node:` prefix) to their guest modules. Their stubs take every export the
- * guest module has, and the rest throw as for any other builtin. `admit`,
- * {modules, types}, keeps every class of the listed modules and the listed
- * node types, and leaves out the probe node. Without it every class loads.
+ * `admit`, {modules, types}, keeps every class of the listed modules and the
+ * listed node types, and leaves out the probe node. Without it every class
+ * loads.
  */
-export async function parityPlugins({ modules, builtinShims = {}, admit = null }) {
+export async function parityPlugins({ modules, admit = null }) {
   const polyfillBuffer = hasBufferPackage();
   const emptyEsm = join(here, "empty.mjs");
   return [
     hostModulesPlugin(),
+    contractPlugin(),
     {
       name: "parity-profile",
       setup(b) {
@@ -262,47 +191,20 @@ export async function parityPlugins({ modules, builtinShims = {}, admit = null }
         });
 
         b.onResolve({ filter: /.*/ }, async (args) => {
-          if (args.namespace === "parity-stub") return undefined;
-          const spec = args.path;
-          // Packages a host capability provides (guest/host/modules.mjs).
-          if (HOST_WRAPPERS[spec]) return { path: HOST_WRAPPERS[spec] };
-          if (polyfillBuffer && (spec === "buffer" || spec === "node:buffer")) {
-            return { path: createRequire(import.meta.url).resolve("buffer/") };
-          }
-          if (HOST_MODULES.test(spec) || BUILTINS.has(spec)) {
-            return { path: spec, namespace: "parity-stub", pluginData: { kind: "host" } };
-          }
-          const native = nativePackage(spec);
-          if (native) return { path: spec, namespace: "parity-stub", pluginData: { kind: "native", pkg: native } };
-          if (args.pluginData?.probing) return undefined;
-          const relative = /^[./]/.test(spec);
-          if (relative) return undefined;
-          const r = await b.resolve(spec, {
+          if (args.namespace === "parity-missing" || args.pluginData?.probing || /^[./]/.test(args.path)) return undefined;
+          const r = await b.resolve(args.path, {
             kind: args.kind,
             resolveDir: args.resolveDir,
             importer: args.importer,
             pluginData: { probing: true }
           });
           // Anything esbuild cannot resolve becomes a module that throws on load.
-          if (r.errors.length > 0) {
-            return { path: spec, namespace: "parity-stub", pluginData: { kind: "missing" } };
-          }
-          return undefined;
+          return r.errors.length > 0 ? { path: args.path, namespace: "parity-missing" } : undefined;
         });
-
-        b.onLoad({ filter: /.*/, namespace: "parity-stub" }, async (args) => {
-          const { kind } = args.pluginData ?? {};
-          if (kind === "missing") {
-            return { contents: missingSource(args.path, "not resolvable from the bundle"), loader: "js" };
-          }
-          const real = BUILTINS.has(args.path) && !args.path.startsWith("node:") ? `node:${args.path}` : args.path;
-          const exports = await realExports(real);
-          if (kind === "native" && exports.length === 0) {
-            return { contents: missingSource(args.path, "native addon or host process"), loader: "js" };
-          }
-          const override = overrideFor(args.path) ?? (BUILTINS.has(args.path) ? builtinShims[args.path.replace(/^node:/, "")] : undefined);
-          return { contents: stubSource(args.path, exports, override), loader: "js", resolveDir: guestDir };
-        });
+        b.onLoad({ filter: /.*/, namespace: "parity-missing" }, (args) => ({
+          contents: missingSource(args.path, "not resolvable from the bundle"),
+          loader: "js"
+        }));
 
         // Binary assets a bundled package imports directly.
         b.onLoad({ filter: /\.(node|wasm)$/ }, (args) => ({

@@ -16,8 +16,10 @@ import { ContextServices, hostSignal, contextCall } from "./context-services.mjs
 import { InMemoryStorageAdapter, hostAssetStorage } from "./storage.mjs";
 import { hostWorkspace } from "./workspace.mjs";
 import { VariableChannel } from "guest-real:@nodetool-ai/runtime/variable-channel.js";
+import { CostLedger } from "guest-real:@nodetool-ai/runtime-core/cost-ledger";
 import { extForImageMime, sniffImageMime } from "guest-real:@nodetool-ai/runtime/providers/image-mime.js";
-import { isPackageAssetUri } from "@nodetool-ai/protocol";
+import { isPackageAssetUri, parsePackageAssetUri } from "@nodetool-ai/protocol";
+import { fakeProviderResolver, fakeProvidersGranted } from "./fake-providers.mjs";
 
 const NEVER_ABORTED = {
   aborted: false,
@@ -92,7 +94,7 @@ const ASSET_EXT = {
 export class GuestContext extends ContextServices {
   constructor({ jobId = "job", workflowId = null, signal, providerResolver = null, modelInterfaces = null, injectedTools = [], onMessage, userId, environment, modelOptions, modelServices } = {}) {
     super();
-    this._providerResolver = providerResolver;
+    this._providerResolver = providerResolver ?? (fakeProvidersGranted() ? fakeProviderResolver() : null);
     this._providers = new Map();
     this._providerPromises = new Map();
     this._modelInterfaces = modelInterfaces;
@@ -105,6 +107,7 @@ export class GuestContext extends ContextServices {
     this._sendControlEvent = null;
     this._messageListeners = new Set(onMessage ? [onMessage] : []);
     this._providerCost = null;
+    this._costs = new CostLedger();
     this._messages = [];
     this._nodeStatuses = new Map();
     this._edgeStatuses = new Map();
@@ -115,6 +118,9 @@ export class GuestContext extends ContextServices {
     this.userId = userId ?? globalThis.__host?.context?.userId?.() ?? "default";
     this.signal = signal ?? hostSignal();
     this.triggerEvent = null;
+    // Agent activity code reads it before falling back to the ambient scope.
+    // The native runner opens no run trace scope of its own.
+    this.runTraceContext = null;
     this.assetOutputMode = "native";
     this.persistOutputAssets = true;
     this.environment = { ...(environment ?? JSON.parse(globalThis.__host?.context?.environment?.() ?? "{}")) };
@@ -270,7 +276,9 @@ export class GuestContext extends ContextServices {
 
   /**
    * Asset bytes from the asset and temp stores, by the keys the TypeScript
-   * context tries. Package assets and the HTTP fallbacks to a NodeTool
+   * context tries. `package://<pkg>/<path>` reads <pkg>/<path> from the
+   * package assets directory (HostOptions::packageAssetsDir), and fails when
+   * none is granted or the file is missing. The HTTP fallbacks to a NodeTool
    * server are not available.
    */
   async resolveAssetBytes(assetId) {
@@ -280,8 +288,12 @@ export class GuestContext extends ContextServices {
     }
     const trimmed = String(assetId).trim();
     if (isPackageAssetUri(trimmed)) {
-      attempts.push("package assets are not available in the native runner");
-      return { bytes: null, attempts };
+      const ref = parsePackageAssetUri(trimmed);
+      if (!ref) throw new Error(`Invalid package asset URI: ${trimmed}`);
+      const bytes = globalThis.__host.packageAssets.read(`${ref.packageName}/${ref.path}`);
+      if (!bytes) throw new Error(`Package asset not found: ${trimmed}`);
+      attempts.push(`package asset: ${trimmed}`);
+      return { bytes, attempts };
     }
     const adapters = this._assetAdapters();
     const tryUri = async (adapter, uri) => {

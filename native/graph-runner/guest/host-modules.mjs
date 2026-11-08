@@ -1,5 +1,6 @@
-// Build-time module mapping for the guest's host modules (guest/host/),
-// shared by both profiles of guest/build.mjs.
+// Build-time plugin for the guest's host modules (guest/host/), shared by
+// every profile of guest/build.mjs. Which module stands in for a host
+// package or a Node builtin is declared in module-contract.mjs.
 //
 //   - `guest-real:<specifier>` imports the real package module, also a
 //     dist file the package does not export (`guest-real:@nodetool-ai/runtime/
@@ -11,9 +12,6 @@
 //     registered JSON asset are replaced by the asset itself, so a module
 //     that reads one at load time works without a file system. Only assets
 //     of modules in the bundle are inlined.
-//   - hostModuleFor(specifier) names the host module that stands in for a
-//     host package (@nodetool-ai/runtime, @nodetool-ai/storage) or a Node
-//     builtin the guest provides (fs, fs/promises, path, os, url).
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -22,24 +20,8 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const hostDir = join(here, "host");
 
-const BUILTINS = {
-  fs: "fs.mjs",
-  "fs/promises": "fs-promises.mjs",
-  path: "path.mjs",
-  os: "os.mjs",
-  url: "url.mjs"
-};
-
-/** The guest/host module standing in for `spec`, or null. */
-export function hostModuleFor(spec) {
-  if (/^@nodetool-ai\/runtime(\/.*)?$/.test(spec)) return join(hostDir, "runtime.mjs");
-  if (/^@nodetool-ai\/storage(\/.*)?$/.test(spec)) return join(hostDir, "storage.mjs");
-  const builtin = BUILTINS[spec.replace(/^node:/, "")];
-  return builtin ? join(hostDir, builtin) : null;
-}
-
 /** Resolves `@scope/pkg/sub` through the package's exports, else as a file in its dist/. */
-function resolveReal(spec) {
+export function resolveReal(spec) {
   const resolve = (s) => fileURLToPath(import.meta.resolve(s));
   try {
     return resolve(spec);

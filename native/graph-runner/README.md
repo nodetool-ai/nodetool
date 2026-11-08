@@ -57,7 +57,8 @@ change from a script bundle to a module bundle.
 ./build/nodetool-graph-runner run --bundle build/guest.bin \
   --graph tests/graphs/repeat-collect.json [--params '{"n": 42}'] [--repeat 3] \
   [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>] \
-  [--secrets <file.json>] [--allow-http] [--allow-media] [--sqlite-dir <dir>]
+  [--secrets <file.json>] [--allow-http] [--allow-media] \
+  [--sqlite-dir <dir> [--models-db <file>]] [--package-assets <dir>] [--fake-providers]
 ```
 
 These options set the host grants described in
@@ -65,7 +66,24 @@ These options set the host grants described in
 code reaches no file, secret or network. `--workspace` creates the directory
 when it is missing, and `--secrets` reads a JSON object of key to value.
 `--allow-media` sets `allowMedia` without encoders, so node code can probe
-and decode media in the workspace but not encode it.
+and decode media in the workspace but not encode it. `--models-db` names a
+model database file inside `--sqlite-dir`. With `--asset-dir` it lets
+`context.createAsset` save media outputs. `--package-assets` sets
+`packageAssetsDir`, and `--fake-providers` sets `fakeProviders`.
+
+To run an example workflow offline with its shipped sample media and canned
+provider output (the parity bundle admits provider nodes, and empty model
+fields need a provider id such as `fake-<node id>`):
+
+```bash
+./build/nodetool-graph-runner run --bundle build/parity/guest-parity.bin --graph <graph.json> \
+  --allow-media --fake-providers \
+  --package-assets ../../packages/base-nodes/nodetool/assets \
+  --asset-dir <dir> --sqlite-dir <dir> --models-db models.sqlite
+```
+
+`parity/examples.mjs` runs every shipped example this way and keeps a
+baseline. See [Example workflows](parity/README.md#example-workflows).
 
 Every kernel message goes to stdout as one JSON line, with `job_id: "job"` and
 `workflow_id: "wf"`. The CLI grants the GPU capability. `--no-gpu` runs
@@ -169,16 +187,17 @@ back into `globalThis.__host`, which the kernel installs. Values cross the
 boundary as JSON strings. A `Uint8Array` travels as
 `{"__bytes__": "<base64>"}` (`guest/values.mjs`) and reaches the next node as
 bytes again. Messages a host receives carry bytes in that form.
-`guest/build.mjs` bundles the guest with esbuild as an IIFE. It replaces
-`@nodetool-ai/{config,kernel}` with small CommonJS shims in `guest/shims/`,
-and `@nodetool-ai/{runtime,storage}` and the builtins `fs`, `fs/promises`,
-`path`, `os` and `url` with the guest's host modules in `guest/host/`
-(`guest/host-modules.mjs`). SQLite wrappers map through `guest/host/modules.mjs`. Other builtins are empty.
-boundary as JSON strings. `guest/build.mjs` bundles it with esbuild as one
-self-contained ES module and replaces `@nodetool-ai/{config,kernel,runtime,storage}`
-and Node builtins with small CommonJS shims in `guest/shims/`, except the
-builtins the guest implements (`process`, `timers`, in `guest/host/`). The
-runner evaluates the bundle as a module, from source or from module bytecode,
+`guest/build.mjs` bundles the guest with esbuild as one self-contained ES
+module. The [module contract](guest/host/README.md#the-module-contract)
+(`guest/module-contract.mjs`) declares what replaces
+`@nodetool-ai/{runtime,storage,config,kernel}`, the Node builtins, the
+packages a host capability provides and the native packages: each export
+node code imports is the real package code, a guest module, a host
+operation, or unavailable with a reason. The build fails when the bundle
+imports a name the table does not classify or the table disagrees with a
+provider, and it writes `<bundle>.node-requirements.json`, the unavailable
+exports each node type reaches. The runner evaluates the bundle as a module,
+from source or from module bytecode,
 so node code may use top-level await. `Guest::load` runs the loop (jobs and
 timers) until the module's evaluation promise settles, and fails the load with
 the module's error when it rejects or never settles.
@@ -186,8 +205,11 @@ the module's error when it rejects or never settles.
 The default bundle holds every module of the base node library but runs only
 the node types `guest/local-nodes.mjs` admits: every class of the core workflow
 modules, and the nodes `parity/baseline.json` records at parity on a success
-path, except nodes that keep state in SQLite. A graph with any other node is
-unsupported, so the node editor sends it to the server. `--profile core` builds
+path, except nodes that keep state in SQLite, and except node types whose code
+reaches an unavailable export of the module contract. A graph with any other
+node is unsupported, so the node editor sends it to the server. In every
+bundle, a graph with a node of the last kind fails validation before any node
+runs, with a message that names the node, the export and the reason. `--profile core` builds
 only the core workflow modules into `build/guest-core.js`.
 
 The kernel in `src/kernel/` ports `packages/execution-core/src/{runner,actor,
@@ -363,6 +385,8 @@ grants them. Every field defaults to granting nothing.
 | `sqlite` | `sqliteDirectory` | `better-sqlite3` and built-in `sqlite-vec`. Without a directory grant, only memory databases open. |
 | `files` | `workspaceDir` and `sqliteDirectory` (read-write), `readRoots` (read-only) | `node:fs`, `node:fs/promises` and `context.workspace`. Relative paths resolve against the workspace, which is also `context.workspaceDir`, `os.homedir()` and `os.tmpdir()`. |
 | `assets` | `assetDir` | `asset://` and `/api/storage/<key>` refs resolve from it. `context.createAsset` stores owner-scoped bytes when model persistence is also granted. |
+| `packageAssets` | `packageAssetsDir` | `package://<pkg>/<path>` refs read `<dir>/<pkg>/<path>`, read-only, with the asset key rules. Without a directory these refs fail with an error that names `--package-assets`. |
+| `providers` | `fakeProviders` | Every provider id resolves to the runtime's `FakeProvider`, one instance per id, and the context's `provider:*` and `prediction:*` grants are dropped. Provider calls then reach no grant, secret or network. |
 | `secrets` | `secrets` | `context.getSecret(key)`. The process environment is never read. |
 | `http` | `allowHttpFetch` | http(s) media refs load under the `safeFetch` policy: https to a public address, every redirect and connected address checked. |
 | `media` | `allowMedia`, `mediaEncoders` and the file grants | Native libav probing, frame readers, video encoding, audio filters and muxing. Encoders require an explicit allowlist. |
@@ -376,11 +400,13 @@ keys refuse `..`, absolute keys and any symlink. The tests are in
 
 `loadMediaRefBytes` and the other pure functions node code imports from
 `@nodetool-ai/runtime` are the real package modules (`guest/host/runtime.mjs`).
+`guest/module-contract.mjs` lists which runtime exports are real, guest or
+host code, and which are unavailable and why.
 Media refs resolve as in the TypeScript runner: `data:` URIs and inline data
 in the guest, `file:` URIs and absolute paths through `files`, `asset://`
 refs through the asset store and the run's in-memory temp store (`memory://`),
-and http(s) through `http`. `package://` assets do not resolve. Without a
-database, `asset://<id>` carries no extension, so the store's `find` reads the
+http(s) through `http`, and `package://` refs through `packageAssets`.
+Without a database, `asset://<id>` carries no extension, so the store's `find` reads the
 owner's folder for `<id>.<ext>`. The store is listed only when that misses.
 
 The context (`guest/host/context.mjs`) mirrors `ProcessingContext` for
@@ -389,6 +415,61 @@ workspace, storage, secrets, variables and channels, `normalizeOutputValue`,
 `createAsset` fails as the TypeScript context does without a database.
 Provider, model and sandbox services use explicit host grants. Their focused
 fixtures are registered separately from the scheduler tests.
+
+With `fakeProviders`, every generation reaches the `FakeProvider` method for
+its capability through the same provider dispatch as the TypeScript runner
+(see [Node context contract](#node-context-contract)), and endpoint calls fail
+because `FakeProvider` has none.
+`unittests/fake_providers.cpp` runs real node bodies with and without the
+flag.
+
+## Node context contract
+
+`NodeContext` in [`packages/runtime-core/src/node-context.ts`](../../packages/runtime-core/src/node-context.ts)
+lists the context members node code may use. The TypeScript `ProcessingContext`
+implements it, and
+[`node-context-members.json`](../../packages/runtime-core/node-context-members.json)
+is generated from it. `gr_node_context_tests`
+([`unittests/node-context.test.mjs`](unittests/node-context.test.mjs)) loads
+the guest context class and fails when a listed member is neither implemented
+nor declared in [`guest/context-unavailable.mjs`](guest/context-unavailable.mjs).
+It also fails when a declared member is implemented, is not in the list, or
+has a reason outside the fixed set: `server-only`, `python`, `host-binary`,
+`native-addon`, `kernel` or `not-yet-ported`. `kernel` marks the members a
+nested TypeScript `WorkflowRunner` needs (`copy` and the executor and node
+type resolvers), because the C++ kernel runs subgraphs itself. The test prints
+the implemented count and the unavailable members by reason.
+
+When node code starts using a new context member, the
+[runtime-core check](../../packages/runtime-core/README.md#node-context-contract)
+requires it in `NodeContext`. Regenerating the JSON then fails this test until
+the guest implements the member in `guest/host/context.mjs` or
+`context-services.mjs`, or declares it unavailable with a reason. Remove the
+declaration when the guest implements the member.
+
+Where a member's logic does not depend on the host, the guest calls the same
+module as `ProcessingContext`, bundled with `guest-real:` (see
+[shared context logic](../../packages/runtime-core/README.md#shared-context-logic)).
+The cost totals, message media resolution, the provider call of each
+capability and the generation envelope work this way. The guest passes its
+context as the host, and `generationHost()` in `context-services.mjs` supplies
+the envelope's bookkeeping: no durable lifecycle callbacks, no registry of
+live generations and no app runs. `runGeneration` lets the context's provider
+make the call for `generate_message`, and for other capabilities when the
+embedder granted no `prediction:<id>:<capability>`. With such a grant the
+embedder's adapter makes the call inside the same envelope.
+
+The other members stay hand-written in the guest, because their TypeScript
+versions are bound to server state the guest replaces with host capabilities:
+secrets come from the `secrets` grant, assets and temp storage from the asset
+directory and the in-memory store, provider resolution from explicit grants,
+documents from model grants, and output normalization from the guest's
+storage. They keep the TypeScript behavior where node code can observe it.
+
+In the parity profile (`guest/parity/profile.mjs`), a member of the real
+context the guest lacks throws `ProcessingContext.<name> is unavailable in
+the native runner (<reason>: <note>)` with the reason `context-unavailable.mjs`
+declares, or says it is not a `NodeContext` member.
 
 ## Processing context and Code grants
 

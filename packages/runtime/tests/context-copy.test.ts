@@ -69,11 +69,10 @@ const COPIED = new Set([
   "appRunContext",
   "_retainMessageQueue",
   "_inheritHostDefaults",
-  "_totalCost",
+  "_costs",
   "_variables",
   "environment",
   "_providers",
-  "_operationCosts",
   "_messageListeners"
 ]);
 

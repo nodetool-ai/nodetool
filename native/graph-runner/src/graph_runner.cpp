@@ -15,6 +15,7 @@
 #include <deque>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -114,6 +115,9 @@ struct GraphRunner::Impl {
   bool isReady = false;
   std::string error;
   std::set<std::string> runnable;
+  // Node types the guest has but whose code reaches an export the native
+  // runner lacks (the guest's `requires` flag), with the reason.
+  std::map<std::string, std::string> unavailable;
   int loads = 0;
   // The worker thread's loop while the worker runs. cancel() and teardown
   // wake it when it sleeps until a timer is due.
@@ -146,6 +150,7 @@ void GraphRunner::Impl::load() {
   const auto start = Clock::now();
   auto next = std::make_unique<Context>();
   std::set<std::string> types;
+  std::map<std::string, std::string> missing;
   std::string failure;
   try {
     if (bundle.empty()) {
@@ -180,6 +185,15 @@ void GraphRunner::Impl::load() {
       if (kRejectedTypes.count(type)) continue;
       auto flags = next->catalog->describe(Json{{"type", type}});
       if (!flags) continue;
+      if (flags->contains("requires") && (*flags)["requires"].is_array() && !(*flags)["requires"].empty()) {
+        std::string reason;
+        for (const auto& r : (*flags)["requires"]) {
+          reason += (reason.empty() ? "" : "; ") + r.value("spec", std::string()) + "." + r.value("name", std::string()) +
+                    " (" + r.value("reason", std::string()) + ")";
+        }
+        missing[type] = std::move(reason);
+        continue;
+      }
       types.insert(type);
     }
   } catch (const std::exception& e) {
@@ -202,6 +216,7 @@ void GraphRunner::Impl::load() {
     error = failure;
     if (isReady) {
       runnable = std::move(types);
+      unavailable = std::move(missing);
       ++loads;
     }
   }
@@ -468,7 +483,11 @@ std::string GraphRunner::unsupportedReason(const std::string& graphJson) const {
       if (node.contains("id") && node["id"].is_string()) pruned.insert(node["id"].get<std::string>());
       continue;
     }
-    if (!impl_->runnable.count(type)) return "Node type " + type + " does not run locally";
+    if (!impl_->runnable.count(type)) {
+      const auto missing = impl_->unavailable.find(type);
+      return "Node type " + type + " does not run locally" +
+             (missing == impl_->unavailable.end() ? "" : ": it needs " + missing->second);
+    }
     const Json ui = node.value("ui_properties", Json::object());
 
   }

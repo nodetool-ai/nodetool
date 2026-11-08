@@ -123,12 +123,65 @@ imports its node lists from (`modules.mjs`), or the list in `--modules a,b`.
 The default profile is unchanged. The generated module that loads them uses a
 dynamic `import()` per module, so a module with top-level await bundles and a
 module that throws or rejects at load removes only its own nodes.
-`guest/parity/profile.mjs` describes how modules the guest cannot provide
-become stubs that throw a named error, and `guest/parity/probe.mjs` the load
-probe whose report `run.mjs` reads first.
+Modules the guest cannot provide become stubs that throw a named error with
+the reason the [module contract](../guest/host/README.md#the-module-contract)
+gives. `guest/parity/probe.mjs` is the load probe whose report `run.mjs` reads
+first.
 
 ## Updating the baseline
 
 Run `--check`. It prints the nodes that newly reach parity. When the changes
 are intended, run `--update` and commit `baseline.json`. With `--only`,
 `--update` replaces only the listed nodes.
+
+## Example workflows
+
+`examples.mjs` runs every shipped example in
+`packages/base-nodes/nodetool/examples/nodetool-base/` on the native runner
+with fake providers, and `examples-baseline.json` records each outcome. From
+`native/graph-runner/`, with Node 24:
+
+```bash
+node parity/examples.mjs            # run every example
+node parity/examples.mjs --check    # same, then exit 1 if an outcome differs from the baseline
+node parity/examples.mjs --update   # same, then write the outcomes into parity/examples-baseline.json
+node parity/examples.mjs --only "Trim a Clip" --check   # examples whose file name contains the text
+```
+
+The runner defaults to `build/nodetool-graph-runner`, and `--runner <path>`
+picks another. Like `run.mjs`, the script builds and compiles the parity
+guest, which admits provider nodes, unless `--bundle` names one. `--jobs` (default 2, at most 3) and `--timeout`
+(milliseconds per example, default 60000) bound the runs. Work goes to
+`~/.cache/graph-runner-examples/` (`--out`): one directory per example under
+`runs/` with its graph, workspace, asset and SQLite directories, stdout and
+stderr, and `result.json` and `summary.md` for the whole run. The summary
+counts the groups, splits them into examples with and without providers,
+groups failures by reason, counts the failures before execution by the module
+contract reason of the unavailable export, and lists each example's nodes
+that are not at parity in `baseline.json`.
+
+Each example is prepared by `prepareForFakeRun` from
+`packages/base-nodes/tests/support/example-run-preparation.ts`, the file the
+TypeScript example suite uses. Each run gets `--fake-providers`,
+`--package-assets` for the shipped sample media, `--allow-media`, and a model
+database, so Output nodes can store assets. Each runs under `unshare -rn` and
+`env -i`, with only loopback up and a check that the sandbox is offline, so no
+provider key or network is reachable.
+
+| Group | Meaning |
+|---|---|
+| `comfy` | The graph has a `comfy.*` node. Not run. |
+| `unrunnable` | The graph has a node `unrunnableNodeTypes` names: one that opens its own network connection or never stops. Not run. |
+| `completed` | The job's last `job_update` is `completed`. |
+| `failed` | The job failed or the runner exited without completing. `error` holds the first error line, with run paths, generated ids, times and durations replaced so it stays the same between runs. When the runner refused the graph before any node ran, `error` is the first validation issue after `Before execution: `. |
+| `timeout` | The run passed `--timeout` and was killed. |
+
+`ts` is the example's status in `tests/example-workflows-execute.test.ts`:
+`completes`, `cannot complete` (listed in `CANNOT_COMPLETE`) or `skipped`.
+
+`--check` fails when an outcome differs from the baseline: an example that
+stops completing, a failure whose error changes, an example that newly
+completes, and an example added or removed. It prints each change. Fix a
+regression. When a change is intended, run `--update` and commit
+`examples-baseline.json`. With `--only`, `--update` replaces only the listed
+examples.
