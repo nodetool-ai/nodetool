@@ -226,11 +226,27 @@ A person is an admin when any of these holds:
 - their groups at the last sign-in include one of `OIDC_ADMIN_GROUPS`
 - an admin gave them the admin role through the `admin.users.update` API
 
+Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
+
 A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt.
 
 An admin can disable an account through `admin.users.update`. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
-Admins manage the directory on the **Admin** page, which the app menu shows only to admins in SSO mode.
+### The Admin page
+
+Admins manage people on the **Admin** page. The app menu shows it only to admins in SSO mode. Everything on it is also available through the `admin.*` API, and the directory through [`nodetool deploy accounts-list` and `accounts-set`](cli.md#sso-accounts-on-the-deployment).
+
+The page lists everyone who has signed in at least once. Nobody needs to be added in advance, because the first sign-in creates the account. Search by name, email or user ID, and filter by **Status**. Each row shows the person's groups, role, status, last activity, and what they spent this period against their limits. Its buttons do the following:
+
+| Button | Effect |
+|---|---|
+| **Make admin** / **Remove admin** | Gives or takes the admin role. A person who is an admin through `ADMIN_USER_IDS` or `OIDC_ADMIN_GROUPS` stays one, whatever the role says |
+| **Disable** / **Enable** | Disabling asks first, then signs the person out everywhere and refuses their requests and sign-ins. Their work stays on the server. Enabling restores access |
+| **Limits** | Gives the person limits of their own, or puts them back on **Use the server default**. See [Spend limits](#spend-limits) |
+| **Permissions** | Allows or blocks single permissions for the person, or leaves each on the default. Not offered for admins. See [Permissions](#permissions) |
+| **Sharing** | Lists what the person shares and what others share with them, and takes any of it back. See [Sharing](#sharing) |
+
+Above the list, **Edit default limits** and **Edit default permissions** set what applies to everyone without values of their own.
 
 ### Spend limits
 
@@ -262,8 +278,6 @@ The checks for `use_llm`, `generate_media` and `use_server_keys` run at the same
 In SSO mode the share dialog of a workflow or document can give a person access by name, without a link. Typing two or more characters searches active accounts by name and email through `people.search`, and **Invite** gives the chosen person viewer or editor access through `workflows.sharing.invite` or `documentSharing.invite`. Inviting someone who already has access sets their role. Searching and inviting need the `share_links` permission, and disabled accounts never appear. The dialog shows each collaborator's name and email instead of their user id.
 
 The **Sharing** button on a person's row on the Admin page lists what that person shares and holds: their active share links, the people they gave access, the documents others gave them access to, and their public workflows. From there an admin can revoke a link, remove one person's access, or make a public workflow private. The same actions are available as `admin.sharing.*`. Moving a document to another owner is not supported yet.
-
-Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
 
 ### Sign-in failures
 
