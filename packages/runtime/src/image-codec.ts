@@ -11,6 +11,7 @@
 import { importOptionalModule } from "@nodetool-ai/config";
 import { isRawRgbaImage, missingRuntimePackageError, type ImageRef } from "@nodetool-ai/protocol";
 import { withTaskSpan } from "./tracing-helpers.js";
+import { isSvgBytes, sniffImageMime } from "./providers/image-mime.js";
 
 type SharpModuleNs = typeof import("sharp");
 type SharpFn = SharpModuleNs["default"];
@@ -217,6 +218,34 @@ export function rasterizeSvg(
     { "nodetool.image.input_bytes": bytes.byteLength },
     () => rasterize(bytes, opts)
   );
+}
+
+/**
+ * Longest side an SVG image input is rendered at before a generation model
+ * reads it. Image and video models take raster frames only, and an SVG that
+ * declares `width="24"` would otherwise reach them as a 24px picture. The
+ * storyboard editor renders SVG stills at the same size
+ * (`web/src/components/storyboard/svgStill.ts`), so a mask or a reframe
+ * padding drawn in the browser lines up with the frame the model receives.
+ */
+export const SVG_GENERATION_SIDE = 2048;
+
+/**
+ * The bytes a generation model can read: SVG markup rendered to a PNG whose
+ * longest side is {@link SVG_GENERATION_SIDE}, anything else unchanged.
+ *
+ * A raster container is recognised first, so a PNG or JPEG whose metadata
+ * happens to mention `<svg` is never re-rendered.
+ */
+export async function rasterizeSvgInput(bytes: Uint8Array): Promise<Uint8Array> {
+  if (sniffImageMime(bytes) !== null || !isSvgBytes(bytes)) {
+    return bytes;
+  }
+  const { data } = await rasterizeSvg(bytes, {
+    minSide: SVG_GENERATION_SIDE,
+    maxSide: SVG_GENERATION_SIDE
+  });
+  return data;
 }
 
 async function rasterize(

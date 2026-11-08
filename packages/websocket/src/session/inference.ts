@@ -5,7 +5,7 @@ import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import { Asset, Prediction, Project, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
-import { GenerationAlreadyAcceptedError } from "@nodetool-ai/runtime";
+import { GenerationAlreadyAcceptedError, rasterizeSvgInput } from "@nodetool-ai/runtime";
 import {
   calculateChatCost,
   detectImageMime,
@@ -403,7 +403,7 @@ export async function resolveEntityReferenceImages(
       asset.content_type
     );
     if (!bytes || bytes.length === 0) continue;
-    out.push(bytes);
+    out.push(await generationImageBytes(bytes, asset.content_type));
   }
   return out;
 }
@@ -431,7 +431,24 @@ export async function retrieveSourceAssetBytes(
   if (!bytes) {
     throw new Error(`Source asset bytes not found: ${assetId}`);
   }
-  return bytes;
+  return generationImageBytes(bytes, asset.content_type);
+}
+
+/**
+ * An asset's bytes as a generation model reads them. Image and video models
+ * take raster frames only, so an SVG image is rendered to PNG first. Every
+ * other asset, video and audio included, passes through unchanged.
+ */
+async function generationImageBytes(
+  bytes: Uint8Array,
+  contentType: string
+): Promise<Uint8Array> {
+  return contentType.startsWith("image/") ? rasterizeSvgInput(bytes) : bytes;
+}
+
+/** The MIME type an image asset reaches a provider as, after {@link generationImageBytes}. */
+function generationImageMime(contentType: string): string {
+  return contentType === "image/svg+xml" ? "image/png" : contentType;
 }
 
 async function resolveReferenceAssets(
@@ -459,7 +476,7 @@ async function resolveReferenceAssets(
     if (!bytes || bytes.length === 0) {
       throw new Error(`Reference ${kind} asset ${assetId} is empty`);
     }
-    resolved.push(bytes);
+    resolved.push(await generationImageBytes(bytes, asset.content_type));
   }
   return resolved;
 }
@@ -1230,7 +1247,7 @@ export class DirectInferenceHandler {
         person_consent: req.personConsent, duration_seconds: req.durationSeconds
       }, { mime: "video/mp4" }, () => provider.lipSync(imageBytes, {
         model: { id: req.model, name: req.model, provider: req.provider },
-        audio: audioBytes, visualMimeType: source.content_type, audioMimeType: audio.content_type
+        audio: audioBytes, visualMimeType: generationImageMime(source.content_type), audioMimeType: audio.content_type
       }));
       return { asset_ids: [seamAssetId(generated) ?? await storeAsset(generated.output, "video/mp4", "mp4")] };
     }
@@ -1529,7 +1546,7 @@ export class DirectInferenceHandler {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       if (!maskAsset)
         throw new Error(`Mask asset not found: ${req.maskAssetId}`);
-      const [sourceBytes, maskBytes] = await Promise.all([
+      const [rawSourceBytes, maskBytes] = await Promise.all([
         retrieveAssetBytes(
           adapter,
           userId,
@@ -1543,10 +1560,14 @@ export class DirectInferenceHandler {
           maskAsset.content_type
         )
       ]);
-      if (!sourceBytes)
+      if (!rawSourceBytes)
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       if (!maskBytes)
         throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
+      const sourceBytes = await generationImageBytes(
+        rawSourceBytes,
+        sourceAsset.content_type
+      );
       const params: InpaintingParams = {
         model: imageModel,
         prompt,
@@ -1585,15 +1606,19 @@ export class DirectInferenceHandler {
       if (!sourceAsset) {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       }
-      const sourceBytes = await retrieveAssetBytes(
+      const rawSourceBytes = await retrieveAssetBytes(
         getAssetAdapter(),
         userId,
         sourceAsset.id,
         sourceAsset.content_type
       );
-      if (!sourceBytes) {
+      if (!rawSourceBytes) {
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       }
+      const sourceBytes = await generationImageBytes(
+        rawSourceBytes,
+        sourceAsset.content_type
+      );
       // Style or subject references ride after the source, so a
       // multi-image edit model reads the first image as the one to change.
       const referenceBytes = await resolveReferenceAssets(

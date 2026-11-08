@@ -11,7 +11,12 @@
  * editor gets a copy for the same reason: its "Save to image" renders back
  * into the asset it was opened on, so opening it on the shot's own still
  * would overwrite a version instead of adding one.
+ *
+ * An SVG still is rendered at `svgRasterSize`, not its declared size, so every
+ * edit of a vector comes back as a usable PNG.
  */
+
+import { stillPixelSize } from "./svgStill";
 
 /** Load a resolved media URL into a decoded image. */
 const loadImage = (url: string): Promise<HTMLImageElement> =>
@@ -41,8 +46,9 @@ const render = async (
 ): Promise<File> => {
   const image = await loadImage(url);
   const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth || image.width;
-  canvas.height = image.naturalHeight || image.height;
+  const size = stillPixelSize(image, url);
+  canvas.width = size.width;
+  canvas.height = size.height;
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("This browser has no 2D canvas.");
@@ -85,16 +91,11 @@ export const adjustedStill = (
   adjustment: StillAdjustment
 ): Promise<File> => render(url, name, { filter: adjustmentFilter(adjustment) });
 
-/** The still's pixel size. */
+/** The still's pixel size, or for an SVG the size it is rendered at. */
 export const stillSize = async (
   url: string
-): Promise<{ width: number; height: number }> => {
-  const image = await loadImage(url);
-  return {
-    width: image.naturalWidth || image.width,
-    height: image.naturalHeight || image.height
-  };
-};
+): Promise<{ width: number; height: number }> =>
+  stillPixelSize(await loadImage(url), url);
 
 /** Pixels to add on each side of a still. */
 export interface OutpaintPadding {
