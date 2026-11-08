@@ -81,19 +81,60 @@ jobs:
           cmake -S native/timeline -B native/timeline/build-ci -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX"
           bash .github/scripts/disk-usage.sh cmake --build native/timeline/build-ci --target nodetool-timeline --parallel 3
+      - name: Install backend dependencies (macOS)
+        if: runner.os == 'macOS'
+        # The package with server bundles the backend, which needs the
+        # workspace packages and their native modules.
+        run: npm ci
+      - name: Install Apple certificate
+        if: runner.os == 'macOS'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # The same keychain and notarytool profile as the Electron release (release.yaml).
+        run: |
+          set -euo pipefail
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode --output "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          rm -f "$CERTIFICATE_PATH"
+          xcrun notarytool store-credentials "AC_PASSWORD" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
       - name: Package and verify macOS
         if: runner.os == 'macOS'
         run: |
-          native/timeline/scripts/package-macos.sh
+          # Builds "NodeTool Timeline.app" through package-macos.sh, then the copy with the server inside.
+          NT_JOBS=3 native/timeline/scripts/package-macos-with-server.sh
           native/timeline/scripts/make-fixtures.sh
           # Use the same built app for the existing parity check: no second build.
+          # The check refuses an identity signature, so it runs before signing.
           DEV_BIN='build-package/nodetool-timeline.app/Contents/MacOS/nodetool-timeline' native/timeline/scripts/check-package-macos.sh
-          # Future signing and notarization belongs here, before archiving.
-          ditto -c -k --sequesterRsrc --keepParent 'native/timeline/build-package/NodeTool Timeline.app' "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
-          mkdir "$RUNNER_TEMP/release-extracted"
-          ditto -x -k "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" "$RUNNER_TEMP/release-extracted"
-          python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/NodeTool Timeline.app/Contents/MacOS/nodetool-timeline" \
-            --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
+          for name in 'NodeTool Timeline' 'NodeTool Timeline (with server)'; do
+            native/timeline/scripts/sign-macos.sh "native/timeline/build-package/$name.app"
+          done
+          package() {
+            local name=$1 asset=$2
+            ditto -c -k --sequesterRsrc --keepParent "native/timeline/build-package/$name.app" "release-assets/$asset"
+            mkdir "$RUNNER_TEMP/$asset"
+            ditto -x -k "release-assets/$asset" "$RUNNER_TEMP/$asset"
+            spctl --assess --type execute --verbose=2 "$RUNNER_TEMP/$asset/$name.app"
+            python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/$asset/$name.app/Contents/MacOS/nodetool-timeline" \
+              --package "$RUNNER_TEMP/$asset" --version "$APP_VERSION"
+          }
+          package 'NodeTool Timeline' "nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          package 'NodeTool Timeline (with server)' "nodetool-timeline-with-server-$VERSION-$RELEASE_PLATFORM.zip"
       - name: Package and verify Windows
         if: runner.os == 'Windows'
         run: |
@@ -140,7 +181,7 @@ jobs:
         run: |
           set -euo pipefail
           cd release-assets
-          files=("nodetool-timeline-$VERSION-macos-arm64.zip" "nodetool-timeline-$VERSION-windows-x64.zip" "nodetool-timeline-$VERSION-linux-x64.AppImage")
+          files=("nodetool-timeline-$VERSION-macos-arm64.zip" "nodetool-timeline-with-server-$VERSION-macos-arm64.zip" "nodetool-timeline-$VERSION-windows-x64.zip" "nodetool-timeline-$VERSION-linux-x64.AppImage")
           for file in "${files[@]}"; do test -s "$file"; done
           sha256sum "${files[@]}" > SHA256SUMS.txt
       - name: Create draft prerelease
@@ -152,10 +193,10 @@ jobs:
           set -euo pipefail
           # Fail if a release already exists. Never modify a published release.
           gh release create "$TAG" --verify-tag --draft --prerelease \
-            --title "NodeTool Timeline $TAG (unsigned)" \
-            --notes 'These standalone builds are unsigned and are not notarized. A person must review and publish this draft.
+            --title "NodeTool Timeline $TAG" \
+            --notes 'The macOS builds are signed with a Developer ID and notarized. The Windows and Linux builds are unsigned. A person must review and publish this draft.
 
-          macOS: extract the ZIP, then right-click NodeTool Timeline.app and choose Open. If Gatekeeper still blocks it, remove quarantine with: xattr -dr com.apple.quarantine "/path/to/NodeTool Timeline.app".
+          macOS: extract the ZIP and open NodeTool Timeline.app. The "with server" ZIP holds a NodeTool server that the app starts when it opens without a file, so it needs no other NodeTool install.
 
           Windows: extract the ZIP and run nodetool-timeline.exe. In SmartScreen choose More info, then Run anyway.
 
