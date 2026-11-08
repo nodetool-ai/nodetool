@@ -224,18 +224,18 @@ s(
 s(
   "COMFY_SERVER_URL",
   "ComfyUI",
-  "Base URL of your own ComfyUI server, for example http://127.0.0.1:8188. Comfy workflows use it when COMFY_TARGET is server."
+  "Address of the ComfyUI running on your computer or network, for example http://127.0.0.1:8188. Comfy workflows run there unless Comfy target says otherwise."
 );
 s(
   "COMFY_TARGET",
   "ComfyUI",
-  "Where Comfy workflows run: cloud, server or worker. When unset, they run on COMFY_SERVER_URL if it has a value, and otherwise on Comfy Cloud.",
+  "Where Comfy workflows run: cloud (Comfy Cloud), server (the ComfyUI address above) or worker. When empty, they run on the ComfyUI address if one is set, and otherwise on Comfy Cloud.",
   ["cloud", "server", "worker"]
 );
 s(
   "COMFY_WORKER_URL",
   "ComfyUI",
-  "WebSocket URL of the NodeTool ComfyUI worker, for example wss://host/ws. Comfy workflows use it when COMFY_TARGET is worker."
+  "Only for a NodeTool worker that runs ComfyUI on a remote GPU, for example wss://host/ws. Leave it empty for your own ComfyUI."
 );
 sec(
   "COMFY_WORKER_TOKEN",

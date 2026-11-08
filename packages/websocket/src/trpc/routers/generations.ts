@@ -8,10 +8,18 @@ import { protectedProcedure } from "../middleware.js";
 const generationRecord = z.object({
   generation_id: z.string(),
   project_id: z.string().nullable(),
+  /** The thread the generation belongs to: a chat turn or a Create session. */
+  thread_id: z.string().nullable(),
+  /** The `generate_media` request id the client correlates on. */
+  request_id: z.string().nullable(),
   status: z.string(),
   provider: z.string(),
   model: z.string(),
   capability: z.string().nullable(),
+  /** The prompt as the provider received it, when the request had one. */
+  prompt: z.string().nullable(),
+  /** Assets the generation produced. */
+  asset_ids: z.array(z.string()),
   cost: z.number().nullable(),
   currency: z.string().nullable(),
   billing_unit: z.string().nullable(),
@@ -42,11 +50,15 @@ function toRecord(row: Prediction): z.infer<typeof generationRecord> {
   return {
     generation_id: row.id,
     project_id: row.project_id,
+    thread_id: row.thread_id,
+    request_id: row.request_id,
     status: row.status === "interrupted" ? "interrupted" :
       row.lifecycle_owner === "durable" ? deriveGenerationStatus(row) : row.status,
     provider: row.provider,
     model: row.model,
     capability: row.capability,
+    prompt: typeof row.parameters?.prompt === "string" ? row.parameters.prompt : null,
+    asset_ids: row.asset_ids ?? [],
     cost: row.cost,
     currency: row.currency,
     billing_unit: row.billing_unit,
@@ -93,6 +105,7 @@ export const generationsRouter = router({
   list: protectedProcedure
     .input(z.object({
       project_id: z.string().min(1).optional(),
+      thread_id: z.string().min(1).optional(),
       limit: z.number().int().min(1).max(500).default(100),
       start_key: z.string().min(1).max(1024).optional()
     }))
@@ -101,6 +114,7 @@ export const generationsRouter = router({
       try {
         const [rows, next] = await Prediction.listGenerations(ctx.userId, {
           projectId: input.project_id,
+          threadId: input.thread_id,
           limit: input.limit,
           startKey: input.start_key
         });

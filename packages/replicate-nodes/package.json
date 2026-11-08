@@ -17,8 +17,7 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
-    "@nodetool-ai/runtime": "*",
-    "replicate": "^1.4.0"
+    "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

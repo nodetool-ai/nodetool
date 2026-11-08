@@ -78,6 +78,8 @@ export interface OidcConfig {
   allowedGroups: string[];
   /** ID token claim holding the user's groups. */
   groupsClaim: string;
+  /** Groups whose members are NodeTool admins. Empty grants admin to nobody. */
+  adminGroups: string[];
   /** Whether the login-state cookie must be marked `Secure`. */
   secureCookie: boolean;
 }
@@ -205,6 +207,7 @@ export function readOidcConfig(env: Env): OidcConfig | null {
     ),
     allowedGroups: splitList(readEnv(env, "OIDC_ALLOWED_GROUPS")),
     groupsClaim: readEnv(env, "OIDC_GROUPS_CLAIM") ?? "groups",
+    adminGroups: splitList(readEnv(env, "OIDC_ADMIN_GROUPS")),
     secureCookie: redirect.protocol === "https:"
   };
 }
@@ -332,6 +335,8 @@ export interface OidcIdentity {
   subject: string;
   email?: string;
   name?: string;
+  /** Groups read from `groupsClaim`; empty when the claim is absent. */
+  groups: string[];
 }
 
 export interface OidcClientOptions {
@@ -495,7 +500,8 @@ export class OidcClient {
       userId: oidcUserId(this.config.issuer, subject),
       subject,
       email: readString(claims, "email"),
-      name: readString(claims, "name") ?? readString(claims, "preferred_username")
+      name: readString(claims, "name") ?? readString(claims, "preferred_username"),
+      groups: readStringArray(readClaim(claims, this.config.groupsClaim))
     };
   }
 

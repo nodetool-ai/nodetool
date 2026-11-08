@@ -33,6 +33,7 @@ import Module from "module";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { verifyBackendBundle } from "./verify-backend-bundle.mjs";
+import { isMediaPath } from "./package-media.mjs";
 import { backendServerBuildOptions } from "./backend-server-build-options.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1539,15 +1540,22 @@ async function main() {
 
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
-    // Storyboard films play from media.nodetool.ai, so the app does not ship them.
+    // Package media lives on media.nodetool.ai: the manifest copied below
+    // lists it, and the server downloads a file on first use. Storyboard films
+    // play from media.nodetool.ai too and never ship.
     await fsp.cp(assetsSrc, assetsDest, {
       recursive: true,
       force: true,
       preserveTimestamps: true,
       filter: (source) =>
         path.basename(source) !== "node_modules" &&
+        !isMediaPath(path.relative(assetsSrc, source).split(path.sep).join("/")) &&
         !/[\\/]storyboards[\\/][^\\/]+[\\/][^\\/]+\.mp4$/i.test(source),
     });
+    await fsp.copyFile(
+      path.join(path.dirname(assetsSrc), "nodetool-base.media.json"),
+      path.join(path.dirname(assetsDest), "nodetool-base.media.json")
+    );
     const assetCount = (await fsp.readdir(assetsDest)).filter((f) =>
       /\.(jpg|jpeg|png|gif|webp)$/i.test(f)
     ).length;

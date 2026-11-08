@@ -41,7 +41,8 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
-| Antigravity | ✅ | | | | | | |
+| Antigravity | ✅ | ✅ | | | | | |
+| GitHub Copilot | ✅ | | | | | | |
 | Evolink | ✅ | ✅ | ✅ | | | | |
 | kie.ai | ✅¹ | ✅ | ✅ | ✅ | | | |
 | AKI | ✅ | ✅ | | | | | |
@@ -202,7 +203,13 @@ Claude Agent SDK reaches Claude by running your local, logged-in `claude` CLI in
 
 Antigravity reaches the models in Google's Antigravity CLI (`agy`), including Gemini, by running the CLI in [headless mode](https://antigravity.google/docs/cli/headless/) on your signed-in Antigravity account. There is no API key. In a local NodeTool instance, open **Settings → Models & providers → Antigravity** and select **Install Antigravity**. After installation, copy the sign-in command into a terminal, complete Google sign-in, and select **Refresh models**. NodeTool prefers its [managed CLI installation](https://github.com/nodetool-ai/nodetool/blob/main/packages/antigravity-cli/README.md), stored under its data directory. It falls back to `agy` on PATH and also searches `~/.local/bin`, where the official installer puts it. The model list is whatever `agy models` prints, and effort is part of each model id (for example `gemini-3.1-pro-high`).
 
-Each turn spawns `agy` in an empty scratch directory under the system temp folder, so the CLI's own file tools cannot touch your files. Shell commands stay blocked because NodeTool never passes `--dangerously-skip-permissions`. NodeTool tools are not offered to the model, and prompts must be text: a message with images fails instead of losing them. A forced single tool call (structured output) uses the CLI's `--json-schema`. Follow-up turns in a chat resume the same Antigravity conversation with `--conversation`. The provider is not available in NodeTool's hosted cloud because it needs a local executable.
+Each turn spawns `agy` in an empty scratch directory under the system temp folder, so the CLI's own file tools cannot touch your files. Shell commands stay blocked because NodeTool never passes `--dangerously-skip-permissions`. Prompts must be text: a message with images fails instead of losing them. A turn that offers NodeTool tools runs on `agy acp`, the CLI's Agent Client Protocol server, where the tools are served as an MCP server on a loopback port with a per-turn bearer token. NodeTool approves only those tools there, and denies the CLI's shell and file tools. A forced single tool call (structured output) uses the CLI's `--json-schema`. Other follow-up turns in a chat resume the same Antigravity conversation with `--conversation`. Image generation also runs on `agy acp`: the provider starts the CLI's `image-generator` subagent and waits for the image file it saves, which takes tens of seconds. The provider is not available in NodeTool's hosted cloud because it needs a local executable.
+
+## GitHub Copilot
+
+GitHub Copilot reaches the models your Copilot account offers by running the GitHub Copilot CLI (`copilot`) over its Agent Client Protocol server (`copilot --acp`). There is no API key. Install the CLI (`npm install -g @github/copilot`), then run `copilot login` once in a terminal. The model list comes from your account, and `auto` lets Copilot pick.
+
+Each turn runs in an empty scratch directory under the system temp folder. NodeTool starts the CLI with `--deny-tool` rules for its shell, file read and write, URL and memory tools, and with its built-in GitHub MCP servers disabled, so the CLI can reach only the tools NodeTool offers. Those tools are served to the CLI as an HTTP MCP server on a loopback port, protected by a random bearer token that lives for one turn. A forced single tool call (structured output) is offered as that tool and returned from the call. Prompts must be text, and each turn starts a fresh session primed with the conversation so far. Copilot does not generate images in this provider.
 
 ## Evolink
 

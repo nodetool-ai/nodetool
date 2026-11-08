@@ -542,6 +542,8 @@ export interface Thread {
   /** Workflow this conversation belongs to, or null for global chat. */
   workflow_id?: string | null;
   title: string | null;
+  /** "chat" for a conversation, "create" for a Create session. */
+  kind?: "chat" | "create";
   created_at: string;
   updated_at: string;
   etag?: string | null;
@@ -1170,6 +1172,9 @@ export const PROVIDER_IDS = {
   // Google models via the Antigravity CLI (`agy`) in headless mode (no API
   // key — uses the machine's signed-in Antigravity account, spawning the CLI).
   ANTIGRAVITY: "antigravity",
+  // GitHub Copilot via the `copilot` CLI's Agent Client Protocol server (no API
+  // key — uses the machine's signed-in Copilot account, spawning the CLI).
+  COPILOT: "copilot",
   // Dreamina (CapCut) driven through the NodeTool Chrome extension in the
   // user's own logged-in Chrome tab (no API key, local installs only).
   DREAMINA: "dreamina",

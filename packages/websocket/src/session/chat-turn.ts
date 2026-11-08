@@ -17,6 +17,7 @@ import {
 import { attachChatPredictionForwarder } from "../chat-prediction-forwarder.js";
 import { dispatchClientTool } from "./client-tool-gate.js";
 import { admitSpend } from "../credit-gate.js";
+import { admitQuota } from "../quota-gate.js";
 import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import {
   isFunctionValue,
@@ -1756,11 +1757,35 @@ export class ChatTurnHandler {
     const mediaGeneration = isObjectLike(data.media_generation)
       ? (data.media_generation as Record<string, unknown>)
       : null;
-    if (
-      mediaGeneration &&
+    const mediaTurn =
+      mediaGeneration !== null &&
       isString(mediaGeneration.mode) &&
-      mediaGeneration.mode !== "chat"
-    ) {
+      mediaGeneration.mode !== "chat";
+
+    // A self-hosted server's admin can cap each user's spend on the server's
+    // keys. A turn on a provider key the user saved never counts.
+    const quota = await admitQuota(
+      userId,
+      mediaTurn && mediaGeneration
+        ? [
+            {
+              kind: "media",
+              provider: String(mediaGeneration.provider ?? providerId)
+            }
+          ]
+        : [{ kind: "tokens", provider: providerId }]
+    );
+    if (!quota.allowed) {
+      await settleRegisteredRunTrace(rootContext, "failed", quota.reason);
+      await this.session.send({
+        type: "error",
+        message: quota.reason,
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (mediaTurn && mediaGeneration) {
       await this.handleMediaGenerationMessage(
         data,
         mediaGeneration,

@@ -30,9 +30,9 @@ Do **not** hand-edit `packages/replicate-nodes/src/replicate-manifest.json` — 
 | `packages/replicate-codegen/src/types.ts` | `ModuleConfig`, `NodeConfig`, `NodeSpec`, `FieldDef`, `EnumDef`. |
 | `packages/replicate-nodes/src/replicate-manifest.json` | **Generated.** Node definitions consumed at runtime. Never edit by hand. |
 | `packages/replicate-nodes/src/replicate-factory.ts` | Builds `NodeClass` instances from manifest entries at runtime. |
-| `packages/replicate-nodes/src/replicate-base.ts` | Shared Replicate API utilities: `replicateSubmit`, `assetToUrl`, output converters. |
+| `packages/replicate-nodes/src/replicate-base.ts` | Node helpers: `assetToUrl` (uploads through the provider), the capability for each output type, output converters. |
 | `packages/replicate-nodes/src/index.ts` | Exports `REPLICATE_NODES` (array of `NodeClass`) and `registerReplicateNodes`. |
-| `packages/runtime/src/providers/replicate-provider.ts` | `ReplicateProvider` — chat, image, video, audio, TTS, ASR, embeddings. |
+| `packages/runtime/src/providers/replicate-provider.ts` | `ReplicateProvider` — chat, image, video, audio, TTS, ASR, embeddings, and the endpoint calls and file uploads the nodes use. |
 | `packages/runtime/src/providers/manifest-models.ts` | Reads the manifest to surface image/video/music model lists to the UI. |
 | `packages/runtime/src/providers/index.ts` | Registers `ReplicateProvider` under `PROVIDER_IDS.REPLICATE`. |
 

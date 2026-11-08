@@ -29,6 +29,7 @@ import { scriptsRouter } from "./routers/scripts.js";
 import { settingsRouter } from "./routers/settings.js";
 import { fontsRouter } from "./routers/fonts.js";
 import { openverseRouter } from "./routers/openverse.js";
+import { peopleRouter } from "./routers/people.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
@@ -45,6 +46,7 @@ import { applicationsRouter } from "./routers/applications.js";
 import { resourcesRouter } from "./routers/resources.js";
 import { timelineRouter } from "./routers/timeline.js";
 import { usersRouter } from "./routers/users.js";
+import { adminRouter } from "./routers/admin.js";
 import { workerRouter } from "./routers/worker.js";
 import { workflowsRouter } from "./routers/workflows.js";
 import { workspaceRouter } from "./routers/workspace.js";
@@ -78,6 +80,7 @@ type AppRouterRecord = {
   models: typeof modelsRouter;
   nodes: typeof nodesRouter;
   openverse: typeof openverseRouter;
+  people: typeof peopleRouter;
   packs: typeof packsRouter;
   projects: typeof projectsRouter;
   scripts: typeof scriptsRouter;
@@ -97,6 +100,7 @@ type AppRouterRecord = {
   bugReports: typeof bugReportsRouter;
   timeline: typeof timelineRouter;
   users: typeof usersRouter;
+  admin: typeof adminRouter;
   worker: typeof workerRouter;
   workflows: typeof workflowsRouter;
   workspace: typeof workspaceRouter;
@@ -130,6 +134,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   models: modelsRouter,
   nodes: nodesRouter,
   openverse: openverseRouter,
+  people: peopleRouter,
   packs: packsRouter,
   projects: projectsRouter,
   scripts: scriptsRouter,
@@ -149,6 +154,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   bugReports: bugReportsRouter,
   timeline: timelineRouter,
   users: usersRouter,
+  admin: adminRouter,
   worker: workerRouter,
   workflows: workflowsRouter,
   workspace: workspaceRouter

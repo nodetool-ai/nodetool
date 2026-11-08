@@ -323,6 +323,30 @@ describe("verify-backend-bundle", () => {
     expect(status).toBe(1);
   });
 
+  it("accepts media that the package media manifest lists instead of staging", () => {
+    fs.rmSync(
+      path.join(tempDir, "assets", "nodetool-base", "timelines", "hello", "video.mp4")
+    );
+    fs.rmSync(
+      path.join(tempDir, "assets", "nodetool-base", "storyboards", "hello", "shot.jpg")
+    );
+    fs.writeFileSync(
+      path.join(tempDir, "assets", "nodetool-base.media.json"),
+      JSON.stringify({
+        version: 1,
+        base: "https://media.nodetool.ai/package-media/",
+        files: {
+          "timelines/hello/video.mp4": { sha256: "a".repeat(64), size: 10 },
+          "storyboards/hello/shot.jpg": { sha256: "b".repeat(64), size: 10 }
+        }
+      })
+    );
+    const { status, output } = runVerify(tempDir);
+    expect(output).not.toContain("missing media");
+    expect(output).not.toContain("media not staged");
+    expect(status).toBe(0);
+  });
+
   it("fails when a recipe names an example that was not staged", () => {
     fs.writeFileSync(
       path.join(tempDir, "examples", "recipes", "hello.recipe.json"),

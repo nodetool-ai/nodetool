@@ -14,6 +14,7 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
 import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
+import AutoAwesomeMotionOutlinedIcon from "@mui/icons-material/AutoAwesomeMotionOutlined";
 import {
   BORDER_RADIUS,
   FlexColumn,
@@ -52,6 +53,9 @@ import {
 } from "../../../hooks/useResolvedMediaUri";
 import { isString } from "../../../utils/typePredicates";
 import { resolveInlineMediaSource } from "../../../utils/resolveMediaUri";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import { creationProjectId } from "../../../stores/WorkspaceTabsStore";
+import { createSeedFromMedia, openCreateSession } from "../../create/openCreateSession";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -317,6 +321,30 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
 
   const title = titleFromPrompt(prompt) || t("i18n-next54.message.generated");
 
+  // A reply's media continues in a Create tab: pictures as sources to edit, a
+  // clip to retake, the prompt to reuse.
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const hasStoredMedia = mediaContents.some(
+    (c) =>
+      (isImageContent(c) && Boolean(c.image?.asset_id)) ||
+      (isVideoContent(c) && Boolean(c.video?.asset_id)) ||
+      (isAudioContent(c) && Boolean(c.audio?.asset_id))
+  );
+  const openInCreate = useCallback(() => {
+    openCreateSession(
+      creationProjectId(),
+      createSeedFromMedia(prompt ?? "", mediaContents, gen?.mode)
+    ).catch((error: unknown) => {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: t("create_view.openInCreateFailed", {
+          reason: error instanceof Error ? error.message : String(error)
+        })
+      });
+    });
+  }, [addNotification, gen?.mode, mediaContents, prompt, t]);
+
   const pending = useMemo(() => pendingTiles(gen), [gen]);
 
   // The generation request is the only place the shape of a video is stated;
@@ -404,6 +432,15 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               icon={<SpeedIcon />}
               label={`${gen.speed}x`}
             />
+          )}
+          {!isPending && hasStoredMedia && (
+            <ToolbarIconButton
+              tooltip={t("create_view.openInCreate")}
+              size="small"
+              onClick={openInCreate}
+            >
+              <AutoAwesomeMotionOutlinedIcon fontSize="small" />
+            </ToolbarIconButton>
           )}
           {!isPending && isCanvasAvailable && mediaContents.length > 1 && (
             <ToolbarIconButton

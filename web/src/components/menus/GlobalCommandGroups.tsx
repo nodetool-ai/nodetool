@@ -253,7 +253,13 @@ const ProjectCommands = memo(function ProjectCommands() {
   );
 });
 
-/** The `+ New` catalog, flattened: submenus become one item per choice. */
+/** The Create tabs the palette opens, one per kind of take people ask for by name. */
+const SESSION_COMMAND_MODES = ["image", "video", "audio", "music"] as const;
+
+/**
+ * The `+ New` catalog, flattened: submenus become one item per choice. Then a
+ * new Create tab per kind of take.
+ */
 const CreateCommands = memo(function CreateCommands() {
   const { t } = useTranslation();
   const catalog = useNewDocumentCatalog({}, showWorkspace);
@@ -268,7 +274,6 @@ const CreateCommands = memo(function CreateCommands() {
   const entryLabels: Record<string, string> = {
     workflow: t("screens4_4.globalCommands.createEntries.workflow"),
     chat: t("screens4_4.globalCommands.createEntries.chat"),
-    create: t("screens4_4.globalCommands.createEntries.create"),
     text: t("screens4_4.globalCommands.createEntries.text"),
     image: t("screens4_4.globalCommands.createEntries.image"),
     svg: t("screens4_4.globalCommands.createEntries.svg"),
@@ -280,36 +285,16 @@ const CreateCommands = memo(function CreateCommands() {
     skill: t("screens4_4.globalCommands.createEntries.skill"),
     model3d: t("screens4_4.globalCommands.createEntries.model3d")
   };
+  const sessionLabels: Record<(typeof SESSION_COMMAND_MODES)[number], string> = {
+    image: t("screens4_4.globalCommands.createSession.image"),
+    video: t("screens4_4.globalCommands.createSession.video"),
+    audio: t("screens4_4.globalCommands.createSession.audio"),
+    music: t("screens4_4.globalCommands.createSession.music")
+  };
 
   return (
     <Command.Group heading={t("screens4_4.globalCommands.create")}>
       {catalog.entries.map((entry) => {
-        if (entry.submenu === "chats") {
-          return MEDIA_MODES.filter((mode) => mode.enabled).map((mode) => {
-            const modeLabel = t(
-              `i18n-next22.chat.composer.mediaMode.modes.${mode.labelKey}`
-            );
-            const isChat = mode.id === "chat";
-            return (
-              <Command.Item
-                key={`chat-${mode.id}`}
-                value={
-                  isChat
-                    ? entryLabels.chat
-                    : t("screens4_4.globalCommands.newChatInModeValue", { mode: modeLabel })
-                }
-                onSelect={() =>
-                  runCommandAndClose(() => catalog.createChat(mode.id))
-                }
-              >
-                {mode.icon}{" "}
-                {isChat
-                  ? entryLabels.chat
-                  : t("screens4_4.globalCommands.newChatInMode", { mode: modeLabel })}
-              </Command.Item>
-            );
-          });
-        }
         if (entry.submenu === "texts") {
           return TEXT_FILE_TEMPLATES.map((template) => (
             <Command.Item
@@ -350,6 +335,15 @@ const CreateCommands = memo(function CreateCommands() {
           </Command.Item>
         );
       })}
+      {SESSION_COMMAND_MODES.map((mode) => (
+        <Command.Item
+          key={`create-${mode}`}
+          value={sessionLabels[mode]}
+          onSelect={() => runCommandAndClose(() => catalog.createSession(mode))}
+        >
+          {MEDIA_MODES.find((item) => item.id === mode)?.icon} {sessionLabels[mode]}
+        </Command.Item>
+      ))}
     </Command.Group>
   );
 });

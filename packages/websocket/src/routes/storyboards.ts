@@ -19,6 +19,7 @@ import {
   type StoryboardExportInput
 } from "../lib/storyboard-export.js";
 import { streamZip, type ExportSource } from "../lib/zip-stream.js";
+import { readMissingPackageMedia } from "@nodetool-ai/config";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
@@ -41,7 +42,10 @@ async function resolveShotMedia(
   // An installed example board keeps its shipped stills as `package://`
   // files, read from the same roots the package asset route serves.
   if (ref.startsWith("package://")) {
-    return readPackageAssets([ref], packageAssetsRoots)[0]?.bytes ?? null;
+    const local = readPackageAssets([ref], packageAssetsRoots)[0]?.bytes;
+    if (local) return local;
+    const [media] = await readMissingPackageMedia([ref], new Set(), packageAssetsRoots);
+    return media?.bytes ?? null;
   }
   if (ref.startsWith("data:")) {
     const comma = ref.indexOf(",");

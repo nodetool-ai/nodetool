@@ -70,7 +70,7 @@ The same price lookup feeds several other surfaces, so a figure shown in one pla
 
 - **Template cards** in the [Templates gallery](templates-gallery.md) show an estimated cost computed from published node prices. A graph with unpriced nodes shows "at least" or "unknown" with the count of unpriced nodes.
 - **New project** in the [user interface](user-interface.md) shows an estimate read from what your own past projects of the same kind cost. It appears once you have two finished projects with fully priced spend.
-- The chat composer's media mode, and the clip inspectors and prompt bar in the timeline, show a single `≈` or `≥` figure for the generation about to run. Hover it for the breakdown. The tooltip notes that the provider bills at its own rates.
+- The Create tab's prompt bar, and the clip inspectors and prompt bar in the timeline, show a single `≈` or `≥` figure for the generation about to run. Hover it for the breakdown. The tooltip notes that the provider bills at its own rates.
 - The server runs the same lookup before a run starts, to apply the limits described below.
 
 ---

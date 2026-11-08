@@ -11,6 +11,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getAllMcpTools } from "@nodetool-ai/agents";
+import { resetPackageMediaManifests } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { listPackageAssets } from "../src/lib/package-assets.js";
 import { mcpToolHostDeps } from "../src/mcp-tool-deps.js";
@@ -43,6 +44,31 @@ describe("listPackageAssets", () => {
       uri: "package://nodetool-base/logo.png",
       url: "/api/assets/packages/nodetool-base/logo.png"
     });
+  });
+
+  it("lists media a manifest names that this install does not ship", () => {
+    resetPackageMediaManifests();
+    writeFileSync(
+      join(root, "nodetool-base.media.json"),
+      JSON.stringify({
+        version: 1,
+        base: "https://media.nodetool.ai/package-media/",
+        files: {
+          "games/aether/sprite.png": { sha256: "a".repeat(64), size: 1234 },
+          "logo.png": { sha256: "b".repeat(64), size: 99 }
+        }
+      })
+    );
+    const assets = listPackageAssets({ packageAssetsRoots: [root] });
+    const sprite = assets.find((a) => a.name === "games/aether/sprite.png");
+    expect(sprite?.size).toBe(1234);
+    expect(sprite?.url).toBe(
+      "/api/assets/packages/nodetool-base/games/aether/sprite.png"
+    );
+    // A local file wins over its manifest entry.
+    expect(assets.filter((a) => a.name === "logo.png")).toHaveLength(1);
+    expect(assets.find((a) => a.name === "logo.png")?.size).toBe(7);
+    resetPackageMediaManifests();
   });
 
   it("walks nested directories, keeping the sub-path in the name", () => {

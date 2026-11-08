@@ -86,6 +86,7 @@ import {
   sharingCreateLinkInput,
   sharingRevokeLinkInput,
   sharingSetRoleInput,
+  sharingInviteInput,
   sharingRemoveCollaboratorInput,
   sharingOkOutput,
   sharingAcceptInput,
@@ -104,6 +105,8 @@ import {
   loadPublicShareWorkflow,
   parseSharedGraph
 } from "../../lib/public-workflow-share.js";
+import { requirePermission } from "../../lib/permissions.js";
+import { requireInvitee, withPersonNames } from "../../lib/people.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -587,8 +590,12 @@ export const workflowsRouter = router({
       if (
         role === "owner" &&
         (input.access === "public" || input.access === "private")
-      )
+      ) {
+        if (input.access === "public" && workflow.access !== "public") {
+          await requirePermission(ctx.userId, "share_public");
+        }
         fields.access = input.access;
+      }
       const savedWorkflow = await Workflow.updateFieldsIfUnchanged(
         input.id,
         input.expected_updated_at ?? workflow.updated_at,
@@ -879,7 +886,9 @@ export const workflowsRouter = router({
           WorkflowShare.listForWorkflow(input.id)
         ]);
         return {
-          collaborators: collaborators.map(toCollaboratorItem),
+          collaborators: await withPersonNames(
+            collaborators.map(toCollaboratorItem)
+          ),
           shares: shares.map(toShareItem)
         };
       }),
@@ -890,6 +899,10 @@ export const workflowsRouter = router({
       .output(shareItem)
       .mutation(async ({ ctx, input }) => {
         await requireWorkflowRole(input.id, ctx.userId, "owner");
+        await requirePermission(
+          ctx.userId,
+          input.role === "public" ? "share_public" : "share_links"
+        );
         const share = await WorkflowShare.ensure({
           workflowId: input.id,
           role: input.role,
@@ -912,6 +925,33 @@ export const workflowsRouter = router({
         }
         if (!share.isRevoked) await share.revoke();
         return { ok: true as const };
+      }),
+
+    // Give a person from the directory access by name. Owner only. Inviting
+    // someone who already has access sets their role.
+    invite: protectedProcedure
+      .input(sharingInviteInput)
+      .output(collaboratorItem)
+      .mutation(async ({ ctx, input }) => {
+        const { workflow } = await requireWorkflowRole(
+          input.id,
+          ctx.userId,
+          "owner"
+        );
+        await requirePermission(ctx.userId, "share_links");
+        await requireInvitee(ctx.userId, input.user_id);
+        const grant = await WorkflowCollaborator.upsert({
+          workflowId: workflow.id,
+          userId: input.user_id,
+          role: input.role,
+          invitedBy: ctx.userId
+        });
+        if (grant.role !== input.role) {
+          grant.role = input.role;
+          await grant.save();
+        }
+        const [item] = await withPersonNames([toCollaboratorItem(grant)]);
+        return item;
       }),
 
     // Change a collaborator's role. Owner only.

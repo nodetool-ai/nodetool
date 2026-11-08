@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/** A conversation, or a Create session whose takes are generations. */
+export const threadKind = z.enum(["chat", "create"]);
+export type ThreadKind = z.infer<typeof threadKind>;
+
 // ── Thread response ──────────────────────────────────────────────
 // Mirrors `toThreadResponse` in the legacy http-api.ts handler.
 export const threadResponse = z.object({
@@ -8,6 +12,7 @@ export const threadResponse = z.object({
   project_id: z.string().optional(),
   workflow_id: z.string().nullable().optional(),
   title: z.string().nullable(),
+  kind: threadKind.optional(),
   created_at: z.string(),
   updated_at: z.string(),
   etag: z.string().nullable().optional()
@@ -43,7 +48,8 @@ export type GetInput = z.infer<typeof getInput>;
 export const createInput = z.object({
   title: z.string().optional(),
   workflow_id: z.string().nullable().optional(),
-  project_id: z.string().default("default")
+  project_id: z.string().default("default"),
+  kind: threadKind.default("chat")
 });
 export type CreateInput = z.infer<typeof createInput>;
 

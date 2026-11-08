@@ -5,7 +5,6 @@ import { Check, Minus, Download, ArrowRight } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import JsonLd from "../../../components/JsonLd";
-import ComparisonMesh from "../../../components/ComparisonMesh";
 import FaqSection from "../../../components/FaqSection";
 import SearchStarter from "../../../components/SearchStarter";
 import HeroDemoPlayer from "../../../components/HeroDemoPlayer";
@@ -75,16 +74,6 @@ export default async function AlternativesPage({
   const visuals = alternativeVisuals(c);
   const tools = alternativesFor(c.slug);
   const rows: FeatureRow[] = c.rows;
-  // Most competitor bullets are real capabilities, so they read as checks. Only
-  // the records that opt into "negative" (the credit/lock-in framings) show a
-  // minus. Carried over with the at-a-glance cards from the retired /vs page.
-  const CompetitorBulletIcon =
-    c.competitorBulletTone === "negative" ? Minus : Check;
-  const competitorBulletClass =
-    c.competitorBulletTone === "negative"
-      ? "mt-0.5 h-4 w-4 shrink-0 text-slate-600"
-      : "mt-0.5 h-4 w-4 shrink-0 text-emerald-400";
-
   const breadcrumb = breadcrumbSchema([
     { name: `${c.name} alternatives`, url: `/alternatives/${c.slug}` },
   ]);
@@ -165,46 +154,6 @@ export default async function AlternativesPage({
           </div>
         </section>
 
-        {/* At a glance. The short answer leads so an answer engine can lift it. */}
-        <section aria-labelledby="glance-title" className="mx-auto mt-20 max-w-5xl scroll-mt-28 px-6">
-          <h2
-            id="glance-title"
-            className="mb-4 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl"
-          >
-            NodeTool vs {c.name} at a glance
-          </h2>
-          <p className="mx-auto mb-8 max-w-3xl text-center text-lg leading-relaxed text-slate-300">
-            {shortAnswer(c)}
-          </p>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
-              <h3 className="text-xl font-semibold text-white">{c.name}</h3>
-              <p className="mt-1 text-sm text-slate-400">{c.competitorTagline}</p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-300">
-                {c.competitorBullets.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CompetitorBulletIcon className={competitorBulletClass} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="relative flex flex-col rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 ring-1 ring-emerald-500/10 backdrop-blur-md">
-              <h3 className="text-xl font-semibold text-white">NodeTool</h3>
-              <p className="mt-1 text-sm text-slate-400">{c.nodetoolTagline}</p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-300">
-                {c.nodetoolBullets.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
         {/* Product evidence: three stages of one project, each in its editor. */}
         <section aria-labelledby="stages-title" className="mx-auto mt-20 max-w-6xl px-6">
           <h2
@@ -237,11 +186,18 @@ export default async function AlternativesPage({
           </ol>
         </section>
 
-        {/* Feature table: NodeTool vs the tool people are leaving */}
-        <section aria-label="Compare" className="mx-auto mt-20 max-w-5xl px-6">
-          <h2 className="mb-6 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl">
-            NodeTool vs {c.name}, feature by feature
+        {/* The one comparison table. The short answer leads so an answer
+            engine can lift it. */}
+        <section aria-labelledby="glance-title" className="mx-auto mt-20 max-w-5xl scroll-mt-28 px-6">
+          <h2
+            id="glance-title"
+            className="mb-4 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl"
+          >
+            NodeTool vs {c.name}
           </h2>
+          <p className="mx-auto mb-8 max-w-3xl text-center text-lg leading-relaxed text-slate-300">
+            {shortAnswer(c)}
+          </p>
           <div className="overflow-x-auto rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
             <table className="w-full border-collapse text-left">
               <thead>
@@ -373,23 +329,18 @@ export default async function AlternativesPage({
           </div>
         )}
 
-        {/* Why the comparison comes up, and when to pick which. */}
+        {/* When the other tool is the better choice. One paragraph: the
+            table and the stages already state the difference. */}
         <section aria-labelledby="explainer-title" className="mx-auto mt-20 max-w-3xl px-6">
           <div className="rounded-2xl border border-slate-800/70 bg-slate-950/40 p-8 md:p-10">
             <h2
               id="explainer-title"
               className="text-2xl font-semibold tracking-tight text-white"
             >
-              {c.explainerHeading}
+              When {c.name} is the better choice
             </h2>
             <p className="mt-4 leading-relaxed text-slate-300">
               {c.explainerParagraph}
-            </p>
-            <p className="mt-4 leading-relaxed text-slate-400">
-              {c.heroParagraph}
-            </p>
-            <p className="mt-4 leading-relaxed text-slate-400">
-              {c.limitation}
             </p>
             {c.slug === "comfyui" && (
               <p className="mt-4 text-sm text-slate-400">
@@ -453,9 +404,6 @@ export default async function AlternativesPage({
 
         {/* Visible FAQ — and the FAQPage schema, built from these same rows. */}
         <FaqSection items={c.faq} />
-
-        {/* Sibling comparison mesh */}
-        <ComparisonMesh currentSlug={c.slug} />
 
         {/* Closing CTA */}
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">

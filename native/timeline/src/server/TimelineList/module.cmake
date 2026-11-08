@@ -1,6 +1,8 @@
 nt_qml_sources(src/server/TimelineList/TimelineDocumentController.h src/server/TimelineList/TimelineDocumentController.cpp src/server/TimelineList/ProjectSettingsEdit.cpp src/server/TimelineList/ProjectSettingsValues.h)
 nt_sources(app src/server/TimelineList/TimelineListStartup.cpp src/server/TimelineList/TimelineListCheck.cpp src/server/TimelineList/TimelineDocumentCheck.cpp)
 nt_sources(server
+    src/server/BundledServer.h
+    src/server/BundledServer.cpp
     src/server/TimelineList/TimelineListController.h
     src/server/TimelineList/TimelineListController.cpp)
 

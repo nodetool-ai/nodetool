@@ -19,7 +19,7 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { ComfyGpuClient, comfyGpuTemplate, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
+import { ComfyGpuClient, comfyGpuTemplate, comfyGpuTemplateFits, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
 import type { MusicModel, TextToMusicParams, AudioToAudioModel, AudioToAudioParams, Model3D, TextTo3DParams, ImageTo3DParams } from "./types.js";
 import { comfyTemplate, listedComfyTemplates, runComfyTemplate } from "./comfy-template-models.js";
 import {
@@ -258,9 +258,13 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   private gpuModels(task: string) {
-    return listedComfyGpuTemplates().filter((entry) => entry.task === task).map((entry) => ({
-      id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
-    }));
+    return listedComfyGpuTemplates().filter((entry) => entry.task === task && comfyGpuTemplateFits(entry)).map((entry) => {
+      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs } = {
+        id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
+      };
+      if (entry.inputs) { model.inputs = entry.inputs; }
+      return model;
+    });
   }
 
   static override requiredSecrets(): string[] {

@@ -29,6 +29,7 @@ import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
 import ExternalLink from "../common/ExternalLink";
 import SearchProviderSection from "./SearchProviderSection";
+import { ComfyServerStatusLine } from "../comfy/LocalComfyConnect";
 import { matchesSearch } from "./settingsSearch";
 
 /**
@@ -69,6 +70,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
     groups: [
       "vLLM",
       "Ollama",
+      "ComfyUI",
       "LlamaCpp",
       "NodeLlamaCpp",
       "LMStudio",
@@ -572,12 +574,17 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                         {heading}
                       </Text>
                       {visibleSettings.map((setting) => (
-                        <SettingItem
-                          key={setting.env_var}
-                          setting={setting}
-                          value={settingValues[setting.env_var] || ""}
-                          onChange={handleChange}
-                        />
+                        <Fragment key={setting.env_var}>
+                          <SettingItem
+                            setting={setting}
+                            value={settingValues[setting.env_var] || ""}
+                            onChange={handleChange}
+                          />
+                          {/* Saving the address checks the server (study-18-I2). */}
+                          {setting.env_var === "COMFY_SERVER_URL" && (
+                            <ComfyServerStatusLine />
+                          )}
+                        </Fragment>
                       ))}
                     </div>
                   )}

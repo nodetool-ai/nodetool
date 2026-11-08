@@ -291,7 +291,7 @@ export function getAllMcpCapabilitySpecs(
   }
   names.push(...WORKFLOW_DOCUMENT_TOOL_NAMES);
   if (options.providers && Object.keys(options.providers).length > 0) {
-    names.push("find_model", "list_models");
+    names.push("find_model", "list_models", "list_providers");
   }
   return names.map((name) => {
     const spec = capabilitySpec(name);

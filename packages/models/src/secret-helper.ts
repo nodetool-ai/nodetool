@@ -313,3 +313,25 @@ export function getSecretSync(
 
   return null;
 }
+
+/** Whose credential `getSecret` would hand out for `key`. */
+export type CredentialSource = "user" | "server";
+
+/**
+ * Whether `getSecret(key, userId)` resolves to a value the user saved
+ * themselves or to the server's own (the environment, or nothing at all).
+ * Follows the same order as `getSecret`, without decrypting anything.
+ */
+export async function credentialSource(
+  key: string,
+  userId: string
+): Promise<CredentialSource> {
+  if (FORCE_ENV_PRIORITY.has(key) && process.env[key] !== undefined) {
+    return "server";
+  }
+  const secret = await Secret.find(userId, key);
+  if (secret) return "user";
+  const setting = await Setting.find(userId, key);
+  if (setting && setting.value.length > 0) return "user";
+  return "server";
+}

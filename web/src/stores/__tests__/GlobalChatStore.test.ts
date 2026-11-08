@@ -290,22 +290,10 @@ describe("GlobalChatStore", () => {
     expect(state.threads[id]).toBeDefined();
   });
 
-  it("createNewThread starts the composer in Chat, not the last mode", async () => {
+  it("createNewThread leaves the media composers' mode alone", async () => {
+    // A chat has no media mode; the canvas and timeline composers keep theirs.
     useMediaGenerationStore.getState().setMode("video");
     await store.getState().createNewThread();
-    expect(useMediaGenerationStore.getState().mode).toBe("chat");
-
-    await store.getState().createNewThread(undefined, undefined, {
-      mediaMode: "image"
-    });
-    expect(useMediaGenerationStore.getState().mode).toBe("image");
-  });
-
-  it("createNewThread keeps the composer mode for a background thread", async () => {
-    useMediaGenerationStore.getState().setMode("video");
-    await store.getState().createNewThread(undefined, undefined, {
-      keepMediaMode: true
-    });
     expect(useMediaGenerationStore.getState().mode).toBe("video");
   });
 

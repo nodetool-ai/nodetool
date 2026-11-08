@@ -1,42 +1,29 @@
 /**
  * Shared helpers for the Hugging Face Inference Providers nodes.
  *
- * All task nodes talk to the unified router at https://router.huggingface.co:
- *   - Chat completion uses the OpenAI-compatible `/v1/chat/completions` route.
- *   - Every other ("pipeline") task posts to
- *     `/hf-inference/models/{model}` with a `{ inputs, parameters }` body.
+ * Every task node reaches the router through the runtime HuggingFaceProvider
+ * with `context.callProviderEndpoint`, so the provider holds the token and
+ * each call writes a generation record. The route is the task id:
+ *   - `chat-completion` uses the OpenAI-compatible `/v1/chat/completions`.
+ *   - Every other ("pipeline") task posts a `{ inputs, parameters }` body to
+ *     `/hf-inference/models/{model}`.
  *
  * Binary-input tasks (image/audio in) send the media as a base64 string in
- * `inputs`; binary-output tasks (image/video out) return raw bytes that we wrap
- * into the matching media ref. The only non-`fetch` dependency is
- * `fetchExternalMedia`, the shared egress policy a caller-supplied media uri
- * goes through (`docs/url-egress-inventory.md`).
+ * `inputs`. Binary-output tasks (image/video out) come back as bytes that we
+ * wrap into the matching media ref. A caller-supplied media uri is read
+ * through `fetchExternalMedia`, the shared egress policy
+ * (`docs/url-egress-inventory.md`).
  */
 
-import { fetchExternalMedia } from "@nodetool-ai/runtime";
+import { isRecord, isString } from "@nodetool-ai/node-sdk";
+import {
+  fetchExternalMedia,
+  type EndpointCallResult,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 
-export const HF_ROUTER = "https://router.huggingface.co";
-
-export const HF_TOKEN_SETTING = "HF_TOKEN";
-
-/** Resolve the Hugging Face access token from node secrets or the environment. */
-export function getHfToken(
-  secrets: Record<string, string> | undefined
-): string {
-  const key =
-    secrets?.HF_TOKEN ||
-    secrets?.HUGGINGFACE_API_KEY ||
-    process.env.HF_TOKEN ||
-    process.env.HUGGINGFACE_API_KEY ||
-    "";
-  if (!key) {
-    throw new Error(
-      "HF_TOKEN is not configured. Add a Hugging Face access token with " +
-        "'Inference Providers' permission in Settings → Models & Providers."
-    );
-  }
-  return key;
-}
+/** The PROVIDER_IDS value of the runtime Hugging Face provider. */
+export const HF_PROVIDER_ID = "huggingface";
 
 /** A JSON value — exactly what `JSON.parse` can produce. */
 export type HfJsonValue =
@@ -54,10 +41,6 @@ export interface HfJsonObject {
 
 function isJsonObject(value: HfJsonValue | undefined): value is HfJsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isJsonString(value: HfJsonValue | undefined): value is string {
-  return typeof value === "string";
 }
 
 /** The object at `value`, or an empty object when the payload is not one. */
@@ -105,10 +88,9 @@ export function isRefSet(ref: MediaRef | undefined | null): ref is MediaRef {
 
 /**
  * Minimal structural view of the ProcessingContext that a node's `process()`
- * receives. We only need `resolveAssetBytes` here, which resolves NodeTool's
- * own reference schemes (`asset://<id>`, `package://<pkg>/<path>`, storage
- * URIs). Typed structurally to keep this package free of a `@nodetool-ai/runtime`
- * dependency.
+ * receives. `refToBytes` needs only `resolveAssetBytes`, which resolves
+ * NodeTool's own reference schemes (`asset://<id>`, `package://<pkg>/<path>`,
+ * storage URIs).
  */
 export type AssetResolveContext =
   | {
@@ -230,31 +212,6 @@ export function imageRefFromBase64(
   return { type: "image", data: clean, content_type: mimeType };
 }
 
-function authHeaders(token: string) {
-  return { Authorization: `Bearer ${token}` };
-}
-
-/** Extract a useful error message from a failed HF response. */
-async function hfError(res: Response, model: string): Promise<Error> {
-  let detail = "";
-  try {
-    detail = await res.text();
-  } catch {
-    /* response body already consumed or unavailable */
-  }
-  return new Error(
-    `Hugging Face inference failed for "${model}" (${res.status}): ${detail || res.statusText}`
-  );
-}
-
-/** Read a response body as JSON. */
-async function readJson(res: Response): Promise<HfJsonValue> {
-  // SAFETY: `Response.json()` resolves to the value `JSON.parse` produced, and
-  // that value domain is exactly HfJsonValue — string, number, boolean, null,
-  // array, or object of those. No shape beyond that is claimed here.
-  return (await res.json()) as HfJsonValue;
-}
-
 /** Provider parameters for a pipeline task. Entries with no value are dropped. */
 export interface HfParameters {
   [key: string]: HfJsonValue | undefined;
@@ -267,26 +224,100 @@ export interface HfPipelineRequest {
   options?: HfParameters;
 }
 
+/** A Hugging Face Inference Providers task id, the provider's endpoint route. */
+export type HfTask =
+  | "chat-completion"
+  | "text-generation"
+  | "summarization"
+  | "translation"
+  | "fill-mask"
+  | "question-answering"
+  | "table-question-answering"
+  | "feature-extraction"
+  | "text-classification"
+  | "token-classification"
+  | "zero-shot-classification"
+  | "text-to-image"
+  | "image-to-image"
+  | "image-classification"
+  | "image-segmentation"
+  | "object-detection"
+  | "automatic-speech-recognition"
+  | "audio-classification"
+  | "text-to-video";
+
+type GenerationCapability = Parameters<
+  ProcessingContext["callProviderEndpoint"]
+>[0]["capability"];
+
 /**
- * POST a pipeline task that returns JSON (classification, NLP, embeddings…).
+ * The capability each task's generation record carries. Text, classification
+ * and detection tasks have no closer capability than `generate_message`.
+ */
+const TASK_CAPABILITY = {
+  "chat-completion": "generate_message",
+  "text-generation": "generate_message",
+  summarization: "generate_message",
+  translation: "generate_message",
+  "fill-mask": "generate_message",
+  "question-answering": "generate_message",
+  "table-question-answering": "generate_message",
+  "feature-extraction": "generate_embedding",
+  "text-classification": "generate_message",
+  "token-classification": "generate_message",
+  "zero-shot-classification": "generate_message",
+  "text-to-image": "text_to_image",
+  "image-to-image": "image_to_image",
+  "image-classification": "generate_message",
+  "image-segmentation": "segment_image",
+  "object-detection": "generate_message",
+  "automatic-speech-recognition": "automatic_speech_recognition",
+  "audio-classification": "generate_message",
+  "text-to-video": "text_to_video"
+} satisfies Record<HfTask, GenerationCapability>;
+
+/** One task call: where it runs, which task and model, and its body. */
+export interface HfTaskCall<Body> {
+  /** The context the node's `process()` received. */
+  context: ProcessingContext | undefined;
+  /** The calling node's id, recorded on the generation. */
+  nodeId?: string;
+  task: HfTask;
+  model: string;
+  body: Body;
+}
+
+async function callTask(
+  call: HfTaskCall<HfPipelineRequest | HfChatRequest>
+): Promise<EndpointCallResult> {
+  const { context } = call;
+  if (!context) {
+    throw new Error("Hugging Face nodes need a processing context to run");
+  }
+  const request: Parameters<ProcessingContext["callProviderEndpoint"]>[0] = {
+    provider: HF_PROVIDER_ID,
+    capability: TASK_CAPABILITY[call.task],
+    model: call.model,
+    route: call.task,
+    input: { ...call.body }
+  };
+  if (call.nodeId) request.nodeId = call.nodeId;
+  return context.callProviderEndpoint(request);
+}
+
+/**
+ * Run a pipeline task that returns JSON (classification, NLP, embeddings…).
  *
  * The payload is returned as the JSON value it is — read it with `jsonObject`,
  * `jsonArray`, `jsonString` and `jsonNumber` rather than claiming a shape.
  */
 export async function hfPipelineJson(
-  token: string,
-  model: string,
-  body: HfPipelineRequest
+  call: HfTaskCall<HfPipelineRequest>
 ): Promise<HfJsonValue> {
-  const res = await fetch(`${HF_ROUTER}/hf-inference/models/${model}`, {
-    method: "POST",
-    headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    throw await hfError(res, model);
-  }
-  return readJson(res);
+  const { output } = await callTask(call);
+  // SAFETY: the provider returns the parsed JSON body of a JSON task, and the
+  // value domain of `JSON.parse` is exactly HfJsonValue.
+  return output as HfJsonValue;
 }
 
 /** Result of a binary pipeline task (image/video generation). */
@@ -295,73 +326,21 @@ export interface HfBinaryResult {
   mimeType: string;
 }
 
-/** POST a pipeline task that returns raw media bytes (text-to-image/video…). */
+/** Run a pipeline task that returns media bytes (text-to-image/video…). */
 export async function hfPipelineBinary(
-  token: string,
-  model: string,
-  body: HfPipelineRequest
+  call: HfTaskCall<HfPipelineRequest>
 ): Promise<HfBinaryResult> {
-  const res = await fetch(`${HF_ROUTER}/hf-inference/models/${model}`, {
-    method: "POST",
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-      Accept: "image/png, video/mp4, application/octet-stream"
-    },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    throw await hfError(res, model);
-  }
-  const contentType = res.headers.get("content-type") ?? "";
-  // Some providers return a JSON envelope with a base64 payload instead of raw
-  // bytes. Handle both so the caller always gets decoded media.
-  if (contentType.includes("application/json")) {
-    const json = await readJson(res);
-    const base64 = extractBase64(json);
-    if (!base64) {
-      throw new Error(
-        `Hugging Face returned JSON without media for "${model}": ${JSON.stringify(json).slice(0, 200)}`
-      );
-    }
-    return {
-      bytes: new Uint8Array(Buffer.from(base64, "base64")),
-      mimeType: guessMimeFromJson(json) ?? "image/png"
-    };
+  const { output } = await callTask(call);
+  // A media task answers `{ data, mimeType }` (HuggingFaceProvider.callEndpoint).
+  if (!isRecord(output) || !(output.data instanceof Uint8Array)) {
+    throw new Error(`Hugging Face returned no media for "${call.model}"`);
   }
   return {
-    bytes: new Uint8Array(await res.arrayBuffer()),
-    mimeType: contentType || "application/octet-stream"
+    bytes: output.data,
+    mimeType: isString(output.mimeType)
+      ? output.mimeType
+      : "application/octet-stream"
   };
-}
-
-function extractBase64(json: HfJsonValue): string | null {
-  if (isJsonString(json)) return json;
-  if (Array.isArray(json) && json.length > 0) {
-    return extractBase64(json[0] ?? null);
-  }
-  if (isJsonObject(json)) {
-    for (const key of [
-      "image",
-      "video",
-      "audio",
-      "data",
-      "b64_json",
-      "generated_image"
-    ]) {
-      const value = json[key];
-      if (isJsonString(value)) return value.replace(/^data:[^,]+,/, "");
-    }
-  }
-  return null;
-}
-
-function guessMimeFromJson(json: HfJsonValue): string | null {
-  if (isJsonObject(json)) {
-    if (isJsonString(json["video"])) return "video/mp4";
-    if (isJsonString(json["audio"])) return "audio/flac";
-  }
-  return null;
 }
 
 /** OpenAI-compatible chat completion via the HF router. */
@@ -395,18 +374,15 @@ export interface HfChatResult {
 }
 
 export async function hfChatCompletion(
-  token: string,
-  body: HfChatRequest
+  call: Omit<HfTaskCall<HfChatRequest>, "task" | "model">
 ): Promise<HfChatResult> {
-  const res = await fetch(`${HF_ROUTER}/v1/chat/completions`, {
-    method: "POST",
-    headers: { ...authHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+  const { output } = await callTask({
+    ...call,
+    task: "chat-completion",
+    model: call.body.model
   });
-  if (!res.ok) {
-    throw await hfError(res, body.model || "chat");
-  }
-  const json = jsonObject(await readJson(res));
+  // SAFETY: chat completion answers with JSON, see hfPipelineJson.
+  const json = jsonObject(output as HfJsonValue);
   const choice = jsonObject(jsonArray(json["choices"])[0]);
   const result: HfChatResult = {
     content: jsonString(jsonObject(choice["message"])["content"])

@@ -116,6 +116,10 @@ origin.
   **SSO mode**. Users sign in through Keycloak, Authentik, Okta, Entra ID,
   Google Workspace, or any other OpenID Connect provider, with optional domain
   and group allowlists. See [Single Sign-On](authentication.md#single-sign-on-oidc).
+  In SSO mode, admins get an **Admin** page to disable accounts, cap each
+  person's token and media spend on the server's provider keys, block
+  permissions, and review sharing. See
+  [The Admin page](authentication.md#the-admin-page).
 
 `GET /api/config` returns `authMode`, `supabaseUrl`, `supabaseAnonKey`,
 `authRedirectUrl`, and `version` — never the service-role key. See
@@ -350,8 +354,9 @@ nodetool deploy logs local --tail 200
 A deployment that serves more than one person needs API users. Four
 `nodetool deploy` subcommands manage them over the running server's admin API,
 so the deployment must already be applied and reachable. The caller must be an
-admin: user `1`, an id listed in `ADMIN_USER_IDS`, or an API user created with
-`--role admin`. Records live in the file named by `USERS_FILE`, which the image
+admin: user `1`, an id listed in `ADMIN_USER_IDS`, an API user created with
+`--role admin`, or an SSO admin as described in
+[Users, sessions, and admins](authentication.md#users-sessions-and-admins). Records live in the file named by `USERS_FILE`, which the image
 sets to `/workspace/users.json` so they survive a redeploy.
 
 Every one of them needs an admin bearer token. It comes from `--token`, else

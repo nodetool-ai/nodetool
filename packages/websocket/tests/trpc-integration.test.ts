@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import Fastify from "fastify";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { Secret, Setting } from "@nodetool-ai/models";
+import { Secret, Setting, initTestDb } from "@nodetool-ai/models";
 import * as vectorstore from "@nodetool-ai/vectorstore";
 import { appRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
@@ -108,6 +108,8 @@ describe("tRPC /trpc/users.list over Fastify", () => {
   it("rejects non-admin callers with FORBIDDEN", async () => {
     const { FileUserManager } = await import("@nodetool-ai/auth");
     vi.spyOn(FileUserManager.prototype, "listUsers").mockResolvedValue({});
+    // The admin check reads the user directory.
+    initTestDb();
 
     // buildTestApp sets req.userId = "test-user" — not an admin, so the
     // router's admin guard should reject with 403.

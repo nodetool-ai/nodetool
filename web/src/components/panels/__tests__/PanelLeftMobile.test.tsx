@@ -15,6 +15,9 @@ import mockTheme from "../../../__mocks__/themeMock";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { LEFT_PANEL_TOP_LEVEL } from "../../../config/quickAccessCategories";
 
+jest.mock("../../../serverState/useAdminUsers", () => ({
+  useIsAdmin: () => false
+}));
 jest.mock("@mui/material/useMediaQuery", () => () => true);
 
 jest.mock("react-router-dom", () => ({

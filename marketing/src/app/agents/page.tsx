@@ -1,12 +1,11 @@
 import React from "react";
-import { Cpu, Download, Hand, KeyRound, ScrollText } from "lucide-react";
+import { Download, Hand, ScrollText } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import FaqBlock from "../../components/FaqBlock";
-import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
-import SubscriptionSection from "../../components/SubscriptionSection";
+import SpecStrip from "../../components/SpecStrip";
 import AgentRunHero from "../../components/agents/AgentRunHero";
 import AgentSurfaceGrid from "../../components/agents/AgentSurfaceGrid";
 import McpInstallCommand from "../../components/agents/McpInstallCommand";
@@ -22,8 +21,6 @@ import {
 } from "@/data/agentsPage";
 
 const CONTROL_ICONS = {
-  "Your models": Cpu,
-  "Your keys": KeyRound,
   "A full record": ScrollText,
   "Your hands": Hand,
 } as const;
@@ -113,8 +110,6 @@ export default function AgentsPage() {
         </div>
       </section>
 
-      <SubscriptionSection className="rhythm-section" />
-
       <section
         id="agent-loop"
         aria-labelledby="agent-loop-title"
@@ -127,16 +122,8 @@ export default function AgentsPage() {
             title="Build. Run. Inspect. Repair."
             body="A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step."
           />
-          <div className="mt-12 grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
-            <div className="lg:col-span-7">
-              <HeroDemoPlayer
-                mediaBase="/hero-flow"
-                priority={false}
-                alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
-                caption="One sentence becomes a short film. The storyboard and the cut stay open for revision."
-              />
-            </div>
-            <ol className="relative lg:col-span-5">
+          <div className="mt-12 max-w-3xl">
+            <ol className="relative">
               <span
                 className="absolute bottom-6 left-[1.1875rem] top-6 w-px bg-gradient-to-b from-blue-400/60 via-slate-700 to-blue-400/60"
                 aria-hidden
@@ -196,8 +183,8 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-control-title"
             eyebrow="Your limits"
-            title="The harness runs on your models and your keys."
-            body="You decide what the agent may use, and you can read everything it did."
+            title="Every step is on the record."
+            body="Read what the agent did, and take the work back at any point."
           />
           <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-2">
             {CONTROLS.map(({ title, body }) => {
@@ -342,6 +329,8 @@ export default function AgentsPage() {
           />
         </div>
       </section>
+
+      <SpecStrip items={["plan", "models", "cost", "source"]} className="rhythm-section" />
 
       <section className="rhythm-section" aria-label="Questions before you build">
         <FaqBlock

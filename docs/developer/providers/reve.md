@@ -12,7 +12,7 @@ description: "Runbook for adding new Reve image API endpoints and model versions
 
 1. Add a new `class` in `packages/reve-nodes/src/nodes/` extending `BaseNode`.
 2. Export it from `packages/reve-nodes/src/index.ts` and push the class into `REVE_NODES`.
-3. Call `reveGenerate` from `reve-base.ts` with one of the three API endpoints: `"create"`, `"edit"`, or `"remix"`.
+3. Call `reveGenerate` from `reve-base.ts` with the processing context and one of the three API endpoints: `"create"`, `"edit"`, or `"remix"`.
 4. `npm run build:packages` — compiles from `src/` to `dist/` (the package loads from `dist/`).
 5. `npm run typecheck && npm run lint` — must pass before committing.
 
@@ -27,10 +27,10 @@ description: "Runbook for adding new Reve image API endpoints and model versions
 | Edit Image node | `packages/reve-nodes/src/nodes/edit-image.ts` |
 | Remix Image node | `packages/reve-nodes/src/nodes/remix-image.ts` |
 | Package entry point | `packages/reve-nodes/src/index.ts` |
-| Runtime provider (generic image picker) | `packages/runtime/src/providers/reve-provider.ts` |
+| Runtime provider (transport, API key, generic image picker) | `packages/runtime/src/providers/reve-provider.ts` |
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.REVE, ...)`) |
 | `PROVIDER_IDS.REVE` | `packages/protocol/src/api-types.ts` |
-| Unit tests | `packages/reve-nodes/tests/nodes.test.ts`, `reve-base.test.ts` |
+| Unit tests | `packages/reve-nodes/tests/nodes.test.ts`, `reve-base.test.ts`, `wire-parity.test.ts` |
 | Registration test | `packages/reve-nodes/tests/registration.test.ts` |
 
 ---
@@ -51,12 +51,11 @@ There is no manifest or code-generation script. Each node is a hand-written `Bas
 
 - `REVE_ASPECT_RATIOS` — the aspect ratios all endpoints accept.
 - `REVE_POSTPROCESSING` — optional post-generation operations (`upscale`, `remove_background`, `fit_image`, `effect`).
-- `getReveApiKey(secrets)` — reads `REVE_API_KEY` from `this._secrets` then `process.env`, throws if absent.
-- `reveGenerate(apiKey, endpoint, body)` — POSTs to `https://api.reve.com/v1/image/{endpoint}` with `Authorization: Bearer`, returns the parsed `ReveImageResponse`.
+- `reveGenerate(context, endpoint, body, nodeId)` — drops empty fields from `body` and calls `context.callProviderEndpoint` with provider `reve` and model `reve-{endpoint}`. The runtime `ReveProvider` holds `REVE_API_KEY`, POSTs to `https://api.reve.com/v1/image/{endpoint}` and writes the generation record. Returns the parsed `ReveImageResponse`.
 - `refToBase64(ref, context)` — converts an `ImageRef`-like value to a base64 string; handles inline data, data URIs, `asset://`, `file://`, and remote URLs.
 - `reveImageToRef(base64)` — wraps the response `image` field into a NodeTool `ImageRef` object; attaches dimensions via `sharp` when available.
 
-The runtime provider (`reve-provider.ts`) separately implements `textToImage` and `imageToImage` for the generic image-generation picker in the UI (the two hardcoded model ids `reve-create` and `reve-edit`). This is a thinner path — new Reve API endpoints should be added as full nodes in `reve-nodes`, not as branches in the provider.
+The runtime provider (`reve-provider.ts`) is the one Reve transport. Its `callEndpoint` accepts the model ids `reve-create`, `reve-edit` and `reve-remix`, one per endpoint. It also implements `textToImage` and `imageToImage` for the generic image-generation picker in the UI. A new Reve endpoint needs a model id in `REVE_ENDPOINT_MODELS` in the provider and a node in `reve-nodes`. Nodes never read the API key.
 
 ---
 
@@ -90,7 +89,6 @@ Use this pattern when Reve releases a new endpoint (or a sufficiently different 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
-  getReveApiKey,
   postprocessingArray,
   reveGenerate,
   reveImageToRef,
@@ -158,18 +156,22 @@ export class YourEndpointNode extends BaseNode {
   })
   declare test_time_scaling: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getReveApiKey(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
+    if (!context) {
+      throw new Error("Your Endpoint requires a processing context");
+    }
 
-    const result = await reveGenerate(apiKey, "create", {   // ← swap endpoint name
+    const result = await reveGenerate(context, "create", {   // ← swap endpoint name
       prompt,
       aspect_ratio: String(this.aspect_ratio ?? "3:2"),
       version: String(this.version ?? "latest"),
       postprocessing: postprocessingArray(this.postprocessing),
       test_time_scaling: Number(this.test_time_scaling ?? 1)
-    });
+    }, this.__node_id || undefined);
 
     return { output: await reveImageToRef(result.image) };
   }
@@ -178,15 +180,10 @@ export class YourEndpointNode extends BaseNode {
 export const YOUR_ENDPOINT_NODES: readonly NodeClass[] = [YourEndpointNode];
 ```
 
-Nodes that accept a reference image (like `EditImageNode`) must take a `context` argument in `process` and pass it to `refToBase64`:
+Nodes that accept a reference image (like `EditImageNode`) also pass the context to `refToBase64`:
 
 ```typescript
-async process(
-  context?: Parameters<BaseNode["process"]>[0]
-): Promise<Record<string, unknown>> {
-  const referenceImage = await refToBase64(this.image, context);
-  // ...
-}
+const referenceImage = await refToBase64(this.image, context);
 ```
 
 **Step 2.** Wire the new class into `packages/reve-nodes/src/index.ts`:
@@ -205,7 +202,7 @@ export const REVE_NODES: readonly NodeClass[] = [
 
 No other files need to change. The node automatically appears in the registry because `registerReveNodes` iterates `REVE_NODES`.
 
-**Step 3.** Add tests in `packages/reve-nodes/tests/nodes.test.ts`. Follow the existing pattern: stub `fetch`, construct the node with props, call `process()`, assert the fetch URL and body fields.
+**Step 3.** Add tests in `packages/reve-nodes/tests/nodes.test.ts`. Follow the existing pattern: give a `ProcessingContext` a `ScriptedProvider` through `setProviderResolver`, construct the node with props, call `process(context)`, and assert the recorded endpoint call's `model` and `input`.
 
 ---
 
@@ -249,4 +246,4 @@ A `REVE_API_KEY is not configured` error from step 5 means the node registered c
 Source: <https://github.com/nodetool-ai/nodetool>  
 Discord: <https://discord.gg/WmQTWZRcYE>
 
-Before opening a PR, run the Verify steps. Add a test for every new node; the existing `nodes.test.ts` stubs `fetch` globally, so new test cases fit cleanly in the same file.
+Before opening a PR, run the Verify steps. Add a test for every new node in `nodes.test.ts`, which scripts the provider rather than `fetch`.

@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import {
   Caption,
   DeleteButton,
@@ -65,6 +66,13 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
             aria-current={isSelected ? "true" : undefined}
             onClick={handleSelect}
           >
+            {thread.kind === "create" && (
+              <AutoAwesomeOutlinedIcon
+                fontSize="inherit"
+                className="thread-kind"
+                titleAccess={t("create_view.sessionKind")}
+              />
+            )}
             <TruncatedText component="span" className="thread-title">
               {title}
             </TruncatedText>
@@ -98,6 +106,7 @@ export const ThreadItem = memo(ThreadItemBase, (prevProps, nextProps) => {
     prevProps.isDeleting === nextProps.isDeleting &&
     prevProps.previewText === nextProps.previewText &&
     prevProps.thread.title === nextProps.thread.title &&
+    prevProps.thread.kind === nextProps.thread.kind &&
     prevProps.thread.updatedAt === nextProps.thread.updatedAt &&
     prevProps.onRename === nextProps.onRename
   );
