@@ -60,6 +60,7 @@ import OutputQuickActionButtons from "./OutputQuickActionButtons";
 import { TextRenderer } from "./output/TextRenderer";
 import { extractTextValue } from "../../utils/extractTextValue";
 import { isString } from "../../utils/typePredicates";
+import { useImageThumbnail } from "../../hooks/useImageThumbnail";
 
 interface NodeHistoryViewerProps {
   workflowId: string;
@@ -90,6 +91,22 @@ interface NodeHistoryViewerProps {
 type View = "grid" | "single";
 
 const MEDIA_PREFIXES = ["image/", "video/", "audio/"] as const;
+
+/**
+ * A grid tile's still. Paints the asset's 512px thumbnail, or the full image
+ * while a fresh result's thumbnail is still being written.
+ */
+const HistoryImageThumb: React.FC<{
+  thumbUrl: string | null | undefined;
+  fullUrl: string;
+  alt: string;
+}> = ({ thumbUrl, fullUrl, alt }) => (
+  <img
+    src={useImageThumbnail(thumbUrl, fullUrl || null) ?? undefined}
+    alt={alt}
+    draggable={false}
+  />
+);
 
 const isMediaAsset = (asset: Asset): boolean => {
   if (!isString(asset.content_type)) return false;
@@ -717,7 +734,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     const asset = gen.assetId ? assetById.get(gen.assetId) : undefined;
     const kind = value?.type;
     const alt = asset?.name || gen.id;
-    const imgUrl = asset?.thumb_url || asset?.get_url || value?.uri || "";
+    const imgUrl = asset?.get_url || value?.uri || "";
     const previewBitmap = isBitmapImage(value)
       ? (value.bitmap as ImageBitmap)
       : undefined;
@@ -757,8 +774,12 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         data-gen-id={gen.id}
         {...dragProps}
       >
-        {kind === "image" && imgUrl ? (
-          <img src={imgUrl} alt={alt} draggable={false} />
+        {kind === "image" && (imgUrl || asset?.thumb_url) ? (
+          <HistoryImageThumb
+            thumbUrl={asset?.thumb_url}
+            fullUrl={imgUrl}
+            alt={alt}
+          />
         ) : kind === "image" && previewBitmap ? (
           <BitmapCanvas bitmap={previewBitmap} aria-label={alt} />
         ) : kind === "video" && (videoThumb || videoUrl) ? (

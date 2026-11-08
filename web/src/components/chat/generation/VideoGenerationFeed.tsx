@@ -353,6 +353,7 @@ const VideoGenerationFeed: React.FC<VideoGenerationFeedProps> = ({
                           <ResponsiveImage
                             key={`${turn.id}-ref-${idx}`}
                             locator={refImg.image}
+                            preferThumbnail
                             alt={t("generationFeed.referenceAlt", { index: idx + 1 })}
                             aspectRatio="1 / 1"
                             fit="cover"

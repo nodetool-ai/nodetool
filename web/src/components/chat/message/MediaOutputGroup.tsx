@@ -30,7 +30,7 @@ import {
   Chip,
   ICON_SIZE
 } from "../../ui_primitives";
-import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import type {
   Message,
   MessageContent
@@ -46,12 +46,7 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
-import {
-  useResolvedMediaUris,
-  type MediaLocator
-} from "../../../hooks/useResolvedMediaUri";
 import { isString } from "../../../utils/typePredicates";
-import { resolveInlineMediaSource } from "../../../utils/resolveMediaUri";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -293,16 +288,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
-  // The video and audio tiles hand their locator to a primitive that resolves
-  // it. `ImageView` takes an already-resolved URL, and the grid below maps over
-  // the list and cannot call a hook per item — so resolve the image refs here.
-  const imageLocators = useMemo(
-    (): MediaLocator[] =>
-      mediaContents.map((c) => (isImageContent(c) ? c.image : undefined)),
-    [mediaContents]
-  );
-  const resolvedImageSrcs = useResolvedMediaUris(imageLocators);
-
   const prompt = useMemo(() => {
     const content = message.content;
     if (isString(content)) return content;
@@ -438,10 +423,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             ))
           : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
-            const src =
-              resolvedImageSrcs[i] ??
-              resolveInlineMediaSource(c.image?.data as string | undefined) ??
-              "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
               <div
@@ -449,7 +430,9 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 draggable
                 onDragStart={(e) => handleDragStart(e, c)}
               >
-                <ImageView source={src} />
+                {/* A fixed-size tile paints the 512px thumbnail; copy,
+                    download and the viewer still use the original. */}
+                <ImageRefPreview value={c.image} preferThumbnail />
                 {isCanvasAvailable && (
                   <ToolbarIconButton
                     className="add-to-canvas-button"
