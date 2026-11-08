@@ -6174,7 +6174,6 @@
         "checkingModels": "Controleer nog steeds uw taalmodellen. Probeer het zo nog eens.",
         "chatNeedsModel": "Het is bijna zover: chat heeft een model nodig om te kunnen werken.",
         "pickModelToStartChat": "Kies een taalmodel en de chat begint.",
-        "pickMediaModel": "Kies een model en de generatie begint.",
         "openChatError": "Kan chat niet openen: {{error}}",
         "startFlowError": "Kan {{flow}}: {{error}} niet starten",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Voorbeelden van workflows",
             "description": "Automatiseringen, meerstaps"
           }
+        },
+        "goals": {
+          "label": "Wat er start",
+          "chat": "Chat",
+          "image": "Afbeelding",
+          "video": "Video",
+          "audio": "Audio"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "Het tabblad kon niet worden hernoemd: {{reason}}",
     "sessionFailed": "De takes van dit tabblad konden niet worden geladen.",
-    "sessionKind": "Create-sessie"
+    "sessionKind": "Create-sessie",
+    "openInCreate": "Openen in Create",
+    "openInCreateFailed": "Create kon niet worden geopend: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effecten",

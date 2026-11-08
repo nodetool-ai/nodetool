@@ -6174,7 +6174,6 @@
         "checkingModels": "Still checking your language models. Try again in a moment.",
         "chatNeedsModel": "Almost there — chat needs a model to run.",
         "pickModelToStartChat": "Pick a language model and the chat starts.",
-        "pickMediaModel": "Pick a model and the generation starts.",
         "openChatError": "Could not open chat: {{error}}",
         "startFlowError": "Could not start the {{flow}}: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Workflow examples",
             "description": "Automations, multi-step"
           }
+        },
+        "goals": {
+          "label": "What to start",
+          "chat": "Chat",
+          "image": "Image",
+          "video": "Video",
+          "audio": "Audio"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "The tab could not be renamed: {{reason}}",
     "sessionFailed": "This tab's takes could not be loaded.",
-    "sessionKind": "Create session"
+    "sessionKind": "Create session",
+    "openInCreate": "Open in Create",
+    "openInCreateFailed": "Create could not open: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effects",

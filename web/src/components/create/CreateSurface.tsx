@@ -12,7 +12,7 @@
  * The Create view opened before tabs had sessions has no thread, and always
  * shows every take.
  */
-import React, { Suspense, lazy, useCallback, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
@@ -26,6 +26,7 @@ import {
   GLOBAL_CREATE_SESSION,
   createDraftOf,
   useCreateViewStore,
+  type CreateKind,
   type CreateScope
 } from "../../stores/CreateViewStore";
 import {
@@ -67,12 +68,27 @@ interface CreateSurfaceProps {
   sessionId?: string | null;
   /** The project the session's takes are filed into. */
   projectId?: string;
+  /**
+   * Set when the session is a media thread from before Create sessions. Its
+   * tab starts in that kind and keeps the thread's title.
+   */
+  mediaThreadKind?: CreateKind;
 }
 
-const CreateSurface = ({ sessionId = null, projectId }: CreateSurfaceProps) => {
+const CreateSurface = ({ sessionId = null, projectId, mediaThreadKind }: CreateSurfaceProps) => {
   const { t } = useTranslation();
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const draftId = sessionId ?? GLOBAL_CREATE_SESSION;
+  useEffect(() => {
+    if (!sessionId || !mediaThreadKind) {
+      return;
+    }
+    const store = useCreateViewStore.getState();
+    if (!store.drafts[sessionId]) {
+      store.startSession(sessionId, { mode: mediaThreadKind });
+    }
+    store.markTitled(sessionId);
+  }, [sessionId, mediaThreadKind]);
   const scope = useCreateViewStore((s) => createDraftOf(s, draftId).scope);
   const setScope = useCreateViewStore((s) => s.setScope);
   const showsSession = sessionId !== null && scope === "session";

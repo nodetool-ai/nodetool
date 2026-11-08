@@ -6174,7 +6174,6 @@
         "checkingModels": "言語モデルをまだチェックしています。しばらくしてからもう一度試してください。",
         "chatNeedsModel": "もうすぐ完成します。チャットを実行するにはモデルが必要です。",
         "pickModelToStartChat": "言語モデルを選択すると、チャットが始まります。",
-        "pickMediaModel": "モデルを選択すると、生成が開始されます。",
         "openChatError": "チャットを開けませんでした: {{error}}",
         "startFlowError": "{{flow}} を開始できませんでした: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "ワークフローの例",
             "description": "自動化、マルチステップ"
           }
+        },
+        "goals": {
+          "label": "始めるもの",
+          "chat": "チャット",
+          "image": "画像",
+          "video": "動画",
+          "audio": "音声"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "タブの名前を変更できませんでした: {{reason}}",
     "sessionFailed": "このタブのテイクを読み込めませんでした。",
-    "sessionKind": "Create セッション"
+    "sessionKind": "Create セッション",
+    "openInCreate": "Create で開く",
+    "openInCreateFailed": "Create を開けませんでした: {{reason}}"
   },
   "effectsGallery": {
     "title": "効果",

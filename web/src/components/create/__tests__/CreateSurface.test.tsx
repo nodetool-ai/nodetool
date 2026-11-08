@@ -25,6 +25,11 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 let assetListData: { assets: unknown[] } | undefined = { assets: [] };
 let sessionRecords: unknown[] = [];
 const mockNameSession = jest.fn(async (..._args: [string, string]) => undefined);
+// Only a media thread's messages are read, and these tabs have none.
+jest.mock("../../../stores/GlobalChatStore", () => {
+  const { create } = jest.requireActual("zustand");
+  return { __esModule: true, default: create(() => ({ messageCache: {} })) };
+});
 jest.mock("../openCreateSession", () => ({
   nameSessionAfterPrompt: (...args: [string, string]) => mockNameSession(...args)
 }));

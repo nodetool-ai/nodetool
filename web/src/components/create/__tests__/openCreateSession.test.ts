@@ -1,6 +1,7 @@
 import { createDraftOf, useCreateViewStore } from "../../../stores/CreateViewStore";
 import { tabId, useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import {
+  createSeedFromMedia,
   nameSessionAfterPrompt,
   openCreateSession,
   referencesFromAttachments,
@@ -76,5 +77,36 @@ describe("openCreateSession", () => {
     const title = titleFromPrompt("x".repeat(100));
     expect(title).toHaveLength(60);
     expect(title.endsWith("...")).toBe(true);
+  });
+});
+
+describe("createSeedFromMedia", () => {
+  const image = (assetId?: string) =>
+    ({ type: "image_url", image: { type: "image", uri: "", asset_id: assetId } }) as const;
+  const video = (assetId: string) =>
+    ({ type: "video", video: { type: "video", uri: "", asset_id: assetId } }) as const;
+
+  it("carries a reply's stored pictures as sources to edit", () => {
+    expect(createSeedFromMedia("a harbour", [image("a"), image(), image("b")], "image")).toEqual({
+      mode: "image_edit",
+      prompt: "a harbour",
+      references: [
+        { assetId: "a", contentType: "image/png", name: "Generated image" },
+        { assetId: "b", contentType: "image/png", name: "Generated image" }
+      ]
+    });
+  });
+
+  it("carries a reply's first clip to retake", () => {
+    expect(createSeedFromMedia("waves", [video("v1"), video("v2")], "video")).toMatchObject({
+      mode: "retake",
+      references: [{ assetId: "v1", contentType: "video/mp4" }]
+    });
+  });
+
+  it("carries only the prompt for audio, in the mode it was made in", () => {
+    const audio = [{ type: "audio", audio: { type: "audio", uri: "", asset_id: "s" } }] as const;
+    expect(createSeedFromMedia("a song", audio, "music")).toEqual({ mode: "music", prompt: "a song" });
+    expect(createSeedFromMedia("hello", audio)).toEqual({ mode: "audio", prompt: "hello" });
   });
 });

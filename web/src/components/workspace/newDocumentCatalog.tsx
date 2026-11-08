@@ -292,8 +292,7 @@ export const useNewDocumentCatalog = (
     () =>
       runCreate("chat", async (destinationProjectId) => {
         const threadId = await createNewThread(undefined, undefined, {
-          projectId: destinationProjectId,
-          mediaMode: "chat"
+          projectId: destinationProjectId
         });
         openTab({
           type: "chat",

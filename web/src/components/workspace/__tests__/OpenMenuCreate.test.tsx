@@ -58,7 +58,7 @@ describe("OpenMenu create into the selected project", () => {
     expect(mockOpenMenu.createNewThread).toHaveBeenCalledWith(
       undefined,
       undefined,
-      { projectId: "p1", mediaMode: "chat" }
+      { projectId: "p1" }
     );
   });
 

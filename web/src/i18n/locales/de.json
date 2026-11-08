@@ -6174,7 +6174,6 @@
         "checkingModels": "Deine Sprachmodelle werden noch geprüft. Versuche es gleich noch einmal.",
         "chatNeedsModel": "Fast geschafft — der Chat braucht ein Modell.",
         "pickModelToStartChat": "Wähle ein Sprachmodell aus, dann startet der Chat.",
-        "pickMediaModel": "Wähle ein Modell, dann startet die Generierung.",
         "openChatError": "Chat konnte nicht geöffnet werden: {{error}}",
         "startFlowError": "{{flow}} konnte nicht gestartet werden: {{error}}",
         "flowNames": {
@@ -6384,6 +6383,13 @@
             "title": "Workflow-Beispiele",
             "description": "Automatisierungen, mehrstufig"
           }
+        },
+        "goals": {
+          "label": "Was gestartet wird",
+          "chat": "Chat",
+          "image": "Bild",
+          "video": "Video",
+          "audio": "Audio"
         }
       }
     }
@@ -19620,7 +19626,9 @@
     },
     "renameFailed": "Der Tab konnte nicht umbenannt werden: {{reason}}",
     "sessionFailed": "Die Takes dieses Tabs konnten nicht geladen werden.",
-    "sessionKind": "Create-Sitzung"
+    "sessionKind": "Create-Sitzung",
+    "openInCreate": "In Create öffnen",
+    "openInCreateFailed": "Create konnte nicht geöffnet werden: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekte",
