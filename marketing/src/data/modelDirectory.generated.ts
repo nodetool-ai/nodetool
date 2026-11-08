@@ -3909,7 +3909,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1052,
+    "total": 1053,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7322,6 +7322,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "reve-edit",
             "name": "Reve Edit"
+          }
+        ]
+      },
+      {
+        "provider": "antigravity",
+        "models": [
+          {
+            "id": "image-generator",
+            "name": "Antigravity Image Generator"
           }
         ]
       },

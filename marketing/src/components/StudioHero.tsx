@@ -57,10 +57,10 @@ export default function StudioHero({
           <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
             {primaryAction}
             <a
-              href="#editable-project"
+              href="#surfaces"
               className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3 text-sm font-semibold text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800/60 focus-ring sm:w-auto"
             >
-              See an editable project
+              See the editors
             </a>
           </div>
 

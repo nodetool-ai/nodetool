@@ -5,7 +5,7 @@
  */
 
 export const AGENTS_LEAD =
-  "NodeTool is open-source agentic creative software: an AI agent that operates creative tools and leaves work you can edit. Give a brief to the built-in agent, or connect Claude Code, Codex, or Cursor over MCP. The agent generates images, video, and audio, then builds the storyboard, timeline, sketch, game, or workflow. A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step.";
+  "NodeTool is open-source software in which an AI agent operates creative tools and leaves work you can edit. Use the built-in agent, or connect Claude Code, Codex, or Cursor over MCP. A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step.";
 
 export const APPROVAL_MODES_INTRO =
   "Each chat has a permission mode. Reading and searching run in every mode. The mode decides what happens to the rest.";
@@ -33,15 +33,8 @@ export const LOOP_STAGES = [
   },
 ];
 
+/** Models and keys are on the page once, in its SpecStrip. */
 export const CONTROLS = [
-  {
-    title: "Your models",
-    body: "Run the agent on Claude, GPT, Gemini, or a local model through Ollama. Each node names its own model.",
-  },
-  {
-    title: "Your keys",
-    body: "Each generation is billed to your own provider account at its list price. NodeTool sells no credits.",
-  },
   {
     title: "A full record",
     body: "Read each tool call with its arguments, result, and error. Find the step that went wrong.",
