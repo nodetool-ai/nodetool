@@ -12193,6 +12193,10 @@
         "newChat": "Neuer Chat",
         "pageView": "Seitenansicht",
         "chatView": "Chatansicht",
+        "restart": "Neu starten",
+        "restartTitle": "Diese App neu starten?",
+        "restartBody": "Dadurch werden alle eingegebenen Werte und alle Ergebnisse gelöscht. Die App beginnt wieder beim ersten Schritt.",
+        "cancel": "Abbrechen",
         "composerPlaceholder": "Frag zu einem Schritt, einem Ergebnis oder einem Problem"
       }
     }

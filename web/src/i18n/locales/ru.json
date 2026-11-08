@@ -12559,6 +12559,10 @@
         "newChat": "New chat",
         "pageView": "Page view",
         "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
         "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
