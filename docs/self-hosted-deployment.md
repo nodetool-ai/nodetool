@@ -116,6 +116,10 @@ origin.
   **SSO mode**. Users sign in through Keycloak, Authentik, Okta, Entra ID,
   Google Workspace, or any other OpenID Connect provider, with optional domain
   and group allowlists. See [Single Sign-On](authentication.md#single-sign-on-oidc).
+  In SSO mode, admins get an **Admin** page to disable accounts, cap each
+  person's token and media spend on the server's provider keys, block
+  permissions, and review sharing. See
+  [The Admin page](authentication.md#the-admin-page).
 
 `GET /api/config` returns `authMode`, `supabaseUrl`, `supabaseAnonKey`,
 `authRedirectUrl`, and `version` — never the service-role key. See
