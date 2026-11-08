@@ -1,0 +1,194 @@
+// The lanes that run native jobs off the worker thread
+// (docs/plans/graph-runner-async-host.md, sections 4.4 and 4.10).
+//
+// A lane is a thread pool with a bounded number of threads and one FIFO
+// queue. The process has three: CPU work, file I/O and network calls. They
+// outlive every GraphRunner. Inline mode replaces all three with
+// InlineExecutor, which runs each job on the worker as it is submitted.
+//
+// Lock rules: the lane mutex guards the queue, the accepting flag, each
+// thread's running job and the reaper's work. A job leaves the queue under
+// it, either to run or to be cancelled, never both. Jobs are run, cancelled
+// and destroyed, and stop is requested, only after the lane mutex is
+// released.
+//
+// Job code the lane does not control, stop callbacks and the destructors of
+// job inputs, never runs on a caller's thread: the run's teardown and
+// shutdown() only queue that work for the lane's reaper thread. A stop
+// callback that blocks, or an input destructor that blocks, therefore
+// delays only the reaper and the lane's later stop requests, and shutdown()
+// still returns at its deadline. Section 4.9's contract still applies: stop
+// callbacks only set flags or issue a non-blocking wake.
+#pragma once
+
+#include "kernel/async_jobs.h"
+#include "nodetool/host_lanes.h"
+
+#include <chrono>
+#include <condition_variable>
+#include <cstddef>
+#include <deque>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <stop_token>
+#include <string>
+#include <thread>
+
+namespace gr {
+
+// Thread counts of the three lanes. 0 picks the default.
+struct LaneSizes {
+  size_t cpu = 0;
+  size_t io = 0;
+  size_t network = 0;
+};
+
+// Replaces each 0 in `requested` with its default: CPU
+// min(4, hardwareThreads - 1) and at least 1, I/O 8, and network
+// ProviderJobs::Limits::maxJobs.
+LaneSizes resolveLaneSizes(LaneSizes requested, unsigned hardwareThreads);
+
+// A lane. Threads start on demand, up to `maxThreads`, so a lane that never
+// gets a job has no thread. The first job also starts the lane's reaper.
+class ThreadPoolExecutor final : public JobExecutor {
+public:
+  using Clock = std::chrono::steady_clock;
+
+  ThreadPoolExecutor(std::string name, size_t maxThreads);
+  // Shuts down without a deadline: waits until every thread exited. Call
+  // shutdown() first to bound the wait.
+  ~ThreadPoolExecutor() override;
+  ThreadPoolExecutor(const ThreadPoolExecutor&) = delete;
+  ThreadPoolExecutor& operator=(const ThreadPoolExecutor&) = delete;
+
+  // Queues `job` behind the jobs already queued. A job whose run requested
+  // stop before it started is destroyed instead of run. After shutdown
+  // began, the job is cancelled with an AbortError at once, on the calling
+  // thread, which then also destroys its inputs.
+  void submit(SubmittedJob job) override;
+  // Hands the stopped queued jobs to the reaper, which destroys them.
+  size_t discardStopped() override;
+  // Hands the results to the reaper, which destroys them.
+  void dispose(std::deque<JobResult> results) override;
+
+  // The first half of shutdown(): stops admission, takes the queued jobs and
+  // hands the reaper their cancellation (an AbortError) and a stop request
+  // for every running job. Runs no job code itself.
+  void beginShutdown();
+  // The second half: waits until `deadline` for the lane's threads to exit,
+  // joining each one whose exit was confirmed. A thread confirms its exit
+  // from a thread_local destroyed after every other thread_local of the
+  // thread, so the join that follows does not wait on C++ job code. A
+  // pthread key destructor, which the C library runs later, can still delay
+  // that join. Complete once every thread was joined. Safe to call from several threads: each
+  // thread is joined once, and no caller reports Complete before the last
+  // join returned.
+  HostShutdownStatus awaitShutdown(Clock::time_point deadline);
+  HostShutdownStatus shutdown(Clock::time_point deadline) {
+    beginShutdown();
+    return awaitShutdown(deadline);
+  }
+
+  const std::string& name() const { return name_; }
+  size_t maxThreads() const { return maxThreads_; }
+  // Threads started, the reaper included, and not joined yet.
+  size_t liveThreads() const;
+  size_t queued() const;
+  size_t running() const;
+  // Stop requests and job destructions waiting for, or running on, the
+  // reaper.
+  size_t pendingReaps() const;
+
+private:
+  struct Thread {
+    std::thread thread;
+    // A worker's running job's stop source, linked to its run's token.
+    std::optional<std::stop_source> active;
+    // Set when the thread confirms its exit, after its thread_locals.
+    bool exited = false;
+    bool joining = false;
+    bool joined = false;
+  };
+  // Work for the reaper: a stop request, a job to destroy, or a job to
+  // cancel with `outcome` and destroy.
+  struct Reap {
+    std::optional<std::stop_source> stop;
+    std::optional<SubmittedJob> job;
+    std::optional<JobOutcome> outcome;
+    // Results a closed mailbox handed back.
+    std::deque<JobResult> results;
+  };
+  class ExitNotice;
+  void work(Thread& self);
+  void reap(Thread& self);
+  // Locked. Starts a worker when queued jobs outnumber idle workers, and
+  // the reaper with the first worker.
+  void spawnIfNeeded();
+  // Locked. Starts `body` on a new thread. False when it could not start.
+  bool startThread(void (ThreadPoolExecutor::*body)(Thread&));
+  // Locked. Moves `work` to the reaper's queue. False, leaving `work` as it
+  // is, when there is no reaper to take it: the caller then does it itself
+  // after unlocking.
+  bool queueReap(Reap& work);
+  // From a running job's link to its run: forwards the run's stop.
+  void forwardStop(const std::stop_source& stop);
+  void confirmExit(Thread& self);
+
+  const std::string name_;
+  const size_t maxThreads_;
+  mutable std::mutex mutex_;
+  std::condition_variable work_;
+  std::condition_variable reapWork_;
+  std::condition_variable exited_;
+  std::deque<SubmittedJob> queue_;
+  std::deque<Reap> reaps_;
+  // Stable addresses: each thread keeps a reference to its own entry.
+  std::list<Thread> threads_;
+  size_t workers_ = 0;
+  size_t idle_ = 0;
+  size_t running_ = 0;
+  size_t reaping_ = 0;
+  bool reaper_ = false;
+  // The reaper left its loop and takes no more work.
+  bool reaperDone_ = false;
+  bool accepting_ = true;
+};
+
+// The executors native jobs run on: the three process lanes, or the worker
+// itself in inline mode.
+class HostLanes {
+public:
+  enum class Kind { Cpu, Io, Network };
+
+  static std::shared_ptr<HostLanes> threaded(LaneSizes resolved);
+  static std::shared_ptr<HostLanes> inlined();
+  HostLanes(const HostLanes&) = delete;
+  HostLanes& operator=(const HostLanes&) = delete;
+
+  JobExecutor& lane(Kind kind);
+  JobExecutor& cpu() { return lane(Kind::Cpu); }
+  JobExecutor& io() { return lane(Kind::Io); }
+  JobExecutor& network() { return lane(Kind::Network); }
+  bool isInline() const { return !cpu_; }
+  // The thread pool behind `kind`, or null in inline mode.
+  ThreadPoolExecutor* pool(Kind kind);
+
+  // Shuts the three lanes down together: admission stops and stop is
+  // requested on all of them before the wait. Complete in inline mode.
+  HostShutdownStatus shutdown(std::chrono::steady_clock::time_point deadline);
+  size_t liveThreads() const;
+
+private:
+  HostLanes() = default;
+  std::unique_ptr<ThreadPoolExecutor> cpu_, io_, network_;
+  InlineExecutor inline_;
+};
+
+// The process lanes, created with `sizes` resolved on the first call. Later
+// calls return the same lanes and ignore their sizes: pool sizes are set
+// once per process. Never destroyed by static teardown.
+std::shared_ptr<HostLanes> processHostLanes(LaneSizes sizes);
+
+}  // namespace gr

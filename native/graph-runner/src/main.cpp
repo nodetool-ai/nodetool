@@ -5,7 +5,7 @@
 //                             [--sqlite-dir <dir> [--models-db <file>]]
 //                             [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]
 //                             [--secrets <file.json>] [--allow-http] [--allow-media]
-//                             [--package-assets <dir>] [--fake-providers]
+//                             [--package-assets <dir>] [--fake-providers] [--host-threads <n>]
 //   nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>
 //
 // The host options grant node code what HostOptions describes: a workspace
@@ -25,7 +25,17 @@
 // code gets in-memory databases only. --models-db names the model database
 // inside that directory (ContextOptions::modelOptionsJson databasePath), so
 // context.createAsset can save media outputs into --asset-dir.
+//
+// --host-threads sets the thread count of each process lane that runs native
+// host jobs (HostOptions::cpuThreads, ioThreads and networkThreads). 0 runs
+// them inline on the runner thread (HostOptions::inlineHostJobs). Without the
+// flag the lanes have their default sizes. After the last run the CLI destroys
+// the runner and gives the lanes kLaneShutdownGrace to finish. If a lane thread
+// is still running a job then, it prints a warning and ends the process with
+// std::quick_exit and the run's exit status, so static destructors never run
+// under a live job.
 #include "nodetool/graph_runner.h"
+#include "nodetool/host_lanes.h"
 
 #include <nlohmann/json.hpp>
 
@@ -34,6 +44,7 @@
 #include <climits>
 #include <condition_variable>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -44,6 +55,9 @@
 
 namespace {
 
+// How long the lanes get to finish their jobs before the CLI exits.
+constexpr auto kLaneShutdownGrace = std::chrono::seconds(2);
+
 int usage(const char* message) {
   if (message) std::fprintf(stderr, "error: %s\n", message);
   std::fprintf(stderr,
@@ -53,7 +67,7 @@ int usage(const char* message) {
                "      [--sqlite-dir <dir> [--models-db <file>]]\n"
                "      [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]\n"
                "      [--secrets <file.json>] [--allow-http] [--allow-media]\n"
-               "      [--package-assets <dir>] [--fake-providers]\n"
+               "      [--package-assets <dir>] [--fake-providers] [--host-threads <n>]\n"
                "  nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>\n");
   return 2;
 }
@@ -206,26 +220,54 @@ int main(int argc, char** argv) {
     }
   }
 
-  gr::GraphRunner runner(flags["bundle"], host);
-  if (!runner.waitUntilLoaded(INT_MAX)) {
-    std::fprintf(stderr, "bundle load failed: %s\n", runner.loadError().c_str());
-    return 1;
+  if (flags.count("host-threads")) {
+    long threads = -1;
+    try {
+      threads = std::stol(flags["host-threads"]);
+    } catch (const std::exception&) {
+    }
+    if (threads < 0 || threads > 256) return usage("--host-threads must be a number from 0 to 256");
+    if (threads == 0) {
+      host.inlineHostJobs = true;
+    } else {
+      host.cpuThreads = host.ioThreads = host.networkThreads = static_cast<size_t>(threads);
+    }
   }
 
-  // --repeat runs the graph again in the same loaded context. Only the last
-  // run's messages are printed, so a reused context can be checked against
-  // the reference.
-  const int repeat = flags.count("repeat") ? std::max(1, std::stoi(flags["repeat"])) : 1;
   std::string status;
-  for (int i = 0; i < repeat; ++i) {
-    auto start = std::chrono::steady_clock::now();
-    status = runOnce(runner, graph, params, i == repeat - 1, printSummary);
-    std::fprintf(stderr, "INFO  | graph-runner | run %d %s in %.1f ms\n", i + 1, status.c_str(),
-                 msSince(start));
+  {
+    gr::GraphRunner runner(flags["bundle"], host);
+    if (!runner.waitUntilLoaded(INT_MAX)) {
+      std::fprintf(stderr, "bundle load failed: %s\n", runner.loadError().c_str());
+      return 1;
+    }
+
+    // --repeat runs the graph again in the same loaded context. Only the last
+    // run's messages are printed, so a reused context can be checked against
+    // the reference.
+    const int repeat = flags.count("repeat") ? std::max(1, std::stoi(flags["repeat"])) : 1;
+    for (int i = 0; i < repeat; ++i) {
+      auto start = std::chrono::steady_clock::now();
+      status = runOnce(runner, graph, params, i == repeat - 1, printSummary);
+      std::fprintf(stderr, "INFO  | graph-runner | run %d %s in %.1f ms\n", i + 1, status.c_str(),
+                   msSince(start));
+    }
+    if (runner.contextLoads() != 1) {
+      std::fprintf(stderr, "WARN  | graph-runner | the context was loaded %d times\n",
+                   runner.contextLoads());
+    }
   }
-  if (runner.contextLoads() != 1) {
-    std::fprintf(stderr, "WARN  | graph-runner | the context was loaded %d times\n",
-                 runner.contextLoads());
+  const int exitStatus = status == "completed" ? 0 : 1;
+  const gr::HostShutdown lanes =
+      gr::shutdownHostLanes(std::chrono::steady_clock::now() + kLaneShutdownGrace);
+  if (lanes.status == gr::HostShutdownStatus::TimedOut) {
+    std::fprintf(stderr,
+                 "WARN  | graph-runner | %zu host lane threads still running a job, exiting without "
+                 "static teardown\n",
+                 lanes.supervisor->liveThreads());
+    std::fflush(stdout);
+    std::fflush(stderr);
+    std::quick_exit(exitStatus);
   }
-  return status == "completed" ? 0 : 1;
+  return exitStatus;
 }

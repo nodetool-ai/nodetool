@@ -4,6 +4,7 @@
 #pragma once
 
 #include "nodetool/context_options.h"
+#include "nodetool/host_lanes.h"
 #include "nodetool/supervisor_options.h"
 
 #include <cstdint>
@@ -93,6 +94,19 @@ struct HostOptions {
   bool durableInboxes = false;
   // No decide callback grants no supervision. Effects are unknown by default.
   SupervisorOptions supervisor;
+  // Threads of the process-wide lanes that run native host jobs: CPU work,
+  // file I/O and network calls. 0 picks the default: min(4, cores - 1) and
+  // at least 1 for CPU, 8 for I/O, and ProviderJobs::Limits::maxJobs for the
+  // network. The first threaded runner of the process sets the sizes, and
+  // later runners share those lanes as they are. A lane starts its threads
+  // when it gets jobs. shutdownHostLanes() (nodetool/host_lanes.h) ends them.
+  size_t cpuThreads = 0;
+  size_t ioThreads = 0;
+  size_t networkThreads = 0;
+  // Runs native host jobs on the runner thread as they are submitted,
+  // instead of on the lanes. Results still settle as macrotasks, but a
+  // cancelled run cannot end at its deadline while a job runs.
+  bool inlineHostJobs = false;
 };
 
 class GraphRunner {

@@ -204,7 +204,7 @@ export function nativeProvider(context, provider) {
   const host = globalThis.__host.context;
   if (hasProviderJobs(provider)) {
     const job = (method, { signal, onProgress, ...args }) =>
-      runProviderJob({ provider, method, args, signal: runSignal(context, signal), onProgress });
+      runProviderJob({ provider, run: context.jobId, method, args, signal: runSignal(context, signal), onProgress });
     Object.assign(adapter, {
       supportsEndpointCalls: () => true,
       callEndpoint: (request) => job("callEndpoint", request),
@@ -350,7 +350,7 @@ export class ContextServices {
     if (route !== undefined) args.route = route;
     if (nodeId !== undefined) args.nodeId = nodeId;
     if (hasProviderJobs(provider)) {
-      return runProviderJob({ provider, method: "callEndpoint", args, signal: runSignal(this, signal), onProgress });
+      return runProviderJob({ provider, run: this.jobId, method: "callEndpoint", args, signal: runSignal(this, signal), onProgress });
     }
     const resolved = await this.getProvider(provider);
     if (!resolved.supportsEndpointCalls?.()) {
@@ -363,13 +363,13 @@ export class ContextServices {
   }
   async uploadProviderMedia({ provider, signal, ...upload }) {
     if (hasProviderJobs(provider)) {
-      return runProviderJob({ provider, method: "uploadMedia", args: upload, signal: runSignal(this, signal) });
+      return runProviderJob({ provider, run: this.jobId, method: "uploadMedia", args: upload, signal: runSignal(this, signal) });
     }
     return (await this.getProvider(provider)).uploadMedia({ ...upload, signal: signal ?? this.signal });
   }
   async downloadProviderMedia({ provider, url, signal }) {
     if (hasProviderJobs(provider)) {
-      return runProviderJob({ provider, method: "downloadMedia", args: { url }, signal: runSignal(this, signal) });
+      return runProviderJob({ provider, run: this.jobId, method: "downloadMedia", args: { url }, signal: runSignal(this, signal) });
     }
     return (await this.getProvider(provider)).downloadMedia(url, signal ?? this.signal);
   }

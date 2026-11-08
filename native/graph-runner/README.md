@@ -58,7 +58,8 @@ change from a script bundle to a module bundle.
   --graph tests/graphs/repeat-collect.json [--params '{"n": 42}'] [--repeat 3] \
   [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>] \
   [--secrets <file.json>] [--allow-http] [--allow-media] \
-  [--sqlite-dir <dir> [--models-db <file>]] [--package-assets <dir>] [--fake-providers]
+  [--sqlite-dir <dir> [--models-db <file>]] [--package-assets <dir>] [--fake-providers] \
+  [--host-threads <n>]
 ```
 
 These options set the host grants described in
@@ -70,6 +71,13 @@ and decode media in the workspace but not encode it. `--models-db` names a
 model database file inside `--sqlite-dir`. With `--asset-dir` it lets
 `context.createAsset` save media outputs. `--package-assets` sets
 `packageAssetsDir`, and `--fake-providers` sets `fakeProviders`.
+`--host-threads <n>` gives each process lane `n` threads (see
+[Native jobs and lanes](#native-jobs-and-lanes)), and `--host-threads 0` runs
+native jobs inline on the runner thread. After the last run the CLI destroys
+the runner and gives the lanes 2 s to finish. If a lane thread is still
+running a job then, the CLI prints a warning and exits with
+`std::quick_exit` and the run's exit status, so static destructors never run
+under a live job.
 
 To run an example workflow offline with its shipped sample media and canned
 provider output (the parity bundle admits provider nodes, and empty model
@@ -122,9 +130,11 @@ keyed by node name. The handler's `last` argument marks the job's final message.
 
 `cancel(jobId)` drops a queued job or ends a running one the way
 `WorkflowRunner.cancel()` does: inboxes close, actors stop starting work,
-generators stop at their next frame, and the run reports `cancelled`. If
-JavaScript is still running 500 ms after the cancel, the engine's interrupt
-handler stops it. A run that stalls, throws out of the scheduler, leaves
+generators stop at their next frame, and the run reports `cancelled`. The
+run then gets 500 ms to unwind. The loop runs it in bounded slices and
+returns at that deadline even while steps or microtasks stay ready, and the
+engine's interrupt handler stops a JavaScript job still running then. A run
+that stalls, ends at the deadline, throws out of the scheduler, leaves
 suspended coroutines behind, or was interrupted leaves the context in an
 unknown state. The worker then destroys the run's coroutine frames, discards
 the engine, and loads a fresh one. The process keeps running in every case.
@@ -218,11 +228,67 @@ single-threaded. `Task<T>` is an eagerly started C++20 coroutine, so it behaves
 like a JavaScript async function, and awaiting one resumes from a FIFO ready
 queue. After every resumed step the loop drains the QuickJS job queue, and guest
 promise settlements post the waiting coroutine back onto the ready queue.
+Native jobs (`src/kernel/async_jobs.h`) own native inputs only. Their results
+reach the worker through the run's mailbox and settle their promises as
+macrotasks. When a due timer and a result are both waiting, the two kinds
+alternate, and the first such turn of a run fires the timer. A cancelled run switches
+to rounds of at most 64 steps, each followed by at most 64 microtasks, and the
+loop checks the cancel deadline between them. Closing the mailbox when the run
+ends detaches every job still running, and its late result is destroyed on
+the thread that produced it. The protocol is
+[`docs/plans/graph-runner-async-host.md`](../../docs/plans/graph-runner-async-host.md).
+[Native jobs and lanes](#native-jobs-and-lanes) describes where the jobs run.
 `nodetool.output.Output` runs natively (`output_node.cpp`), because its
 TypeScript class lives in audio-nodes and pulls in media code. A value that
 holds bytes or a media ref goes to the guest's `outputValue`
 (`guest/host/output.mjs`), which normalizes it and saves media as an asset,
 as the TypeScript node does.
+
+### Native jobs and lanes
+
+A host function that moves work off the worker copies the JavaScript
+arguments the job needs at the call (`src/kernel/job_inputs.h`): bytes of an
+ArrayBuffer or typed array, strings, and options as JSON text. A detached or
+out-of-bounds buffer is rejected there, and later changes to a buffer never
+reach the job. A typed array over a SharedArrayBuffer is copied like any
+view, and a SharedArrayBuffer itself is rejected. No host function uses
+this yet.
+
+The job then goes to one of three process-wide lanes
+(`src/kernel/host_lanes.h`): CPU work with min(4, cores - 1) threads and at
+least 1, file I/O with 8, and network calls with
+`ProviderJobs::Limits::maxJobs`. `HostOptions::cpuThreads`, `ioThreads` and
+`networkThreads` override them, and the first threaded runner of the process
+sets the sizes. Each lane runs its FIFO queue on at most that many threads
+and starts them only when jobs arrive. The lanes outlive every runner.
+`HostOptions::inlineHostJobs` runs every job on the worker as it is
+submitted instead. Its results still settle as macrotasks, but a cancelled
+run cannot end at its deadline while an inline job runs.
+
+When a run ends, its jobs still queued are destroyed without running, the
+jobs running on a lane are asked to stop, and finished results the worker
+has not settled are discarded. Each lane has a reaper thread that runs those
+stop requests and destroys those jobs and results, so a stop callback, input
+destructor or result destructor that blocks delays its lane, not the worker.
+Two cases still run on the calling thread: everything, when the lane could
+not start its reaper thread, and the inputs of a job submitted after the
+lanes shut down. Inline mode destroys results on the worker. Stop callbacks
+should still only set flags or issue a non-blocking wake.
+`GraphRunner`'s destructor does not wait for lane jobs, which hold no
+reference to the runner.
+
+`gr::shutdownHostLanes(deadline)` in
+[`include/nodetool/host_lanes.h`](include/nodetool/host_lanes.h) ends the
+lanes: it stops admission and hands the reaper the AbortError for each
+queued job and a stop request for each running job, then waits until the
+deadline. A lane thread confirms its exit from a `thread_local` destroyed
+after every other `thread_local` of the thread, and shutdown joins only
+threads that confirmed it. Destructors the C library runs after that, such
+as pthread key destructors, are outside the deadline. On `TimedOut` it
+returns a supervisor that keeps the lanes, their threads and the running
+jobs alive. The process keeps its own reference, so static teardown never
+destroys a lane with a live thread. The caller retries or ends the process.
+No library destructor ends the process.
 
 ## Guest environment
 
@@ -242,7 +308,8 @@ and its libraries use beyond that, before any other guest module runs:
   Timers still pending when the run (or the bundle load) ends are dropped. On
   cancel, `cancel()` wakes the loop, timers due within the 500 ms grace period
   still fire so nodes waiting on them can unwind, and later ones are dropped.
-  A node still waiting then stalls, and the runner replaces the context.
+  A node still waiting at the deadline ends the run, and the runner replaces
+  the context.
   `ref()`/`unref()` only record the flag, and `refresh()` gives the timer a new
   numeric id.
 - `Intl` uses ICU through `src/host/intl.cpp` and `guest/env/icu.mjs`.
@@ -509,10 +576,30 @@ The guest starts a job and polls it on a timer that backs off from 10 ms to
 500 ms, so other nodes and timers run while it waits. Progress events reach
 the node's `onProgress`. Requests and results larger than one part (256 KiB
 by default) travel as consecutive parts, so the 1 MiB payload limit does not
-cap media. Aborting the run closes the job, which sets the worker's
-`cancelled()` and waits for it to return. With no jobs granted for a
+cap media. Aborting the run closes the job, which requests stop through the
+worker's `cancelled()` and `Call::stop` token and returns without waiting.
+A closed job keeps its `maxJobs` slot until its worker returns, and
+destroying `ProviderJobs` waits for every worker. With no jobs granted for a
 provider, the context falls back to the resolved provider's own
 `callEndpoint`, which is what an injected provider resolver supplies.
+
+Each job keeps a durable state: running, finished, failed, stopped or closed.
+Reads take queued progress first, then result parts, then the terminal
+result. A stopped or closed job answers every later read with that state at
+once, and stop drops queued progress and any result not yet taken. A
+terminal result already taken stays the answer until the job is closed.
+`ProviderJobs::next` is the native form of a read: it completes a move-only
+callback at once when an item is ready, or keeps it as the job's single
+waiter and completes it from the producing or stopping thread, outside every
+lock.
+
+Each job belongs to the run that started it: the guest passes the workflow
+run's job id as `run` on `put` and `start`. A stopped or closed job keeps
+answering until its run ends. The embedder calls `ProviderJobs::retireRun`
+with that job id after the run's last message, which closes the run's
+remaining jobs and releases their ids and pending uploads. The grants hold
+only a weak reference, so they keep no job alive after `ProviderJobs` is
+destroyed.
 
 The run owner comes from `userId`. `environmentJson` seeds only the virtual
 process environment at the run boundary. Neither field reads ambient host

@@ -104,6 +104,10 @@ add_library(gr_kernel STATIC
   src/kernel/state_executor.cpp
   src/kernel/durable_delivery.cpp
   src/kernel/task.cpp
+  src/kernel/cancel_state.cpp
+  src/kernel/async_jobs.cpp
+  src/kernel/host_lanes.cpp
+  src/kernel/job_inputs.cpp
   src/kernel/inbox.cpp
   src/kernel/graph.cpp
   src/kernel/correlation.cpp
@@ -131,7 +135,7 @@ add_library(gr_kernel STATIC
 target_include_directories(gr_kernel PUBLIC src include)
 include(cmake/host-media.cmake)
 include(cmake/host-code-media.cmake)
-target_link_libraries(gr_kernel PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(gr_kernel PUBLIC nlohmann_json::nlohmann_json Threads::Threads)
 include(src/host/canvas.cmake)
 find_package(ICU REQUIRED COMPONENTS i18n uc)
 target_link_libraries(gr_kernel PRIVATE ICU::i18n ICU::uc)
@@ -172,6 +176,24 @@ if(PROJECT_IS_TOP_LEVEL)
   add_executable(gr_unittests unittests/main.cpp)
   target_link_libraries(gr_unittests PRIVATE gr_kernel gr_js)
   add_test(NAME gr_unittests COMMAND gr_unittests)
+  # The run mailbox, settlers, cancellation snapshot and scheduling modes
+  # (docs/plans/graph-runner-async-host.md, rollout step 1).
+  add_executable(gr_async_tests unittests/async_host.cpp)
+  target_link_libraries(gr_async_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  add_test(NAME gr_async_tests COMMAND gr_async_tests)
+  # The process lanes, submission snapshots and timed shutdown (rollout
+  # step 2).
+  add_executable(gr_lanes_tests unittests/host_lanes.cpp)
+  target_link_libraries(gr_lanes_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  add_test(NAME gr_lanes_tests COMMAND gr_lanes_tests)
+  # Worker thread ownership checks (invariant I5), compiled into this test
+  # only, so a release build can exercise them.
+  add_executable(gr_thread_check_tests unittests/thread_checks.cpp
+    src/kernel/task.cpp src/kernel/async_jobs.cpp src/js/quickjs_engine.cpp)
+  target_include_directories(gr_thread_check_tests PRIVATE src)
+  target_compile_definitions(gr_thread_check_tests PRIVATE GR_THREAD_CHECKS=1)
+  target_link_libraries(gr_thread_check_tests PRIVATE qjs Threads::Threads)
+  add_test(NAME gr_thread_check_tests COMMAND gr_thread_check_tests)
 
   # The host capabilities (src/host/), called from JavaScript.
   add_executable(gr_host_tests unittests/host.cpp)
@@ -275,6 +297,12 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(gr_provider_jobs_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
   add_dependencies(gr_provider_jobs_tests gr_provider_jobs_test_bundle)
   add_test(NAME gr_provider_jobs_tests COMMAND gr_provider_jobs_tests "${GR_PROVIDER_JOBS_TEST}")
+  # Job states and next() waiters. Built from the source file alone, so a
+  # ThreadSanitizer build of this target needs no engine.
+  add_executable(gr_provider_job_state_tests unittests/provider_job_state.cpp src/provider_jobs.cpp)
+  target_include_directories(gr_provider_job_state_tests PRIVATE include)
+  target_link_libraries(gr_provider_job_state_tests PRIVATE nlohmann_json::nlohmann_json Threads::Threads)
+  add_test(NAME gr_provider_job_state_tests COMMAND gr_provider_job_state_tests)
   set(GR_FAKE_PROVIDERS_TEST "${CMAKE_CURRENT_BINARY_DIR}/fake-providers-test.mjs")
   add_custom_target(gr_fake_providers_test_bundle ALL
     COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-context.mjs" "${GR_FAKE_PROVIDERS_TEST}"

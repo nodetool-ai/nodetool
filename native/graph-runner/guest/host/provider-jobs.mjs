@@ -23,9 +23,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Run one provider method (callEndpoint, uploadMedia or downloadMedia) as a
- * host job and return its result. `onProgress` receives each progress event.
+ * host job and return its result. `run` is the job id of the workflow run,
+ * which the host uses to release the job when the run ends. `onProgress`
+ * receives each progress event.
  */
-export async function runProviderJob({ provider, method, args, signal, onProgress }) {
+export async function runProviderJob({ provider, run = "", method, args, signal, onProgress }) {
   const host = globalThis.__host?.context;
   if (!host?.has(operation(provider, "start"))) {
     throw new Error(`Provider '${provider}' endpoint calls are not granted`);
@@ -36,14 +38,14 @@ export async function runProviderJob({ provider, method, args, signal, onProgres
   const request = toJson(args ?? {});
   let started;
   if (request.length <= PART_CHARS) {
-    started = call("start", `{"method":${JSON.stringify(method)},"args":${request}}`);
+    started = call("start", `{"run":${JSON.stringify(run)},"method":${JSON.stringify(method)},"args":${request}}`);
   } else {
     let upload = null;
     for (let offset = 0; offset < request.length; offset += PART_CHARS) {
       const data = request.slice(offset, offset + PART_CHARS);
-      upload = JSON.parse(call("put", JSON.stringify({ upload, data }))).upload;
+      upload = JSON.parse(call("put", JSON.stringify({ run, upload, data }))).upload;
     }
-    started = call("start", JSON.stringify({ method, upload }));
+    started = call("start", JSON.stringify({ run, method, upload }));
   }
   const { job } = JSON.parse(started);
 

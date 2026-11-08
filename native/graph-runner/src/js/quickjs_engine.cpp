@@ -1,19 +1,45 @@
 // QuickJS-ng backend for the gr::js::Engine interface.
 #include "js/engine.h"
+#include "js/thread_owner.h"
 
 #include <quickjs.h>
 
 #include <cstring>
 #include <unordered_set>
 
+// The link guard of src/js/thread_owner.h: this build's mode, and the
+// symbol both modes define, so objects of both modes cannot share a binary.
+extern "C" {
+int GR_THREAD_CHECK_MODE_SYMBOL = GR_THREAD_CHECKS;
+int gr_thread_check_mode_defined = GR_THREAD_CHECKS;
+}
+
 namespace gr::js {
 namespace {
 
+// The engine's worker thread owns every value (invariant I5). The owner
+// reference exists only in builds with thread checks.
 struct QjsValue final : Value::Impl {
-  QjsValue(JSContext* c, JSValue val) : ctx(c), v(val) {}
-  ~QjsValue() override { JS_FreeValue(ctx, v); }
+  QjsValue(JSContext* c, JSValue val, [[maybe_unused]] const ThreadOwner& o)
+      : ctx(c), v(val)
+#if GR_THREAD_CHECKS
+      , owner(&o)
+#endif
+  {}
+  ~QjsValue() override {
+    checkOwner();
+    JS_FreeValue(ctx, v);
+  }
+  void checkOwner() const {
+#if GR_THREAD_CHECKS
+    owner->check("a JavaScript value");
+#endif
+  }
   JSContext* ctx;
   JSValue v;
+#if GR_THREAD_CHECKS
+  const ThreadOwner* owner;
+#endif
 };
 
 // Owns the std::function behind one host function. Freed by the class
@@ -76,6 +102,7 @@ public:
   }
 
   ~QuickJsEngine() override {
+    own();
     releaseRunResources();
     releaseContextResources();
     for (auto buffer : externalBufferRoots_) JS_FreeValue(ctx_, buffer);
@@ -84,9 +111,14 @@ public:
     JS_FreeRuntime(rt_);
   }
 
-  Value wrap(JSValue v) { return Value(std::make_shared<QjsValue>(ctx_, v)); }
+  Value wrap(JSValue v) {
+    own();
+    return Value(std::make_shared<QjsValue>(ctx_, v, owner_));
+  }
   static JSValue raw(const Value& v) {
-    return static_cast<QjsValue*>(v.impl().get())->v;
+    auto* value = static_cast<QjsValue*>(v.impl().get());
+    value->checkOwner();
+    return value->v;
   }
 
   // Converts a pending exception into a JsError carrying its message.
@@ -122,6 +154,7 @@ public:
 
   Value evaluateScript(std::string_view source,
                        const std::string& filename) override {
+    own();
     std::string src(source);  // QuickJS requires a terminating NUL.
     return wrap(check(JS_Eval(ctx_, src.c_str(), src.size(), filename.c_str(),
                               JS_EVAL_TYPE_GLOBAL)));
@@ -129,6 +162,7 @@ public:
 
   std::vector<uint8_t> compileScript(std::string_view source,
                                      const std::string& filename) override {
+    own();
     std::string src(source);
     JSValue fn = check(JS_Eval(ctx_, src.c_str(), src.size(), filename.c_str(),
                                JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY));
@@ -143,6 +177,7 @@ public:
 
   Value evaluateModule(std::string_view source,
                        const std::string& filename) override {
+    own();
     std::string src(source);
     return wrap(check(JS_Eval(ctx_, src.c_str(), src.size(), filename.c_str(),
                               JS_EVAL_TYPE_MODULE)));
@@ -150,6 +185,7 @@ public:
 
   std::vector<uint8_t> compileModule(std::string_view source,
                                      const std::string& filename) override {
+    own();
     std::string src(source);
     JSValue m = check(JS_Eval(ctx_, src.c_str(), src.size(), filename.c_str(),
                               JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));
@@ -163,6 +199,7 @@ public:
   }
 
   Value evaluateBytecode(const std::vector<uint8_t>& bytecode) override {
+    own();
     JSValue fn = check(JS_ReadObject(ctx_, bytecode.data(), bytecode.size(),
                                      JS_READ_OBJ_BYTECODE));
     // Module bytecode links (it has no imports to resolve) and evaluates to
@@ -174,22 +211,25 @@ public:
     return wrap(check(JS_EvalFunction(ctx_, fn)));
   }
 
-  Value global() override { return wrap(JS_GetGlobalObject(ctx_)); }
-  Value undefined() override { return wrap(JS_UNDEFINED); }
-  Value null() override { return wrap(JS_NULL); }
-  Value boolean(bool b) override { return wrap(JS_NewBool(ctx_, b)); }
-  Value number(double d) override { return wrap(JS_NewFloat64(ctx_, d)); }
+  Value global() override { own(); return wrap(JS_GetGlobalObject(ctx_)); }
+  Value undefined() override { own(); return wrap(JS_UNDEFINED); }
+  Value null() override { own(); return wrap(JS_NULL); }
+  Value boolean(bool b) override { own(); return wrap(JS_NewBool(ctx_, b)); }
+  Value number(double d) override { own(); return wrap(JS_NewFloat64(ctx_, d)); }
   Value string(std::string_view s) override {
+    own();
     return wrap(check(JS_NewStringLen(ctx_, s.data(), s.size())));
   }
-  Value object() override { return wrap(check(JS_NewObject(ctx_))); }
+  Value object() override { own(); return wrap(check(JS_NewObject(ctx_))); }
 
   Value nativeObject(std::shared_ptr<NativePayload> payload) override {
+    own();
     auto value = check(JS_NewObjectClass(ctx_, nativeClass_));
     JS_SetOpaque(value, new std::shared_ptr<NativePayload>(std::move(payload)));
     return wrap(value);
   }
   std::shared_ptr<NativePayload> nativePayload(const Value& value) override {
+    own();
     auto* qvalue = dynamic_cast<QjsValue*>(value.impl().get());
     if (!qvalue || qvalue->ctx != ctx_) return nullptr;
     auto* payload = static_cast<std::shared_ptr<NativePayload>*>(JS_GetOpaque(raw(value), nativeClass_));
@@ -217,6 +257,7 @@ public:
 
   Value function(const std::string& name, unsigned arity,
                  HostFunction fn) override {
+    own();
     JSValue box = check(JS_NewObjectClass(ctx_, boxClass_));
     JS_SetOpaque(box, new HostFunctionBox{std::move(fn)});
     JSValue f = JS_NewCFunctionData(ctx_, &trampoline, int(arity), 0, 1, &box);
@@ -228,6 +269,7 @@ public:
   }
 
   Value externalArrayBuffer(uint8_t* data, size_t size, std::shared_ptr<NativePayload> owner) override {
+    own();
     if (externalBufferRoots_.size() >= 4096) throw JsError("Native buffer view limit exceeded");
     auto retained = std::make_unique<std::shared_ptr<NativePayload>>(std::move(owner));
     auto value = JS_NewArrayBuffer(ctx_, data, size, 0,
@@ -242,14 +284,17 @@ public:
     externalBufferRoots_.push_back(JS_DupValue(ctx_, value));
     return wrap(value);
   }
-  void detachArrayBuffer(const Value& buffer) override { JS_DetachArrayBuffer(ctx_, raw(buffer)); }
+  void detachArrayBuffer(const Value& buffer) override { own(); JS_DetachArrayBuffer(ctx_, raw(buffer)); }
   Value bytes(const uint8_t* data, size_t size) override {
+    own();
     return wrap(check(JS_NewUint8ArrayCopy(ctx_, data, size)));
   }
   bool isBytes(const Value& v) override {
+    own();
     return JS_IsArrayBuffer(raw(v)) || JS_GetTypedArrayType(raw(v)) >= 0;
   }
   size_t byteLength(const Value& v) override {
+    own();
     size_t size=0;
     if(JS_IsArrayBuffer(raw(v))) { JS_GetArrayBuffer(ctx_,&size,raw(v)); return size; }
     size_t offset=0, perElement=0;
@@ -257,7 +302,26 @@ public:
     JS_FreeValue(ctx_,buffer);
     return size;
   }
+  bool isDetached(const Value& v) override {
+    own();
+    // Both calls throw on a detached or out-of-bounds buffer and report it
+    // by their return value. The exception is dropped here.
+    auto failed = [this] {
+      JS_FreeValue(ctx_, JS_GetException(ctx_));
+      return true;
+    };
+    if (JS_IsArrayBuffer(raw(v))) {
+      size_t size = 0;
+      return !JS_GetArrayBuffer(ctx_, &size, raw(v)) && JS_HasException(ctx_) ? failed() : false;
+    }
+    if (JS_GetTypedArrayType(raw(v)) < 0) return false;
+    JSValue buffer = JS_GetTypedArrayBuffer(ctx_, raw(v), nullptr, nullptr, nullptr);
+    if (JS_IsException(buffer)) return failed();
+    JS_FreeValue(ctx_, buffer);
+    return false;
+  }
   std::vector<uint8_t> toBytes(const Value& v) override {
+    own();
     size_t size = 0;
     if (JS_IsArrayBuffer(raw(v))) {
       uint8_t* data = JS_GetArrayBuffer(ctx_, &size, raw(v));
@@ -275,37 +339,43 @@ public:
     return std::vector<uint8_t>(data + offset, data + offset + size);
   }
 
-  bool isUndefined(const Value& v) override { return JS_IsUndefined(raw(v)); }
-  bool isNull(const Value& v) override { return JS_IsNull(raw(v)); }
-  bool isString(const Value& v) override { return JS_IsString(raw(v)); }
-  bool isNumber(const Value& v) override { return JS_IsNumber(raw(v)); }
-  bool isObject(const Value& v) override { return JS_IsObject(raw(v)); }
+  bool isUndefined(const Value& v) override { own(); return JS_IsUndefined(raw(v)); }
+  bool isNull(const Value& v) override { own(); return JS_IsNull(raw(v)); }
+  bool isString(const Value& v) override { own(); return JS_IsString(raw(v)); }
+  bool isNumber(const Value& v) override { own(); return JS_IsNumber(raw(v)); }
+  bool isObject(const Value& v) override { own(); return JS_IsObject(raw(v)); }
   bool isFunction(const Value& v) override {
+    own();
     return JS_IsFunction(ctx_, raw(v));
   }
 
   std::string toString(const Value& v) override {
+    own();
     JSValue s = check(JS_ToString(ctx_, raw(v)));
     std::string out = cString(s);
     JS_FreeValue(ctx_, s);
     return out;
   }
   double toNumber(const Value& v) override {
+    own();
     double d = 0;
     if (JS_ToFloat64(ctx_, &d, raw(v)) < 0) throwPending();
     return d;
   }
   bool toBoolean(const Value& v) override {
+    own();
     int r = JS_ToBool(ctx_, raw(v));
     if (r < 0) throwPending();
     return r != 0;
   }
 
   Value get(const Value& object, const std::string& name) override {
+    own();
     return wrap(check(JS_GetPropertyStr(ctx_, raw(object), name.c_str())));
   }
   void set(const Value& object, const std::string& name,
            const Value& value) override {
+    own();
     if (JS_SetPropertyStr(ctx_, raw(object), name.c_str(),
                           JS_DupValue(ctx_, raw(value))) < 0) {
       throwPending();
@@ -313,6 +383,7 @@ public:
   }
   Value call(const Value& fn, const Value& thisValue,
              const std::vector<Value>& args) override {
+    own();
     std::vector<JSValue> argv;
     argv.reserve(args.size());
     for (const auto& a : args) argv.push_back(raw(a));
@@ -321,18 +392,24 @@ public:
   }
 
   PromiseCapability newPromise() override {
+    own();
     JSValue funcs[2];
     JSValue p = check(JS_NewPromiseCapability(ctx_, funcs));
     return {wrap(p), wrap(funcs[0]), wrap(funcs[1])};
   }
 
-  bool isPromise(const Value& v) override { return JS_IsPromise(raw(v)); }
+  bool isPromise(const Value& v) override { own(); return JS_IsPromise(raw(v)); }
 
-  bool hasPendingJobs() override { return JS_IsJobPending(rt_); }
+  bool hasPendingJobs() override {
+    own();
+    return JS_IsJobPending(rt_);
+  }
 
-  size_t drainJobs() override {
+  // JS_ExecutePendingJob runs one job per call, so the limit is exact.
+  size_t drainJobs(size_t limit) override {
+    own();
     size_t ran = 0;
-    for (;;) {
+    while (ran < limit) {
       JSContext* jobCtx = nullptr;
       int r = JS_ExecutePendingJob(rt_, &jobCtx);
       if (r == 0) break;
@@ -350,10 +427,15 @@ public:
   }
 
   void setInterruptHandler(std::function<bool()> handler) override {
+    own();
     interrupt_ = std::move(handler);
   }
 
 private:
+  // Every override checks first, before any QuickJS call, so a foreign
+  // thread aborts before it can run guest code or touch the runtime.
+  void own() const { owner_.check("js::Engine"); }
+  [[no_unique_address]] ThreadOwner owner_;
   std::unordered_set<void*> externalBuffers_;
   std::vector<JSValue> externalBufferRoots_;
   std::function<bool()> interrupt_;

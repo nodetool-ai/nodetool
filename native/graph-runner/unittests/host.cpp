@@ -3,14 +3,20 @@
 // capability is checked for its success path, refusal when the embedder
 // granted nothing, and escapes: `..`, absolute paths, symlinks and hard
 // links out of a granted directory.
+#include "host/assets.h"
 #include "host/capabilities.h"
+#include "host/context.h"
 #include "host/http.h"
 #include "js/engine.h"
 
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <atomic>
+#include <barrier>
 #include <fstream>
+#include <map>
+#include <thread>
 #include <functional>
 #include <string>
 #include <unistd.h>
@@ -301,6 +307,104 @@ void assetsStoreAndRefuseEscapes() {
   CHECK(run(*e, "JSON.parse(__host.assets.list('')).length") == "0");  // symlinks are not listed
 }
 
+// Concurrent writes to one key each use their own exclusive temporary file.
+// Writers start each round together at a barrier while a reader reads the
+// destination throughout: every read must be one complete payload.
+void assetsConcurrentWritesStayWhole() {
+  TempDir t;
+  fs::create_directories(t.path("assets"));
+  gr::HostOptions o;
+  o.assetDir = t.path("assets");
+  constexpr int threads = 6;
+  constexpr int rounds = 60;
+  constexpr size_t size = 256 * 1024;
+  const std::string dest = t.path("assets/default/same.bin");
+  {
+    auto seed = engineWith(o);
+    CHECK(run(*seed, "__host.assets.write('default/same.bin', new Uint8Array(" + std::to_string(size) + ").fill(65))") == "ok");
+  }
+  std::atomic<int> errors{0};
+  std::atomic<int> badReads{0};
+  std::atomic<int> reads{0};
+  std::atomic<bool> done{false};
+  std::barrier sync(threads);
+  std::thread reader([&] {
+    while (!done) {
+      if (!fs::exists(dest)) continue;  // absent is acceptable, partial is not
+      const std::string bytes = readText(dest);
+      ++reads;
+      bool whole = bytes.size() == size;
+      for (char c : bytes) whole = whole && c == bytes[0] && c >= 'A' && c < 'A' + threads;
+      if (!whole) ++badReads;
+    }
+  });
+  std::vector<std::thread> workers;
+  for (int i = 0; i < threads; ++i) {
+    workers.emplace_back([&, i] {
+      auto e = engineWith(o);
+      const std::string script = "__host.assets.write('default/same.bin', new Uint8Array(" + std::to_string(size) +
+                                 ").fill(" + std::to_string(65 + i) + "))";
+      for (int round = 0; round < rounds; ++round) {
+        sync.arrive_and_wait();
+        if (run(*e, script) != "ok") ++errors;
+      }
+    });
+  }
+  for (auto& w : workers) w.join();
+  done = true;
+  reader.join();
+  CHECK(errors == 0);
+  CHECK(reads > 0);
+  CHECK(badReads == 0);
+  const std::string final = readText(dest);
+  CHECK(final.size() == size);
+  CHECK(!final.empty() && final[0] >= 'A' && final[0] < 'A' + threads);
+  size_t entries = 0;
+  for (const auto& entry : fs::directory_iterator(t.path("assets/default"))) {
+    ++entries;
+    CHECK(entry.path().filename() == "same.bin");
+  }
+  CHECK(entries == 1);
+}
+
+// A temporary name that already exists forces a retry with the next name, and
+// the write leaves the other file alone.
+void assetsTempNameCollisionRetries() {
+  TempDir t;
+  fs::create_directories(t.path("assets/default"));
+  gr::HostOptions o;
+  o.assetDir = t.path("assets");
+  auto e = engineWith(o);
+  const auto next = gr::host::tempSequence().load();
+  const std::string base = t.path("assets/default/c.bin.tmp-") + std::to_string(::getpid()) + "-";
+  for (uint64_t k = next; k < next + 3; ++k) writeText(base + std::to_string(k), "squatter");
+  CHECK(run(*e, "__host.assets.write('default/c.bin', bytes('real'))") == "ok");
+  CHECK(readText(t.path("assets/default/c.bin")) == "real");
+  CHECK(gr::host::tempSequence().load() == next + 4);  // three collisions, then success
+  for (uint64_t k = next; k < next + 3; ++k) CHECK(readText(base + std::to_string(k)) == "squatter");
+  CHECK(!fs::exists(base + std::to_string(next + 3)));
+  size_t entries = 0;
+  for (const auto& entry : fs::directory_iterator(t.path("assets/default"))) { (void)entry; ++entries; }
+  CHECK(entries == 4);  // c.bin and the three squatters
+}
+
+// A rename that fails removes the operation's own temporary file and nothing else.
+void assetsFailedRenameCleansUp() {
+  TempDir t;
+  fs::create_directories(t.path("assets/default/blocked.bin"));  // a directory cannot be replaced by a file
+  writeText(t.path("assets/default/blocked.bin/keep"), "x");
+  writeText(t.path("assets/default/other.tmp-1-1"), "bystander");
+  gr::HostOptions o;
+  o.assetDir = t.path("assets");
+  auto e = engineWith(o);
+  CHECK(startsWith(run(*e, "__host.assets.write('default/blocked.bin', bytes('data'))"), "error: "));
+  CHECK(fs::is_directory(t.path("assets/default/blocked.bin")));
+  CHECK(readText(t.path("assets/default/other.tmp-1-1")) == "bystander");
+  size_t entries = 0;
+  for (const auto& entry : fs::directory_iterator(t.path("assets/default"))) { (void)entry; ++entries; }
+  CHECK(entries == 2);  // blocked.bin and the bystander, no temp of ours
+}
+
 // --- package assets ---------------------------------------------------------
 
 void packageAssetsFailWithoutADirectory() {
@@ -346,6 +450,145 @@ void fakeProvidersDropProviderGrants() {
   CHECK(run(*e, "__host.context.has('prediction:p:text_to_image')") == "false");
   CHECK(run(*e, "__host.context.has('provider:p:jobs:start')") == "false");
   CHECK(run(*e, "__host.context.has('model:getJob')") == "true");  // other grants stay
+}
+
+// --- context call rules -----------------------------------------------------
+
+std::string callContext(js::Engine& e, const std::string& op, const std::string& payload = "{}") {
+  return run(e, "__host.context.call(" + lit(op) + ", " + lit(payload) + ")");
+}
+
+void contextCallRules() {
+  auto echo = [](const std::string& in) { return in; };
+  // Not granted.
+  {
+    gr::HostOptions o;
+    o.context.operations["model:get"] = echo;
+    auto e = engineWith(o);
+    CHECK(callContext(*e, "model:get", "\"x\"") == "\"x\"");
+    CHECK(callContext(*e, "model:other") == "error: ProcessingContext service 'model:other' is not granted");
+  }
+  // Cancellation before the call, and the cleanup exemption after it.
+  {
+    bool cancelled = false;
+    int ran = 0;
+    gr::HostOptions o;
+    o.context.cancelled = [&] { return cancelled; };
+    o.context.operations["model:get"] = [&](const std::string& in) { ++ran; return in; };
+    o.context.operations["provider:p:close"] = [&](const std::string& in) { ++ran; return in; };
+    auto e = engineWith(o);
+    CHECK(callContext(*e, "model:get") == "{}");
+    cancelled = true;
+    CHECK(callContext(*e, "model:get") == "error: Run cancelled");
+    CHECK(ran == 1);
+    CHECK(callContext(*e, "provider:p:close") == "{}");
+    CHECK(ran == 2);
+  }
+  // Cancellation during the call fails the response, except for cleanup.
+  {
+    bool cancelled = false;
+    int ran = 0;
+    gr::HostOptions o;
+    o.context.cancelled = [&] { return cancelled; };
+    o.context.operations["model:get"] = [&](const std::string& in) { ++ran; cancelled = true; return in; };
+    o.context.operations["provider:p:close"] = [&](const std::string& in) { ++ran; cancelled = true; return in; };
+    auto e = engineWith(o);
+    CHECK(callContext(*e, "provider:p:close") == "{}");
+    CHECK(ran == 1);
+    CHECK(cancelled);
+    cancelled = false;  // admission passes, the callback cancels, the response check fails
+    CHECK(callContext(*e, "model:get") == "error: Run cancelled");
+    CHECK(ran == 2);
+    CHECK(cancelled);
+  }
+  // Order: grant, cancellation, count, payload conversion, size. A payload
+  // object's toString() runs only after admission, and consumes a call even if it throws.
+  {
+    bool cancelled = false;
+    gr::HostOptions o;
+    o.context.maxCalls = 2;
+    o.context.cancelled = [&] { return cancelled; };
+    o.context.operations["model:get"] = [](const std::string& in) { return in; };
+    auto e = engineWith(o);
+    e->evaluateScript("globalThis.hits = 0; globalThis.p = { toString() { hits++; return '{}'; } };"
+                      "globalThis.q = { toString() { hits++; throw new Error('boom'); } };", "payload.js");
+    cancelled = true;
+    CHECK(run(*e, "__host.context.call('model:get', p)") == "error: Run cancelled");
+    CHECK(run(*e, "hits") == "0");  // cancelled: no payload code ran
+    cancelled = false;
+    CHECK(run(*e, "__host.context.call('model:get', q)") == "error: boom");  // consumed call 1
+    CHECK(run(*e, "__host.context.call('model:get', p)") == "{}");           // call 2
+    CHECK(run(*e, "hits") == "2");
+    CHECK(run(*e, "__host.context.call('model:get', p)") == "error: Context call limit exceeded");
+    CHECK(run(*e, "hits") == "2");  // exhausted: no payload code ran
+    CHECK(run(*e, "__host.context.call('model:missing', q)") == "error: ProcessingContext service 'model:missing' is not granted");
+    CHECK(run(*e, "hits") == "2");  // not granted: no payload code ran
+  }
+  // Call limit, with cleanup exempt from both counting and the limit.
+  {
+    gr::HostOptions o;
+    o.context.maxCalls = 2;
+    o.context.operations["model:get"] = echo;
+    o.context.operations["provider:p:close"] = echo;
+    auto e = engineWith(o);
+    CHECK(callContext(*e, "provider:p:close") == "{}");
+    CHECK(callContext(*e, "model:get") == "{}");
+    CHECK(callContext(*e, "model:get") == "{}");
+    CHECK(callContext(*e, "model:get") == "error: Context call limit exceeded");
+    CHECK(callContext(*e, "provider:p:close") == "{}");
+  }
+  // Payload limits apply to every operation, cleanup included.
+  {
+    gr::HostOptions o;
+    o.context.maxPayloadBytes = 8;
+    o.context.operations["model:get"] = [](const std::string& in) { return in == "\"big\"" ? std::string(9, 'x') : in; };
+    o.context.operations["provider:p:close"] = [](const std::string&) { return std::string(9, 'x'); };
+    auto e = engineWith(o);
+    CHECK(callContext(*e, "model:get", "12345678") == "12345678");
+    CHECK(callContext(*e, "model:get", "123456789") == "error: Context request size limit exceeded");
+    CHECK(callContext(*e, "model:get", "\"big\"") == "error: Context response size limit exceeded");
+    CHECK(callContext(*e, "provider:p:close", "123456789") == "error: Context request size limit exceeded");
+    CHECK(callContext(*e, "provider:p:close") == "error: Context response size limit exceeded");
+  }
+}
+
+void contextRulesApplyToAnyTransport() {
+  gr::host::ContextOptions options;
+  options.maxCalls = 1;
+  options.maxPayloadBytes = 4;
+  bool cancelled = false;
+  options.cancelled = [&] { return cancelled; };
+  gr::host::ContextCallRules rules(options);
+  CHECK(gr::host::ContextCallRules::isCleanup("provider:p:close"));
+  CHECK(!gr::host::ContextCallRules::isCleanup("provider:p:open"));
+  CHECK(!gr::host::ContextCallRules::isCleanup("model:close"));
+  auto throws = [](auto&& fn) { try { fn(); } catch (const std::runtime_error&) { return true; } return false; };
+  rules.admit("model:get");
+  CHECK(throws([&] { rules.admit("model:get"); }));  // call limit
+  rules.admit("provider:p:close");                   // exempt
+  rules.checkRequestSize(4);
+  CHECK(throws([&] { rules.checkRequestSize(5); }));
+  rules.resetCalls();
+  rules.admit("model:get");
+  rules.checkResponse("model:get", 4);
+  CHECK(throws([&] { rules.checkResponse("model:get", 5); }));
+  cancelled = true;
+  CHECK(throws([&] { rules.checkResponse("model:get", 0); }));
+  rules.checkResponse("provider:p:close", 0);
+  // The grant lookup works on any map type.
+  std::map<std::string, int> other{{"a", 1}};
+  CHECK(gr::host::ContextCallRules::grant(other, "a") == 1);
+  CHECK(throws([&] { gr::host::ContextCallRules::grant(other, "b"); }));
+}
+
+void fakeModeFiltersAnyGrantMap() {
+  std::map<std::string, int> grants{{"provider:p:open", 1}, {"prediction:p:x", 2}, {"model:getJob", 3}, {"tool:t", 4}};
+  gr::host::dropProviderGrants(grants);
+  CHECK(grants.size() == 2 && grants.contains("model:getJob") && grants.contains("tool:t"));
+  gr::host::ContextOptions::Callback cb = [](const std::string& s) { return s; };
+  std::map<std::string, gr::host::ContextOptions::Callback> callbacks{{"provider:p:close", cb}, {"x", cb}};
+  gr::host::dropProviderGrants(callbacks);
+  CHECK(callbacks.size() == 1 && callbacks.contains("x"));
 }
 
 // --- secrets ----------------------------------------------------------------
@@ -413,9 +656,15 @@ int main() {
       {"filesAllowOnlyTheGrantedSqliteDirectory", filesAllowOnlyTheGrantedSqliteDirectory},
       {"assetsGrantNothingByDefault", assetsGrantNothingByDefault},
       {"assetsStoreAndRefuseEscapes", assetsStoreAndRefuseEscapes},
+      {"assetsConcurrentWritesStayWhole", assetsConcurrentWritesStayWhole},
+      {"assetsTempNameCollisionRetries", assetsTempNameCollisionRetries},
+      {"assetsFailedRenameCleansUp", assetsFailedRenameCleansUp},
       {"packageAssetsFailWithoutADirectory", packageAssetsFailWithoutADirectory},
       {"packageAssetsReadAndRefuseEscapes", packageAssetsReadAndRefuseEscapes},
       {"fakeProvidersDropProviderGrants", fakeProvidersDropProviderGrants},
+      {"contextCallRules", contextCallRules},
+      {"contextRulesApplyToAnyTransport", contextRulesApplyToAnyTransport},
+      {"fakeModeFiltersAnyGrantMap", fakeModeFiltersAnyGrantMap},
       {"secretsComeFromTheEmbedderOnly", secretsComeFromTheEmbedderOnly},
       {"httpIsOffByDefault", httpIsOffByDefault},
       {"httpPolicyMatchesSafeFetch", httpPolicyMatchesSafeFetch},

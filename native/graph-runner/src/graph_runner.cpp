@@ -3,10 +3,14 @@
 #include "host/capabilities.h"
 #include "js/engine.h"
 #include "kernel/actor.h"
+#include "kernel/async_jobs.h"
+#include "kernel/cancel_state.h"
 #include "kernel/guest.h"
+#include "kernel/host_lanes.h"
 #include "kernel/normalize.h"
 #include "kernel/runner.h"
 #include "kernel/public_supervisor.h"
+#include "kernel/run_control.h"
 #include "kernel/task.h"
 
 #include <atomic>
@@ -43,6 +47,8 @@ struct Job {
   std::atomic<bool> cancelRequested{false};
   // Set before the terminal job_update reaches the handler.
   std::atomic<bool> finished{false};
+  // The CancelState generation of the run. Guarded by Impl::mutex.
+  uint64_t generation = 0;
 };
 
 // One loaded engine with its guest. Members are destroyed in reverse order,
@@ -94,7 +100,11 @@ double msSince(Clock::time_point start) {
 
 struct GraphRunner::Impl {
   Impl(std::string path, HostOptions hostOptions)
-      : bundlePath(std::move(path)), options(std::move(hostOptions)) {
+      : bundlePath(std::move(path)),
+        options(std::move(hostOptions)),
+        lanes(options.inlineHostJobs
+                  ? HostLanes::inlined()
+                  : processHostLanes({options.cpuThreads, options.ioThreads, options.networkThreads})) {
     worker = std::thread([this] { work(); });
   }
 
@@ -123,9 +133,14 @@ struct GraphRunner::Impl {
   // wake it when it sleeps until a timer is due.
   Loop* workerLoop = nullptr;
 
-  // Read by the engine's interrupt handler on the worker thread.
-  std::atomic<bool> interruptNow{false};
-  std::atomic<Clock::rep> cancelDeadline{0};
+  // Cancellation of the running job, read by the loop and by the engine's
+  // interrupt handler on the worker thread.
+  CancelState cancelState;
+  // Every native job of this runner, across runs. Jobs share it.
+  std::shared_ptr<RunnerTracker> tracker = std::make_shared<RunnerTracker>();
+  // The process lanes, or the worker itself with inlineHostJobs. They
+  // outlive the runner.
+  const std::shared_ptr<HostLanes> lanes;
 
   // Worker thread only.
   std::vector<uint8_t> bundle;
@@ -137,11 +152,7 @@ struct GraphRunner::Impl {
 };
 
 bool GraphRunner::Impl::interruptRequested() {
-  bool now = interruptNow.load(std::memory_order_relaxed);
-  if (!now) {
-    const Clock::rep deadline = cancelDeadline.load(std::memory_order_relaxed);
-    now = deadline != 0 && Clock::now().time_since_epoch().count() >= deadline;
-  }
+  const bool now = cancelState.interruptDue();
   if (now) interrupted = true;
   return now;
 }
@@ -174,12 +185,10 @@ void GraphRunner::Impl::load() {
     };
     const auto grantedCancellation = options.context.cancelled;
     guestOptions.context.cancelled = [this, grantedCancellation] {
-      return interruptNow.load(std::memory_order_relaxed) ||
-             cancelDeadline.load(std::memory_order_relaxed) != 0 ||
-             (grantedCancellation && grantedCancellation());
+      return cancelState.cancelled() || (grantedCancellation && grantedCancellation());
     };
     next->guest = std::make_unique<Guest>(*next->engine, std::move(guestOptions));
-    next->guest->load(bundle, bundlePath, [this] { return interruptNow.load(); });
+    next->guest->load(bundle, bundlePath, [this] { return cancelState.snapshot().immediate; });
     next->catalog = std::make_unique<GuestCatalog>(*next->guest);
     for (const auto& type : next->catalog->types()) {
       if (kRejectedTypes.count(type)) continue;
@@ -241,7 +250,10 @@ void GraphRunner::Impl::work() {
       queue.pop_front();
       cancelledBeforeStart = job->cancelRequested;
       if (!cancelledBeforeStart && !context) unavailable = error;
-      if (!cancelledBeforeStart && context) active = job;
+      if (!cancelledBeforeStart && context) {
+        active = job;
+        job->generation = cancelState.beginRun();
+      }
     }
     auto deliver = [&job](const Json& msg) {
       try {
@@ -263,7 +275,7 @@ void GraphRunner::Impl::work() {
     {
       std::lock_guard lock(mutex);
       active.reset();
-      cancelDeadline = 0;
+      cancelState.endRun();
       reload = !context && !stopping;
     }
     if (reload) load();
@@ -337,6 +349,7 @@ void GraphRunner::Impl::runJob(Job& job) {
   interrupted = false;
   Loop& loop = Loop::current();
   Guest& guest = *context->guest;
+  js::Engine& engine = *context->engine;
   bool unknownState = false;
   std::string failure;
   {
@@ -356,31 +369,36 @@ void GraphRunner::Impl::runJob(Job& job) {
     }
     Runner runner(*context->catalog, deliver, std::move(runOptions));
     active = &runner;
+    AsyncRun async(engine, loop, tracker, job.generation, lanes->cpu());
     bool cancelForwarded = false;
-    loop.setPump([&] {
-      if (!cancelForwarded && job.cancelRequested.load(std::memory_order_relaxed)) {
+    auto onCancel = [&](const CancelSnapshot& cancel) {
+      if (!cancelForwarded) {
         cancelForwarded = true;
         runner.cancel();
-        // Timers due within the cancel grace period still fire, so work
-        // waiting on a short timer can unwind. Later ones are dropped.
-        const Clock::rep deadline = cancelDeadline.load(std::memory_order_relaxed);
-        loop.limitTimers(deadline != 0 ? Clock::time_point(Clock::duration(deadline))
-                                       : Clock::now());
       }
-      if (interruptNow.load(std::memory_order_relaxed)) loop.limitTimers(Clock::now());
-      return guest.pump();
-    });
+      // Timers due within the cancel grace period still fire, so work
+      // waiting on a short timer can unwind. Later ones are dropped.
+      loop.limitTimers(cancel.deadline.value_or(Clock::now()));
+    };
     try {
       guest.begin(job.id, job.workflowId);
       auto task = runner.run(std::move(graph), std::move(params));
-      // Pending timers keep the run going until its task finishes, as they
-      // keep the server's run going. Timers still pending then are dropped.
-      loop.run([&] { return task.done(); });
-      if (!task.done()) failure = "The run stalled with nodes still waiting";
+      // Pending timers and jobs keep the run going until its task finishes,
+      // as they keep the server's run going. Timers still pending then are
+      // dropped, and later job results are discarded.
+      EngineRunControl control(engine, async, cancelState, job.generation, [&task] { return task.done(); },
+                               onCancel);
+      const RunExit exit = loop.run(control);
+      if (!task.done()) {
+        failure = exit == RunExit::Deadline ? "The run did not unwind within the cancel grace period"
+                                            : "The run stalled with nodes still waiting";
+      }
     } catch (const std::exception& e) {
       failure = e.what();
     }
-    loop.setPump(nullptr);
+    // Teardown order: stop and detach the run's jobs, then drop timers and
+    // frames, then release run resources.
+    async.teardown();
     loop.clearTimers();
     // Frames left after the loop went idle can never finish. They hold
     // engine values and point into this runner, so they go first.
@@ -427,7 +445,7 @@ GraphRunner::~GraphRunner() {
     if (impl_->active) impl_->active->cancelRequested = true;
   }
   // Stops a load or a long JavaScript call at once.
-  impl_->interruptNow = true;
+  impl_->cancelState.interruptNow();
   {
     std::lock_guard lock(impl_->mutex);
     if (impl_->workerLoop) impl_->workerLoop->wake();
@@ -524,7 +542,9 @@ bool GraphRunner::cancel(const std::string& jobId) {
   std::lock_guard lock(impl_->mutex);
   if (impl_->active && impl_->active->id == jobId && !impl_->active->finished) {
     if (!impl_->active->cancelRequested.exchange(true)) {
-      impl_->cancelDeadline = (Clock::now() + kCancelGrace).time_since_epoch().count();
+      // The request and its deadline are published together. The loop is
+      // woken after the cancel state is unlocked.
+      impl_->cancelState.request(impl_->active->generation, Clock::now() + kCancelGrace);
       if (impl_->workerLoop) impl_->workerLoop->wake();
     }
     return true;

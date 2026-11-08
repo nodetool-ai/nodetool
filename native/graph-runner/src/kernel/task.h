@@ -20,16 +20,71 @@
 #include <unordered_map>
 #include <utility>
 
+#include "js/thread_owner.h"
+
 namespace gr {
+
+// One coherent reading of a run's cancellation, taken under CancelState's
+// mutex (src/kernel/cancel_state.h).
+struct CancelSnapshot {
+  uint64_t generation = 0;
+  bool requested = false;
+  // Runner destruction: stop at once.
+  bool immediate = false;
+  std::optional<std::chrono::steady_clock::time_point> deadline;
+
+  bool expired(std::chrono::steady_clock::time_point now) const {
+    return immediate || (deadline && now >= *deadline);
+  }
+};
+
+enum class RunExit {
+  // The root task finished.
+  Done,
+  // No step, microtask, timer or external work is left, and the task did
+  // not finish.
+  Stalled,
+  // The run was being cancelled and its deadline passed.
+  Deadline,
+};
+
+// What Loop::run(RunControl&) schedules besides kernel steps and timers:
+// the engine's microtasks, completions of native jobs (src/kernel/async_jobs.h)
+// and the run's cancellation.
+class RunControl {
+public:
+  virtual ~RunControl() = default;
+  virtual bool done() = 0;
+  // Runs at most `limit` queued microtasks. Returns how many ran.
+  virtual size_t drainMicrotasks(size_t limit) = 0;
+  virtual bool microtasksPending() = 0;
+  // Settles one waiting completion. Returns false when none waits.
+  virtual bool dispatchCompletion() = 0;
+  virtual bool completionsPending() = 0;
+  // True while a submitted job can still deliver a completion.
+  virtual bool externalWork() = 0;
+  // The run's cancellation, or nullopt while it is not being cancelled.
+  virtual std::optional<CancelSnapshot> cancellation() = 0;
+  // Called when the loop first observes the cancellation, and again when its
+  // deadline moves.
+  virtual void onCancellation(const CancelSnapshot&) {}
+};
 
 class Loop {
 public:
   using Clock = std::chrono::steady_clock;
+  // Cancellation mode runs at most this many ready steps per round, and at
+  // most this many microtasks after each step.
+  static constexpr size_t kSliceSteps = 64;
+  static constexpr size_t kSliceMicrotasks = 64;
 
   // The calling thread's loop. Each thread schedules its own coroutines.
   static Loop& current();
 
-  void post(std::coroutine_handle<> h) { ready_.push_back(h); }
+  void post(std::coroutine_handle<> h) {
+    owner_.check("gr::Loop");
+    ready_.push_back(h);
+  }
 
   // Called after every resumed step and whenever the ready queue runs dry.
   // Returns true when it did work that may have posted more steps.
@@ -41,6 +96,25 @@ public:
   // While only timers remain, the thread sleeps until the next one is due or
   // wake() is called, then calls the pump again.
   void run(const std::function<bool()>& stopWaiting = {});
+
+  // Runs a graph run. In normal mode the ordering is run()'s: microtasks
+  // drain completely after every step, and a macrotask runs only when no
+  // step is ready and no microtask is pending. A macrotask is one due timer
+  // or one completion (section 4.5 of docs/plans/graph-runner-async-host.md).
+  // Returns Done when the task is done at a macrotask point, without
+  // awaiting outstanding jobs.
+  //
+  // Once control.cancellation() reports the run's cancellation, before a
+  // step, a macrotask or a wait, the loop switches to cancellation mode for
+  // the rest of the call: rounds of at most kSliceSteps steps, each followed
+  // by at most kSliceMicrotasks microtasks, then at most one macrotask. A
+  // fresh snapshot is taken immediately before every step, microtask,
+  // macrotask and wait, after the control queries that chose it, and again
+  // after each returns. The call returns Deadline once the deadline passed.
+  //
+  // Waits until the next timer (or the deadline when cancelling), or
+  // indefinitely when only external work is left, unless wake() is called.
+  RunExit run(RunControl& control);
 
   bool idle() const { return ready_.empty(); }
 
@@ -62,8 +136,17 @@ public:
   // waiting on a timer inside the grace period still finishes, and nothing
   // keeps the loop waiting past it.
   void limitTimers(Clock::time_point limit);
-  // Thread-safe. Makes a run() that is sleeping for its next timer call the
-  // pump at once.
+  // For tests: called on every wait, under the wake mutex, right before the
+  // thread blocks, with whether a wake is already pending. A wake() from
+  // another thread can only take effect once the wait has started. The
+  // observer must not call wake().
+  void setWaitObserverForTesting(std::function<void(bool woken)> observer) {
+    waitObserver_ = std::move(observer);
+  }
+
+  // Thread-safe. Makes a run() that is sleeping, for its next timer or for
+  // external work, return from the wait at once. A wake before the wait
+  // starts is kept, so the next wait returns at once.
   void wake();
 
   // Every Task coroutine frame links itself here while it is alive.
@@ -91,10 +174,29 @@ private:
     std::function<void()> fire;
   };
   using TimerKey = std::pair<Clock::time_point, uint64_t>;
+  enum class Macrotask { Timer, Completion };
   void schedule(uint64_t id, Timer& timer, Clock::time_point deadline);
   // Fires the first timer when it is due. Otherwise sleeps until it is due
   // or wake() is called. Returns after either.
   void fireOrWait();
+  bool timerDue() const;
+  void fireFirstTimer();
+  // Sleeps until `until`, or without limit, unless woken. Consumes the wake.
+  void waitForWake(std::optional<Clock::time_point> until);
+  void resumeNext();
+  struct MacrotaskChoice {
+    Macrotask kind;
+    bool contended;
+  };
+  // The next macrotask, or nullopt when no timer is due and no completion
+  // waits. Section 4.5: when a due timer and a completion are both
+  // available, the turn is contended, and contended turns alternate between
+  // them, starting with the timer on the first contended turn of the run()
+  // call. A turn with only one kind available runs that kind and does not
+  // change the alternation. `timerNext` holds whose contended turn is next.
+  std::optional<MacrotaskChoice> chooseMacrotask(RunControl& control, bool timerNext) const;
+  void runMacrotask(RunControl& control, MacrotaskChoice choice, bool& timerNext);
+  RunExit runCancelling(RunControl& control, CancelSnapshot cancel, bool timerNext);
 
   std::deque<std::coroutine_handle<>> ready_;
   std::function<bool()> pump_;
@@ -106,9 +208,11 @@ private:
   std::mutex wakeMutex_;
   std::condition_variable wakeCv_;
   bool woken_ = false;
+  std::function<void(bool)> waitObserver_;
   Frame* head_ = nullptr;
   Frame* tail_ = nullptr;
   size_t liveFrames_ = 0;
+  [[no_unique_address]] ThreadOwner owner_;
 };
 
 // Suspends the current coroutine for one turn of the ready queue.

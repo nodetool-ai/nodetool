@@ -22,11 +22,13 @@
 //   available()          -> whether a package assets directory is granted
 //   read(key)            -> Uint8Array, or null when missing
 #include "host/capabilities.h"
+#include "host/assets.h"
 #include "host/paths.h"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <dirent.h>
 #include <fcntl.h>
@@ -35,6 +37,12 @@
 #include <unistd.h>
 
 namespace gr::host {
+
+std::atomic<uint64_t>& tempSequence() {
+  static std::atomic<uint64_t> sequence{0};
+  return sequence;
+}
+
 namespace {
 
 using Args = const std::vector<js::Value>&;
@@ -113,9 +121,16 @@ struct Assets {
       }
     }
     Resolved r = resolve(key, Access::Write, "open");
-    std::string tmp = r.real + ".tmp-" + std::to_string(::getpid());
-    int fd = ::open(tmp.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0644);
-    if (fd < 0) throwErrno(errno, "open", key);
+    // An exclusive temporary file unique to this operation, so concurrent
+    // writes to one key never share bytes. Process id, a process-wide counter
+    // and EEXIST retry also keep it unique against other processes.
+    std::string tmp;
+    int fd = -1;
+    for (int attempt = 0; fd < 0; ++attempt) {
+      tmp = r.real + ".tmp-" + std::to_string(::getpid()) + "-" + std::to_string(tempSequence().fetch_add(1));
+      fd = ::open(tmp.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0644);
+      if (fd < 0 && (errno != EEXIST || attempt >= 100)) throwErrno(errno, "open", key);
+    }
     size_t off = 0;
     while (off < data.size()) {
       ssize_t n = ::write(fd, data.data() + off, data.size() - off);

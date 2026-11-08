@@ -54,9 +54,7 @@ const std::vector<Capability>& capabilities() {
         if (!options.fakeProviders) return installContext(e, o, options.context);
         // Fake providers: no provider call may reach an embedder callback.
         ContextOptions grants = options.context;
-        std::erase_if(grants.operations, [](const auto& entry) {
-          return entry.first.starts_with("provider:") || entry.first.starts_with("prediction:");
-        });
+        dropProviderGrants(grants.operations);
         installContext(e, o, grants);
       }},
       {"gpu", installGpu, gpuBoundary, gpuEndRun},

@@ -125,6 +125,9 @@ public:
   virtual bool isBytes(const Value& v) = 0;
   virtual std::vector<uint8_t> toBytes(const Value& v) = 0;
   virtual size_t byteLength(const Value& v) = 0;
+  // True for a detached ArrayBuffer, and for a typed array whose buffer was
+  // detached or, after a resize, no longer covers it. Leaves no exception.
+  virtual bool isDetached(const Value& v) = 0;
 
   // Inspection.
   virtual bool isUndefined(const Value& v) = 0;
@@ -149,8 +152,10 @@ public:
   virtual PromiseCapability newPromise() = 0;
   virtual bool isPromise(const Value& v) = 0;
   virtual bool hasPendingJobs() = 0;
-  // Runs queued jobs until the queue is empty. Returns how many ran.
-  virtual size_t drainJobs() = 0;
+  // Runs queued jobs until the queue is empty, or until `limit` jobs ran.
+  // Returns how many ran.
+  virtual size_t drainJobs(size_t limit) = 0;
+  size_t drainJobs() { return drainJobs(SIZE_MAX); }
 
   // Polled while JavaScript runs. Returning true aborts the running script
   // with an uncatchable error, which surfaces as JsError.
