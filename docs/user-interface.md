@@ -4,11 +4,7 @@ title: "NodeTool User Interface"
 description: "Tour of the NodeTool interface."
 ---
 
-A tour of the interface. Same views on desktop and in the browser.
-
-> New here? Start with [Getting Started](getting-started.md), then come back.
-
----
+Desktop and browser share the same views. New here? Start with [Getting Started](getting-started.md).
 
 ## Where everything lives
 
@@ -39,11 +35,7 @@ Nodes**, **Workflow Settings**, **Skills**, and **Workspace** files.
 The left rail's direct icons are **Documents**, **Chats**, **Library**, and
 **Nodes**.
 
-Two extras: [Mobile](mobile-app.md) gives you a touch-optimized Chat,
-Mini-Apps, and Graph Editor, and the [desktop app](electron-views.md) adds an
-install wizard, a system tray, and frameless mini-app windows.
-
----
+The [mobile app](mobile-app.md) has its own Chat, Mini-Apps, and Graph Editor. The [desktop app](electron-views.md) adds an install wizard, a system tray, and frameless mini-app windows.
 
 ## Projects
 
@@ -86,10 +78,7 @@ output slots, and help.
 
 ![Chat Interface](assets/screenshots/global-chat-interface.png)
 
-The agent, one panel over from whatever you have open. Describe a workflow and
-it builds one; ask for a change and it edits the open document — graph, sketch,
-timeline, storyboard, script, or mini app. It also runs workflows, takes image
-and audio and document attachments, and keeps each thread's history separate.
+The agent edits the document you have open: graph, sketch, timeline, storyboard, script, or mini app. It also builds and runs workflows, takes image, audio, and document attachments, and keeps each thread's history separate.
 
 On desktop, the tray icon opens a standalone chat window. Threads sync with the
 main app.
@@ -100,8 +89,7 @@ main app.
 
 ![Mini App — Run view](assets/screenshots/mini-app-run.png)
 
-A form or dashboard over your workflows, with the graph hidden — the version you
-hand to someone who has never heard of NodeTool.
+A form or dashboard over your workflows with the graph hidden.
 
 1. Build the workflows in the editor.
 2. Choose **+ New → New app** in the tab bar. To scaffold one from a graph, use
@@ -119,10 +107,7 @@ its own window.
 
 ![Asset Explorer](assets/screenshots/asset-explorer.png)
 
-Images (PNG, JPG, GIF, WebP), audio (MP3, WAV, M4A), video (MP4, MOV, WebM), and
-documents (PDF, TXT, Markdown).
-
-Drag files into the panel to upload, drag one onto the canvas to use it, click to
+Supported types: images (PNG, JPG, GIF, WebP), audio (MP3, WAV, M4A), video (MP4, MOV, WebM), and documents (PDF, TXT, Markdown). Drag files into the panel to upload, drag one onto the canvas to use it, click to
 preview. Audio previews render a WaveSurfer waveform you can scrub, in the
 explorer and in node results.
 
@@ -222,11 +207,4 @@ See the [Workflow Editor](workflow-editor.md#keyboard-shortcuts) for the complet
 | `Shift+Enter` | New line |
 | `Esc` | Stop generation |
 
----
-
-## Next Steps
-
-- **[Workflow Editor](workflow-editor.md)** – The canvas in depth
-- **[Editor Panels](editor-panels.md)** – Left, right, bottom, and floating panels
-- **[Tips & Tricks](tips-and-tricks.md)** – Shortcuts the docs bury
-- **[Cookbook](cookbook.md)** – Workflow patterns
+Related: [Workflow Editor](workflow-editor.md), [Editor Panels](editor-panels.md), [Tips & Tricks](tips-and-tricks.md), [Cookbook](cookbook.md).

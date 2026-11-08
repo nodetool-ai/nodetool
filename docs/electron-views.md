@@ -4,9 +4,7 @@ title: "Desktop App Views"
 description: "Windows, dialogs, menus, and tray surfaces unique to the NodeTool Electron desktop app."
 ---
 
-The NodeTool desktop app is built on Electron. It reuses the web app for all workflow editing but adds a handful of native surfaces: a boot splash, package manager, log viewer, tray menu, pinned windows, and a native menu bar.
-
-This page catalogs every desktop-only view with screenshots. Everything inside the main window is covered by [User Interface]({{ '/user-interface' | relative_url }}) and [Workflow Editor]({{ '/workflow-editor' | relative_url }}).
+This page lists the views only the Electron desktop app has: boot splash, Package Manager, Log Viewer, update notice, extra windows, tray menu, and native menu bar. Everything inside the main window is in [User Interface]({{ '/user-interface' | relative_url }}) and [Workflow Editor]({{ '/workflow-editor' | relative_url }}). Platform and install details are in [Desktop App]({{ '/desktop-app' | relative_url }}).
 
 ---
 

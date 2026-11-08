@@ -1,9 +1,6 @@
 # Timeline motion design
 
-This guide describes the timeline document fields available to composition
-authors. These are document examples. The editor does not expose controls for
-every field. The protocol schema and renderer are the source of truth when a
-field is absent here.
+Timeline document fields for easing, animation, links, camera, layout, effects, and transitions, with JSON examples. The editor has no control for some of these fields. When a field is not listed here, the protocol schema and renderer decide.
 
 ![A motion title animating in the timeline viewer, with its motion clips on the track below](assets/screenshots/timeline-motion-design.png)
 
@@ -27,8 +24,7 @@ on an individual keyframe segment.
 }
 ```
 
-`spring(...)` is an easing curve for an authored animation segment, not a
-physical simulation that responds to changing forces. The animation engine's
+`spring(...)` is an easing curve for an authored segment, not a physics simulation. The animation engine's
 numeric curves drive transform, opacity, blur, grade, wipe, shape trim, and 3D
 model camera channels. For arbitrary visual properties use `styleTracks`:
 
@@ -281,5 +277,4 @@ code.
 The repository includes stored composition examples for `title-slam`,
 `word-cards`, `window-frame`, `number-ticker`, `lower-third`, and `logo-sting`.
 See [the example compositions](https://github.com/nodetool-ai/nodetool/tree/main/packages/base-nodes/nodetool/examples/compositions).
-They are starting documents, not a guarantee that every editor surface exposes
-each authoring field as a control.
+

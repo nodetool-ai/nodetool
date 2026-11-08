@@ -1,14 +1,13 @@
 ---
 layout: page
 title: "Why NodeTool"
-description: "Why NodeTool exists, what makes it unique, and how it compares to ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
+description: "How NodeTool differs from hosted AI platforms, and how it compares to ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
 ---
 
 <p class="why-lead">
-  NodeTool is an open-source agent-first creative workspace. Most AI video
-  apps charge you to roll the dice, then hand back a flat MP4 you can't edit.
-  In NodeTool the agent builds the project with image, video, audio, and text
-  models, and you edit every part of the result.
+  NodeTool is an open-source creative workspace. An agent builds a project
+  from one brief with image, video, audio, and text models. The result is an
+  editable storyboard, timeline, or graph, not a flat video file.
 </p>
 
 <div class="why-versus">
@@ -33,7 +32,7 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
   </div>
 </div>
 
-## The agent builds. You stay in control.
+## What the agent builds
 
 <div class="why-agent">
   <div class="why-agent-media">
@@ -45,9 +44,9 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
     </video>
   </div>
   <ul class="why-points">
-    <li><strong>No programming needed.</strong> The agent picks the models, connects them, runs them, and fixes errors it finds.</li>
-    <li><strong>Nothing is hidden.</strong> What it builds is an ordinary storyboard, timeline, or graph. Open it, swap a model, rewire a step, and run again.</li>
-    <li><strong>Send a note, not a restart.</strong> Ask for a change to one shot and only that shot renders again.</li>
+    <li><strong>No programming.</strong> The agent picks the models, connects them, runs them, and fixes errors it finds.</li>
+    <li><strong>Editable output.</strong> It builds an ordinary storyboard, timeline, or graph. Open it, swap a model, rewire a step, and run again.</li>
+    <li><strong>Per-shot changes.</strong> Ask for a change to one shot and only that shot renders again.</li>
     <li><strong>Agents inside workflows.</strong> Put an agent node in your own graph to plan, decide, and call tools.</li>
   </ul>
 </div>
@@ -67,27 +66,23 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
   </article>
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></span>
-    <h3>A project file that opens anywhere</h3>
+    <h3>Editable project files</h3>
     <p>The board, the script with its takes, and the multi-track cut are documents you can open and edit again. Workflows and mini apps export as a <code>.nodetool</code> bundle you can import anywhere.</p>
   </article>
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span>
-    <h3>Open source, end to end</h3>
-    <p>Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read it, fork it, or host it yourself.</p>
+    <h3>Open source</h3>
+    <p>Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. You can fork it or host it yourself.</p>
   </article>
 </div>
 
 <aside class="why-callout">
   <p class="why-callout-kicker">Where NodeTool fits</p>
-  <h3>Pick the model. Pick the price.</h3>
+  <h3>Pick the model and the price</h3>
   <p>
-    Take Seedance, one of today's best video models. FAL, Replicate, and KIE
-    each sell it at a different price, and NodeTool lets you pick the cheapest.
-    When the next Veo or Kling arrives, you switch in one click.
-  </p>
-  <p>
-    That is what holding the keys buys you: the best model at the best price
-    each week, and nothing to lose if a tool gets bought, repriced, or shut down.
+    FAL, Replicate, and KIE each sell Seedance at a different price. NodeTool
+    lets you pick the provider per node, and switching to a newer model such as
+    Veo or Kling is a model change on the node.
   </p>
 </aside>
 
@@ -99,8 +94,8 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
       <tr><th scope="col"><span class="visually-hidden">Topic</span></th><th scope="col">NodeTool</th><th scope="col">Hosted platforms</th></tr>
     </thead>
     <tbody>
-      <tr><th scope="row">Models</th><td>Every major provider, switched in one click</td><td>The list they picked</td></tr>
-      <tr><th scope="row">When a better model ships</th><td>Add it the day it ships</td><td>Wait for them to add it</td></tr>
+      <tr><th scope="row">Models</th><td>Many providers, switched per node</td><td>The list they picked</td></tr>
+      <tr><th scope="row">When a better model ships</th><td>Select it once its provider lists it</td><td>Wait for them to add it</td></tr>
       <tr><th scope="row">What you pay</th><td>Provider list prices, on your own keys</td><td>Their credits</td></tr>
       <tr><th scope="row">What you keep</th><td>The board, the takes, and the multi-track cut as an editable project</td><td>An exported video. The project stays in their app.</td></tr>
       <tr><th scope="row">Source</th><td>Open, AGPL-3.0</td><td>Closed</td></tr>
@@ -112,12 +107,12 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
 
 ## Head-to-head
 
-Comparing NodeTool with a specific tool? Each page covers features, pricing, and when to pick which.
+Each page covers features, pricing, and when to pick which.
 
 <div class="why-vs-grid">
   <a class="why-vs" href="https://nodetool.ai/alternatives/comfyui">
     <h3>ComfyUI</h3>
-    <p>Deep local image control. NodeTool adds video, audio, and text, and runs an exported ComfyUI graph as a node.</p>
+    <p>Local image graphs. NodeTool adds video, audio, and text, and runs an exported ComfyUI graph as a node.</p>
   </a>
   <a class="why-vs" href="https://nodetool.ai/alternatives/figma-weave">
     <h3>Figma Weave (Weavy)</h3>
@@ -148,7 +143,7 @@ Already have a tuned ComfyUI graph? It keeps working inside NodeTool. See [Comfy
 <div class="why-next">
   <a class="why-next-card" href="{{ '/getting-started' | relative_url }}">
     <strong>Quick Start →</strong>
-    <span>Install NodeTool and run your first project in minutes.</span>
+    <span>Install NodeTool and run a first project.</span>
   </a>
   <a class="why-next-card" href="{{ '/models-and-providers' | relative_url }}">
     <strong>Models &amp; Providers →</strong>

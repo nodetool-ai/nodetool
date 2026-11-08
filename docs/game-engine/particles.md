@@ -5,7 +5,16 @@ permalink: /game-engine/particles
 description: "Author bounded particle emitters for sparks, smoke, rain, and debris."
 ---
 
-Particles provide visual effects without creating gameplay entities. They cannot collide, collect items, alter scores, or send gameplay events. Their simulation is separate from the game's snapshot state.
+Particles are visual effects with no gameplay entities. They cannot collide, collect items, alter scores, or send gameplay events, and their simulation is separate from snapshot state. A component holds one to eight emitters:
+
+```json
+"particles": { "emitters": [{
+  "id": "sparks", "rate": 0, "bursts": [{ "time": 0, "count": 12 }],
+  "shape": { "kind": "cone", "angle": 25 },
+  "lifetime": 0.6, "speed": { "min": 2, "max": 5 }, "size": 0.08,
+  "color": "#ffcc66", "blend": "additive", "gravity": { "x": 0, "y": -9.8, "z": 0 }
+}] }
+```
 
 ![Diagram separating gameplay state from particle and audio presentation](/assets/game-engine/simulation-presentation.svg)
 

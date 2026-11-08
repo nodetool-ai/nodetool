@@ -4,25 +4,18 @@ title: "TypeScript DSL: Build Workflows in Code"
 description: "Write NodeTool workflows in TypeScript with @nodetool-ai/dsl: typed node factories, IDE autocompletion, and the same JSON graph the visual editor opens."
 ---
 
-The TypeScript DSL (`@nodetool-ai/dsl`) provides type-safe factory functions for building NodeTool workflows in code. Define workflows programmatically with full IDE autocompletion, then serialize them to the same JSON format used by the visual editor.
+`@nodetool-ai/dsl` has typed factory functions that build a workflow graph in code and serialize it to the same JSON the visual editor opens.
 
-## Table of Contents
+```ts
+import { constant, text, workflow, run } from "@nodetool-ai/dsl";
 
-1. [Installation](#installation)
-2. [Core Concepts](#core-concepts)
-3. [Typed workflows and composition](#typed-workflows-and-composition)
-4. [Runtime branches, maps, and text](#runtime-branches-maps-and-text)
-5. [Basic Workflow](#basic-workflow)
-6. [Connecting Nodes](#connecting-nodes)
-7. [Multi-Output Nodes](#multi-output-nodes)
-8. [Building the Workflow Graph](#building-the-workflow-graph)
-9. [Namespaces](#namespaces)
-10. [Code Generation](#code-generation)
-11. [Calling nodes directly (flow API)](#calling-nodes-directly-flow-api)
-12. [Best Practices](#best-practices)
-13. [Canonical source and visual editing](#canonical-source-and-visual-editing)
+const x = constant.string({ value: "Hello" });
+const y = constant.string({ value: ", " });
+const joined = text.collect({ input_item: x.output(), separator: y.output() });
 
----
+const wf = workflow(joined);   // 3 nodes, 2 edges
+const result = await run(wf);  // runs locally through the kernel
+```
 
 ## Installation
 
@@ -45,7 +38,6 @@ The package root is the only public entry point. `package.json` also exports `./
 Run `npm run codegen --workspace=packages/dsl` and read
 `packages/dsl/src/generated/index.ts` for the namespace names this build ships.
 
----
 
 ## Core Concepts
 
@@ -81,7 +73,6 @@ node.inputs    // { value: 42 }
 node.output()  // OutputHandle for the node's default output slot
 ```
 
----
 
 ## Typed workflows and composition
 
@@ -169,11 +160,8 @@ Canonical export preserves lowered graph nodes, IDs, dynamic output
 metadata, input modes, correlations, and connections. It regenerates executable
 source rather than preserving the original helper calls or handwritten text.
 
----
 
 ## Basic Workflow
-
-A workflow follows three steps: create nodes, connect them, build the graph.
 
 ```ts
 import { constant, text } from "@nodetool-ai/dsl";
@@ -193,9 +181,8 @@ console.log(wf.nodes);  // 3 nodes
 console.log(wf.edges);  // 2 edges (x→joined, y→joined)
 ```
 
-The `workflow()` function traces all connections from the terminal nodes back to their sources, producing a serializable `Workflow` object with `nodes` and `edges`.
+`workflow()` traces all connections from the terminal nodes back to their sources and returns a serializable `Workflow` with `nodes` and `edges`.
 
----
 
 ## Connecting Nodes
 
@@ -274,7 +261,6 @@ const branch2 = text.collect({ input_item: x.output(), separator: " " });
 const wf = workflow(branch1, branch2);
 ```
 
----
 
 ## Multi-Output Nodes
 
@@ -292,9 +278,6 @@ branch.output("if_false")  // → OutputHandle
 // Calling output() without a slot throws when there is no default output
 ```
 
-Each output slot is individually typed, so TypeScript catches type mismatches at compile time.
-
----
 
 ## Building the Workflow Graph
 
@@ -365,7 +348,6 @@ const result = await run(workflow(output.output({ name: "reversed", value: rever
 
 `createNode(nodeType, inputs, opts)` takes `id`, `outputNames`, `defaultOutput`, `outputTypes`, `multiOutput`, `streaming`, `streamingInput`, `dynamicOutputs`, `inputMode`, and `outputCorrelation`. The generated factories fill these from node metadata. For a node that streams, copy the flags from its class (`streaming: true` when it overrides `genProcess` or declares `iteration`, `forward`, or `chunk` correlation).
 
----
 
 ## Namespaces
 
@@ -385,7 +367,6 @@ The generated barrel lists the available namespaces. Run `npm run codegen --work
 
 Namespaces under `nodetool.` drop the prefix (`nodetool.text` becomes `text`). Other dotted namespaces become camelCase (`gemini.text` becomes `geminiText`, `lib.image.color` becomes `libImageColor`, `vector` stays `vector`). Factory names are the last segment of the node type in camelCase (`nodetool.text.FilterString` becomes `text.filterString`), with a trailing underscore for JavaScript reserved words (`control.if_`) and for repeated names. See the full list in `packages/dsl/src/generated/index.ts`.
 
----
 
 ## Code Generation
 
@@ -423,7 +404,6 @@ Generated files are committed to git. The root scripts `npm run codegen:dsl` and
 | `slot_fill` | `SlotFill` |
 | `any` and any unmapped type (models, messages, 3D refs) | `unknown` |
 
----
 
 ## Calling nodes directly (flow API)
 
@@ -483,20 +463,12 @@ await flow.run(async () => {
 
 `packages/dsl/src/flow/generated/` holds typed per-namespace callables, such as `text.concat(inputs)` and `text.concat.stream(inputs)`. Codegen writes them (`npm run codegen --workspace=packages/dsl`, or `--flow` for this tree only). They are not host functions. `guest-core.ts` is the runtime behind them and runs only inside the QuickJS guest, as part of the `@nodetool-ai/sandbox-flow` pack. It calls four host capabilities from the `flow` capability module: `invoke_node`, `open_node_stream`, `take_node_stream` and `close_node_stream`. The host runs each one through the API above, on the invoking run's `ProcessingContext`. Guest authors should read the `nodetool-js-scripting` skill (`packages/system-skills/nodetool-js-scripting/SKILL.md`) rather than this section.
 
----
 
 ## Best Practices
 
-1. **Use namespace imports** — `import { text } from "@nodetool-ai/dsl"` gives you autocompletion for all text nodes.
-
-2. **Let TypeScript catch errors** — the DSL is fully typed. If you pass a `string` where a `number` is expected, the compiler tells you.
-
-3. **Don't reuse handles across builds** — after calling `workflow()`, the internal registry is cleared. Handles from previous builds are stale and will throw if used in a new `workflow()` call.
-
-4. **Build workflows linearly** — create source nodes first, then processing nodes. The immutable API prevents cycles by construction.
-
-5. **Choose the graph boundary**: host DSL graphs run through `run()` or the CLI adapter. Sandbox DSL graphs go directly to agent workflow tools.
-
+- Import namespaces (`import { text } from "@nodetool-ai/dsl"`) for autocompletion.
+- Do not reuse handles across builds. `workflow()` clears the build registry, so handles from an earlier build are stale and throw in a new `workflow()` call.
+- Host DSL graphs run through `run()` or the CLI adapter. Sandbox DSL graphs go directly to agent workflow tools.
 
 ## Canonical source and visual editing
 

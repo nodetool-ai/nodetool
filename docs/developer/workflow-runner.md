@@ -7,7 +7,7 @@ description: "Run a NodeTool workflow graph from a Web-standard request handler 
 
 `@nodetool-ai/workflow-runner` runs a workflow graph without the NodeTool server. It wraps the kernel `WorkflowRunner` in two things: an async generator that yields live messages, and a `(Request) => Response` handler that streams those messages as Server-Sent Events. Both use only Web-standard APIs, so the same code runs on serverless and edge platforms. A separate `./browser` entry runs graphs inside a web page.
 
-The runner has no file system, subprocess, or transport assumptions. You supply the graph, a node registry, and optionally a processing context. Storage, secrets, and the cache come in through the context.
+You supply the graph, a node registry, and optionally a processing context. Storage, secrets, and the cache come in through the context.
 
 ## Install
 
@@ -103,7 +103,7 @@ The handler accepts a `POST` with a JSON body:
 }
 ```
 
-The response is `text/event-stream`. Each message is a `data:` event, and the run ends with an `event: result` event that carries the `RunResult`. Request problems return JSON with a 4xx status: `405` for a method other than POST, `400` for invalid JSON, a missing `graph`, or a failing `beforeRun` hook. After the stream starts, a failure arrives as an `event: error` event with the message "Workflow execution failed" and the HTTP status stays 200.
+The response is `text/event-stream`. Each message is a `data:` event, and the run ends with an `event: result` event that carries the `RunResult`. Request problems return `{ "error": <code>, "message": … }` with a 4xx status: `405 method_not_allowed` for a method other than POST, and `400` with `invalid_json`, `missing_graph`, or `before_run_failed` (a throwing `beforeRun` hook). After the stream starts, a failure arrives as an `event: error` event with the message "Workflow execution failed" and the HTTP status stays 200.
 
 | Option | What it does |
 |--------|--------------|

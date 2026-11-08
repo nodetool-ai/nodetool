@@ -4,6 +4,8 @@ title: "Node Implementation Quick Reference"
 description: "Copy-paste templates and common patterns for building TypeScript nodes with @prop, process(), and genProcess()."
 ---
 
+Copy-paste templates for TypeScript nodes. Packaging and registration are in the [Custom Nodes Guide](custom-nodes-guide.md).
+
 ## Essential Node Templates
 
 ```ts
@@ -376,7 +378,7 @@ async *genProcess(): AsyncGenerator<Record<string, unknown>> {
 
 ## Input Node Quick List
 
-Types in the `nodetool.input` namespace (`packages/core-nodes/src/nodes/input.ts`). The generated catalog under `docs/nodes/nodetool/input/` documents each one.
+Types in the `nodetool.input` namespace (`packages/core-nodes/src/nodes/input.ts`). The generated catalog under `docs/nodes/nodetool/input/` lists each one.
 
 ```text
 StringInput           - Text value
@@ -429,26 +431,6 @@ nodetool.output.Output                 - Named output for any data type
 nodetool.workflows.base_node.Preview   - Show values inside the graph
 ```
 
-## Docstring Keywords by Category
-
-**Data Types**
-text, string, number, integer, float, boolean, list, array, dict, object, document, file
-
-**Operations**
-extract, filter, map, reduce, merge, split, join, sort, group, aggregate, transform, analyze
-
-**Media**
-image, picture, visual, video, audio, sound, document, file, folder, asset
-
-**AI/ML**
-model, embedding, classification, clustering, generation, language, agent, tool
-
-**Control**
-flow, condition, loop, iterator, generator, stream, branch, switch
-
-**I/O**
-input, output, load, save, read, write, import, export, download, upload
-
 ## Testing Pattern
 
 ```ts
@@ -482,16 +464,3 @@ describe("MyNode", () => {
 ```
 
 For nodes that read the context, build one with `createFakeContext()` from `@nodetool-ai/runtime` and pass `handle.context` to `process()`. To run a single registered node from the shell, use `nodetool node run mypackage.MyNode --props '{"value":"hello"}'`.
-
-## Key Reminders
-
-1. All `process()` and `genProcess()` methods must be **async**
-2. Always declare **`metadataOutputTypes`** -- it drives the UI output connectors
-3. Use **`@prop`** for every input -- it provides validation, defaults, and UI hints
-4. Read input values from `this.<field>` -- the engine assigns them before `process()` runs
-5. Return a plain object whose keys are declared in `metadataOutputTypes` (omit a key to send nothing on that output)
-6. Use **`genProcess()`** with `yield` for streaming outputs
-7. Use **`initialize()`** to reset state in stateful / collector nodes
-8. Declare **`requiredSettings`** for API keys; read them from `this._secrets`
-9. A class exists to the runtime only after something registers it. Packs do that in their `register` function
-10. Test with `vitest` -- nodes are plain classes, easy to instantiate and call

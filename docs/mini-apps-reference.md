@@ -4,23 +4,11 @@ title: "Mini App Reference"
 description: "Every widget, binding, action, condition, and format filter, plus the app document schema."
 ---
 
-Every part of a Mini App, in tables. For what these things are, read
-[Mini Apps](mini-apps.md); for how to put them together, read
-[Building Mini Apps](mini-apps-guide.md).
-
-All of it is defined in `packages/app-runtime`, shared by the browser, the
-`nodetool app debug` harness, and the test suites — so all three behave the same.
+Widgets, bindings, actions, conditions, and the app document schema. Concepts are in [Mini Apps](mini-apps.md) and recipes in [Building Mini Apps](mini-apps-guide.md). The definitions live in `packages/app-runtime`, shared by the browser, the `nodetool app debug` harness, and the test suites.
 
 ## Widgets
 
-A widget is one thing on the app screen. Every widget except the layout widgets
-can be wired to a value (`binding`), shown only under a condition
-(`visibleWhen`), and greyed out under a condition (`disabledWhen`), on top of its
-own settings. `format` is offered on the widgets that show text: Heading, Text,
-Markdown, JSON, Output, Alert, Code, List, and Stat. The widget catalog
-(`WIDGET_CATALOG` in `packages/app-runtime/src/widgets.ts`) is the single list the
-editor, the debug harness, and the assistant all read. The editor palette groups
-widgets as Inputs, Chat & AI, Actions, Display, and Layout.
+Every widget except the layout widgets takes a `binding`, `visibleWhen`, and `disabledWhen`. `format` is offered on Heading, Text, Markdown, JSON, Output, Alert, Code, List, and Stat. `WIDGET_CATALOG` in `packages/app-runtime/src/widgets.ts` is the single list the editor, the debug harness, and the assistant read. The palette groups widgets as Inputs, Chat & AI, Actions, Display, and Layout.
 
 ### Widgets that show something
 
@@ -61,9 +49,7 @@ shows a summary of duration, tracks, and clips rather than the sequence.
 
 ### Widgets the user changes
 
-"Commits" means the control reports a final value when you let go or click away.
-That's what makes on-release pacing possible — see
-[Triggers and pacing](#triggers-and-pacing).
+"Commits" means the control reports a final value on release or blur, which enables on-release pacing. See [Triggers and pacing](#triggers-and-pacing).
 
 | Widget | Takes | Commits |
 | --- | --- | --- |
@@ -100,17 +86,9 @@ That's what makes on-release pacing possible — see
 Choice Cards and Guided Steps suit the pick-then-continue step of an approval
 flow. See [recipe 6](mini-apps-guide.md#6-approve-then-continue).
 
-A Workflow Form is one widget where placing each input by hand would be several.
-It renders the inputs of the operation it names — the app's only operation
-unless you pick another — so an Input node added to the workflow shows up in the
-app with no edit. Place the inputs one by one instead when the layout matters:
-a form renders them in graph order, top to bottom.
+A Workflow Form renders the inputs of the operation it names (the app's only operation unless you pick another), in graph order, so a new Input node appears with no edit. Place inputs individually when layout matters.
 
-The Audio Recorder and Camera Capture write the same `{type, uri, asset_id}` ref
-an upload writes, so bind them to an Audio or Video Input and the workflow reads
-one value either way. The recording uploads as an asset when it finishes. On the
-builder canvas they show a placeholder instead of asking for the microphone or
-camera, so laying out an app never raises a permission prompt.
+The Audio Recorder and Camera Capture write the same `{type, uri, asset_id}` ref an upload writes. The recording uploads as an asset when it finishes. On the builder canvas they show a placeholder and do not request the microphone or camera.
 
 A Gallery with a `selectionBinding` is the generate-then-pick loop: bind the
 gallery to a run's list of images, the selection to the input of the next step,
@@ -135,15 +113,9 @@ rather than at the 2048px ceiling.
 | Chat Composer | Writes the next message and runs the operation. `binding` is the workflow input it sends to, `historyBinding` the conversation variable it appends to. Sends the message text, a message object, or the whole conversation. Optional image attachments. |
 | Model Select | Picks a model and writes its reference. Kind: language, image, video, speech, transcription, or embedding. |
 
-A conversation is a list of `{role, content}` objects. Anything else a binding
-holds — a streamed string, a media ref, a list of results — reads as one
-assistant turn, so a thread bound straight to an LLM output still renders.
+A conversation is a list of `{role, content}` objects. Any other bound value (a streamed string, a media ref, a list of results) reads as one assistant turn.
 
-The thread does the bookkeeping a second turn needs: when a run settles, it
-folds the streamed reply into the conversation variable. An output slot is
-cleared at the start of every run, so a reply left there alone would disappear
-the moment the user sends again. This only happens when `binding` is a variable
-and `streamBinding` is an output.
+When a run settles, the thread folds the streamed reply into the conversation variable, because an output slot is cleared at the start of every run. This happens only when `binding` is a variable and `streamBinding` is an output.
 
 ### Buttons and layout
 
@@ -164,9 +136,7 @@ let the person using the app hide a group themselves.
 
 ## Bindings
 
-A binding is the string that says what a widget is wired to. You usually pick
-these from a menu rather than typing them. They point at node **ids**, so
-renaming a node in the graph editor never breaks an app.
+Bindings point at node **ids**, so renaming a node never breaks an app.
 
 | Binding | Points at |
 | --- | --- |
@@ -187,8 +157,7 @@ no-op.
 
 ## Actions
 
-A widget event runs one action. Actions are settings the runtime carries out —
-there's nowhere to write code.
+A widget event runs one action.
 
 | Action | Settings | Effect |
 | --- | --- | --- |
@@ -252,9 +221,6 @@ points at nothing renders as nothing.
 
 ## Document schema
 
-The rest of this page is the saved shape of an app — useful when editing a
-document by hand or reading one the agent wrote.
-
 An app is stored as one `ApplicationDocument`. Ordinary apps use schema version 4.
 Version 5 is for apps that carry a [recipe manifest](#recipe-manifest), and a
 document with a higher version is rejected. Embedded version 1 and 2 documents
@@ -311,8 +277,7 @@ interface OperationBinding {
 | `replace` | Cancel the running one, then start. The default. |
 | `queue` | Wait for it to finish, then start. |
 
-Several operations may point at the same workflow with different wiring, and an
-app that runs three workflows declares three operations.
+Several operations may point at the same workflow with different wiring.
 
 A script operation runs a saved JS script at a pinned version instead of a
 workflow. The script's declared input and output names stand in for node ids, so
@@ -332,10 +297,7 @@ interface VariableDeclaration {
 }
 ```
 
-The visual editor's variable picker lists the Set Variable channels the graph
-publishes. The **App Data** panel in the Design header declares variables with a
-type, default, scope, and persistence. Operations and resources are edited there
-too, and the assistant edits the same lists.
+The **App Data** panel in the Design header declares variables, operations, and resources. The variable picker lists the Set Variable channels the graph publishes.
 
 ### Resources
 
@@ -409,10 +371,7 @@ A message from a job this app didn't start is thrown away.
 
 ## Agent tools
 
-The builder agent edits the open app through these tools. Every one takes an
-`application_id` — the app's own id, listed in the `ui_context` block. A workflow
-id is never accepted; the workflows an app runs are named by
-`target_workflow_id` on its operations.
+Every tool takes an `application_id` (listed in the `ui_context` block). A workflow id is never accepted. Operations name workflows by `target_workflow_id`.
 
 | Area | Tools |
 | --- | --- |
@@ -431,8 +390,7 @@ money, so run it once at the end. It also takes `params`, `interact`, and
 
 ## REST API
 
-The same service backs the web app's tRPC calls and these routes, which mobile,
-the CLI, and other clients use.
+Mobile, the CLI, and other clients use these routes. The web app uses tRPC calls on the same service.
 
 | Route | Does |
 | --- | --- |
@@ -496,9 +454,20 @@ collection with `seedResource` or a `resource:<binding-id>` parameter. Reactive
 browser subgraph runs are reported separately because the harness executes the
 whole workflow.
 
+## Errors
+
+| Error text | When |
+| --- | --- |
+| `Deploying an app to a public URL is only available on nodetool.ai` | **Create public link** on a server without `NODETOOL_ENV=production`. Refused for the owner too. |
+| `Publish a version of this app before deploying it` | **Create public link** before any version is published. |
+| `Public app runs require a finite invocation or USD budget. Configure one before deploying.` | The spend budget has no finite run or USD limit. |
+| `App instance revision changed. Reload before advancing.` | Advancing an instance to a release after another tab changed it. Reload the instance. |
+| Budget exceeded, with the reason from the budget check | A run reserved against a spend budget that is used up. The run does not start. |
+| `Pinned workflow snapshot is missing` or `Pinned script snapshot is missing` | The instance's frozen definition lacks a workflow or script it runs. |
+
 ## Related
 
-- [Mini Apps](mini-apps.md) — concepts and runtime
-- [Building Mini Apps](mini-apps-guide.md) — recipes per use case
-- [App Builder](app-builder.md) — the editor
-- [CLI](cli.md) — the full command reference
+- [Mini Apps](mini-apps.md)
+- [Building Mini Apps](mini-apps-guide.md)
+- [App Builder](app-builder.md)
+- [CLI](cli.md)

@@ -1,66 +1,66 @@
 ---
 layout: page
 title: "Glossary"
-description: "NodeTool terminology with plain-English definitions."
+description: "Definitions of NodeTool terms: workflow, node, asset, agent, provider, job, and more."
 ---
 
-NodeTool terminology in plain language. Simple explanations followed by technical details where relevant.
+Each entry gives a definition, then a technical note where one applies.
 
 ---
 
 ## Core Concepts
 
 ### NodeTool
-The platform you're using! NodeTool is a visual environment for building AI workflows. You connect nodes (building blocks) to create automations without writing code.
+An open-source workspace where you connect nodes into workflows and use agents to generate media, run models, and build apps.
 
 ### Workflow
-A **workflow** is your project – a collection of connected nodes that accomplish a task together. Think of it like a recipe: each step (node) does something specific, and together they create the final result.
+A collection of connected nodes that you run as one unit.
 
 *Technical: A directed acyclic graph (DAG) of nodes describing an end-to-end task.*
 
 ### Node
-A **node** is a single building block in your workflow. Each node does one specific job, like "generate text" or "resize image." You connect nodes together to build workflows.
+One step in a workflow that does one job, such as "generate text" or "resize image."
 
 *Technical: A processing unit with typed inputs, outputs, and configurable properties.*
 
 ### Edge / Connection
-The **lines** that connect nodes together. They show which node's output feeds into another node's input – like pipes carrying water between stations.
+A line from one node's output to another node's input.
 
 ### Input
 Where data enters – either into a workflow (like uploading a file) or into a specific node (like connecting another node's output).
 
 ### Output
-Where results come out. Output nodes show your final results; other nodes have outputs that connect to the next node in the chain.
+Where results come out. Output nodes show your final results. Other nodes have outputs that connect to the next node in the chain.
 
 ---
 
 ## AI & Models
 
 ### Model
-A pre-trained AI program that has learned to do a specific task. For example, a language model generates text, an image model creates pictures. You don't train models – you just use them.
+A trained AI that a node calls. A language model generates text and an image model creates pictures.
 
-*Example: GPT is a language model; Stable Diffusion is an image model.*
+*Example: GPT is a language model, and Stable Diffusion is an image model.*
 
 ### Provider
-A **service** that runs AI models for you. Providers can be:
+What runs a model. Providers can be:
 - **Cloud providers** like OpenAI, Anthropic, or Google
 - **Local engines** like Ollama or llama.cpp that run models on your computer
 
 *Technical: Adapter that talks to an external AI service (OpenAI, Anthropic, Gemini, Ollama, ComfyUI, etc.).*
 
 ### Agent
-A special type of AI that can **plan and execute** multi-step tasks. Unlike simple chat, an agent can break down complex requests, use tools, and work through problems step by step.
+An AI that plans and executes multi-step tasks and calls tools.
 
 *Technical: Multi-step planner/executor that can call tools or workflows.*
 
 ### LLM (Large Language Model)
-A type of AI model that understands and generates text. LLMs power chat assistants, writing assistants, and text analysis tools. Examples: GPT-4, Claude, Llama.
+A model that understands and generates text. Examples: GPT-4, Claude, Llama.
 
 ### Permission Mode
 A per-thread setting that controls how far the agent acts without asking: **Plan** (read and propose only), **Default** (ask before actions), or **Auto** (routine work runs unattended, high-risk actions still ask).
 
 ### Inference
-The process of using a trained AI model to generate results. When you "run" a model, you're performing inference.
+Running a trained model to produce a result.
 
 ---
 
@@ -70,35 +70,35 @@ The process of using a trained AI model to generate results. When you "run" a mo
 The main work area where you build workflows by placing and connecting nodes. Pan around by dragging, zoom with scroll.
 
 ### Preview Node
-A special node that shows you intermediate results while your workflow runs. Add previews anywhere to debug or monitor progress.
+A node that displays whatever reaches its input, so you can check intermediate results.
 
 ### Mini-App
-A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs, making them easy to share with non-technical users.
+A form or dashboard that runs a workflow and shows only its inputs and outputs.
 
 ### Chat
-NodeTool's AI assistant interface. Chat with AI models, run workflows conversationally, or let the agent plan and execute multi-step tasks on its own.
+The agent interface. Chat with a model, run workflows, or let the agent plan and execute multi-step tasks.
 
 ### Inspector / Properties Panel
-The panel (usually on the right) that shows settings for the selected node. This is where you configure how each node behaves.
+The panel on the right that shows settings for the selected node.
 
 ### Workspace
 The tabbed surface the app opens on. Every document and app page is a tab in
-it; with no tabs open it shows the new-project surface instead.
+it. With no tabs open it shows the new-project surface instead.
 
 ---
 
 ## Running & Execution
 
 ### Run
-Execute your workflow and see the results. Click the Run button or press `Ctrl/⌘+Enter`.
+Execute the workflow with the Run button or `Ctrl/⌘+Enter`.
 
 ### Job
-A single workflow execution. When you click Run, NodeTool creates a job that tracks progress, handles errors, and delivers results.
+A single workflow execution that tracks progress and delivers results.
 
 *Technical: A single workflow execution orchestrated by the kernel's `WorkflowRunner`, which runs each node as a `NodeActor`.*
 
 ### Streaming
-Receiving results progressively as they're generated, rather than waiting for everything to complete. Many AI nodes stream their output so you see progress in real-time.
+Receiving results as they are generated instead of after the node completes. Many AI nodes stream their output.
 
 ### Execution Strategy
 Not a setting. The kernel runs every workflow in the server process, with one actor per node and no per-job threads, subprocesses, or containers. The `execution_strategy` field on a job is stored and never read. See [Execution Strategies](execution-strategies.md).
@@ -164,7 +164,7 @@ A node that starts a workflow run on a schedule, a file change, a webhook, or by
 ## Infrastructure
 
 ### Server
-The background program that actually runs your workflows. The desktop app starts one on your own machine and talks to it; you never have to think about it unless you're hosting NodeTool for other people.
+The background process that runs workflows. The desktop app starts one on your machine.
 
 *Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (via `nodetool serve`, optionally with `--host`, default `127.0.0.1`, and `--port`, default `7777`).*
 
@@ -174,7 +174,7 @@ The part of the server that answers requests from the app: saving and loading wo
 *Technical: Node.js HTTP server (via `@nodetool-ai/websocket`) handling the OpenAI-compatible `/v1/chat/completions` endpoint and REST routes such as `/api/workflows`.*
 
 ### Proxy
-An optional service that sits in front of NodeTool to handle security, routing, and SSL certificates for production deployments.
+An optional service in front of NodeTool for routing and TLS in production deployments.
 
 *Technical: Reverse proxy that terminates TLS and forwards to the API server.*
 
@@ -188,10 +188,10 @@ An identifier that tracks a conversation in Chat. Each chat thread has its own h
 ## Data & Storage
 
 ### Asset
-Any file you use in NodeTool – images, audio, documents, etc. Assets are stored and managed so you can reuse them across workflows.
+A file NodeTool stores: an image, audio, video, document, or 3D model. Assets can be reused across workflows, sketches, timelines, and chats.
 
 ### Collection
-A searchable database of documents used for RAG (Retrieval-Augmented Generation). Collections let AI answer questions using your own documents.
+A searchable store of documents used for RAG.
 
 ### Vector Database
 A special database that stores text as mathematical vectors, enabling semantic search (finding content by meaning, not just keywords).
@@ -201,21 +201,21 @@ A special database that stores text as mathematical vectors, enabling semantic s
 ## AI Techniques
 
 ### RAG (Retrieval-Augmented Generation)
-A technique where an AI model answers questions using your own documents as context. Instead of relying only on its training data, the model retrieves relevant snippets from your documents first, then generates an answer based on that context. This dramatically reduces hallucinations and keeps answers grounded in your data.
+A model answers using your own documents as context. It retrieves relevant snippets first, then generates an answer from them.
 
 *In NodeTool: Use the Hybrid Search node to retrieve documents, then pass them to an Agent node through a Template node.*
 
 ### Embedding
-A mathematical representation of text (or images) as a list of numbers (a "vector"). Embeddings capture meaning, so similar concepts have similar numbers. This is what makes semantic search possible — finding content by meaning rather than exact keyword matches.
+A list of numbers (a vector) that represents text or an image. Similar content has similar vectors, which enables semantic search.
 
 ### Prompt
-The text instruction you give to an AI model. Good prompts are specific and clear. In NodeTool, prompts are usually set as text inputs or constructed using Template nodes that fill variables into a text template.
+The text instruction sent to a model. Set it as a text input or build it with a Template node that fills variables into a text template.
 
 ### Temperature
-A setting that controls how creative or deterministic an AI model's output is. Low temperature (0.0–0.3) produces consistent, factual responses. High temperature (0.8–1.2) produces more varied, creative results.
+A setting that controls how varied a model's output is. Low values (0.0–0.3) give consistent output. High values (0.8–1.2) give more varied output.
 
 ### Quantization
-A technique for making AI models smaller and faster by reducing the precision of their numbers. A Q4 model uses 4-bit precision (smaller, slightly less accurate), while Q8 uses 8-bit (larger, more accurate). Quantized models let you run larger models on less powerful hardware.
+Reducing the numeric precision of a model's weights to shrink it. A Q4 model uses 4-bit weights (smaller, less accurate) and Q8 uses 8-bit (larger, more accurate). Quantized models fit on hardware with less memory.
 
 ### Fine-tuning
 The process of further training an existing AI model on your own data to specialize it for a particular task. NodeTool can use fine-tuned models from providers like HuggingFace or OpenAI.
@@ -225,27 +225,27 @@ The process of further training an existing AI model on your own data to special
 ## Development Terms
 
 ### DAG (Directed Acyclic Graph)
-The technical name for how workflows are structured. "Directed" means data flows one way; "Acyclic" means no loops. NodeTool handles this automatically — you just connect nodes and it figures out the execution order.
+The structure of a workflow. Data flows one way and the graph has no cycles. NodeTool derives the execution order from the connections.
 
 ### DSL (Domain Specific Language)
-NodeTool's TypeScript API (`@nodetool-ai/dsl`) for building workflows in code rather than the visual editor. Useful for automation, testing, and custom integrations.
+NodeTool's TypeScript API (`@nodetool-ai/dsl`) for building workflows in code. See the [TypeScript DSL guide](developer/ts-dsl-guide.md).
 
 ### Node Pack
-A collection of related nodes bundled together. Install node packs to add new capabilities to NodeTool (e.g., additional model providers or data processing tools).
+A bundle of related nodes you install to add capabilities. See [Node Packs](node-packs.md).
 
 ### API Key
-A secret string that authenticates you with a cloud AI provider. You get API keys from provider dashboards (OpenAI, Anthropic, Google, etc.) and enter them in NodeTool's **Settings → Models & Providers** panel.
+A secret string that authenticates you with a cloud provider. Create it on the provider's site and enter it in **Settings → Models & Providers**.
 
 ### WebSocket
-A communication protocol that allows real-time, bidirectional data flow between NodeTool's frontend and backend. This is what enables live streaming of workflow results and chat responses.
+A bidirectional protocol between the frontend and backend that carries streamed workflow results and chat responses.
 
 ### SSE (Server-Sent Events)
-A one-way streaming protocol used by NodeTool's Server API to push workflow progress and results to clients in real-time. Similar to WebSocket but simpler and HTTP-based.
+A one-way HTTP streaming protocol the Server API uses to push workflow progress and results to clients.
 
 ---
 
 ## See Also
 
-- **[Key Concepts](key-concepts.md)** – Deeper explanation of core ideas
-- **[Getting Started](getting-started.md)** – Hands-on tutorial
-- **[Models & Providers](models-and-providers.md)** – Setting up AI models
+- [Key Concepts](key-concepts.md)
+- [Getting Started](getting-started.md)
+- [Models & Providers](models-and-providers.md)

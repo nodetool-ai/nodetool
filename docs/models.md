@@ -1,12 +1,15 @@
 ---
 layout: page
 title: "Supported Models"
-description: "Every model NodeTool runs — local engines (llama.cpp, MLX, GGUF) and cloud providers. Generic nodes work across all of them, so swapping a model never changes the graph."
+description: "Local inference engines (Ollama, llama.cpp, Transformers.js, MLX, Transformers, Wan2GP), supported model types, and cloud video, image, and audio models."
 ---
 
-> **The model catalog.** For how to connect a provider, see [Providers](providers.md). For the desktop app's download panel, see [Models Manager](models-manager.md). New here? Start with [Models & Providers](models-and-providers.md).
+Local inference engines and the model types NodeTool loads, with the cloud video, image, and audio models alongside. Provider setup is in [Providers](providers.md), the download panel is in [Models Manager](models-manager.md), and the local-versus-cloud overview is in [Models & Providers](models-and-providers.md).
 
-NodeTool runs models from many providers, proprietary and open. Generic nodes (TextToImage, Agent, and others) work across providers, so swapping a model doesn't change the graph.
+> **Runs:** local engines need no key. Cloud models need the provider key listed in [Providers](providers.md). **Hardware:** per engine, see the comparison matrix below.
+{: .callout-note}
+
+Generic nodes (TextToImage, Agent, and others) route to the provider that owns the selected model, so swapping a model leaves the graph unchanged.
 
 ## Local inference engines
 
@@ -55,8 +58,6 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 ______________________________________________________________________
 
 ## Supported Model Types
-
-NodeTool supports a wide range of model types across different domains. Below is an overview of the supported types and their available execution variants.
 
 ### Variants Key
 
@@ -144,7 +145,7 @@ ______________________________________________________________________
 
 ## Cloud Models
 
-In addition to local models, NodeTool provides access to cloud-based models through provider integrations. These models offer the latest capabilities in video, image, and audio generation.
+Cloud models run through provider integrations and need that provider's key.
 
 ### Video Generation (Cloud)
 
@@ -154,7 +155,7 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 | **Veo 3.1** | Google | Realistic motion, multi-image refs, synced audio | 1080p | Extended |
 | **Seedance 2.0** | ByteDance | High-quality cinematic video, stable characters | 1080p | Variable |
 | **Runway Gen-3 Alpha** | Runway | Precise motion control, professional fidelity | 1080p | Variable |
-| **Runway Aleph** | Runway | Next-gen Runway video generation | 1080p | Variable |
+| **Runway Aleph** | Runway | | 1080p | Variable |
 | **Luma** | Luma AI | AI-powered video modification and editing | 1080p | Variable |
 | **Grok Imagine** | xAI | Multimodal T2V/I2V with coherent motion | 1080p | Short clips |
 | **Wan 2.6** | Alibaba | Multi-shot, stable characters, affordable | 1080p | Variable |
@@ -187,19 +188,9 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 
 **Access via**: `nodetool.audio.TextToSpeech` for speech. ElevenLabs has its own provider and `elevenlabs.*` nodes. Suno runs through the kie.ai nodes.
 
-### Advantages of Cloud Models
+### Cloud limits
 
-- **Latest Technology**: Access to newest architectures and training data
-- **No Local Resources**: Run on any hardware without GPU requirements
-- **Instant Availability**: No download or installation needed
-- **Continuous Updates**: Models improve without local updates
-
-### Considerations
-
-- **API Costs**: Per-generation pricing varies by provider
-- **Internet Required**: Cannot run offline
-- **Data Privacy**: Content is processed on provider servers
-- **Rate Limits**: Subject to provider API quotas
+Cloud models bill per generation at the provider's price, need internet, process content on the provider's servers, and are subject to the provider's rate limits. A 429 surfaces as failure kind `rate_limit`. See [If it fails](models-and-providers.md#if-it-fails).
 
 ### Where the cloud models come from
 

@@ -5,14 +5,14 @@ permalink: /keyboard-shortcuts
 description: "Every keyboard shortcut in the node editor, chat, assets, timeline, sketch editor, 3D model editor, and game editor, with Mac and Windows/Linux keys."
 ---
 
-This page lists the shortcuts in each part of NodeTool. In the app, press `Ctrl + /` (Windows/Linux) or `⌘ + /` (Mac), or `?`, to open the shortcut sheet for the part you are in.
+Shortcuts by editor. In the app, `Ctrl + /` (Windows/Linux), `⌘ + /` (Mac), or `?` opens the sheet for the part you are in.
 
 ## Reading the tables
 
 - `Ctrl/⌘` means `Ctrl` on Windows and Linux and `⌘` on Mac. `Alt/⌥` means `Alt` on Windows and Linux and `Option` on Mac.
 - Single-letter shortcuts such as `F` or `B` work when focus is on the canvas and not in a text field.
 - Shortcuts marked "desktop app" are registered only in the Electron app. The browser leaves `Ctrl + T` and `Ctrl + W` to the browser.
-- The node editor list comes from `web/src/config/shortcuts.ts`. The timeline, sketch editor, 3D model editor, and game editor each keep their own keys, listed in their own sections.
+- The node editor list comes from `web/src/config/shortcuts.ts`. The timeline, sketch, 3D model, and game editors keep their own keys.
 
 ## Node editor
 

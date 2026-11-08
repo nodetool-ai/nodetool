@@ -6,18 +6,19 @@ description: "How to add a new AtlasCloud model or node to NodeTool by editing t
 
 **Navigation**: [Developer Index](../index.md) | [Providers Overview](../../providers.md) → **AtlasCloud**
 
-> **Audience**: contributors and coding agents adding AtlasCloud models or node classes. No familiarity with the runtime internals is assumed; you need to edit JSON and run two commands.
+> **Runs:** cloud. **Needs:** `ATLASCLOUD_API_KEY` (Settings → API Keys). Chat models use AtlasCloud's OpenAI-compatible API and need no manifest entry.
+{: .callout-note}
 
-## TL;DR
+Add a model by appending to the manifest and running the sync and build commands:
 
-1. Add an entry to `packages/atlascloud-nodes/src/atlascloud-manifest.json`.
-2. Run `node scripts/sync-atlascloud-manifest.mjs` to fill the entry's fields from AtlasCloud's published schema, then `--check` to confirm no drift.
-3. Run `npm run build:packages` to copy the manifest into `dist/`.
-4. Run `npm run typecheck && npm run test --workspace=packages/atlascloud-nodes`.
+```bash
+node scripts/sync-atlascloud-manifest.mjs          # fill the entry's fields from AtlasCloud's schema
+node scripts/sync-atlascloud-manifest.mjs --check  # exit 1 on drift
+npm run build:packages                             # copy the manifest into dist/
+npm run typecheck && npm run test --workspace=packages/atlascloud-nodes
+```
 
-That's it. No TypeScript code is required for most new models. Skip to [Add a new model/node](#add-a-new-modelnode) for the exact steps.
-
----
+Most models need no TypeScript. The steps are under [Add a new model/node](#add-a-new-modelnode).
 
 ## Where things live
 
@@ -35,7 +36,6 @@ That's it. No TypeScript code is required for most new models. Skip to [Add a ne
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, ...)`) |
 | Manifest-to-model-list helper (shared with KIE, FAL) | `packages/runtime/src/providers/manifest-models.ts` |
 
----
 
 ## How AtlasCloud models/nodes are defined
 
@@ -61,7 +61,7 @@ The manifest export declared in `package.json` is:
 
 `AtlasCloudProvider.getAvailableImageModels()` and `getAvailableVideoModels()` call `loadImageModels` / `loadVideoModels` from `manifest-models.ts`, which load the manifest through `loadPackageAssetJson` from `@nodetool-ai/atlascloud-nodes/atlascloud-manifest.json`. The model-list functions read `outputType`, `modelId`, and `title` from each entry. `buildModelMap()` in the provider reads the same manifest to know which fields each model accepts for the generic `textToImage` / `imageToVideo` etc. methods.
 
-**Key point**: the manifest drives both the node UI (fields, defaults, enum values) and the model picker (image/video model lists). Editing the manifest is sufficient for both.
+The manifest drives both the node UI (fields, defaults, enum values) and the model picker, so one edit covers both.
 
 ### Wire protocol
 
@@ -72,7 +72,6 @@ The manifest export declared in `package.json` is:
 - Chat models use AtlasCloud's OpenAI-compatible API at `https://api.atlascloud.ai/v1` through `AtlasCloudProvider` and need no manifest entry.
 - Submit is **never retried** — a 5xx may have already created and billed the job upstream.
 
----
 
 ## Add a new model/node
 
@@ -177,7 +176,7 @@ The script fetches the catalog at `GET https://api.atlascloud.ai/api/v1/models` 
 npm run build:packages
 ```
 
-This compiles TypeScript and copies the manifest into `dist/`. The factory picks it up at module load time — no TypeScript changes needed.
+This compiles TypeScript and copies the manifest into `dist/`. The factory reads it at module load.
 
 ### Step 6: Smoke-test the node
 
@@ -195,7 +194,7 @@ npm run dev:nodetool -- node run atlascloud.video.Seedance3TextToVideo \
   --props '{"prompt":"test"}' --no-secrets 2>&1 | grep -E "error|ATLASCLOUD"
 ```
 
-Expected: `ATLASCLOUD_API_KEY is not configured` (meaning the node loaded and reached the key check).
+Expected: `ATLASCLOUD_API_KEY is required`, which means the node loaded and reached the provider constructor.
 
 ### Step 7: Validate (no API call)
 
@@ -205,7 +204,6 @@ npm run dev:nodetool -- validate workflow.json
 
 If you have a workflow JSON referencing the new node, this verifies the node type is registered and all edges type-check.
 
----
 
 ## Prediction callbacks (webhooks)
 
@@ -244,7 +242,6 @@ Run `npm run test --workspace=packages/runtime -- atlascloud-webhook` and
 changing any of this. `nodetool harness gate` selects both from the
 `atlascloud-callbacks` surface.
 
----
 
 ## Verify
 
@@ -271,11 +268,4 @@ npm run dev:nodetool -- harness gate --base origin/main
 
 None of these make live API calls. Tests use vitest with mocked HTTP.
 
----
-
-## Contributing
-
-Source: <https://github.com/nodetool-ai/nodetool>  
-Discord: <https://discord.gg/WmQTWZRcYE>
-
-Before opening a PR, run the Verify steps above. The PR description should include the AtlasCloud model id, the node type string, and a brief note on which fields were included and why any fields from the API docs were omitted.
+Include the AtlasCloud model id, the node type string, and any omitted API fields in the PR description.

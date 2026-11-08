@@ -4,16 +4,23 @@ title: "ElevenLabs: Add Models & Nodes"
 description: "How to add ElevenLabs TTS models, voices, and nodes to NodeTool — with exact paths, code snippets, and a verification checklist."
 ---
 
-> **Audience:** Contributors and coding agents adding ElevenLabs models, voices, or nodes to NodeTool.
+> **Runs:** cloud. **Needs:** `ELEVENLABS_API_KEY`. The provider constructor throws `ELEVENLABS_API_KEY is required` without it. The realtime nodes throw `ELEVENLABS_API_KEY is not configured`.
+{: .callout-note}
 
-## TL;DR
+Adding a model id takes two edits, one in the provider and one in the node enum:
 
-1. Add the model id to the `MODELS` array in `elevenlabs-provider.ts` **and** the `@prop` `values` array in the relevant node file.
-2. To add a voice, add one entry to `VOICE_ID_MAP` in both `elevenlabs-base.ts` and `elevenlabs-provider.ts`.
-3. To add a node, create `packages/elevenlabs-nodes/src/nodes/<name>.ts`, export a `readonly NodeClass[]`, and add it to `src/index.ts`.
-4. Run `npm run build:packages` (required — this package loads from `dist/`), then `npm run test:affected`, `npm run typecheck`, and `npm run lint`.
+```ts
+// packages/runtime/src/providers/elevenlabs-provider.ts
+const MODELS: Array<{ id: string; name: string }> = [
+  { id: "eleven_v3", name: "Eleven v3" },
+  // …
+];
+// packages/elevenlabs-nodes/src/nodes/text-to-speech.ts: @prop model_id values: ["eleven_v3", …]
+```
 
----
+1. To add a voice, add one entry to `VOICE_ID_MAP` in both `elevenlabs-base.ts` and `elevenlabs-provider.ts`.
+2. To add a node, create `packages/elevenlabs-nodes/src/nodes/<name>.ts`, export a `readonly NodeClass[]`, and add it to `src/index.ts`.
+3. Run `npm run build:packages` (required, this package loads from `dist/`), then `npm run test:affected`, `npm run typecheck`, and `npm run lint`.
 
 ## Where things live
 
@@ -30,7 +37,6 @@ description: "How to add ElevenLabs TTS models, voices, and nodes to NodeTool �
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ...)`) |
 | Node tests | `packages/elevenlabs-nodes/tests/` |
 
----
 
 ## How ElevenLabs models and nodes are defined
 
@@ -66,8 +72,8 @@ The two lists are independent and not identical. The node's `model_id` enum also
 
 Voices are also static. The canonical map lives in two files that mirror each other:
 
-- `packages/elevenlabs-nodes/src/elevenlabs-base.ts` — used by all nodes (voice ID resolution, the `StandardVoice` node enum)
-- `packages/runtime/src/providers/elevenlabs-provider.ts` — used by the provider to surface voices in the unified TTS picker
+- `packages/elevenlabs-nodes/src/elevenlabs-base.ts`: voice ID resolution and the `StandardVoice` node enum.
+- `packages/runtime/src/providers/elevenlabs-provider.ts`: voices in the unified TTS picker.
 
 `VOICE_ID_MAP` maps display name to voice id. `VOICE_NAMES = Object.keys(VOICE_ID_MAP)` is passed to `StandardVoiceNode`'s enum values and to `getAvailableTTSModels()` voice lists. The `TextToSpeech` node's `voice_id` prop is a plain string that defaults to the Aria id, so it accepts any ElevenLabs voice id. The provider resolves a voice name through the map and passes an unknown value through as an id.
 
@@ -77,7 +83,6 @@ Each node file exports a `readonly NodeClass[]` named `<CATEGORY>_NODES`. `src/i
 
 The package loads from **`dist/`** (see `"main": "dist/index.js"` in `package.json`). TypeScript decorators (`@prop`) require a build step before any changes take effect.
 
----
 
 ## Add a new model or node
 
@@ -136,64 +141,61 @@ const VOICE_ID_MAP: Record<string, string> = {
 
 ### Add a node
 
-**Step 1.** Create `packages/elevenlabs-nodes/src/nodes/<name>.ts`. Follow the shape of an existing node — extend `BaseNode`, set the required static fields, use `@prop` for inputs, implement `process()`:
+Nodes do not call the ElevenLabs API directly. They call `callElevenLabs(context, …)` from `elevenlabs-base.ts`, which runs `context.callProviderEndpoint` through the provider. The provider's `callEndpoint` accepts two routes, `"text-to-speech"` and `"speech-to-text"`, and throws for any other. A node for a different ElevenLabs endpoint needs a new route in `callEndpoint` first.
+
+**Step 1.** Create `packages/elevenlabs-nodes/src/nodes/<name>.ts`. This node reuses the `text-to-speech` route with a fixed model:
 
 ```ts
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, isRecord, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { getElevenLabsApiKey } from "../elevenlabs-base.js";
+import { callElevenLabs, VOICE_ID_MAP } from "../elevenlabs-base.js";
 
-export class SoundEffectNode extends BaseNode {
-  static readonly nodeType = "elevenlabs.SoundEffect";
-  static readonly body = "content_card";
-  static readonly title = "Sound Effect";
-  static readonly description = "Generate a sound effect from a text prompt.";
+export class QuickVoiceNode extends BaseNode {
+  static readonly nodeType = "elevenlabs.QuickVoice";
+  static readonly title = "Quick Voice";
+  static readonly description = "Speak text with Flash v2.5.\nelevenlabs, tts";
   static readonly metadataOutputTypes = { output: "audio" };
   static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
 
-  @prop({ type: "str", default: "", title: "Prompt",
-          description: "Text description of the sound to generate." })
-  declare prompt: any;
+  @prop({ type: "str", default: "Hello", title: "Text" })
+  declare text: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const apiKey = getElevenLabsApiKey(this._secrets);
-    const prompt = String(this.prompt ?? "");
-    if (!prompt) throw new Error("Prompt is required");
-
-    const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
-      method: "POST",
-      headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ text: prompt })
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
+    const text = String(this.text ?? "");
+    if (!text) throw new Error("Text is required");
+    const { output } = await callElevenLabs(context, {
+      capability: "text_to_speech",
+      model: "eleven_flash_v2_5",
+      route: "text-to-speech",
+      input: { voice_id: VOICE_ID_MAP.Aria, text },
+      nodeId: this.__node_id
     });
-    if (!response.ok) {
-      throw new Error(`ElevenLabs API error: ${await response.text()}`);
+    const audio = isRecord(output) ? output.data : undefined;
+    if (!(audio instanceof Uint8Array)) {
+      throw new Error("ElevenLabs returned no audio");
     }
-    const data = Buffer.from(await response.arrayBuffer()).toString("base64");
-    return { output: { type: "audio", data: `data:audio/mpeg;base64,${data}` } };
+    const base64 = Buffer.from(audio).toString("base64");
+    return { output: { type: "audio", data: `data:audio/mpeg;base64,${base64}` } };
   }
 }
 
-export const SOUND_EFFECT_NODES: readonly NodeClass[] = [SoundEffectNode];
+export const QUICK_VOICE_NODES: readonly NodeClass[] = [QuickVoiceNode];
 ```
 
 **Step 2.** Register it in `packages/elevenlabs-nodes/src/index.ts`:
 
 ```ts
-import { SOUND_EFFECT_NODES } from "./nodes/sound-effect.js";
+import { QUICK_VOICE_NODES } from "./nodes/quick-voice.js";
 
 export const ELEVENLABS_NODES: readonly NodeClass[] = [
-  ...TEXT_TO_SPEECH_NODES,
-  ...SPEECH_TO_TEXT_NODES,
-  ...REALTIME_TTS_NODES,
-  ...REALTIME_STT_NODES,
-  ...STANDARD_VOICE_NODES,
-  ...SOUND_EFFECT_NODES,  // new
+  // existing spreads …
+  ...QUICK_VOICE_NODES,  // new
 ];
 ```
 
-**Step 3.** Add a test in `packages/elevenlabs-nodes/tests/<name>.test.ts` and add a `registry.has("elevenlabs.SoundEffect")` assertion in `tests/registration.test.ts`.
-
----
+**Step 3.** Add a test in `packages/elevenlabs-nodes/tests/<name>.test.ts` and a `registry.has("elevenlabs.QuickVoice")` assertion in `tests/registration.test.ts`.
 
 ## Verify
 
@@ -221,15 +223,4 @@ npm run lint
 npm run dev:nodetool -- harness gate --base origin/main
 ```
 
----
-
 The `tests/` files assert enum contents through `getDeclaredProperties()`, for example `TextToSpeechNode.getDeclaredProperties().find(p => p.name === "model_id")`. Follow that pattern in new tests.
-
----
-
-## Contributing
-
-Source and issues: <https://github.com/nodetool-ai/nodetool>  
-Community discussion: <https://discord.gg/WmQTWZRcYE>
-
-Run the Verify steps and make sure they pass before opening a PR. Two things catch most mistakes before review: `npm run build:packages` (catches missing exports, wrong import paths) and `npm run test --workspace=packages/elevenlabs-nodes` (catches registration gaps and API contract regressions).

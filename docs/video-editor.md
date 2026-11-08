@@ -4,51 +4,36 @@ title: "Video Editor: AI Timeline Editing"
 description: "A multi-track timeline where a clip is imported media or a workflow output that regenerates when its parameters change. Cut, composite, and generate in place."
 ---
 
-Cut a sequence on a multi-track timeline, bind any workflow to a clip, and generate the footage in place. NodeTool's Video Editor is a non-linear editor where clips can be imported media _or_ live workflow outputs that regenerate when you change their parameters.
+The timeline editor is a multi-track editor where a clip is imported media or the output of a workflow. A generated clip regenerates on its own when you change its parameters.
 
-> **Quick Access:** Open a timeline at `/timeline/:sequenceId`, or add a timeline tab from the workspace. Create a new sequence with **+** then **New timeline** in the workspace tab bar, or from the timeline list panel.
+> **Runs:** in the browser. Preview uses WebGPU with a Canvas2D fallback, and export runs in the browser or server-side. **Needs:** no API key to cut and export. Generated clips need the model's provider key or a local model (see [Providers](providers.md)). **Costs:** each generation on a paid provider is billed at provider rates. Editing, effects, animation, and export are free.
+{: .callout-note}
+
+Create a sequence with **+** then **New timeline** in the workspace tab bar, or from the timeline list panel. A timeline also opens at `/timeline/:sequenceId` or as a workspace tab. Each open timeline runs in its own set of stores.
 
 ![Video Editor — Timeline](assets/screenshots/video-editor-timeline.png)
 
----
+## Trace: agent edits a timeline
 
-## Overview
+The agent edits a saved timeline with `edit_timeline` (`packages/agents/src/capabilities/timelines.specs.ts`), up to 60 ops per call, run in order. With the editor open it picks the change up live.
 
-The Video Editor (timeline editor) is a non-linear, multi-track surface for assembling video, audio, and image clips. What sets it apart from a conventional NLE is that clips can be **bound to NodeTool workflows** — a clip can be the output of a text-to-image, image-to-video, or text-to-speech pipeline, and it stays editable: change a parameter and regenerate just that clip.
+User prompt: "Add a music track and lay these two clips end to end."
 
-**Features:**
+```json
+{ "tool": "edit_timeline",
+  "args": { "timeline_id": "<id>", "ops": [
+    { "op": "add_track", "type": "audio", "name": "Music" },
+    { "op": "add_media_clip", "asset": "asset://<id>.mp4" },
+    { "op": "add_media_clip", "asset": "asset://<id>.mp4" } ] } }
+```
 
-- Multi-track timeline — video, audio, overlay, subtitle, and MIDI tracks
-- Imported clips (drag media from the Asset Explorer) and AI-generated clips side by side
-- Authored text, shape, 3D model, group, and adjustment-layer clips with preset-based motion
-- Clip editing — move, trim, split, duplicate, delete, ripple and roll edits, three drop modes, with snap-to-playhead and snap-to-clip alignment
-- Real-time preview compositing with a GPU compositor (WebGPU, Canvas2D fallback) and WebAudio mixing
-- Frame-accurate transport — play/pause, stop, frame-step, J/K/L shuttle, in/out range, markers, skip to clip boundaries, timecode readout
-- Generated clips bound to any workflow, with parameters exposed in the Inspector
-- Staleness tracking — edit a bound workflow and the clip is flagged for regeneration
-- Version history per clip — keep the last N successful generations and restore them
-- Export — render the whole timeline to MP4, WebM, or a PNG sequence at the sequence resolution, in the browser or server-side, or its audio alone to WAV or MP3 in the browser
-- Full undo/redo and debounced autosave
+| Step | Change to the timeline document |
+|---|---|
+| `add_track` | A new audio track named "Music". |
+| `add_media_clip` | Each call appends a clip after the last one. |
+| Result | Each op reports its own `ok`. A partial batch may already have saved the ops that succeeded, so check each result before dependent edits. |
 
----
-
-## Where this fits
-
-The Video Editor is the surface where outputs become finished, time-based media. It pulls **assets** in as clips, binds **workflows** to generated clips so footage regenerates when parameters change, and exports the sequence back to a video asset — the same material a sketch, another workflow, or a **Mini-App** can pick up. Every surface shares one asset store and the same model/provider system.
-
-See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
-
----
-
-## Opening the Video Editor
-
-There are a few ways in:
-
-- **Direct route** — navigate to `/timeline/:sequenceId`.
-- **Workspace tab** — open a timeline as a tab alongside your workflows in `/workspace`.
-- **New sequence** — click **+** in the workspace tab bar and choose **New timeline**, or use the timeline list panel.
-
-Each timeline (whether a standalone page or a workspace tab) runs in its own isolated set of stores, so multiple timelines can be open at once without interfering.
+`edit_timeline` authors the cut and renders nothing. `validate_timeline` checks it. `render_timeline` renders it as a job (`get_job` polls, `cancel_job` stops) to `mp4` (default), `webm`, `mov`, or `png_sequence`. `alpha: true` is refused with mp4. `set_timeline_document` replaces the whole document and takes `expected_updated_at`, refusing the write as a conflict if the stored row changed since you read it.
 
 ---
 
@@ -81,7 +66,7 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 **Clip operations:**
 
 - **Add** — drag media from the Asset Explorer onto a track, or add a generated clip from the add menu. Images and video fit video and overlay tracks, audio fits audio tracks, and 3D models fit video and overlay tracks. A drop on an incompatible track is refused. A drop in the second half of a clip starts at that clip's end, so the clip keeps its length. In **Overlap** mode, and in a clip's first half, the drop starts where you release it.
-- **Select** — click a clip; `Shift`/`Ctrl`-click to multi-select.
+- **Select** — click a clip. `Shift`/`Ctrl`-click to multi-select.
 - **Move / trim** — drag the body to move, drag the edges to trim the in/out points.
 - **Split** — position the playhead and press `S` to cut a clip in two.
 - **Duplicate / delete** — `Ctrl/⌘ + D` to duplicate, `Delete` to remove.
@@ -114,15 +99,11 @@ The preview composites every visible, unmuted track in real time.
 - **Match frame** — `F` opens the media of the clip under the playhead in the source monitor at the same frame. `Shift + F` only selects it in Assets.
 - **Scrubbing** — drag the playhead across the ruler to scrub.
 - **Zoom** — `Ctrl/⌘ + scroll` zooms the timeline anchored at the cursor. `Shift + scroll` pans. The timeline view control holds horizontal and vertical zoom sliders.
-- **Audio** — per-clip gain and fades, per-track mute/solo and volume, mixed down to a master output. Audio clips render a waveform in the clip body.
-
-Video and audio are kept in sync by driving playback against the audio clock.
+- **Audio** — per-clip gain and fades, per-track mute/solo and volume, mixed to a master output. Playback is driven against the audio clock.
 
 ---
 
 ## Generated Clips
-
-A clip doesn't have to be a file — it can be the output of a workflow.
 
 **Generation modes:**
 
@@ -134,14 +115,14 @@ A clip doesn't have to be a file — it can be the output of a workflow.
 
 The add menu opens prompt-first: type a prompt, pick a model, and press `Enter` to drop a clip at the playhead. Workflow-bound clips are under the **Templates** and **All workflows** tabs. The menu also adds a 3D model clip and an adjustment layer.
 
-When you bind a workflow, NodeTool clones it into a clip-private variant and exposes the workflow's `Input*` nodes as editable parameters in the Inspector — so you can tweak the prompt, seed, or any input and regenerate without leaving the timeline.
+Binding a workflow clones it into a clip-private variant and exposes its `Input*` nodes as parameters in the Inspector. Change the prompt, seed, or any input and regenerate without leaving the timeline.
 
 **Staleness & versions:**
 
 - Each clip tracks a content hash of the bound workflow plus its parameter overrides. Edit the workflow (or its inputs) and the clip is flagged **stale**.
 - A clip moves through states: **draft → queued → generating → generated**, plus **stale**, **failed**, **locked**, and **missing**.
 - Successful generations are kept as **versions** — restore, favourite, or delete previous results per clip.
-- Generation runs on the standard `WorkflowRunner`; status streams back over the WebSocket connection keyed by job, so the timeline only listens to the jobs it cares about.
+- Generation runs on the standard `WorkflowRunner` and reports status over the WebSocket connection, keyed by job.
 
 **Round-tripping to the node editor:** from a generated clip you can **Open in Node Editor** to edit the bound workflow on the full canvas, then return — the clip auto-marks stale so you can regenerate with the new logic.
 
@@ -149,7 +130,7 @@ When you bind a workflow, NodeTool clones it into a clip-private variant and exp
 
 ## Inspector
 
-The Inspector swaps based on what's selected:
+The Inspector content depends on the selection:
 
 - **Imported clip** — timing, render (transform, opacity, blend mode), and media controls, plus sections for time remap, keyframes, effects, mask and matte, tracking, Smart Reframe, and AI Edit where they apply.
 - **Generated clip** — a vertical **node stack** of the bound workflow's nodes, each with its parameters (reusing NodeTool's property fields) and a per-node status indicator, with a **Generate** or **Regenerate** button. The clip-actions row has **Duplicate**, **Regenerate as new clip**, **Lock**, **Replace Output**, and **Open in Node Editor**. The **History** section lists versions.
@@ -159,7 +140,7 @@ Every visual clip includes an **Animate** section. Add an entrance, exit, emphas
 
 ### Image to Video
 
-Select an image clip and open **Image to Video** in the Inspector. Describe the motion, pick a model that supports `image_to_video`, and press **Generate video**. The video clip lands on the video track directly above the image, over the same span, and a new track is inserted when that span is taken. It keeps the image clip's duration when the model can render it, and otherwise takes the shortest duration the model offers that covers the clip. The aspect ratio and resolution are the model's nearest match to the image's own size. The new clip is an image-to-video clip with the image as its source, so it regenerates like any other generated clip.
+Select an image clip, open **Image to Video** in the Inspector, describe the motion, pick a model that supports `image_to_video`, and press **Generate video**. The video clip lands on the video track directly above the image over the same span, and a new track is inserted when that span is taken. It keeps the image clip's duration when the model can render it, and otherwise takes the shortest duration the model offers that covers the clip. Aspect ratio and resolution are the model's nearest match to the image's size. The clip regenerates like any other generated clip.
 
 ---
 
@@ -179,14 +160,14 @@ The Canvas2D fallback skips chroma key, vignette, and sharpen.
 
 Motion presets add animation without a keyframe editor. Select a visual clip, open **Animate** in the Inspector, choose a role and preset, then adjust duration or period, delay, easing, and preset parameters.
 
-- **In / Out** — fade, slide, pop, spin, wipe, blur, and colorFade at a clip boundary. On text clips, `typewriter` is an In preset. Wipe reveals the clip behind a directional mask with an adjustable feathered edge; blur racks from soft to sharp; colorFade blooms grayscale into full color.
+- **In / Out** — fade, slide, pop, spin, wipe, blur, and colorFade at a clip boundary. On text clips, `typewriter` is an In preset. Wipe reveals the clip behind a directional mask with an adjustable feathered edge, blur racks from soft to sharp. ColorFade blooms grayscale into full color.
 - **Emphasis** — pulse, flash, shake, bounce, squash, or followPath while the clip is active.
 - **Loop** — kenBurns, float, breathe, rotate, hueShift, orbit, or followPath.
-- **Word stagger** — on text clips, any animation can run once per word, each word offset in time from the previous (offset and on/off in the inspector; `stagger` on `ui_timeline_animate_clip` for the agent). Words pop, slide, or fade in sequence — motion typography without keyframes. See [plans/motion-typography.md](plans/motion-typography.md).
-- **Track markers** — shaded edge wedges show entrance and exit windows; a loop icon marks emphasis or repeating motion. Select a marker to open its controls.
+- **Word stagger** — on text clips, any animation can run once per word, each word offset in time from the previous (offset and on/off in the inspector, `stagger` on `ui_timeline_animate_clip` for the agent). Words pop, slide, or fade in sequence — motion typography without keyframes. See [plans/motion-typography.md](plans/motion-typography.md).
+- **Track markers** — shaded edge wedges show entrance and exit windows. A loop icon marks emphasis or repeating motion. Select a marker to open its controls.
 - **Agent authoring** — timeline tools can list presets, apply or clear motion, and inspect fixed-time frames before export.
 
-Preview and export sample the same animation resolver, so transforms and opacity match at each frame.
+Preview and export sample the same animation resolver.
 
 ---
 
@@ -202,9 +183,8 @@ Preview and export sample the same animation resolver, so transforms and opacity
 | WAV audio (16-bit) | The whole timeline's audio mixdown in stereo, uncompressed at 48 kHz. No video. |
 | MP3 audio (320 kbps) | The whole timeline's audio mixdown in stereo, with the same mix as the video export. No video. |
 
-- Rendering is **frame-by-frame** at the sequence resolution through the same compositor used for preview, so the export matches what you see.
-- Audio is mixed offline and muxed with the encoded video.
-- A progress dialog reports the phase (preparing, audio, video, finalizing) and the export can be cancelled.
+- Rendering is frame by frame at the sequence resolution through the preview compositor. Audio is mixed offline and muxed with the encoded video.
+- A progress dialog reports the phase (preparing, audio, video, finalizing) and can cancel the export.
 - **Save as Asset** renders the timeline and stores the result in an asset folder you pick. **Export project (.zip)** bundles the timeline project.
 - **Export for Premiere Pro** downloads a zip with a Final Cut Pro 7 XML sequence, the media its clips use, and `export-report.txt`. In Premiere Pro, choose **File > Import** and pick the XML. Video, image, and audio clips keep their tracks, positions, in and out points, constant speed, opacity, volume, and enabled state. A video's own sound lands on a linked audio track. Text, shapes, captions, effects, animations, transitions, and fades are not carried, and the report lists every clip affected. If Premiere asks to link media, locate one file in the `media` folder and it relinks the rest.
 - **Export media (.zip)** downloads the original file of every video, image, and audio clip under `media/`, untrimmed, with `clips.csv` listing each clip's track, timeline start and end, source in-point, and file.
@@ -257,7 +237,7 @@ These are the NodeTool layout. The shortcut sheet (`?`) also offers Premiere Pro
 ### Assemble a rough cut from your assets
 
 1. Open a new sequence and drag clips from the Asset Explorer onto the video track.
-2. Trim and reorder clips; use `S` to split and `Delete` to remove.
+2. Trim and reorder clips. Use `S` to split and `Delete` to remove.
 3. Add an audio track for music or narration and adjust per-clip volume and fades.
 4. Scrub the preview to check timing, then **Export** to MP4.
 
@@ -277,22 +257,6 @@ These are the NodeTool layout. The shortcut sheet (`?`) also offers Premiere Pro
 
 ---
 
-## Related Features
+## Related
 
-- **[Workflow Editor](workflow-editor.md)** — build the workflows you bind to generated clips
-- **[Asset Management](asset-management.md)** — organize the media you import as clips
-- **[AI Timeline Editing](ai-timeline-editing.md)** — takes, tracking, reframing, generative edits, and interchange
-- **[Sketch Editor](sketch-editor.md)** — edit stills before or after they land on the timeline
-- **[User Interface](user-interface.md)** — tour of the main NodeTool views
-
----
-
-## Next Steps
-
-- Bind one of your existing workflows to a clip and generate a shot.
-- Build a multi-track sequence mixing imported footage with generated clips.
-- Explore the [Cookbook](cookbook.md) for workflow patterns you can drop onto the timeline.
-
----
-
-_Last updated: July 2026_
+[Workflow Editor](workflow-editor.md), [Asset Management](asset-management.md), [AI Timeline Editing](ai-timeline-editing.md), [Sketch Editor](sketch-editor.md), and the [Cookbook](cookbook.md).
