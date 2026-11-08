@@ -11,6 +11,7 @@ import {
   parseApplicationDocument,
   parseChatAppEvent,
   pickStepItems,
+  previewAppValue,
   settledInvocation,
   type ApplicationDocument
 } from "../src/index.js";
@@ -156,6 +157,11 @@ describe("the agent's view", () => {
     expect((snapshot.variables.title as string).length).toBe(240);
     expect(snapshot.variables.step).toBeUndefined();
     expect(snapshot.operations).toEqual([{ id: "plan", name: "Plan", status: "failed", error: "provider down" }]);
+  });
+
+  it("shows an image by its asset id, not by a resolved display path", () => {
+    expect(previewAppValue({ type: "image", uri: "file:///tmp/assets/5f2c.png", asset_id: "abc123" })).toEqual({ type: "image", uri: "asset://abc123" });
+    expect(previewAppValue({ type: "image", uri: "https://example.com/p.png" })).toEqual({ type: "image", uri: "https://example.com/p.png" });
   });
 
   it("finds the settled invocation of a new run through its alias", () => {

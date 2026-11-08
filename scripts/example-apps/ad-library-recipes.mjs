@@ -394,6 +394,7 @@ const buildAgentTask = (concept, manifest) => {
   const builder = readFileSync(new URL(`../example-timelines/ad-library/${concept.slug}.mjs`, import.meta.url), "utf8");
   return [
     `Make the ${seconds(concept.duration_ms)}-second ${concept.layout_reference_format} ad as a motion-graphics timeline. Do not plan a storyboard.`,
+    "Finish the whole build in this turn: read the values, write and save the timeline, check it and show the result. Do not end the turn after you read the state.",
     `Objective: ${concept.objective}`,
     `Visual rule: ${concept.visual_invariant}`,
     "Beats, in order:",
@@ -401,11 +402,17 @@ const buildAgentTask = (concept, manifest) => {
     "",
     "Read the values first with ui_app_run_get_state. Use them exactly:",
     ...manifest.inputs.map(input => `- ${input.id} (${input.label}, ${input.kind})`),
-    "Copy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `uri` to s.image() as it is, without looking it up in the asset library. Never generate or replace an image.",
+    "Copy stays word for word. When one copy line holds both a closing line and a call to action (\"Plan and build with Linear. Sign up.\"), split it at the sentence boundary: the closing line is the headline and the last short imperative is the button label. Add no label the values do not hold: the images carry their own labels.",
+    "Copy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `asset://` uri to s.image() as it is, without looking it up in the asset library. An image you fetch or process yourself must be saved as an asset first (nodetool.media.toImage or save_asset); a file:// path does not play. Never generate or replace an image.",
     "",
     "Load the motion-graphics skill and read nodetool.packs.docs(\"@nodetool-ai/sandbox-timeline\") before you write scenes. Then adapt the reference builder below in one execute_code action: keep its motion language, timing and structure, swap in the user's copy, images and colors, and recreate every graphic element the images do not hold (shapes, rings, cards, buttons, glows, backdrops) as timeline layers. It must look like modern motion graphics: layered depth, continuous secondary motion, eased entrances and exits, text animators, transitions between beats and a restrained finish. Save with v.save(nodetool.timelines, {name, showcase: true}).",
-    "Fix every showcase warning that save returns and save again. Look at rendered frames before you call it done.",
-    "Write `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image has no width or height option: it fits the frame and `s` scales it.",
+    "Legibility and layout on a 1080×1920 frame:",
+    "- Crop each image to its content before you place it: trim a plain background border with image.crop, then save it with nodetool.media.toImage. Text inside an image must be at least 2.5% of the frame height (48 px) once scaled. Make cards and nodes that show an image at least 400×225.",
+    "- Keep the logo, copy and button inside the safe area: 250 px from the top and 350 px from the bottom. Put the logo above the headline or next to the button.",
+    "- Build the button as a rect and a text label parented to one group at the same y, both centered, with the label at 52 px or more. Do not use s.pill() with a dot for the button.",
+    `- Give scene lengths in frames at the timeline's fps and check that the total, after transitions, is exactly ${seconds(concept.duration_ms)} s.`,
+    "Fix every showcase warning that save returns and save again. Look at preview_timeline_frame frames at each beat. Then render a draft with render_timeline at preview_scale 0.5, and finish when the draft renders.",
+    "Write `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image fits the frame. Pass \`s\` (for example s: 0.4) to scale it. The options w, h, width, height, size and scale throw.",
     "Write `timeline` as {\"type\": \"timeline\", \"id\": \"<timeline_id>\"} and `finishStatus` as one sentence, then show the `result` step. Write no other values: the storyboard values (approval, planPreview and the rest) are not used in chat.",
     "",
     "Reference builder (fictional brand; replace its copy, images and colors):",
@@ -434,18 +441,15 @@ const toChatBuild = (bundle, concept, manifest) => {
 };
 
 /** Catalog entries in the shape scripts/example-apps/apps.mjs expects. */
-const CHAT_CONCEPTS = new Set(["calm-breathing-shape-loop"]);
 
 export const AD_LIBRARY_APPS = CONCEPTS.map(concept => {
   const manifest = adLibraryManifest(concept);
   const description = `${concept.objective} Builds an editable ${seconds(concept.duration_ms)}-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.`;
   const bundle = layoutSteps(addAiAssist(buildRecipeAppBundle(manifest, concept.title, description), manifest, concept), concept);
-  // Chat apps run as a conversation with the app agent, which shows each step
-  // as a card. Piloted on one concept before the rest of the library follows.
-  if (CHAT_CONCEPTS.has(concept.slug)) {
-    bundle.app.presentation = "chat";
-    toChatBuild(bundle, concept, manifest);
-  }
+  // Ad apps run as a conversation with the app agent, which shows each step
+  // as a card and writes the cut as motion graphics without a storyboard.
+  bundle.app.presentation = "chat";
+  toChatBuild(bundle, concept, manifest);
   // The option cards show once a suggestion returns, which a no-run debug never executes.
   // A no-run debug never executes the suggestion or the plan, so it sets the
   // state they would leave: the website panel open with options, then each

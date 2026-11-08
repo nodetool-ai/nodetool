@@ -470,7 +470,13 @@ export const previewAppValue = (value: unknown): unknown => {
   if (isRecord(value)) {
     if (isString(value.type) && (isString(value.uri) || isString(value.asset_id))) {
       const media: Record<string, unknown> = { type: value.type };
-      if (isString(value.uri)) media.uri = value.uri.slice(0, 160);
+      // The asset id is the durable handle. A stored uri can be a resolved
+      // display path (file://, a signed URL) that no tool accepts.
+      if (isString(value.asset_id) && value.asset_id) {
+        media.uri = `asset://${value.asset_id}`;
+      } else if (isString(value.uri)) {
+        media.uri = value.uri.slice(0, 160);
+      }
       return media;
     }
     const keys = Object.keys(value);
