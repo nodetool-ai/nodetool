@@ -1,0 +1,22 @@
+{
+  "kind": "ctestInfo",
+  "version": { "major": 1, "minor": 0 },
+  "tests": [
+    { "name": "gr_core_tests", "command": ["@BUILD@/gr_core_tests"] },
+    { "name": "gr_standalone_tests", "command": ["@BUILD@/gr_standalone_tests"] },
+    { "name": "gr_ctx_tests", "command": ["@BUILD@/gr_ctx_tests", "@BUILD@/ctx-test.mjs"] },
+    { "name": "gr_library_tests", "command": ["@BUILD@/gr_core_tests", "@BUILD@/guest.js", "@BUILD@"] },
+    {
+      "name": "gr_verify_tests",
+      "command": ["/usr/bin/node", "@ROOT@/native/graph-runner/unittests/verify.mjs", "@BUILD@/gr_standalone_tests"]
+    },
+    {
+      "name": "gr_compare_tests",
+      "command": ["/usr/bin/cmake", "-DPROBE=@BUILD@/gr_standalone_tests", "-P", "@ROOT@/native/graph-runner/cmake/compare.cmake"]
+    },
+    {
+      "name": "gr_fonts_tests",
+      "command": ["@BUILD@/gr_standalone_tests", "@ROOT@/native/graph-runner/../../packages/timeline/fonts", "cancel"]
+    }
+  ]
+}

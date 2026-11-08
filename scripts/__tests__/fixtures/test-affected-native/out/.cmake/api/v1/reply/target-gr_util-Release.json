@@ -1,0 +1,20 @@
+{
+  "name": "gr_util",
+  "id": "gr_util::@6890427a1f51a3e7e1df",
+  "type": "STATIC_LIBRARY",
+  "paths": {
+    "source": ".",
+    "build": "."
+  },
+  "artifacts": [
+    {
+      "path": "libgr_util.a"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/util.cpp",
+      "compileGroupIndex": 0
+    }
+  ]
+}

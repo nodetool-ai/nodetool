@@ -1,0 +1,4 @@
+# A synthetic graph-runner build for scripts/__tests__/test-affected-native.test.mjs.
+CMAKE_HOME_DIRECTORY:INTERNAL=@ROOT@/native/graph-runner
+CMAKE_GENERATOR:INTERNAL=Unix Makefiles
+NODETOOL_GUEST_BUNDLE:FILEPATH=@BUILD@/guest.js

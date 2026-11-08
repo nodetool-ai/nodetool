@@ -1,0 +1,25 @@
+{
+  "name": "gr_core",
+  "id": "gr_core::@6890427a1f51a3e7e1df",
+  "type": "STATIC_LIBRARY",
+  "paths": {
+    "source": ".",
+    "build": "."
+  },
+  "artifacts": [
+    {
+      "path": "libgr_core.a"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/core.cpp",
+      "compileGroupIndex": 0
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "gr_util::@6890427a1f51a3e7e1df"
+    }
+  ]
+}

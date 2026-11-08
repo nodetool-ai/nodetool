@@ -1,0 +1,10 @@
+{
+  "name": "gr_bundle",
+  "id": "gr_bundle::@6890427a1f51a3e7e1df",
+  "type": "UTILITY",
+  "paths": {
+    "source": ".",
+    "build": "."
+  },
+  "sources": []
+}

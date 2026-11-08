@@ -1,0 +1,28 @@
+{
+  "name": "gr_ctx_tests",
+  "id": "gr_ctx_tests::@6890427a1f51a3e7e1df",
+  "type": "EXECUTABLE",
+  "paths": {
+    "source": ".",
+    "build": "."
+  },
+  "artifacts": [
+    {
+      "path": "gr_ctx_tests"
+    }
+  ],
+  "sources": [
+    {
+      "path": "unittests/ctx_test.cpp",
+      "compileGroupIndex": 0
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "gr_core::@6890427a1f51a3e7e1df"
+    },
+    {
+      "id": "gr_bundle::@6890427a1f51a3e7e1df"
+    }
+  ]
+}
