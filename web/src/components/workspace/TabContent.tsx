@@ -52,7 +52,7 @@ const CreateSurface = React.lazy(() => import("../create/CreateSurface"));
 const ThreadSurface = ({ tab, active }: { tab: WorkspaceTab; active: boolean }) => {
   const kind = useGlobalChatStore((state) => state.threads[tab.ref]?.kind);
   const mediaCategory = useGlobalChatStore((state) =>
-    inferMediaCategory(undefined, state.messageCache[tab.ref] ?? NO_MESSAGES)
+    inferMediaCategory(state.messageCache[tab.ref] ?? NO_MESSAGES)
   );
   if (kind === "create") {
     return <CreateSurface sessionId={tab.ref} projectId={tab.projectId} />;
