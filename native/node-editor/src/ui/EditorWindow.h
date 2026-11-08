@@ -341,6 +341,8 @@ protected:
 private slots:
   void saveLocalCopyAs();
 private:
+  // Reruns an edited node and every node downstream of it (Instant Update).
+  void instantRerun(const QString &nodeId);
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
   void showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor);
@@ -545,6 +547,9 @@ private:
   quint64 instantUpdateGeneration_ = 0;
   bool canvasReducedMotion_ = false;
   bool instantUpdate_ = false;
+  // The latest node edited while an in-process run was active. It reruns when
+  // that run settles, so the result follows the last edit.
+  QString instantPending_;
   QQuickWidget *selectionOverlay_ = nullptr;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;

@@ -748,6 +748,16 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
               const auto plan = session_.lastPartialPlan();
               if (!plan.stale.isEmpty()) { message_ += tr(" · Reusing generations from edited nodes: %1").arg(plan.stale.join(", ")); }
               schedulePanelChanged();
+              if (!instantPending_.isEmpty()) {
+                  const auto node = std::exchange(instantPending_, QString());
+                  const auto generation = instantUpdateGeneration_;
+                  QTimer::singleShot(0, this, [this, node, generation] {
+                      if (instantUpdate_ && generation == instantUpdateGeneration_ && !runActive()
+                          && (session_.connected() || session_.localRunnerReady())) {
+                          instantRerun(node);
+                      }
+                  });
+              }
             }
             if (event["type"] == "error" || status == "failed" || status == "error") {
               outputDock_->show();
@@ -2103,33 +2113,27 @@ bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, co
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
   const bool changed = apply({{"op", "setProperty"}, {"id", nodeId}, {"name", name}, {"value", QJsonValue::fromVariant(value)}});
-    if (changed && instantUpdate_ && session_.connected() && !runActive()) {
+    // Like Run selected, a rerun needs the server or the in-process runner.
+    const auto canRun = [this] { return session_.connected() || session_.localRunnerReady(); };
+    if (changed && instantUpdate_ && canRun() && runActive()) {
+        // An in-process run settles in milliseconds, so the latest edit reruns
+        // after it, as the web's live sliders coalesce. A server run keeps the
+        // edit for the next run.
+        if (session_.runsInProcess(run_)) {
+            instantPending_ = nodeId;
+            ++instantUpdateGeneration_;
+        }
+    } else if (changed && instantUpdate_ && canRun()) {
         const auto generation = ++instantUpdateGeneration_;
         const auto credentials = credentialsEpoch_;
         const auto workflowId = document_.snapshot()["id"].toString();
-        auto execute = [this, nodeId, generation, credentials, workflowId] {
+        auto execute = [this, nodeId, generation, credentials, workflowId, canRun] {
             if (!instantUpdate_ || generation != instantUpdateGeneration_
                 || credentials != credentialsEpoch_ || workflowId != document_.snapshot()["id"].toString()
-                || !session_.connected() || runActive()) {
+                || !canRun() || runActive()) {
                 return;
             }
-            const auto snapshot = document_.snapshot();
-            QHash<QString, QStringList> downstream;
-            for (const auto &value : snapshot["graph"].toObject()["edges"].toArray()) {
-                const auto edge = value.toObject();
-                downstream[edge["source"].toString()].append(edge["target"].toString());
-            }
-            QStringList targets{nodeId};
-            QSet<QString> visited{nodeId};
-            for (qsizetype i = 0; i < targets.size(); ++i) {
-                for (const auto &target : downstream.value(targets[i])) {
-                    if (!visited.contains(target)) {
-                        visited.insert(target);
-                        targets.append(target);
-                    }
-                }
-            }
-            session_.runSelected(snapshot, targets, metadata_);
+            instantRerun(nodeId);
         };
         const bool numeric = value.metaType().id() == QMetaType::Double
             || value.metaType().id() == QMetaType::Float || value.metaType().id() == QMetaType::Int;
@@ -2140,6 +2144,26 @@ bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, co
         }
     }
   return changed;
+}
+void EditorWindow::instantRerun(const QString &nodeId) {
+    const auto snapshot = document_.snapshot();
+    if (document_.node(nodeId).isEmpty()) { return; }
+    QHash<QString, QStringList> downstream;
+    for (const auto &value : snapshot["graph"].toObject()["edges"].toArray()) {
+        const auto edge = value.toObject();
+        downstream[edge["source"].toString()].append(edge["target"].toString());
+    }
+    QStringList targets{nodeId};
+    QSet<QString> visited{nodeId};
+    for (qsizetype i = 0; i < targets.size(); ++i) {
+        for (const auto &target : downstream.value(targets[i])) {
+            if (!visited.contains(target)) {
+                visited.insert(target);
+                targets.append(target);
+            }
+        }
+    }
+    session_.runSelected(snapshot, targets, metadata_);
 }
 bool EditorWindow::removeProperty(const QString &nodeId, const QString &name) {
   if (!tabOwner_) { return activeEditor_->removeProperty(nodeId, name); }
@@ -2649,6 +2673,7 @@ void EditorWindow::action(const QString &name) {
   if (name.startsWith("Instant Update:")) {
       instantUpdate_ = !instantUpdate_;
       ++instantUpdateGeneration_;
+      instantPending_.clear();
       scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_);
       schedulePanelChanged();
       return;
