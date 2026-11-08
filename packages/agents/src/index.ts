@@ -78,6 +78,10 @@ export {
 } from "./tools/tool-permissions.js";
 export { gateLegacyTools, capabilityRunForLegacyTool, capabilityRunForTools } from "./capabilities/legacy-tools.js";
 export { gateFromContext } from "./capabilities/gate-from-context.js";
+export {
+  PROVIDER_CAPABILITY_TOOLS,
+  PROVIDER_TOOL_NAMES
+} from "./capabilities/models.specs.js";
 export { whenBackgroundGenerationsSettle } from "./capabilities/background-generation.js";
 export {
   agentActivityReporter,
