@@ -33,8 +33,16 @@ The mount is not a second door. It sits behind the same auth hook as `/api`,
 and binds the user that hook resolved. A request it cannot authenticate is
 refused at initialize with 401, never given an anonymous session. The session
 id in the `mcp-session-id` header belongs to its owner: a second user
-presenting the same id gets `404 Session not found`, the same answer as an id
-that never existed.
+presenting an id another user holds gets `404 Session not found`.
+
+Sessions live in the process that opened them. When a request names a session
+this process does not hold, because another replica opened it, a deploy
+restarted the server, or it was closed as idle or over the per-user cap, the
+mount opens a new session under the same id for the authenticated caller. The
+client keeps working without reconnecting. Only in-process state, such as
+uncommitted graph edits queued by earlier actions, is lost. The mount offers no
+standalone SSE stream: `GET /mcp` answers `405`, and every result comes back in
+the `POST` response.
 
 ## 2. Connect a client
 
@@ -208,7 +216,7 @@ answers mean:
 |---|---|
 | `404` | The mount is off. Set `NODETOOL_ENABLE_MCP=1` and restart. |
 | `401` | No token, or one that is wrong, revoked, or expired. `WWW-Authenticate` with `error="invalid_token"` means an `nta_` token failed; without an `error` param, either no token was sent or a non-OAuth token (`ntk_`, Supabase) was refused. No header at all means the OAuth flow is not configured on this server. |
-| `404` on a request that carries a session id | That session belongs to another user. Initialize a new one. |
+| `404` on a request that carries a session id | That session belongs to another user, or the id is not 1 to 128 visible ASCII characters. Initialize a new one. |
 
 ## What stays local
 

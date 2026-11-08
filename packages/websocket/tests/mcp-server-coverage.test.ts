@@ -300,12 +300,12 @@ describe("handleMcpHttpRequest routing", () => {
     expect(res).toBeNull();
   });
 
-  it("returns 404 for a GET with no matching session", async () => {
+  it("returns 405 for a GET, since the mount offers no SSE stream", async () => {
     const res = await handleMcpHttpRequest(
       new Request("http://localhost/mcp", { method: "GET" })
     );
     expect(res).not.toBeNull();
-    expect(res!.status).toBe(404);
+    expect(res!.status).toBe(405);
   });
 
   it("returns 404 for a DELETE with no matching session", async () => {
@@ -322,13 +322,40 @@ describe("handleMcpHttpRequest routing", () => {
     expect(res!.status).toBe(405);
   });
 
-  it("returns 404 for a POST naming an unknown session", async () => {
+  it("returns 401 for an unauthenticated POST naming an unknown session", async () => {
     const res = await handleMcpHttpRequest(
       new Request("http://localhost/mcp", {
         method: "POST",
         headers: { "mcp-session-id": "gone" },
         body: "{}"
       })
+    );
+    expect(res!.status).toBe(401);
+  });
+
+  it("answers a failure inside the mount with a JSON-RPC error", async () => {
+    const options = {
+      get agentToolsScope(): never {
+        throw new Error("auth store unavailable");
+      }
+    };
+    const res = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", { method: "POST", body: "{}" }),
+      options
+    );
+    expect(res!.status).toBe(500);
+    const body = (await res!.json()) as { error: { code: number } };
+    expect(body.error.code).toBe(-32603);
+  });
+
+  it("returns 404 for a session id outside the visible-ASCII range", async () => {
+    const res = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: { "mcp-session-id": "x".repeat(200) },
+        body: "{}"
+      }),
+      { agentToolsScope: { userId: "u", source: "http-session" } }
     );
     expect(res!.status).toBe(404);
   });

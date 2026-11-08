@@ -256,8 +256,15 @@ redirect_uri) render in-page and never redirect — open-redirect rule.
 - **`grant_type=refresh_token`** — rotate: verify the `ntr_` token, issue a
   new access + refresh pair, invalidate the old refresh token. A rotated-out
   refresh token presented again is reuse-detection: revoke the whole grant.
-  The rotation runs in one transaction, and only the unique-index violation on
-  `rotated_from` counts as reuse — a transient write failure rolls the whole
+  The exception is a retry within 60 seconds of the rotation
+  (`MCP_OAUTH_REFRESH_REUSE_GRACE_MS`). A client whose refresh response was
+  lost, or that refreshed from two requests at once, gets a fresh pair instead
+  of a revoked grant. The rotation records its time in the old row's
+  `last_used_at`. The retry's refresh row has no `rotated_from`, because the
+  first successor holds that slot, and it keeps the chain's absolute expiry.
+  The rotation runs in one transaction. A unique-index violation on
+  `rotated_from` means a concurrent presentation won, so the rotation runs once
+  more and the grace rule decides. A transient write failure rolls the whole
   attempt back and propagates, rather than revoking a working grant.
 
 Response: `access_token` (`nta_…`, `expires_in: 3600`), `token_type:
