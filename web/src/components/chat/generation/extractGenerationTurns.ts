@@ -28,22 +28,7 @@ export interface GenerationTurn {
   errorText: string | null;
 }
 
-export function cssAspectRatio(ratio?: string | null): string | undefined {
-  const m = ratio?.match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
-  return m ? `${m[1]} / ${m[2]}` : undefined;
-}
-
-export function numericAspectRatio(ratio?: string | null): number | undefined {
-  const m = ratio?.match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
-  if (!m) {
-    return undefined;
-  }
-  const w = Number(m[1]);
-  const h = Number(m[2]);
-  return w > 0 && h > 0 ? w / h : undefined;
-}
-
-export function extractPromptText(message: Message): string {
+function extractPromptText(message: Message): string {
   const content = message.content;
   if (typeof content === "string") {
     return content.trim();
@@ -60,7 +45,7 @@ export function extractPromptText(message: Message): string {
   return parts.join("\n").trim();
 }
 
-export function extractReferenceImages(
+function extractReferenceImages(
   message: Message
 ): MessageImageContent[] {
   const content = message.content;
@@ -132,29 +117,19 @@ function splitMediaOutputs(message?: Message): {
 }
 
 /**
- * Determine whether a thread belongs to a dedicated media generation category
- * (`"image" | "video" | "audio"`), either from its explicit thread mode or by
- * inspecting its messages when loaded from the server.
+ * The media kind of a thread from before Create sessions, read from its
+ * messages: every prompt in it was a generation request. Null for a chat,
+ * including one that asked for media among other questions.
  */
 export function inferMediaCategory(
-  threadMode: MediaMode | undefined,
   messages: readonly Message[]
 ): MediaGenerationCategory | null {
-  const explicit = mediaCategoryForMode(threadMode);
-  if (explicit) {
-    return explicit;
-  }
-  if (threadMode === "chat") {
-    return null;
-  }
-
   let detected: MediaGenerationCategory | null = null;
   for (const msg of messages) {
-    const mode = msg.media_generation?.mode as MediaMode | undefined;
-    const cat = mediaCategoryForMode(mode);
+    const cat = mediaCategoryForMode(msg.media_generation?.mode as MediaMode | undefined);
     if (cat) {
       detected = cat;
-    } else if (msg.role === "user" && !cat) {
+    } else if (msg.role === "user") {
       return null;
     }
   }

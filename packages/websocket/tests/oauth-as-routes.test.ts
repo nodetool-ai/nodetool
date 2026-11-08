@@ -64,6 +64,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   ModelObserver.clear();
   if (prevPublicUrl === undefined) {
     delete process.env["NODETOOL_PUBLIC_URL"];
@@ -815,7 +816,12 @@ describe("POST /oauth/token — refresh_token", () => {
     expect(rotated.statusCode).toBe(200);
     const newAccessToken = rotated.json().access_token;
 
-    // Reuse the pre-rotation refresh token.
+    // Reuse the pre-rotation refresh token once the retry grace window closed.
+    const { MCP_OAUTH_REFRESH_REUSE_GRACE_MS } = await import(
+      "@nodetool-ai/models"
+    );
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + MCP_OAUTH_REFRESH_REUSE_GRACE_MS + 1);
     const reuse = await app.inject({
       method: "POST",
       url: "/oauth/token",
@@ -831,6 +837,34 @@ describe("POST /oauth/token — refresh_token", () => {
     const { McpOauthToken } = await import("@nodetool-ai/models");
     expect(await McpOauthToken.verifyAccess(accessToken)).toBeNull();
     expect(await McpOauthToken.verifyAccess(newAccessToken)).toBeNull();
+  });
+
+  it("a refresh retried right after rotation gets a working pair", async () => {
+    const app = await buildApp();
+    const { refreshToken } = await issueTokenPair(app);
+    const refresh = () =>
+      app.inject({
+        method: "POST",
+        url: "/oauth/token",
+        payload: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken
+        }).toString(),
+        headers: { "content-type": "application/x-www-form-urlencoded" }
+      });
+    const first = await refresh();
+    expect(first.statusCode).toBe(200);
+    // The client lost the first response and sends the same token again.
+    const retry = await refresh();
+    expect(retry.statusCode).toBe(200);
+
+    const { McpOauthToken } = await import("@nodetool-ai/models");
+    expect(
+      await McpOauthToken.verifyAccess(first.json().access_token)
+    ).not.toBeNull();
+    expect(
+      await McpOauthToken.verifyAccess(retry.json().access_token)
+    ).not.toBeNull();
   });
 
   it("missing refresh_token is invalid_request", async () => {
