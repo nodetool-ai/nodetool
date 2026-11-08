@@ -4,7 +4,7 @@
  * History and Canvas size panels stay out of view until the user switches.
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
@@ -31,11 +31,14 @@ import {
   SelectableListItem,
   Text,
   TextArea,
-  ToolbarIconButton
+  ToolbarIconButton,
+  getSpacingPx
 } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+import { getDirectGenBlocker } from "../../../lib/sketch/directGenValidation";
+import { useLayerDragDrop, type LayerDropPosition } from "../hooks/useLayerDragDrop";
 import { getLayerDataImageUrl } from "../serialization";
 import type { Layer } from "../types";
 
@@ -44,7 +47,6 @@ export const SIMPLE_SIDEBAR_WIDTH = 300;
 
 const THUMBNAIL_WIDTH = 56;
 const THUMBNAIL_HEIGHT = 40;
-const LAYER_DRAG_TYPE = "application/x-nodetool-sketch-layer";
 
 const isRunning = (binding: LayerWorkflowBinding | undefined): boolean =>
   binding?.status === "queued" || binding?.status === "generating";
@@ -54,13 +56,13 @@ interface SimpleLayerRowProps {
   active: boolean;
   generated: boolean;
   generating: boolean;
-  dropTarget: boolean;
+  dropPosition: LayerDropPosition | null;
   onSelect: (layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
   onDragStart: (event: React.DragEvent<HTMLDivElement>, layerId: string) => void;
   onDragOver: (event: React.DragEvent<HTMLDivElement>, layerId: string) => void;
   onDragEnd: () => void;
-  onDrop: (event: React.DragEvent<HTMLDivElement>, layerId: string) => void;
+  onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
   onTouchDrag: (event: React.PointerEvent<SVGSVGElement>, layerId: string) => void;
 }
 
@@ -69,7 +71,7 @@ const SimpleLayerRow = memo(function SimpleLayerRow({
   active,
   generated,
   generating,
-  dropTarget,
+  dropPosition,
   onSelect,
   onToggleVisibility,
   onDragStart,
@@ -98,7 +100,7 @@ const SimpleLayerRow = memo(function SimpleLayerRow({
       onDragStart={(event) => onDragStart(event, layer.id)}
       onDragOver={(event) => onDragOver(event, layer.id)}
       onDragEnd={onDragEnd}
-      onDrop={(event) => onDrop(event, layer.id)}
+      onDrop={onDrop}
       paddingX={SPACING.sm}
       paddingY={SPACING.sm}
       gap={SPACING.md}
@@ -106,7 +108,9 @@ const SimpleLayerRow = memo(function SimpleLayerRow({
         border: `1px solid ${active ? theme.vars.palette.primary.main : theme.vars.palette.divider}`,
         borderRadius: BORDER_RADIUS.lg,
         cursor: "grab",
-        outline: dropTarget ? `1px solid ${theme.vars.palette.primary.main}` : undefined,
+        boxShadow: dropPosition === "before" || dropPosition === "after"
+          ? `inset 0 ${dropPosition === "before" ? "" : "-"}${getSpacingPx(SPACING.micro)} 0 ${theme.vars.palette.primary.main}`
+          : undefined,
         backgroundColor: active
           ? `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`
           : theme.vars.palette.background.paper
@@ -199,14 +203,7 @@ const LayerPromptCard = memo(function LayerPromptCard({
   const running = isRunning(binding);
   const prompt = binding.prompt ?? "";
 
-  let blocker: string | undefined;
-  if (!binding.provider || !binding.model) {
-    blocker = t("screens4_25.sketch.directGen.pickModel");
-  } else if (prompt.trim().length === 0) {
-    blocker = t("screens4_25.sketch.directGen.writePrompt");
-  } else if (binding.kind === "image-to-image" && !binding.sourceLayerId) {
-    blocker = t("screens4_25.sketch.directGen.pickSourceLayer");
-  }
+  const blocker = getDirectGenBlocker(binding);
 
   return (
     <FlexColumn
@@ -261,8 +258,8 @@ const LayerPromptCard = memo(function LayerPromptCard({
               size="small"
               variant="contained"
               startIcon={<RefreshIcon />}
-              disabled={blocker !== undefined}
-              disabledReason={blocker}
+              disabled={blocker !== null}
+              disabledReason={blocker ? t(blocker.labelKey) : undefined}
               onClick={() => void start(layer.id)}
               data-testid="sketch-simple-regenerate"
             >
@@ -306,9 +303,8 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const bindings = useSketchSessionStore((s) => s.bindings);
-  const layerListRef = useRef<HTMLDivElement>(null);
-  const draggedLayerId = useRef<string | null>(null);
-  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const { dropTarget, layerListRef, onDragStart, onDragOver, onDragEnd, onDrop, onTouchDrag } =
+    useLayerDragDrop(layers, onReorderLayers);
 
   // Topmost first, as the canvas stacks them. Groups are Expert-mode
   // structure, so their children list flat here.
@@ -322,85 +318,6 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
     (layerId: string) => setActiveLayer(layerId),
     [setActiveLayer]
   );
-  const getDropIndexes = useCallback((layerId: string): [number, number] | null => {
-    const fromIndex = layers.findIndex((layer) => layer.id === draggedLayerId.current);
-    const toIndex = layers.findIndex((layer) => layer.id === layerId);
-    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
-      return null;
-    }
-    // Groups are hidden in Simple mode. A drop can reorder siblings without reparenting.
-    return (layers[fromIndex].parentId ?? null) === (layers[toIndex].parentId ?? null)
-      ? [fromIndex, toIndex]
-      : null;
-  }, [layers]);
-
-  const handleDragStart = useCallback((event: React.DragEvent<HTMLDivElement>, layerId: string) => {
-    event.dataTransfer.setData(LAYER_DRAG_TYPE, layerId);
-    event.dataTransfer.effectAllowed = "move";
-    draggedLayerId.current = layerId;
-  }, []);
-  const handleDragEnd = useCallback(() => {
-    draggedLayerId.current = null;
-    setDropTargetId(null);
-  }, []);
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>, layerId: string) => {
-    if (!event.dataTransfer.types.includes(LAYER_DRAG_TYPE)) {
-      return;
-    }
-    const valid = getDropIndexes(layerId) !== null;
-    setDropTargetId(valid ? layerId : null);
-    if (valid) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = "move";
-    }
-  }, [getDropIndexes]);
-  const finishReorder = useCallback((indexes: [number, number] | null) => {
-    handleDragEnd();
-    if (indexes) {
-      onReorderLayers(...indexes);
-    }
-  }, [handleDragEnd, onReorderLayers]);
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>, layerId: string) => {
-    const sourceId = event.dataTransfer.getData(LAYER_DRAG_TYPE);
-    if (sourceId && sourceId === draggedLayerId.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      finishReorder(getDropIndexes(layerId));
-    }
-  }, [finishReorder, getDropIndexes]);
-  const handleTouchDrag = useCallback((
-    event: React.PointerEvent<SVGSVGElement>,
-    layerId: string
-  ): void => {
-    if (event.pointerType !== "touch" || !event.isPrimary) {
-      return;
-    }
-    if (event.type === "pointerdown") {
-      event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
-      draggedLayerId.current = layerId;
-      return;
-    }
-    if (draggedLayerId.current !== layerId) {
-      return;
-    }
-    if (event.type === "pointercancel" || event.type === "lostpointercapture") {
-      handleDragEnd();
-      return;
-    }
-    const row = document.elementFromPoint(event.clientX, event.clientY)
-      ?.closest<HTMLElement>("[data-sketch-layer-id]");
-    const targetId = row && layerListRef.current?.contains(row)
-      ? row.dataset.sketchLayerId
-      : undefined;
-    const indexes = targetId ? getDropIndexes(targetId) : null;
-    if (event.type === "pointermove") {
-      setDropTargetId(indexes ? targetId ?? null : null);
-    } else {
-      finishReorder(indexes);
-    }
-  }, [finishReorder, getDropIndexes, handleDragEnd]);
-
   if (panelsHidden && !sheet) {
     return null;
   }
@@ -450,14 +367,14 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
                   active={layer.id === activeLayerId}
                   generated={bindings[layer.id] !== undefined}
                   generating={isRunning(bindings[layer.id])}
-                  dropTarget={layer.id === dropTargetId}
+                  dropPosition={dropTarget?.layerId === layer.id ? dropTarget.position : null}
                   onSelect={handleSelect}
                   onToggleVisibility={onToggleVisibility}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDragEnd={handleDragEnd}
-                  onDrop={handleDrop}
-                  onTouchDrag={handleTouchDrag}
+                  onDragStart={onDragStart}
+                  onDragOver={onDragOver}
+                  onDragEnd={onDragEnd}
+                  onDrop={onDrop}
+                  onTouchDrag={onTouchDrag}
                 />
               </Box>
             ))}
