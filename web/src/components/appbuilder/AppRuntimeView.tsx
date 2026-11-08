@@ -30,6 +30,7 @@ import {
 } from "./runtime/AppRuntimeContext";
 import { useAppConfig } from "./puck/config";
 import ChatAppView from "./chat/ChatAppView";
+import AppRestartButton from "./AppRestartButton";
 import {
   AlertBanner,
   Box,
@@ -437,13 +438,14 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
           />
         ) : (
           <>
-            {chatLayout ? (
-              <FlexRow justify="flex-end" sx={{ px: SPACING.xl, pt: SPACING.md }}>
+            <FlexRow justify="flex-end" sx={{ px: SPACING.xl, pt: SPACING.md }}>
+              <AppRestartButton />
+              {chatLayout ? (
                 <EditorButton variant="text" onClick={() => setShowPage(false)}>
                   {t("i18n-next8.appBuilder.chatApp.chatView")}
                 </EditorButton>
-              </FlexRow>
-            ) : null}
+              ) : null}
+            </FlexRow>
             {/* The parser validates Puck data while leaving widget-specific props opaque. */}
             <RuntimeRender
               config={appConfig}
