@@ -123,9 +123,12 @@ const PER_WORKFLOW_TIMEOUT_MS = 30_000;
  * 8 s sample clip and rendering a timeline to video. Alone on
  * one machine they take 13–80 s. The CI nodes shard runs them beside the
  * other package suites on four cores, where the 30 s and 120 s limits
- * expired, so each gets several times its solo duration.
+ * expired, so each gets several times its solo duration. Composing the
+ * campaign formats resizes and composites two full-size PNGs in the sandbox:
+ * 6 s alone, 17–30 s on that shard.
  */
 const SLOW_WORKFLOW_TIMEOUT_MS: Record<string, number> = {
+  "Compose Directed Campaign Formats.json": 120_000,
   "Cut a Landscape Clip for Vertical.json": 120_000,
   "Direct a Short Film.json": 300_000,
   "Directed Film to Timeline.json": 300_000
