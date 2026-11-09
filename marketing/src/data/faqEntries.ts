@@ -124,7 +124,7 @@ const seeds: FaqSeed[] = [
     slug: "how-much-does-nodetool-cost",
     question: "How much does NodeTool cost?",
     answerMd:
-      "NodeTool Studio, the desktop app, is free and open source. Cloud pricing and access can change during alpha, so check the Cloud page before use. In both editions, provider charges are separate: you connect your own provider account and pay that provider directly. Supported local models in Studio have no provider charge per call, but they use your hardware and electricity.",
+      "NodeTool Studio, the desktop app, is free and open source. Cloud is free during alpha. Future Cloud pricing has not been announced. In both editions, provider charges are separate: you connect your own provider account and pay that provider directly. Supported local models in Studio have no provider charge per call, but they use your hardware and electricity.",
     category: "byok",
     relatedRoute: "/pricing",
     surfaces: ["landing", "pricing", "comparison"],

@@ -37,7 +37,7 @@ const faqPage = faqPageSchema(
 
 /** Mirrors the "Studio or Cloud" answer, in the shape answer engines quote. */
 const editionRows: { label: string; studio: string; cloud: string }[] = [
-  { label: "Price", studio: "Free, open source", cloud: "Subscription (alpha)" },
+  { label: "Price", studio: "Free, open source", cloud: "Free during alpha" },
   { label: "Where it runs", studio: "Your machine", cloud: "Your browser" },
   { label: "Local models", studio: "MLX, Ollama, llama.cpp", cloud: "Cloud providers" },
   { label: "Your own API keys", studio: "Yes", cloud: "Yes" },

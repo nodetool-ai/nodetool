@@ -61,7 +61,7 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Change a shot by hand",
+    headline: "Edit a shot yourself",
     body: "Open a shot and change its description, camera, or the characters in it. Its still and clip are marked stale, and Prompts shows what the next render will send. A regenerated shot gets a new take. The current take stays selected until you choose the new one, and the other shots keep theirs.",
     asset: "surface-storyboard",
   },

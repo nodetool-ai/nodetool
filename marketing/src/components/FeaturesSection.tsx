@@ -121,7 +121,7 @@ export default function FeaturesSection({
               border: "border-blue-500/20",
             },
             {
-              title: "Any model you can reach",
+              title: "Choose your models",
               description:
                 "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest, on your own keys. Studio adds open weights running on your own hardware. No platform lock-in.",
               icon: Layers,
@@ -130,9 +130,9 @@ export default function FeaturesSection({
               border: "border-purple-500/20",
             },
             {
-              title: "A real timeline, not a black box",
+              title: "Edit your video in the timeline",
               description:
-                "Instead of a single unfixable video file, the agent hands you a fully editable multi-track project. Fine-tune every frame, layer, and audio stem.",
+                "The agent arranges clips and audio in a timeline. Trim shots, adjust timing and change the soundtrack yourself.",
               icon: Film,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",

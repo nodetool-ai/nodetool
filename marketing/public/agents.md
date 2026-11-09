@@ -7,21 +7,21 @@ product: NodeTool
 ---
 # NodeTool, the Open-Source Creative Harness
 
-A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step. NodeTool gives one to the built-in agent, or to Claude Code, Codex, or Cursor over MCP. It checks each graph before a paid run, logs every call, and lets you stop the agent and take over.
+Give the agent tools to create and edit images, video, audio and workflows. Use NodeTool’s built-in agent, or connect Claude Code, Codex or Cursor through MCP. Inspect its work and take over whenever you need to.
 
 ## Build. Validate. Run. Inspect. Repair.
 
 A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step.
 
-- **Build** (`create_workflow`): The agent adds nodes, picks models, and wires the graph. A graph naming a provider or model that does not exist is refused, not saved.
-- **Validate** (`validate_workflow`): A static check in well under a second, before any model is called.
+- **Build** (`create_workflow`): The agent adds nodes, picks models, and wires the graph. It checks that the selected providers and models exist before saving the workflow.
+- **Validate** (`validate_workflow`): Check the workflow for errors before calling a model.
 - **Run** (`run_workflow`): The graph calls your local models and provider accounts. A run whose provider has no key is refused before the first node starts.
 - **Inspect** (`get_job_logs`): Every tool call, output, and error is in the log, with the node that failed.
-- **Repair** (`create_workflow_version`): The fix is a new version. The last good one stays.
+- **Repair** (`create_workflow_version`): The agent saves its changes as a new version, so you can return to the previous one.
 
 ## The graph is checked before it runs
 
-The same check guards the run endpoint. A graph that fails it never reaches the paid half, so the agent does not learn about a typo from a bill. `validate_workflow` reports:
+Validation catches errors before the workflow makes paid model calls. `validate_workflow` reports:
 
 - Unknown node types
 - Required properties left empty, and models never selected
@@ -48,7 +48,7 @@ The agent edits the same documents you open in Studio. When it stops, the work i
 Read what the agent did, and take the work back at any point.
 
 - **A full record**: Read each tool call with its arguments, result, and error. Find the step that went wrong.
-- **Your hands**: Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.
+- **Take over at any time**: Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.
 - **Your keys**: When a graph needs a key this install does not have, the agent in Studio asks you for it in a dialog. A headless run fails instead of guessing.
 
 ## Permission modes
