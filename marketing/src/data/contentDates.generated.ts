@@ -24,7 +24,7 @@ export const contentDates: {
     },
     "/ai-video-editor": {
       "date": "2026-11-09",
-      "hash": "acd2deae5550de4a"
+      "hash": "0bc1dca2aab8af1a"
     },
     "/ai-image-editor": {
       "date": "2026-11-09",

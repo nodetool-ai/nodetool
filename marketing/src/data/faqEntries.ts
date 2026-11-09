@@ -339,6 +339,25 @@ function stripMarkdown(md: string): string {
 /** Every FAQ row, authored order preserved. */
 export const faqEntries: FaqEntry[] = seeds.map(toPageEntry);
 
+/** Short homepage answers link to the full FAQ entries. */
+const HOMEPAGE_FAQ_COPY: Record<string, { question: string; answerMd: string }> = {
+  "do-i-need-a-gpu": {
+    question: "Do I need a powerful computer?",
+    answerMd: "No dedicated GPU is needed when you use online AI providers. Running models locally depends on the model and your hardware. [Local model setup](/solutions/local-first).",
+  },
+  "use-chatgpt-claude-gemini-subscription": {
+    question: "Which accounts can I use?",
+    answerMd: "In Studio, connect supported provider API keys or use supported ChatGPT, Claude and Gemini sign-in options. Available features and setup differ by provider, and provider charges or plan limits apply. [Accounts and pricing](/pricing).",
+  },
+  "what-does-agent-first-mean": {
+    question: "Can I edit what the agent creates?",
+    answerMd: "Yes. The agent works in the same storyboards, timelines and workflows you can open yourself. Change a shot, trim a clip or adjust a node, then continue with or without the agent. [How the agent works](/agents).",
+  },
+};
+const homepageFaq = seeds
+  .filter((entry) => entry.slug in HOMEPAGE_FAQ_COPY)
+  .map((entry) => toPageEntry({ ...entry, ...HOMEPAGE_FAQ_COPY[entry.slug] }));
+
 /** FAQ rows grouped by category, in display order (empty groups dropped). */
 export const faqByCategory: { category: FaqCategory; label: string; items: FaqEntry[] }[] =
   CATEGORY_ORDER.map((category) => ({
@@ -353,7 +372,9 @@ export function getFaq(slug: string): FaqEntry | undefined {
 
 /** Rows pinned to a given inline surface (landing, comparison, model pages). */
 export function faqForSurface(surface: FaqSurface): FaqEntry[] {
-  return faqEntries.filter((e) => e.surfaces.includes(surface));
+  return surface === "landing"
+    ? homepageFaq
+    : faqEntries.filter((e) => e.surfaces.includes(surface));
 }
 
 /**
