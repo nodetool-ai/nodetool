@@ -1,5 +1,5 @@
 import React from "react";
-import { Download, Hand, KeyRound, ScrollText } from "lucide-react";
+import { Download, Hand, KeyRound, ScrollText, type LucideIcon } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import FaqBlock from "../../components/FaqBlock";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
@@ -19,10 +19,10 @@ import {
 } from "@/data/agentsPage";
 
 const CONTROL_ICONS = {
-  "A full record": ScrollText,
-  "Your hands": Hand,
-  "Your keys": KeyRound,
-} as const;
+  record: ScrollText,
+  manual: Hand,
+  keys: KeyRound,
+} satisfies Record<(typeof CONTROLS)[number]["id"], LucideIcon>;
 
 const primaryButtonClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
@@ -234,11 +234,11 @@ export default function AgentsPage() {
             body="Read what the agent did, and take the work back at any point."
           />
           <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 md:grid-cols-3">
-            {CONTROLS.map(({ title, body }) => {
-              const Icon = CONTROL_ICONS[title as keyof typeof CONTROL_ICONS];
+            {CONTROLS.map(({ id, title, body }) => {
+              const Icon = CONTROL_ICONS[id];
               return (
               <li
-                key={title}
+                key={id}
                 className="border-slate-800 p-7 [&:not(:first-child)]:border-t md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-t-0 lg:p-9"
               >
                 <Icon className="h-5 w-5 text-blue-300" aria-hidden />

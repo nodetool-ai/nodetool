@@ -57,18 +57,21 @@ export const VALIDATION_NOTE =
 /** Models and keys are on the page once, in its SpecStrip. */
 export const CONTROLS = [
   {
+    id: "record",
     title: "A full record",
     body: "Read each tool call with its arguments, result, and error. Find the step that went wrong.",
   },
   {
+    id: "manual",
     title: "Take over at any time",
     body: "Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.",
   },
   {
+    id: "keys",
     title: "Your keys",
     body: "Studio asks you to add any missing API keys. Runs started without the interface stop with an error if a required key is missing.",
   },
-];
+] as const;
 
 export const APPROVAL_MODES = [
   {
