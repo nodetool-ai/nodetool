@@ -2257,6 +2257,10 @@ browser tools:
   absolute path on the local NodeTool server. It returns the asset ID and URI.
 - **`download_asset`** — return an owned asset's bytes as base64, or write them
   to an absolute path on the local NodeTool server. Remote MCP sessions use base64.
+- **`open_app`** — open a mini app. It links to the `ui://nodetool/mini-app.html`
+  renderer, so an MCP Apps host shows the app's screen. The page runs operations
+  through the app-only `run_app_operation` and `poll_app_run` tools. See
+  [Mini apps in the host](mcp-server.md#mini-apps-in-the-host).
 
 Inside `execute_code`, `import_asset` accepts an HTTP(S) URL or an absolute
 server-local path on a local MCP connection. It returns an `asset://` URI,

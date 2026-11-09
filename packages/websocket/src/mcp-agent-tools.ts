@@ -99,6 +99,8 @@ import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import { isRecord, isString } from "./lib/wire-values.js";
 import { registerSkillPrompts } from "./mcp-skill-prompts.js";
+import { registerMiniAppMcpTools, MINI_APP_TOOL_NAMES } from "./mcp-apps.js";
+import { getWorkflowRuntimeEnvironment } from "./http-api.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 const execFile = promisify(execFileCallback);
@@ -1428,6 +1430,14 @@ export function registerAgentMcpTools(
     );
   }
 
+  // Mini apps as MCP Apps: `open_app` shows the app's screen in the host.
+  registerMiniAppMcpTools(server, {
+    userId: scope.userId,
+    context,
+    registry: async () =>
+      options.registry ?? (await getWorkflowRuntimeEnvironment(options)).registry
+  });
+
   void registerSkillPrompts(
     server,
     scope.userId,
@@ -1441,7 +1451,8 @@ export function registerAgentMcpTools(
       session.providerTool.name,
       ...(viewImage ? ["view_image"] : []),
       "upload_asset",
-      "download_asset"
+      "download_asset",
+      ...MINI_APP_TOOL_NAMES
     ],
     beltSize: belt.length
   });
