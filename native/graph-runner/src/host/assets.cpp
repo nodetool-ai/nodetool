@@ -45,9 +45,9 @@
 //   read(key)            -> Uint8Array, or null when missing
 //   readAsync(key)       -> as read, as a promise on the I/O lane while a run is bound
 //   bound()              -> whether a run is bound
-#include "host/capabilities.h"
 #include "host/asset_destinations.h"
 #include "host/assets.h"
+#include "host/capabilities.h"
 #include "host/file_jobs.h"
 #include "host/paths.h"
 #include "host/unique_fd.h"
@@ -65,6 +65,9 @@
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
+
+using nodetool::jobs::JobCost;
+using nodetool::jobs::JobOutcome;
 
 namespace gr::host {
 
@@ -279,18 +282,18 @@ struct Assets {
 // Thread affinity: worker only, for the length of one host function call.
 struct Submission {
   AsyncRun& run;
-  JobExecutor& io;
-  Reservation reservation;
+  nodetool::jobs::JobExecutor& io;
+  nodetool::jobs::Reservation reservation;
 };
 
 Submission begin(const RunBinding& binding) {
   AsyncRun* run = binding.run();
-  JobExecutor* io = binding.io();
+  nodetool::jobs::JobExecutor* io = binding.io();
   if (!run || !io) throw std::runtime_error("asynchronous asset operations need a running graph");
   return Submission{*run, *io, run->reserve()};
 }
 
-std::string keyArg(js::Engine& en, Args a, Reservation& reservation) {
+std::string keyArg(js::Engine& en, Args a, nodetool::jobs::Reservation& reservation) {
   if (a.empty() || !en.isString(a[0])) throw std::invalid_argument("Invalid storage key: the key must be a string");
   return snapshotString(en, a[0], "key", reservation);
 }
@@ -385,12 +388,13 @@ void installAssets(js::Engine& e, const js::Value& object, const HostOptions& op
     Submission s = begin(*binding);
     std::string name = keyArg(en, a, s.reservation);
     auto job = makeAssetRemoveJob(processDestinationQueue(), s.io, store->roots, std::move(name));
-    return s.run.submit(s.io, std::move(job),
-                        [](js::Engine& engine, JobPayload* payload) {
-                          auto* removed = dynamic_cast<AssetRemoved*>(payload);
-                          return engine.boolean(removed && removed->removed);
-                        },
-                        true, std::move(s.reservation));
+    return s.run.submit(
+        s.io, std::move(job),
+        [](js::Engine& engine, nodetool::jobs::JobPayload* payload) {
+          auto* removed = dynamic_cast<AssetRemoved*>(payload);
+          return engine.boolean(removed && removed->removed);
+        },
+        true, std::move(s.reservation));
   }));
   e.set(object, "statAsync", e.function("statAsync", 1, [store, binding](js::Engine& en, Args a) {
     Submission s = begin(*binding);

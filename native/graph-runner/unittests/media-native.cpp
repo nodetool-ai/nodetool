@@ -73,7 +73,8 @@ int main(int argc, char **argv) {
     gr::CancelState cancelState;
     const uint64_t generation = cancelState.beginRun();
     auto lanes = gr::processHostLanes({});
-    gr::AsyncRun async(*engine, loop, std::make_shared<gr::RunnerTracker>(),
+    gr::AsyncRun async(*engine, loop,
+                       std::make_shared<nodetool::jobs::RunnerTracker>(),
                        generation, lanes->cpu());
     {
       gr::RunBinding::Scope bound(*engine, async, lanes->io());

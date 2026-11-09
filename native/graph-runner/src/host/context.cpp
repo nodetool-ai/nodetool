@@ -109,7 +109,7 @@ void installContext(js::Engine& e, const js::Value& object, const ContextOptions
     // The request's bytes are charged to the run before they are copied
     // (design section 4.7). A string longer than the payload limit fails
     // before its copy as well.
-    Reservation reservation = run ? run->reserve() : Reservation{};
+    nodetool::jobs::Reservation reservation = run ? run->reserve() : nodetool::jobs::Reservation{};
     std::string input;
     if (run && en.isString(args[1])) {
       const uint64_t bound = stringBytesBound(en, args[1], "Context payload");
@@ -121,7 +121,7 @@ void installContext(js::Engine& e, const js::Value& object, const ContextOptions
     }
     rules->checkRequestSize(input.size());
     if (!run) throw std::runtime_error("Asynchronous context calls need a running graph");
-    JobExecutor& io = *binding->io();
+    nodetool::jobs::JobExecutor& io = *binding->io();
     // Cleanup keeps running through the run's cancellation; every other call
     // rejects with an AbortError when the cancellation begins.
     const bool cancellable = !ContextCallRules::isCleanup(operation);

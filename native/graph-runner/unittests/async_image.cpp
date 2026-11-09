@@ -12,13 +12,13 @@
 #include "host/capabilities.h"
 #include "host/image_jobs.h"
 #include "js/engine.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
 #include "kernel/host_lanes.h"
 #include "kernel/run_control.h"
 #include "kernel/task.h"
 #include "nodetool/graph_runner.h"
+#include "nodetool/jobs/admission.h"
 
 #include <atomic>
 #include <chrono>
@@ -37,17 +37,17 @@
 
 namespace {
 
-using gr::AdmissionLedger;
 using gr::AsyncRun;
 using gr::CancelState;
-using gr::JobCost;
-using gr::JobOutcome;
-using gr::LedgerUsage;
 using gr::Loop;
 using gr::RunExit;
-using gr::RunnerLimits;
-using gr::RunnerTracker;
 using gr::ThreadPoolExecutor;
+using nodetool::jobs::AdmissionLedger;
+using nodetool::jobs::JobCost;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::LedgerUsage;
+using nodetool::jobs::RunnerLimits;
+using nodetool::jobs::RunnerTracker;
 namespace js = gr::js;
 using Clock = std::chrono::steady_clock;
 using std::chrono::milliseconds;
@@ -151,9 +151,9 @@ struct GateProbe {
 // with the stop token the lane gave it. Its cost is the inner job's.
 //
 // Thread affinity: the lane thread that runs it.
-class GatedJob final : public gr::NativeJob {
+class GatedJob final : public nodetool::jobs::NativeJob {
 public:
-  GatedJob(std::shared_ptr<GateProbe> probe, std::unique_ptr<gr::NativeJob> inner = {})
+  GatedJob(std::shared_ptr<GateProbe> probe, std::unique_ptr<nodetool::jobs::NativeJob> inner = {})
       : probe_(std::move(probe)), inner_(std::move(inner)) {}
   JobCost cost() const override { return inner_ ? inner_->cost() : JobCost{}; }
   JobOutcome run(std::stop_token stop) override {
@@ -167,7 +167,7 @@ public:
 
 private:
   std::shared_ptr<GateProbe> probe_;
-  std::unique_ptr<gr::NativeJob> inner_;
+  std::unique_ptr<nodetool::jobs::NativeJob> inner_;
 };
 
 // Waits until `predicate` holds or `timeout` passes.
@@ -193,7 +193,7 @@ struct Harness {
   std::unique_ptr<js::Engine> engine = js::createQuickJsEngine();
   Loop& loop = Loop::current();
   std::shared_ptr<AdmissionLedger> ledger = std::make_shared<AdmissionLedger>();
-  std::shared_ptr<gr::RunnerAccount> runner;
+  std::shared_ptr<nodetool::jobs::RunnerAccount> runner;
   CancelState cancel;
   std::shared_ptr<RunnerTracker> tracker = std::make_shared<RunnerTracker>();
   gr::host::RunIdentity identity;
@@ -550,7 +550,7 @@ void failuresRejectAndRelease(Suite& t) {
 void specsAreBoundedBeforeAllocation(Suite& t) {
   ThreadPoolExecutor cpu("cpu", 1);
   RunnerLimits limits;
-  limits.runBytes = 512 * gr::kKiB;
+  limits.runBytes = 512 * nodetool::jobs::kKiB;
   Harness h(cpu, limits);
   h.beginRun();
   h.eval(R"JS(
@@ -605,10 +605,10 @@ void specsAreBoundedBeforeAllocation(Suite& t) {
 void admissionRejectsBeforeTheCopy(Suite& t) {
   ThreadPoolExecutor cpu("cpu", 1);
   RunnerLimits limits;
-  limits.runBytes = gr::kMiB;
+  limits.runBytes = nodetool::jobs::kMiB;
   Harness h(cpu, limits);
   h.beginRun();
-  CHECK(gr::host::pngJobCost(256, 256).total() > gr::kMiB);
+  CHECK(gr::host::pngJobCost(256, 256).total() > nodetool::jobs::kMiB);
   const std::string big = h.str("attempt(() => __host.image.encodePngAsync(new Uint8Array(1024 * 1024 * 4), 1024, 1024))");
   const std::string canvas = h.str("attempt(() => __host.canvas.create(1024, 1024).encodePng())");
   const std::string costly = h.str("attempt(() => __host.image.encodePngAsync(new Uint8Array(256 * 256 * 4), 256, 256))");

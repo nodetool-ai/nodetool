@@ -1,6 +1,8 @@
-// Step 1 of docs/plans/graph-runner-async-host.md: the run mailbox, the
-// settler registry, the cancellation snapshot, the loop's normal and
-// cancellation modes, the runner tracker and the inline bridge.
+// Step 1 of docs/plans/graph-runner-async-host.md: the run mailbox's wakes of
+// the loop, the settler registry, the cancellation snapshot, the loop's
+// normal and cancellation modes and the inline bridge. The runner tracker and
+// the mailbox's deliver/close races are tested with the job core
+// (native/jobs/tests/job_core.cpp).
 //
 // `nativeEcho(text)` below is a test-only host function. It submits a native
 // job that resolves its promise with `text`.
@@ -46,14 +48,14 @@ int checks = 0;
 using gr::AsyncRun;
 using gr::CancelSnapshot;
 using gr::CancelState;
-using gr::JobOutcome;
-using gr::JobPayload;
-using gr::JobResult;
 using gr::Loop;
 using gr::RunExit;
-using gr::RunMailbox;
-using gr::RunnerTracker;
 using gr::Task;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::JobPayload;
+using nodetool::jobs::JobResult;
+using nodetool::jobs::RunMailbox;
+using nodetool::jobs::RunnerTracker;
 namespace js = gr::js;
 using Clock = std::chrono::steady_clock;
 using std::chrono::milliseconds;
@@ -108,9 +110,9 @@ struct TextPayload final : JobPayload {
 };
 
 // Keeps submitted jobs so a test can run them later, on any thread.
-struct HeldExecutor final : gr::JobExecutor {
-  std::vector<gr::SubmittedJob> jobs;
-  void submit(gr::SubmittedJob job) override { jobs.push_back(std::move(job)); }
+struct HeldExecutor final : nodetool::jobs::JobExecutor {
+  std::vector<nodetool::jobs::SubmittedJob> jobs;
+  void submit(nodetool::jobs::SubmittedJob job) override { jobs.push_back(std::move(job)); }
 };
 
 // One engine with the test host functions: nativeEcho(text) and note(text),
@@ -129,13 +131,12 @@ struct Fixture {
           e.function("nativeEcho", 1, [this](js::Engine& en, const std::vector<js::Value>& a) {
             std::string text = en.toString(a.at(0));
             auto disposals = this->disposals;
-            return run->submit(
-                gr::makeJob([text, disposals](std::stop_token) {
-                  return JobOutcome::value(std::make_unique<TextPayload>(text, disposals));
-                }),
-                [](js::Engine& en2, JobPayload* payload) {
-                  return en2.string(static_cast<TextPayload*>(payload)->text);
-                });
+            return run->submit(nodetool::jobs::makeJob([text, disposals](std::stop_token) {
+                                 return JobOutcome::value(std::make_unique<TextPayload>(text, disposals));
+                               }),
+                               [](js::Engine& en2, JobPayload* payload) {
+                                 return en2.string(static_cast<TextPayload*>(payload)->text);
+                               });
           }));
     // native-rules #12: lambda captures raw this and is stored in the engine, runs later
     e.set(e.global(), "note", e.function("note", 1, [this](js::Engine& en, const std::vector<js::Value>& a) {
@@ -227,94 +228,6 @@ JobResult textResult(uint64_t id, std::string text, std::shared_ptr<Disposals> d
   result.id = id;
   result.outcome = JobOutcome::value(std::make_unique<TextPayload>(std::move(text), std::move(disposals)));
   return result;
-}
-
-// --- mailbox ------------------------------------------------------------------
-
-// Gate: deliver/close races. Every result is destroyed exactly once: by the
-// worker when it took the result or closed the mailbox, or by the delivering
-// thread, before deliver returns, when the mailbox was already closed. The
-// loop is destroyed right after close, so a wake after close would touch
-// freed memory (reported under ThreadSanitizer).
-void mailboxDeliverCloseRaces() {
-  constexpr int kThreads = 8;
-  constexpr int kPerThread = 32;
-  constexpr int kRounds = 300;
-  constexpr int kTotal = kThreads * kPerThread;
-  auto tracker = std::make_shared<RunnerTracker>();
-  std::mt19937 random(7);
-  int wrongThread = 0, notOnce = 0, lost = 0, earlyRejectsSeen = 0, acceptedAfterClose = 0;
-  for (int round = 0; round < kRounds; ++round) {
-    struct Slot {
-      std::atomic<int> destroyed{0};
-      std::atomic<std::thread::id> where{};
-      std::atomic<bool> accepted{false};
-      std::atomic<bool> rejectedInline{false};
-    };
-    struct Probe final : JobPayload {
-      explicit Probe(Slot& s) : slot(s) {}
-      ~Probe() override {
-        slot.where = std::this_thread::get_id();
-        ++slot.destroyed;
-      }
-      Slot& slot;
-    };
-    std::vector<Slot> slots(kTotal);
-    auto loop = std::make_unique<Loop>();
-    auto mailbox = std::make_shared<RunMailbox>(*loop);
-    std::barrier start(kThreads + 1);
-    std::vector<std::thread> threads;
-    for (int t = 0; t < kThreads; ++t) {
-      threads.emplace_back([&, t] {
-        start.arrive_and_wait();
-        for (int k = 0; k < kPerThread; ++k) {
-          const int index = t * kPerThread + k;
-          JobResult result;
-          result.ticket = tracker->acquire(static_cast<uint64_t>(round));
-          result.id = static_cast<uint64_t>(index);
-          result.outcome = JobOutcome::value(std::make_unique<Probe>(slots[index]));
-          const bool accepted = mailbox->deliver(std::move(result));
-          slots[index].accepted = accepted;
-          if (!accepted) {
-            slots[index].rejectedInline =
-                slots[index].destroyed == 1 && slots[index].where.load() == std::this_thread::get_id();
-          }
-        }
-      });
-    }
-    const int closeAfter = std::uniform_int_distribution<int>(0, kTotal)(random);
-    start.arrive_and_wait();
-    int taken = 0;
-    while (taken < closeAfter) {
-      if (auto result = mailbox->take()) ++taken;
-    }
-    mailbox->close();
-    loop.reset();
-    for (auto& thread : threads) thread.join();
-    if (mailbox->deliver(textResult(0, "late", nullptr))) ++acceptedAfterClose;
-    if (mailbox->take()) ++lost;
-    const auto worker = std::this_thread::get_id();
-    int accepted = 0;
-    for (auto& slot : slots) {
-      if (slot.destroyed != 1) ++notOnce;
-      if (slot.accepted) {
-        ++accepted;
-        if (slot.where.load() != worker) ++wrongThread;
-      } else {
-        if (!slot.rejectedInline) ++wrongThread;
-        ++earlyRejectsSeen;
-      }
-    }
-    if (accepted < taken) ++lost;
-    if (tracker->outstanding(static_cast<uint64_t>(round)) != 0) ++lost;
-  }
-  CHECK(notOnce == 0);
-  CHECK(wrongThread == 0);
-  CHECK(lost == 0);
-  CHECK(acceptedAfterClose == 0);
-  CHECK(tracker->outstanding() == 0);
-  // The races happened: some deliveries met a closed mailbox.
-  CHECK(earlyRejectsSeen > 0);
 }
 
 // --- wake protocol ------------------------------------------------------------
@@ -721,7 +634,7 @@ void timersAlternateWithCompletions() {
   CancelState state;
   const uint64_t gen = state.beginRun();
   auto tracker = std::make_shared<RunnerTracker>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
   f.run = &async;
   f.eval("for (let i = 1; i <= 5; i++) nativeEcho('R' + i).then(note);");
@@ -758,7 +671,7 @@ void firstContendedTurnFiresTimer() {
   CancelState state;
   const uint64_t gen = state.beginRun();
   auto tracker = std::make_shared<RunnerTracker>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
   f.run = &async;
   loop.setTimer(milliseconds(0), [&] {
@@ -783,7 +696,7 @@ void normalModeDrainsMicrotasksBeforeMacrotasks() {
   CancelState state;
   const uint64_t gen = state.beginRun();
   auto tracker = std::make_shared<RunnerTracker>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
   f.run = &async;
   f.eval(R"(
@@ -921,7 +834,7 @@ void deadlineWithContinuouslyReadySteps() {
   CancelState state;
   const uint64_t gen = state.beginRun();
   auto tracker = std::make_shared<RunnerTracker>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
   long steps = 0;
   auto task = tickForever(steps);
@@ -956,7 +869,7 @@ void deadlineWithContinuousMicrotasks() {
   CancelState state;
   const uint64_t gen = state.beginRun();
   auto tracker = std::make_shared<RunnerTracker>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
   f.eval("globalThis.spins = 0; globalThis.spin = () => { spins++; Promise.resolve().then(spin); }; spin();");
   long steps = 0;
@@ -1007,7 +920,7 @@ void doneAndStalledExits() {
   // Stalled: nothing is left and the task is unfinished.
   {
     const uint64_t gen = state.beginRun();
-    gr::InlineExecutor inlineJobs;
+    nodetool::jobs::InlineExecutor inlineJobs;
     AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
     gr::Signal never;
     auto parked = [&]() -> Task<void> { co_await never.wait(); };
@@ -1049,7 +962,7 @@ void doneAndStalledExits() {
   // nothing is left.
   {
     const uint64_t gen = state.beginRun();
-    gr::InlineExecutor inlineJobs;
+    nodetool::jobs::InlineExecutor inlineJobs;
     AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
     state.request(gen, Clock::now() + std::chrono::seconds(30));
     gr::EngineRunControl control(*f.engine, async, state, gen, [] { return false; });
@@ -1143,7 +1056,7 @@ void engineReuseIgnoresLateResult() {
   CHECK(tracker->outstanding(first) == 1);
 
   const uint64_t second = state.beginRun();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   bool lateAccepted = true;
   std::thread::id lateThread;
   {
@@ -1184,18 +1097,18 @@ void settlersRejectAndDispose() {
   CancelState state;
   const uint64_t gen = state.beginRun();
   auto tracker = std::make_shared<RunnerTracker>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   AsyncRun async(*f.engine, loop, tracker, gen, inlineJobs);
   f.eval("globalThis.out = [];");
   auto record = [&](const js::Value& promise) {
     f.engine->set(f.engine->global(), "p", promise);
     f.eval("p.then((v) => out.push('ok:' + v), (e) => out.push(e.name + ':' + e.message));");
   };
-  record(async.submit(gr::makeJob([](std::stop_token) { return JobOutcome::failure("disk full"); }), {}));
-  record(async.submit(gr::makeJob([](std::stop_token) { return JobOutcome::stopped(); }), {}));
-  record(async.submit(gr::makeJob([](std::stop_token) -> JobOutcome { throw std::runtime_error("threw"); }),
+  record(async.submit(nodetool::jobs::makeJob([](std::stop_token) { return JobOutcome::failure("disk full"); }), {}));
+  record(async.submit(nodetool::jobs::makeJob([](std::stop_token) { return JobOutcome::stopped(); }), {}));
+  record(async.submit(nodetool::jobs::makeJob([](std::stop_token) -> JobOutcome { throw std::runtime_error("threw"); }),
                       {}));
-  record(async.submit(gr::makeJob([d = f.disposals](std::stop_token) {
+  record(async.submit(nodetool::jobs::makeJob([d = f.disposals](std::stop_token) {
                         return JobOutcome::value(std::make_unique<TextPayload>("bad", d));
                       }),
                       [](js::Engine&, JobPayload*) -> js::Value { throw std::runtime_error("cannot convert"); }));
@@ -1214,33 +1127,6 @@ void settlersRejectAndDispose() {
 }
 
 // The tracker counts per run and wakes a waiter when the last ticket goes.
-void trackerCountsAndWaits() {
-  auto tracker = std::make_shared<RunnerTracker>();
-  CHECK(tracker->waitIdle(Clock::now()));
-  auto a = tracker->acquire(1);
-  auto b = tracker->acquire(2);
-  CHECK(tracker->outstanding() == 2 && tracker->outstanding(1) == 1);
-  CHECK(!tracker->waitIdle(Clock::now() + milliseconds(10)));
-  std::thread releaser([a = std::move(a), b = std::move(b)]() mutable {
-    std::this_thread::sleep_for(milliseconds(30));
-    a = {};
-    b = {};
-  });
-  const auto waitStart = Clock::now();
-  CHECK(tracker->waitIdle(Clock::now() + std::chrono::seconds(3)));
-  // The last release wakes the waiter. It does not wait out the deadline.
-  CHECK(msSince(waitStart) < 1000);
-  releaser.join();
-  CHECK(tracker->outstanding() == 0);
-  // A ticket keeps the tracker alive after its owner lets go.
-  std::weak_ptr<RunnerTracker> weak = tracker;
-  auto held = tracker->acquire(3);
-  tracker.reset();
-  CHECK(!weak.expired());
-  held = {};
-  CHECK(weak.expired());
-}
-
 // drainJobs(limit) runs exactly that many jobs.
 void drainJobsHonoursLimit() {
   auto e = js::createQuickJsEngine();
@@ -1258,8 +1144,6 @@ int main() {
   startWatchdog();
   std::vector<std::pair<const char*, std::function<void()>>> tests = {
       {"drainJobsHonoursLimit", drainJobsHonoursLimit},
-      {"trackerCountsAndWaits", trackerCountsAndWaits},
-      {"mailboxDeliverCloseRaces", mailboxDeliverCloseRaces},
       {"wakeBeforeWaitWithoutTimer", wakeBeforeWaitWithoutTimer},
       {"wakeDuringWaitWithoutTimer", wakeDuringWaitWithoutTimer},
       {"cancelStatePublishesCoherently", cancelStatePublishesCoherently},

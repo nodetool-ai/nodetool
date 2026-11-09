@@ -21,10 +21,10 @@
 #include "host/http.h"
 #include "host/paths.h"
 #include "js/engine.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/destination_queue.h"
 #include "kernel/host_lanes.h"
+#include "nodetool/jobs/admission.h"
 #include "resource_test_support.h"
 
 #include <arpa/inet.h>
@@ -130,8 +130,8 @@ size_t temporaries(const std::string& dir) {
 // Thread affinity: the test thread.
 struct Host {
   TempDir dir;
-  std::shared_ptr<gr::AdmissionLedger> ledger = std::make_shared<gr::AdmissionLedger>();
-  std::shared_ptr<gr::RunnerAccount> runner = ledger->openRunner();
+  std::shared_ptr<nodetool::jobs::AdmissionLedger> ledger = std::make_shared<nodetool::jobs::AdmissionLedger>();
+  std::shared_ptr<nodetool::jobs::RunnerAccount> runner = ledger->openRunner();
   std::unique_ptr<js::Engine> engine = js::createQuickJsEngine();
 
   explicit Host(gr::host::FileJobHooks hooks = {}) {
@@ -195,16 +195,16 @@ const settled = (...names) => names.every((n) => results[n] !== undefined && res
   static std::string quote(const std::string& s) { return "'" + s + "'"; }
   // Nothing of the ledger is charged: every reservation was released.
   bool released() const {
-    const gr::LedgerUsage u = ledger->usage();
+    const nodetool::jobs::LedgerUsage u = ledger->usage();
     return u.bytes == 0 && u.operations == 0 && u.deferredBytes == 0 && u.deferredEntries == 0;
   }
 };
 
 // Holds a lane's only thread until released.
-std::unique_ptr<gr::NativeJob> blocker(std::shared_ptr<Gate> gate) {
-  return gr::makeJob([gate](std::stop_token) {
+std::unique_ptr<nodetool::jobs::NativeJob> blocker(std::shared_ptr<Gate> gate) {
+  return nodetool::jobs::makeJob([gate](std::stop_token) {
     gate->wait();
-    return gr::JobOutcome::value(nullptr);
+    return nodetool::jobs::JobOutcome::value(nullptr);
   });
 }
 
@@ -278,11 +278,11 @@ void readFileOfAGrowingFile(Suite& t) {
   // Appends to the file before each job it runs, then runs it inline.
   //
   // Thread affinity: the test thread, which runs every job.
-  struct Growing final : gr::JobExecutor {
+  struct Growing final : nodetool::jobs::JobExecutor {
     std::string path;
     bool grow = false;
-    gr::InlineExecutor inner;
-    void submit(gr::SubmittedJob job) override {
+    nodetool::jobs::InlineExecutor inner;
+    void submit(nodetool::jobs::SubmittedJob job) override {
       if (grow) std::ofstream(path, std::ios::binary | std::ios::app) << "+more";
       inner.submit(std::move(job));
     }
@@ -427,7 +427,7 @@ void removalMemoryIsBounded(Suite& t) {
   // removal is submitted. Shared with the hook, which runs on a lane thread
   // for the asynchronous removal and on this thread for the synchronous one.
   struct Probe {
-    std::shared_ptr<gr::AdmissionLedger> ledger;
+    std::shared_ptr<nodetool::jobs::AdmissionLedger> ledger;
     std::atomic<uint64_t> reserved{0};
     std::atomic<int> batches{0};
     // Set for the synchronous removal.
@@ -589,7 +589,7 @@ track('lateClose', () => f.closeHandleAsync(handle));
 )JS");
     // Three reads of 2 bytes, each charging its 4-byte path too, and the
     // close: four operations.
-    const gr::LedgerUsage queued = h.ledger->usage();
+    const nodetool::jobs::LedgerUsage queued = h.ledger->usage();
     CHECK(queued.operations == 4);
     CHECK(queued.bytes == 3 * (2 + 4));
     CHECK(descriptors() == baseline + 1);
@@ -661,7 +661,7 @@ void closeAbortStress(Suite& t) {
   Host h;
   writeText(h.dir.path("ws/data"), "ABCDEFGH");
   const size_t baseline = descriptors();
-  auto tracker = std::make_shared<gr::RunnerTracker>();
+  auto tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
   int bad = 0, aborted = 0, completed = 0;
   for (int round = 0; round < 40; ++round) {
     BoundRun run(*h.engine, io, nullptr, h.runner->openRun(), tracker);
@@ -798,7 +798,7 @@ void commitCancellation(Suite& t) {
 void sameKeyAcrossRunTeardown(Suite& t) {
   ThreadPoolExecutor io("io", 2);
   Host h;
-  auto tracker = std::make_shared<gr::RunnerTracker>();
+  auto tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
   {
     BoundRun first(*h.engine, io, nullptr, h.runner->openRun(), tracker);
     h.eval("track('kept', () => a.writeAsync('kept.bin', enc('A')));");
@@ -833,7 +833,7 @@ void sameKeyAcrossRunTeardown(Suite& t) {
 // `size` bytes of `byte` to `key`, each awaited.
 int childWriter(const std::string& assetDir, const std::string& key, char byte, int count, size_t size) {
   ThreadPoolExecutor io("io", 2);
-  auto ledger = std::make_shared<gr::AdmissionLedger>();
+  auto ledger = std::make_shared<nodetool::jobs::AdmissionLedger>();
   auto engine = js::createQuickJsEngine();
   gr::HostOptions options;
   options.assetDir = assetDir;
@@ -1047,8 +1047,8 @@ const gr::host::HttpFetchPolicy kLoopback{"http", loopbackUrl, loopbackAddress};
 
 // Submits a fetch of `url` under `policy` to `network`, as getAsync does,
 // and records its settlement under `name`.
-void fetchInto(Host& h, BoundRun& run, gr::JobExecutor& network, const std::string& name, const std::string& url,
-               gr::host::HttpFetchPolicy policy) {
+void fetchInto(Host& h, BoundRun& run, nodetool::jobs::JobExecutor& network, const std::string& name,
+               const std::string& url, gr::host::HttpFetchPolicy policy) {
   auto convert = [](gr::ResultConversion& conversion) -> js::Value {
     auto* r = dynamic_cast<gr::host::HttpResponse*>(conversion.payload());
     std::string text = std::to_string(r->status) + " " + r->contentType + " " +
@@ -1176,7 +1176,7 @@ void syncAndAsyncWritesShareTheQueue(Suite& t) {
 void syncWriteBesideADeferredWrite(Suite& t) {
   ThreadPoolExecutor io("io", 2);
   Host h;
-  gr::RunnerLimits limits;
+  nodetool::jobs::RunnerLimits limits;
   limits.runOperations = 1;
   auto limited = h.ledger->openRunner(limits);
   {
@@ -1245,7 +1245,7 @@ void failureDisposal(Suite& t) {
   Host h;
   writeText(h.dir.path("ws/data"), "ABCDEFGH");
   const size_t baseline = descriptors();
-  auto tracker = std::make_shared<gr::RunnerTracker>();
+  auto tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
   {
     BoundRun run(*h.engine, io, nullptr, h.runner->openRun(), tracker);
     h.eval(R"JS(

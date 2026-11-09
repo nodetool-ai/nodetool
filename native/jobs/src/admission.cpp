@@ -1,10 +1,10 @@
-#include "kernel/admission.h"
+#include "nodetool/jobs/admission.h"
 
 #include <algorithm>
 #include <limits>
 #include <string>
 
-namespace gr {
+namespace nodetool::jobs {
 namespace {
 
 // Whether `used + add` exceeds `limit`, without overflowing.
@@ -558,4 +558,4 @@ bool Reservation::deferred() const {
   return hold_->deferred;
 }
 
-}  // namespace gr
+}  // namespace nodetool::jobs

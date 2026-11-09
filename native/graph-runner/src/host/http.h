@@ -50,7 +50,7 @@ struct HttpFetchPolicy {
 //
 // Thread affinity: none. Created on the network lane, it travels in its
 // JobResult to the worker, or is destroyed where its result is disposed.
-struct HttpResponse final : JobPayload {
+struct HttpResponse final : nodetool::jobs::JobPayload {
   long status = 0;
   std::string url;
   std::string contentType;
@@ -67,6 +67,6 @@ struct HttpResponse final : JobPayload {
 // about a second while data flows. It cannot end name resolution or connect,
 // which libcurl does not report progress for: those end at the 15 s connect
 // timeout at the latest. Without libcurl, the job fails.
-std::unique_ptr<NativeJob> makeHttpGetJob(std::string url, HttpFetchPolicy policy = {});
+std::unique_ptr<nodetool::jobs::NativeJob> makeHttpGetJob(std::string url, HttpFetchPolicy policy = {});
 
 }  // namespace gr::host

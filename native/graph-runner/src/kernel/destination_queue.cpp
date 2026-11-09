@@ -11,7 +11,7 @@ namespace gr {
 // Thread affinity: the executor thread that runs it, then the thread that
 // destroys it (that thread, a lane's reaper or the process disposer).
 // Ownership: unique, inside its SubmittedJob. It holds the queue's state.
-class DestinationQueue::StepJob final : public NativeJob {
+class DestinationQueue::StepJob final : public nodetool::jobs::NativeJob {
 public:
   StepJob(std::shared_ptr<State> state, std::string key, uint64_t place, std::unique_ptr<DestinationStep> step)
       : state_(std::move(state)), key_(std::move(key)), place_(place), step_(std::move(step)) {}
@@ -24,12 +24,12 @@ public:
     if (!done_) finished(state_, key_, place_);
   }
 
-  JobOutcome run(std::stop_token) override {
+  nodetool::jobs::JobOutcome run(std::stop_token) override {
     step_->run();
     step_.reset();
     done_ = true;
     finished(state_, key_, place_);
-    return JobOutcome::value(nullptr);
+    return nodetool::jobs::JobOutcome::value(nullptr);
   }
 
 private:
@@ -43,7 +43,7 @@ private:
 
 DestinationQueue::DestinationQueue(DestinationQueueHooks hooks) : state_(std::make_shared<State>(std::move(hooks))) {}
 
-DestinationQueue::Ticket DestinationQueue::enqueue(std::string key, JobExecutor& executor) {
+DestinationQueue::Ticket DestinationQueue::enqueue(std::string key, nodetool::jobs::JobExecutor& executor) {
   uint64_t place = 0;
   {
     std::lock_guard lock(state_->mutex);
@@ -79,8 +79,8 @@ size_t DestinationQueue::destinations() const {
 }
 
 void DestinationQueue::schedule(const std::shared_ptr<State>& state, const std::string& key) {
-  JobExecutor* executor = nullptr;
-  std::unique_ptr<NativeJob> job;
+  nodetool::jobs::JobExecutor* executor = nullptr;
+  std::unique_ptr<nodetool::jobs::NativeJob> job;
   {
     std::lock_guard lock(state->mutex);
     auto line = state->lines.find(key);
@@ -98,7 +98,8 @@ void DestinationQueue::schedule(const std::shared_ptr<State>& state, const std::
     executor = head.executor;
     job = std::make_unique<StepJob>(state, key, slots.begin()->first, std::move(head.step));
   }
-  executor->submit(SubmittedJob(0, std::move(job), nullptr, {}, RunnerTracker::Ticket{}));
+  executor->submit(
+      nodetool::jobs::SubmittedJob(0, std::move(job), nullptr, {}, nodetool::jobs::RunnerTracker::Ticket{}));
 }
 
 void DestinationQueue::finished(const std::shared_ptr<State>& state, const std::string& key, uint64_t place) {

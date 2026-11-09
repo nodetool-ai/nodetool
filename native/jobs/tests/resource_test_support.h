@@ -1,14 +1,18 @@
-// Shared by the rollout step 5 infrastructure tests (resource_control.cpp,
-// asset_destinations.cpp): the check counters, a watchdog, a gate, and one
-// run's mailbox side without an engine.
+// Shared by the resource control tests of this package and the graph
+// runner's rollout step 5 tests (native/graph-runner/unittests/
+// resource_control.cpp, asset_destinations.cpp, files_async.cpp and
+// media_async.cpp): the check counters, a watchdog, a gate, one run's
+// mailbox side without an engine, and test resource bodies.
 //
 // Helpers share state with other threads through shared pointers or
 // objects that outlive every thread they are handed to, which each test
 // joins before it returns (native/AGENTS.md rule 12).
 #pragma once
 
-#include "kernel/async_jobs.h"
-#include "kernel/task.h"
+#include "nodetool/jobs/job_core.h"
+#include "nodetool/jobs/resource_control.h"
+#include "nodetool/jobs/session_stop.h"
+#include "nodetool/jobs/wake_target.h"
 
 #include <atomic>
 #include <chrono>
@@ -138,7 +142,8 @@ struct Gate {
 };
 
 // One run's side of a job, without an engine: a mailbox, a tracker and a
-// stop source, as AsyncRun holds them.
+// stop source, as the graph runner's AsyncRun holds them. Results are
+// polled, so the mailbox's wake target records nothing.
 //
 // Thread affinity: submit() is thread-safe (atomic id, thread-safe mailbox
 // and tracker). drain() and the result maps belong to the thread that
@@ -146,15 +151,15 @@ struct Gate {
 class TestRun {
 public:
   struct Result {
-    gr::JobOutcome::Kind kind;
+    nodetool::jobs::JobOutcome::Kind kind;
     std::string error;
     // Whatever the test's payload says, when there was one.
     std::string text;
   };
 
   explicit TestRun(uint64_t run = 1)
-      : mailbox_(std::make_shared<gr::RunMailbox>(gr::Loop::current())),
-        tracker_(std::make_shared<gr::RunnerTracker>()),
+      : mailbox_(std::make_shared<nodetool::jobs::RunMailbox>(wake_)),
+        tracker_(std::make_shared<nodetool::jobs::RunnerTracker>()),
         run_(run) {}
   // Closes the mailbox, then waits until every job of the run is destroyed,
   // so a job a lane disposes later cannot outlive the test's lanes.
@@ -168,9 +173,9 @@ public:
   TestRun(const TestRun&) = delete;
   TestRun& operator=(const TestRun&) = delete;
 
-  uint64_t submit(gr::JobExecutor& executor, std::unique_ptr<gr::NativeJob> job) {
+  uint64_t submit(nodetool::jobs::JobExecutor& executor, std::unique_ptr<nodetool::jobs::NativeJob> job) {
     const uint64_t id = next_++;
-    executor.submit(gr::SubmittedJob(id, std::move(job), mailbox_, stop_.get_token(), tracker_->acquire(run_)));
+    executor.submit(nodetool::jobs::SubmittedJob(id, std::move(job), mailbox_, stop_.get_token(), tracker_->acquire(run_)));
     return id;
   }
   // Takes every waiting result.
@@ -179,7 +184,7 @@ public:
       ++counts_[result->id];
       order_.push_back(result->id);
       std::string text;
-      const gr::JobPayload* payload = result->outcome.payload.get();
+      const nodetool::jobs::JobPayload* payload = result->outcome.payload.get();
       if (auto* textPayload = dynamic_cast<const TextPayload*>(payload)) {
         text = textPayload->text;
       } else if (payload && describe) {
@@ -207,16 +212,16 @@ public:
   }
 
   // A Value payload carrying a string.
-  struct TextPayload final : gr::JobPayload {
+  struct TextPayload final : nodetool::jobs::JobPayload {
     explicit TextPayload(std::string t) : text(std::move(t)) {}
     std::string text;
   };
 
   // Describes a payload that is not a TextPayload, for result().text.
-  std::function<std::string(const gr::JobPayload&)> describe;
+  std::function<std::string(const nodetool::jobs::JobPayload&)> describe;
 
   std::stop_source& stop() { return stop_; }
-  gr::RunnerTracker& tracker() { return *tracker_; }
+  nodetool::jobs::RunnerTracker& tracker() { return *tracker_; }
   bool has(uint64_t id) const { return results_.count(id) != 0; }
   const Result& result(uint64_t id) const { return results_.at(id); }
   int count(uint64_t id) const {
@@ -227,10 +232,20 @@ public:
   size_t received() const { return order_.size(); }
 
 private:
+  // Nothing waits for a wake: drain() polls.
+  //
+  // Thread affinity: thread-safe, stateless.
+  struct NoWait final : nodetool::jobs::WakeTarget {
+    void wake() override {}
+  };
+
+  // Declared before the mailbox, which holds it until the destructor
+  // closes the mailbox.
+  NoWait wake_;
   // Shared with every job's delivery, as AsyncRun shares it.
-  std::shared_ptr<gr::RunMailbox> mailbox_;
+  std::shared_ptr<nodetool::jobs::RunMailbox> mailbox_;
   // Shared with every job's ticket.
-  std::shared_ptr<gr::RunnerTracker> tracker_;
+  std::shared_ptr<nodetool::jobs::RunnerTracker> tracker_;
   uint64_t run_;
   std::stop_source stop_;
   std::atomic<uint64_t> next_{1};
@@ -239,12 +254,85 @@ private:
   std::vector<uint64_t> order_;
 };
 
-inline gr::JobOutcome text(std::string value) {
-  return gr::JobOutcome::value(std::make_unique<TestRun::TextPayload>(std::move(value)));
+inline nodetool::jobs::JobOutcome text(std::string value) {
+  return nodetool::jobs::JobOutcome::value(std::make_unique<TestRun::TextPayload>(std::move(value)));
 }
 
 inline bool contains(const std::string& haystack, const std::string& needle) {
   return haystack.find(needle) != std::string::npos;
+}
+
+// What a test body reports, shared between the test and the body.
+//
+// Thread affinity: thread-safe. `mutex` guards `log` and `destroyedOn`.
+struct Probe {
+  std::mutex mutex;
+  std::vector<std::string> log;
+  std::thread::id destroyedOn;
+  std::atomic<int> destroyed{0};
+  std::atomic<int> running{0};
+  std::atomic<int> overlaps{0};
+  std::atomic<int> usedAfterDestroy{0};
+
+  void note(const std::string& entry) {
+    std::lock_guard lock(mutex);
+    log.push_back(entry);
+  }
+  std::vector<std::string> entries() {
+    std::lock_guard lock(mutex);
+    return log;
+  }
+  std::thread::id destroyer() {
+    std::lock_guard lock(mutex);
+    return destroyedOn;
+  }
+};
+
+// A wrapped resource that records its operations and its destruction.
+//
+// Thread affinity: `applied` is touched only by the control's active
+// operation. The probe is thread-safe.
+struct TestBody : nodetool::jobs::ResourceBody {
+  TestBody(std::shared_ptr<Probe> p, std::string n) : probe(std::move(p)), name(std::move(n)) {}
+  ~TestBody() override {
+    {
+      std::lock_guard lock(probe->mutex);
+      probe->destroyedOn = std::this_thread::get_id();
+      probe->log.push_back(name + " destroyed");
+    }
+    ++probe->destroyed;
+  }
+  // Shared with the test, which reads it after the body is gone.
+  std::shared_ptr<Probe> probe;
+  std::string name;
+  std::vector<std::string> applied;
+};
+
+// A body that wraps a library session with a stop bridge.
+struct SessionBody : TestBody {
+  SessionBody(std::shared_ptr<Probe> p, nodetool::jobs::SessionStopBridge::Wake wake = {})
+      : TestBody(std::move(p), "session"), bridge(std::move(wake)) {}
+  nodetool::jobs::SessionStopBridge* stopBridge() override { return &bridge; }
+  nodetool::jobs::SessionStopBridge bridge;
+};
+
+// An operation that records `tag`, checks it runs alone on a live body, and
+// returns `outcome` (Value with the tag by default).
+inline std::unique_ptr<nodetool::jobs::NativeJob> record(
+    const std::shared_ptr<nodetool::jobs::ResourceControl>& control, std::string tag,
+    nodetool::jobs::JobOutcome::Kind outcome = nodetool::jobs::JobOutcome::Kind::Value) {
+  return control->operation<TestBody>([tag, outcome](TestBody& body, nodetool::jobs::ResourceOperationContext&) {
+    if (body.probe->destroyed.load() != 0) ++body.probe->usedAfterDestroy;
+    if (body.probe->running.fetch_add(1) != 0) ++body.probe->overlaps;
+    body.applied.push_back(tag);
+    body.probe->note(tag);
+    std::this_thread::yield();
+    --body.probe->running;
+    if (outcome == nodetool::jobs::JobOutcome::Kind::Error) {
+      return nodetool::jobs::JobOutcome::failure(tag + " failed");
+    }
+    return text(tag);
+  });
 }
 
 }  // namespace step5

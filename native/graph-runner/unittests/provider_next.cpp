@@ -53,10 +53,10 @@ using gr::AsyncRun;
 using gr::CancelState;
 using gr::Loop;
 using gr::RunExit;
-using gr::RunnerTracker;
 using gr::host::ContextCompletion;
 using gr::host::ContextOptions;
 using gr::host::ProviderJobs;
+using nodetool::jobs::RunnerTracker;
 using Outcome = ProviderJobs::Outcome;
 using Kind = ProviderJobs::Outcome::Kind;
 namespace js = gr::js;
@@ -236,7 +236,7 @@ struct Harness {
   std::shared_ptr<CancelState> cancel = std::make_shared<CancelState>();
   std::shared_ptr<RunnerTracker> tracker = std::make_shared<RunnerTracker>();
   // The context's I/O lane. The caller keeps it alive.
-  gr::JobExecutor& io;
+  nodetool::jobs::JobExecutor& io;
   uint64_t generation = 0;
   // Shared with the grants' RunSource. May be null.
   std::shared_ptr<RunSlot> slot;
@@ -244,7 +244,7 @@ struct Harness {
   std::optional<AsyncRun> async;
   std::optional<gr::RunBinding::Scope> bound;
 
-  Harness(ContextOptions grants, gr::JobExecutor& lane, std::shared_ptr<RunSlot> runs = {},
+  Harness(ContextOptions grants, nodetool::jobs::JobExecutor& lane, std::shared_ptr<RunSlot> runs = {},
           const std::string& label = "run")
       : io(lane), slot(std::move(runs)) {
     auto granted = grants.cancelled;
@@ -802,7 +802,7 @@ void providerJobsNeverDestroysItsLane(Suite& t) {
 // disposer busy.
 //
 // Thread affinity: the thread that destroys it. The gates lock themselves.
-class DisposerBlocker final : public gr::NativeJob {
+class DisposerBlocker final : public nodetool::jobs::NativeJob {
 public:
   struct Gates {
     Gate entered;
@@ -813,7 +813,7 @@ public:
     gates_->entered.release();
     gates_->release.wait(milliseconds(10000));
   }
-  gr::JobOutcome run(std::stop_token) override { return gr::JobOutcome::value(nullptr); }
+  nodetool::jobs::JobOutcome run(std::stop_token) override { return nodetool::jobs::JobOutcome::value(nullptr); }
 
 private:
   std::shared_ptr<Gates> gates_;
@@ -825,7 +825,7 @@ void refusedProviderJobFailsBeforeDisposal(Suite& t) {
   // Blocks the process disposer with a refused job's blocking input.
   auto gates = std::make_shared<DisposerBlocker::Gates>();
   gr::ThreadPoolExecutor blocked("blocked", 1, [](bool reaper) { return !reaper; });
-  blocked.submit(gr::SubmittedJob(0, std::make_unique<DisposerBlocker>(gates), nullptr, {}, {}));
+  blocked.submit(nodetool::jobs::SubmittedJob(0, std::make_unique<DisposerBlocker>(gates), nullptr, {}, {}));
   CHECK(gates->entered.wait(milliseconds(5000)));
 
   auto ran = std::make_shared<std::atomic<int>>(0);
@@ -905,8 +905,8 @@ void stopCallbacksRunOnReaper(Suite& t) {
 
 // Attaching never throws, so a run or registry that records a lane before
 // attaching cannot detach an attachment that did not happen.
-static_assert(noexcept(std::declval<gr::JobExecutor&>().attach()));
-static_assert(noexcept(std::declval<gr::JobExecutor&>().detach()));
+static_assert(noexcept(std::declval<nodetool::jobs::JobExecutor&>().attach()));
+static_assert(noexcept(std::declval<nodetool::jobs::JobExecutor&>().detach()));
 
 // Runs `body` in a child process with its stderr captured in `err`. Returns
 // the signal that ended the child, 0 when it exited with status 0, or -1.
@@ -966,7 +966,10 @@ void lanesAbortWhenDestroyedInUse(Suite& t) {
         lane->shutdown(Clock::now());
         auto engine = js::createQuickJsEngine();
         AsyncRun async(*engine, Loop::current(), std::make_shared<RunnerTracker>(), 1, *lane);
-        async.submit(*lane, gr::makeJob([](std::stop_token) { return gr::JobOutcome::value(nullptr); }), {});
+        async.submit(*lane, nodetool::jobs::makeJob([](std::stop_token) {
+          return nodetool::jobs::JobOutcome::value(nullptr);
+        }),
+                     {});
         lane.reset();
       },
       runErr);

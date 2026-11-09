@@ -119,7 +119,7 @@ public:
   // A place at the end of `key`'s line, whose step runs on `executor`. The
   // executor must outlive the place: the process lanes and a runner's
   // InlineExecutor during its run do.
-  Ticket enqueue(std::string key, JobExecutor& executor);
+  Ticket enqueue(std::string key, nodetool::jobs::JobExecutor& executor);
   // A place in `key`'s line only when the line is empty, so the place is
   // its head at once; otherwise nothing. For an operation that must never
   // wait for another one, such as a synchronous asset write, which then
@@ -137,7 +137,7 @@ private:
     std::unique_ptr<DestinationStep> step;
     // Non-owning. See enqueue(). Null for a place that runs its step with
     // Ticket::runHere(), which is never submitted.
-    JobExecutor* executor = nullptr;
+    nodetool::jobs::JobExecutor* executor = nullptr;
     bool abandoned = false;
     // Submitted to its executor and not done.
     bool running = false;

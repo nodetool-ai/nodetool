@@ -15,7 +15,10 @@
  * command that configures it, and fails the run. A project with no changed
  * file of its own is checked only against a File API reply an earlier run
  * left, since it can still compile or load another project's files (the node
- * editor builds graph-runner). Such a project is never reconfigured.
+ * editor builds graph-runner). Such a project is never reconfigured. A
+ * project that lists another in `dependsOn` treats that project's changed
+ * files as its own, since it always builds them: graph-runner and the node
+ * editor build native/jobs.
  *
  * The dependency model of each test is read from the build directory:
  *
@@ -98,11 +101,14 @@ export const GUEST_INPUTS = [
  * `cacheVar` needs that step, as `scripts/check-native-graph-runner.mjs` runs it.
  * A step with `linkedTarget` is also needed by every test that links that
  * target, for tests that find the file through a compiled-in path.
+ * `dependsOn` names the projects whose sources the project's build compiles
+ * through add_subdirectory.
  */
 export const PROJECTS = {
   "graph-runner": {
     envVar: "NODETOOL_GRAPH_RUNNER_BUILD_DIR",
     configureArgs: ["-DCMAKE_BUILD_TYPE=Release"],
+    dependsOn: ["jobs"],
     prepare: [
       { cacheVar: "NODETOOL_GUEST_BUNDLE", label: "guest bundle", script: "native/graph-runner/guest/build.mjs" },
       { cacheVar: "NODETOOL_GPU_CATALOG", label: "GPU catalog", script: "native/graph-runner/guest/host/gpu-catalog.mjs" }
@@ -112,6 +118,7 @@ export const PROJECTS = {
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
   "node-editor": {
+    dependsOn: ["jobs"],
     prepare: [
       {
         cacheVar: "NODETOOL_GUEST_BUNDLE",
@@ -130,7 +137,8 @@ export function projectConfig(name) {
     envVar: config.envVar ?? `NODETOOL_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_BUILD_DIR`,
     configureArgs: config.configureArgs ?? [],
     prepare: config.prepare ?? [],
-    bundleInputs: config.bundleInputs ?? []
+    bundleInputs: config.bundleInputs ?? [],
+    dependsOn: config.dependsOn ?? []
   };
 }
 
@@ -715,8 +723,10 @@ export function ctestRegex(names) {
 }
 
 /** Whether a non-documentation file under native/<name>/ changed. */
+/** A changed file under the project, or under a project it depends on. */
 export function projectHasOwnChanges(name, files) {
-  return files.some((f) => under(f, `native/${name}`) && !DOC_ONLY.test(f));
+  const dirs = [name, ...projectConfig(name).dependsOn].map((dir) => `native/${dir}`);
+  return files.some((f) => dirs.some((dir) => under(f, dir)) && !DOC_ONLY.test(f));
 }
 
 /** Exit status for a plan: an unconfigured project with changes fails a run. */

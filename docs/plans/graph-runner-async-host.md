@@ -192,8 +192,8 @@ remaining synchronous native calls or inline execution.
 
 ### 4.7 Budget
 
-The admission ledger is `src/kernel/admission.h`. It is an owned object, not
-process state. An embedder creates one with `newAdmissionLedger` and passes
+The admission ledger is `native/jobs/include/nodetool/jobs/admission.h`. It
+is an owned object, not process state. An embedder creates one with `newAdmissionLedger` and passes
 it in `HostOptions::admissionLedger` to every runner that should share its
 limits. A runner given none creates a private ledger with the default
 limits. Each GraphRunner opens a runner account on its ledger, and each run

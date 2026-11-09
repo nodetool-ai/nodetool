@@ -62,21 +62,21 @@ public:
   JobDisposer(const JobDisposer&) = delete;
   JobDisposer& operator=(const JobDisposer&) = delete;
 
-  void dispose(SubmittedJob job);
-  void dispose(std::deque<JobResult> results);
+  void dispose(nodetool::jobs::SubmittedJob job);
+  void dispose(std::deque<nodetool::jobs::JobResult> results);
   // Refuses `job` with `outcome` on the refusal thread, then destroys it on
   // the destruction thread: a detached job's NativeJob::refused() callback,
   // such as one that wakes a waiter, never runs on the refusing thread.
-  void refuse(SubmittedJob job, JobOutcome outcome);
+  void refuse(nodetool::jobs::SubmittedJob job, nodetool::jobs::JobOutcome outcome);
   // The thread that runs refused() callbacks.
   std::thread::id refusalThread() const { return refuser_.get_id(); }
 
 private:
   struct Item {
-    std::optional<SubmittedJob> job;
+    std::optional<nodetool::jobs::SubmittedJob> job;
     // Delivered through job->refuse() before the job is destroyed.
-    std::optional<JobOutcome> refusal;
-    std::deque<JobResult> results;
+    std::optional<nodetool::jobs::JobOutcome> refusal;
+    std::deque<nodetool::jobs::JobResult> results;
   };
   // What the thread shares with the disposer. Thread-safe: `mutex` guards
   // the fields below it.
@@ -128,7 +128,7 @@ LaneSizes resolveLaneSizes(LaneSizes requested, unsigned hardwareThreads);
 //
 // Thread affinity: thread-safe. `mutex_` guards the queue, the threads and
 // the counters below it.
-class ThreadPoolExecutor final : public JobExecutor {
+class ThreadPoolExecutor final : public nodetool::jobs::JobExecutor {
 public:
   using Clock = std::chrono::steady_clock;
   // Called under the lane mutex before each thread starts, with whether it
@@ -150,19 +150,19 @@ public:
   // Queues `job` behind the jobs already queued. A job whose run requested
   // stop before it started is destroyed instead of run. After shutdown
   // began, the job is refused with an AbortError as described above.
-  void submit(SubmittedJob job) override;
+  void submit(nodetool::jobs::SubmittedJob job) override;
   // Hands the stopped queued jobs to the reaper, which destroys them.
   size_t discardStopped() override;
   // Hands the results to the reaper, which destroys them.
-  void dispose(std::deque<JobResult> results) override;
+  void dispose(std::deque<nodetool::jobs::JobResult> results) override;
   // Hands the job to the process JobDisposer.
-  void disposeUnrun(SubmittedJob job) override;
+  void disposeUnrun(nodetool::jobs::SubmittedJob job) override;
   // Relays stop requests to the reaper. After the reaper left at shutdown,
   // or once this lane is being destroyed, the relay requests stop on the
   // calling thread. That never happens on a runner's worker as long as every
   // runner using the lane is destroyed before the lane shuts down, which
   // debug builds assert through attach().
-  std::shared_ptr<StopRelay> stopRelay() override;
+  std::shared_ptr<nodetool::jobs::StopRelay> stopRelay() override;
   // Counts the runs and registries that submit here. See JobExecutor.
   void attach() noexcept override;
   void detach() noexcept override;
@@ -209,10 +209,10 @@ private:
   // cancel with `outcome` and destroy.
   struct Reap {
     std::optional<std::stop_source> stop;
-    std::optional<SubmittedJob> job;
-    std::optional<JobOutcome> outcome;
+    std::optional<nodetool::jobs::SubmittedJob> job;
+    std::optional<nodetool::jobs::JobOutcome> outcome;
     // Results a closed mailbox handed back.
-    std::deque<JobResult> results;
+    std::deque<nodetool::jobs::JobResult> results;
     // Released after `stop` was requested.
     std::shared_ptr<void> keep;
   };
@@ -236,7 +236,7 @@ private:
   // Refuses a job the lane will not run: a mailbox refusal on this thread,
   // a detached job's refused() callback on the process disposer. Its inputs
   // are destroyed on the disposer either way.
-  void refuseAndDispose(SubmittedJob job, JobOutcome outcome);
+  void refuseAndDispose(nodetool::jobs::SubmittedJob job, nodetool::jobs::JobOutcome outcome);
   // From a running job's link to its run: forwards the run's stop.
   void forwardStop(const std::stop_source& stop);
   void confirmExit(Thread& self);
@@ -250,7 +250,7 @@ private:
   std::condition_variable work_;
   std::condition_variable reapWork_;
   std::condition_variable exited_;
-  std::deque<SubmittedJob> queue_;
+  std::deque<nodetool::jobs::SubmittedJob> queue_;
   std::deque<Reap> reaps_;
   // Stable addresses: each thread keeps a reference to its own entry.
   std::list<Thread> threads_;
@@ -281,10 +281,10 @@ public:
   HostLanes(const HostLanes&) = delete;
   HostLanes& operator=(const HostLanes&) = delete;
 
-  JobExecutor& lane(Kind kind);
-  JobExecutor& cpu() { return lane(Kind::Cpu); }
-  JobExecutor& io() { return lane(Kind::Io); }
-  JobExecutor& network() { return lane(Kind::Network); }
+  nodetool::jobs::JobExecutor& lane(Kind kind);
+  nodetool::jobs::JobExecutor& cpu() { return lane(Kind::Cpu); }
+  nodetool::jobs::JobExecutor& io() { return lane(Kind::Io); }
+  nodetool::jobs::JobExecutor& network() { return lane(Kind::Network); }
   bool isInline() const { return !cpu_; }
   // The thread pool behind `kind`, or null in inline mode.
   ThreadPoolExecutor* pool(Kind kind);
@@ -297,7 +297,7 @@ public:
 private:
   HostLanes() = default;
   std::unique_ptr<ThreadPoolExecutor> cpu_, io_, network_;
-  InlineExecutor inline_;
+  nodetool::jobs::InlineExecutor inline_;
 };
 
 // The process lanes, created with `sizes` resolved on the first call. Later

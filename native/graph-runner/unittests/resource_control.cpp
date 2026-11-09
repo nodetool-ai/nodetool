@@ -1,15 +1,16 @@
 // Rollout step 5 infrastructure of docs/plans/graph-runner-async-host.md:
-// resource control blocks (section 4.8), their serial queue (section 4.4)
-// and session stop bridges (section 4.9). No host function is converted;
-// the bodies here are test objects.
+// resource control blocks (section 4.8) on the process lanes, their serial
+// queue (section 4.4) and session stop bridges (section 4.9). No host
+// function is converted; the bodies here are test objects. The cases that
+// need no lane or engine are in native/jobs/tests/resource_control.cpp.
 #include "js/engine.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
 #include "kernel/host_lanes.h"
-#include "kernel/resource_control.h"
 #include "kernel/run_control.h"
-#include "kernel/session_stop.h"
 #include "kernel/task.h"
+#include "nodetool/jobs/resource_control.h"
+#include "nodetool/jobs/session_stop.h"
 #include "resource_test_support.h"
 
 #include <algorithm>
@@ -30,98 +31,32 @@
 
 namespace {
 
-using gr::InlineExecutor;
-using gr::JobOutcome;
-using gr::ResourceBody;
-using gr::ResourceControl;
-using gr::ResourceLease;
-using gr::ResourceOperationContext;
-using gr::SessionStopBridge;
 using gr::ThreadPoolExecutor;
+using nodetool::jobs::InlineExecutor;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::ResourceBody;
+using nodetool::jobs::ResourceControl;
+using nodetool::jobs::ResourceLease;
+using nodetool::jobs::ResourceOperationContext;
+using nodetool::jobs::SessionStopBridge;
 using step5::Clock;
+using step5::Gate;
+using step5::Probe;
+using step5::SessionBody;
+using step5::Suite;
+using step5::TestBody;
+using step5::TestRun;
 using step5::contains;
 using step5::eventually;
-using step5::Gate;
 using step5::milliseconds;
-using step5::Suite;
-using step5::TestRun;
+using step5::record;
 using step5::text;
 using Kind = JobOutcome::Kind;
 using State = ResourceControl::State;
 
-// What a test body reports, shared between the test and the body.
-//
-// Thread affinity: thread-safe. `mutex` guards `log` and `destroyedOn`.
-struct Probe {
-  std::mutex mutex;
-  std::vector<std::string> log;
-  std::thread::id destroyedOn;
-  std::atomic<int> destroyed{0};
-  std::atomic<int> running{0};
-  std::atomic<int> overlaps{0};
-  std::atomic<int> usedAfterDestroy{0};
-
-  void note(const std::string& entry) {
-    std::lock_guard lock(mutex);
-    log.push_back(entry);
-  }
-  std::vector<std::string> entries() {
-    std::lock_guard lock(mutex);
-    return log;
-  }
-  std::thread::id destroyer() {
-    std::lock_guard lock(mutex);
-    return destroyedOn;
-  }
-};
-
-// A wrapped resource that records its operations and its destruction.
-//
-// Thread affinity: `applied` is touched only by the control's active
-// operation. The probe is thread-safe.
-struct TestBody : ResourceBody {
-  TestBody(std::shared_ptr<Probe> p, std::string n) : probe(std::move(p)), name(std::move(n)) {}
-  ~TestBody() override {
-    {
-      std::lock_guard lock(probe->mutex);
-      probe->destroyedOn = std::this_thread::get_id();
-      probe->log.push_back(name + " destroyed");
-    }
-    ++probe->destroyed;
-  }
-  // Shared with the test, which reads it after the body is gone.
-  std::shared_ptr<Probe> probe;
-  std::string name;
-  std::vector<std::string> applied;
-};
-
-// A body that wraps a library session with a stop bridge.
-struct SessionBody : TestBody {
-  SessionBody(std::shared_ptr<Probe> p, SessionStopBridge::Wake wake = {})
-      : TestBody(std::move(p), "session"), bridge(std::move(wake)) {}
-  SessionStopBridge* stopBridge() override { return &bridge; }
-  SessionStopBridge bridge;
-};
-
-// An operation that records `tag`, checks it runs alone on a live body, and
-// returns `outcome` (Value with the tag by default).
-std::unique_ptr<gr::NativeJob> record(const std::shared_ptr<ResourceControl>& control, std::string tag,
-                                      Kind outcome = Kind::Value) {
-  return control->operation<TestBody>([tag, outcome](TestBody& body, ResourceOperationContext&) {
-    if (body.probe->destroyed.load() != 0) ++body.probe->usedAfterDestroy;
-    if (body.probe->running.fetch_add(1) != 0) ++body.probe->overlaps;
-    body.applied.push_back(tag);
-    body.probe->note(tag);
-    std::this_thread::yield();
-    --body.probe->running;
-    if (outcome == Kind::Error) return JobOutcome::failure(tag + " failed");
-    return text(tag);
-  });
-}
-
 // An operation that waits on `gate`, or until its stop.
-std::unique_ptr<gr::NativeJob> blocked(const std::shared_ptr<ResourceControl>& control, std::string tag,
-                                       std::shared_ptr<Gate> gate) {
+std::unique_ptr<nodetool::jobs::NativeJob> blocked(const std::shared_ptr<ResourceControl>& control, std::string tag,
+                                                   std::shared_ptr<Gate> gate) {
   return control->operation<TestBody>([tag, gate](TestBody& body, ResourceOperationContext& context) {
     body.probe->note(tag + " started");
     if (!gate->wait(context.stop())) {
@@ -419,11 +354,11 @@ void abortRejectsQueue(Suite& t) {
 // stop whose callback reports the thread it runs on.
 std::thread::id reaperOf(ThreadPoolExecutor& lane) {
   auto started = std::make_shared<Gate>();
-  lane.submit(gr::SubmittedJob(0, gr::makeJob([started](std::stop_token) {
-                                 started->release();
-                                 return JobOutcome::value(nullptr);
-                               }),
-                               nullptr, {}, gr::RunnerTracker::Ticket{}));
+  lane.submit(nodetool::jobs::SubmittedJob(0, nodetool::jobs::makeJob([started](std::stop_token) {
+                                             started->release();
+                                             return JobOutcome::value(nullptr);
+                                           }),
+                                           nullptr, {}, nodetool::jobs::RunnerTracker::Ticket{}));
   started->wait();
   std::stop_source source;
   auto seen = std::make_shared<std::promise<std::thread::id>>();
@@ -620,11 +555,11 @@ void blockedDestructionTimesOutShutdown(Suite& t) {
 void abortRacesOperationStart(Suite& t) {
   ThreadPoolExecutor lane("start", 1);
   auto blocker = std::make_shared<Gate>();
-  lane.submit(gr::SubmittedJob(0, gr::makeJob([blocker](std::stop_token) {
-                                 blocker->wait();
-                                 return JobOutcome::value(nullptr);
-                               }),
-                               nullptr, {}, gr::RunnerTracker::Ticket{}));
+  lane.submit(nodetool::jobs::SubmittedJob(0, nodetool::jobs::makeJob([blocker](std::stop_token) {
+                                             blocker->wait();
+                                             return JobOutcome::value(nullptr);
+                                           }),
+                                           nullptr, {}, nodetool::jobs::RunnerTracker::Ticket{}));
   CHECK(eventually([&] { return lane.running() == 1; }));
   auto registered = std::make_shared<Gate>();
   auto callbackThread = std::make_shared<std::atomic<std::thread::id>>();
@@ -695,49 +630,6 @@ void dependentsReleaseBeforeStagingCleanup(Suite& t) {
 }
 
 // --- 6. session stop bridge -------------------------------------------------------------
-
-// Gate: the bridge's flags. A binding sets the active operation, resets the
-// operation flag and registers its stop; unbinding clears both. A stop of an
-// earlier operation does not reach a later one. Retirement is permanent and
-// later bindings cannot clear it. The interrupt callback reads the OR.
-void stopBridgeFlags(Suite& t) {
-  std::atomic<int> wakes{0};
-  SessionStopBridge bridge([&wakes] { ++wakes; });
-  CHECK(!bridge.stopped() && bridge.activeOperation() == 0);
-  std::stop_source first;
-  {
-    SessionStopBridge::Binding binding(bridge, 1, first.get_token());
-    CHECK(bridge.activeOperation() == 1 && !bridge.operationStopped());
-    first.request_stop();
-    CHECK(bridge.operationStopped() && bridge.stopped() && !bridge.sessionStopped());
-    CHECK(SessionStopBridge::interrupt(&bridge) == 1);
-  }
-  CHECK(!bridge.stopped() && bridge.activeOperation() == 0);
-  std::stop_source second;
-  {
-    SessionStopBridge::Binding binding(bridge, 2, second.get_token());
-    CHECK(bridge.activeOperation() == 2 && !bridge.stopped());
-    first.request_stop();
-    CHECK(!bridge.stopped());
-  }
-  {
-    // A token that stopped before binding sets the flag at once.
-    SessionStopBridge::Binding binding(bridge, 3, first.get_token());
-    CHECK(bridge.operationStopped());
-  }
-  CHECK(wakes.load() == 2);
-  bridge.retire();
-  bridge.retire();
-  CHECK(wakes.load() == 3);
-  CHECK(bridge.sessionStopped() && bridge.stopped());
-  std::stop_source fourth;
-  {
-    SessionStopBridge::Binding binding(bridge, 4, fourth.get_token());
-    CHECK(!bridge.operationStopped() && bridge.stopped());
-    CHECK(SessionStopBridge::interrupt(&bridge) == 1);
-  }
-  CHECK(bridge.sessionStopped() && bridge.stopped());
-}
 
 // Gate: serial token rebinding through a control. Operation 1 of run A is
 // bound to the bridge; stopping run A sets operationStopped for it. Operation
@@ -909,7 +801,7 @@ void throughAsyncRun(Suite& t) {
   gr::Loop& loop = gr::Loop::current();
   gr::CancelState state;
   const uint64_t generation = state.beginRun();
-  auto tracker = std::make_shared<gr::RunnerTracker>();
+  auto tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
   auto probe = std::make_shared<Probe>();
   std::weak_ptr<ResourceControl> weak;
   {
@@ -918,7 +810,7 @@ void throughAsyncRun(Suite& t) {
     auto async = std::make_shared<gr::AsyncRun>(*engine, loop, tracker, generation, lane);
     auto control = ResourceControl::create("encoder", std::make_unique<TestBody>(probe, "body"), lane);
     weak = control;
-    gr::Converter convert = [](gr::js::Engine& e, gr::JobPayload* payload) {
+    gr::Converter convert = [](gr::js::Engine& e, nodetool::jobs::JobPayload* payload) {
       return e.string(static_cast<TestRun::TextPayload*>(payload)->text);
     };
     auto bind = [&](const char* name, bool terminal) {
@@ -931,7 +823,8 @@ void throughAsyncRun(Suite& t) {
                                      auto target = weak.lock();
                                      if (!run || !target) throw std::runtime_error("the test run ended");
                                      const std::string tag = e.toString(a.at(0));
-                                     gr::JobExecutor& port = terminal ? target->terminal() : target->operations();
+                                     nodetool::jobs::JobExecutor& port =
+                                         terminal ? target->terminal() : target->operations();
                                      return run->submit(port, record(target, tag), convert);
                                    }));
     };
@@ -970,22 +863,6 @@ void throughAsyncRun(Suite& t) {
   loop.abandon();
 }
 
-// Gate: inline mode. On the worker's InlineExecutor, operations run at
-// submission and their results still go through the mailbox in order.
-void inlineLane(Suite& t) {
-  InlineExecutor lane;
-  auto probe = std::make_shared<Probe>();
-  auto control = ResourceControl::create("inline", std::make_unique<TestBody>(probe, "body"), lane);
-  TestRun run;
-  const uint64_t a = run.submit(control->operations(), record(control, "a"));
-  const uint64_t b = run.submit(control->operations(), record(control, "b"));
-  const uint64_t fin = run.submit(control->terminal(), record(control, "finish"));
-  CHECK(control->state() == State::Retired);
-  CHECK(probe->destroyer() == std::this_thread::get_id());
-  CHECK(run.await({a, b, fin}));
-  CHECK((run.order() == std::vector<uint64_t>{a, b, fin}));
-}
-
 }  // namespace
 
 int main() {
@@ -1002,12 +879,10 @@ int main() {
       {"blockedDestructionTimesOutShutdown", blockedDestructionTimesOutShutdown},
       {"abortRacesOperationStart", abortRacesOperationStart},
       {"dependentsReleaseBeforeStagingCleanup", dependentsReleaseBeforeStagingCleanup},
-      {"stopBridgeFlags", stopBridgeFlags},
       {"stopBridgeRebinding", stopBridgeRebinding},
       {"cancelledOperationRetiresSession", cancelledOperationRetiresSession},
       {"callbackDestroyedOutsideLocks", callbackDestroyedOutsideLocks},
       {"throughAsyncRun", throughAsyncRun},
-      {"inlineLane", inlineLane},
   };
   const char* only = std::getenv("GR_RESOURCE_ONLY");
   for (const auto& [name, fn] : tests) {

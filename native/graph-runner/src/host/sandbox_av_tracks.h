@@ -1,7 +1,7 @@
 #pragma once
 #include "host/media.h"
 #include "kernel/async_jobs.h"
-#include "kernel/resource_control.h"
+#include "nodetool/jobs/resource_control.h"
 
 #include <map>
 #include <memory>
@@ -31,14 +31,14 @@ public:
 
   // Registers `path`, a directory just created, on `lane`, which must
   // outlive it.
-  void add(const std::string& path, JobExecutor& lane);
+  void add(const std::string& path, nodetool::jobs::JobExecutor& lane);
   // Closes `path`: it is removed once every lease on it is released.
   // Throws when `path` is not an open staging directory.
   void release(const std::string& path);
   // Adds a lease on each open staging directory that contains `real`, a
   // canonical path, to `leases`. Throws when a directory that contains it
   // was released.
-  void lease(const std::string& real, std::vector<ResourceLease>& leases);
+  void lease(const std::string& real, std::vector<nodetool::jobs::ResourceLease>& leases);
   // Directories not released yet.
   size_t open();
   // Run cleanup: aborts every directory. Each is removed once its
@@ -48,7 +48,7 @@ public:
 private:
   // Forgets directories already removed.
   void prune();
-  std::map<std::string, std::shared_ptr<ResourceControl>> directories_;
+  std::map<std::string, std::shared_ptr<nodetool::jobs::ResourceControl>> directories_;
 };
 // The Code addAudio helper retains original tracks when explicitly requested.
 void installSandboxAvTracks(js::Engine &, const js::Value &,

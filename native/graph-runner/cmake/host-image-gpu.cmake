@@ -75,7 +75,9 @@ if(NODETOOL_GRAPH_RUNNER_GPU)
     target_link_libraries(wgpu_native INTERFACE ${CMAKE_DL_LIBS} m Threads::Threads)
   endif()
   target_sources(gr_host_gpu PRIVATE src/host/gpu_device.cpp src/host/gpu_compute.cpp)
-  target_link_libraries(gr_host_gpu PRIVATE wgpu_native)
+  # gpu_compute.cpp includes the kernel loop (src/kernel/task.h), a wake
+  # target of the job core.
+  target_link_libraries(gr_host_gpu PRIVATE wgpu_native nodetool_jobs)
   target_compile_definitions(gr_host_gpu PUBLIC NODETOOL_GRAPH_RUNNER_GPU=1)
 else()
   target_sources(gr_host_gpu PRIVATE src/host/gpu_device_none.cpp)

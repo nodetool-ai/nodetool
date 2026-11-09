@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+using nodetool::jobs::JobOutcome;
+
 namespace gr::host {
 namespace {
 
@@ -29,13 +31,13 @@ ssize_t preadFully(int fd, uint8_t* data, size_t size, off_t offset) {
 // Thread affinity: the I/O lane thread that runs it, or the worker in inline
 // mode. Ownership: unique, through its SubmittedJob. Owns the descriptor
 // until it hands it on in its result or is destroyed.
-class ReadAllJob final : public NativeJob {
+class ReadAllJob final : public nodetool::jobs::NativeJob {
 public:
   explicit ReadAllJob(OpenedFile file) : file_(std::move(file)) {}
 
   // The output is reserved before the read. The buffer that measures growth
   // is workspace.
-  JobCost cost() const override { return {file_.path.size(), file_.size, kMeasureChunk}; }
+  nodetool::jobs::JobCost cost() const override { return {file_.path.size(), file_.size, kMeasureChunk}; }
 
   JobOutcome run(std::stop_token stop) override {
     if (stop.stop_requested()) return JobOutcome::stopped();
@@ -97,11 +99,13 @@ OpenedFile openRegularFile(const std::string& real, const std::string& path) {
   return file;
 }
 
-std::unique_ptr<NativeJob> makeReadAllJob(OpenedFile file) { return std::make_unique<ReadAllJob>(std::move(file)); }
+std::unique_ptr<nodetool::jobs::NativeJob> makeReadAllJob(OpenedFile file) {
+  return std::make_unique<ReadAllJob>(std::move(file));
+}
 
 ResultConverter wholeFileConverter(std::shared_ptr<RunBinding> binding) {
   return [binding](ResultConversion& conversion) -> js::Value {
-    JobPayload* payload = conversion.payload();
+    nodetool::jobs::JobPayload* payload = conversion.payload();
     if (!payload) return conversion.engine().null();
     if (auto* bytes = dynamic_cast<FileBytes*>(payload)) return conversion.adoptBytes(std::move(bytes->bytes));
     auto* opened = dynamic_cast<OpenedFile*>(payload);
@@ -110,9 +114,9 @@ ResultConverter wholeFileConverter(std::shared_ptr<RunBinding> binding) {
       throw FsError("EFBIG", "read", opened->path, "the file kept growing while it was read");
     }
     AsyncRun* run = binding->run();
-    JobExecutor* io = binding->io();
+    nodetool::jobs::JobExecutor* io = binding->io();
     if (!run || !io) throw std::runtime_error("the run of a whole-file read has ended");
-    if (run->cancelled()) throw JobAborted("The operation was aborted");
+    if (run->cancelled()) throw nodetool::jobs::JobAborted("The operation was aborted");
     OpenedFile next = std::move(*opened);
     ++next.attempts;
     // The descriptor moves into the next job. Its promise settles this one.

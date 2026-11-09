@@ -16,7 +16,7 @@
 #include <optional>
 #include <stop_token>
 
-namespace gr {
+namespace nodetool::jobs {
 
 // Two stop flags with one reader: sessionStopped, set once by retirement and
 // never cleared, and operationStopped, set by the active operation's stop
@@ -114,4 +114,4 @@ private:
   std::shared_ptr<Flags> flags_;
 };
 
-}  // namespace gr
+}  // namespace nodetool::jobs

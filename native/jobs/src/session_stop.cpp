@@ -1,9 +1,9 @@
-#include "kernel/session_stop.h"
+#include "nodetool/jobs/session_stop.h"
 
 #include <cassert>
 #include <utility>
 
-namespace gr {
+namespace nodetool::jobs {
 
 SessionStopBridge::SessionStopBridge(Wake wake) : flags_(std::make_shared<Flags>(std::move(wake))) {}
 
@@ -46,4 +46,4 @@ SessionStopBridge::Binding::~Binding() {
   flags_->bound.store(false);
 }
 
-}  // namespace gr
+}  // namespace nodetool::jobs

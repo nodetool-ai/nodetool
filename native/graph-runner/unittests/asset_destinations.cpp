@@ -31,18 +31,18 @@
 namespace {
 
 using gr::DestinationQueue;
-using gr::JobOutcome;
 using gr::ThreadPoolExecutor;
-using gr::host::assetDestination;
 using gr::host::AssetRemoved;
+using gr::host::Root;
+using gr::host::assetDestination;
 using gr::host::makeAssetRemoveJob;
 using gr::host::makeAssetWriteJob;
-using gr::host::Root;
-using step5::contains;
-using step5::eventually;
+using nodetool::jobs::JobOutcome;
 using step5::Gate;
 using step5::Suite;
 using step5::TestRun;
+using step5::contains;
+using step5::eventually;
 using Kind = JobOutcome::Kind;
 namespace fs = std::filesystem;
 
@@ -96,14 +96,14 @@ size_t temporaries(const std::string& dir, const std::string& leaf) {
 }
 
 // Blocks a one-thread lane until released.
-std::unique_ptr<gr::NativeJob> blocker(std::shared_ptr<Gate> gate) {
-  return gr::makeJob([gate](std::stop_token) {
+std::unique_ptr<nodetool::jobs::NativeJob> blocker(std::shared_ptr<Gate> gate) {
+  return nodetool::jobs::makeJob([gate](std::stop_token) {
     gate->wait();
     return JobOutcome::value(nullptr);
   });
 }
 
-std::string removal(const gr::JobPayload& payload) {
+std::string removal(const nodetool::jobs::JobPayload& payload) {
   auto* removed = dynamic_cast<const AssetRemoved*>(&payload);
   return removed ? (removed->removed ? "removed" : "absent") : "";
 }
@@ -186,7 +186,7 @@ void processQueue(Suite& t) {
   CHECK(&first == &gr::processDestinationQueue());
   const size_t before = first.destinations();
   {
-    gr::InlineExecutor inlineSteps;
+    nodetool::jobs::InlineExecutor inlineSteps;
     auto ticket = first.enqueue("/nowhere/process-queue-test", inlineSteps);
     CHECK(first.pending("/nowhere/process-queue-test") == 1);
     CHECK(first.destinations() == before + 1);
@@ -493,7 +493,7 @@ void syncStepRunsOnTheCaller(Suite& t) {
   // executor the competing thread reaches through shared ownership.
   struct Probe {
     std::weak_ptr<DestinationQueue> queue;
-    std::shared_ptr<gr::InlineExecutor> spare = std::make_shared<gr::InlineExecutor>();
+    std::shared_ptr<nodetool::jobs::InlineExecutor> spare = std::make_shared<nodetool::jobs::InlineExecutor>();
     std::string destination;
     std::atomic<bool> competed{false};
     std::mutex mutex;

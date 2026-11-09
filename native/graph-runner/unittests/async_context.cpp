@@ -55,10 +55,10 @@ using gr::AsyncRun;
 using gr::CancelState;
 using gr::Loop;
 using gr::RunExit;
-using gr::RunnerTracker;
 using gr::host::ContextCompletion;
 using gr::host::ContextOptions;
 using gr::host::ContextResult;
+using nodetool::jobs::RunnerTracker;
 namespace js = gr::js;
 using Json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
@@ -225,12 +225,12 @@ struct Harness {
   std::shared_ptr<CancelState> cancel = std::make_shared<CancelState>();
   std::shared_ptr<RunnerTracker> tracker;
   // The lane the run submits to. The caller keeps it alive.
-  gr::JobExecutor& io;
+  nodetool::jobs::JobExecutor& io;
   uint64_t generation = 0;
   std::optional<AsyncRun> async;
   std::optional<gr::RunBinding::Scope> bound;
 
-  Harness(gr::HostOptions options, gr::JobExecutor& lane,
+  Harness(gr::HostOptions options, nodetool::jobs::JobExecutor& lane,
           std::shared_ptr<RunnerTracker> shared = std::make_shared<RunnerTracker>())
       : tracker(std::move(shared)), io(lane) {
     auto granted = options.context.cancelled;
@@ -357,7 +357,7 @@ void retainedDoneFromAnotherThread(Suite& t) {
 // the call.
 void inlineDoneSettlesAsMacrotask(Suite& t) {
   auto callbackThread = std::make_shared<Shared<std::thread::id>>();
-  gr::InlineExecutor io;
+  nodetool::jobs::InlineExecutor io;
   gr::HostOptions options;
   options.context.asyncOperations["model:now"] = [callbackThread](std::string body, std::stop_token,
                                                                   ContextCompletion done) {
@@ -484,7 +484,7 @@ void doubleDoneIsIgnored(Suite& t) {
   const pid_t child = fork();
   if (child == 0) {
     alarm(10);
-    gr::InlineExecutor io;
+    nodetool::jobs::InlineExecutor io;
     gr::HostOptions options;
     options.context.asyncOperations["model:twice"] = [](std::string, std::stop_token, ContextCompletion done) {
       done(ContextResult::value("1"));
@@ -1028,7 +1028,7 @@ struct BlockingInputProbe {
 // its destructor.
 //
 // Thread affinity: the executor thread that runs or destroys it.
-class BlockingInputJob final : public gr::NativeJob {
+class BlockingInputJob final : public nodetool::jobs::NativeJob {
 public:
   explicit BlockingInputJob(std::shared_ptr<BlockingInputProbe> probe) : probe_(std::move(probe)) {}
   ~BlockingInputJob() override {
@@ -1037,7 +1037,7 @@ public:
     probe_->release.wait(milliseconds(3000));
     probe_->destroyed = true;
   }
-  gr::JobOutcome run(std::stop_token) override { return gr::JobOutcome::value(nullptr); }
+  nodetool::jobs::JobOutcome run(std::stop_token) override { return nodetool::jobs::JobOutcome::value(nullptr); }
 
 private:
   std::shared_ptr<BlockingInputProbe> probe_;
@@ -1219,7 +1219,7 @@ void limitsAreShared(Suite& t) {
 
 // Gate: has() covers both maps, and each transport refuses the other's names.
 void hasCoversBothMaps(Suite& t) {
-  gr::InlineExecutor io;
+  nodetool::jobs::InlineExecutor io;
   gr::HostOptions options;
   options.context.operations["model:sync"] = [](const std::string& in) { return in; };
   options.context.asyncOperations["model:async"] = [](std::string in, std::stop_token, ContextCompletion done) {

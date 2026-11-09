@@ -10,11 +10,12 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-namespace gr {
-// The executor interface of the host lanes (src/kernel/async_jobs.h). Only
-// the lane constructor below names it.
+namespace nodetool::jobs {
+// The executor interface of the host lanes
+// (native/jobs/include/nodetool/jobs/job_core.h). Only the lane constructor
+// below names it.
 class JobExecutor;
-} // namespace gr
+} // namespace nodetool::jobs
 namespace gr::host {
 // Provider endpoint calls (callEndpoint, uploadMedia, downloadMedia) can run
 // for minutes. ProviderJobs runs each call as a job on the network lane
@@ -213,7 +214,7 @@ public:
   // keeps it alive until this object and every context its grants went into
   // are gone. This object attaches to it, which a pool lane checks in debug
   // builds when it is destroyed. For tests and hosts that own a lane.
-  ProviderJobs(Worker worker, Limits limits, gr::JobExecutor &lane);
+  ProviderJobs(Worker worker, Limits limits, nodetool::jobs::JobExecutor &lane);
   // Stops every job and completes pending next() calls with Stopped, then
   // returns without waiting for workers. A worker still running keeps its
   // job, its maxJobs slot and the Worker function alive until it returns.

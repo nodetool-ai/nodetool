@@ -228,8 +228,9 @@ single-threaded. `Task<T>` is an eagerly started C++20 coroutine, so it behaves
 like a JavaScript async function, and awaiting one resumes from a FIFO ready
 queue. After every resumed step the loop drains the QuickJS job queue, and guest
 promise settlements post the waiting coroutine back onto the ready queue.
-Native jobs (`src/kernel/async_jobs.h`) own native inputs only. Their results
-reach the worker through the run's mailbox and settle their promises as
+Native jobs own native inputs only. Jobs, executors and run mailboxes are the
+[native job core](../jobs/README.md). Results reach the worker through the
+run's mailbox, and `src/kernel/async_jobs.h` settles their promises as
 macrotasks. When a due timer and a result are both waiting, the two kinds
 alternate, and the first such turn of a run fires the timer. A cancelled run switches
 to rounds of at most 64 steps, each followed by at most 64 microtasks, and the
@@ -316,8 +317,8 @@ track staging hosts use them, and so do file handles (see
 encode jobs do not: each job owns its inputs and creates and destroys its
 libvips or stb state within one call.
 
-A `ResourceControl` (`src/kernel/resource_control.h`) wraps one resource
-and is its serial queue. A host function submits an operation through
+A `ResourceControl` (`native/jobs/include/nodetool/jobs/resource_control.h`)
+wraps one resource and is its serial queue. A host function submits an operation through
 `AsyncRun::submit(control->operations(), control->operation<Body>(fn), ...)`.
 The control keeps operations in a FIFO and hands one at a time to its lane,
 and only that operation touches the resource. `control->terminal()` takes a
@@ -335,7 +336,8 @@ directory is removed after its readers. `abort()` never runs an operation's
 stop callbacks on the aborting thread.
 
 A session that keeps a library interrupt callback, such as an FFmpeg input,
-owns a `SessionStopBridge` (`src/kernel/session_stop.h`) and points the
+owns a `SessionStopBridge`
+(`native/jobs/include/nodetool/jobs/session_stop.h`) and points the
 callback at it. Each operation binds its stop token to the bridge while it
 runs, and abort sets the bridge's session flag for good. An operation that
 leaves its codec unusable calls `retireSession()`, and the control rejects
@@ -397,8 +399,8 @@ not change the working directory or the umask while jobs run.
 ### Admission limits
 
 Every native job holds a reservation in an admission ledger
-(`src/kernel/admission.h`) from the first copied input byte until its result
-is drained or discarded. It charges the job's copied inputs, its worst-case
+(`native/jobs/include/nodetool/jobs/admission.h`) from the first copied
+input byte until its result is drained or discarded. It charges the job's copied inputs, its worst-case
 output and one operation slot to its run and the ledger. By default a run
 may hold 1 GiB and 64 operations, and a ledger 4 GiB and 256 operations.
 `HostOptions::hostJobLimits` lowers a runner's run limits. Runners share a

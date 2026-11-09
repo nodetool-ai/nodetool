@@ -14,6 +14,9 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/error.h>
 }
+
+using nodetool::jobs::ResourceControl;
+
 namespace gr::host {
 namespace {
 void check(int code) {
@@ -104,8 +107,8 @@ void remux(const std::string &video, const std::string &audio,
       throw std::bad_alloc();
     }
     // The job's bridge, which outlives the context (design section 4.9).
-    allocated->interrupt_callback = {&SessionStopBridge::interrupt,
-                                     stop.opaque()};
+    allocated->interrupt_callback = {
+        &nodetool::jobs::SessionStopBridge::interrupt, stop.opaque()};
     std::unique_ptr<AVDictionary, DictionaryDelete> options;
     AVDictionary *dictionary = nullptr;
     av_dict_set(&dictionary, "protocol_whitelist", "file", 0);
@@ -195,7 +198,7 @@ void remux(const std::string &video, const std::string &audio,
 //
 // Thread affinity: created on the worker, destroyed on the destruction
 // thread of its ResourceControl. Ownership: uniquely owned by that control.
-struct StagingDirectory final : ResourceBody {
+struct StagingDirectory final : nodetool::jobs::ResourceBody {
   explicit StagingDirectory(std::string p) : path(std::move(p)) {}
   ~StagingDirectory() override {
     std::error_code error;
@@ -218,7 +221,8 @@ std::shared_ptr<MediaStaging> MediaStaging::of(js::Engine &engine) {
   return made;
 }
 
-void MediaStaging::add(const std::string &path, JobExecutor &lane) {
+void MediaStaging::add(const std::string &path,
+                       nodetool::jobs::JobExecutor &lane) {
   prune();
   directories_[path] = ResourceControl::create(
       "Code media staging directory",
@@ -236,7 +240,7 @@ void MediaStaging::release(const std::string &path) {
 }
 
 void MediaStaging::lease(const std::string &real,
-                         std::vector<ResourceLease> &leases) {
+                         std::vector<nodetool::jobs::ResourceLease> &leases) {
   prune();
   for (auto &[path, control] : directories_) {
     if (!isWithin(path, real)) {
@@ -310,7 +314,7 @@ void installSandboxAvTracks(js::Engine &engine, const js::Value &object,
               throw std::runtime_error(
                   "Code native media requires an explicitly granted workspace");
             }
-            JobExecutor *io = binding->io();
+            nodetool::jobs::JobExecutor *io = binding->io();
             if (!binding->run() || !io) {
               throw std::runtime_error(
                   "Code media staging needs a running graph");
@@ -375,7 +379,7 @@ void installSandboxAvTracks(js::Engine &engine, const js::Value &object,
             }
             // The options' text is reserved before it is copied (design
             // section 4.7).
-            Reservation reservation = run->reserve();
+            nodetool::jobs::Reservation reservation = run->reserve();
             const js::Value text =
                 e.call(e.get(e.get(e.global(), "JSON"), "stringify"),
                        e.undefined(), {args[0]});
@@ -394,20 +398,20 @@ void installSandboxAvTracks(js::Engine &engine, const js::Value &object,
               throw std::runtime_error(
                   "Code media tracks cannot overwrite an input");
             }
-            std::vector<ResourceLease> leases;
+            std::vector<nodetool::jobs::ResourceLease> leases;
             for (const auto *each : {&video, &audio, &out}) {
               staging->lease(*each, leases);
             }
             const uint64_t bytes = video.size() + audio.size() + out.size();
             return run->submit(
                 run->executor(),
-                makeMediaJob("remuxTracks", hooks, JobCost{bytes, 0, 0},
-                             std::move(leases),
-                             [video, audio, out,
-                              jobGrant](const MediaStop &stop) {
-                               remux(video, audio, out, *jobGrant, stop);
-                               return JobOutcome::value(nullptr);
-                             }),
+                makeMediaJob(
+                    "remuxTracks", hooks, nodetool::jobs::JobCost{bytes, 0, 0},
+                    std::move(leases),
+                    [video, audio, out, jobGrant](const MediaStop &stop) {
+                      remux(video, audio, out, *jobGrant, stop);
+                      return nodetool::jobs::JobOutcome::value(nullptr);
+                    }),
                 nullptr, true, std::move(reservation));
           }));
 }

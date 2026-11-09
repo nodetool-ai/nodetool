@@ -6,7 +6,6 @@
 // bytes before copying, and hand the job and its reservation to the run.
 #include "host/capabilities.h"
 #include "js/engine.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
 #include "kernel/host_lanes.h"
@@ -14,6 +13,7 @@
 #include "kernel/run_control.h"
 #include "kernel/task.h"
 #include "nodetool/graph_runner.h"
+#include "nodetool/jobs/admission.h"
 #include "nodetool/provider_jobs.h"
 
 #include <nlohmann/json.hpp>
@@ -54,26 +54,26 @@ std::atomic<int> checks{0};
     }                                                                               \
   } while (0)
 
-using gr::AdmissionError;
-using gr::AdmissionLedger;
 using gr::AsyncRun;
 using gr::CancelState;
-using gr::JobCost;
-using gr::JobExecutor;
-using gr::JobOutcome;
-using gr::JobPayload;
-using gr::LedgerUsage;
 using gr::Loop;
-using gr::ProcessLimits;
-using gr::Reservation;
-using gr::RunAccount;
 using gr::RunExit;
-using gr::RunnerAccount;
-using gr::RunnerLimits;
-using gr::RunnerTracker;
 using gr::ThreadPoolExecutor;
-using gr::kKiB;
-using gr::kMiB;
+using nodetool::jobs::AdmissionError;
+using nodetool::jobs::AdmissionLedger;
+using nodetool::jobs::JobCost;
+using nodetool::jobs::JobExecutor;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::JobPayload;
+using nodetool::jobs::LedgerUsage;
+using nodetool::jobs::ProcessLimits;
+using nodetool::jobs::Reservation;
+using nodetool::jobs::RunAccount;
+using nodetool::jobs::RunnerAccount;
+using nodetool::jobs::RunnerLimits;
+using nodetool::jobs::RunnerTracker;
+using nodetool::jobs::kKiB;
+using nodetool::jobs::kMiB;
 namespace js = gr::js;
 using Clock = std::chrono::steady_clock;
 using std::chrono::milliseconds;
@@ -197,7 +197,7 @@ std::string listed(const std::vector<uint8_t>& bytes) {
 //
 // Thread affinity: the executor thread that runs it, then the thread that
 // destroys it.
-class TestJob final : public gr::NativeJob {
+class TestJob final : public nodetool::jobs::NativeJob {
 public:
   struct Spec {
     std::vector<uint8_t> snapshot;
@@ -223,7 +223,8 @@ public:
     const int call = ++probe_->costCalls;
     if (spec_.cost) return spec_.cost(call);
     JobCost cost{spec_.snapshot.size(), spec_.output, 0};
-    if (spec_.width || spec_.height) cost.outputBytes = gr::checkedMul(gr::checkedMul(spec_.width, spec_.height), 4);
+    if (spec_.width || spec_.height)
+      cost.outputBytes = nodetool::jobs::checkedMul(nodetool::jobs::checkedMul(spec_.width, spec_.height), 4);
     return cost;
   }
 
@@ -331,7 +332,7 @@ struct Fixture {
       spec.cost = [kind, calls](int) -> JobCost {
         if (++*calls == 1) return {8, 0, 0};
         if (kind == "grow") return {16, 0, 0};
-        return {gr::checkedMul(uint64_t{1} << 40, uint64_t{1} << 40), 0, 0};
+        return {nodetool::jobs::checkedMul(uint64_t{1} << 40, uint64_t{1} << 40), 0, 0};
       };
       return run.submit(*binding->io(), std::make_unique<TestJob>(std::move(spec), probe), textOf);
     });
@@ -377,8 +378,8 @@ RunnerLimits runnerLimits(size_t runOperations = 0, uint64_t runBytes = 0, uint6
   return limits;
 }
 
-std::unique_ptr<gr::NativeJob> sized(const std::shared_ptr<Probe>& probe, std::string text, uint64_t output,
-                                     size_t snapshot = 0) {
+std::unique_ptr<nodetool::jobs::NativeJob> sized(const std::shared_ptr<Probe>& probe, std::string text, uint64_t output,
+                                                 size_t snapshot = 0) {
   TestJob::Spec spec;
   spec.text = std::move(text);
   spec.output = output;
@@ -390,8 +391,8 @@ std::unique_ptr<gr::NativeJob> sized(const std::shared_ptr<Probe>& probe, std::s
 //
 // Thread affinity: worker only.
 struct HeldExecutor final : JobExecutor {
-  std::vector<gr::SubmittedJob> jobs;
-  void submit(gr::SubmittedJob job) override { jobs.push_back(std::move(job)); }
+  std::vector<nodetool::jobs::SubmittedJob> jobs;
+  void submit(nodetool::jobs::SubmittedJob job) override { jobs.push_back(std::move(job)); }
 };
 
 // --- tests ------------------------------------------------------------------
@@ -438,10 +439,10 @@ void deferredSnapshotsIgnoreLaterMutation() {
 // snapshot is charged as such, and one that overflows fails with an Error
 // without running.
 void revalidationAndOverflow() {
-  CHECK(contains(thrown([] { gr::checkedAdd(std::numeric_limits<uint64_t>::max(), 1); }), "overflows"));
-  CHECK(contains(thrown([] { gr::checkedMul(uint64_t{1} << 32, uint64_t{1} << 32); }), "overflows"));
+  CHECK(contains(thrown([] { nodetool::jobs::checkedAdd(std::numeric_limits<uint64_t>::max(), 1); }), "overflows"));
+  CHECK(contains(thrown([] { nodetool::jobs::checkedMul(uint64_t{1} << 32, uint64_t{1} << 32); }), "overflows"));
   CHECK(contains(thrown([] { (void)JobCost{std::numeric_limits<uint64_t>::max(), 1, 0}.total(); }), "overflows"));
-  CHECK(gr::checkedMul(uint64_t{1} << 31, uint64_t{1} << 32) == uint64_t{1} << 63);
+  CHECK(nodetool::jobs::checkedMul(uint64_t{1} << 31, uint64_t{1} << 32) == uint64_t{1} << 63);
 
   auto ledger = std::make_shared<AdmissionLedger>();
   auto runner = ledger->openRunner(runnerLimits(1));
@@ -572,7 +573,7 @@ void resultsKeepReservationsUntilDrainedOrDisposed() {
   Fixture f;
   auto ledger = std::make_shared<AdmissionLedger>();
   auto runner = ledger->openRunner();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   {
     Run r(*f.engine, runner, inlineJobs);
     js::Value promise = r.async.submit(sized(f.probe, "inline", 1000, 10), textOf);
@@ -643,7 +644,7 @@ void javaScriptTransferCharges() {
   Fixture f;
   auto ledger = std::make_shared<AdmissionLedger>();
   auto runner = ledger->openRunner();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   Run r(*f.engine, runner, inlineJobs);
   gr::RunBinding::Scope bound(*f.engine, r.async, inlineJobs);
   f.eval("nativeJob({ result: 1048576, output: 1048576, adopt: 1 })"
@@ -696,7 +697,7 @@ void conversionRejectedWhenJavaScriptLedgerIsFull() {
   Fixture f;
   auto ledger = std::make_shared<AdmissionLedger>();
   auto runner = ledger->openRunner(runnerLimits(0, 0, 1 * kMiB));
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   Run r(*f.engine, runner, inlineJobs);
   gr::RunBinding::Scope bound(*f.engine, r.async, inlineJobs);
   f.eval("const fail = (e) => log.push(e.name + ':' + e.message);"
@@ -828,20 +829,20 @@ struct NestingExecutor final : JobExecutor {
     if (auto locked = mailbox.lock()) (void)locked->pending();
     ++touched;
   }
-  void submit(gr::SubmittedJob job) override {
+  void submit(nodetool::jobs::SubmittedJob job) override {
     touch();
     job.execute();
   }
-  void disposeUnrun(gr::SubmittedJob job) override {
+  void disposeUnrun(nodetool::jobs::SubmittedJob job) override {
     touch();
     (void)job;
   }
-  void dispose(std::deque<gr::JobResult> results) override {
+  void dispose(std::deque<nodetool::jobs::JobResult> results) override {
     touch();
     results.clear();
   }
   std::shared_ptr<AdmissionLedger> ledger;
-  std::weak_ptr<gr::RunMailbox> mailbox;
+  std::weak_ptr<nodetool::jobs::RunMailbox> mailbox;
   int touched = 0;
 };
 
@@ -851,7 +852,7 @@ struct NestingExecutor final : JobExecutor {
 //
 // Thread affinity: thread-safe. `told` is atomic, the rest is set before it
 // is registered.
-struct NestingWaiter final : gr::AdmissionWaiter {
+struct NestingWaiter final : nodetool::jobs::AdmissionWaiter {
   void admissionChanged() noexcept override {
     (void)ledger->usage();
     (void)lane->queued();
@@ -860,7 +861,7 @@ struct NestingWaiter final : gr::AdmissionWaiter {
   }
   std::shared_ptr<AdmissionLedger> ledger;
   ThreadPoolExecutor* lane = nullptr;
-  std::weak_ptr<gr::RunMailbox> mailbox;
+  std::weak_ptr<nodetool::jobs::RunMailbox> mailbox;
   std::atomic<int> told{0};
 };
 
@@ -927,7 +928,7 @@ void ledgerLocksNeverNest() {
         Reservation reservation(account);
         reservation.reserveSnapshot(64 + t);
         if (reservation.admit({64, 128, 0}, Reservation::Order::Immediate) == Reservation::Admission::Admitted) {
-          gr::ExternalCharge charge = reservation.transferToJavaScript(32);
+          nodetool::jobs::ExternalCharge charge = reservation.transferToJavaScript(32);
           (void)charge.resize(48);
         }
       }
@@ -954,7 +955,7 @@ void ledgerLocksNeverNest() {
 void inlineJobsAreAccounted() {
   Fixture f;
   auto ledger = std::make_shared<AdmissionLedger>();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   Run r(*f.engine, ledger->openRunner(), inlineJobs);
   gr::RunBinding::Scope bound(*f.engine, r.async, inlineJobs);
   f.eval("for (let i = 0; i < 100; i++) nativeJob({ text: 't' + i }).then((v) => log.push(v));");
@@ -1282,7 +1283,7 @@ void shrunkBuffersKeepTheMinimumCharge() {
   Fixture f;
   auto ledger = std::make_shared<AdmissionLedger>();
   auto runner = ledger->openRunner();
-  gr::InlineExecutor inlineJobs;
+  nodetool::jobs::InlineExecutor inlineJobs;
   Run r(*f.engine, runner, inlineJobs);
   gr::RunBinding::Scope bound(*f.engine, r.async, inlineJobs);
   f.eval("nativeJob({ result: 1048576, adopt: 1 }).then((b) => { globalThis.buf = b; log.push('ok'); });");
@@ -1437,7 +1438,7 @@ void errorDiagnosticsFitTheCap() {
     Fixture f;
     installContext(*f.engine, options);
     auto ledger = std::make_shared<AdmissionLedger>();
-    gr::InlineExecutor io;
+    nodetool::jobs::InlineExecutor io;
     Run r(*f.engine, ledger->openRunner(), io);
     gr::RunBinding::Scope bound(*f.engine, r.async, io);
     f.eval("__host.context.callAsync('fail', '{}').catch((e) => log.push(e.message));");
@@ -1485,24 +1486,25 @@ void fallbackRunsShareOneLedger() {
 // them.
 void limitsOnlyLower() {
   ProcessLimits raised;
-  raised.bytes = 64 * gr::kGiB;
+  raised.bytes = 64 * nodetool::jobs::kGiB;
   raised.operations = 0;
   const ProcessLimits clamped = raised.clamped();
-  CHECK(clamped.bytes == 4 * gr::kGiB);
+  CHECK(clamped.bytes == 4 * nodetool::jobs::kGiB);
   CHECK(clamped.operations == 256);
   RunnerLimits lowered;
   lowered.runBytes = 10;
-  lowered.javaScriptBytes = 5 * gr::kGiB;
+  lowered.javaScriptBytes = 5 * nodetool::jobs::kGiB;
   CHECK(lowered.clamped().runBytes == 10);
-  CHECK(lowered.clamped().javaScriptBytes == 1 * gr::kGiB);
+  CHECK(lowered.clamped().javaScriptBytes == 1 * nodetool::jobs::kGiB);
   const gr::HostJobLimits defaults;
   CHECK(defaults.runBytes == 0 && defaults.runOperations == 0);
   // The embedder configures a shared ledger when it creates it.
   CHECK(!gr::HostOptions{}.admissionLedger);
-  const auto shared = gr::newAdmissionLedger({.bytes = 100, .operations = 0, .javaScriptBytes = 8 * gr::kGiB});
+  const auto shared =
+      gr::newAdmissionLedger({.bytes = 100, .operations = 0, .javaScriptBytes = 8 * nodetool::jobs::kGiB});
   CHECK(shared->limits().bytes == 100);
   CHECK(shared->limits().operations == 256);
-  CHECK(shared->limits().javaScriptBytes == 4 * gr::kGiB);
+  CHECK(shared->limits().javaScriptBytes == 4 * nodetool::jobs::kGiB);
 }
 
 struct Case {

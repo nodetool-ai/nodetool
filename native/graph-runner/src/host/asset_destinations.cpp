@@ -13,6 +13,11 @@
 #include <unistd.h>
 #include <utility>
 
+using nodetool::jobs::JobDelivery;
+using nodetool::jobs::JobExecutor;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::NativeJob;
+
 namespace gr::host {
 namespace {
 
@@ -295,7 +300,9 @@ public:
       : target_(std::move(target)), bytes_(std::move(bytes)), ticket_(queue.enqueue(target_.destination, commits)) {}
 
   // The bytes it holds until they are staged. The result has no payload.
-  JobCost cost() const override { return {bytes_.size() + target_.key.size() + target_.destination.size(), 0, 0}; }
+  nodetool::jobs::JobCost cost() const override {
+    return {bytes_.size() + target_.key.size() + target_.destination.size(), 0, 0};
+  }
 
   JobOutcome run(std::stop_token) override { return JobOutcome::failure("an asset write runs through start()"); }
 
@@ -325,7 +332,7 @@ public:
   AssetRemoveJob(DestinationQueue& queue, JobExecutor& commits, Target target)
       : target_(std::move(target)), ticket_(queue.enqueue(target_.destination, commits)) {}
 
-  JobCost cost() const override { return {target_.key.size() + target_.destination.size(), 0, 0}; }
+  nodetool::jobs::JobCost cost() const override { return {target_.key.size() + target_.destination.size(), 0, 0}; }
 
   JobOutcome run(std::stop_token) override { return JobOutcome::failure("an asset removal runs through start()"); }
 

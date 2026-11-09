@@ -379,8 +379,8 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
             auto png = encodePng(rgba.data(), width, height);
             return e.bytes(png.data(), png.size());
           }
-          Reservation reservation = run->reserve();
-          reservation.reserveSnapshot(checkedMul(checkedMul(width, height), 4));
+          nodetool::jobs::Reservation reservation = run->reserve();
+          reservation.reserveSnapshot(nodetool::jobs::checkedMul(nodetool::jobs::checkedMul(width, height), 4));
           auto rgba = straightRgba(*s);
           return submitPngJob(*run, std::move(rgba), width, height, std::move(reservation));
         }));

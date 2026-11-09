@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     ::mkfifo((root / "workspace/fifo").c_str(), 0600);
     const auto baseline = descriptors();
     // Outlives the engine, whose handles name it as their lane.
-    gr::InlineExecutor lane;
+    nodetool::jobs::InlineExecutor lane;
     {
       auto engine = gr::js::createQuickJsEngine();
       auto &e = *engine;

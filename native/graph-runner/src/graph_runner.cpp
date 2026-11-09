@@ -9,9 +9,9 @@
 #include "kernel/guest.h"
 #include "kernel/host_lanes.h"
 #include "kernel/normalize.h"
-#include "kernel/runner.h"
 #include "kernel/public_supervisor.h"
 #include "kernel/run_control.h"
+#include "kernel/runner.h"
 #include "kernel/task.h"
 
 #include <atomic>
@@ -25,6 +25,8 @@
 #include <set>
 #include <thread>
 
+using nodetool::jobs::AdmissionLedger;
+
 namespace gr {
 namespace {
 
@@ -34,9 +36,9 @@ const char* kLog = "graph-runner";
 
 // The runner's account on the embedder's ledger, or on a private ledger with
 // the default limits, which the account keeps alive.
-std::shared_ptr<RunnerAccount> openRunnerAccount(const HostOptions& options) {
+std::shared_ptr<nodetool::jobs::RunnerAccount> openRunnerAccount(const HostOptions& options) {
   const HostJobLimits& limits = options.hostJobLimits;
-  RunnerLimits runner;
+  nodetool::jobs::RunnerLimits runner;
   runner.runBytes = limits.runBytes;
   runner.runOperations = limits.runOperations;
   runner.javaScriptBytes = limits.runnerJavaScriptBytes;
@@ -178,7 +180,7 @@ struct GraphRunner::Impl {
   // interrupt handler on the worker thread.
   CancelState cancelState;
   // Every native job of this runner, across runs. Jobs share it.
-  std::shared_ptr<RunnerTracker> tracker = std::make_shared<RunnerTracker>();
+  std::shared_ptr<nodetool::jobs::RunnerTracker> tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
   // Shared with the provider job grants, which the engine's context and
   // every asynchronous call still retained hold, possibly past the runner.
   const std::shared_ptr<CurrentRun> currentRun = std::make_shared<CurrentRun>();
@@ -188,7 +190,7 @@ struct GraphRunner::Impl {
   // The runner's admission account on the process ledger. Each run opens
   // its own run account under it. Shared with the runs' reservations and
   // JavaScript buffers, which can outlive the runner.
-  const std::shared_ptr<RunnerAccount> account;
+  const std::shared_ptr<nodetool::jobs::RunnerAccount> account;
 
   // Worker thread only.
   std::vector<uint8_t> bundle;
@@ -507,7 +509,7 @@ void GraphRunner::Impl::runJob(Job& job) {
 }
 
 std::shared_ptr<AdmissionLedger> newAdmissionLedger(AdmissionLimits limits) {
-  ProcessLimits process;
+  nodetool::jobs::ProcessLimits process;
   process.bytes = limits.bytes;
   process.operations = limits.operations;
   process.javaScriptBytes = limits.javaScriptBytes;

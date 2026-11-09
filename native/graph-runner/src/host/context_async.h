@@ -25,7 +25,7 @@ namespace gr::host {
 // Thread affinity: none. Created on the completing thread, it travels in its
 // JobResult to the worker, or is destroyed on the completing thread when the
 // mailbox is closed.
-struct ContextResponse final : JobPayload {
+struct ContextResponse final : nodetool::jobs::JobPayload {
   explicit ContextResponse(std::string json) : text(std::move(json)), bytes(text.size()) {}
   ContextResponse(size_t oversized, std::nullptr_t) : bytes(oversized) {}
   std::string text;
@@ -62,8 +62,9 @@ public:
   // response is dropped on arrival and fails as too large, and a larger
   // error message is replaced by a short diagnostic with its first bytes.
   ContextCompletionState(std::string operation, std::shared_ptr<const ContextOptions::AsyncCallback> owner,
-                         std::shared_ptr<StopRelay> relay, JobDelivery delivery, RunnerTracker::Ticket retention,
-                         RunIdentity run, uint64_t responseCap, Reservation reservation);
+                         std::shared_ptr<nodetool::jobs::StopRelay> relay, nodetool::jobs::JobDelivery delivery,
+                         nodetool::jobs::RunnerTracker::Ticket retention, RunIdentity run, uint64_t responseCap,
+                         nodetool::jobs::Reservation reservation);
   ContextCompletionState(const ContextCompletionState&) = delete;
   ContextCompletionState& operator=(const ContextCompletionState&) = delete;
 
@@ -102,25 +103,25 @@ private:
   };
   // Settles `outcome` if nothing settled yet. Delivers outside the mutex.
   // Returns whether this call settled.
-  bool settle(Phase phase, JobOutcome outcome);
+  bool settle(Phase phase, nodetool::jobs::JobOutcome outcome);
   static void onRunStop(std::shared_ptr<ContextCompletionState> self);
   std::string missing() const;
 
   // Declared first so it is released last, after the callback and its
   // captures: the runner's tracker counts the call until nothing of it is
   // left. Touched only by the constructor and the destructor.
-  RunnerTracker::Ticket retention_;
+  nodetool::jobs::RunnerTracker::Ticket retention_;
   // The call's admission charge, shared with its result: released when the
   // state and the result are both gone. Touched only by the constructor and
   // the destructor.
-  Reservation reservation_;
+  nodetool::jobs::Reservation reservation_;
   const std::string operation_;
   const uint64_t responseCap_;
   // The callback, which owns the embedder's captures. Immutable.
   const std::shared_ptr<const ContextOptions::AsyncCallback> owner_;
   // The I/O lane's relay: where the run's stop reaches the callback's token.
   // Immutable.
-  const std::shared_ptr<StopRelay> relay_;
+  const std::shared_ptr<nodetool::jobs::StopRelay> relay_;
   const RunIdentity run_;
   // std::stop_source is thread-safe.
   std::stop_source stop_;
@@ -129,7 +130,7 @@ private:
   Phase phase_ = Phase::Pending;     // guarded by mutex_
   bool invoking_ = true;             // guarded by mutex_
   bool dropped_ = false;             // guarded by mutex_
-  std::optional<JobDelivery> delivery_;  // guarded by mutex_
+  std::optional<nodetool::jobs::JobDelivery> delivery_;  // guarded by mutex_
 
   // Set once by linkRunStop() before any other thread sees the state, and
   // destroyed with it. Declared last so it is deregistered first.
@@ -140,9 +141,9 @@ private:
 // `relay` is the I/O lane's stop relay. `run` is the submitting run, which
 // the callback reads from its completion. Its cost is the request plus
 // `responseCap` response bytes, the most a response may hold.
-std::unique_ptr<NativeJob> makeContextJob(std::string operation, std::string request,
-                                          std::shared_ptr<const ContextOptions::AsyncCallback> callback,
-                                          std::shared_ptr<StopRelay> relay, RunIdentity run,
-                                          uint64_t responseCap);
+std::unique_ptr<nodetool::jobs::NativeJob> makeContextJob(std::string operation, std::string request,
+                                                          std::shared_ptr<const ContextOptions::AsyncCallback> callback,
+                                                          std::shared_ptr<nodetool::jobs::StopRelay> relay,
+                                                          RunIdentity run, uint64_t responseCap);
 
 }  // namespace gr::host

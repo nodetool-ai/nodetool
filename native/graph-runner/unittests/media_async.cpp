@@ -12,7 +12,6 @@
 #include "host/media.h"
 #include "host/sandbox_av_tracks.h"
 #include "js/engine.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
 #include "kernel/host_lanes.h"
@@ -20,6 +19,7 @@
 #include "kernel/run_control.h"
 #include "kernel/task.h"
 #include "nodetool/context_options.h"
+#include "nodetool/jobs/admission.h"
 #include "resource_test_support.h"
 
 #include <algorithm>
@@ -50,14 +50,14 @@ namespace {
 namespace fs = std::filesystem;
 namespace js = gr::js;
 using gr::AsyncRun;
-using gr::LedgerUsage;
 using gr::RunExit;
-using step5::Clock;
-using step5::contains;
-using step5::eventually;
-using step5::Suite;
+using nodetool::jobs::LedgerUsage;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
+using step5::Clock;
+using step5::Suite;
+using step5::contains;
+using step5::eventually;
 
 // What the media hooks record, and the holds tests place on them.
 //
@@ -168,7 +168,7 @@ std::string quoted(const std::string& text) { return gr::Json(text).dump(); }
 struct Config {
   size_t maxPixels = 0;
   size_t maxBytes = 0;
-  gr::RunnerLimits runner;
+  nodetool::jobs::RunnerLimits runner;
 };
 
 // One engine with __host.media installed (media and track staging) on a
@@ -184,9 +184,9 @@ struct Harness {
   std::unique_ptr<js::Engine> engine = js::createQuickJsEngine();
   gr::Loop& loop = gr::Loop::current();
   gr::CancelState cancel;
-  std::shared_ptr<gr::RunnerTracker> tracker = std::make_shared<gr::RunnerTracker>();
-  std::shared_ptr<gr::AdmissionLedger> ledger = std::make_shared<gr::AdmissionLedger>();
-  std::shared_ptr<gr::RunnerAccount> runner;
+  std::shared_ptr<nodetool::jobs::RunnerTracker> tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
+  std::shared_ptr<nodetool::jobs::AdmissionLedger> ledger = std::make_shared<nodetool::jobs::AdmissionLedger>();
+  std::shared_ptr<nodetool::jobs::RunnerAccount> runner;
   gr::host::RunIdentity identity;
   uint64_t generation = 0;
   std::optional<AsyncRun> async;

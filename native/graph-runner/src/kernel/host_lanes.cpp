@@ -14,6 +14,9 @@
 #include <utility>
 #include <vector>
 
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::SubmittedJob;
+
 namespace gr {
 namespace {
 
@@ -113,7 +116,7 @@ void JobDisposer::refuse(SubmittedJob job, JobOutcome outcome) {
   queue_->refusalWork.notify_one();
 }
 
-void JobDisposer::dispose(std::deque<JobResult> results) {
+void JobDisposer::dispose(std::deque<nodetool::jobs::JobResult> results) {
   Item item;
   item.results = std::move(results);
   push(std::move(item));
@@ -134,7 +137,7 @@ void JobDisposer::push(Item item) {
 // Thread affinity: thread-safe. `mutex_` guards `lane_`, which the lane's
 // destructor clears. Lock order: relay mutex, then lane mutex. Stop requests
 // that fall back run after both are released.
-class ThreadPoolExecutor::Relay final : public StopRelay {
+class ThreadPoolExecutor::Relay final : public nodetool::jobs::StopRelay {
 public:
   explicit Relay(ThreadPoolExecutor& lane) : lane_(&lane) {}
   void relay(std::stop_source stop, std::shared_ptr<void> keep) override {
@@ -283,7 +286,7 @@ void ThreadPoolExecutor::refuseAndDispose(SubmittedJob job, JobOutcome outcome) 
   disposer_.dispose(std::move(job));
 }
 
-void ThreadPoolExecutor::dispose(std::deque<JobResult> results) {
+void ThreadPoolExecutor::dispose(std::deque<nodetool::jobs::JobResult> results) {
   Reap work;
   work.results = std::move(results);
   {
@@ -296,7 +299,7 @@ void ThreadPoolExecutor::dispose(std::deque<JobResult> results) {
 
 void ThreadPoolExecutor::disposeUnrun(SubmittedJob job) { disposer_.dispose(std::move(job)); }
 
-std::shared_ptr<StopRelay> ThreadPoolExecutor::stopRelay() { return relay_; }
+std::shared_ptr<nodetool::jobs::StopRelay> ThreadPoolExecutor::stopRelay() { return relay_; }
 
 void ThreadPoolExecutor::attach() noexcept {
   std::lock_guard lock(mutex_);
@@ -530,7 +533,7 @@ ThreadPoolExecutor* HostLanes::pool(Kind kind) {
   return nullptr;
 }
 
-JobExecutor& HostLanes::lane(Kind kind) {
+nodetool::jobs::JobExecutor& HostLanes::lane(Kind kind) {
   if (ThreadPoolExecutor* threads = pool(kind)) return *threads;
   return inline_;
 }

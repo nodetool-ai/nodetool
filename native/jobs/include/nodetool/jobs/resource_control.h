@@ -26,7 +26,7 @@
 // cleanup and staging directory removal therefore never run on the thread
 // that finished the last operation, dropped the last lease or aborted,
 // which may be the worker. The reaper is part of its lane's timed shutdown
-// (src/kernel/host_lanes.h). A lane whose reaper never started or already
+// (native/graph-runner/src/kernel/host_lanes.h). A lane whose reaper never started or already
 // left hands the work to the process JobDisposer instead. In inline mode
 // the lane is the worker's InlineExecutor, which destroys on the calling
 // thread: the documented inline exception.
@@ -46,8 +46,8 @@
 // are released after unlocking.
 #pragma once
 
-#include "kernel/async_jobs.h"
-#include "kernel/session_stop.h"
+#include "nodetool/jobs/job_core.h"
+#include "nodetool/jobs/session_stop.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -60,7 +60,7 @@
 #include <string>
 #include <vector>
 
-namespace gr {
+namespace nodetool::jobs {
 
 class ResourceControl;
 
@@ -391,4 +391,4 @@ private:
   std::vector<ResourceLease> dependencies_;
 };
 
-}  // namespace gr
+}  // namespace nodetool::jobs

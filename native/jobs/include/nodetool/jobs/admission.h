@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-namespace gr {
+namespace nodetool::jobs {
 
 constexpr uint64_t kKiB = 1024;
 constexpr uint64_t kMiB = 1024 * kKiB;
@@ -122,8 +122,8 @@ class ExternalCharge;
 // Ownership: shared by the accounts, reservations and charges opened on it,
 // which travel with jobs and results to lane threads and can outlive their
 // runner and its runs, so no single owner can be named. An embedder that
-// wants one set of limits for several runners creates the ledger with
-// gr::newAdmissionLedger and passes it to each. A runner given none creates
+// wants one set of limits for several runners creates the ledger with the
+// graph runner's newAdmissionLedger and passes it to each. A runner given none creates
 // a private one.
 class AdmissionLedger : public std::enable_shared_from_this<AdmissionLedger> {
 public:
@@ -367,4 +367,4 @@ private:
   std::shared_ptr<Hold> hold_;
 };
 
-}  // namespace gr
+}  // namespace nodetool::jobs

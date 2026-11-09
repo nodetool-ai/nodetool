@@ -105,7 +105,8 @@ struct JobState {
 template <class F>
 void submitLaneJob(F work) {
   auto lanes = gr::processHostLanes({});
-  lanes->io().submit(gr::SubmittedJob(1, gr::makeJob(std::move(work)), nullptr, std::stop_token{}, {}));
+  lanes->io().submit(
+      nodetool::jobs::SubmittedJob(1, nodetool::jobs::makeJob(std::move(work)), nullptr, std::stop_token{}, {}));
 }
 
 double msSince(Clock::time_point start) {
@@ -132,7 +133,7 @@ int runExitProbe(int argc, char **argv) {
   submitLaneJob([stuck, state](std::stop_token) {
     state->started.release();
     stuck->wait();
-    return gr::JobOutcome::stopped();
+    return nodetool::jobs::JobOutcome::stopped();
   });
   state->started.wait();
   std::fprintf(stderr, "exit-probe: lane job running\n");
@@ -173,7 +174,7 @@ private slots:
         never.wait(stop);
         std::this_thread::sleep_for(milliseconds(300));  // cleanup after the stop
         state->finished.release();
-        return gr::JobOutcome::stopped();
+        return nodetool::jobs::JobOutcome::stopped();
       });
       state->started.wait();
     }
@@ -197,7 +198,7 @@ private slots:
       state->started.release();
       release->wait();
       state->finished.release();
-      return gr::JobOutcome::stopped();
+      return nodetool::jobs::JobOutcome::stopped();
     });
     state->started.wait();
     const auto start = Clock::now();

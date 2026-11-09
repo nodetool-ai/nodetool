@@ -51,7 +51,7 @@
 #include "host/unique_fd.h"
 #include "kernel/async_jobs.h"
 #include "kernel/job_inputs.h"
-#include "kernel/resource_control.h"
+#include "nodetool/jobs/resource_control.h"
 
 #include <nlohmann/json.hpp>
 
@@ -74,6 +74,13 @@
 #include <sys/syscall.h>
 #endif
 #include <unistd.h>
+
+using nodetool::jobs::JobCost;
+using nodetool::jobs::JobExecutor;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::ResourceBody;
+using nodetool::jobs::ResourceControl;
+using nodetool::jobs::ResourceOperation;
 
 namespace gr::host {
 namespace {
@@ -608,7 +615,7 @@ public:
   JobCost cost() const override { return {path_.size(), length_, 0}; }
 
 protected:
-  JobOutcome apply(ResourceBody& body, ResourceOperationContext& context) override {
+  JobOutcome apply(ResourceBody& body, nodetool::jobs::ResourceOperationContext& context) override {
     if (context.stop().stop_requested()) return JobOutcome::stopped();
     auto& handle = static_cast<HandleBody&>(body);
     if (!handle.fd) throw FsError("EBADF", "read", path_, "closed or foreign file handle");
@@ -638,7 +645,7 @@ public:
   explicit HandleClose(std::shared_ptr<ResourceControl> control) : ResourceOperation(std::move(control)) {}
 
 protected:
-  JobOutcome apply(ResourceBody& body, ResourceOperationContext&) override {
+  JobOutcome apply(ResourceBody& body, nodetool::jobs::ResourceOperationContext&) override {
     static_cast<HandleBody&>(body).fd.reset();
     return JobOutcome::value(nullptr);
   }
@@ -740,7 +747,7 @@ bool flagArg(js::Engine& en, Args a, size_t i) { return a.size() > i && en.toBoo
 struct Submission {
   AsyncRun& run;
   JobExecutor& io;
-  Reservation reservation;
+  nodetool::jobs::Reservation reservation;
 };
 
 Submission begin(const RunBinding& binding) {
@@ -751,7 +758,8 @@ Submission begin(const RunBinding& binding) {
 }
 
 // A path argument, copied into `reservation`.
-std::string pathArg(js::Engine& en, Args a, size_t i, Reservation& reservation, const char* name = "path") {
+std::string pathArg(js::Engine& en, Args a, size_t i, nodetool::jobs::Reservation& reservation,
+                    const char* name = "path") {
   if (a.size() <= i || !en.isString(a[i])) throw std::invalid_argument(std::string(name) + " must be a string");
   return snapshotString(en, a[i], name, reservation);
 }

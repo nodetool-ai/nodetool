@@ -16,10 +16,10 @@
 #pragma once
 
 #include "host/media.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
-#include "kernel/resource_control.h"
-#include "kernel/session_stop.h"
+#include "nodetool/jobs/admission.h"
+#include "nodetool/jobs/resource_control.h"
+#include "nodetool/jobs/session_stop.h"
 
 #include <exception>
 #include <memory>
@@ -45,7 +45,8 @@ struct MediaStopped : std::runtime_error {
 class MediaStop {
 public:
   MediaStop() = default;
-  MediaStop(const SessionStopBridge& bridge, const MediaTestHooks& hooks) : bridge_(&bridge), hooks_(&hooks) {}
+  MediaStop(const nodetool::jobs::SessionStopBridge& bridge, const MediaTestHooks& hooks)
+      : bridge_(&bridge), hooks_(&hooks) {}
   // Between packets and frames: throws MediaStopped once stopped.
   void check() const {
     if (hooks_->checkpoint) hooks_->checkpoint([this] { return bridge_->stopped(); });
@@ -54,10 +55,10 @@ public:
   bool stopped() const { return bridge_->stopped(); }
   // The opaque pointer of an AVIOInterruptCB whose callback is
   // SessionStopBridge::interrupt.
-  void* opaque() const { return const_cast<SessionStopBridge*>(bridge_); }
+  void* opaque() const { return const_cast<nodetool::jobs::SessionStopBridge*>(bridge_); }
 
 private:
-  const SessionStopBridge* bridge_ = nullptr;
+  const nodetool::jobs::SessionStopBridge* bridge_ = nullptr;
   const MediaTestHooks* hooks_ = nullptr;
 };
 
@@ -71,51 +72,53 @@ private:
 // mode). It is destroyed there, or on the process JobDisposer when the lane
 // refused it.
 template <class F>
-class MediaJob final : public NativeJob {
+class MediaJob final : public nodetool::jobs::NativeJob {
 public:
-  MediaJob(std::string name, std::shared_ptr<const MediaTestHooks> hooks, JobCost cost,
-           std::vector<ResourceLease> leases, F fn)
-      : leases_(std::move(leases)), name_(std::move(name)), hooks_(std::move(hooks)), cost_(cost),
-        fn_(std::move(fn)) {}
+  MediaJob(std::string name, std::shared_ptr<const MediaTestHooks> hooks, nodetool::jobs::JobCost cost,
+           std::vector<nodetool::jobs::ResourceLease> leases, F fn)
+      : leases_(std::move(leases)), name_(std::move(name)), hooks_(std::move(hooks)), cost_(cost), fn_(std::move(fn)) {}
 
   // The inputs it copied at submission, and the most its result holds.
-  JobCost cost() const override { return cost_; }
+  nodetool::jobs::JobCost cost() const override { return cost_; }
 
-  JobOutcome run(std::stop_token stop) override {
+  nodetool::jobs::JobOutcome run(std::stop_token stop) override {
     // Declared before the binding and the contexts `fn_` creates, so it
     // outlives every interrupt callback that points at it.
-    SessionStopBridge bridge;
-    std::optional<JobOutcome> outcome;
+    nodetool::jobs::SessionStopBridge bridge;
+    std::optional<nodetool::jobs::JobOutcome> outcome;
     {
-      SessionStopBridge::Binding binding(bridge, 1, stop);
+      nodetool::jobs::SessionStopBridge::Binding binding(bridge, 1, stop);
       const MediaStop checks(bridge, *hooks_);
       try {
         if (hooks_->started) hooks_->started(name_, stop, [&bridge] { return bridge.stopped(); });
         outcome = fn_(checks);
       } catch (const std::exception& e) {
-        outcome = bridge.stopped() ? stopped() : JobOutcome::failure(e.what());
+        outcome = bridge.stopped() ? stopped() : nodetool::jobs::JobOutcome::failure(e.what());
       } catch (...) {
-        outcome = bridge.stopped() ? stopped() : JobOutcome::failure("native media " + name_ + " failed");
+        outcome =
+            bridge.stopped() ? stopped() : nodetool::jobs::JobOutcome::failure("native media " + name_ + " failed");
       }
     }
     return std::move(*outcome);
   }
 
 private:
-  JobOutcome stopped() const {
-    return JobOutcome{JobOutcome::Kind::Stopped, nullptr, "native media " + name_ + " was stopped"};
+  nodetool::jobs::JobOutcome stopped() const {
+    return nodetool::jobs::JobOutcome{nodetool::jobs::JobOutcome::Kind::Stopped, nullptr,
+                                      "native media " + name_ + " was stopped"};
   }
   // Released last, when the job is destroyed.
-  std::vector<ResourceLease> leases_;
+  std::vector<nodetool::jobs::ResourceLease> leases_;
   std::string name_;
   std::shared_ptr<const MediaTestHooks> hooks_;
-  JobCost cost_;
+  nodetool::jobs::JobCost cost_;
   F fn_;
 };
 
 template <class F>
-std::unique_ptr<NativeJob> makeMediaJob(std::string name, std::shared_ptr<const MediaTestHooks> hooks, JobCost cost,
-                                        std::vector<ResourceLease> leases, F fn) {
+std::unique_ptr<nodetool::jobs::NativeJob> makeMediaJob(std::string name, std::shared_ptr<const MediaTestHooks> hooks,
+                                                        nodetool::jobs::JobCost cost,
+                                                        std::vector<nodetool::jobs::ResourceLease> leases, F fn) {
   return std::make_unique<MediaJob<F>>(std::move(name), std::move(hooks), cost, std::move(leases), std::move(fn));
 }
 
@@ -129,17 +132,18 @@ std::unique_ptr<NativeJob> makeMediaJob(std::string name, std::shared_ptr<const 
 //
 // Thread affinity: the lane thread that runs it.
 template <class Body, class F>
-class SessionOperation final : public ResourceOperation {
+class SessionOperation final : public nodetool::jobs::ResourceOperation {
 public:
-  SessionOperation(std::shared_ptr<ResourceControl> control, std::string name,
-                   std::shared_ptr<const MediaTestHooks> hooks, JobCost cost, F fn)
-      : ResourceOperation(std::move(control)), name_(std::move(name)), hooks_(std::move(hooks)), cost_(cost),
-        fn_(std::move(fn)) {}
+  SessionOperation(std::shared_ptr<nodetool::jobs::ResourceControl> control, std::string name,
+                   std::shared_ptr<const MediaTestHooks> hooks, nodetool::jobs::JobCost cost, F fn)
+      : nodetool::jobs::ResourceOperation(std::move(control)), name_(std::move(name)), hooks_(std::move(hooks)),
+        cost_(cost), fn_(std::move(fn)) {}
 
-  JobCost cost() const override { return cost_; }
+  nodetool::jobs::JobCost cost() const override { return cost_; }
 
 protected:
-  JobOutcome apply(ResourceBody& body, ResourceOperationContext& context) override {
+  nodetool::jobs::JobOutcome apply(nodetool::jobs::ResourceBody& body,
+                                   nodetool::jobs::ResourceOperationContext& context) override {
     auto& session = static_cast<Body&>(body);
     try {
       if (hooks_->started) {
@@ -150,20 +154,21 @@ protected:
       if (!session.bridge.stopped()) throw;
       std::string reason = "native media " + name_ + " was stopped";
       context.retireSession(reason);
-      return JobOutcome{JobOutcome::Kind::Stopped, nullptr, std::move(reason)};
+      return nodetool::jobs::JobOutcome{nodetool::jobs::JobOutcome::Kind::Stopped, nullptr, std::move(reason)};
     }
   }
 
 private:
   std::string name_;
   std::shared_ptr<const MediaTestHooks> hooks_;
-  JobCost cost_;
+  nodetool::jobs::JobCost cost_;
   F fn_;
 };
 
 template <class Body, class F>
-std::unique_ptr<NativeJob> makeSessionOperation(std::shared_ptr<ResourceControl> control, std::string name,
-                                                std::shared_ptr<const MediaTestHooks> hooks, JobCost cost, F fn) {
+std::unique_ptr<nodetool::jobs::NativeJob> makeSessionOperation(
+    std::shared_ptr<nodetool::jobs::ResourceControl> control, std::string name,
+    std::shared_ptr<const MediaTestHooks> hooks, nodetool::jobs::JobCost cost, F fn) {
   return std::make_unique<SessionOperation<Body, F>>(std::move(control), std::move(name), std::move(hooks), cost,
                                                      std::move(fn));
 }

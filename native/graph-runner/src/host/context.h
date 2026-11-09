@@ -61,7 +61,7 @@ class ContextCallRules {
   // AbortError however its result and the cancellation were ordered. call()
   // throws it as the Error "Run cancelled", as before.
   void checkResponse(const std::string& operation, size_t responseBytes) const {
-    if (!isCleanup(operation) && cancelled_ && cancelled_()) throw JobAborted("Run cancelled");
+    if (!isCleanup(operation) && cancelled_ && cancelled_()) throw nodetool::jobs::JobAborted("Run cancelled");
     if (responseBytes > maxPayloadBytes_) throw std::runtime_error("Context response size limit exceeded");
   }
 

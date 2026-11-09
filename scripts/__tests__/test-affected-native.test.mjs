@@ -305,6 +305,41 @@ describe("planProjects", () => {
     expect(plans).toEqual([]);
   });
 
+  it("treats a changed file of a project it depends on as its own", () => {
+    const tmp = mkdtempSync(join(tmpdir(), "native-affected-"));
+    temporary.push(tmp);
+    const plans = planProjects({
+      names: ["chat", "graph-runner", "node-editor"],
+      files: ["native/jobs/src/job_core.cpp"],
+      builds: { chat: join(tmp, "chat"), "graph-runner": join(tmp, "runner"), "node-editor": join(tmp, "editor") },
+      root: tmp,
+      load: () => {
+        throw new Error("an unconfigured project has no model");
+      }
+    });
+    expect(plans.map((plan) => [plan.name, plan.status])).toEqual([
+      ["graph-runner", "unconfigured"],
+      ["node-editor", "unconfigured"]
+    ]);
+  });
+
+  it("refreshes a configured project's model when a project it depends on changed", () => {
+    const { root, build } = setup();
+    mkdirSync(join(root, "native", "graph-runner"), { recursive: true });
+    const calls = [];
+    planProjects({
+      names: ["graph-runner"],
+      files: ["native/jobs/include/nodetool/jobs/job_core.h"],
+      builds: { "graph-runner": build },
+      root,
+      load: (name, dir, cache, options) => {
+        calls.push(options);
+        return null;
+      }
+    });
+    expect(calls).toEqual([{ refresh: true }]);
+  });
+
   it("runs the remaining projects after one fails and reports every failure", () => {
     const selected = (name) => ({ name, status: "selected", selection: { selected: [{ test: `${name}_t` }] } });
     const plans = [
