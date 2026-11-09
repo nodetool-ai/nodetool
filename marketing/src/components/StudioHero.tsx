@@ -43,8 +43,8 @@ export default function StudioHero({
             id={headingId}
             className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-slate-50 sm:text-6xl lg:text-7xl"
           >
-            Make media with an AI agent.{" "}
-            <span className="text-sky-200">Keep every project.</span>
+            Create with an AI agent.{" "}
+            <span className="text-sky-200">Save your projects locally.</span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300 sm:text-xl">

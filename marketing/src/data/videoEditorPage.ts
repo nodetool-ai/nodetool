@@ -15,7 +15,7 @@ import type { QaPair } from "@/lib/jsonld";
 
 export const VIDEO_TITLE = "Open-Source AI Video Editor with an Editable Timeline | NodeTool";
 export const VIDEO_DESCRIPTION =
-  "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and cuts a multi-track timeline you keep editing. Open source.";
+  "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and assembles a multi-track timeline you can edit. Open source.";
 
 export const VIDEO_LEAD =
   "NodeTool is an open-source AI video editor where the agent's work stays editable. The agent plans a storyboard, renders each shot on the video model you pick, voices the script, and assembles a multi-track timeline. You open that timeline, swap a take, trim a cut, or regenerate one shot without rendering the rest. Use the built-in agent, or connect Claude Code or Codex over MCP.";
@@ -29,22 +29,22 @@ export const FLOW_STEPS: FlowStep[] = [
   },
   {
     title: "Keep characters consistent",
-    body: "Entities hold a character, location, style, or product with a reference image and a fixed description. Cast them on the board, and every shot that uses them gets the same reference.",
+    body: "Save characters, locations, styles and products as entities, each with a reference image and a description. Reuse these entities across shots.",
   },
   {
     title: "Render stills, then clips",
-    body: "Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Each render keeps its takes, so a better earlier take is one click away.",
+    body: "Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Compare takes and return to an earlier version whenever you prefer.",
   },
   {
     title: "Voice the script",
-    body: "A script holds the lines and voices. Voice all lines, and a line you change is marked stale so only that line is voiced again.",
+    body: "Generate dialogue for the script. When you edit a line, regenerate its voice recording without redoing the others.",
   },
   {
     title: "Cut the timeline",
     body: "Create timeline turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.",
   },
   {
-    title: "Deliver every format",
+    title: "Export for different formats",
     body: "Adapt format makes 9:16, 1:1, and 4:5 versions of the sequence in one step. Export MP4, WebM, or a PNG sequence, or hand the cut to Premiere Pro.",
   },
 ];
