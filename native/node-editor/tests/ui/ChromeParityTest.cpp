@@ -94,7 +94,12 @@ bool showsText(QQuickItem *root, const QString &text) {
 
 class ChromeParityTest final : public QObject {
     Q_OBJECT
-
+public:
+    static void initMain() {
+        // Offscreen has no desktop hover hint, so controls would ignore the hover checks below.
+        qputenv("QT_QUICK_CONTROLS_HOVER_ENABLED", "1");
+    }
+private:
     static QQuickWidget *panel(EditorWindow &window, const QString &file) {
         for (auto *widget : window.findChildren<QQuickWidget *>()) {
             if (widget->source().fileName() == file + QStringLiteral(".qml")) {

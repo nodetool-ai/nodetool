@@ -79,9 +79,18 @@ TestCase {
     SignalSpy { id: previews; target: fader; signalName: "valuePreviewed" }
     SignalSpy { id: commits; target: fader; signalName: "valueCommitted" }
     SignalSpy { id: cancels; target: fader; signalName: "editCanceled" }
+    Ui.SelectionCard {
+        id: previewCard
+        visible: false
+        z: 1000
+        text: "Ada"
+        subtitle: "character"
+        preview: Component { MouseArea { objectName: "previewInput"; anchors.fill: parent } }
+    }
+    SignalSpy { id: previewCardClicked; target: previewCard; signalName: "clicked" }
     SignalSpy { id: clicked; target: button; signalName: "clicked" }
     SignalSpy { id: buttonFocusChanges; target: button; signalName: "activeFocusChanged" }
-    function init() { Ui.Theme.preference = Ui.Theme.System; Ui.Theme.systemScheme = Ui.Theme.Unknown; Ui.Theme.uiScale = 1; Ui.Theme.textScale = 1; clicked.clear() }
+    function init() { Ui.Theme.preference = Ui.Theme.System; Ui.Theme.systemScheme = Ui.Theme.Unknown; Ui.Theme.uiScale = 1; Ui.Theme.textScale = 1; clicked.clear(); previewCard.visible = false; previewCardClicked.clear() }
     function test_invalid_enums() {
         Ui.Theme.preference = 99; compare(Ui.Theme.preference, Ui.Theme.System)
         Ui.Theme.systemScheme = 99; compare(Ui.Theme.systemScheme, Ui.Theme.Unknown)
@@ -798,5 +807,13 @@ TestCase {
         compare(clicked.count, 3)
         keyClick(Qt.Key_Enter)
         compare(clicked.count, 4)
+    }
+    function test_selection_card_preview_click_selects() {
+        previewCard.visible = true
+        const area = findChild(previewCard, "previewInput")
+        verify(area)
+        tryVerify(() => area.width > 0 && area.height > 0)
+        mouseClick(area)
+        compare(previewCardClicked.count, 1)
     }
 }

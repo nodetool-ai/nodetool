@@ -102,6 +102,7 @@ struct FakeHttp final : QObject {
     QTcpServer server;
     QHash<QString, QPointer<QTcpSocket>> sockets;
     QHash<QString, QByteArray> requests;
+    QHash<QString, int> counts;
     FakeHttp() {
         server.listen(QHostAddress::LocalHost);
         connect(&server, &QTcpServer::newConnection, this, [this] {
@@ -109,7 +110,7 @@ struct FakeHttp final : QObject {
             connect(socket, &QTcpSocket::readyRead, socket, [this, socket] {
                 const auto bytes = socket->property("request").toByteArray() + socket->readAll(); socket->setProperty("request", bytes);
                 if (!bytes.contains("\r\n\r\n")) { return; }
-                const auto path = QString::fromLatin1(bytes.split(' ').value(1)); sockets[path] = socket; requests[path] = bytes;
+                const auto path = QString::fromLatin1(bytes.split(' ').value(1)); sockets[path] = socket; requests[path] = bytes; ++counts[path];
             });
             connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
         });
@@ -254,6 +255,10 @@ private slots:
         QVERIFY(http.requests["/api/assets/packages/fixture/b.png"].contains("Authorization: Bearer comparison-account"));
         http.reply("/api/a.png", png(Qt::red)); http.reply("/api/assets/packages/fixture/b.png", png(Qt::blue));
         QTRY_VERIFY_WITH_TIMEOUT(near(h.pixel(0.25, 0.5), Qt::red) && near(h.pixel(0.75, 0.5), Qt::blue), 3000);
+        // Each side is fetched once. A duplicate request cancels the first one.
+        QCOMPARE(http.counts.value(lookup), 1);
+        QCOMPARE(http.counts.value("/api/a.png"), 1);
+        QCOMPARE(http.counts.value("/api/assets/packages/fixture/b.png"), 1);
     }
     void replacementClearAndDestroyedInstanceRejectLateReplies() {
         FakeHttp http; QVERIFY(http.server.isListening()); MediaResolver resolver; resolver.configure(http.base(), "first-account");

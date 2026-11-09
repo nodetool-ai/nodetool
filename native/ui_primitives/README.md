@@ -155,4 +155,6 @@ options, and selection or Escape returns focus to the chip.
 `SelectionCard` is a square preview above a name and subtitle badge. Supply
 `text`, `subtitle`, `placeholderIcon`, optional `preview` component, and
 `checked`. It inherits button pointer, keyboard, focus and disabled behavior.
-The host owns image resolution and selection commits.
+The preview is disabled, so a click anywhere on the card reaches the card, and
+controls inside the preview take no focus. The host owns image resolution and
+selection commits.

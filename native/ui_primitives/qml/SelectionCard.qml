@@ -33,6 +33,8 @@ Ui.EditorButton {
             }
             Loader {
                 anchors.fill: parent
+                // The preview is decoration. Disabling it keeps pointer and focus on the card.
+                enabled: false
                 sourceComponent: root.preview
             }
         }

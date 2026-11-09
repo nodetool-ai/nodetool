@@ -347,9 +347,13 @@ private slots:
     QCOMPARE(file.write(bytes), bytes.size());
     QVERIFY(file.flush());
     nodetool::node_editor::AudioWaveform waveform;
+    // The decoder hands over one buffer per event loop round trip. QTRY polling
+    // sleeps between rounds and stretches this decode from milliseconds to seconds,
+    // so wait on the signal in a running event loop instead.
+    QSignalSpy loading(&waveform, &nodetool::node_editor::AudioWaveform::loadingChanged);
     waveform.setSource(QUrl::fromLocalFile(file.fileName()));
-    QTRY_VERIFY_WITH_TIMEOUT(waveform.peaks().size() > 500, 10000);
-    QTRY_VERIFY(!waveform.loading());
+    while (waveform.peaks().isEmpty() || waveform.loading()) { QVERIFY(loading.wait(10000)); }
+    QVERIFY(waveform.peaks().size() > 500);
     QVERIFY(waveform.peaks().size() <= 1024);
     QVERIFY(waveform.peaks().last().toFloat() > 0.7f);
     waveform.setSource({});
@@ -529,7 +533,8 @@ private slots:
     QCOMPARE(downloaded.readAll(), bytes);
     QCOMPARE(requests.size(), previewRequests);
     if (asset) {
-      QVERIFY(requests.size() >= 2);
+      // One asset lookup and one download. A second resolve would cancel and repeat both.
+      QCOMPARE(requests.size(), 2);
       QVERIFY(requests[0].contains("0123456789abcdef0123456789abcdef"));
       for (const auto &request : requests) { QVERIFY(request.contains("Authorization: Bearer image-download-token")); }
     }

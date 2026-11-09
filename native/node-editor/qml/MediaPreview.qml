@@ -104,11 +104,14 @@ Item {
     }
     function togglePlayback() { if (playing) player.pause(); else player.play() }
     function seek(ms) { if (player.seekable) player.position = Math.max(0, Math.min(player.duration, ms)) }
-    onRequestKeyChanged: resolve()
-    onLocatorChanged: resolve()
-    onMediaKindChanged: resolve()
+    // Initial properties also emit change signals during creation. Resolving only
+    // after completion sends one request instead of cancelled duplicates.
+    property bool completed: false
+    onRequestKeyChanged: if (completed) resolve()
+    onLocatorChanged: if (completed) resolve()
+    onMediaKindChanged: if (completed) resolve()
     onVisibleChanged: if (!visible) { exitFullscreen(); player.stop() }
-    Component.onCompleted: resolve()
+    Component.onCompleted: { completed = true; resolve() }
     Component.onDestruction: reset()
     Connections {
         target: mediaResolver

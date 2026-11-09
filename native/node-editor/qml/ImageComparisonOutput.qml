@@ -48,6 +48,9 @@ ColumnLayout {
         property url resolvedSource: ""
         property string failure: ""
         property bool resolving: false
+        // The locator binding also changes during creation. Resolving only after
+        // completion sends one request per side instead of a cancelled duplicate.
+        property bool completed: false
         readonly property bool loading: resolving || image.status === Image.Loading
         readonly property size natural: image.status === Image.Ready ? Qt.size(image.implicitWidth, image.implicitHeight) : Qt.size(0, 0)
         function reset() {
@@ -65,9 +68,9 @@ ColumnLayout {
             resolving = true
             mediaResolver.resolve(resolverKey, locator)
         }
-        onLocatorChanged: resolve()
-        onActiveChanged: resolve()
-        Component.onCompleted: resolve()
+        onLocatorChanged: if (completed) resolve()
+        onActiveChanged: if (completed) resolve()
+        Component.onCompleted: { completed = true; resolve() }
         Component.onDestruction: reset()
         Connections {
             target: mediaResolver

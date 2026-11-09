@@ -8,6 +8,7 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QtTest>
+#include <QLineEdit>
 #include "ui/EditorWindow.h"
 #include <QQuickWidget>
 #include <QDialog>
@@ -227,16 +228,20 @@ private slots:
     QTRY_COMPARE(window.session()->autosaveState(), QString("deleted")); QTRY_VERIFY(panel(window)); QVERIFY(!window.outputVisible());
     auto *widget = panel(window); QVERIFY(!item(widget, "server-sync-keep-local")->isEnabled());
     QTemporaryDir dir; QVERIFY(dir.isValid()); const auto path = dir.filePath("recovered.json");
+    // Type the path into the name field as a user would. selectFile() leaves the
+    // field unchanged once it has focus, and the dialog then opens the directory.
     QTimer acceptFile;
     acceptFile.setInterval(10);
     connect(&acceptFile, &QTimer::timeout, &window, [&] {
-      if (auto *fileDialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) {
-        acceptFile.stop(); fileDialog->selectFile(path);
-        QMetaObject::invokeMethod(fileDialog, "accept", Qt::QueuedConnection);
-      }
+      auto *fileDialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget());
+      auto *name = fileDialog ? fileDialog->findChild<QLineEdit *>("fileNameEdit") : nullptr;
+      if (!name) return;
+      acceptFile.stop(); name->setText(path);
+      QMetaObject::invokeMethod(fileDialog, "accept", Qt::QueuedConnection);
     });
     acceptFile.start();
-    QTimer::singleShot(2000, &window, [] {
+    // Only ends the modal loop if the dialog never accepts, so the test fails instead of hanging.
+    QTimer::singleShot(30000, &window, [] {
       if (auto *fileDialog = qobject_cast<QFileDialog *>(QApplication::activeModalWidget())) fileDialog->reject();
     });
     click(widget, "server-sync-save-local");
