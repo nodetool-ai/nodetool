@@ -20,7 +20,7 @@ export default function ProjectSection() {
             id="projects-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Describe it. The agent builds the whole project.
+            From an idea to a video you can edit.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
             Tell the agent what you want to make. It writes the script, plans
