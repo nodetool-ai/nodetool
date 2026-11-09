@@ -15,7 +15,7 @@ A chat assistant answers once and stops. Inside the harness, the agent works on 
 
 - **Build** (`create_workflow`): The agent adds nodes, picks models, and wires the graph. It checks that the selected providers and models exist before saving the workflow.
 - **Validate** (`validate_workflow`): Check the workflow for errors before calling a model.
-- **Run** (`run_workflow`): The graph calls your local models and provider accounts. A run whose provider has no key is refused before the first node starts.
+- **Run** (`run_workflow`): Run the workflow with local models or your provider accounts. Missing API keys are flagged before it starts.
 - **Inspect** (`get_job_logs`): Every tool call, output, and error is in the log, with the node that failed.
 - **Repair** (`create_workflow_version`): The agent saves its changes as a new version, so you can return to the previous one.
 
@@ -49,7 +49,7 @@ Read what the agent did, and take the work back at any point.
 
 - **A full record**: Read each tool call with its arguments, result, and error. Find the step that went wrong.
 - **Take over at any time**: Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.
-- **Your keys**: When a graph needs a key this install does not have, the agent in Studio asks you for it in a dialog. A headless run fails instead of guessing.
+- **Your keys**: Studio asks you to add any missing API keys. Runs started without the interface stop with an error if a required key is missing.
 
 ## Permission modes
 

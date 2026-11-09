@@ -14,7 +14,7 @@ NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and 
 Studio keeps the project on your computer. It only goes online when you use an online AI provider or service.
 
 - **Project files**: Studio stores the workspace, workflows, and media on your machine. You choose where those files live and when to move them.
-- **Supported local models**: Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Local capability depends on the model and your hardware.
+- **Supported local models**: Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Which models you can run locally depends on your computer’s hardware.
 - **Online AI providers**: Connect your own provider accounts when a hosted model fits the job. Those requests need a network connection and are handled under the provider's terms.
 - **Offline work**: Studio can work without a network when the project uses local files and supported local models. Remote providers, downloads, and online services still need a connection.
 
@@ -24,7 +24,7 @@ You do not need a powerful computer. Running AI models on your own machine is op
 
 - **Desktop platforms**: Studio is available for macOS, Windows, and Linux.
 - **Graphics hardware**: A dedicated GPU is optional when you use hosted providers. It matters when you choose to run larger models locally.
-- **Model downloads**: The desktop app does not require a local model collection. Download only the supported models you plan to run on your machine.
+- **Model downloads**: Use Studio with your provider accounts, or download supported models to run locally.
 
 ## Questions
 

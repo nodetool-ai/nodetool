@@ -119,7 +119,7 @@ export default function AgentsPage() {
             id="agent-loop-title"
             eyebrow="Inside the harness"
             title="Build. Validate. Run. Inspect. Repair."
-            body="A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step. The session at the top of this page is that loop, with a failed run in the middle."
+            body="The agent works on a saved workflow. If a step fails, it can inspect the error and revise that step. The example above illustrates this process."
           />
           <div className="mt-12 max-w-3xl">
             <ol className="relative">
@@ -212,7 +212,7 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-surfaces-title"
             eyebrow="What the harness gives the agent"
-            title="Eight editors the agent can work in. No export step."
+            title="You and the agent use the same editors."
             body="The agent edits the same documents you open in Studio. When it stops, the work is already in the editor."
           />
           <div className="mt-12">
@@ -295,7 +295,7 @@ export default function AgentsPage() {
 
       <MarketingClosingAction
         headingId="agents-closing-title"
-        title="Run your first brief through the harness."
+        title="Ask the agent to build your first workflow."
         body="Download Studio and watch the agent build a workflow you can open, change, and run again."
         primaryAction={<AgentsPrimaryAction />}
         secondaryAction={{

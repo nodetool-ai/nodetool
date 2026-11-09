@@ -24,7 +24,7 @@ export const LOOP_STAGES = [
   {
     title: "Run",
     tool: "run_workflow",
-    body: "The graph calls your local models and provider accounts. A run whose provider has no key is refused before the first node starts.",
+    body: "Run the workflow with local models or your provider accounts. Missing API keys are flagged before it starts.",
   },
   {
     title: "Inspect",
@@ -66,7 +66,7 @@ export const CONTROLS = [
   },
   {
     title: "Your keys",
-    body: "When a graph needs a key this install does not have, the agent in Studio asks you for it in a dialog. A headless run fails instead of guessing.",
+    body: "Studio asks you to add any missing API keys. Runs started without the interface stop with an error if a required key is missing.",
   },
 ];
 
