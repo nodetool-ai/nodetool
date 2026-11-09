@@ -91,12 +91,21 @@ test.describe("marketing smoke", () => {
     // spec strip, way in. A new h2 here means a section was added without
     // removing one.
     await expect(page.locator("#content h2")).toHaveText([
-      "Change one shot. The rest of the cut stays.",
+      "From an idea to a video you can edit.",
       "Approve the still before you pay for the clip.",
       "Specs",
       "Frequently asked questions",
       "Start making with NodeTool."
     ]);
+    // The hero names the three things the homepage is about, each linked to
+    // its owner page.
+    const pillars = page
+      .getByRole("list", { name: "What NodeTool makes" })
+      .locator("a");
+    await expect(pillars).toHaveCount(3);
+    for (const href of ["/studio", "/agents", "/node-based-workflows"]) {
+      await expect(pillars.and(page.locator(`[href="${href}"]`))).toHaveCount(1);
+    }
     const specs = page.getByRole("region", { name: "Specs" });
     for (const item of Object.values(SPEC_ITEMS)) {
       await expect(specs.locator(`a[href="${item.href}"]`)).toHaveText(

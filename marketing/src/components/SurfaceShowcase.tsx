@@ -61,8 +61,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Preview each shot before animating it",
-    body: `Try out characters and camera angles as still images before spending money on video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
+    headline: "Change a shot by hand",
+    body: "Open a shot and change its description, camera, or the characters in it. Its still and clip are marked stale, and Prompts shows what the next render will send. A regenerated shot gets a new take. The current take stays selected until you choose the new one, and the other shots keep theirs.",
     asset: "surface-storyboard",
   },
   {
@@ -115,10 +115,22 @@ const SURFACES: Surface[] = [
   },
 ];
 
+/**
+ * The storyboard panel as the homepage tells it: the cost of a still against
+ * a clip. The homepage owns that argument (site-editorial.spec.md), so only
+ * the homepage passes it. Prices come from the calculator catalog.
+ */
+export const STORYBOARD_COST_COPY = {
+  headline: "Preview each shot before animating it",
+  body: `Try out characters and camera angles as still images before spending money on video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
+};
+
 interface SurfaceShowcaseProps {
   surfaceIds?: string[];
   heading?: string;
   intro?: string;
+  /** Replace a panel's headline and body on one page, keyed by surface id. */
+  copy?: Partial<Record<string, { headline: string; body: string }>>;
 }
 
 export default function SurfaceShowcase({
@@ -126,13 +138,15 @@ export default function SurfaceShowcase({
   heading = "Seven editors. The agent works in all of them.",
   intro =
     "Ask the agent to shorten the opening scene or change a character's voice. It makes the changes directly in your project. You can also edit any part yourself.",
+  copy,
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>
-      surfaceIds
+      (surfaceIds
         ? SURFACES.filter((surface) => surfaceIds.includes(surface.id))
-        : SURFACES,
-    [surfaceIds]
+        : SURFACES
+      ).map((surface) => ({ ...surface, ...copy?.[surface.id] })),
+    [surfaceIds, copy]
   );
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);

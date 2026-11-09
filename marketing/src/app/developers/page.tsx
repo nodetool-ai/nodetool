@@ -86,9 +86,9 @@ const workflowFacts: MarketingFact[] = [
       "Ask the agent to save the steps as a workflow. The prompt, the model, and every setting stay in the graph.",
   },
   {
-    term: "Same graph, two editors",
+    term: "Inputs become parameters",
     description:
-      "When Studio is open, the agent's edits appear in the canvas as they happen. Change a node by hand and the agent sees it on the next call.",
+      "Each input node's name is a key in the run request. The photo input in the graph is the photo field in the HTTP call below.",
   },
   {
     term: "Run it again",

@@ -9,6 +9,7 @@ import TrackedLink from "@/components/TrackedLink";
 import { faqPageSchema, toQaPairs } from "@/lib/jsonld";
 import FeaturesSection from "@/components/FeaturesSection";
 import UseCasesShowcase from "@/components/UseCasesShowcase";
+import LocalModelDemo from "@/components/LocalModelDemo";
 import WorkflowFlowDiagram from "@/components/WorkflowFlowDiagram";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import {
@@ -178,6 +179,7 @@ export default async function SolutionPage({
         )}
 
         {/* Shared body sections */}
+        {entry.sections.includes("local-demo") && <LocalModelDemo />}
         {entry.sections.includes("features") && <FeaturesSection />}
         {entry.sections.includes("use-cases") && <UseCasesShowcase />}
 

@@ -35,12 +35,13 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 | Route | Thesis | Proof | Leaves to other pages |
 |---|---|---|---|
-| `/` | Stop prompting slot machines. Direct the agent inside a project you can edit. | The hero reel, the one-shot re-take (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud |
-| `/agents` | The agent works inside the same editors and records as you. | The agent run, the build-run-inspect-repair loop, the permission modes, the MCP install | Film production pitch, plan and key explanations |
-| `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour, the films that open as timelines, local models and setup | Plan and key explanations, ad and recipe catalogues |
+| `/` | Films, agents, and node workflows in one editable project. | The hero reel, the three focus cards, the project demo (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud |
+| `/agents` | The agent works inside the same editors and records as you, and the harness catches its mistakes. | The failed-run-and-repair session, the build-validate-run-inspect-repair loop, what validation reports, the permission modes | MCP install, CLI, HTTP API (linked to `/developers`), film production pitch, plan and key explanations |
+| `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour (its storyboard panel shows a shot edited by hand), the films that open as timelines, local models and setup | The still-versus-clip cost example (homepage), plan and key explanations, ad and recipe catalogues |
 | `/node-based-workflows` | A graph you can check before a paid run, and run again. | The node reel, the node-by-node walkthrough | Plan explanation, Studio facts |
 | `/marketing` | One brief becomes a campaign, with a bounded revision. | The Directed Campaign Kit run: hero, square, story, one revision note | Ad library, storyboards, recipes, other workflows (linked) |
-| `/developers` | Programmatic use: MCP, CLI, HTTP, and a real asset pipeline. | The sprite session with filenames and terminal output | Filmmaking copy, plan explanation |
+| `/developers` | Programmatic use: MCP, CLI, HTTP, and a real asset pipeline. | The sprite session with filenames and terminal output, the MCP install, the run endpoint | The harness loop and validation (`/agents`), filmmaking copy, plan explanation |
+| `/solutions/local-first` | A workflow that runs on a local model with the network off. | The Private Assistant run on Ollama, the model memory table, what stays local and what stops offline | Film production, the editor tour, plan explanation, hosted model lists |
 | `/pricing` | What NodeTool costs, plans and keys. | `SubscriptionSection`, the calculator | Owner of the plan, keys, and cost facts |
 | `/models` | Which models run, hosted and local. | The generated model directory | Owner of the model facts |
 | `/alternatives/*` | The trade-off against one named tool. | One feature table, the three product stages | Summary paragraphs that repeat the table, the full comparison directory (the footer and `/alternatives` carry it) |
@@ -49,8 +50,9 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 Five blocks, in order:
 
-1. **The argument.** The `<h1>` "Stop prompting slot machines. Direct the
-   agent." and the hero reel.
+1. **The argument.** The `<h1>`, the hero reel, and three linked cards for
+   the homepage's focus: films, agents, and node workflows. The cards are
+   links, not sections, and carry no `h2`.
 2. **The mechanism.** One note sends one shot back, and the cut keeps every
    other shot (`ProjectSection`, the `agent-redo` reel).
 3. **The cost behaviour.** Approve the still before paying for the clip. The
@@ -71,7 +73,9 @@ One template renders every `/alternatives/<slug>` page. It keeps:
 - the short list of alternatives (it matches the page title and the ItemList
   schema), and the FAQ.
 
-A FAQ row must not restate the short answer or the table.
+A FAQ row must not restate the short answer or the table. A record may set
+`answer` when the generic short answer would only repeat the hero, and `hero`
+when the category promise does not fit (the ComfyUI page does both).
 
 ## Checks
 

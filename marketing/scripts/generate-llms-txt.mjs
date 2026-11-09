@@ -316,11 +316,17 @@ function surfaceFaqMarkdown(surface) {
 function agentsMarkdown() {
   return `${agents.AGENTS_LEAD}
 
-## Build. Run. Inspect. Repair.
+## Build. Validate. Run. Inspect. Repair.
 
 A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step.
 
 ${agents.LOOP_STAGES.map((s) => `- **${s.title}** (\`${s.tool}\`): ${s.body}`).join("\n")}
+
+## The graph is checked before it runs
+
+${agents.VALIDATION_NOTE} \`validate_workflow\` reports:
+
+${agents.VALIDATION_CHECKS.map((c) => `- ${c}`).join("\n")}
 
 ## Eight editors the agent can work in
 
@@ -340,15 +346,7 @@ ${agents.APPROVAL_MODES_INTRO}
 
 ${agents.APPROVAL_MODES.map((m) => `- **${m.title}**: ${m.body}`).join("\n")}
 
-## Connect your coding agent over MCP
-
-\`\`\`bash
-${mcp.MCP_INSTALL}
-\`\`\`
-
-${agents.MCP_STEPS.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
-
-For Cursor, Claude Desktop, or another MCP client, run \`nodetool-mcp config\` and paste the block it prints. See ${BASE_URL}/mcp for every tool.
+Connect Claude Code, Codex, or Cursor with one command. The setup, the CLI, and the HTTP API are at ${BASE_URL}/developers.md.
 
 ## Questions
 
