@@ -9068,6 +9068,10 @@
           "button": "Runcrate-API-Schlüssel abrufen",
           "tooltip": "Zur Runcrate-API-Schlüsselseite"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute-API-Schlüssel abrufen",
+          "tooltip": "Zur Standard Compute-API-Schlüsselseite"
+        },
         "HF_TOKEN": {
           "button": "Hugging-Face-Token abrufen",
           "tooltip": "Zur Hugging-Face-Token-Seite"

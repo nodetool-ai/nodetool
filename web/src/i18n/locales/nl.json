@@ -9064,6 +9064,10 @@
           "button": "Verkrijg de Runcrate API-sleutel",
           "tooltip": "Ga naar het Runcrate-platform om uw API-sleutel op te halen"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Verkrijg de Standard Compute API-sleutel",
+          "tooltip": "Ga naar het Standard Compute-platform om uw API-sleutel op te halen"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-routesleutel ophalen",
           "tooltip": "Ga naar de pagina API Route API-sleutels"

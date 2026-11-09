@@ -9356,6 +9356,10 @@
           "button": "Получить API-ключ Runcrate",
           "tooltip": "Перейти на страницу API-ключей Runcrate"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Получить API-ключ Standard Compute",
+          "tooltip": "Перейти на страницу API-ключей Standard Compute"
+        },
         "HF_TOKEN": {
           "button": "Получить токен Hugging Face",
           "tooltip": "Перейти на страницу токенов Hugging Face"

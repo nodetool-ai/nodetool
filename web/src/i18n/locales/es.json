@@ -9208,6 +9208,10 @@
           "button": "Obtener la clave API de Runcrate",
           "tooltip": "Vaya a la plataforma Runcrate para obtener su clave API"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Obtener la clave API de Standard Compute",
+          "tooltip": "Vaya a la plataforma Standard Compute para obtener su clave API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Obtener clave de ruta API",
           "tooltip": "Ir a la página de claves API de ruta API"

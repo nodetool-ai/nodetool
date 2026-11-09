@@ -9068,6 +9068,10 @@
           "button": "Get Runcrate API key",
           "tooltip": "Go to Runcrate API keys page"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Get Standard Compute API key",
+          "tooltip": "Go to Standard Compute API keys page"
+        },
         "HF_TOKEN": {
           "button": "Get Hugging Face token",
           "tooltip": "Go to Hugging Face tokens page"

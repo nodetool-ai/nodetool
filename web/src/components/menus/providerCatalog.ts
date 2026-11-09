@@ -588,6 +588,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://runcrate.ai/docs/models/overview"
   },
   {
+    key: "STANDARDCOMPUTE_API_KEY",
+    providerId: PROVIDER_IDS.STANDARD_COMPUTE,
+    name: "Standard Compute",
+    description: "Use open and frontier chat models through an OpenAI-compatible gateway.",
+    section: "gateways",
+    docsUrl: "https://docs.standardcompute.com"
+  },
+  {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",
