@@ -16,6 +16,7 @@ import useSecretsStore from "../../stores/SecretsStore";
 import type { SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { OAuthCallbackAddress } from "../oauth/OAuthCallbackAddress";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import { useProviders } from "../../hooks/useProviders";
 import type { SecretResponse } from "../../stores/ApiTypes";
@@ -411,6 +412,17 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
               </EditorButton>
             ))}
 
+          {meta.oauth && oauth.isConnecting && (
+            <EditorButton
+              density="compact"
+              variant="text"
+              size="small"
+              onClick={oauth.cancelManual}
+            >
+              {t("common.cancel")}
+            </EditorButton>
+          )}
+
           {meta.oauthOnly ? null : hasKey ? (
             <>
               <EditorButton
@@ -451,6 +463,7 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
           )}
         </FlexRow>
       </FlexRow>
+      <OAuthCallbackAddress url={oauth.callbackUrl} />
       <OAuthManualCompletionDialog
         prompt={oauth.manualPrompt}
         label={oauth.label}

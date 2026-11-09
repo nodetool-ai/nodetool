@@ -1,3 +1,6 @@
+jest.mock("../../../serverState/useOllamaStatus", () => ({
+  useOllamaStatus: () => ({ data: "unreachable", isPending: false, isError: false, isFetching: false, refetch: jest.fn() })
+}));
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { asMock, stub } from "../../../test-utils/doubles";
 import { act, render, screen, within } from "@testing-library/react";
@@ -72,6 +75,7 @@ beforeEach(() => {
     connect: jest.fn(),
     disconnect: jest.fn(),
     manualPrompt: null,
+    callbackUrl: null,
     isSubmittingManual: false,
     submitManualCode: jest.fn(),
     cancelManual: jest.fn()
@@ -142,7 +146,7 @@ describe("SubscriptionOnboardingDialog", () => {
     for (const name of ["OpenAI", "Anthropic", "Google Gemini", "Hugging Face"]) {
       expect(screen.getByRole("article", { name })).toBeInTheDocument();
     }
-    expect(screen.getByRole("link", { name: "Get Ollama" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Download Ollama" })).toBeInTheDocument();
     // ComfyUI users looked here for their own ComfyUI (study-18-I1).
     const comfy = screen.getByRole("article", { name: "ComfyUI on this computer" });
     expect(within(comfy).getByRole("button", { name: "Connect" })).toBeInTheDocument();
@@ -163,7 +167,9 @@ describe("SubscriptionOnboardingDialog", () => {
     renderDialog();
     await userEvent.click(screen.getByRole("button", { name: /^More providers/ }));
     await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "zzzz");
-    expect(screen.getByRole("status")).toHaveTextContent(/providers matches “zzzz”/);
+    expect(
+      screen.getByText(/providers matches “zzzz”/).closest('[role="status"]')
+    ).toBeInTheDocument();
   });
 
   it("sends a multi-field provider to its Settings card", async () => {
