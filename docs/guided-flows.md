@@ -22,7 +22,7 @@ A guided flow is a short sequence of steps that ends in a document you keep edit
 | [Script](#storyboard-video-and-script) | Voiced lines ready to place | See [AI Video Production](ai-video-production.md) |
 | [Game](#game) | A playable game in the built-in engine | See [Game Editor](game-editor.md) |
 
-![The Image guided flow at its first step, with an example idea filled in](assets/screenshots/guided-flow.png)
+![The Workflow guided flow at its first step, with an example task filled in](assets/screenshots/guided-flow.png)
 
 ## Start a flow
 

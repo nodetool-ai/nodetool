@@ -181,8 +181,8 @@ import {
   type ViewPreset
 } from "./ViewportHelpers";
 import { useModel3DAgentTools } from "./useModel3DAgentTools";
+import { GIZMO_TOOL_KEYS, type GizmoMode } from "./gizmoToolKeys";
 
-type GizmoMode = "translate" | "rotate" | "scale";
 type GizmoSpace = "world" | "local";
 
 const LEFT_PANEL_WIDTH = 260;
@@ -1156,7 +1156,7 @@ const Model3DEditor = ({
     }
     const after = captureTransform(start.object);
     if (!transformsEqual(start.before, after)) {
-      const verb = t(`i18n-cont-model-editor-11.modelEditor.tools.${gizmoMode}`);
+      const verb = t(`i18n-cont-model-editor-11.modelEditor.tools.${GIZMO_TOOL_KEYS[gizmoMode]}`);
       pushCommand(
         transformCommand(t("i18n-cont-model-editor-11.modelEditor.history.transform", { verb, name: start.object.name || start.object.type }), start.object, start.before, after)
       );
@@ -1458,7 +1458,7 @@ const Model3DEditor = ({
         : t("i18n-cont-model-editor-11.modelEditor.hints.holdCtrlToSnap");
     }
     if (selectedObject) {
-      const tool = t(`i18n-cont-model-editor-11.modelEditor.tools.${gizmoMode}`);
+      const tool = t(`i18n-cont-model-editor-11.modelEditor.tools.${GIZMO_TOOL_KEYS[gizmoMode]}`);
       return t("i18n-cont-model-editor-11.modelEditor.hints.selected", { tool, space: t(`i18n-cont-model-editor-11.modelEditor.space.${gizmoSpace}`) });
     }
     return t("i18n-cont-model-editor-11.modelEditor.hints.navigation");

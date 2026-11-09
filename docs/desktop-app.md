@@ -88,7 +88,7 @@ A vault is a separate data store with its own database, assets, and RAG collecti
 
 Open **Tools → Package Manager** to install system runtimes (such as Python and the model runners) and to enable, disable, install, or update node packs. See [Desktop App Views](electron-views.md#package-manager) for the screen and [Node Packs](node-packs.md) for where packs come from.
 
-![Package Manager on the Node Packs tab](assets/screenshots/packages-manager.png)
+![Package Manager on the Built-in nodes tab](assets/screenshots/packages-manager.png)
 
 ---
 
