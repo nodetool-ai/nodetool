@@ -35,7 +35,7 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 | Route | Thesis | Proof | Leaves to other pages |
 |---|---|---|---|
-| `/` | Stop prompting slot machines. Direct the agent inside a project you can edit. | The hero reel, the one-shot re-take (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud |
+| `/` | Films, agents, and node workflows in one editable project. | The hero reel, the three focus cards, the project demo (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud |
 | `/agents` | The agent works inside the same editors and records as you, and the harness catches its mistakes. | The failed-run-and-repair session, the build-validate-run-inspect-repair loop, what validation reports, the permission modes | MCP install, CLI, HTTP API (linked to `/developers`), film production pitch, plan and key explanations |
 | `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour (its storyboard panel shows a shot edited by hand), the films that open as timelines, local models and setup | The still-versus-clip cost example (homepage), plan and key explanations, ad and recipe catalogues |
 | `/node-based-workflows` | A graph you can check before a paid run, and run again. | The node reel, the node-by-node walkthrough | Plan explanation, Studio facts |
@@ -50,8 +50,9 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 Five blocks, in order:
 
-1. **The argument.** The `<h1>` "Stop prompting slot machines. Direct the
-   agent." and the hero reel.
+1. **The argument.** The `<h1>`, the hero reel, and three linked cards for
+   the homepage's focus: films, agents, and node workflows. The cards are
+   links, not sections, and carry no `h2`.
 2. **The mechanism.** One note sends one shot back, and the cut keeps every
    other shot (`ProjectSection`, the `agent-redo` reel).
 3. **The cost behaviour.** Approve the still before paying for the clip. The

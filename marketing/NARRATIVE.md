@@ -16,8 +16,9 @@ The homepage, README, and docs share the primary tagline and intro in
 `BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
 `<h1>` reads: "Create with AI. Make it your own."
 The hero paragraph introduces the AI video editor and node-based workflows.
-Below the demo, a compact feature overview covers video editing and workflows,
-the agent, other media, model choice, local projects, and integrations.
+Below the demo, three linked cards name what the homepage is about: films
+(`/studio`), agents (`/agents`), and node workflows (`/node-based-workflows`).
+Models, local projects, other media, and integrations are spec-strip lines.
 The homepage editor showcase omits experimental game creation.
 The project section introduces the demo with "From an idea to a video you can edit."
 

@@ -1,39 +1,32 @@
 import React from "react";
-import { Download, Code2, KeyRound, Layers, Film, Bot, FolderOpen } from "lucide-react";
+import { ArrowRight, Bot, Download, Film, Workflow } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
 
-const features = [
+/*
+ * The three things the homepage is about, each linked to the page that owns
+ * it (site-editorial.spec.md § Homepage). Models, local projects, media types,
+ * and integrations are lines in the spec strip, not cards here.
+ */
+const pillars = [
   {
-    title: "Edit video, build workflows",
-    body: "Work in the timeline or connect nodes for more control and repeatable tasks.",
+    title: "Films",
+    body: "One sentence becomes a storyboard, clips, and a cut on a timeline. Change one shot and the rest of the cut stays.",
+    href: "/studio",
     icon: Film,
   },
   {
-    title: "Create with an agent",
-    body: "Ask it to build and edit your project, then adjust any part yourself.",
+    title: "Agents",
+    body: "The built-in agent, or Claude Code over MCP, builds the workflow, checks it before a paid run, and repairs the step that fails.",
+    href: "/agents",
     icon: Bot,
   },
   {
-    title: "Work across media",
-    body: "Create images, audio, storyboards, and 3D scenes alongside your video.",
-    icon: Layers,
-  },
-  {
-    title: "Choose your models",
-    body: "Connect your own provider accounts or run supported models locally.",
-    icon: KeyRound,
-  },
-  {
-    title: "Save projects locally",
-    body: "Keep your work on your computer with the free, open-source desktop app.",
-    icon: FolderOpen,
-  },
-  {
-    title: "Connect other tools",
-    body: "Use the API, command line, or MCP to run workflows and work with coding agents.",
-    icon: Code2,
+    title: "Node workflows",
+    body: "Underneath every project is a node graph. Swap a model, check the graph, and run it again on new inputs.",
+    href: "/node-based-workflows",
+    icon: Workflow,
   },
 ];
 
@@ -106,14 +99,26 @@ export default function NodeToolHero() {
         </p>
       </div>
 
-      <ul className="mx-auto mt-8 grid sm:mt-10 max-w-5xl grid-cols-1 gap-3 text-sm text-slate-300 sm:grid-cols-3">
-        {features.map((feature) => (
-          <li key={feature.title} className="rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
-            <h2 className="flex items-center gap-2 font-semibold text-slate-100">
-              <feature.icon className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
-              {feature.title}
-            </h2>
-            <p className="mt-2 leading-relaxed text-slate-400">{feature.body}</p>
+      <ul
+        aria-label="What NodeTool makes"
+        className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-3 text-sm text-slate-300 sm:mt-10 sm:grid-cols-3"
+      >
+        {pillars.map((pillar) => (
+          <li key={pillar.title}>
+            <a
+              href={pillar.href}
+              className="group flex h-full flex-col rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-4 transition-colors hover:border-slate-600 hover:bg-slate-900/70 focus-ring"
+            >
+              <span className="flex items-center gap-2 text-base font-semibold text-slate-100">
+                <pillar.icon className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
+                {pillar.title}
+                <ArrowRight
+                  className="ml-auto h-4 w-4 text-slate-500 transition-colors group-hover:text-slate-200"
+                  aria-hidden
+                />
+              </span>
+              <span className="mt-2 leading-relaxed text-slate-400">{pillar.body}</span>
+            </a>
           </li>
         ))}
       </ul>
