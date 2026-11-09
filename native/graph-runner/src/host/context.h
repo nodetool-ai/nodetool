@@ -1,5 +1,6 @@
 #pragma once
 #include "js/engine.h"
+#include "kernel/async_jobs.h"
 #include "nodetool/context_options.h"
 #include <algorithm>
 #include <atomic>
@@ -8,13 +9,20 @@
 #include <stdexcept>
 #include <string>
 namespace gr::host {
+// Installs __host.context. Throws std::invalid_argument when a name is in
+// both grant maps (checkGrantMaps).
 void installContext(js::Engine&, const js::Value&, const ContextOptions&);
+
+// A name may be granted for one transport only. Throws std::invalid_argument
+// naming the first operation found in both `operations` and
+// `asyncOperations`.
+void checkGrantMaps(const ContextOptions& options);
 
 // The rules every context call obeys, whichever grant map or transport serves
 // it. The request side runs before the callback starts and the response side
-// after it returns, so an asynchronous call can check the response later on a
-// worker. Thread-safe: the call counter is atomic and limits are fixed at
-// construction.
+// after it returns, so an asynchronous call checks the response later, on the
+// worker, when its result settles. Thread-safe: the call counter is atomic and
+// limits are fixed at construction.
 class ContextCallRules {
  public:
   explicit ContextCallRules(const ContextOptions& options)
@@ -48,9 +56,12 @@ class ContextCallRules {
     if (requestBytes > maxPayloadBytes_) throw std::runtime_error("Context request size limit exceeded");
   }
 
-  // Cancellation and response size, in that order.
+  // Cancellation and response size, in that order. A cancelled run's
+  // response throws JobAborted, so an asynchronous call rejects with an
+  // AbortError however its result and the cancellation were ordered. call()
+  // throws it as the Error "Run cancelled", as before.
   void checkResponse(const std::string& operation, size_t responseBytes) const {
-    if (!isCleanup(operation) && cancelled_ && cancelled_()) throw std::runtime_error("Run cancelled");
+    if (!isCleanup(operation) && cancelled_ && cancelled_()) throw JobAborted("Run cancelled");
     if (responseBytes > maxPayloadBytes_) throw std::runtime_error("Context response size limit exceeded");
   }
 

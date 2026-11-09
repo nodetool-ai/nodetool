@@ -26,7 +26,10 @@ public:
   bool completionsPending() override { return async_.resultsPending(); }
   bool externalWork() override { return async_.inFlight() > 0; }
   std::optional<CancelSnapshot> cancellation() override { return cancel_.cancellation(generation_); }
+  // The first observation also cancels the run's cancellable jobs, before
+  // the caller's callback runs.
   void onCancellation(const CancelSnapshot& snapshot) override {
+    async_.cancel();
     if (onCancel_) onCancel_(snapshot);
   }
 

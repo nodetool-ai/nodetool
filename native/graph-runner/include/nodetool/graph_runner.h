@@ -5,6 +5,7 @@
 
 #include "nodetool/context_options.h"
 #include "nodetool/host_lanes.h"
+#include "nodetool/provider_jobs.h"
 #include "nodetool/supervisor_options.h"
 
 #include <cstdint>
@@ -74,9 +75,23 @@ struct HostOptions {
   std::string packageAssetsDir;
   // Every provider id resolves to the runtime's FakeProvider in the guest, one
   // instance per id, and the context's provider:* and prediction:* grants are
-  // dropped. Provider calls then reach no grant, secret or network. For
-  // running example workflows offline.
+  // dropped from both grant maps. Provider calls then reach no grant, secret
+  // or network. For running example workflows offline.
   bool fakeProviders = false;
+  // Provider endpoint jobs (nodetool/provider_jobs.h). When set, the runner
+  // grants provider:<id>:jobs:put, start, next and close for each id in
+  // providerJobProviders, next on the asynchronous transport. Each job and
+  // upload belongs to the run in progress: the runner creates a RunIdentity
+  // for each run, stamps jobs and uploads with it, refuses a request that
+  // names another run, and calls retireRun with it after the run's terminal
+  // job_update, before the next run starts. Runs with the same job id, in
+  // this runner or another sharing the object, stay apart. A ProviderJobs
+  // built without a lane runs its jobs on the process network lane, also
+  // with inlineHostJobs. Not granted with fakeProviders. Shared: the
+  // embedder may keep it to stop jobs or read stats(), share it between
+  // runners, and the runner holds it until it is destroyed.
+  std::shared_ptr<host::ProviderJobs> providerJobs;
+  std::vector<std::string> providerJobProviders;
   // What context.getSecret(key) returns. Keys not listed read as null.
   std::map<std::string, std::string> secrets;
   // Let media refs load http(s) URLs. Only https to a public address is

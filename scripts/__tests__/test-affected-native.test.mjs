@@ -51,7 +51,7 @@ function write(path, text) {
 }
 
 /** Copy the fixture, fill in its paths, and build the model. */
-function setup({ drop = [] } = {}) {
+function setup({ drop = [], unbuilt = [] } = {}) {
   const tmp = mkdtempSync(join(tmpdir(), "native-affected-"));
   temporary.push(tmp);
   const root = join(tmp, "repo");
@@ -66,6 +66,8 @@ function setup({ drop = [] } = {}) {
   write(join(source, "cmake", "compare.cmake"), "execute_process(COMMAND ${PROBE})\n");
   write(join(root, "packages", "timeline", "fonts", "a.ttf"), "font");
   const ctest = JSON.parse(fill(readFileSync(join(FIXTURE, "ctest.json"), "utf8")));
+  // ctest omits the command of a test whose executable was never built.
+  for (const name of unbuilt) ctest.tests.push({ name });
   const cache = readCache(build);
   const api = readFileApi(build);
   const model = buildModel({
@@ -219,6 +221,22 @@ describe("selectTests", () => {
     expect(selection.selected.find((s) => s.test === "gr_standalone_tests").why).toBe(
       "gr_standalone_tests has no depfiles (not built yet)"
     );
+  });
+
+  it("builds every target when a selected test was never built", () => {
+    const { model } = setup({ unbuilt: ["gr_new_tests"] });
+    const selection = selectTests(model, ["native/graph-runner/unittests/core_test.cpp"]);
+    expect(names(selection)).toContain("gr_new_tests");
+    const plan = executionPlan(model, selection);
+    expect(plan.buildAll).toBe(true);
+    expect(plan.untraced).toEqual(["gr_new_tests"]);
+  });
+
+  it("builds only the traced targets when every selected test was built", () => {
+    const { model } = setup();
+    const plan = executionPlan(model, selectTests(model, ["native/graph-runner/unittests/core_test.cpp"]));
+    expect(plan.buildAll).toBe(false);
+    expect(plan.untraced).toEqual([]);
   });
 
   it("selects every test with --all", () => {

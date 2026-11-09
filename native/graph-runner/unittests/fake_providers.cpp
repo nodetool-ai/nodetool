@@ -1,7 +1,7 @@
 // Runs unittests/fake-providers.test.mjs twice: with
 // HostOptions::fakeProviders and a package assets directory, where no
-// provider grant may be called, and with neither, where the grants work as
-// before and package:// refs fail.
+// provider grant may be called on either transport, and with neither, where
+// the grants work as before and package:// refs fail.
 #include "kernel/guest.h"
 #include <atomic>
 #include <chrono>
@@ -30,6 +30,15 @@ std::string runBundle(const std::vector<uint8_t>& bundle, const std::string& nam
     options.context.operations[operation] = [&grantCalls](const std::string&) {
       ++grantCalls;
       return std::string("\"host\"");
+    };
+  }
+  // The same grants on the asynchronous transport, under another provider id.
+  for (const char* operation : {"provider:fixture-async:open", "provider:fixture-async:generateMessage",
+                                "provider:fixture-async:close", "prediction:fixture-async:text_to_image"}) {
+    options.context.asyncOperations[operation] = [&grantCalls](std::string, std::stop_token,
+                                                               gr::host::ContextCompletion done) {
+      ++grantCalls;
+      done(gr::host::ContextResult::value("\"host\""));
     };
   }
   auto engine = gr::js::createQuickJsEngine();

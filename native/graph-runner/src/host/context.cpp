@@ -1,5 +1,7 @@
 #include "host/context.h"
+#include "host/context_async.h"
 #include "host/sandbox_ocr.h"
+#include "kernel/async_jobs.h"
 #include <array>
 #include <cmath>
 #include <random>
@@ -7,9 +9,31 @@
 #include <stdexcept>
 
 namespace gr::host {
+void checkGrantMaps(const ContextOptions& options) {
+  for (const auto& entry : options.asyncOperations) {
+    if (options.operations.contains(entry.first)) {
+      throw std::invalid_argument("Context operation '" + entry.first +
+                                  "' is granted both synchronously and asynchronously");
+    }
+  }
+}
+
 void installContext(js::Engine& e, const js::Value& object, const ContextOptions& options) {
+  checkGrantMaps(options);
+  // native-rules #1: grants shared by the context host functions, no justification
   auto grants = std::make_shared<ContextOptions>(options);
+  // Each callback is shared by this table and by every call still running or
+  // retained by the embedder, which can outlive the engine and the runner.
+  std::map<std::string, std::shared_ptr<const ContextOptions::AsyncCallback>> asyncGrants;
+  for (auto& [name, callback] : grants->asyncOperations) {
+    asyncGrants.emplace(name, std::make_shared<const ContextOptions::AsyncCallback>(std::move(callback)));
+  }
+  grants->asyncOperations.clear();
+  auto binding = RunBinding::of(e);
   installSandboxOcr(e,object,options.ocrDataDirectory,options.cancelled);
+  // Shared by both transports, the run cleanup, and the converter of every
+  // asynchronous call waiting to settle, so the call count and limits are
+  // one budget.
   auto rules = std::make_shared<ContextCallRules>(options);
   e.addRunCleanup([rules] { rules->resetCalls(); });
   e.set(object,"randomBytes",e.function("randomBytes",1,[](js::Engine& en,const std::vector<js::Value>& args){
@@ -40,15 +64,27 @@ void installContext(js::Engine& e, const js::Value& object, const ContextOptions
   e.set(object, "modelOptions", e.function("modelOptions", 0, [grants](js::Engine& en, const std::vector<js::Value>&) {
     return en.string(grants->modelOptionsJson);
   }));
-  e.set(object, "has", e.function("has", 1, [grants](js::Engine& en, const std::vector<js::Value>& args) {
-    return en.boolean(!args.empty() && grants->operations.contains(en.toString(args[0])));
+  e.set(object, "has", e.function("has", 1, [grants, asyncGrants](js::Engine& en, const std::vector<js::Value>& args) {
+    if (args.empty()) return en.boolean(false);
+    const auto operation = en.toString(args[0]);
+    return en.boolean(grants->operations.contains(operation) || asyncGrants.contains(operation));
+  }));
+  // Which transport a granted operation uses: callAsync when true.
+  e.set(object, "isAsync", e.function("isAsync", 1, [asyncGrants](js::Engine& en, const std::vector<js::Value>& args) {
+    return en.boolean(!args.empty() && asyncGrants.contains(en.toString(args[0])));
   }));
   e.set(object, "aborted", e.function("aborted", 0, [grants](js::Engine& en, const std::vector<js::Value>&) {
     return en.boolean(grants->cancelled && grants->cancelled());
   }));
-  e.set(object, "call", e.function("call", 2, [grants, rules](js::Engine& en, const std::vector<js::Value>& args) {
+  // Both transports check, in this order: the grant, cancellation, the call
+  // count, payload conversion and the request size. Each transport refuses
+  // the other map's names.
+  e.set(object, "call", e.function("call", 2, [grants, asyncGrants, rules](js::Engine& en, const std::vector<js::Value>& args) {
     if (args.size() != 2) throw std::invalid_argument("Context call requires operation and JSON payload");
     const auto operation = en.toString(args[0]);
+    if (asyncGrants.contains(operation)) {
+      throw std::runtime_error("ProcessingContext service '" + operation + "' is granted for asynchronous calls only");
+    }
     const auto& callback = ContextCallRules::grant(grants->operations, operation);
     rules->admit(operation);
     const auto input = en.toString(args[1]);
@@ -56,6 +92,33 @@ void installContext(js::Engine& e, const js::Value& object, const ContextOptions
     const auto output = callback(input);
     rules->checkResponse(operation, output.size());
     return en.string(output);
+  }));
+  // Returns a promise. Request-side failures throw at the call, as call()
+  // does. The callback runs on the run's I/O lane, and its outcome settles
+  // the promise as a macrotask, after the response checks on the worker.
+  e.set(object, "callAsync", e.function("callAsync", 2, [grants, asyncGrants, rules, binding](js::Engine& en, const std::vector<js::Value>& args) {
+    if (args.size() != 2) throw std::invalid_argument("Context call requires operation and JSON payload");
+    const auto operation = en.toString(args[0]);
+    if (grants->operations.contains(operation)) {
+      throw std::runtime_error("ProcessingContext service '" + operation + "' is granted for synchronous calls only");
+    }
+    const auto& callback = ContextCallRules::grant(asyncGrants, operation);
+    rules->admit(operation);
+    auto input = en.toString(args[1]);
+    rules->checkRequestSize(input.size());
+    AsyncRun* run = binding->run();
+    if (!run) throw std::runtime_error("Asynchronous context calls need a running graph");
+    JobExecutor& io = *binding->io();
+    // Cleanup keeps running through the run's cancellation; every other call
+    // rejects with an AbortError when the cancellation begins.
+    const bool cancellable = !ContextCallRules::isCleanup(operation);
+    return run->submit(io, makeContextJob(operation, std::move(input), callback, io.stopRelay(), run->identity()),
+                       [rules, operation](js::Engine& engine, JobPayload* payload) {
+                         const std::string& text = static_cast<ContextResponse*>(payload)->text;
+                         rules->checkResponse(operation, text.size());
+                         return engine.string(text);
+                       },
+                       cancellable);
   }));
 }
 }

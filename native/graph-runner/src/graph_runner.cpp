@@ -1,6 +1,7 @@
 #include "nodetool/graph_runner.h"
 
 #include "host/capabilities.h"
+#include "host/provider_job_grants.h"
 #include "js/engine.h"
 #include "kernel/actor.h"
 #include "kernel/async_jobs.h"
@@ -37,6 +38,7 @@ constexpr auto kCancelGrace = std::chrono::milliseconds(500);
 // support). Controlled node classes are excluded at load time.
 const std::set<std::string> kRejectedTypes = {};
 
+// native-rules #9: shared by caller and worker thread, no affinity comment
 struct Job {
   std::string id;
   std::string workflowId;
@@ -96,8 +98,30 @@ double msSince(Clock::time_point start) {
   return std::chrono::duration<double, std::milli>(Clock::now() - start).count();
 }
 
+// The identity of the run in progress, which the provider job grants stamp
+// on every job and upload. Empty between runs.
+//
+// Thread affinity: thread-safe, `mutex_` guards `run_`. The worker sets it
+// and the grants read it, both on the worker.
+class CurrentRun {
+public:
+  void set(host::RunIdentity run) {
+    std::lock_guard lock(mutex_);
+    run_ = std::move(run);
+  }
+  host::RunIdentity get() const {
+    std::lock_guard lock(mutex_);
+    return run_;
+  }
+
+private:
+  mutable std::mutex mutex_;
+  host::RunIdentity run_;
+};
+
 }  // namespace
 
+// native-rules #9: used by caller threads and the worker, no affinity comment
 struct GraphRunner::Impl {
   Impl(std::string path, HostOptions hostOptions)
       : bundlePath(std::move(path)),
@@ -105,6 +129,7 @@ struct GraphRunner::Impl {
         lanes(options.inlineHostJobs
                   ? HostLanes::inlined()
                   : processHostLanes({options.cpuThreads, options.ioThreads, options.networkThreads})) {
+    // native-rules #12: lambda captures raw this and runs on the worker thread
     worker = std::thread([this] { work(); });
   }
 
@@ -118,6 +143,7 @@ struct GraphRunner::Impl {
 
   mutable std::mutex mutex;
   mutable std::condition_variable changed;
+  // native-rules #1: Job shared by caller and worker, no comment explains why unique fails
   std::deque<std::shared_ptr<Job>> queue;
   std::shared_ptr<Job> active;
   bool stopping = false;
@@ -138,6 +164,9 @@ struct GraphRunner::Impl {
   CancelState cancelState;
   // Every native job of this runner, across runs. Jobs share it.
   std::shared_ptr<RunnerTracker> tracker = std::make_shared<RunnerTracker>();
+  // Shared with the provider job grants, which the engine's context and
+  // every asynchronous call still retained hold, possibly past the runner.
+  const std::shared_ptr<CurrentRun> currentRun = std::make_shared<CurrentRun>();
   // The process lanes, or the worker itself with inlineHostJobs. They
   // outlive the runner.
   const std::shared_ptr<HostLanes> lanes;
@@ -173,21 +202,30 @@ void GraphRunner::Impl::load() {
       executionState = std::make_shared<ExecutionState>(options.executionStateDirectory);
     }
     next->engine = js::createQuickJsEngine();
+    // native-rules #12: lambda captures raw this and is stored in the engine, runs later
     next->engine->setInterruptHandler([this] { return interruptRequested(); });
+    // The runner serves "message" itself, synchronously.
+    if (options.context.asyncOperations.contains("message")) {
+      throw std::runtime_error("The context operation 'message' cannot be asynchronous");
+    }
     auto guestOptions = options;
     const auto messageObserver = options.context.operations.find("message");
     const host::ContextOptions::Callback observer = messageObserver == options.context.operations.end()
       ? host::ContextOptions::Callback{} : messageObserver->second;
+    // native-rules #12: lambda captures raw this and is stored in guest options, runs later
     guestOptions.context.operations["message"] = [this, observer](const std::string& text) {
       if (observer) { try { observer(text); } catch (...) {} }
       if (processingMessage) processingMessage(Json::parse(text));
       return std::string("null");
     };
+    host::grantProviderJobs(options, guestOptions.context, [run = currentRun] { return run->get(); });
     const auto grantedCancellation = options.context.cancelled;
+    // native-rules #12: lambda captures raw this and is stored in guest options, runs later
     guestOptions.context.cancelled = [this, grantedCancellation] {
       return cancelState.cancelled() || (grantedCancellation && grantedCancellation());
     };
     next->guest = std::make_unique<Guest>(*next->engine, std::move(guestOptions));
+    // native-rules #12: lambda captures raw this and is stored in the guest, runs later
     next->guest->load(bundle, bundlePath, [this] { return cancelState.snapshot().immediate; });
     next->catalog = std::make_unique<GuestCatalog>(*next->guest);
     for (const auto& type : next->catalog->types()) {
@@ -369,7 +407,15 @@ void GraphRunner::Impl::runJob(Job& job) {
     }
     Runner runner(*context->catalog, deliver, std::move(runOptions));
     active = &runner;
-    AsyncRun async(engine, loop, tracker, job.generation, lanes->cpu());
+    // Tells this run apart from every other, also from runs with the same
+    // job id in this or another runner.
+    const host::RunIdentity identity = host::newRunIdentity(job.id);
+    AsyncRun async(engine, loop, tracker, job.generation, lanes->cpu(), identity);
+    // Host functions submit to this run while it lasts. Asynchronous context
+    // callbacks run on the I/O lane. Unbound before `async` is destroyed.
+    RunBinding::Scope bound(engine, async, lanes->io());
+    // Provider jobs started from here on belong to this run.
+    currentRun->set(identity);
     bool cancelForwarded = false;
     auto onCancel = [&](const CancelSnapshot& cancel) {
       if (!cancelForwarded) {
@@ -421,6 +467,12 @@ void GraphRunner::Impl::runJob(Job& job) {
       job.finished = true;
       send(msg, true);
     }
+    // The run's provider jobs end with it (design section 4.10): after its
+    // terminal update, before the engine serves another run. Closing them
+    // stops their workers and releases their tombstones, and a next still
+    // waiting completes into the closed mailbox.
+    currentRun->set({});
+    if (options.providerJobs) options.providerJobs->retireRun(identity);
   }
   context->engine->releaseRunResources();
   host::endRun(*context->engine, job.id);

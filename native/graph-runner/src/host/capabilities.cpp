@@ -52,9 +52,13 @@ const std::vector<Capability>& capabilities() {
       }},
       {"context", [](js::Engine& e, const js::Value& o, const HostOptions& options) {
         if (!options.fakeProviders) return installContext(e, o, options.context);
-        // Fake providers: no provider call may reach an embedder callback.
+        // A name in both maps is an error in either mode.
+        checkGrantMaps(options.context);
+        // Fake providers: no provider call may reach an embedder callback,
+        // through either transport.
         ContextOptions grants = options.context;
         dropProviderGrants(grants.operations);
+        dropProviderGrants(grants.asyncOperations);
         installContext(e, o, grants);
       }},
       {"gpu", installGpu, gpuBoundary, gpuEndRun},

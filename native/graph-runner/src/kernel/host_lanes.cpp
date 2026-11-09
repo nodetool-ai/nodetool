@@ -4,6 +4,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -31,12 +34,103 @@ LaneSizes resolveLaneSizes(LaneSizes requested, unsigned hardwareThreads) {
   return sizes;
 }
 
+// --- JobDisposer ----------------------------------------------------------------
+
+JobDisposer::JobDisposer() : queue_(std::make_shared<Queue>()) {
+  thread_ = std::thread([queue = queue_] {
+    std::unique_lock lock(queue->mutex);
+    for (;;) {
+      queue->work.wait(lock, [&] { return !queue->items.empty() || queue->stopping; });
+      if (queue->items.empty()) return;
+      Item item = std::move(queue->items.front());
+      queue->items.pop_front();
+      lock.unlock();
+      item = {};
+      lock.lock();
+    }
+  });
+}
+
+JobDisposer::~JobDisposer() {
+  {
+    std::lock_guard lock(queue_->mutex);
+    queue_->stopping = true;
+  }
+  queue_->work.notify_all();
+  thread_.join();
+}
+
+void JobDisposer::dispose(SubmittedJob job) {
+  Item item;
+  item.job.emplace(std::move(job));
+  push(std::move(item));
+}
+
+void JobDisposer::dispose(std::deque<JobResult> results) {
+  Item item;
+  item.results = std::move(results);
+  push(std::move(item));
+}
+
+void JobDisposer::push(Item item) {
+  {
+    std::lock_guard lock(queue_->mutex);
+    queue_->items.push_back(std::move(item));
+  }
+  queue_->work.notify_one();
+}
+
 // --- ThreadPoolExecutor -------------------------------------------------------
 
-ThreadPoolExecutor::ThreadPoolExecutor(std::string name, size_t maxThreads)
-    : name_(std::move(name)), maxThreads_(std::max<size_t>(1, maxThreads)) {}
+// A checked reference from relaying states to their lane.
+//
+// Thread affinity: thread-safe. `mutex_` guards `lane_`, which the lane's
+// destructor clears. Lock order: relay mutex, then lane mutex. Stop requests
+// that fall back run after both are released.
+class ThreadPoolExecutor::Relay final : public StopRelay {
+public:
+  explicit Relay(ThreadPoolExecutor& lane) : lane_(&lane) {}
+  void relay(std::stop_source stop, std::shared_ptr<void> keep) override {
+    {
+      std::lock_guard lock(mutex_);
+      if (lane_ && lane_->queueStop(stop, keep)) return;
+    }
+    stop.request_stop();
+    keep.reset();
+  }
+  void detach() {
+    std::lock_guard lock(mutex_);
+    lane_ = nullptr;
+  }
+
+private:
+  std::mutex mutex_;
+  // Non-owning. Null once the lane is being destroyed.
+  ThreadPoolExecutor* lane_;
+};
+
+ThreadPoolExecutor::ThreadPoolExecutor(std::string name, size_t maxThreads, ThreadStarter starter)
+    : name_(std::move(name)), maxThreads_(std::max<size_t>(1, maxThreads)), starter_(std::move(starter)),
+      disposer_(processJobDisposer()), relay_(std::make_shared<Relay>(*this)) {}
 
 ThreadPoolExecutor::~ThreadPoolExecutor() {
+  {
+    std::lock_guard lock(mutex_);
+    if (attached_ != 0) {
+      // Each attached user still holds this lane's address. Going on would
+      // leave them a dangling pointer, so a broken lifetime contract is a
+      // deterministic crash instead.
+      std::fprintf(stderr,
+                   "nodetool graph runner: the %s lane was destroyed while %zu %s still %s it; destroy runners "
+                   "and provider job registries before their lanes\n",
+                   name_.c_str(), attached_,
+                   attached_ == 1 ? "run or provider job registry" : "runs or provider job registries",
+                   attached_ == 1 ? "uses" : "use");
+      std::fflush(stderr);
+      std::abort();
+    }
+  }
+  relay_->detach();
   beginShutdown();
   awaitShutdown(Clock::time_point::max());
 }
@@ -69,11 +163,14 @@ void ThreadPoolExecutor::confirmExit(Thread& self) {
 }
 
 bool ThreadPoolExecutor::startThread(void (ThreadPoolExecutor::*body)(Thread&)) {
+  if (starter_ && !starter_(body == &ThreadPoolExecutor::reap)) return false;
   Thread& thread = threads_.emplace_back();
   try {
     // The thread blocks on the lane mutex, held here, until the caller
     // unlocks it.
+    // native-rules #12: lambda captures raw this and runs on a lane thread
     thread.thread = std::thread([this, body, &thread] {
+      // native-rules #14: thread_local mutable state
       thread_local ExitNotice notice;
       notice.arm(this, &thread);
       (this->*body)(thread);
@@ -86,8 +183,13 @@ bool ThreadPoolExecutor::startThread(void (ThreadPoolExecutor::*body)(Thread&)) 
 }
 
 void ThreadPoolExecutor::spawnIfNeeded() {
+  // The reaper first: a job that runs may leave stop requests and
+  // destructions that only the reaper may perform.
+  if (!reaper_) {
+    if (!startThread(&ThreadPoolExecutor::reap)) return;
+    reaper_ = true;
+  }
   if (queue_.size() > idle_ && workers_ < maxThreads_ && startThread(&ThreadPoolExecutor::work)) ++workers_;
-  if (workers_ > 0 && !reaper_ && startThread(&ThreadPoolExecutor::reap)) reaper_ = true;
 }
 
 bool ThreadPoolExecutor::queueReap(Reap& work) {
@@ -105,19 +207,22 @@ void ThreadPoolExecutor::submit(SubmittedJob job) {
     if (accepting_) {
       queue_.push_back(std::move(job));
       spawnIfNeeded();
-      if (workers_ > 0) {
+      if (reaper_ && workers_ > 0) {
         work_.notify_one();
         return;
       }
-      // No thread could start, so nothing would ever run the job.
+      // No reaper, or no worker, could start: the job must not run.
       refused.emplace(std::move(queue_.back()));
       queue_.pop_back();
-      outcome = JobOutcome::failure("cannot start a thread for the " + name_ + " lane");
+      outcome = JobOutcome::failure(std::string("cannot start ") + (reaper_ ? "a worker" : "the reaper") +
+                                    " thread for the " + name_ + " lane");
     } else {
       refused.emplace(std::move(job));
     }
   }
-  refused->cancel(std::move(outcome));
+  // The refusal first, then the inputs, off this thread.
+  refused->refuse(std::move(outcome));
+  disposer_.dispose(std::move(*refused));
 }
 
 void ThreadPoolExecutor::dispose(std::deque<JobResult> results) {
@@ -127,8 +232,43 @@ void ThreadPoolExecutor::dispose(std::deque<JobResult> results) {
     std::lock_guard lock(mutex_);
     if (queueReap(work)) return;
   }
-  // Only when the reaper could not start.
-  work = {};
+  // No reaper takes them: the disposer does.
+  disposer_.dispose(std::move(work.results));
+}
+
+void ThreadPoolExecutor::disposeUnrun(SubmittedJob job) { disposer_.dispose(std::move(job)); }
+
+std::shared_ptr<StopRelay> ThreadPoolExecutor::stopRelay() { return relay_; }
+
+void ThreadPoolExecutor::attach() noexcept {
+  std::lock_guard lock(mutex_);
+  ++attached_;
+}
+
+void ThreadPoolExecutor::detach() noexcept {
+  std::lock_guard lock(mutex_);
+  assert(attached_ > 0);
+  --attached_;
+}
+
+bool ThreadPoolExecutor::queueStop(std::stop_source& stop, std::shared_ptr<void>& keep) {
+  std::lock_guard lock(mutex_);
+  // A relayed stop comes from work that ran, and no work runs before the
+  // reaper started.
+  assert(reaper_ && "a stop was relayed on a lane whose reaper never started");
+  if (reaperDone_) {
+    // The fallback runs the stop on the calling thread. Runners are destroyed
+    // before their lanes shut down, so no run is left to stop from a worker.
+    assert(attached_ == 0 && "a run's stop came after its lane shut down; destroy runners first");
+    return false;
+  }
+  if (!reaper_) return false;
+  Reap work;
+  work.stop = std::move(stop);
+  work.keep = std::move(keep);
+  reaps_.push_back(std::move(work));
+  reapWork_.notify_one();
+  return true;
 }
 
 size_t ThreadPoolExecutor::discardStopped() {
@@ -149,8 +289,8 @@ size_t ThreadPoolExecutor::discardStopped() {
     }
     queue_.swap(kept);
   }
-  // Only when the reaper could not start.
-  unreaped.clear();
+  // No reaper takes them: the disposer does.
+  for (auto& job : unreaped) disposer_.dispose(std::move(job));
   return count;
 }
 
@@ -245,10 +385,14 @@ void ThreadPoolExecutor::beginShutdown() {
   }
   work_.notify_all();
   reapWork_.notify_all();
-  // Only when the reaper could not start.
+  // No reaper takes them: stop requests run here, and the refused jobs go
+  // to the disposer after their AbortError.
   for (auto& work : unreaped) {
     if (work.stop) work.stop->request_stop();
-    if (work.job && work.outcome) work.job->cancel(std::move(*work.outcome));
+    if (work.job && work.outcome) {
+      work.job->refuse(std::move(*work.outcome));
+      disposer_.dispose(std::move(*work.job));
+    }
   }
 }
 
@@ -309,6 +453,7 @@ size_t ThreadPoolExecutor::pendingReaps() const {
 // --- HostLanes ----------------------------------------------------------------
 
 std::shared_ptr<HostLanes> HostLanes::threaded(LaneSizes resolved) {
+  // native-rules #2: naked new (private constructor), wrapped straight into shared_ptr
   std::shared_ptr<HostLanes> lanes(new HostLanes);
   lanes->cpu_ = std::make_unique<ThreadPoolExecutor>("cpu", resolved.cpu);
   lanes->io_ = std::make_unique<ThreadPoolExecutor>("io", resolved.io);
@@ -316,6 +461,7 @@ std::shared_ptr<HostLanes> HostLanes::threaded(LaneSizes resolved) {
   return lanes;
 }
 
+// native-rules #2: naked new (private constructor), wrapped straight into shared_ptr
 std::shared_ptr<HostLanes> HostLanes::inlined() { return std::shared_ptr<HostLanes>(new HostLanes); }
 
 ThreadPoolExecutor* HostLanes::pool(Kind kind) {
@@ -352,20 +498,36 @@ size_t HostLanes::liveThreads() const {
 
 namespace {
 
+// native-rules #9: used from every thread that asks for lanes, no affinity comment
 struct ProcessLanes {
   std::mutex mutex;
   std::shared_ptr<HostLanes> lanes;
+  // native-rules #14: process-wide supervisor list, grows and is never destroyed
   std::vector<std::shared_ptr<HostLaneSupervisor>> supervisors;
+  // Guards `disposer` alone, so a lane built under `mutex` can reach it.
+  std::mutex disposerMutex;
+  // Created on first use. The registry is never destroyed, so neither is it.
+  // native-rules #14: process-wide disposer thread, kept alive by the never-destroyed registry
+  std::unique_ptr<JobDisposer> disposer;
 };
 
 ProcessLanes& processLanes() {
   // Never destroyed: a lane thread can still be running a job when static
   // destructors run, and destroying its lane then would wait for it.
+  // native-rules #14: process-wide host lane registry, never destroyed
+  // native-rules #2: naked new for a leaked singleton
   static ProcessLanes* lanes = new ProcessLanes;
   return *lanes;
 }
 
 }  // namespace
+
+JobDisposer& processJobDisposer() {
+  ProcessLanes& process = processLanes();
+  std::lock_guard lock(process.disposerMutex);
+  if (!process.disposer) process.disposer = std::make_unique<JobDisposer>();
+  return *process.disposer;
+}
 
 std::shared_ptr<HostLanes> processHostLanes(LaneSizes sizes) {
   ProcessLanes& process = processLanes();

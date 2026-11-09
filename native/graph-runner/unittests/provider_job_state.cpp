@@ -2,8 +2,9 @@
 // registration and production race, durable stopped and closed state,
 // precedence of cancellation over queued output, the single waiter,
 // maxJobs while closed workers run, completion delivery, destruction, run
-// retirement, start racing shutdown and stop callbacks.
-// Built from src/provider_jobs.cpp alone, so a ThreadSanitizer build is cheap.
+// retirement, start racing shutdown and stop callbacks. Workers run on the
+// process network lane. unittests/provider_next.cpp covers the guest's
+// transport, a lane of its own and the public runner.
 #include "nodetool/provider_jobs.h"
 #include <atomic>
 #include <barrier>
@@ -13,6 +14,7 @@
 #include <future>
 #include <iostream>
 #include <latch>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <nlohmann/json.hpp>
@@ -29,6 +31,7 @@ using Kind = ProviderJobs::Outcome::Kind;
 using namespace std::chrono_literals;
 
 namespace {
+// native-rules #14: file-scope mutable test counter
 std::atomic<int> checks{0};
 void check(bool ok, const std::string &reason) {
   ++checks;
@@ -37,7 +40,9 @@ void check(bool ok, const std::string &reason) {
 }
 
 // A deadlock or a lost wakeup must fail the test, not hang it.
+// native-rules #14: file-scope mutable watchdog deadline
 std::atomic<std::chrono::steady_clock::rep> deadline{0};
+// native-rules #14: file-scope mutable current-test name
 std::atomic<const char *> currentTest{""};
 void watchdog() {
   for (;;) {
@@ -77,25 +82,51 @@ template <typename F> bool eventually(F ready) {
   return true;
 }
 
+// The run a fixture's grants stamp, as GraphRunner's current run does: one
+// identity per run name.
+//
+// Thread affinity: thread-safe, `mutex` guards the fields below it.
+struct RunName {
+  std::mutex mutex;
+  std::string name = "r";
+  std::map<std::string, gr::host::RunIdentity> runs;
+  void set(std::string next) {
+    std::lock_guard lock(mutex);
+    name = std::move(next);
+  }
+  gr::host::RunIdentity identity(const std::string &of) {
+    std::lock_guard lock(mutex);
+    auto &run = runs[of];
+    if (!run)
+      run = gr::host::newRunIdentity(of);
+    return run;
+  }
+  gr::host::RunIdentity get() { return identity(current()); }
+  std::string current() {
+    std::lock_guard lock(mutex);
+    return name;
+  }
+};
+
 // One ProviderJobs with its grants for provider "p".
 struct Fixture {
   explicit Fixture(ProviderJobs::Worker worker, ProviderJobs::Limits limits = {})
       : jobs(std::move(worker), limits) {
-    jobs.grant(options, {"p"});
+    jobs.grant(options, {"p"}, [run = run] { return run->get(); });
   }
   std::string op(const std::string &name, const std::string &payload) {
     return options.operations.at("provider:p:jobs:" + name)(payload);
   }
-  std::string start(const Json &args, const std::string &run = "") {
+  // Starts a job in `run`, which stays the grants' run.
+  std::string start(const Json &args, const std::string &runName = "r") {
+    run->set(runName);
     const auto object = args.is_null() ? Json::object() : args;
-    return Json::parse(
-               op("start",
-                  Json{{"run", run}, {"method", "callEndpoint"}, {"args", object}}.dump()))
+    return Json::parse(op("start", Json{{"method", "callEndpoint"}, {"args", object}}.dump()))
         .at("job")
         .get<std::string>();
   }
   static std::string payload(const std::string &id) { return Json{{"job", id}}.dump(); }
-  Json poll(const std::string &id) { return Json::parse(op("poll", payload(id))); }
+  void retire(const std::string &runName) { jobs.retireRun(run->identity(runName)); }
   void close(const std::string &id) { check(op("close", payload(id)) == "null", "close answers null"); }
   void stop(const std::string &id) { jobs.stop("p", payload(id)); }
 
@@ -133,6 +164,8 @@ struct Fixture {
     return pending;
   }
 
+  // Shared with the grants, which may run on other threads.
+  std::shared_ptr<RunName> run = std::make_shared<RunName>();
   gr::host::ContextOptions options;
   ProviderJobs jobs;
 };
@@ -215,10 +248,13 @@ void registrationRace() {
   }
 }
 
-// 2. next() and poll after stop and after close answer at once, every time.
+// 2. next() after stop and after close answers at once, every time. Each
+// stop comes once the worker runs: a job stopped while still queued on the
+// lane is destroyed without running.
 void repeatedNextAfterStopAndClose() {
-  std::atomic<int> returned{0};
+  std::atomic<int> entered{0}, returned{0};
   Fixture fixture([&](const ProviderJobs::Call &call) -> std::string {
+    ++entered;
     try {
       return blockUntilCancelled(call);
     } catch (...) {
@@ -227,24 +263,26 @@ void repeatedNextAfterStopAndClose() {
     }
   });
   const auto id = fixture.start({});
+  check(eventually([&] { return entered == 1; }), "worker started");
   auto waiting = fixture.nextLater(id);
   check(!waiting.ready(), "next() waits while the job runs");
   fixture.stop(id);
   expectKind(waiting.get(), Kind::Stopped, "stopped", "waiter after stop");
   for (int i = 0; i < 3; ++i)
     expectKind(fixture.nextNow(id), Kind::Stopped, "stopped", "next after stop");
-  check(fixture.poll(id).at("message") == "Provider job was stopped", "poll after stop");
+  expectKind(fixture.nextNow(id), Kind::Stopped, "Provider job was stopped", "message after stop");
   check(eventually([&] { return returned == 1; }), "worker saw the stop");
   fixture.close(id);
   for (int i = 0; i < 3; ++i)
     expectKind(fixture.nextNow(id), Kind::Stopped, "closed", "next after close");
-  check(fixture.poll(id).at("message") == "Provider job was closed", "poll after close");
+  expectKind(fixture.nextNow(id), Kind::Stopped, "Provider job was closed", "message after close");
   fixture.close(id);
   fixture.stop(id);
   expectKind(fixture.nextNow(id), Kind::Stopped, "closed", "close and stop again");
 
   // Close without stop, while the worker runs.
   const auto running = fixture.start({});
+  check(eventually([&] { return entered == 2; }), "second worker started");
   auto closing = fixture.nextLater(running);
   fixture.close(running);
   expectKind(closing.get(), Kind::Stopped, "closed", "waiter after close");
@@ -305,7 +343,7 @@ void cancellationPrecedence() {
     expectState(fixture.nextNow(id), "progress", "progress before stop");
     fixture.stop(id);
     expectKind(fixture.nextNow(id), Kind::Stopped, "stopped", "stop drops progress and result");
-    check(fixture.poll(id).at("state") == "error", "poll reports the stop");
+    expectKind(fixture.nextNow(id), Kind::Stopped, "stopped", "the stop is durable");
   }
   {
     // Result parts.
@@ -324,7 +362,8 @@ void cancellationPrecedence() {
     expectState(fixture.nextNow(id), "done", "terminal result");
     fixture.stop(id);
     expectState(fixture.nextNow(id), "done", "taken terminal result survives stop");
-    check(fixture.poll(id).at("value").at("ok") == 1, "poll sees the same result");
+    check(Json::parse(fixture.nextNow(id).text).at("value").at("ok") == 1,
+          "next sees the same result");
     fixture.close(id);
     expectKind(fixture.nextNow(id), Kind::Stopped, "closed", "close replaces the result");
   }
@@ -371,11 +410,12 @@ void closedRunningJobsCount() {
   std::mutex mutex;
   std::condition_variable changed;
   bool release = false;
-  std::atomic<int> sawCancel{0};
+  std::atomic<int> entered{0}, sawCancel{0};
   Fixture fixture(
       [&](const ProviderJobs::Call &call) -> std::string {
         if (Json::parse(call.argsJson).value("mode", "") == "instant")
           return "null";
+        ++entered;
         std::unique_lock lock(mutex);
         changed.wait(lock, [&] { return release; });
         if (call.cancelled())
@@ -385,6 +425,9 @@ void closedRunningJobsCount() {
       {.maxJobs = 2});
   const auto a = fixture.start({});
   const auto b = fixture.start({});
+  // Running, not queued: a job closed in the lane's queue never runs and
+  // gives its slot back at once.
+  check(eventually([&] { return entered == 2; }), "both workers started");
   fixture.close(a);
   fixture.close(b);
   std::string refused;
@@ -432,17 +475,19 @@ void completionsRunOutsideTheLock() {
     return blockUntilCancelled(call);
   });
 
-  // Immediate delivery from next().
+  // Immediate delivery from next(): the completion registers the next
+  // waiter.
   const auto queued = fixture.start({{"mode", "queued"}});
   produced.wait();
   std::atomic<int> immediateCalls{0};
-  Json polled;
+  std::optional<Fixture::Pending> afterImmediate;
   fixture.jobs.next("p", Fixture::payload(queued), [&](Outcome outcome) {
     ++immediateCalls;
     expectState(outcome, "progress", "immediate item");
-    polled = fixture.poll(queued);
+    afterImmediate = fixture.nextLater(queued);
   });
-  check(immediateCalls == 1 && polled.at("state") == "pending", "immediate completion re-entered");
+  check(immediateCalls == 1 && afterImmediate && !afterImmediate->ready(),
+        "immediate completion re-entered");
 
   // Delivery from the producer: the completion registers the next waiter.
   const auto producing = fixture.start({{"mode", "progress"}});
@@ -456,14 +501,15 @@ void completionsRunOutsideTheLock() {
     outerDone.set_value();
   });
 
-  // Delivery from the finishing producer: the completion polls.
+  // Delivery from the finishing producer: the completion reads the job
+  // again.
   const auto finishing = fixture.start({{"mode", "finish"}});
   std::atomic<int> finishCalls{0};
-  std::promise<Json> finishPolled;
+  std::promise<Outcome> finishPolled;
   fixture.jobs.next("p", Fixture::payload(finishing), [&](Outcome outcome) {
     ++finishCalls;
     expectState(outcome, "done", "finished item");
-    finishPolled.set_value(fixture.poll(finishing));
+    finishPolled.set_value(fixture.nextNow(finishing));
   });
 
   go.count_down();
@@ -471,7 +517,7 @@ void completionsRunOutsideTheLock() {
   check(!(*inner)->ready(), "re-registered waiter waits");
   auto polledAfterFinish = finishPolled.get_future();
   check(polledAfterFinish.wait_for(5s) == std::future_status::ready, "finish completed");
-  check(polledAfterFinish.get().at("state") == "done", "poll inside completion");
+  expectState(polledAfterFinish.get(), "done", "next inside completion");
 
   // Delivery from stop(): the completion closes the job and reads it again.
   std::atomic<int> stopCalls{0};
@@ -489,6 +535,8 @@ void completionsRunOutsideTheLock() {
 
   fixture.stop(producing);
   expectKind((*inner)->get(), Kind::Stopped, "stopped", "re-registered waiter after stop");
+  fixture.stop(queued);
+  expectKind(afterImmediate->get(), Kind::Stopped, "stopped", "waiter from a completion after stop");
   check(immediateCalls == 1 && outerCalls == 1 && finishCalls == 1 && stopCalls == 1 &&
             *(*inner)->calls == 1,
         "every completion ran exactly once");
@@ -525,10 +573,18 @@ void droppedCompletion() {
   check(seen.size() == 2 && seen[1].kind == Kind::Error, "replacement dropped on destruction");
 }
 
-// 8. Destroying ProviderJobs stops running workers, completes their waiters
-// and joins every thread before it returns.
+// 8. Destroying ProviderJobs stops running workers and completes their
+// waiters, then returns without waiting for them: no thread is joined. The
+// workers return later, and then nothing holds the worker function.
 void destructorWithRunningJobs() {
-  std::atomic<int> returned{0};
+  // Shared with the workers, which outlive the ProviderJobs.
+  struct Probe {
+    std::atomic<int> entered{0}, cancelled{0}, returned{0};
+    std::mutex mutex;
+    std::condition_variable changed;
+    bool release = false; // guarded by mutex
+  };
+  auto probe = std::make_shared<Probe>();
   gr::host::ContextOptions options;
   std::optional<Fixture::Pending> waiting;
   std::vector<std::string> ids;
@@ -536,15 +592,18 @@ void destructorWithRunningJobs() {
   // holds the worker function, and with it the jobs' shared state.
   auto sentinel = std::make_shared<int>(0);
   {
-    ProviderJobs jobs([&, sentinel](const ProviderJobs::Call &call) -> std::string {
+    ProviderJobs jobs([probe, sentinel](const ProviderJobs::Call &call) -> std::string {
+      ++probe->entered;
       while (!call.cancelled())
         std::this_thread::sleep_for(1ms);
-      // A worker that takes a while to return after the stop.
-      std::this_thread::sleep_for(30ms);
-      ++returned;
+      ++probe->cancelled;
+      // A worker that returns only when the test lets it.
+      std::unique_lock lock(probe->mutex);
+      probe->changed.wait(lock, [&] { return probe->release; });
+      ++probe->returned;
       return "null";
     });
-    jobs.grant(options, {"p"});
+    jobs.grant(options, {"p"}, [run = gr::host::newRunIdentity("r")] { return run; });
     for (int i = 0; i < 3; ++i)
       ids.push_back(Json::parse(options.operations.at("provider:p:jobs:start")(
                                     R"({"method":"callEndpoint","args":{}})"))
@@ -557,22 +616,27 @@ void destructorWithRunningJobs() {
                 ++*calls;
                 promise.set_value(std::move(outcome));
               });
+    // Running, not queued: the destructor destroys a queued job unrun.
+    check(eventually([&] { return probe->entered == 3; }), "every worker started");
   }
-  check(returned == 3, "destructor joined every worker");
+  check(probe->returned == 0, "the destructor did not wait for a worker");
   check(waiting->ready(), "destructor completed the waiter");
   expectKind(waiting->get(), Kind::Stopped, "stopped", "waiter after destruction");
   check(*waiting->calls == 1, "waiter ran once");
+  check(eventually([&] { return probe->cancelled == 3; }), "every worker saw the stop");
+  check(sentinel.use_count() > 1, "running workers keep the worker function");
+  {
+    std::lock_guard lock(probe->mutex);
+    probe->release = true;
+  }
+  probe->changed.notify_all();
+  check(eventually([&] { return probe->returned == 3; }), "every worker returned");
   // The grants outlive the object but hold none of its state.
-  check(sentinel.use_count() == 1, "grants keep no job state alive");
+  check(eventually([&] { return sentinel.use_count() == 1; }),
+        "nothing keeps job state alive once the workers returned");
   check(options.operations.at("provider:p:jobs:close")(Fixture::payload(ids[1])) == "null",
         "close after destruction");
-  std::string polled;
-  try {
-    options.operations.at("provider:p:jobs:poll")(Fixture::payload(ids[1]));
-  } catch (const std::runtime_error &e) {
-    polled = e.what();
-  }
-  check(polled == "Provider jobs are shut down", "poll after destruction: " + polled);
+  check(!options.operations.contains("provider:p:jobs:poll"), "no poll grant");
   try {
     options.operations.at("provider:p:jobs:start")(R"({"method":"callEndpoint","args":{}})");
     check(false, "start after destruction");
@@ -610,7 +674,7 @@ void runRetirement() {
         fixture.stop(id);
     }
     fixture.op("put", Json{{"run", run}, {"data", "{"}}.dump());
-    fixture.jobs.retireRun(run);
+    fixture.retire(run);
     for (auto &pending : waiting) {
       expectKind(pending.get(), Kind::Stopped, "closed", "waiter of a retired run");
       check(*pending.calls == 1, "retired waiter ran once");
@@ -620,7 +684,7 @@ void runRetirement() {
     expectKind(fixture.nextNow(kept), Kind::Stopped, "closed", "live run keeps its tombstone");
   }
   check(fixture.jobs.stats().registered == 1, "only the live run's tombstone is registered");
-  fixture.jobs.retireRun("live");
+  fixture.retire("live");
   bool released = eventually([&] {
     const auto stats = fixture.jobs.stats();
     return stats.registered == 0 && stats.executing == 0 && stats.alive == 0;
@@ -673,7 +737,7 @@ void retirementRacesWaiters() {
       });
     }
     sync.arrive_and_wait();
-    fixture.jobs.retireRun(run);
+    fixture.retire(run);
     readers.clear();
   }
   check(unexpected == 0, "readers end with Stopped or an unknown job");
@@ -683,21 +747,25 @@ void retirementRacesWaiters() {
 }
 
 // 11. start() racing the destructor either registers a job the destructor
-// joins or fails as shut down. No worker outlives the destructor.
+// stops or fails as shut down. Every worker that entered returns.
 void startRacesShutdown() {
-  for (int round = 0; round < 200; ++round) {
+  // Shared with the workers, which may outlive a round.
+  struct Counts {
     std::atomic<int> entered{0}, returned{0};
+  };
+  auto counts = std::make_shared<Counts>();
+  for (int round = 0; round < 200; ++round) {
     gr::host::ContextOptions options;
     auto jobs = std::make_unique<ProviderJobs>(
-        [&](const ProviderJobs::Call &call) -> std::string {
-          ++entered;
+        [counts](const ProviderJobs::Call &call) -> std::string {
+          ++counts->entered;
           while (!call.cancelled())
             std::this_thread::sleep_for(1ms);
-          ++returned;
+          ++counts->returned;
           return "null";
         },
         ProviderJobs::Limits{.maxJobs = 64});
-    jobs->grant(options, {"p"});
+    jobs->grant(options, {"p"}, [run = gr::host::newRunIdentity("r")] { return run; });
     const auto start = options.operations.at("provider:p:jobs:start");
     std::barrier sync(2);
     std::string unexpected;
@@ -719,12 +787,12 @@ void startRacesShutdown() {
     sync.arrive_and_wait();
     std::this_thread::sleep_for(std::chrono::microseconds(round % 7 * 100));
     jobs.reset();
-    const int enteredAtReturn = entered, returnedAtReturn = returned;
     starter.join();
-    check(enteredAtReturn == returnedAtReturn,
-          "a worker outlived the destructor: " + std::to_string(enteredAtReturn) + " entered, " +
-              std::to_string(returnedAtReturn) + " returned");
     check(unexpected.empty(), "start failed with: " + unexpected);
+    check(eventually([&] { return counts->entered == counts->returned; }),
+          "a worker kept running after the destructor stopped it: " +
+              std::to_string(counts->entered.load()) + " entered, " +
+              std::to_string(counts->returned.load()) + " returned");
   }
 }
 
@@ -732,9 +800,10 @@ void startRacesShutdown() {
 // the same jobs. The worker reports progress while it holds the mutex its
 // callback takes, so a stop requested under the job mutex would deadlock.
 void stopCallbacksUnderConcurrentStops() {
-  std::atomic<int> callbacks{0}, returned{0};
+  std::atomic<int> entered{0}, callbacks{0}, returned{0};
   Fixture fixture(
       [&](const ProviderJobs::Call &call) -> std::string {
+        ++entered;
         std::mutex mutex;
         std::condition_variable wake;
         bool stopped = false;
@@ -762,6 +831,8 @@ void stopCallbacksUnderConcurrentStops() {
     std::vector<std::string> ids;
     for (int i = 0; i < kJobs; ++i)
       ids.push_back(fixture.start({}));
+    // The stops race running workers, not queued jobs.
+    check(eventually([&] { return entered == (round + 1) * kJobs; }), "workers started");
     std::barrier sync(kStoppers);
     std::vector<std::jthread> stoppers;
     for (int s = 0; s < kStoppers; ++s) {

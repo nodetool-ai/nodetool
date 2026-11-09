@@ -20,15 +20,41 @@ import {
   textToSpeechEncoded
 } from "guest-real:@nodetool-ai/runtime/node-context/generation.js";
 
+// The reason the run's signal aborts with, and the default of
+// ContextAbortController.abort(): an AbortError, as AbortController's own
+// default reason is.
+export function abortError(message = "Run cancelled") {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
 export function contextCall(context, name, args) {
   context.signal.throwIfAborted();
   const host = globalThis.__host?.context;
   if (!host?.has(name))
     throw new Error(`ProcessingContext service '${name}' is not granted`);
-  return Promise.resolve(host.call(name, toJson(args))).then((value) => {
+  // An embedder grants each operation for one transport. An asynchronous
+  // grant runs off the runner thread and settles as a macrotask. A
+  // cancellation the host reports (an AbortError) becomes the run signal's
+  // reason. Any other error stays what it is, even when the run was
+  // cancelled after it was delivered.
+  const asAbort = (error) => {
+    if (error?.name === "AbortError") context.signal.throwIfAborted();
+    throw error;
+  };
+  let reply;
+  try {
+    reply = host.isAsync?.(name)
+      ? host.callAsync(name, toJson(args))
+      : host.call(name, toJson(args));
+  } catch (error) {
+    asAbort(error);
+  }
+  return Promise.resolve(reply).then((value) => {
     context.signal.throwIfAborted();
     return fromJson(value);
-  });
+  }, asAbort);
 }
 
 export class ContextAbortSignal {
@@ -80,7 +106,7 @@ export class ContextAbortController {
   constructor() {
     this.signal = new ContextAbortSignal();
   }
-  abort(reason = new Error("Run cancelled")) {
+  abort(reason = abortError()) {
     if (this.signal.aborted) return;
     this.signal.aborted = true;
     this.signal.reason = reason;
@@ -113,7 +139,7 @@ export function hostSignal() {
   const poll = () => {
     if (globalThis.__host?.context?.aborted() && !controller.signal.aborted) {
       stop();
-      controller.abort(new Error("Run cancelled"));
+      controller.abort(abortError());
     }
   };
   return {
@@ -146,9 +172,12 @@ export function hostSignal() {
 }
 
 // The run's abort signal combined with a caller's, as provider jobs check it.
+// The run's cancellation reaches a waiting job through the host, so only the
+// caller's own signal, `caller`, needs an abort listener.
 function runSignal(context, signal) {
   if (!signal || signal === context.signal) return context.signal;
   return {
+    caller: signal,
     get aborted() {
       return context.signal.aborted || signal.aborted;
     },
@@ -176,9 +205,10 @@ export function nativeProvider(context, provider) {
         }
       } finally {
         const host = globalThis.__host?.context;
-        // Cleanup must run even after cancellation.
-        if (host?.has(`provider:${provider}:close`))
-          host.call(`provider:${provider}:close`, toJson({ cursor }));
+        const close = `provider:${provider}:close`;
+        // Cleanup must run even after cancellation, on either transport.
+        if (host?.isAsync?.(close)) await host.callAsync(close, toJson({ cursor }));
+        else if (host?.has(close)) host.call(close, toJson({ cursor }));
       }
     },
     generateMessage: (args) => invoke("generateMessage", args),
@@ -204,7 +234,7 @@ export function nativeProvider(context, provider) {
   const host = globalThis.__host.context;
   if (hasProviderJobs(provider)) {
     const job = (method, { signal, onProgress, ...args }) =>
-      runProviderJob({ provider, run: context.jobId, method, args, signal: runSignal(context, signal), onProgress });
+      runProviderJob({ provider, method, args, signal: runSignal(context, signal), onProgress });
     Object.assign(adapter, {
       supportsEndpointCalls: () => true,
       callEndpoint: (request) => job("callEndpoint", request),
@@ -350,7 +380,7 @@ export class ContextServices {
     if (route !== undefined) args.route = route;
     if (nodeId !== undefined) args.nodeId = nodeId;
     if (hasProviderJobs(provider)) {
-      return runProviderJob({ provider, run: this.jobId, method: "callEndpoint", args, signal: runSignal(this, signal), onProgress });
+      return runProviderJob({ provider, method: "callEndpoint", args, signal: runSignal(this, signal), onProgress });
     }
     const resolved = await this.getProvider(provider);
     if (!resolved.supportsEndpointCalls?.()) {
@@ -363,13 +393,13 @@ export class ContextServices {
   }
   async uploadProviderMedia({ provider, signal, ...upload }) {
     if (hasProviderJobs(provider)) {
-      return runProviderJob({ provider, run: this.jobId, method: "uploadMedia", args: upload, signal: runSignal(this, signal) });
+      return runProviderJob({ provider, method: "uploadMedia", args: upload, signal: runSignal(this, signal) });
     }
     return (await this.getProvider(provider)).uploadMedia({ ...upload, signal: signal ?? this.signal });
   }
   async downloadProviderMedia({ provider, url, signal }) {
     if (hasProviderJobs(provider)) {
-      return runProviderJob({ provider, run: this.jobId, method: "downloadMedia", args: { url }, signal: runSignal(this, signal) });
+      return runProviderJob({ provider, method: "downloadMedia", args: { url }, signal: runSignal(this, signal) });
     }
     return (await this.getProvider(provider)).downloadMedia(url, signal ?? this.signal);
   }

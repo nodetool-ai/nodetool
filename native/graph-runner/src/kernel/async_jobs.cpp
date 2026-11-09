@@ -102,9 +102,19 @@ bool RunMailbox::closed() const {
 
 // --- SettlerRegistry ----------------------------------------------------------
 
-void SettlerRegistry::add(uint64_t id, js::PromiseCapability capability, Converter convert) {
+void SettlerRegistry::add(uint64_t id, js::PromiseCapability capability, Converter convert, bool cancellable) {
   owner_.check("gr::SettlerRegistry");
-  settlers_.insert_or_assign(id, Settler{std::move(capability), std::move(convert)});
+  settlers_.insert_or_assign(id, Settler{std::move(capability), std::move(convert), cancellable});
+}
+
+std::vector<uint64_t> SettlerRegistry::cancellable() const {
+  owner_.check("gr::SettlerRegistry");
+  std::vector<uint64_t> ids;
+  for (const auto& [id, settler] : settlers_) {
+    if (settler.cancellable) ids.push_back(id);
+  }
+  std::sort(ids.begin(), ids.end());
+  return ids;
 }
 
 js::Value SettlerRegistry::error(const std::string& message, const char* name) {
@@ -130,6 +140,10 @@ bool SettlerRegistry::settle(JobResult result) {
         try {
           value = settler.convert ? settler.convert(engine_, result.outcome.payload.get())
                                   : engine_.undefined();
+        } catch (const JobAborted& e) {
+          result.outcome.payload.reset();
+          reject(error(e.what(), "AbortError"));
+          break;
         } catch (const std::exception& e) {
           result.outcome.payload.reset();
           reject(error(e.what(), nullptr));
@@ -169,18 +183,36 @@ size_t SettlerRegistry::size() const {
 // --- SubmittedJob -------------------------------------------------------------
 
 bool SubmittedJob::execute(std::stop_token stop) {
-  JobResult result;
-  result.id = id_;
+  JobDelivery delivery(id_, std::move(mailbox_), std::move(ticket_), stop_);
+  std::optional<JobOutcome> outcome;
   try {
-    result.outcome = job_->run(std::move(stop));
+    outcome = job_->start(std::move(stop), delivery);
   } catch (const std::exception& e) {
-    result.outcome = JobOutcome::failure(e.what());
+    outcome = JobOutcome::failure(e.what());
   } catch (...) {
-    result.outcome = JobOutcome::failure("native job failed");
+    outcome = JobOutcome::failure("native job failed");
   }
   // The job's inputs go before the result travels.
   job_.reset();
-  result.ticket = std::move(ticket_);
+  // The job took its delivery and delivers later.
+  if (!delivery) return true;
+  if (!outcome) outcome = JobOutcome::failure("the native job delivered no result");
+  return delivery.deliver(std::move(*outcome));
+}
+
+bool SubmittedJob::refuse(JobOutcome outcome) {
+  if (!mailbox_) {
+    // Detached: the job reports through its own channel. If that fails, its
+    // destructor still reports later.
+    try {
+      if (job_) job_->refused(outcome);
+    } catch (...) {
+    }
+    return false;
+  }
+  JobResult result;
+  result.id = id_;
+  result.outcome = std::move(outcome);
   const bool accepted = mailbox_->deliver(std::move(result));
   mailbox_.reset();
   return accepted;
@@ -188,6 +220,7 @@ bool SubmittedJob::execute(std::stop_token stop) {
 
 bool SubmittedJob::cancel(JobOutcome outcome) {
   job_.reset();
+  if (!mailbox_) return false;
   JobResult result;
   result.id = id_;
   result.outcome = std::move(outcome);
@@ -197,26 +230,72 @@ bool SubmittedJob::cancel(JobOutcome outcome) {
   return accepted;
 }
 
+// --- JobExecutor --------------------------------------------------------------
+
+namespace {
+
+// Requests stop on the calling thread.
+//
+// Thread affinity: thread-safe, stateless.
+class InlineStopRelay final : public StopRelay {
+public:
+  void relay(std::stop_source stop, std::shared_ptr<void> keep) override {
+    stop.request_stop();
+    keep.reset();
+  }
+};
+
+}  // namespace
+
+std::shared_ptr<StopRelay> JobExecutor::stopRelay() { return std::make_shared<InlineStopRelay>(); }
+
+// --- JobDelivery --------------------------------------------------------------
+
+JobDelivery::~JobDelivery() {
+  if (mailbox_) deliver(JobOutcome::failure("the native job delivered no result"));
+}
+
+bool JobDelivery::deliver(JobOutcome outcome) {
+  JobResult result;
+  result.id = id_;
+  result.outcome = std::move(outcome);
+  result.ticket = std::move(ticket_);
+  auto mailbox = std::move(mailbox_);
+  return mailbox->deliver(std::move(result));
+}
+
 // --- AsyncRun -----------------------------------------------------------------
 
 AsyncRun::AsyncRun(js::Engine& engine, Loop& loop, std::shared_ptr<RunnerTracker> tracker, uint64_t run,
-                   JobExecutor& executor)
+                   JobExecutor& executor, host::RunIdentity identity)
     : engine_(engine),
       executor_(executor),
       tracker_(std::move(tracker)),
       run_(run),
+      identity_(std::move(identity)),
       mailbox_(std::make_shared<RunMailbox>(loop)),
       settlers_(engine) {}
 
-js::Value AsyncRun::submit(JobExecutor& executor, std::unique_ptr<NativeJob> job, Converter convert) {
-  if (mailbox_->closed()) throw std::runtime_error("the run has ended");
-  if (std::find(used_.begin(), used_.end(), &executor) == used_.end()) used_.push_back(&executor);
+js::Value AsyncRun::submit(JobExecutor& executor, std::unique_ptr<NativeJob> job, Converter convert,
+                           bool cancellable) {
+  const bool ended = mailbox_->closed();
+  if (ended || (cancellable && cancel_.stop_requested())) {
+    // The job's inputs never go on this thread. The ticket keeps the job
+    // counted until they are gone.
+    executor.disposeUnrun(SubmittedJob(0, std::move(job), nullptr, {}, tracker_->acquire(run_)));
+    throw std::runtime_error(ended ? "the run has ended" : "Run cancelled");
+  }
+  if (std::find(used_.begin(), used_.end(), &executor) == used_.end()) {
+    used_.push_back(&executor);
+    executor.attach();
+  }
   const uint64_t id = nextId_++;
   js::PromiseCapability capability = engine_.newPromise();
   js::Value promise = capability.promise;
   // Registered first, since an inline job delivers before submit returns.
-  settlers_.add(id, std::move(capability), std::move(convert));
-  executor.submit(SubmittedJob(id, std::move(job), mailbox_, stop_.get_token(), tracker_->acquire(run_)));
+  settlers_.add(id, std::move(capability), std::move(convert), cancellable);
+  executor.submit(SubmittedJob(id, std::move(job), mailbox_, (cancellable ? cancel_ : stop_).get_token(),
+                               tracker_->acquire(run_)));
   return promise;
 }
 
@@ -227,11 +306,69 @@ bool AsyncRun::dispatchOne() {
   return true;
 }
 
+AsyncRun::~AsyncRun() {
+  teardown();
+  for (JobExecutor* executor : used_) executor->detach();
+}
+
+void AsyncRun::cancel() {
+  if (cancel_.stop_requested()) return;
+  // Through the mailbox, so the loop settles one per completion turn and the
+  // guest's continuation and cleanup for one call run before the next call
+  // settles. Queued before the stop request, so they come before the Stopped
+  // results that kept completions deliver from their stop.
+  for (uint64_t id : settlers_.cancellable()) {
+    JobResult stopped;
+    stopped.id = id;
+    stopped.outcome = JobOutcome::stopped();
+    mailbox_->deliver(std::move(stopped));
+  }
+  cancel_.request_stop();
+}
+
 void AsyncRun::teardown() {
-  stop_.request_stop();
+  requestStop();
   if (auto waiting = mailbox_->close(); !waiting.empty()) executor_.dispose(std::move(waiting));
   for (JobExecutor* executor : used_) executor->discardStopped();
   settlers_.clear();
+}
+
+// --- RunBinding ---------------------------------------------------------------
+
+namespace {
+constexpr const char* kRunBindingState = "gr.runBinding";
+}  // namespace
+
+std::shared_ptr<RunBinding> RunBinding::of(js::Engine& engine) {
+  if (auto existing = engine.hostState(kRunBindingState)) return std::static_pointer_cast<RunBinding>(existing);
+  // Shared: the engine's host state stores shared pointers, and each host
+  // function that submits keeps its own reference.
+  auto made = std::make_shared<RunBinding>();
+  engine.setHostState(kRunBindingState, made);
+  return made;
+}
+
+RunBinding::Scope::Scope(js::Engine& engine, AsyncRun& run, JobExecutor& io) : binding_(RunBinding::of(engine)) {
+  binding_->owner_.check("gr::RunBinding");
+  if (binding_->run_) throw std::logic_error("the engine already has a bound run");
+  binding_->run_ = &run;
+  binding_->io_ = &io;
+}
+
+RunBinding::Scope::~Scope() {
+  binding_->owner_.check("gr::RunBinding");
+  binding_->run_ = nullptr;
+  binding_->io_ = nullptr;
+}
+
+AsyncRun* RunBinding::run() const {
+  owner_.check("gr::RunBinding");
+  return run_;
+}
+
+JobExecutor* RunBinding::io() const {
+  owner_.check("gr::RunBinding");
+  return io_;
 }
 
 }  // namespace gr

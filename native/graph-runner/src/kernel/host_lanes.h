@@ -28,6 +28,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <deque>
+#include <functional>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -37,6 +38,51 @@
 #include <thread>
 
 namespace gr {
+
+// Destroys what a lane must not destroy on the thread that hands it over:
+// the inputs of jobs it refused and results it could not give its reaper.
+// One per process, kept by the process lane registry and never destroyed,
+// so its thread exists before any lane accepts a job and outlives them all.
+// A destructor that blocks delays only later disposals.
+//
+// Thread affinity: thread-safe. `mutex_` guards the queue, and items are
+// destroyed only on the disposer's own thread.
+class JobDisposer {
+public:
+  // Starts the thread. Throws std::system_error when it cannot start.
+  JobDisposer();
+  // Disposes what is queued, then joins the thread. The process registry
+  // never destroys its disposer, so this runs only for a disposer of a test.
+  ~JobDisposer();
+  JobDisposer(const JobDisposer&) = delete;
+  JobDisposer& operator=(const JobDisposer&) = delete;
+
+  void dispose(SubmittedJob job);
+  void dispose(std::deque<JobResult> results);
+
+private:
+  struct Item {
+    std::optional<SubmittedJob> job;
+    std::deque<JobResult> results;
+  };
+  // What the thread shares with the disposer. Thread-safe: `mutex` guards
+  // the fields below it.
+  struct Queue {
+    std::mutex mutex;
+    std::condition_variable work;
+    std::deque<Item> items;
+    bool stopping = false;
+  };
+  void push(Item item);
+
+  // Shared with the thread, which must not reach the disposer itself.
+  std::shared_ptr<Queue> queue_;
+  std::thread thread_;
+};
+
+// The process's disposer, started on the first call. Throws
+// std::system_error when its thread cannot start.
+JobDisposer& processJobDisposer();
 
 // Thread counts of the three lanes. 0 picks the default.
 struct LaneSizes {
@@ -51,14 +97,31 @@ struct LaneSizes {
 LaneSizes resolveLaneSizes(LaneSizes requested, unsigned hardwareThreads);
 
 // A lane. Threads start on demand, up to `maxThreads`, so a lane that never
-// gets a job has no thread. The first job also starts the lane's reaper.
+// gets a job has no thread. The first job starts the lane's reaper before
+// any worker, and no job runs while the lane has no reaper. A submission
+// the lane refuses, because no reaper or worker can start or because the
+// lane shut down, gets its Error or AbortError through its mailbox first,
+// and the process JobDisposer then destroys its inputs, so job code, input
+// destructors and stop callbacks never run on the submitting thread. The
+// constructor starts the disposer if needed, so a lane exists only with it.
+//
+// Thread affinity: thread-safe. `mutex_` guards the queue, the threads and
+// the counters below it.
 class ThreadPoolExecutor final : public JobExecutor {
 public:
   using Clock = std::chrono::steady_clock;
+  // Called under the lane mutex before each thread starts, with whether it
+  // is the reaper. Returning false fails the start as a failed std::thread
+  // would. A test hook: it must not call back into the lane.
+  using ThreadStarter = std::function<bool(bool reaper)>;
 
-  ThreadPoolExecutor(std::string name, size_t maxThreads);
+  // Throws std::system_error when the process disposer cannot start.
+  ThreadPoolExecutor(std::string name, size_t maxThreads, ThreadStarter starter = {});
   // Shuts down without a deadline: waits until every thread exited. Call
-  // shutdown() first to bound the wait.
+  // shutdown() first to bound the wait. Every user must have detached: a
+  // lane destroyed while a run or provider job registry is attached prints
+  // why to stderr and calls std::abort, in every build, since those users
+  // still hold its address.
   ~ThreadPoolExecutor() override;
   ThreadPoolExecutor(const ThreadPoolExecutor&) = delete;
   ThreadPoolExecutor& operator=(const ThreadPoolExecutor&) = delete;
@@ -72,6 +135,17 @@ public:
   size_t discardStopped() override;
   // Hands the results to the reaper, which destroys them.
   void dispose(std::deque<JobResult> results) override;
+  // Hands the job to the process JobDisposer.
+  void disposeUnrun(SubmittedJob job) override;
+  // Relays stop requests to the reaper. After the reaper left at shutdown,
+  // or once this lane is being destroyed, the relay requests stop on the
+  // calling thread. That never happens on a runner's worker as long as every
+  // runner using the lane is destroyed before the lane shuts down, which
+  // debug builds assert through attach().
+  std::shared_ptr<StopRelay> stopRelay() override;
+  // Counts the runs and registries that submit here. See JobExecutor.
+  void attach() noexcept override;
+  void detach() noexcept override;
 
   // The first half of shutdown(): stops admission, takes the queued jobs and
   // hands the reaper their cancellation (an AbortError) and a stop request
@@ -119,8 +193,15 @@ private:
     std::optional<JobOutcome> outcome;
     // Results a closed mailbox handed back.
     std::deque<JobResult> results;
+    // Released after `stop` was requested.
+    std::shared_ptr<void> keep;
   };
   class ExitNotice;
+  class Relay;
+  // Locked by the relay, never under the lane mutex. Queues a stop request
+  // and its keep reference for the reaper. False, leaving both, when there
+  // is no reaper to take them.
+  bool queueStop(std::stop_source& stop, std::shared_ptr<void>& keep);
   void work(Thread& self);
   void reap(Thread& self);
   // Locked. Starts a worker when queued jobs outnumber idle workers, and
@@ -138,6 +219,9 @@ private:
 
   const std::string name_;
   const size_t maxThreads_;
+  const ThreadStarter starter_;
+  // The process disposer, which outlives every lane.
+  JobDisposer& disposer_;
   mutable std::mutex mutex_;
   std::condition_variable work_;
   std::condition_variable reapWork_;
@@ -154,10 +238,16 @@ private:
   // The reaper left its loop and takes no more work.
   bool reaperDone_ = false;
   bool accepting_ = true;
+  // Runs and registries attached to this lane.
+  size_t attached_ = 0;
+  // Shared with every state that relays through this lane. Detached in the
+  // destructor, before shutdown.
+  std::shared_ptr<Relay> relay_;
 };
 
 // The executors native jobs run on: the three process lanes, or the worker
 // itself in inline mode.
+// native-rules #9: shared by every run and lane thread, no thread-safety comment
 class HostLanes {
 public:
   enum class Kind { Cpu, Io, Network };

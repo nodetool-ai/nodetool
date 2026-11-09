@@ -661,12 +661,19 @@ export function selectTests(model, changed, { all = false } = {}) {
   return { all: false, reason: null, selected: list, notes, leftOut: model.tests.length - list.length };
 }
 
-/** Targets to build and prepare steps to run for the selected tests. */
+/**
+ * Targets to build and prepare steps to run for the selected tests. ctest
+ * reports no command for a test whose executable was never built, so such a
+ * test cannot be traced to its target: `buildAll` then builds every target.
+ */
 export function executionPlan(model, selection) {
   const names = new Set(selection.selected.map((s) => s.test));
   const tests = model.tests.filter((t) => names.has(t.name));
+  const untraced = tests.filter((t) => !t.known).map((t) => t.name);
   return {
     targets: [...new Set(tests.flatMap((t) => t.buildTargets))].sort(),
+    buildAll: untraced.length > 0,
+    untraced,
     prepare: [...new Set(tests.flatMap((t) => t.prepare))]
   };
 }
@@ -831,7 +838,8 @@ function printPlan(plans, reason) {
     }
     for (const n of selection.notes) console.log(`  not tested: ${n.file} (${n.note})`);
     if (plan.prepare.length) console.log(`  prepare: ${plan.prepare.join(", ")}`);
-    if (plan.targets.length) console.log(`  build targets: ${plan.targets.join(" ")}`);
+    if (plan.buildAll) console.log(`  build targets: all (never built, so untraceable: ${plan.untraced.join(" ")})`);
+    else if (plan.targets.length) console.log(`  build targets: ${plan.targets.join(" ")}`);
   }
 }
 
@@ -851,7 +859,8 @@ function jsonPlan(plans, reason) {
             selected: p.selection.selected,
             notes: p.selection.notes,
             prepare: p.prepare,
-            targets: p.targets
+            targets: p.targets,
+            buildAll: p.buildAll
           }
         : { name: p.name, status: p.status, buildDir: p.buildDir, reason: p.reason, configure: p.configure }
     )
@@ -874,8 +883,9 @@ function execute(plan, opts) {
     if (status !== 0) return status;
   }
   const cfg = plan.model.config ? ["--config", plan.model.config] : [];
-  if (plan.targets.length) {
-    const status = run("cmake", ["--build", plan.buildDir, ...cfg, "--target", ...plan.targets, "--parallel", String(opts.jobs)]);
+  if (plan.buildAll || plan.targets.length) {
+    const targets = plan.buildAll ? [] : ["--target", ...plan.targets];
+    const status = run("cmake", ["--build", plan.buildDir, ...cfg, ...targets, "--parallel", String(opts.jobs)]);
     if (status !== 0) return status;
   }
   const names = plan.selection.selected.map((s) => s.test);

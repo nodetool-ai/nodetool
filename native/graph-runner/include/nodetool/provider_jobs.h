@@ -9,25 +9,35 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+namespace gr {
+// The executor interface of the host lanes (src/kernel/async_jobs.h). Only
+// the lane constructor below names it.
+class JobExecutor;
+} // namespace gr
 namespace gr::host {
 // Provider endpoint calls (callEndpoint, uploadMedia, downloadMedia) can run
-// for minutes. ProviderJobs runs each call on its own thread and grants the
-// guest four short context operations per provider, so the runner thread never
-// waits on a vendor:
+// for minutes. ProviderJobs runs each call as a job on the network lane
+// (src/kernel/host_lanes.h) and grants the guest four context operations per
+// provider, so the runner thread never waits on a vendor:
 //
-//   provider:<id>:jobs:put    {run?, upload?, data}          -> {upload}
-//   provider:<id>:jobs:start  {run?, method, args | upload}  -> {job}
-//   provider:<id>:jobs:poll   {job}                    -> {state, ...}
+//   provider:<id>:jobs:put    {upload?, data}          -> {upload}
+//   provider:<id>:jobs:start  {method, args | upload}  -> {job}
+//   provider:<id>:jobs:next   {job}                    -> {state, ...}
 //   provider:<id>:jobs:close  {job}                    -> null
 //
-// Poll answers one state at a time: "pending", "progress" with `event`,
-// "part" with `data`, "done" with `value` (absent after parts), or "error"
-// with `message`. A request or result larger than one part travels as
-// consecutive parts of its JSON text: `put` appends request parts under an
-// upload id that `start` names, and `poll` returns result parts before "done".
-// `close` requests stop for a running call and returns without waiting for it.
-// Its name ends in ":close", so the context lets it through after the run is
-// cancelled.
+// put, start and close are synchronous grants. next is an asynchronous grant
+// (ContextOptions::asyncOperations) whose promise settles with the job's next
+// item: "progress" with `event`, "part" with `data`, "done" with `value`
+// (absent after parts), or "stopped" with `message` once the job was stopped
+// or closed. A worker error rejects it with the worker's message. A request
+// or result larger than one part travels as consecutive parts of its JSON
+// text: `put` appends request parts under an upload id that `start` names,
+// and `next` returns result parts before "done". `close` requests stop for a
+// running call and returns without waiting for it. Its name ends in ":close",
+// so the context lets it through after the run is cancelled. next is
+// cancellable: when the run's cancellation begins, a waiting next rejects
+// with an AbortError at the loop's next completion turn, and the guest then
+// closes the job.
 //
 // Each job keeps a state that every later call observes:
 //
@@ -43,21 +53,36 @@ namespace gr::host {
 // terminal result has been taken it stays the answer to every later read, and
 // stop() no longer changes it. Only close() does.
 //
-// Every job and upload belongs to a run: the `run` string of put and start,
-// which the guest sets to the workflow run's job id (empty when absent). A
+// Every job and upload belongs to a run, which the host names with a
+// RunIdentity (nodetool/context_options.h): put, start and close ask their
+// RunSource on the runner thread, and next uses the identity its context
+// call carried from submission, so a next still running after its run ended
+// cannot reach a later run's job. Runs are told apart by identity, not by
+// their public job id, so two runs with the same job id, in one runner or in
+// two sharing this object, reach and retire only their own jobs. A request
+// whose `run` field differs from its run's public job id is refused. A
 // stopped or closed job keeps its id until retireRun() releases its run or
-// this object is destroyed. The grants hold no reference to the jobs, so
-// they keep nothing alive once either has happened.
+// this object is destroyed. GraphRunner does both for the ProviderJobs in
+// HostOptions::providerJobs: it creates an identity for each run and retires
+// the run after its terminal job_update. The grants hold no reference to the
+// jobs, so they keep nothing alive once either has happened.
 //
-// Known gap: the destructor joins every worker thread without a deadline,
-// so a worker that ignores cancellation blocks it. The async host design
-// (docs/plans/graph-runner-async-host.md, section 4.10) moves these jobs
-// onto the network lane with a timed shutdown.
+// Workers run on lane threads, never on a thread of their own, and nothing
+// joins them: the destructor stops every job and returns. It never destroys
+// the lane either, since the lane is not this object's to own. A worker that
+// ignores the stop keeps its lane thread, and its job keeps a maxJobs slot,
+// until it returns. shutdownHostLanes() (nodetool/host_lanes.h) bounds the
+// wait for such a worker with a deadline.
+//
+// Thread affinity: thread-safe. A registry mutex guards the job and upload
+// tables, and each job has its own mutex. Registry lookups release the
+// registry mutex before taking a job mutex, and no completion, stop request
+// or lane submission happens under either.
 class ProviderJobs {
 public:
   struct Call {
     std::string provider;
-    // The run the job belongs to, as given to start.
+    // The public job id of the run the job belongs to.
     std::string run;
     // callEndpoint, uploadMedia or downloadMedia.
     std::string method;
@@ -65,25 +90,34 @@ public:
     std::string argsJson;
     // Reports a progress event, given as JSON text. Safe from any thread.
     std::function<void(const std::string &eventJson)> progress;
-    // True once the job was stopped or closed, or this object is shutting
-    // down. Same as stop.stop_requested().
+    // True once the job was stopped or closed, this object is shutting down,
+    // or the lane is shutting down.
     std::function<bool()> cancelled;
-    // Requested together with cancelled(). A worker may register a
-    // std::stop_callback on it to interrupt blocking work. request_stop runs
-    // such callbacks synchronously on the thread that stops or closes the
-    // job, which may be the runner thread or the destructor. A callback must
-    // therefore be bounded and non-blocking, must take no lock the stopping
-    // thread may hold, and should only set flags or issue a non-blocking
-    // wake, such as notifying a condition variable or cancelling a socket
-    // read. ProviderJobs requests stop outside all of its own locks.
+    // Requested shortly after cancelled() turns true. A worker may register
+    // a std::stop_callback on it to interrupt blocking work. On a lane with
+    // threads the request runs such callbacks on the lane's reaper thread,
+    // never on the thread that stops or closes the job, so a callback that
+    // blocks delays only the lane's later stop requests. After the lane shut
+    // down, or on an inline executor, they run on the stopping thread. A
+    // callback should still only set flags or issue a non-blocking wake, such
+    // as notifying a condition variable or cancelling a socket read.
     std::stop_token stop;
   };
-  // Runs on the job's thread. Returns the result as JSON text or throws.
+  // Runs on a lane thread. Returns the result as JSON text or throws. It and
+  // everything it captures stay alive while any of its calls runs, which can
+  // be after this object is destroyed, so its captures must own what they
+  // use.
   using Worker = std::function<std::string(const Call &)>;
+  // The run the calling guest belongs to: in a GraphRunner, the identity of
+  // the run in progress. Empty while no run is in progress, which refuses
+  // put and start. Called on the runner thread for put, start and close.
+  // next does not call it: it uses the identity of its context call.
+  using RunSource = std::function<RunIdentity()>;
   struct Limits {
-    // Largest JSON text a single put or poll carries.
+    // Largest JSON text a single put or next answer carries.
     size_t partBytes = 256 * 1024;
-    // Calls whose worker has not returned, closed ones included.
+    // Calls whose worker has not returned: queued on the lane, running, or
+    // closed while running.
     size_t maxJobs = 8;
     // Largest request a sequence of puts may assemble.
     size_t maxRequestBytes = 256 * 1024 * 1024;
@@ -94,8 +128,7 @@ public:
   // What next() delivers.
   struct Outcome {
     enum class Kind {
-      // `text` is the answer as JSON text, shaped like a poll answer:
-      // "progress", "part" or "done".
+      // `text` is the answer as JSON text: "progress", "part" or "done".
       Value,
       // `text` is the message: the worker's error or a misuse of next().
       Error,
@@ -115,10 +148,12 @@ public:
   // The callback is invoked from a noexcept context: a throw terminates the
   // process. It runs on whichever thread produces the item or stops the job:
   // a worker, a thread calling progress, the caller of next(), stop(),
-  // close() or retireRun(), or the destructor. An adapter that forwards
-  // outcomes to a run mailbox must therefore be noexcept, safe to call from
-  // any of those threads, and safe after the mailbox has closed, where it
-  // disposes the outcome instead of delivering it.
+  // close() or retireRun(), the destructor, or the lane thread that destroys
+  // a job that never ran. An adapter that forwards outcomes to a run mailbox
+  // must therefore be noexcept, safe to call from any of those threads, and
+  // safe after the mailbox has closed, where it disposes the outcome instead
+  // of delivering it. The granted next operation uses such an adapter over
+  // its ContextCompletion.
   class Completion {
   public:
     Completion() = default;
@@ -162,19 +197,32 @@ public:
     std::unique_ptr<Base> impl_;
   };
 
+  // Workers run on the process network lane (HostOptions::networkThreads),
+  // looked up on the first start(), so a GraphRunner created before then
+  // sets its size.
   explicit ProviderJobs(Worker worker);
   ProviderJobs(Worker worker, Limits limits);
-  // Stops every job, completes pending next() calls with Stopped and waits
-  // for every worker thread, so no worker outlives this object. See the
-  // known gap above.
+  // Workers run on `lane`, which this object borrows: the caller owns it and
+  // keeps it alive until this object and every context its grants went into
+  // are gone. This object attaches to it, which a pool lane checks in debug
+  // builds when it is destroyed. For tests and hosts that own a lane.
+  ProviderJobs(Worker worker, Limits limits, gr::JobExecutor &lane);
+  // Stops every job and completes pending next() calls with Stopped, then
+  // returns without waiting for workers. A worker still running keeps its
+  // job, its maxJobs slot and the Worker function alive until it returns.
   ~ProviderJobs();
   ProviderJobs(const ProviderJobs &) = delete;
   ProviderJobs &operator=(const ProviderJobs &) = delete;
 
-  // Adds the four operations for each provider id to `options`. The
-  // operations hold a weak reference: once this object is destroyed, put,
-  // start and poll throw and close answers null.
-  void grant(ContextOptions &options, const std::vector<std::string> &providers);
+  // Adds the four operations for each provider id to `options`: put, start
+  // and close to `operations`, next to `asyncOperations`, removing the same
+  // names from the other map. Each operation stamps or checks its run: put
+  // and start file the upload or job under what `run` answers and refuse a
+  // request that names another run, close treats a job of another run as
+  // unknown, and so does next, by the run its context call was submitted
+  // in. The operations hold a weak reference: once this object is
+  // destroyed, put and start throw, next fails and close answers null.
+  void grant(ContextOptions &options, const std::vector<std::string> &providers, RunSource run);
 
   // Waits for the next item of job `{job}` without blocking the caller.
   // When an item is ready, or the job is stopped or closed, `done` runs
@@ -182,7 +230,7 @@ public:
   // runs on the thread that produces the item or stops the job. A second
   // next() while one is waiting completes with Error "Provider job already
   // has a pending next()". An unknown job or malformed payload completes with
-  // Error.
+  // Error. This and stop() serve the host, so they reach a job of any run.
   void next(const std::string &provider, const std::string &payload, Completion done);
 
   // Requests stop for job `{job}` and completes its waiter with Stopped. A
@@ -194,19 +242,18 @@ public:
   // completes their waiters with Stopped, then releases their ids and its
   // pending uploads. A worker still executing keeps its own job alive until
   // it returns. Later calls with a released id fail as unknown. Jobs of
-  // other runs are untouched. A later start may reuse the run id.
-  void retireRun(const std::string &run);
+  // other runs, the same public job id included, are untouched.
+  void retireRun(const RunIdentity &run);
 
   struct Stats {
     // Job ids the registry still answers for, tombstones included.
     size_t registered = 0;
-    // Workers that have not returned.
+    // Workers that have not returned, queued ones included.
     size_t executing = 0;
-    // Job objects in memory: registered ones and retired ones a worker or
-    // an unjoined thread still holds.
+    // Job objects in memory: registered ones and retired ones a queued or
+    // running worker still holds.
     size_t alive = 0;
   };
-  // Joins threads whose worker has returned, then counts.
   Stats stats();
 
 private:

@@ -114,6 +114,7 @@ add_library(gr_kernel STATIC
   src/kernel/actor.cpp
   src/host/intl.cpp
   src/host/context.cpp
+  src/host/context_async.cpp
   src/host/sandbox.cpp
   src/host/sandbox_session.cpp
   src/kernel/quiescence.cpp
@@ -186,11 +187,16 @@ if(PROJECT_IS_TOP_LEVEL)
   add_executable(gr_lanes_tests unittests/host_lanes.cpp)
   target_link_libraries(gr_lanes_tests PRIVATE gr_kernel gr_js Threads::Threads)
   add_test(NAME gr_lanes_tests COMMAND gr_lanes_tests)
+  # The asynchronous context transport and shared grant rules (rollout
+  # step 3). The runner cases load the guest bundle when it is passed.
+  add_executable(gr_async_context_tests unittests/async_context.cpp)
+  target_link_libraries(gr_async_context_tests PRIVATE nodetool_graph_runner gr_kernel gr_js
+                        nlohmann_json::nlohmann_json Threads::Threads)
   # Worker thread ownership checks (invariant I5), compiled into this test
   # only, so a release build can exercise them.
   add_executable(gr_thread_check_tests unittests/thread_checks.cpp
     src/kernel/task.cpp src/kernel/async_jobs.cpp src/js/quickjs_engine.cpp)
-  target_include_directories(gr_thread_check_tests PRIVATE src)
+  target_include_directories(gr_thread_check_tests PRIVATE src include)
   target_compile_definitions(gr_thread_check_tests PRIVATE GR_THREAD_CHECKS=1)
   target_link_libraries(gr_thread_check_tests PRIVATE qjs Threads::Threads)
   add_test(NAME gr_thread_check_tests COMMAND gr_thread_check_tests)
@@ -207,6 +213,7 @@ if(PROJECT_IS_TOP_LEVEL)
   set(NODETOOL_GUEST_BUNDLE "${CMAKE_CURRENT_SOURCE_DIR}/build/guest.js"
       CACHE FILEPATH "Guest bundle the library tests load")
   add_test(NAME gr_state_tests COMMAND gr_state_tests "${NODETOOL_GUEST_BUNDLE}" "${CMAKE_CURRENT_BINARY_DIR}")
+
   add_executable(gr_public_run unittests/public-run.cpp)
   target_link_libraries(gr_public_run PRIVATE nodetool_graph_runner nlohmann_json::nlohmann_json)
   add_executable(gr_public_state_tests unittests/public_state.cpp)
@@ -288,6 +295,16 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(gr_context_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
   add_dependencies(gr_context_tests gr_context_test_bundle)
   add_test(NAME gr_context_tests COMMAND gr_context_tests "${GR_CONTEXT_TEST}")
+  # A parity bundle of the image module: the default bundle does not admit
+  # nodetool.image.TextToImage, whose prediction grant the runner cases use.
+  set(GR_ASYNC_CONTEXT_GUEST "${CMAKE_CURRENT_BINARY_DIR}/async-context-guest.js")
+  add_custom_target(gr_async_context_guest ALL
+    COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/guest/build.mjs" "${GR_ASYNC_CONTEXT_GUEST}"
+            --profile parity --modules @nodetool-ai/image-nodes/nodes/image
+    VERBATIM)
+  add_dependencies(gr_async_context_tests gr_async_context_guest)
+  add_test(NAME gr_async_context_tests COMMAND gr_async_context_tests "${GR_ASYNC_CONTEXT_GUEST}")
+  set_tests_properties(gr_async_context_tests PROPERTIES TIMEOUT 300)
   set(GR_PROVIDER_JOBS_TEST "${CMAKE_CURRENT_BINARY_DIR}/provider-jobs-test.mjs")
   add_custom_target(gr_provider_jobs_test_bundle ALL
     COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-context.mjs" "${GR_PROVIDER_JOBS_TEST}"
@@ -297,12 +314,26 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(gr_provider_jobs_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
   add_dependencies(gr_provider_jobs_tests gr_provider_jobs_test_bundle)
   add_test(NAME gr_provider_jobs_tests COMMAND gr_provider_jobs_tests "${GR_PROVIDER_JOBS_TEST}")
-  # Job states and next() waiters. Built from the source file alone, so a
-  # ThreadSanitizer build of this target needs no engine.
-  add_executable(gr_provider_job_state_tests unittests/provider_job_state.cpp src/provider_jobs.cpp)
-  target_include_directories(gr_provider_job_state_tests PRIVATE include)
-  target_link_libraries(gr_provider_job_state_tests PRIVATE nlohmann_json::nlohmann_json Threads::Threads)
+  # Job states and next() waiters, with workers on the process network lane.
+  add_executable(gr_provider_job_state_tests unittests/provider_job_state.cpp)
+  target_link_libraries(gr_provider_job_state_tests PRIVATE nodetool_graph_runner gr_kernel gr_js
+                        nlohmann_json::nlohmann_json Threads::Threads)
   add_test(NAME gr_provider_job_state_tests COMMAND gr_provider_job_state_tests)
+  # Provider next() through the asynchronous context transport, the network
+  # lane and the public runner (rollout step 4). The runner cases load a
+  # parity bundle of the MiniMax nodes, whose endpoint calls run as jobs, and
+  # of the image module, whose TextToImage runs on a fake provider.
+  add_executable(gr_provider_next_tests unittests/provider_next.cpp)
+  target_link_libraries(gr_provider_next_tests PRIVATE nodetool_graph_runner gr_kernel gr_js
+                        nlohmann_json::nlohmann_json Threads::Threads)
+  set(GR_PROVIDER_NEXT_GUEST "${CMAKE_CURRENT_BINARY_DIR}/provider-next-guest.js")
+  add_custom_target(gr_provider_next_guest ALL
+    COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/guest/build.mjs" "${GR_PROVIDER_NEXT_GUEST}"
+            --profile parity --modules @nodetool-ai/minimax-nodes,@nodetool-ai/image-nodes/nodes/image
+    VERBATIM)
+  add_dependencies(gr_provider_next_tests gr_provider_next_guest)
+  add_test(NAME gr_provider_next_tests COMMAND gr_provider_next_tests "${GR_PROVIDER_NEXT_GUEST}")
+  set_tests_properties(gr_provider_next_tests PROPERTIES TIMEOUT 300)
   set(GR_FAKE_PROVIDERS_TEST "${CMAKE_CURRENT_BINARY_DIR}/fake-providers-test.mjs")
   add_custom_target(gr_fake_providers_test_bundle ALL
     COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-context.mjs" "${GR_FAKE_PROVIDERS_TEST}"

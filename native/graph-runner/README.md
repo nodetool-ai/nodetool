@@ -251,8 +251,11 @@ arguments the job needs at the call (`src/kernel/job_inputs.h`): bytes of an
 ArrayBuffer or typed array, strings, and options as JSON text. A detached or
 out-of-bounds buffer is rejected there, and later changes to a buffer never
 reach the job. A typed array over a SharedArrayBuffer is copied like any
-view, and a SharedArrayBuffer itself is rejected. No host function uses
-this yet.
+view, and a SharedArrayBuffer itself is rejected. The only host function
+that moves work off the worker so far is the asynchronous context call (see
+[Asynchronous context calls](#asynchronous-context-calls)), which copies its
+JSON payload string. Provider endpoint jobs run on the network lane (see
+[Provider endpoint jobs](#provider-endpoint-jobs)).
 
 The job then goes to one of three process-wide lanes
 (`src/kernel/host_lanes.h`): CPU work with min(4, cores - 1) threads and at
@@ -270,10 +273,18 @@ jobs running on a lane are asked to stop, and finished results the worker
 has not settled are discarded. Each lane has a reaper thread that runs those
 stop requests and destroys those jobs and results, so a stop callback, input
 destructor or result destructor that blocks delays its lane, not the worker.
-Two cases still run on the calling thread: everything, when the lane could
-not start its reaper thread, and the inputs of a job submitted after the
-lanes shut down. Inline mode destroys results on the worker. Stop callbacks
-should still only set flags or issue a non-blocking wake.
+A lane starts its reaper before its first worker and runs no job without
+one. A job the lane refuses, because no reaper or worker thread can start
+or because the lanes shut down, gets its Error or AbortError through the
+run's mailbox first. Its inputs are then destroyed by the process's
+disposer thread, which the first lane starts and which lives as long as the
+process, so a blocking input destructor never blocks the worker. After
+shutdown, a stop request runs on the requesting thread, so embedders destroy
+their runners before they shut the lanes down (debug builds assert it). A
+lane destroyed while a run or a `ProviderJobs` still uses it prints why and
+aborts the process, in every build.
+Inline mode destroys results on the worker. Stop callbacks should still
+only set flags or issue a non-blocking wake.
 `GraphRunner`'s destructor does not wait for lane jobs, which hold no
 reference to the runner.
 
@@ -453,7 +464,7 @@ grants them. Every field defaults to granting nothing.
 | `files` | `workspaceDir` and `sqliteDirectory` (read-write), `readRoots` (read-only) | `node:fs`, `node:fs/promises` and `context.workspace`. Relative paths resolve against the workspace, which is also `context.workspaceDir`, `os.homedir()` and `os.tmpdir()`. |
 | `assets` | `assetDir` | `asset://` and `/api/storage/<key>` refs resolve from it. `context.createAsset` stores owner-scoped bytes when model persistence is also granted. |
 | `packageAssets` | `packageAssetsDir` | `package://<pkg>/<path>` refs read `<dir>/<pkg>/<path>`, read-only, with the asset key rules. Without a directory these refs fail with an error that names `--package-assets`. |
-| `providers` | `fakeProviders` | Every provider id resolves to the runtime's `FakeProvider`, one instance per id, and the context's `provider:*` and `prediction:*` grants are dropped. Provider calls then reach no grant, secret or network. |
+| `providers` | `fakeProviders` | Every provider id resolves to the runtime's `FakeProvider`, one instance per id, and the context's `provider:*` and `prediction:*` grants are dropped from both grant maps. Provider calls then reach no grant, secret or network. |
 | `secrets` | `secrets` | `context.getSecret(key)`. The process environment is never read. |
 | `http` | `allowHttpFetch` | http(s) media refs load under the `safeFetch` policy: https to a public address, every redirect and connected address checked. |
 | `media` | `allowMedia`, `mediaEncoders` and the file grants | Native libav probing, frame readers, video encoding, audio filters and muxing. Encoders require an explicit allowlist. |
@@ -546,6 +557,9 @@ declares, or says it is not a `NodeContext` member.
 name. Calls enforce the payload and per-run call limits, and poll `cancelled`
 before and after execution. A blocking host callback must also poll its
 cancellation predicate. Provider cursor cleanup remains callable after cancellation.
+`asyncOperations` grants the same kinds of operations through the
+asynchronous transport described in
+[Asynchronous context calls](#asynchronous-context-calls).
 
 | Grant | Interface |
 |---|---|
@@ -554,7 +568,7 @@ cancellation predicate. Provider cursor cleanup remains callable after cancellat
 | `provider:<id>:webSearch` | A provider's search method. Native server search in the message loop additionally reads `supportsNativeWebSearch` from an optional `provider:<id>:metadata` callback. |
 | `provider:<id>:postModel`, `getVideoOperation`, `mediaHeaders` | Gemini-compatible endpoint methods. Response callbacks return `{status, headers?, body, url?}`. The guest exposes real text, JSON and byte readers over that response. |
 | `prediction:<id>:<capability>` | Capability-specific media generation and its bookkeeping. `generate_message` uses the provider message adapter directly. |
-| `provider:<id>:jobs:put`, `start`, `poll`, `close` | Endpoint calls (`context.callProviderEndpoint`, `uploadProviderMedia`, `downloadProviderMedia`) as host jobs. Grant them with [`ProviderJobs`](include/nodetool/provider_jobs.h). See [Provider endpoint jobs](#provider-endpoint-jobs). |
+| `provider:<id>:jobs:put`, `start`, `next`, `close` | Endpoint calls (`context.callProviderEndpoint`, `uploadProviderMedia`, `downloadProviderMedia`) as host jobs, `next` on the asynchronous transport. Pass a [`ProviderJobs`](include/nodetool/provider_jobs.h) as `HostOptions::providerJobs`. See [Provider endpoint jobs](#provider-endpoint-jobs). |
 | `toolDefinitionsJson` and `tool:<name>` | Advertised tool metadata paired with an executable callback. The callback receives `{userId, jobId, args}`. No server-wide tool catalog is granted. |
 | `permission:request` | Optional decisions for actionable tools through the existing permission gate. Receives the approval request and run identity, and returns `allow`, `allow_for_chat` or `deny`. Without this grant, calls beyond the default read permissions are denied. |
 | `sandboxModuleResolutionJson` | A host-authorized module resolution for the exact static package imports. No package discovery or ambient module loader is used. |
@@ -562,26 +576,105 @@ cancellation predicate. Provider cursor cleanup remains callable after cancellat
 | `ocrDataDirectory` | A directory containing explicitly supplied Tesseract language resources such as `eng.traineddata`. Empty disables OCR. Resource symlinks escaping the directory are rejected. |
 | `http:request` | Optional host HTTP transport. Its callback owns URL, redirect and credential policy. Without it, the native public-HTTPS GET capability still requires `allowHttpFetch`. |
 
+### Asynchronous context calls
+
+`ContextOptions::asyncOperations` grants operations whose callback runs on
+the I/O lane instead of the runner thread, so it may block or finish later.
+The callback receives the request JSON, a `std::stop_token` and a move-only
+`ContextCompletion`, which it may keep and call once from any thread with a
+`ContextResult`. Node code reaches these grants through the context's
+services (`contextCall` in `guest/host/context-services.mjs`), which use
+`__host.context.callAsync` for an operation that `__host.context.isAsync`
+reports and `call` for the others. Which operations an embedder grants
+asynchronously is its choice. `ProviderJobs` grants
+`provider:<id>:jobs:next` this way, and the CLI and the node editor grant
+none.
+
+A name may be in only one of the two maps. A name in both fails when the
+context is installed, which fails the runner's load. `has` reports both
+maps, and each transport refuses the other map's names. Both transports
+check the grant, cancellation, the call count, payload conversion and the
+request size in that order, and share one call count and the payload
+limits. A request-side failure throws at the call, as `call` does. The
+response checks run on the runner thread when the result settles the
+promise, which happens as a macrotask through the run's mailbox. Provider
+cleanup (`provider:<id>:close` and `provider:<id>:jobs:close`) is exempt
+from cancellation and the call count on both transports, but not from the
+payload limits.
+
+The first outcome wins, and later ones are discarded: the completion's call,
+a throw from the callback, the run's stop (an AbortError), or the last
+completion destroyed without a call (an Error). While the callback is still
+running, its throw wins over the destruction of the completion it held, so
+node code sees the thrown message. A moved-from completion does nothing when
+destroyed, and calling a completion a second time is ignored, with an
+assertion in debug builds.
+
+When the run's cancellation begins, every pending call except cleanup
+(`provider:<id>:close` and `provider:<id>:jobs:close`) gets an AbortError
+through the run's mailbox, in submission order. Like any result it settles
+at the loop's completion point, one per turn, so node code waiting on it
+reaches its `finally` blocks during the cancel grace period, and one call's
+continuation and cleanup run before the next call settles. A result already
+in the mailbox settles first, and the response check then rejects it with
+an AbortError, "Run cancelled", so every cancellation-caused rejection is an
+AbortError whatever the order. Whichever result settles a call first wins,
+and later ones are dropped. A synchronous `call` whose response check finds
+the run cancelled still throws the Error "Run cancelled". The context's
+services (`contextCall`) and provider endpoint calls turn an AbortError from
+the host into the run signal's reason, which is an AbortError too, and leave
+every other error as it is, so a provider's own error delivered before the
+cancellation still reaches node code.
+A non-cleanup call made after that is refused at the call, and a cleanup
+call still runs. When the run ends, the remaining calls stop the same way.
+Settling happens on the runner thread. Stopping the callback's token happens
+on the I/O lane's reaper thread, so an embedder stop callback that blocks
+delays that lane's stop requests, not the runner's teardown or its
+destruction. With `inlineHostJobs`, or once the lane shut down, the stop
+runs on the requesting thread. Stop callbacks should still only set flags
+or issue a non-blocking wake. The callback, its captures
+and a runner tracker ticket stay alive until the call ended and its
+completion is gone, which can be after the `GraphRunner` is destroyed.
+Calling the completion then is safe: its result is destroyed on the calling
+thread and never reaches the runner thread. Captures must therefore own what
+they use. With `inlineHostJobs`, the callback runs on the runner thread, as
+every host job does in that mode.
+
 ### Provider endpoint jobs
 
 Provider node packs call vendors through `context.callProviderEndpoint`,
 `uploadProviderMedia` and `downloadProviderMedia`. A vendor call can take
 minutes, and a context callback blocks the runner's only thread, so these run
-as jobs instead. [`ProviderJobs`](include/nodetool/provider_jobs.h) runs each
-call on its own thread. The embedder supplies one worker function that
-performs `callEndpoint`, `uploadMedia` or `downloadMedia` for a provider, for
-example by forwarding it to a NodeTool server, and reports progress.
+as jobs instead. The embedder creates a
+[`ProviderJobs`](include/nodetool/provider_jobs.h) with one worker function
+that performs `callEndpoint`, `uploadMedia` or `downloadMedia` for a
+provider, for example by forwarding it to a NodeTool server, and reports
+progress. It passes the object as `HostOptions::providerJobs` with the
+provider ids in `providerJobProviders`. With `fakeProviders`, nothing is
+granted.
 
-The guest starts a job and polls it on a timer that backs off from 10 ms to
-500 ms, so other nodes and timers run while it waits. Progress events reach
-the node's `onProgress`. Requests and results larger than one part (256 KiB
-by default) travel as consecutive parts, so the 1 MiB payload limit does not
-cap media. Aborting the run closes the job, which requests stop through the
-worker's `cancelled()` and `Call::stop` token and returns without waiting.
-A closed job keeps its `maxJobs` slot until its worker returns, and
-destroying `ProviderJobs` waits for every worker. With no jobs granted for a
-provider, the context falls back to the resolved provider's own
-`callEndpoint`, which is what an injected provider resolver supplies.
+Each job runs on the process network lane (see
+[Native jobs and lanes](#native-jobs-and-lanes)). The guest starts a job
+with the synchronous `start` grant and then awaits each item through the
+asynchronous `next` grant, whose promise settles when the job has one:
+progress, a result part, the result, or an error. No timer runs while it
+waits. Progress events reach the node's `onProgress`. Requests and results
+larger than one part (256 KiB by default) travel as consecutive parts, so the
+1 MiB payload limit does not cap media.
+
+The guest closes the job in a `finally` block when the call settles. When
+the run's cancellation begins, a waiting `next` rejects with an AbortError at
+once, so that `finally` runs during the cancel grace period, and `close` is
+allowed then. An abort of a caller's own signal closes the job through an
+abort listener, which the call removes when it ends. Closing requests stop
+through the worker's `cancelled()` and `Call::stop` token and returns
+without waiting. The lane's reaper thread runs the worker's stop callbacks,
+so one that blocks never blocks the runner thread. A closed job keeps its
+`maxJobs` slot until its worker returns. Destroying `ProviderJobs` stops
+every job without waiting, and `shutdownHostLanes()` bounds the wait for a
+worker that ignores the stop. With no jobs granted for a provider, the
+context falls back to the resolved provider's own `callEndpoint`, which is
+what an injected provider resolver supplies.
 
 Each job keeps a durable state: running, finished, failed, stopped or closed.
 Reads take queued progress first, then result parts, then the terminal
@@ -591,15 +684,24 @@ terminal result already taken stays the answer until the job is closed.
 `ProviderJobs::next` is the native form of a read: it completes a move-only
 callback at once when an item is ready, or keeps it as the job's single
 waiter and completes it from the producing or stopping thread, outside every
-lock.
+lock. The `next` grant adapts that callback to the context call's
+`ContextCompletion`.
 
-Each job belongs to the run that started it: the guest passes the workflow
-run's job id as `run` on `put` and `start`. A stopped or closed job keeps
-answering until its run ends. The embedder calls `ProviderJobs::retireRun`
-with that job id after the run's last message, which closes the run's
-remaining jobs and releases their ids and pending uploads. The grants hold
-only a weak reference, so they keep no job alive after `ProviderJobs` is
-destroyed.
+Each job and upload belongs to the run in progress. The runner creates a
+`RunIdentity` for each run (`include/nodetool/context_options.h`) and
+stamps jobs and uploads with it. `put`, `start` and `close` read it on the
+runner thread, and `next` uses the identity its context call carried from
+submission (`ContextCompletion::run()`), so a `next` still running after its
+run ended cannot reach a later run's job. Runs are told apart by identity,
+not by job id, so runners that share one `ProviderJobs` may use the same job
+ids. A request that names another run's job id is refused, and a job of
+another run is unknown. After the run's terminal `job_update`, before the
+next run starts, the runner calls `ProviderJobs::retireRun` with the run's
+identity, which closes the run's remaining jobs and releases their ids and
+pending uploads. The grants hold only a weak reference, so they keep no job
+alive after `ProviderJobs` is destroyed. A `ProviderJobs` built on an
+explicit lane borrows it and never destroys it, so its destructor never
+waits for the lane's threads.
 
 The run owner comes from `userId`. `environmentJson` seeds only the virtual
 process environment at the run boundary. Neither field reads ambient host

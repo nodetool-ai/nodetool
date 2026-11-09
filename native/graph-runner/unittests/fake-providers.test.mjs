@@ -37,6 +37,13 @@ if (fake) {
   check(!globalThis.__host.context.has("provider:fixture:open"), "provider grant dropped");
   check(!globalThis.__host.context.has("prediction:fixture:text_to_image"), "prediction grant dropped");
   check(!globalThis.__host.context.has("provider:fixture:jobs:start"), "provider job grant dropped");
+  // Asynchronous grants are dropped too, so an attempt reaches no callback.
+  for (const name of ["provider:fixture-async:open", "provider:fixture-async:generateMessage",
+                      "provider:fixture-async:close", "prediction:fixture-async:text_to_image"]) {
+    check(!globalThis.__host.context.has(name), `async grant ${name} dropped`);
+    check(!globalThis.__host.context.isAsync(name), `async grant ${name} not async`);
+    await rejects(() => globalThis.__host.context.callAsync(name, "{}"), "is not granted");
+  }
 
   // A real image node completes with FakeProvider's 1x1 PNG.
   const png = async (provider) => {
@@ -48,6 +55,9 @@ if (fake) {
   check(bytes1.length === 68 && bytes1[1] === 0x50 && bytes1[2] === 0x4e, "fake PNG bytes");
   // A granted provider id resolves to a fake too, and the grant is not called.
   check((await png("fixture")).length === 68, "granted id is faked");
+  check((await png("fixture-async")).length === 68, "an asynchronously granted id is faked");
+  const asyncResult = await new GuestContext().runProviderPrediction({ provider: "fixture-async", capability: "generate_embedding", model: "m", params: { text: ["ab"], dimensions: 3 } });
+  check(JSON.stringify(asyncResult) === "[[0.2,0.3,0.4]]", `fake embedding: ${JSON.stringify(asyncResult)}`);
   const result = await new GuestContext().runProviderPrediction({ provider: "fixture", capability: "generate_embedding", model: "m", params: { text: ["ab"], dimensions: 3 } });
   check(JSON.stringify(result) === "[[0.2,0.3,0.4]]", `fake embedding: ${JSON.stringify(result)}`);
   await rejects(
@@ -86,6 +96,13 @@ if (fake) {
 } else {
   // Without the flag, provider calls go to the embedder's grants as before.
   check(globalThis.__host.context.has("prediction:fixture:text_to_image"), "prediction grant kept");
+  check(globalThis.__host.context.isAsync("prediction:fixture-async:text_to_image"), "async prediction grant kept");
+  // The context's services take the asynchronous transport for it. Loading
+  // has no running graph, so the call fails there, before the callback.
+  await rejects(
+    () => new GuestContext().runProviderPrediction({ provider: "fixture-async", capability: "text_to_image", model: "m", params: {} }),
+    "Asynchronous context calls need a running graph"
+  );
   await rejects(() => textToImage("fake-gen"), "'prediction:fake-gen:text_to_image' is not granted");
   await rejects(() => new GuestContext().getProvider("fake-a"), "provider 'fake-a' is not granted");
   check(
