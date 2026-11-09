@@ -60,6 +60,24 @@ TestCase {
         verify(tooltip.y + tooltip.height <= test.Window.window.height)
         tooltip.visible = false
     }
+    // A hidden tooltip must not follow its trigger's ancestors: a window
+    // resize moves many of them for each tooltip in the window.
+    function test_hiddenTooltipIgnoresMoves() {
+        const anchors = []
+        const record = () => anchors.push(tooltip.anchorPoint)
+        tooltip.anchorPointChanged.connect(record)
+        trigger.x = 200
+        trigger.x = 280
+        tooltip.anchorPointChanged.disconnect(record)
+        compare(anchors.length, 0)
+        tooltip.visible = true
+        tryVerify(() => tooltip.visible)
+        const shown = tooltip.anchorPoint.x
+        trigger.x = 200
+        compare(tooltip.anchorPoint.x, shown - 80)
+        trigger.x = 280
+        tooltip.visible = false
+    }
     function test_selectedSurfaceTracksTheme() {
         compare(selectedSurface.border.color, Ui.Theme.borderFocus)
         Ui.Theme.preference = Ui.Theme.Light

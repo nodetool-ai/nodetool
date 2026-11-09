@@ -15,6 +15,7 @@
 
 #include <QMetaObject>
 #include <QString>
+#include <QTimer>
 
 #include <memory>
 
@@ -47,7 +48,9 @@ private:
     QString m_mode;
     QString m_reportPath;
     bool m_publishLoudness = false;
-    QMetaObject::Connection m_connections[3];
+    QMetaObject::Connection m_connections[2];
+    std::unique_ptr<QTimer> m_timer;
+    std::uint64_t m_appliedRevision = 0;
 };
 
 }  // namespace nt::audio

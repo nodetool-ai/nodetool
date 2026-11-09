@@ -242,6 +242,7 @@ private slots:
     void secondaryColorEditing();
     void cancellationLocksAndPlayhead();
     void groupSections();
+    void analysisRefreshesOncePerEdit();
     void foldsAndSearch();
     void exportDocuments();
 };
@@ -720,6 +721,14 @@ void TestClipEffects::cancellationLocksAndPlayhead() {
         QSignalSpy timeline(&e.model,&TimelineModel::timelineChanged);
         for (int i = 0; i < 100; ++i) { e.clock.seek(i*10); }
         QCOMPARE(clips.count(),0); QCOMPARE(timeline.count(),0); QCOMPARE(e.model.documentJson(),unedited);
+    }
+
+void TestClipEffects::analysisRefreshesOncePerEdit() {
+        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        ClipAnalysisController controller; controller.setModel(&e.model); controller.setClipId("picture");
+        QSignalSpy changed(&controller,&ClipAnalysisController::changed);
+        e.patch({{"name","renamed"}});
+        QCOMPARE(changed.count(),1);
     }
 
 void TestClipEffects::groupSections() {

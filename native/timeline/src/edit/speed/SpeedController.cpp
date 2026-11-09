@@ -18,7 +18,7 @@ void SpeedController::setModel(TimelineModel* model) {
     m_model = model;
     m_gesture = false;
     if (model) {
-        connect(model, &TimelineModel::clipsChanged, this, &SpeedController::documentChanged);
+        // The model emits timelineChanged after every clipsChanged, so one connection hears both.
         connect(model, &TimelineModel::timelineChanged, this, &SpeedController::documentChanged);
         connect(model, &TimelineModel::documentReplaced, this, [this] {
             m_cancelled = m_gesture;

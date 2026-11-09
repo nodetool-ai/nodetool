@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.Media
 import "shotDraft.js" as Draft
 
 // The storyboard: a toolbar over a grid of shot cards grouped under scene headers, the board
@@ -15,6 +16,7 @@ Item {
     // A ShotWorkflow: renders and the prompt preview.
     required property var renders
     property var mediaBrowser: null
+    property Component clipPlayer: null
     property bool readOnly: false
     signal editShotRequested(string shotId)
     signal entityRequested(string entityId)
@@ -29,6 +31,22 @@ Item {
         slugline: (scenes.find(scene => scene.id === group.sceneId) || {}).slugline || ""
     }))
     readonly property var ordered: groups.reduce((list, group) => list.concat(group.shots), [])
+    readonly property var orderIndex: {
+        const result = {}
+        ordered.forEach((shot, index) => result[shot.id] = index)
+        return result
+    }
+    // The Repeaters make all cards again when the shots change. Only a shot that is new on the
+    // board fades in. A change to this object does not notify, so the cards keep their state.
+    property var shownShots: ({})
+    property string shownFor: ""
+    function firstShow(id) {
+        const key = String(resource.id || "")
+        if (key !== shownFor) { shownFor = key; shownShots = ({}) }
+        if (shownShots[id]) return false
+        shownShots[id] = true
+        return true
+    }
     readonly property var captions: {
         const result = {}
         for (const group of groups) group.shots.forEach((shot, index) => result[shot.id] = "Scene " + group.number + " | Shot " + (index + 1))
@@ -166,7 +184,7 @@ Item {
         id: viewer
         shots: board.shots
         mediaBrowser: board.mediaBrowser
-        timeline: board.controller.timeline
+        clipPlayer: board.clipPlayer
     }
     Ui.Dialog {
         id: deleteDialog
@@ -494,6 +512,7 @@ Item {
                 readonly property real charWidth: Ui.Typography.pixelSize(Ui.Typography.SansBody) * 0.55
                 readonly property real minCard: Math.min(width, board.cardSize * charWidth)
                 QtObject { id: cards; readonly property int columns: Math.max(1, Math.floor((grid.width + grid.spacing) / (grid.minCard + grid.spacing))) }
+                GridReflow { id: shotReflow; columns: cards.columns; enabled: board.visibleCount > 0 }
                 Repeater {
                     model: board.visibleGroups
                     delegate: ColumnLayout {
@@ -532,15 +551,20 @@ Item {
                                     Layout.preferredWidth: 1
                                     Layout.alignment: Qt.AlignTop
                                     implicitHeight: shotCard.implicitHeight
+                                    transform: slotGlide.shift
+                                    GridGlide { id: slotGlide; target: slot; active: shotReflow.active }
+                                    readonly property bool fresh: board.firstShow(slot.modelData.id)
                                     HoverHandler { id: slotHover }
                                     ShotCard {
                                         id: shotCard
                                         width: parent.width
                                         shot: slot.modelData
+                                        cardIndex: board.orderIndex[slot.modelData.id] || 0
+                                        animateIn: slot.fresh
                                         boardDocument: board.document
                                         caption: board.captions[slot.modelData.id] || ""
                                         mediaBrowser: board.mediaBrowser
-                                        timeline: board.controller.timeline
+                                        clipPlayer: board.clipPlayer
                                         selected: board.selectedShotId === slot.modelData.id
                                         stillsOnly: board.stillsOnly
                                         readOnly: board.readOnly
@@ -570,6 +594,10 @@ Item {
                                         z: Ui.Metrics.layerOverlay
                                         visible: !board.readOnly && !board.searching
                                         opacity: slotHover.hovered || activeFocus ? 1 : 0
+                                        Behavior on opacity {
+                                            enabled: !Ui.Theme.reducedMotion
+                                            NumberAnimation { duration: Ui.Metrics.motionQuick; easing.type: Easing.OutCubic }
+                                        }
                                         iconName: "add"
                                         text: "Insert a shot after " + (board.captions[slot.modelData.id] || "")
                                         onClicked: board.addShot(slot.modelData.id)

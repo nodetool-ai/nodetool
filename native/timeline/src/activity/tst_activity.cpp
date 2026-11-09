@@ -87,6 +87,7 @@ private slots:
         const nt::server::SaveTarget target{QUrl("http://127.0.0.1:" + QString::number(server.serverPort())), "account-token", "timeline", "", {}};
         for (int launch = 0; launch < 2; ++launch) {
             ActivityController controller;
+            controller.setActive(true);
             controller.setTarget(target); controller.setTimeline(&model);
             QTRY_VERIFY_WITH_TIMEOUT(!controller.busy() && controller.rows().size() == 1, 10000);
             QCOMPARE(controller.error(), QString{});
@@ -96,6 +97,22 @@ private slots:
         QCOMPARE(requests, 6);
         QVERIFY(authorization);
         QCOMPARE(model.undoStack()->count(), 0);
+    }
+    void pollsOnlyWhileActive() {
+        TimelineModel model; nt::Timeline document; document.raw = {{"projectId", "project-a"}}; model.setTimeline(document);
+        ActivityController controller;
+        int calls = 0;
+        controller.setCall([&](bool, const QString&, const QJsonObject&) { ++calls; return nt::server::QueryResult{QJsonObject{{"jobs", QJsonArray{}}, {"generations", QJsonArray{}}, {"assets", QJsonArray{}}, {"next", QJsonValue::Null}}, {}}; });
+        controller.setTarget(nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), "", "timeline", "", {}});
+        controller.setTimeline(&model);
+        QVERIFY(!controller.polling());
+        QTest::qWait(100);
+        QCOMPARE(calls, 0);
+        controller.setActive(true);
+        QVERIFY(controller.polling());
+        QTRY_VERIFY_WITH_TIMEOUT(calls > 0 && !controller.busy(), 5000);
+        controller.setActive(false);
+        QVERIFY(!controller.polling());
     }
     void costsAndStates() {
         auto job = ActivityController::jobRow({{"id", "0123456789abcdef0123456789abcdef"}, {"status", "running"}, {"cost", 0}});
@@ -112,6 +129,7 @@ private slots:
     void paginationSurvivesPollingAndLargeProxyList() {
         TimelineModel model; nt::Timeline document; document.raw = {{"projectId", "project-a"}}; model.setTimeline(document);
         ActivityController controller;
+        controller.setActive(true);
         controller.setTarget(nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), "", "timeline", "", {}});
         QStringList cursors;
         controller.setCall([&](bool, const QString& procedure, const QJsonObject& input) {
@@ -149,6 +167,7 @@ private slots:
         document.raw = {{"projectId", "project-a"}};
         model.setTimeline(document);
         ActivityController controller;
+        controller.setActive(true);
         controller.setTarget(nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), "", "timeline", "", {}});
         std::atomic<int> listCalls = 0;
         const QString procedure = generations ? "generations.list" : "jobs.list";
@@ -195,6 +214,7 @@ private slots:
         nt::Timeline timeline; timeline.raw = {{"projectId", "project-a"}};
         model.setTimeline(timeline);
         ActivityController controller;
+        controller.setActive(true);
         controller.setTarget(nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), "", "timeline", "", "expected-instance"});
         QMutex mutex;
         QStringList calls;

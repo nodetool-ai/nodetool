@@ -7,7 +7,7 @@ QtObject {
     readonly property real toolbarHeight: 36 * Ui.Theme.uiScale
     readonly property real rulerHeight: 28 * Ui.Theme.uiScale
     readonly property real scrollbarHeight: 14 * Ui.Theme.uiScale
-    readonly property real trackHeaderWidth: 320 * Ui.Theme.uiScale
+    readonly property real trackHeaderWidth: Ui.Metrics.panelWidth
     readonly property real trackHeaderMinWidth: 264 * Ui.Theme.uiScale
     readonly property real trackHeaderMaxWidth: 640 * Ui.Theme.uiScale
     readonly property real sourceViewerPreferredWidth: 360 * Ui.Theme.uiScale
@@ -30,5 +30,6 @@ QtObject {
     readonly property int trimHandleLayer: 2
     readonly property int clipBodyLayer: 1
     readonly property int toolbarLayer: 5
+    readonly property int dockMaximizedLayer: 1 // Regions without the maximized group go this far below the panel hosts.
     readonly property int dockDropLayer: 2
 }

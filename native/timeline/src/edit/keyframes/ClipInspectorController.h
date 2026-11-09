@@ -18,6 +18,8 @@ class ClipInspectorController : public QObject {
     // Changes with `clip`, for a binding that must rerun on an edit but needs no copy of the clip.
     Q_PROPERTY(int revision READ revision NOTIFY changed)
     Q_PROPERTY(bool locked READ locked NOTIFY changed)
+    // While false, `clip` and `locked` hold their last value and no model change reaches them.
+    Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
     Q_PROPERTY(double playheadMs READ playheadMs NOTIFY playheadChanged)
     Q_PROPERTY(QVariantList rows READ rows CONSTANT)
   public:
@@ -32,7 +34,9 @@ class ClipInspectorController : public QObject {
     void setClipId(const QString& id);
     QVariantMap clip() const;
     int revision() const { return m_revision; }
-    bool locked() const;
+    bool locked() const { return m_locked; }
+    bool active() const { return m_active; }
+    void setActive(bool active);
     double playheadMs() const;
     QVariantList rows() const;
     Q_INVOKABLE QVariantMap rowState(const QString& row) const;
@@ -60,16 +64,25 @@ class ClipInspectorController : public QObject {
   signals:
     void changed();
     void playheadChanged();
+    void activeChanged();
     // The user changed this row: the keyframe key now keys it.
     void rowEdited(const QString& row);
 
   private:
     QJsonObject selected() const;
+    // Re-reads the selected clip and its lock. Emits `changed` only when either differs, or when forced.
+    void refresh(bool force = false);
+    bool computeLocked(const QJsonObject& clip) const;
     QJsonObject payload(const QVariantMap& value) const;
     QPointer<TimelineModel> m_timeline;
     QPointer<PlaybackClock> m_clock;
     QString m_clipId;
     int m_revision = 0;
+    QJsonObject m_clip;
+    mutable QVariantMap m_clipMap;
+    mutable bool m_clipMapValid = false;
+    bool m_locked = true;
+    bool m_active = true;
     bool m_gesturing = false;
     bool m_ignoreCommit = false;
     quint64 m_generation = 0;

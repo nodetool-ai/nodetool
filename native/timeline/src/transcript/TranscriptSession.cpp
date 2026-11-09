@@ -55,7 +55,6 @@ void TranscriptSession::setTimeline(TimelineModel* timeline) {
     m_timeline = timeline;
     if (timeline) {
         connect(timeline, &TimelineModel::clipsChanged, this, &TranscriptSession::scheduleRefresh);
-        connect(timeline, &TimelineModel::timelineChanged, this, &TranscriptSession::scheduleRefresh);
     }
     m_dirty = true;
     flush();

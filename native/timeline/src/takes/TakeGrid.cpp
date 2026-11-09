@@ -49,7 +49,7 @@ void TakeGrid::setGestures(ClipGestureController* gestures) {
     if (m_gestures && m_switcher) {
         m_switcher->gridOpened();
         connect(m_gestures, &ClipGestureController::selectionChanged, this, &TakeGrid::refresh);
-        connect(gestures->timeline(), &TimelineModel::clipsChanged, this, &TakeGrid::refresh);
+        connect(gestures->timeline(), &TimelineModel::clipsChanged, this, &TakeGrid::clipsMoved);
         connect(m_switcher, &TakeSwitcher::mediaResolved, this, [this] { scheduleFrames(); });
         if (auto* clock = gestures->clock()) {
             connect(clock, &PlaybackClock::timeChanged, this, &TakeGrid::timeMoved);
@@ -77,7 +77,15 @@ double TakeGrid::playheadMs() const {
     return clock ? clock->currentTimeMs() : 0.0;
 }
 
+void TakeGrid::clipsMoved() {
+    auto* model = m_gestures ? m_gestures->timeline() : nullptr;
+    // An edit that left the shown clip and every take list alone changes nothing here.
+    if (model && !m_clipId.isEmpty() && model->takesRevision() == m_takesRevision && !model->clipTouched(m_clipId)) { return; }
+    refresh();
+}
+
 void TakeGrid::refresh() {
+    if (m_gestures && m_gestures->timeline()) { m_takesRevision = m_gestures->timeline()->takesRevision(); }
     QString id;
     QJsonObject clip;
     if (m_gestures && m_switcher && m_gestures->timeline()) {

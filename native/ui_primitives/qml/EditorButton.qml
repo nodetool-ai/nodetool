@@ -101,6 +101,7 @@ Basic.Button {
         id: tooltip
         objectName: "nativeButtonTooltip"
         trigger: root
+        followsTrigger: disabledTarget.visible
         visible: root.visible && !root.tooltipSuppressed && !root.down && !root.menuExpanded && !root.loading && (root.hovered || root.visualFocus || disabledHover.hovered) && (root.description !== "" || root.disabledReason !== "" || root.shortcutText !== "" || root.display === Basic.AbstractButton.IconOnly)
         text: !root.enabled && root.disabledReason !== "" ? root.disabledReason : root.accessibleName + (root.shortcutText !== "" ? " (" + root.shortcutText + ")" : "") + (root.description !== "" && root.description.trim() !== root.accessibleName.trim() ? "\n" + root.description : "")
     }

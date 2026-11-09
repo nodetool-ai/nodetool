@@ -15,6 +15,7 @@ Ui.Surface {
     required property var workspace
     required property var controller
     property var mediaBrowser: null
+    property Component clipPlayer: null
     // A ShotWorkflow: renders, take choice, and the prompt preview.
     required property var renders
     property string shotId: ""
@@ -350,7 +351,7 @@ Ui.Surface {
                         shot: editor.previewShot || ({})
                         visible: !!editor.previewShot
                         mediaBrowser: editor.mediaBrowser
-                        timeline: editor.controller.timeline
+                        clipPlayer: editor.clipPlayer
                         readOnly: editor.readOnly
                         generating: editor.generating
                         onAcceptRequested: (kind, index) => editor.accept(kind, index)
@@ -368,7 +369,7 @@ Ui.Surface {
                             shot: editor.shot || ({})
                             shots: editor.shots
                             mediaBrowser: editor.mediaBrowser
-                            timeline: editor.controller.timeline
+                            clipPlayer: editor.clipPlayer
                             readOnly: editor.readOnly
                             onAcceptRequested: (kind, index) => editor.accept(kind, index)
                             onRemoveRequested: (kind, index) => editor.removeTake(kind, index)

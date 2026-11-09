@@ -16,9 +16,12 @@ Loader {
     }
     readonly property bool dockVisible: !!dockTarget && dockTarget.activePanelId === panelId
     clip: !!dock
-    Binding { target: root; property: "x"; when: !!root.dock; value: root.dockRect.x }
-    Binding { target: root; property: "y"; when: !!root.dock; value: root.dockRect.y }
-    Binding { target: root; property: "width"; when: !!root.dock; value: root.dockRect.width }
-    Binding { target: root; property: "height"; when: !!root.dock; value: root.dockRect.height }
+    // A hidden panel keeps its last geometry: a window resize must not lay
+    // out panels that do not show, such as a mixer with a strip per track.
+    readonly property bool followsDock: !!dock && dockVisible
+    Binding { target: root; property: "x"; when: root.followsDock; value: root.dockRect.x; restoreMode: Binding.RestoreNone }
+    Binding { target: root; property: "y"; when: root.followsDock; value: root.dockRect.y; restoreMode: Binding.RestoreNone }
+    Binding { target: root; property: "width"; when: root.followsDock; value: root.dockRect.width; restoreMode: Binding.RestoreNone }
+    Binding { target: root; property: "height"; when: root.followsDock; value: root.dockRect.height; restoreMode: Binding.RestoreNone }
     Binding { target: root; property: "visible"; when: !!root.dock; value: root.dockVisible }
 }

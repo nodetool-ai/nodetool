@@ -170,9 +170,24 @@ void RulerCanvas::setTimeline(TimelineModel* timeline) {
     if (m_timeline) { disconnect(m_timeline, nullptr, this, nullptr); }
     m_timeline = timeline;
     if (m_timeline) {
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &RulerCanvas::changedValue);
+        m_tempoKey = tempoKey();
+        m_dropFrameKey = m_timeline->timeline().raw.value("dropFrame").toBool();
+        connect(m_timeline, &TimelineModel::timelineChanged, this, &RulerCanvas::timelineEdited);
         connect(m_timeline, &QObject::destroyed, this, &RulerCanvas::changedValue);
     }
+    changedValue();
+}
+
+QJsonValue RulerCanvas::tempoKey() const {
+    return m_timeline ? QJsonValue(m_timeline->timeline().raw.value("tempo")) : QJsonValue();
+}
+
+void RulerCanvas::timelineEdited() {
+    const QJsonValue tempo = tempoKey();
+    const bool dropFrame = m_timeline && m_timeline->timeline().raw.value("dropFrame").toBool();
+    if (tempo == m_tempoKey && dropFrame == m_dropFrameKey) { return; }
+    m_tempoKey = tempo;
+    m_dropFrameKey = dropFrame;
     changedValue();
 }
 

@@ -27,5 +27,14 @@ function(nt_model_tests)
     target_compile_options(tst_flexlayout PRIVATE ${NT_WARNINGS})
     target_link_libraries(tst_flexlayout PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_flexlayout COMMAND tst_flexlayout)
+
+    # Change notification costs of TimelineModel edits.
+    qt_add_executable(tst_timelinemodel tests/tst_timelinemodel.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    set_target_properties(tst_timelinemodel PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_timelinemodel PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_timelinemodel PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
+    add_test(NAME tst_timelinemodel COMMAND tst_timelinemodel)
 endfunction()
 nt_tests(nt_model_tests)

@@ -19,6 +19,7 @@ QtObject {
     readonly property real dialogWidth: 640 * Theme.uiScale
     readonly property real dialogCompactWidth: 444 * Theme.uiScale
     readonly property real dialogNarrowInset: 16 * Theme.uiScale
+    readonly property real panelWidth: 320 * Theme.uiScale
     readonly property real compact: 28 * Theme.uiScale
     readonly property real standard: 32 * Theme.uiScale
     readonly property real small: 24 * Theme.uiScale

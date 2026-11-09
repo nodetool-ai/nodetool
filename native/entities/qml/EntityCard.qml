@@ -1,6 +1,6 @@
 import QtQuick
 import NodeTool.UiPrimitives as Ui
-import "EntityKind.js" as Kind
+import NodeTool.Media
 
 Rectangle {
     id: card
@@ -10,7 +10,7 @@ Rectangle {
     signal editRequested()
     signal removeRequested()
     readonly property string entityId: entity && entity.id ? entity.id : ""
-    readonly property string displayName: Kind.displayName(entity)
+    readonly property string displayName: EntityKind.displayName(entity)
     readonly property string kind: entity && entity.kind ? entity.kind : ""
     readonly property string descriptor: entity && entity.descriptor ? entity.descriptor : ""
     // The kind sets the icon tone and nothing else, so cards stay quiet in a long list.
@@ -36,7 +36,7 @@ Rectangle {
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
     Accessible.name: displayName
-    Accessible.description: Kind.label(kind) + (descriptor !== "" ? ". " + descriptor : "")
+    Accessible.description: EntityKind.label(kind) + (descriptor !== "" ? ". " + descriptor : "")
     Accessible.onPressAction: editRequested()
     Keys.onReturnPressed: editRequested()
     Keys.onEnterPressed: editRequested()
@@ -76,16 +76,14 @@ Rectangle {
         height: width
         color: Ui.Theme.surfaceInput
         radius: Ui.Metrics.radiusControl
-        Image {
+        StableImage {
             id: picture
             objectName: "entityImage"
             anchors.fill: parent
             anchors.margins: Ui.Metrics.micro
             source: card.imageUrl
-            asynchronous: true
             fillMode: Image.PreserveAspectCrop
-            sourceSize: Qt.size(width * 2, height * 2)
-            visible: status === Image.Ready
+            visible: loaded
         }
         Column {
             objectName: "entityNoImage"
@@ -94,7 +92,7 @@ Rectangle {
             visible: card.imageUrl === "" || picture.status === Image.Error
             Ui.Icon {
                 anchors.horizontalCenter: parent.horizontalCenter
-                name: Kind.icon(card.kind)
+                name: EntityKind.icon(card.kind)
                 size: Ui.Metrics.iconLg
                 tone: Ui.Text.Secondary
             }
@@ -167,7 +165,7 @@ Rectangle {
             Ui.Icon {
                 id: kindIcon
                 anchors.verticalCenter: parent.verticalCenter
-                name: Kind.icon(card.kind)
+                name: EntityKind.icon(card.kind)
                 size: Ui.Metrics.iconXs
                 tone: card.kindTone
             }
@@ -175,7 +173,7 @@ Rectangle {
                 objectName: "entityKind"
                 width: parent.width - kindIcon.width - parent.spacing
                 anchors.verticalCenter: parent.verticalCenter
-                text: Kind.label(card.kind)
+                text: EntityKind.label(card.kind)
                 role: Ui.Typography.SansCaption
                 elide: Text.ElideRight
             }

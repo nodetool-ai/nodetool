@@ -34,9 +34,15 @@ void TooltipTracker::setOverlay(QQuickItem* overlay) {
     m_overlay = overlay;
     emit geometryChanged();
 }
+// Watch the ancestors only while the tooltip shows or a host reads its
+// geometry (followsTrigger). A hidden tooltip that watched them would compute
+// its geometry again for each ancestor move, and a window resize moves many
+// ancestors of many tooltips. prepare() computes the geometry before the
+// tooltip shows.
 void TooltipTracker::watchAncestors() {
     for (const auto& connection : m_connections) { disconnect(connection); }
     m_connections.clear();
+    if (!m_active && !m_follows) { return; }
     for (auto* item = m_trigger.data(); item; item = item->parentItem()) {
         const auto moved = [this]() { dismiss(); emit geometryChanged(); };
         m_connections.append(connect(item, &QQuickItem::xChanged, this, moved));
@@ -62,6 +68,7 @@ void TooltipTracker::prepare() {
 void TooltipTracker::setActive(bool active) {
     if (m_active == active) { return; }
     m_active = active;
+    watchAncestors();
     if (active) {
         prepare();
         QCoreApplication::instance()->installEventFilter(this);
@@ -70,6 +77,13 @@ void TooltipTracker::setActive(bool active) {
         if (s_current == this) { s_current.clear(); }
     }
     emit activeChanged();
+}
+void TooltipTracker::setFollowsTrigger(bool follows) {
+    if (m_follows == follows) { return; }
+    m_follows = follows;
+    watchAncestors();
+    emit followsTriggerChanged();
+    emit geometryChanged();
 }
 void TooltipTracker::dismiss() {
     if (m_active) { emit dismissed(); }

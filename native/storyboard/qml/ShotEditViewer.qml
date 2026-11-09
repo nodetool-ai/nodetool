@@ -10,7 +10,7 @@ ColumnLayout {
     objectName: "shotEditViewer"
     required property var shot
     property var mediaBrowser: null
-    property var timeline: null
+    property Component clipPlayer: null
     property bool readOnly: false
     property bool generating: false
     signal acceptRequested(string kind, int index)
@@ -138,10 +138,9 @@ ColumnLayout {
                 id: clipPlayer
                 objectName: "shotEditClip"
                 anchors.fill: parent
-                active: viewer.shown === "clip" && viewer.assetId !== ""
-                source: "ShotClipPlayer.qml"
+                active: viewer.shown === "clip" && viewer.assetId !== "" && !!viewer.clipPlayer
+                sourceComponent: viewer.clipPlayer
                 onLoaded: {
-                    item.timeline = Qt.binding(() => viewer.timeline)
                     item.durationMs = Qt.binding(() => { const seconds = Number(viewer.previewed ? viewer.previewed.duration : 0); return isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0 })
                     item.assetId = Qt.binding(() => viewer.assetId)
                 }

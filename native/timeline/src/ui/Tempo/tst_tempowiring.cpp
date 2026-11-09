@@ -1,6 +1,7 @@
 #include "TempoGrid.h"
 #include "TempoProviders.h"
 #include "ui/RulerCanvas.h"
+#include <QSignalSpy>
 #include "wiring/SnapProviders.h"
 #include "wiring/WiringFixture.h"
 
@@ -204,6 +205,21 @@ private slots:
         request.gridDivision = division;
         QTest::ignoreMessage(QtWarningMsg, qPrintable("Tempo beat snap provider failed: " + error));
         QVERIFY(nt::wiring::extraSnapCandidates(request).empty());
+    }
+
+    void rulerIgnoresEditsThatLeaveTicksAlone() {
+        loadDocument(true, true);
+        RulerCanvas ruler;
+        ruler.setWidth(400); ruler.setHeight(24);
+        ruler.setTimeline(&model);
+        QSignalSpy changed(&ruler, &RulerCanvas::changed);
+        auto document = model.timeline();
+        document.raw.insert("title", "renamed");
+        model.setTimeline(document);
+        QCOMPARE(changed.count(), 0);
+        document.raw.insert("dropFrame", !document.raw.value("dropFrame").toBool());
+        model.setTimeline(document);
+        QVERIFY(changed.count() > 0);
     }
 
     void invalidTempoRulerPaint() {

@@ -14,6 +14,7 @@ public:
     static QString defaultDirectory();
     static QString keyForMedia(const QString& path, const QString& kind);
     std::shared_ptr<const ThumbnailSet> load(const QString& key) const;
+    static int directoryScanCountForTesting();
     void store(const QString& key, const ThumbnailSet& thumbnails) const;
 
 private:

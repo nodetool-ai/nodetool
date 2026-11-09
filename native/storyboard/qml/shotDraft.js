@@ -193,3 +193,13 @@ function currentIndex(list, current) {
 }
 
 function isGenerating(shot) { return shot.status === "keyframe_generating" || shot.status === "clip_generating" }
+function itemNamed(root, name) {
+    if (!root) return null
+    if (root.objectName === name) return root
+    const children = root.children || []
+    for (let i = 0; i < children.length; ++i) {
+        const hit = itemNamed(children[i], name)
+        if (hit) return hit
+    }
+    return null
+}

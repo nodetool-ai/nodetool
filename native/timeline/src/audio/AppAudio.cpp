@@ -33,15 +33,32 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
     if (m_publishLoudness) options.loudness = &appLoudnessReadout();
     m_engine = std::make_unique<AudioEngine>();
     m_engine->setTimeline(model.snapshot());
-    // A new snapshot applies from the next play or seek.
+    // A new snapshot applies from the next play or seek. One edit fires clipsChanged and
+    // timelineChanged back to back, and a drag fires previewChanged per step. Clip and
+    // track edits (gain, mute, effects) all reach clipsChanged on settle, so listen to
+    // clipsChanged and previewChanged only, and build one plan per event-loop turn.
     AudioEngine* engine = m_engine.get();
-    const auto update = [engine, &model]() { engine->setTimeline(model.snapshot()); };
-    m_connections[0] = QObject::connect(&model, &TimelineModel::timelineChanged, &clock, update);
-    m_connections[1] = QObject::connect(&model, &TimelineModel::clipsChanged, &clock, update);
-    m_connections[2] = QObject::connect(&model, &TimelineModel::previewChanged, &clock, update);
+    m_timer = std::make_unique<QTimer>();
+    m_timer->setSingleShot(true);
+    m_timer->setInterval(0);
+    std::uint64_t* applied = &m_appliedRevision;
+    QObject::connect(m_timer.get(), &QTimer::timeout, m_timer.get(), [engine, &model, applied]() {
+        const auto snapshot = model.snapshot();
+        const std::uint64_t revision = snapshot ? snapshot->revision : 0;
+        if (snapshot && revision == *applied) return;
+        *applied = revision;
+        engine->setTimelineAsync(snapshot);
+    });
+    m_appliedRevision = model.snapshot() ? model.snapshot()->revision : 0;
+    QTimer* timer = m_timer.get();
+    const auto schedule = [timer]() { timer->start(); };
+    m_connections[0] = QObject::connect(&model, &TimelineModel::clipsChanged, timer, schedule);
+    m_connections[1] = QObject::connect(&model, &TimelineModel::previewChanged, timer, schedule);
     std::string why;
     if (!m_engine->start(options, &why)) {
         if (error) *error = QString::fromStdString(why);
+        for (const auto& c : m_connections) QObject::disconnect(c);
+        m_timer.reset();
         m_engine.reset();
         return false;
     }

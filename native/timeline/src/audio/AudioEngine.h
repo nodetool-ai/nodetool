@@ -71,6 +71,9 @@ public:
         std::uint64_t generation = 0;
         // Mix snapshots allocated for seeks and timeline edits.
         std::int64_t sessions = 0;
+        // Mix plans built by setTimeline, and worker loop iterations.
+        std::int64_t planBuilds = 0;
+        std::int64_t workerWakes = 0;
         std::int64_t ringsRetained = 0;
         std::string backend;
         std::string deviceName;
@@ -99,6 +102,8 @@ public:
     // Unchanged PCM mappings retain their rings. New/remapped voices become
     // audible as the worker primes them, without a transport seek.
     void setTimeline(std::shared_ptr<const Timeline> timeline);
+    // The same, without waiting for the worker to publish. Edit-driven updates use it.
+    void setTimelineAsync(std::shared_ptr<const Timeline> timeline);
 
     playback::AudioClockFeed& feed();
     Stats stats() const;
@@ -115,6 +120,7 @@ public:
     std::vector<float> recording() const;
 
 private:
+    std::uint64_t publishPlan(std::shared_ptr<const Timeline> timeline);
     struct Impl;
     std::unique_ptr<Impl> m_impl;
 };

@@ -20,7 +20,7 @@ Ui.Surface {
         const active = ["running", "scheduled", "queued", "pending", "submitted", "processing", "cancelling", "recovering", "needs_attention", "accepted", "submitting", "submission_unknown"].indexOf(row.status) >= 0
         return matchesText && (panel.filterState === "All" || (panel.filterState === "Active" ? active : row.status === "failed" || row.status === "error" || ["interrupted", "unobserved", "needs_attention", "unavailable"].indexOf(row.status) >= 0))
     })
-    ActivityController { id: serverActivity; timeline: panel.timeline }
+    ActivityController { id: serverActivity; timeline: panel.timeline; active: panel.visible }
     LocalActivity { id: localActivity; timeline: panel.timeline }
     function bindTimeline() {
         let ancestor = panel.parent

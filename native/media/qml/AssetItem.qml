@@ -1,19 +1,22 @@
 import QtQuick
 import QtQuick.Window
-import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import "AssetContext.js" as Context
 
 Rectangle {
     id: tile
     objectName: "libraryAsset_" + (asset.id || "")
     required property var asset
-    required property AssetBrowser browser
+    required property var browser
+    property var scrub: null
+    property Component scrubOverlay: null
     property var navigateFolder: null
     function openFolder() {
         if (navigateFolder) navigateFolder(asset.id)
         else browser.openFolder(asset.id)
     }
     property bool selected: false
+    function cancelDrag() { dragPoint.Drag.cancel() }
     signal selectedByUser()
     signal previewRequested()
     signal actionsRequested()
@@ -22,9 +25,9 @@ Rectangle {
     readonly property string poster: asset.thumb_url || (mediaType === "image" ? asset.get_url || "" : "")
     readonly property bool showCaption: hover.hovered || activeFocus
     // The pointer scrubs this video tile (the Library hover scrub).
-    readonly property bool scrubbing: mediaType === "video" && LibraryScrub.enabled && LibraryScrub.hoveredId === (asset.id || "-")
+    readonly property bool scrubbing: mediaType === "video" && !!tile.scrub && tile.scrub.enabled && tile.scrub.hoveredId === (asset.id || "-")
     function scrubTo(x) {
-        if (mediaType === "video" && !isFolder && width > 0 && !dragging) LibraryScrub.hover(asset, x / width)
+        if (mediaType === "video" && !isFolder && width > 0 && !dragging && tile.scrub) tile.scrub.hover(asset, x / width)
     }
     readonly property bool dragging: dragPoint.Drag.active
     readonly property bool dropAllowed: !!dragPoint.Drag.target && dragPoint.Drag.target.dropAllowed !== false
@@ -34,7 +37,12 @@ Rectangle {
     border.width: selected || activeFocus || folderDropActive ? Ui.Metrics.focus : Ui.Metrics.border
     border.color: selected || activeFocus || folderDropActive ? Ui.Theme.accentPrimary : Ui.Theme.borderSubtle
     radius: Ui.Metrics.radiusControl
-    clip: true
+    Behavior on border.color {
+        enabled: !Ui.Theme.reducedMotion
+        ColorAnimation { duration: Ui.Metrics.motionQuick }
+    }
+    // A pooled tile shows its next asset without the last fade.
+    function resetForReuse() { posterImage.fadeIn = false }
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
     Accessible.name: asset.name || "Asset"
@@ -54,45 +62,53 @@ Rectangle {
         else { selectedByUser(); previewRequested() }
     }
 
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: Ui.Metrics.border
+        radius: Math.max(0, Ui.Metrics.radiusControl - Ui.Metrics.border)
+        color: Ui.Theme.surfaceOverlay
+        visible: tile.poster !== "" && posterImage.opacity < 1
+    }
     Image {
         id: posterImage
+        objectName: "assetPosterImage"
+        // A cached pixmap is Ready with no Loading step, so it shows at once.
+        property bool fadeIn: false
         anchors.fill: parent
         anchors.margins: Ui.Metrics.border
         source: tile.browser.mediaUrl(tile.poster)
         asynchronous: true
         fillMode: Image.PreserveAspectCrop
-        sourceSize: Qt.size(tile.width * 2, tile.height * 2)
-        visible: status === Image.Ready
+        sourceSize: Context.thumbSize(tile.width, tile.height, Screen.devicePixelRatio)
+        // A resize that crosses a size bucket decodes again. The picture stays
+        // on screen meanwhile, and only a new source fades in.
+        property bool loaded: false
+        retainWhileLoading: true
+        opacity: loaded ? 1 : 0
+        visible: opacity > 0
+        onSourceChanged: { fadeIn = false; loaded = false }
+        onStatusChanged: {
+            if (status === Image.Loading && !loaded) fadeIn = true
+            if (status === Image.Ready) loaded = true
+        }
+        Behavior on opacity {
+            enabled: posterImage.fadeIn && !Ui.Theme.reducedMotion
+            NumberAnimation { duration: posterImage.opacity < 1 ? Ui.Metrics.motionNormal : 0 }
+        }
     }
     Ui.Icon {
+        objectName: "assetTypeIcon"
         anchors.centerIn: parent
-        visible: !posterImage.visible
+        visible: tile.poster === "" || posterImage.status === Image.Error
         size: Ui.Metrics.iconLg
         name: tile.mediaType === "audio" ? "audiotrack" : tile.mediaType === "video" ? "videocam" : "layers"
-        domainColor: TimelineVisuals.clipAccent(tile.mediaType)
+        tone: tile.mediaType === "audio" ? Ui.Text.Success : Ui.Text.Info
     }
     // Built only for the tile under the pointer, so a long Library carries no scrub items.
     Loader {
         anchors.fill: parent
-        active: tile.scrubbing
-        sourceComponent: Item {
-            LibraryScrubFrame {
-                objectName: "libraryScrubFrame"
-                x: Ui.Metrics.border
-                y: Ui.Metrics.border
-                width: parent.width - 2 * Ui.Metrics.border
-                height: parent.height - 2 * Ui.Metrics.border
-                visible: LibraryScrub.frameReady
-                scrub: LibraryScrub
-            }
-            Rectangle {
-                objectName: "libraryScrubPlayhead"
-                x: Math.round(LibraryScrub.fraction * (parent.width - width))
-                width: Ui.Metrics.focus
-                height: parent.height
-                color: TimelineVisuals.overlay
-            }
-        }
+        active: tile.scrubbing && !!tile.scrubOverlay
+        sourceComponent: tile.scrubOverlay
     }
     Rectangle {
         anchors.left: parent.left
@@ -100,7 +116,12 @@ Rectangle {
         anchors.bottom: parent.bottom
         height: caption.height + 2 * Ui.Metrics.sm
         color: Ui.Theme.scrimMedia
-        visible: tile.showCaption
+        opacity: tile.showCaption ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity {
+            enabled: !Ui.Theme.reducedMotion
+            NumberAnimation { duration: Ui.Metrics.motionQuick }
+        }
         Column {
             id: caption
             x: Ui.Metrics.sm
@@ -136,7 +157,7 @@ Rectangle {
         onPointChanged: { if (hovered) tile.scrubTo(point.position.x) }
         onHoveredChanged: {
             if (hovered) tile.scrubTo(point.position.x)
-            else LibraryScrub.leave(tile.asset.id || "")
+            else if (tile.scrub) tile.scrub.leave(tile.asset.id || "")
         }
     }
     Ui.Tooltip {
@@ -184,7 +205,7 @@ Rectangle {
                     anchors.margins: Ui.Metrics.border
                     source: tile.browser.mediaUrl(tile.poster)
                     asynchronous: true
-                    sourceSize: Qt.size(dragPreview.width * 2, dragPreview.height * 2)
+                    sourceSize: Context.thumbSize(dragPreview.width, dragPreview.height, Screen.devicePixelRatio)
                     fillMode: Image.PreserveAspectCrop
                 }
                 Ui.Icon {
@@ -192,7 +213,7 @@ Rectangle {
                     visible: dragImage.status !== Image.Ready
                     size: Ui.Metrics.iconLg
                     name: tile.mediaType === "audio" ? "audiotrack" : tile.mediaType === "video" ? "videocam" : "layers"
-                    domainColor: TimelineVisuals.clipAccent(tile.mediaType)
+                    tone: tile.mediaType === "audio" ? Ui.Text.Success : Ui.Text.Info
                 }
                 Rectangle {
                     anchors.left: parent.left
@@ -243,7 +264,7 @@ Rectangle {
         onPressed: event => {
             tile.forceActiveFocus()
             // Source opens at the hovered time, so the cue goes in before the selection reaches it.
-            if (event.button === Qt.LeftButton && tile.scrubbing) LibraryScrub.cue(tile.asset)
+            if (event.button === Qt.LeftButton && tile.scrubbing && tile.scrub) tile.scrub.cue(tile.asset)
             tile.selectedByUser()
             if (event.button === Qt.RightButton) tile.actionsRequested()
             dragPoint.x = event.x

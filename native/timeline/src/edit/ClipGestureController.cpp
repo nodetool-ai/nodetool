@@ -224,13 +224,10 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
             m_probing.clear();
             ++m_probeGeneration;
         });
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &ClipGestureController::probeSources);
-        connect(m_timeline, &TimelineModel::timelineChanged, this, [this]() {
-            m_hoverPlanId.clear();
-            clearToolHover();
-        });
+        // One connection serves each edit: clipsChanged and timelineChanged come together.
         // A clip the document lost leaves the selection.
         connect(m_timeline, &TimelineModel::clipsChanged, this, [this]() {
+            probeSources(false);
             m_hoverPlanId.clear();
             clearToolHover();
             if (m_selection.isEmpty()) return;
@@ -241,7 +238,7 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
             if (live != m_selection) setSelection(live);
         });
     }
-    probeSources();
+    probeSources(true);
     emit changed();
 }
 void ClipGestureController::setViewState(TimelineViewState* v) {
@@ -1822,12 +1819,14 @@ QString assetKeyOf(const QJsonObject& clip) {
 
 }  // namespace
 
-void ClipGestureController::probeSources() {
+void ClipGestureController::probeSources(bool all) {
     // Probe each media file once, off the GUI thread (a blocking FFmpeg open).
     if (!m_timeline) return;
     QPointer<ClipGestureController> self(this);
     const quint64 generation = m_probeGeneration;
     for (const auto& c : m_timeline->timeline().clips) {
+        // An edit names the clips it touched. The others were probed before.
+        if (!all && !m_timeline->clipTouched(QString::fromStdString(c.id))) continue;
         const QString file = sourceFileOf(c);
         if (file.isEmpty() || m_sourceMs.contains(file) || m_probing.contains(file)) continue;
         m_probing.insert(file);

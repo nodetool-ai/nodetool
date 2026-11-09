@@ -1,6 +1,14 @@
-#include "storyworkspace/StoryDrafts.h"
+#include "StoryDrafts.h"
 #include <QJsonArray>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QQuickItem>
+#include <QtQml/qqmlextensionplugin.h>
 #include <QtTest>
+
+Q_IMPORT_QML_PLUGIN(NodeTool_StoryboardPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_MediaPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_ModelPickerPlugin)
 
 using namespace nt::storyworkspace;
 namespace {
@@ -178,6 +186,20 @@ private slots:
         QVERIFY(!patchBoard(source, "aspectRatio", "wide").ok());
         QVERIFY(!patchBoard(source, "shots", QJsonArray{}).ok());
     }
+    void storyboardQmlComponentsLoadWithoutTimeline() {
+        QQmlEngine engine;
+        for (const char* type : {"StoryboardBoard", "ShotCard", "ShotMediaViewer", "ShotEditor", "LinkDocumentDialog"}) {
+            QQmlComponent component(&engine);
+            component.setData(QByteArray("import QtQuick\nimport NodeTool.Storyboard\nComponent { ") + type + " {} }\n", QUrl());
+            QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        }
+        for (const char* type : {"ShotMediaViewer", "LinkDocumentDialog"}) {
+            QQmlComponent component(&engine);
+            component.setData(QByteArray("import QtQuick\nimport NodeTool.Storyboard\n") + type + " {}\n", QUrl());
+            QScopedPointer<QObject> instance(component.create());
+            QVERIFY2(instance != nullptr, qPrintable(component.errorString()));
+        }
+    }
 };
-QTEST_GUILESS_MAIN(StoryDraftTest)
+QTEST_MAIN(StoryDraftTest)
 #include "tst_storydrafts.moc"

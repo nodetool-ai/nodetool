@@ -9,9 +9,9 @@ namespace nt::motion {
 MatteResolver::MatteResolver(TimelineModel& model, nt::server::SaveTarget target)
     : QObject(&model), m_model(&model), m_target(std::move(target)) {
     connect(&model, &TimelineModel::documentReplaced, this, [this] { reset(); });
-    connect(&model, &TimelineModel::clipsChanged, this, [this] { scan(); });
+    connect(&model, &TimelineModel::clipsChanged, this, [this] { scan(false); });
     reset();
-    scan();
+    scan(true);
 }
 MatteResolver::~MatteResolver() {
     if (m_worker) { m_worker->requestInterruption(); m_worker->wait(); }
@@ -29,9 +29,11 @@ void MatteResolver::reset() {
     }
     m_protection->reset(std::move(paths));
 }
-void MatteResolver::scan() {
+void MatteResolver::scan(bool all) {
     if (!m_model) { return; }
     for (const auto& clip : m_model->timeline().clips) {
+        // An edit names the clips it touched. The others were scanned before.
+        if (!all && !m_model->clipTouched(QString::fromStdString(clip.id))) { continue; }
         m_protection->protect(QString::fromStdString(clip.mediaPath));
         m_protection->protect(QString::fromStdString(clip.audioPath));
         m_protection->protect(QString::fromStdString(clip.generatedMattePath));

@@ -61,6 +61,32 @@ void TrackListModel::rebind(const nt::Timeline* timeline) {
     m_rows = sortedTracks(timeline);
 }
 
+bool TrackListModel::refresh(const nt::Timeline* timeline) {
+    auto rows = sortedTracks(timeline);
+    if (!timeline || !m_timeline || rows.size() != m_rows.size() ||
+        timeline->tracks.size() != m_timeline->tracks.size()) {
+        return false;
+    }
+    // The typed index counts in document order: the document order must stay too.
+    for (size_t i = 0; i < timeline->tracks.size(); ++i) {
+        const auto& a = timeline->tracks[i];
+        const auto& b = m_timeline->tracks[i];
+        if (a.id != b.id || a.type != b.type) return false;
+    }
+    std::vector<size_t> changed;
+    for (size_t i = 0; i < rows.size(); ++i) {
+        if (rows[i]->id != m_rows[i]->id) return false;
+        if (rows[i]->raw != m_rows[i]->raw) changed.push_back(i);
+    }
+    m_timeline = timeline;
+    m_rows = std::move(rows);
+    for (const size_t i : changed) {
+        const auto at = index(static_cast<int>(i));
+        emit dataChanged(at, at);
+    }
+    return true;
+}
+
 const nt::Track* TrackListModel::trackAt(int row) const {
     return row >= 0 && row < rowCount() ? m_rows[static_cast<size_t>(row)] : nullptr;
 }

@@ -14,13 +14,28 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 
+#include <atomic>
 #include <cmath>
+#include <mutex>
+#include <unordered_map>
 
 namespace nt::ui {
 namespace {
 constexpr quint32 MAGIC = 0x4e545431;  // NTT1
 constexpr qint64 MAX_ENTRY_BYTES = 64 * 1024 * 1024;
+
+// Callers build a short-lived ThumbnailDiskCache per job, so the running byte
+// total lives per directory for the process. Another process can add files
+// behind it. The total then reads low and the next over-budget scan corrects it.
+std::mutex totalsMutex;
+std::unordered_map<QString, qint64>& totals() {
+    static std::unordered_map<QString, qint64> map;
+    return map;
 }
+std::atomic<int> directoryScans{0};
+}
+
+int ThumbnailDiskCache::directoryScanCountForTesting() { return directoryScans.load(); }
 
 ThumbnailDiskCache::ThumbnailDiskCache(QString directory, qint64 maxBytes)
     : m_directory(directory.isEmpty() ? QString() : QDir(directory).absolutePath()), m_maxBytes(maxBytes) {}
@@ -106,19 +121,37 @@ void ThumbnailDiskCache::store(const QString& key, const ThumbnailSet& thumbnail
     QLockFile lock(directory.filePath(".writer.lock"));
     if (!lock.tryLock(1000)) return;
     const QString destination = entryPath(key);
-    const auto entries = directory.entryInfoList({"*.ntthumb"}, QDir::Files, QDir::Time | QDir::Reversed);
-    qint64 bytes = data.size();
-    for (const auto& entry : entries) {
-        if (entry.absoluteFilePath() != destination) bytes += entry.size();
+    const QFileInfo existing(destination);
+    const qint64 existingBytes = existing.exists() ? existing.size() : 0;
+    const auto scan = [&] {
+        ++directoryScans;
+        return directory.entryInfoList({"*.ntthumb"}, QDir::Files, QDir::Time | QDir::Reversed);
+    };
+    std::lock_guard guard(totalsMutex);
+    auto& known = totals();
+    auto total = known.find(m_directory);
+    if (total == known.end()) {
+        qint64 sum = 0;
+        for (const auto& entry : scan()) { sum += entry.size(); }
+        total = known.emplace(m_directory, sum).first;
     }
-    for (const auto& entry : entries) {
-        if (bytes <= m_maxBytes) break;
-        if (entry.absoluteFilePath() != destination && QFile::remove(entry.absoluteFilePath())) bytes -= entry.size();
+    qint64 projected = total->second - existingBytes + data.size();
+    if (projected > m_maxBytes) {
+        const auto entries = scan();
+        qint64 bytes = data.size();
+        for (const auto& entry : entries) {
+            if (entry.absoluteFilePath() != destination) bytes += entry.size();
+        }
+        for (const auto& entry : entries) {
+            if (bytes <= m_maxBytes) break;
+            if (entry.absoluteFilePath() != destination && QFile::remove(entry.absoluteFilePath())) bytes -= entry.size();
+        }
+        if (bytes > m_maxBytes) { known.erase(m_directory); return; }
+        projected = bytes;
     }
-    if (bytes > m_maxBytes) return;
     QSaveFile output(destination);
     if (!output.open(QIODevice::WriteOnly) || output.write(data) != data.size()) return;
-    output.commit();
+    if (output.commit()) { total->second = projected; } else { known.erase(m_directory); }
 }
 
 }  // namespace nt::ui

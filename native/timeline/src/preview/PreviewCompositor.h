@@ -13,6 +13,7 @@
 #include <cstdint>
 
 class QJsonObject;
+namespace nt { struct Timeline; }
 class QRhiTextureRenderTarget;
 namespace nt {
 struct EffectContext;
@@ -138,6 +139,8 @@ public:
     const std::vector<FrameStat>& frameStats() const { return m_stats; }
     // Frames rendered so far, always counted. GUI thread.
     long long framesRendered() const { return m_framesRendered; }
+    // Model edits that changed the picture (and so reset blur and asked for a frame). GUI thread.
+    int visualEditCount() const { return m_visualEdits; }
     // Decoders open at the last frame. GUI thread.
     int openDecoders() const { return m_openDecoders; }
     // The render thread, for its CPU time (nt::cpu::threadNs); 0 before the
@@ -185,6 +188,7 @@ protected:
     QQuickRhiItemRenderer* createRenderer() override;
 
 private:
+    void timelineEdited();
     friend class PreviewCompositorRenderer;
     friend class MonitorCompositorTest;
 
@@ -198,6 +202,12 @@ private:
     bool m_frameSettled = false;
     bool m_monitorPipelineCreated = false;
     TimelineModel* m_timeline = nullptr;
+    // The last snapshot seen by timelineEdited(), the revision that names its visible content,
+    // and the count of edits that changed it.
+    std::shared_ptr<const nt::Timeline> m_visualSnapshot;
+    std::uint64_t m_visualRevision = 0;
+    std::uint64_t m_visualGeneration = 0;
+    int m_visualEdits = 0;
     PlaybackClock* m_clock = nullptr;
     bool m_collectStats = false;
     std::vector<FrameStat> m_stats;  // written in synchronize(), GUI thread blocked

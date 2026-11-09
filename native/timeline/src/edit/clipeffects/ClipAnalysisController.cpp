@@ -159,7 +159,6 @@ void ClipAnalysisController::setModel(TimelineModel* model) {
     if (model) {
         connect(model,&TimelineModel::clipsChanged,this,&ClipAnalysisController::refresh);
         connect(model,&TimelineModel::previewChanged,this,&ClipAnalysisController::refresh);
-        connect(model,&TimelineModel::timelineChanged,this,&ClipAnalysisController::refresh);
         connect(model,&QObject::destroyed,this,&ClipAnalysisController::cancel);
     }
     emit contextChanged(); refresh();

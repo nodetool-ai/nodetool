@@ -8,8 +8,8 @@ Item {
     property var gestures: null
     property MonitorViewState monitor: null
     readonly property var selection: gestures ? gestures.selection : []
-    // Use the document read, so the compiled binding keeps it as a dependency.
-    readonly property var state: edits.document ? edits.previewState(selection, clock.time) : ({})
+    // Read the revision, so the binding reruns on a document change without a copy of the document.
+    readonly property var state: edits.revision >= 0 ? edits.previewState(selection, clock.time) : ({})
     function findGestures(item) {
         if (!item) return null
         if (item.gestures !== undefined) return item.gestures

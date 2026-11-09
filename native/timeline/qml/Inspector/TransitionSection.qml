@@ -11,16 +11,11 @@ Item {
     property var gestures: null
     property var controller: null
     readonly property var selectedIds: gestures ? gestures.selection : []
-    readonly property var document: edits.document
     // A transition is selected through its clip's start edit point: a click on the wedge, or on the start edge.
     readonly property var selectedEdit: gestures && gestures.selectedEdit ? gestures.selectedEdit : ({})
     readonly property string targetClipId: selectedEdit.edge === "start" && (selectedIds.length === 0 || (selectedIds.length === 1 && selectedIds[0] === selectedEdit.clipId)) ? selectedEdit.clipId : ""
-    readonly property var clip: {
-        if (!targetClipId) return null
-        return (document.clips || []).find(c => c.id === targetClipId && c.mediaType !== "audio" && c.mediaType !== "midi") || null
-    }
-    readonly property bool trackLocked: !!clip && (document.tracks || []).some(t => t.id === clip.trackId && t.locked)
-    readonly property bool locked: !clip || !!clip.locked || trackLocked
+    readonly property var clip: selectedClip.clip && selectedClip.clip.id && selectedClip.clip.mediaType !== "audio" && selectedClip.clip.mediaType !== "midi" ? selectedClip.clip : null
+    readonly property bool locked: !clip || selectedClip.locked
     readonly property var transition: clip ? clip.transitionIn : null
     readonly property string mode: {
         if (!transition) return "auto"
@@ -43,6 +38,7 @@ Item {
     implicitWidth: clip ? 360 : 0
     implicitHeight: clip ? section.implicitHeight : 0
     TransitionController { id: edits; model: root.timelineModel }
+    ClipInspectorController { id: selectedClip; timeline: root.timelineModel; clipId: root.targetClipId; active: root.visible }
     function patchField(patch) {
         if (!locked && transition) edits.apply("setClipTransition", {clipId: clip.id, patch})
     }

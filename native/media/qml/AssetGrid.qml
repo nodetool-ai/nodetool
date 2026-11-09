@@ -1,11 +1,12 @@
 import QtQuick
 import QtQuick.Controls
-import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
 Item {
     id: grid
-    required property AssetBrowser browser
+    required property var browser
+    property var scrub: null
+    property Component scrubOverlay: null
     property string selectedId: ""
     property var navigateFolder: null
     signal previewRequested(var asset)
@@ -13,9 +14,8 @@ Item {
     signal importRequested()
     signal clearFiltersRequested()
     readonly property var selectedAsset: {
-        const rows = browser.assets
-        for (let i = 0; i < rows.length; ++i) if (rows[i].id === selectedId) return rows[i]
-        return null
+        void browser.assetModel.revision
+        return browser.assetModel.indexOf(selectedId) >= 0 ? browser.assetModel.get(selectedId) : null
     }
     readonly property bool filtered: browser.searchText !== "" || browser.typeFilter !== "" || browser.tagFilter !== "" || browser.favoritesOnly
     property real tileSize: 84
@@ -25,6 +25,7 @@ Item {
     readonly property real innerWidth: Math.max(0, width - 2 * itemSpacing)
     readonly property int columns: Math.max(1, Math.min(100, Math.floor((innerWidth + itemSpacing) / (tileSize + itemSpacing))))
     readonly property real itemSize: Math.min(Math.floor(innerWidth / columns - itemSpacing), tileSize * 1.1)
+    GridReflow { id: reflow; columns: grid.columns; enabled: tiles.count > 0 }
 
     GridView {
         id: tiles
@@ -33,14 +34,19 @@ Item {
         clip: true
         cellWidth: grid.innerWidth / grid.columns
         cellHeight: grid.itemSize + grid.itemSpacing
-        model: grid.browser.assets
+        model: grid.browser.assetModel
+        // A reused tile would glide in from the cell of its previous asset.
+        reuseItems: !reflow.active
+        // Two rows build ahead of the scroll, so tiles exist before they enter.
+        cacheBuffer: Math.ceil(2 * cellHeight)
+        pixelAligned: true
         ScrollBar.vertical: Ui.ScrollBar {}
         // Tiles move under a resting pointer, which sends no hover of its own.
-        onContentYChanged: LibraryScrub.clear()
+        onContentYChanged: if (grid.scrub) grid.scrub.clear()
         delegate: AssetItem {
-            required property var modelData
-            asset: modelData
             browser: grid.browser
+            scrub: grid.scrub
+            scrubOverlay: grid.scrubOverlay
             navigateFolder: grid.navigateFolder
             width: grid.itemSize
             height: grid.itemSize
@@ -48,6 +54,12 @@ Item {
             onSelectedByUser: grid.selectedId = asset.id
             onPreviewRequested: grid.previewRequested(asset)
             onActionsRequested: grid.actionsRequested(asset)
+            id: tile
+            transform: glide.shift
+            GridGlide { id: glide; target: tile; active: reflow.active }
+            GridView.onReused: glide.reset()
+            // A pooled tile waits for another asset, so it drops this one's scrub and drag.
+            GridView.onPooled: { if (grid.scrub) grid.scrub.leave(asset.id || ""); cancelDrag(); resetForReuse() }
         }
     }
     Column {
@@ -69,9 +81,11 @@ Item {
             role: Ui.Typography.SansCaption
             tone: Ui.Text.Secondary
         }
-        LibraryButton {
+        Ui.EditorButton {
             anchors.horizontalCenter: parent.horizontalCenter
+            density: Ui.EditorButton.Compact
             text: grid.filtered ? "Clear filters" : "Import assets"
+            accessibleName: text
             onClicked: { if (grid.filtered) grid.clearFiltersRequested(); else grid.importRequested() }
         }
     }

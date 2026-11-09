@@ -46,6 +46,60 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void pollResultsDiffTheAssetModel() {
+        AssetBrowser browser;
+        auto* model = browser.assetModel();
+        const auto row = [](const char* id, const char* name) {
+            return QJsonObject{{"id", id}, {"name", name}, {"content_type", "video/mp4"}, {"proxy_status", "running"}};
+        };
+        const auto poll = [&](const QJsonArray& assets) {
+            AssetBrowser::Result result;
+            result.assets = assets;
+            result.replace = true;
+            browser.receive(result);
+        };
+        poll({row("a", "one"), row("b", "two"), row("c", "three")});
+        QCOMPARE(model->rowCount(), 3);
+        QSignalSpy resets(model, &QAbstractItemModel::modelReset);
+        QSignalSpy inserted(model, &QAbstractItemModel::rowsInserted);
+        QSignalSpy removed(model, &QAbstractItemModel::rowsRemoved);
+        QSignalSpy moved(model, &QAbstractItemModel::rowsMoved);
+        QSignalSpy changed(model, &QAbstractItemModel::dataChanged);
+        QSignalSpy assetsChanged(&browser, &AssetBrowser::assetsChanged);
+        const auto structural = [&] { return resets.count() + inserted.count() + removed.count() + moved.count(); };
+
+        poll({row("a", "one"), row("b", "two"), row("c", "three")});
+        QCOMPARE(structural(), 0);
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(assetsChanged.count(), 0);
+
+        poll({row("a", "one"), row("b", "renamed"), row("c", "three")});
+        QCOMPARE(structural(), 0);
+        QCOMPARE(changed.count(), 1);
+        QCOMPARE(changed.first().at(0).toModelIndex().row(), 1);
+        QCOMPARE(changed.first().at(1).toModelIndex().row(), 1);
+        QCOMPARE(model->get("b").value("name").toString(), QString("renamed"));
+        QCOMPARE(assetsChanged.count(), 1);
+
+        changed.clear();
+        poll({row("new", "fresh"), row("a", "one"), row("b", "renamed"), row("c", "three")});
+        QCOMPARE(resets.count(), 0);
+        QCOMPARE(inserted.count(), 1);
+        QCOMPARE(inserted.first().at(1).toInt(), 0);
+        QCOMPARE(inserted.first().at(2).toInt(), 0);
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(model->indexOf("a"), 1);
+
+        poll({row("c", "three"), row("new", "fresh"), row("b", "renamed")});
+        QCOMPARE(resets.count(), 0);
+        QCOMPARE(removed.count(), 1);
+        QCOMPARE(model->rowCount(), 3);
+        for (int i = 0; i < 3; ++i) {
+            QCOMPARE(model->data(model->index(i), AssetListModel::IdRole).toString(),
+                     QStringList({"c", "new", "b"}).at(i));
+        }
+        QCOMPARE(browser.assets().size(), 3);
+    }
     void destructionCancelsTricklingQuery() {
         TrickleHttpServer http;
         auto browser = std::make_unique<AssetBrowser>();
@@ -790,7 +844,7 @@ private slots:
         AssetBrowser browser;
         QVERIFY2(browser.property("folderId").isValid(), "AssetBrowser must expose current folderId");
         QQmlEngine engine;
-        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/assets/AssetItem.qml"));
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Media/qml/AssetItem.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> object(component.createWithInitialProperties({
             {"asset", QVariantMap{{"id", "footage"}, {"name", "Footage"}, {"content_type", "folder"}}},
@@ -943,8 +997,7 @@ private slots:
         auto* explorer = itemNamed(root, "assetExplorer");
         auto* browser = explorer->findChild<AssetBrowser*>();
         QVERIFY(browser);
-        browser->m_assets = QJsonArray{QJsonObject{{"id", "picture"}, {"name", "still.png"}, {"content_type", "image/png"}}};
-        emit browser->assetsChanged();
+        browser->applyAssets(QJsonArray{QJsonObject{{"id", "picture"}, {"name", "still.png"}, {"content_type", "image/png"}}});
         auto* grid = itemNamed(root, "libraryGrid");
         QVERIFY(grid);
         QTRY_VERIFY(grid->isVisible());
@@ -1096,10 +1149,10 @@ private slots:
         AssetBrowser browser;
         browser.setTimeline(&timeline);
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
-        browser.m_assets = QJsonArray{asset, folder};
+        browser.applyAssets(QJsonArray{asset, folder});
         const auto before = timeline.documentJson();
         QQmlEngine engine;
-        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/assets/AssetGrid.qml"));
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Media/qml/AssetGrid.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> object(component.createWithInitialProperties({
             {"browser", QVariant::fromValue(&browser)}, {"width", 400}, {"height", 180}}));
@@ -1138,6 +1191,42 @@ private slots:
         QCOMPARE(timeline.undoStack()->count(), 0);
         QVERIFY(!itemNamed(window.contentItem(), "assetDragPreview"));
     }
+    // A small resize keeps the thumbnail decode size, and a pooled tile drops its fade.
+    void tileThumbnailKeepsCacheBucket() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+import NodeTool.Media
+Item {
+    width: 200; height: 200
+    AssetBrowser { id: browser }
+    AssetItem {
+        objectName: "tile"
+        width: 84; height: 84
+        browser: browser
+        asset: ({id: "asset", name: "still.png", content_type: "image/png", thumb_url: ""})
+    }
+})", QUrl());
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* tile = object->findChild<QQuickItem*>(QStringLiteral("tile"));
+        QVERIFY(tile);
+        auto* image = itemNamed(tile, "assetPosterImage");
+        QVERIFY(image);
+        auto* icon = itemNamed(tile, "assetTypeIcon");
+        QVERIFY(icon);
+        QVERIFY(icon->isVisible());
+        const QSize before = image->property("sourceSize").toSize();
+        QVERIFY(before.width() >= 128);
+        QCOMPARE(before.width() % 128, 0);
+        tile->setSize(QSizeF(90, 90));
+        QCOMPARE(image->property("sourceSize").toSize(), before);
+        image->setProperty("fadeIn", true);
+        QMetaObject::invokeMethod(tile, "resetForReuse");
+        QCOMPARE(image->property("fadeIn").toBool(), false);
+    }
     void tileDragCarriesSingleAsset_data() {
         QTest::addColumn<bool>("folder");
         QTest::newRow("media") << false;
@@ -1149,6 +1238,7 @@ private slots:
         QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
 import NodeTool.Timeline
+import NodeTool.Media
 Item {
     id: root
     width: 400; height: 120
@@ -1314,28 +1404,29 @@ Item {
         QTRY_VERIFY(!browser->busy() && browser->assets().size() == 2);
         const QString pictureId = "11111111111111111111111111111111";
         panel->setProperty("selectedId", pictureId);
-        auto* tags = panel->findChild<QObject*>("libraryTagEditor");
-        QVERIFY(tags);
         QTRY_COMPARE(panel->property("selectedId").toString(), pictureId);
-        QTRY_COMPARE(tags->property("text").toString(), QString("old"));
-        qobject_cast<QQuickItem*>(tags)->forceActiveFocus();
-        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
-        for (const QChar letter : QStringLiteral("hero, reference")) {
-            QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
-                letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
-        }
-        auto* save = panel->findChild<QObject*>("librarySaveTags");
-        QVERIFY(save);
-        qobject_cast<QQuickItem*>(save)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
-        QTRY_VERIFY(!browser->busy() && browser->error().contains("Tag write failed"));
-        QCOMPARE(tags->property("text").toString(), QString("hero, reference"));
-        qobject_cast<QQuickItem*>(save)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
-        QTRY_VERIFY(!browser->busy() && browser->error().isEmpty());
-        QTRY_COMPARE(browser->assets().first().toMap().value("metadata").toMap().value("tags").toStringList(), QStringList({"hero", "reference"}));
-        QVERIFY(QMetaObject::invokeMethod(panel, "renameSelected"));
         auto* dialog = panel->findChild<QObject*>("libraryActionDialog");
         auto* input = panel->findChild<QObject*>("libraryActionInput");
         QVERIFY(dialog && input);
+        const auto editTags = [&](const QString& shown) {
+            QVERIFY(QMetaObject::invokeMethod(panel, "editTagsSelected"));
+            QTRY_VERIFY(dialog->property("opened").toBool());
+            QCOMPARE(input->property("text").toString(), shown);
+            qobject_cast<QQuickItem*>(input)->forceActiveFocus();
+            QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+            for (const QChar letter : QStringLiteral("hero, reference")) {
+                QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
+                    letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
+            }
+            QTest::keyClick(&window, Qt::Key_Return);
+        };
+        editTags(QStringLiteral("old"));
+        QTRY_VERIFY(!browser->busy() && browser->error().contains("Tag write failed"));
+        // A failed write keeps the typed tags for the next try.
+        editTags(QStringLiteral("hero, reference"));
+        QTRY_VERIFY(!browser->busy() && browser->error().isEmpty());
+        QTRY_COMPARE(browser->assets().first().toMap().value("metadata").toMap().value("tags").toStringList(), QStringList({"hero", "reference"}));
+        QVERIFY(QMetaObject::invokeMethod(panel, "renameSelected"));
         QTRY_VERIFY(dialog->property("opened").toBool());
         qobject_cast<QQuickItem*>(input)->forceActiveFocus();
         QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
@@ -1345,9 +1436,7 @@ Item {
         }
         QTest::keyClick(&window, Qt::Key_Return);
         QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("name").toString() == "renamed image");
-        auto* favorite = panel->findChild<QObject*>("libraryFavorite");
-        QVERIFY(favorite);
-        qobject_cast<QQuickItem*>(favorite)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
+        QVERIFY(QMetaObject::invokeMethod(panel, "toggleFavoriteSelected"));
         QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("favorite").toBool());
         auto* create = panel->findChild<QObject*>("libraryCreateFolder");
         QVERIFY(create);
@@ -1432,12 +1521,11 @@ Item {
         QVERIFY(browser);
         QTest::qWait(100);
         const QJsonObject entity{{"kind", "character"}, {"name", "Mara"}, {"descriptor", "A captain."}};
-        browser->m_assets = QJsonArray{
+        browser->applyAssets(QJsonArray{
             QJsonObject{{"id", "plain"}, {"name", "Plain image"}, {"content_type", "image/png"}},
             QJsonObject{{"id", "tagged"}, {"name", "Mara"}, {"content_type", "image/png"}, {"metadata", QJsonObject{{"nodetool_entity", entity}}}},
             QJsonObject{{"id", "broken"}, {"name", "Odd tag"}, {"content_type", "image/png"}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "monster"}}}}}},
-            QJsonObject{{"id", "sound"}, {"name", "Voice"}, {"content_type", "audio/wav"}}};
-        emit browser->assetsChanged();
+            QJsonObject{{"id", "sound"}, {"name", "Voice"}, {"content_type", "audio/wav"}}});
         auto* item = explorer->findChild<QObject*>("libraryEntityAction");
         QVERIFY(item);
         auto select = [&](const char* id) {

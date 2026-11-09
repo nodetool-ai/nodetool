@@ -288,7 +288,7 @@ private:
     void nudge(double deltaMs, bool merge);
     void dropGesture();
     std::optional<double> sourceCap(const QJsonObject& clip);
-    void probeSources();
+    void probeSources(bool all = true);
     void syncPlaybackRange();
     // Ends a selection of clips, an edge and a gap, leaving trim mode's edit points.
     void clearClipSelection();

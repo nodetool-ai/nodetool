@@ -9,9 +9,8 @@ Column {
     required property var gestures
     required property var controller
     readonly property var clip: controller.clip
-    readonly property var members: (edits.document.clips || []).filter(c => c.parentId === clip.id)
     spacing: Ui.Metrics.xs
-    InspectorEdits { id: edits; model: root.timelineModel }
+    InspectorEdits { id: edits; model: root.timelineModel; parentId: root.clip.id || "" }
     InspectorSection {
         width: parent.width
         title: "Group"
@@ -29,7 +28,7 @@ Column {
         InspectorRow {
             width: parent.width
             label: "Children"
-            InspectorStaticValue { objectName: "groupChildren"; value: String(root.members.length) }
+            InspectorStaticValue { objectName: "groupChildren"; value: String(edits.childCount) }
         }
         InspectorCaption { text: "A group draws nothing. Its transform, opacity and window apply to every clip that names it as a parent; each child keeps its own track, so layer order is unchanged." }
         InspectorActionButton {
