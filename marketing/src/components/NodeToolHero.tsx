@@ -1,8 +1,41 @@
 import React from "react";
-import { Download } from "lucide-react";
+import { Download, Code2, KeyRound, Layers, Film, Bot, FolderOpen } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
+
+const features = [
+  {
+    title: "Edit video, build workflows",
+    body: "Work in the timeline or connect nodes for more control and repeatable tasks.",
+    icon: Film,
+  },
+  {
+    title: "Create with an agent",
+    body: "Ask it to build and edit your project, then adjust any part yourself.",
+    icon: Bot,
+  },
+  {
+    title: "Work across media",
+    body: "Create images, audio, storyboards, and 3D scenes alongside your video.",
+    icon: Layers,
+  },
+  {
+    title: "Choose your models",
+    body: "Connect your own provider accounts or run supported models locally.",
+    icon: KeyRound,
+  },
+  {
+    title: "Save projects locally",
+    body: "Keep your work on your computer with the free, open-source desktop app.",
+    icon: FolderOpen,
+  },
+  {
+    title: "Connect other tools",
+    body: "Use the API, command line, or MCP to run workflows and work with coding agents.",
+    icon: Code2,
+  },
+];
 
 export default function NodeToolHero() {
   return (
@@ -23,10 +56,9 @@ export default function NodeToolHero() {
         </h1>
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-          Most AI video apps charge you to roll the dice, then hand back a flat
-          MP4 you can&apos;t edit. In NodeTool the agent writes the script,
-          boards the shots, and cuts a multi-track timeline. Every shot, voice
-          line, and node stays open for you to change by hand.
+          NodeTool combines an AI video editor with node-based workflows.
+          Ask the agent to create a video, refine it in the timeline, or
+          connect nodes to build a process you can reuse.
         </p>
 
         <div className="mt-7 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
@@ -73,6 +105,18 @@ export default function NodeToolHero() {
           edits them together.
         </p>
       </div>
+
+      <ul className="mx-auto mt-8 grid sm:mt-10 max-w-5xl grid-cols-1 gap-3 text-sm text-slate-300 sm:grid-cols-3">
+        {features.map((feature) => (
+          <li key={feature.title} className="rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
+            <h2 className="flex items-center gap-2 font-semibold text-slate-100">
+              <feature.icon className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
+              {feature.title}
+            </h2>
+            <p className="mt-2 leading-relaxed text-slate-400">{feature.body}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

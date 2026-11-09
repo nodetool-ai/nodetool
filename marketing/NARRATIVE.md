@@ -15,8 +15,10 @@ the page is the newer of the two. Bring the doc up to it, then fix the page.
 The homepage, README, and docs share the primary tagline and intro in
 `BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
 `<h1>` names the contrast: "Stop prompting slot machines. Direct the agent."
-The hero paragraph says what the slot machine is (a paid roll that returns a
-flat MP4), what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
+The hero paragraph introduces the AI video editor and node-based workflows.
+Below the demo, a compact feature overview covers video editing and workflows,
+the agent, other media, model choice, local projects, and integrations.
+The homepage editor showcase omits experimental game creation.
 
 ## Shared copy
 

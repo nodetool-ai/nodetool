@@ -22,7 +22,7 @@ const highlights = [
   {
     icon: Users,
     title: "A cast that stays consistent",
-    body: "Characters, locations, styles, and props are named entities with a fixed descriptor that goes into every prompt that names them.",
+    body: "Save descriptions of your characters, locations, and props. NodeTool reuses them when generating each shot.",
   },
 ];
 
