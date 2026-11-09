@@ -96,6 +96,8 @@ export const GUEST_INPUTS = [
  * Per-project settings beyond the defaults. `prepare` lists build steps that
  * run outside CMake: a test whose arguments contain the path stored in
  * `cacheVar` needs that step, as `scripts/check-native-graph-runner.mjs` runs it.
+ * A step with `linkedTarget` is also needed by every test that links that
+ * target, for tests that find the file through a compiled-in path.
  */
 export const PROJECTS = {
   "graph-runner": {
@@ -104,6 +106,19 @@ export const PROJECTS = {
     prepare: [
       { cacheVar: "NODETOOL_GUEST_BUNDLE", label: "guest bundle", script: "native/graph-runner/guest/build.mjs" },
       { cacheVar: "NODETOOL_GPU_CATALOG", label: "GPU catalog", script: "native/graph-runner/guest/host/gpu-catalog.mjs" }
+    ],
+    bundleInputs: GUEST_INPUTS
+  },
+  // The editor's local-run tests load the graph runner's guest bundle from the
+  // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
+  "node-editor": {
+    prepare: [
+      {
+        cacheVar: "NODETOOL_GUEST_BUNDLE",
+        label: "guest bundle",
+        script: "native/graph-runner/guest/build.mjs",
+        linkedTarget: "nodetool_graph_runner"
+      }
     ],
     bundleInputs: GUEST_INPUTS
   }
@@ -430,9 +445,19 @@ function argPaths(arg) {
  * `fs` supplies `isDirectory(abs)`, `isFile(abs)`, `closure(abs)` (a script's
  * relative-import closure) and `readText(abs)`.
  */
-export function buildModel({ name, root = repoRoot, buildDir, ctest, api, depfiles, cache = {}, producers = null, fs }) {
+export function buildModel({
+  name,
+  root = repoRoot,
+  buildDir,
+  ctest,
+  api,
+  depfiles,
+  cache = {},
+  producers = null,
+  fs,
+  config = projectConfig(name)
+}) {
   const projectDir = `native/${name}`;
-  const config = projectConfig(name);
   const rel = (abs) => repoPath(abs, root);
   const byId = new Map(api.targets.map((t) => [t.id, t]));
   const byName = new Map(api.targets.map((t) => [t.name, t]));
@@ -545,6 +570,12 @@ export function buildModel({ name, root = repoRoot, buildDir, ctest, api, depfil
       }
     }
     const closure = closureOf([...runs, ...extraTargets]);
+    for (const step of config.prepare) {
+      if (step.linkedTarget && cache[step.cacheVar] && closure.has(step.linkedTarget)) {
+        prepare.add(step.label);
+        guest = true;
+      }
+    }
     if ([...closure].some((n) => byName.get(n)?.type === "UTILITY" && !byName.get(n).generatorProvided)) bundle = true;
     const compiledFiles = new Set();
     for (const n of closure) for (const f of compiled.get(n) ?? []) compiledFiles.add(f);

@@ -17,6 +17,7 @@ import {
   buildModel,
   configureCommand,
   ctestRegex,
+  GUEST_INPUTS,
   diskReaders,
   executionPlan,
   parseMakeDepfile,
@@ -52,7 +53,7 @@ function write(path, text) {
 }
 
 /** Copy the fixture, fill in its paths, and build the model. */
-function setup({ drop = [], unbuilt = [] } = {}) {
+function setup({ drop = [], unbuilt = [], config } = {}) {
   const tmp = mkdtempSync(join(tmpdir(), "native-affected-"));
   temporary.push(tmp);
   const root = join(tmp, "repo");
@@ -80,7 +81,8 @@ function setup({ drop = [], unbuilt = [] } = {}) {
     depfiles: readDepfiles(build, cache),
     cache,
     producers: producersOf([join(build, "ctx-test.mjs")], api.targets, build, cache),
-    fs: diskReaders()
+    fs: diskReaders(),
+    config
   });
   return { model, root, build };
 }
@@ -148,6 +150,20 @@ describe("selectTests", () => {
       expect(plan.targets).toEqual(["gr_bundle", "gr_core_tests", "gr_ctx_tests"]);
     }
   );
+
+  it("prepares the guest bundle for tests that link a target compiled with its path", () => {
+    const config = {
+      prepare: [{ cacheVar: "NODETOOL_GUEST_BUNDLE", label: "guest bundle", script: "x.mjs", linkedTarget: "gr_core" }],
+      bundleInputs: GUEST_INPUTS
+    };
+    const { model } = setup({ config });
+    const selection = selectTests(model, ["native/graph-runner/guest/entry.mjs"]);
+    expect(names(selection)).toEqual(["gr_core_tests", "gr_ctx_tests", "gr_library_tests", "gr_verify_tests"]);
+    expect(executionPlan(model, selection).prepare).toEqual(["guest bundle"]);
+    const standalone = model.tests.find((t) => t.name === "gr_standalone_tests");
+    expect(standalone.prepare).toEqual([]);
+    expect(standalone.guest).toBe(false);
+  });
 
   it("leaves package tests out of the guest bundle's inputs", () => {
     expect(names(select(["packages/base-nodes/tests/index.test.ts"]))).toEqual([]);
