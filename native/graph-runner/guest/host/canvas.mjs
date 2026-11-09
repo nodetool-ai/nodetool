@@ -238,14 +238,18 @@ export class Canvas {
       this.height
     );
   }
+  // The pixels are copied at the call, so drawing after it does not change
+  // the PNG, which is encoded on the run's CPU lane.
   async encode(format = "png") {
     if (format !== "png")
       throw new Error("canvas: only PNG output is supported");
-    return this.toBuffer();
+    return this._native.encodePng();
   }
   async convertToBlob(options = {}) {
-    const type = options.type ?? "image/png",
-      data = this.toBuffer(type);
+    const type = options.type ?? "image/png";
+    if (type !== "image/png")
+      throw new Error("canvas: only PNG output is supported");
+    const data = await this._native.encodePng();
     return {
       type,
       size: data.length,

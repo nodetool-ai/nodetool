@@ -431,8 +431,9 @@ void GraphRunner::Impl::runJob(Job& job) {
     const host::RunIdentity identity = host::newRunIdentity(job.id, account->openRun());
     AsyncRun async(engine, loop, tracker, job.generation, lanes->cpu(), identity);
     // Host functions submit to this run while it lasts. Asynchronous context
-    // callbacks run on the I/O lane. Unbound before `async` is destroyed.
-    RunBinding::Scope bound(engine, async, lanes->io());
+    // callbacks and file jobs run on the I/O lane, HTTP fetches on the
+    // network lane. Unbound before `async` is destroyed.
+    RunBinding::Scope bound(engine, async, lanes->io(), &lanes->network());
     // Provider jobs started from here on belong to this run.
     currentRun->set(identity);
     bool cancelForwarded = false;

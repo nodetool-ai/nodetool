@@ -117,6 +117,7 @@ add_library(gr_kernel STATIC
   src/kernel/correlation.cpp
   src/kernel/actor.cpp
   src/host/intl.cpp
+  src/host/image_jobs.cpp
   src/host/context.cpp
   src/host/context_async.cpp
   src/host/sandbox.cpp
@@ -132,6 +133,7 @@ add_library(gr_kernel STATIC
   src/host/sqlite.cpp
   src/host/paths.cpp
   src/host/files.cpp
+  src/host/file_jobs.cpp
   src/host/assets.cpp
   src/host/asset_destinations.cpp
   src/host/secrets.cpp
@@ -202,6 +204,15 @@ if(PROJECT_IS_TOP_LEVEL)
   add_executable(gr_asset_destination_tests unittests/asset_destinations.cpp)
   target_link_libraries(gr_asset_destination_tests PRIVATE gr_kernel gr_js Threads::Threads)
   add_test(NAME gr_asset_destination_tests COMMAND gr_asset_destination_tests)
+  # fs/promises, file handles, asset writes and fetches as native jobs
+  # (rollout step 5). Fetches reach only a loopback server of the test.
+  add_executable(gr_files_async_tests unittests/files_async.cpp)
+  target_link_libraries(gr_files_async_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  if(CURL_FOUND)
+    target_compile_definitions(gr_files_async_tests PRIVATE GR_HAVE_CURL)
+  endif()
+  add_test(NAME gr_files_async_tests COMMAND gr_files_async_tests)
+  set_tests_properties(gr_files_async_tests PROPERTIES TIMEOUT 300)
   # The asynchronous context transport and shared grant rules (rollout
   # step 3). The runner cases load the guest bundle when it is passed.
   add_executable(gr_async_context_tests unittests/async_context.cpp)
@@ -383,6 +394,11 @@ if(PROJECT_IS_TOP_LEVEL)
   add_dependencies(gr_context_message_tests gr_context_message_test_bundle)
   add_test(NAME gr_context_message_tests COMMAND gr_context_message_tests "${GR_CONTEXT_MESSAGE_TEST}")
   include(cmake/context-av-tests.cmake)
+  # The asynchronous media and track staging hosts (rollout step 5).
+  add_executable(gr_media_async_tests unittests/media_async.cpp)
+  target_link_libraries(gr_media_async_tests PRIVATE gr_kernel gr_js PkgConfig::GR_MEDIA Threads::Threads)
+  add_test(NAME gr_media_async_tests COMMAND gr_media_async_tests)
+  set_tests_properties(gr_media_async_tests PROPERTIES TIMEOUT 600)
   add_executable(gr_media_native_tests unittests/media-native.cpp)
   target_link_libraries(gr_media_native_tests PRIVATE gr_kernel gr_js PkgConfig::GR_MEDIA)
   add_executable(gr_media_native_reference unittests/media-native-reference.cpp)

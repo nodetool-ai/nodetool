@@ -1,5 +1,8 @@
 import "./media-native-bootstrap.mjs";
 // Machine-dependent runtime/media exports. All files and codecs are authorized by the host.
+// Every host operation except hasEncoder, openEncoder, close and abort
+// returns a promise: it runs on a native lane, and the operations of one
+// reader or encoder run one at a time, in call order.
 function host() {
   if (!globalThis.__host?.media)
     throw new Error("Native media host is not installed");
@@ -46,7 +49,7 @@ export async function packetTimes(path, options = {}) {
 }
 export async function openRgbaFrameReader(options) {
   poll(options.signal);
-  const id = host().openFilter({
+  const id = await host().openFilter({
     inputs: [
       {
         filePath: options.filePath,
@@ -84,7 +87,7 @@ export async function openVideoFrameEncoder(options) {
     async write(bytes) {
       try {
         guard();
-        host().write(id, bytes);
+        await host().write(id, bytes);
       } catch (error) {
         host().abort(id);
         closed = true;
@@ -94,7 +97,7 @@ export async function openVideoFrameEncoder(options) {
     async finish() {
       try {
         guard();
-        host().finish(id);
+        await host().finish(id);
       } finally {
         host().abort(id);
         closed = true;
@@ -110,16 +113,18 @@ const filterSpec = Symbol("native media filter");
 export async function openFilterComplex(options) {
   poll(options.signal);
   let id = null;
+  let opening = null;
   let closed = false;
   const stream = {
     [filterSpec]: options,
     async *[Symbol.asyncIterator]() {
       if (closed) return;
-      id ??= host().openFilter(options);
       try {
+        opening ??= host().openFilter(options);
+        id = await opening;
         for (;;) {
           poll(options.signal);
-          const frame = host().next(id);
+          const frame = await host().next(id);
           if (!frame) return;
           yield {
             ...frame,
@@ -132,9 +137,17 @@ export async function openFilterComplex(options) {
       }
     }
   };
+  // Closes the reader once its open settled, also when close() comes first.
   async function close() {
-    if (id !== null) host().close(id);
     closed = true;
+    if (id === null && opening) {
+      try {
+        id = await opening;
+      } catch {
+        return;
+      }
+    }
+    if (id !== null) host().close(id);
   }
   return { frames: () => stream, close };
 }
@@ -200,7 +213,7 @@ export async function muxAudioWithVideoCopy(options) {
   const spec = options.audio?.[filterSpec];
   if (!spec)
     throw new Error("Native audio mux requires a native filter stream");
-  host().muxAudio({ ...options, audio: undefined, filter: spec });
+  await host().muxAudio({ ...options, audio: undefined, filter: spec });
 }
 
 // The timeline's explicit rough-cut fallback. Pictures are streamed, not retained as a whole movie.

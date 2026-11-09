@@ -1,7 +1,11 @@
 #include "host/capabilities.h"
 #include "host/media.h"
 #include "js/engine.h"
+#include "kernel/async_jobs.h"
+#include "kernel/cancel_state.h"
 #include "kernel/guest.h"
+#include "kernel/host_lanes.h"
+#include "kernel/run_control.h"
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -63,7 +67,41 @@ int main(int argc, char **argv) {
     const std::string source{std::istreambuf_iterator<char>(file), {}};
     if (source.empty())
       throw std::runtime_error("Empty timeline process test bundle");
-    guest.load(std::vector<uint8_t>(source.begin(), source.end()), argv[1]);
+    // Media calls settle through the run's mailbox, so the bundle runs under
+    // a bound run on the process lanes, as GraphRunner runs a job.
+    gr::Loop &loop = gr::Loop::current();
+    gr::CancelState cancelState;
+    const uint64_t generation = cancelState.beginRun();
+    auto lanes = gr::processHostLanes({});
+    gr::AsyncRun async(*engine, loop, std::make_shared<gr::RunnerTracker>(),
+                       generation, lanes->cpu());
+    {
+      gr::RunBinding::Scope bound(*engine, async, lanes->io());
+      struct Settled {
+        bool done = false;
+        std::string error;
+      };
+      // Shared with the two promise callbacks the engine keeps.
+      auto settled = std::make_shared<Settled>();
+      gr::js::then(
+          *engine, engine->evaluateModule(source, argv[1]),
+          [settled](gr::js::Engine &, const gr::js::Value &) {
+            settled->done = true;
+          },
+          [settled](gr::js::Engine &e, const gr::js::Value &reason) {
+            settled->done = true;
+            settled->error = e.toString(reason);
+            if (settled->error.empty())
+              settled->error = "the test bundle was rejected";
+          });
+      gr::EngineRunControl control(*engine, async, cancelState, generation,
+                                   [settled] { return settled->done; });
+      loop.run(control);
+      if (!settled->error.empty())
+        throw std::runtime_error(settled->error);
+      if (!settled->done)
+        throw std::runtime_error("the test bundle never settled");
+    }
     const std::string checks = engine->toString(engine->evaluateScript(
         "String(globalThis.__timelineChecks)", "checks.js"));
     if (checks == "undefined" || checks == "0")
@@ -75,6 +113,9 @@ int main(int argc, char **argv) {
                     .c_str());
     std::printf("timeline-checks: %s checks passed\n", checks.c_str());
     std::fprintf(stderr, "media output root: %s\n", root.c_str());
+    async.teardown();
+    loop.clearTimers();
+    engine->releaseRunResources();
     return 0;
   } catch (const std::exception &error) {
     std::fprintf(stderr, "%s\n", error.what());

@@ -18,6 +18,14 @@ if(GR_CANVAS_FOUND AND GR_ESBUILD)
   add_test(NAME gr_canvas_relocated_tests COMMAND gr_canvas_tests "${GR_CANVAS_RELOCATED_BUNDLE}")
 endif()
 
+# The image capability's and canvas encode's jobs on the CPU lane
+# (docs/plans/graph-runner-async-host.md, rollout step 5).
+if(GR_CANVAS_FOUND)
+  add_executable(gr_async_image_tests unittests/async_image.cpp)
+  target_link_libraries(gr_async_image_tests PRIVATE gr_kernel gr_js nlohmann_json::nlohmann_json Threads::Threads)
+  add_test(NAME gr_async_image_tests COMMAND gr_async_image_tests)
+endif()
+
 if(NOT GR_CANVAS_FOUND)
   add_executable(gr_canvas_unavailable_tests unittests/canvas-unavailable.cpp)
   target_link_libraries(gr_canvas_unavailable_tests PRIVATE gr_kernel gr_js)

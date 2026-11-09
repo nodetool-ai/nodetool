@@ -252,11 +252,16 @@ reserving their bytes (see [Admission limits](#admission-limits)): bytes of an
 ArrayBuffer or typed array, strings, and options as JSON text. A detached or
 out-of-bounds buffer is rejected there, and later changes to a buffer never
 reach the job. A typed array over a SharedArrayBuffer is copied like any
-view, and a SharedArrayBuffer itself is rejected. The only host function
-that moves work off the worker so far is the asynchronous context call (see
+view, and a SharedArrayBuffer itself is rejected. The host functions that
+move work off the worker are the asynchronous context call (see
 [Asynchronous context calls](#asynchronous-context-calls)), which copies its
-JSON payload string. Provider endpoint jobs run on the network lane (see
-[Provider endpoint jobs](#provider-endpoint-jobs)).
+JSON payload string, and the image calls on the CPU lane (see
+[Native image adapter dependencies](#native-image-adapter-dependencies)),
+which copy their bytes and pixels and validate their spec into a fixed-size
+struct. Provider endpoint jobs run on the network lane (see
+[Provider endpoint jobs](#provider-endpoint-jobs)). File, asset and fetch
+calls are described in [Files, assets and fetches](#files-assets-and-fetches),
+and media sessions and track staging in [Native media](#native-media).
 
 The job then goes to one of three process-wide lanes
 (`src/kernel/host_lanes.h`): CPU work with min(4, cores - 1) threads and at
@@ -305,8 +310,11 @@ No library destructor ends the process.
 ### Resource control blocks
 
 Rollout step 5 converts host resources that outlive one call, such as media
-inputs, encoders, file handles and track staging directories. The shared
-pieces exist, and no host function uses them yet.
+inputs, encoders, file handles and track staging directories. The media and
+track staging hosts use them, and so do file handles (see
+[Files, assets and fetches](#files-assets-and-fetches)). The image and canvas
+encode jobs do not: each job owns its inputs and creates and destroys its
+libvips or stb state within one call.
 
 A `ResourceControl` (`src/kernel/resource_control.h`) wraps one resource
 and is its serial queue. A host function submits an operation through
@@ -345,6 +353,46 @@ over the destination relative to the held directory. The queue submits each
 commit to the I/O lane, so cancelling or dropping one operation never runs
 another's commit on the cancelling thread. A stop before the rename discards
 the write, and every failed operation removes only its own temporary file.
+
+### Files, assets and fetches
+
+During a run, `node:fs/promises`, `context.workspace` reads and writes, the
+asset store adapter, `package://` reads and media fetches call the
+asynchronous host functions (`*Async` in `src/host/files.cpp`,
+`src/host/assets.cpp` and `src/host/http.cpp`). File and asset jobs run on
+the I/O lane, fetches on the network lane. Outside a run, where no lane is
+bound, the same guest calls fall back to the synchronous functions, and the
+`*Sync` functions of `node:fs` always stay synchronous. A run binds its
+network lane explicitly: fetches never fall back to the I/O lane.
+
+A whole-file read reserves its output before it runs, so it is two jobs
+(`src/host/file_jobs.h`): one opens the file and reads its size, the next
+reads at most that many bytes. A file that grew in between is measured and
+read again with the new size, at most three times, then fails with `EFBIG`.
+Listings reserve 16 MiB of JSON. A fetch reserves the 512 MiB body cap,
+256 KiB for its final URL and content type, and its URL, so under the
+default 1 GiB run limit one fetch of a run runs at a time and the next waits
+for it.
+
+A `fs.promises.open` handle opened during a run is a `ResourceControl`
+that owns its descriptor. One opened outside a run reads on the worker. Reads run in call order, `close()` runs after the reads before
+it, and run cleanup aborts every handle of the run. Asset writes and
+removals go through the destination queue above, in call order. Code
+outside a run calls the synchronous ones, which refuse a call while a run is
+bound and never wait: when an asynchronous write or removal of the same
+asset is queued or running, from any runner of the process, the synchronous
+call fails at once with `EBUSY`, naming the asset, and the caller may retry.
+Otherwise it commits on the worker before it returns, and later operations
+queue behind it. A write cancelled before its rename is discarded.
+
+A fetch stops when its run is cancelled: libcurl's progress callback reads
+the job's stop token while data flows and about once a second otherwise. It
+is not called during name resolution or the TCP connect, so a stop in those
+phases takes effect when they end, at most at the 15 s connect timeout.
+`CURLOPT_NOSIGNAL` stays set, and `curl_global_init` runs when the `http`
+capability is installed, before a fetch can be submitted. The asynchronous
+file jobs call no `chdir`, `umask`, `strerror` or `getenv`. An embedder must
+not change the working directory or the umask while jobs run.
 
 ### Admission limits
 
@@ -835,7 +883,8 @@ The canonical workspace, fetch, crypto, format, image, Canvas, media, timer and
 logging helpers are wired. Native audio and video transformations require
 `allowMedia`, a writable `workspaceDir`, and the encoders they use in
 `mediaEncoders`. Video encoding currently uses `libx264`; audio muxing uses `aac`.
-Code staging directories are registered for run cleanup. The audio helper reuses
+Code staging directories are removed at release or run cleanup, after every
+media call that reads or writes inside them finished. The audio helper reuses
 the existing PCM editing implementation and the native decoder for compressed
 input. The video helpers use native frame readers and encoders, and retaining
 original audio preserves a separate encoded track. The retained media fixtures use
@@ -1024,10 +1073,26 @@ resources and other SVG shapes are rejected. Paths are loaded through the
 existing files capability, so file grants apply to metadata and decoding.
 
 Raster images are limited to 16777216 pixels and encoded sharp inputs to
-64 MiB. Native operations are synchronous. Cancellation is observed after a
-native call returns, with no hard timeout inside a decoder or libvips call.
-Buffers copy at the JS/host seam and encoded output copies again. This adapter
-does not provide zero-copy image transport or full sharp API compatibility.
+64 MiB. During a run, sharp's `metadata` and `toBuffer`, the async
+`encodeRgbaToPng` helper, frame extraction's PNG and canvas `encode` and
+`convertToBlob` copy their inputs at the call and run on the CPU lane (see
+[Native jobs and lanes](#native-jobs-and-lanes)). A canvas is copied on the
+worker after a flush, so drawing after the call does not change the PNG.
+Each job reserves its inputs, the most its output can hold and the encoder's
+known buffers. Output bytes reach JavaScript without a copy. Canvas `toBuffer`,
+Fabric `toDataURL`, decoding and drawing stay synchronous. libvips starts once,
+before the process's first pool thread, and each job creates, evaluates and
+destroys its own image graph. A failed start is not retried: sharp's
+`metadata` and `toBuffer` then reject with its reason, and decoding and PNG
+encoding keep working. A sharp spec is at most 4096 bytes and is read
+without building a JSON tree. Keys the adapter does not read are ignored,
+and a field it reads must hold a value of its type, never null. The libvips
+kill hook stays off, so a cancelled job that is already inside libvips or
+the PNG encoder finishes its call and then drops its output. Two libvips
+failures at once can swap their error messages, because libvips keeps one
+error buffer for every thread. Outside a run these functions run at the
+call and return the value. This adapter does not provide full sharp API
+compatibility.
 
 `gr_image_codec_tests` generates references using actual sharp and executes the
 actual Mask and RenderText classes in QuickJS. It compares raw pixels exactly,
@@ -1042,8 +1107,17 @@ libavfilter, libswscale and libswresample through `cmake/host-media.cmake`.
 `HostOptions::allowMedia` enables these operations. `mediaEncoders` selects the
 permitted encoder names, such as `libx264` and `aac`. Input and output paths
 still require the existing file grants. Network inputs and external-file
-filters are refused. Sessions, frames, pixels and byte sizes have native limits,
-and blocking codec work polls the run's cancellation predicate.
+filters are refused. Sessions, frames, pixels and byte sizes have native limits.
+
+Media operations return promises and run on the run's CPU lane
+(`src/host/media.cpp`). Each reader and encoder is a resource control block:
+its operations run one at a time in call order, `close` lets accepted reads
+finish, a failed write rejects the finish behind it, and `abort` and run
+cleanup reject queued operations and stop the running one. The session's
+libav contexts are freed on its lane's reaper. Stop is checked between
+packets and frames, and libav's interrupt callback stops input I/O. A codec
+or filter call and an output write run to completion. `hasEncoder` and
+`openEncoder` stay synchronous.
 
 Select the timeline's native compositor with the guest-local
 `NODETOOL_TIMELINE_RENDERER=node` setting. The browser renderer has separate

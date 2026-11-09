@@ -264,7 +264,7 @@ export function createVideoBridge(signal, maxBytes = 256 * 1024 * 1024) {
           if (!frame)
             throw new Error("video.extractFrame: no frame found at that time");
           const rotated = rotateFrame(frame, probe.video.rotation);
-          return globalThis.__host.image.encodePng(
+          return await globalThis.__host.image.encodePngAsync(
             rotated.rgba,
             rotated.width,
             rotated.height
@@ -314,7 +314,7 @@ export function createVideoBridge(signal, maxBytes = 256 * 1024 * 1024) {
                 throw new Error(
                   "Native media track-preserving remux is not registered"
                 );
-              globalThis.__host.media.remuxTracks({
+              await globalThis.__host.media.remuxTracks({
                 videoPath: files[0],
                 audioPath: outPath,
                 outPath: `${directory}/tracks.mp4`

@@ -1,7 +1,7 @@
 // Serialized asset writes and removals (docs/plans/graph-runner-async-host.md,
-// section 4.8, last paragraph). The jobs here are what a converted
-// `__host.assets.write` and `remove` will submit. No host function uses them
-// yet.
+// section 4.8, last paragraph). `__host.assets.writeAsync` and `removeAsync`
+// submit the jobs here, and the synchronous `write` and `remove` use
+// writeAssetNow() and removeAssetNow().
 //
 // A write job is created on the worker, which takes its ticket in the
 // destination queue, keyed by the canonical destination: the canonical asset
@@ -92,5 +92,27 @@ std::unique_ptr<NativeJob> makeAssetWriteJob(DestinationQueue& queue, JobExecuto
 // AssetRemoved.
 std::unique_ptr<NativeJob> makeAssetRemoveJob(DestinationQueue& queue, JobExecutor& commits, std::vector<Root> roots,
                                               std::string key, AssetJobHooks hooks = {});
+
+// The synchronous forms, for the asset store's functions outside a run.
+// Each takes the destination's place only when no other operation on it is
+// queued or active, and otherwise fails at once with FsError EBUSY, naming
+// the key. With the place, a write stages its temporary file and commits on
+// the calling thread, and a removal unlinks there, before the call returns.
+// Operations that take a place afterwards, such as an asynchronous write
+// from another run, queue behind it as usual. Throws FsError or
+// std::runtime_error like the jobs fail, and std::invalid_argument for a
+// refused key.
+//
+// Why this cannot deadlock: a synchronous call never blocks on the queue. It
+// either finds the line empty and is its head at once, or returns EBUSY. It
+// claims the head under the queue mutex before it runs its step, so no other
+// scheduler takes the step, which runs inside the call, on the calling
+// thread, and does not depend on any other thread. Finishing it may hand the next place's step to that
+// place's executor, which a lane only queues and an inline runner runs
+// there without waiting.
+void writeAssetNow(DestinationQueue& queue, std::vector<Root> roots, std::string key, const std::vector<uint8_t>& bytes,
+                   AssetJobHooks hooks = {});
+// Whether a file was removed.
+bool removeAssetNow(DestinationQueue& queue, std::vector<Root> roots, std::string key, AssetJobHooks hooks = {});
 
 }  // namespace gr::host

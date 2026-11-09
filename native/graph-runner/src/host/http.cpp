@@ -1,21 +1,43 @@
 // `__host.http`: fetching media refs over https, off unless the embedder sets
 // HostOptions::allowHttpFetch. The policy is in http.h.
 //
-//   get(url) -> {status, url, contentType, body: Uint8Array}
+//   getAsync(url) -> promise of {status, url, contentType, body: Uint8Array}
+//   get(url)      -> the same, synchronously, for calls outside a run
+//   bound()       -> whether a run is bound, so getAsync can be used
 //
-// GET only, no cookies, no proxy, at most 5 redirects and kMaxBytes of body.
-// A refused URL or address throws "Refusing to fetch unsafe URL ...".
+// GET only, no cookies, no proxy, at most 5 redirects and kMaxHttpBodyBytes
+// of body. A refused URL or address throws "Refusing to fetch unsafe URL
+// ...". getAsync checks the grant and the first URL at the call, then runs
+// the fetch on the run's network lane (docs/plans/graph-runner-async-host.md,
+// sections 4.7 to 4.9): the job owns the curl handle, the response it
+// stores and its stop token, and the progress callback ends the transfer
+// when the run cancels it.
+//
+// libcurl (evidence in docs/plans/graph-runner-async-host-evidence.md,
+// section 5): each hop's easy handle is created, used and cleaned up by one
+// call on one thread, and never shared. CURLOPT_NOSIGNAL stays set, as
+// threaded programs need. The progress callback cannot end name resolution
+// or the TCP connect, for which libcurl reports no progress: a stop in those
+// phases takes effect when they end, at the latest at the 15 s connect
+// timeout. curl_global_init runs once, from installHttp() on the worker,
+// before the first fetch can be submitted, so a libcurl built without the
+// `threadsafe` feature is still initialized before a lane uses it.
 #include "host/capabilities.h"
 #include "host/http.h"
+#include "kernel/job_inputs.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+
+#include <sys/socket.h>
 
 #include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <stdexcept>
+#include <stop_token>
 
 #ifdef GR_HAVE_CURL
 #include <curl/curl.h>
@@ -85,6 +107,18 @@ bool isBlockedIpLiteral(const std::string& host) {
   return false;
 }
 
+bool isPublicSocketAddress(const sockaddr* address) {
+  if (address->sa_family == AF_INET) {
+    auto* sin = reinterpret_cast<const sockaddr_in*>(address);
+    return !isPrivateIpv4(ntohl(sin->sin_addr.s_addr));
+  }
+  if (address->sa_family == AF_INET6) {
+    auto* sin6 = reinterpret_cast<const sockaddr_in6*>(address);
+    return !isBlockedIpv6(sin6->sin6_addr.s6_addr);
+  }
+  return false;
+}
+
 #ifdef GR_HAVE_CURL
 
 namespace {
@@ -110,18 +144,35 @@ bool parseUrl(const std::string& url, UrlParts& out) {
   return ok;
 }
 
-constexpr size_t kMaxBytes = size_t(512) << 20;
 constexpr int kMaxRedirects = 5;
+// Room for the final URL and the content type, which libcurl bounds by its
+// header size limit.
+constexpr uint64_t kResponseMetadataBytes = 256 * 1024;
 
+// curl_global_init, once per process. The function-local static is
+// initialized once, thread-safely, and never changes after.
+bool curlReady() {
+  static const bool initialized = curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK;
+  return initialized;
+}
+
+// One hop's receiving side: the body so far and the transfer's stop.
+//
+// Thread affinity: the thread running the transfer, through libcurl's
+// callbacks, which run inside curl_easy_perform on that thread.
 struct Body {
   std::vector<uint8_t> data;
   bool tooLarge = false;
+  const std::stop_token* stop = nullptr;
 };
 
 size_t onData(char* ptr, size_t size, size_t n, void* user) {
   auto* body = static_cast<Body*>(user);
+  // Returning short of `len` ends the transfer with CURLE_WRITE_ERROR.
+  if (body->stop->stop_requested()) return 0;
   size_t len = size * n;
-  if (body->data.size() + len > kMaxBytes) {
+  // Checked before the append, so the body never passes its reservation.
+  if (body->data.size() + len > kMaxHttpBodyBytes) {
     body->tooLarge = true;
     return 0;
   }
@@ -129,62 +180,72 @@ size_t onData(char* ptr, size_t size, size_t n, void* user) {
   return len;
 }
 
+// The stop reaches the transfer here: libcurl calls this while data flows,
+// and about once a second when it does not, but not during name resolution
+// or the TCP connect. Nonzero aborts with CURLE_ABORTED_BY_CALLBACK.
+int onProgress(void* stop, curl_off_t, curl_off_t, curl_off_t, curl_off_t) {
+  return static_cast<const std::stop_token*>(stop)->stop_requested() ? 1 : 0;
+}
+
+// What the socket callback needs: the policy's address check, and whether
+// it refused one.
+//
+// Thread affinity: as Body.
+struct Connect {
+  bool (*allowed)(const sockaddr*);
+  bool refused = false;
+};
+
 // Refuses a connection to a blocked address, whatever name led to it.
-curl_socket_t openSocket(void* refused, curlsocktype, struct curl_sockaddr* address) {
-  bool blocked = true;
-  if (address->family == AF_INET) {
-    auto* sin = reinterpret_cast<const sockaddr_in*>(&address->addr);
-    blocked = isPrivateIpv4(ntohl(sin->sin_addr.s_addr));
-  } else if (address->family == AF_INET6) {
-    auto* sin6 = reinterpret_cast<const sockaddr_in6*>(&address->addr);
-    blocked = isBlockedIpv6(sin6->sin6_addr.s6_addr);
-  }
-  if (blocked) {
-    *static_cast<bool*>(refused) = true;
+curl_socket_t openSocket(void* user, curlsocktype, struct curl_sockaddr* address) {
+  auto* connect = static_cast<Connect*>(user);
+  if (!connect->allowed(&address->addr)) {
+    connect->refused = true;
     return CURL_SOCKET_BAD;
   }
   return ::socket(address->family, address->socktype, address->protocol);
 }
 
-struct Response {
-  long status = 0;
-  std::string url;
-  std::string contentType;
-  std::vector<uint8_t> body;
-};
-
-Response fetch(const std::string& start) {
-  static const bool initialized = curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK;
-  if (!initialized) throw std::runtime_error("libcurl failed to initialize");
+// Fetches `start` on the calling thread. Returns nullopt when `stop` was
+// requested. Each hop's handle lives inside one loop iteration.
+std::optional<HttpResponse> fetch(const std::string& start, const HttpFetchPolicy& policy,
+                                  const std::stop_token& stop) {
+  if (!curlReady()) throw std::runtime_error("libcurl failed to initialize");
   std::string current = start;
   for (int hop = 0; hop <= kMaxRedirects; ++hop) {
-    if (!isSafePublicHttpsUrl(current)) refuse(current);
+    if (stop.stop_requested()) return std::nullopt;
+    if (!policy.urlAllowed(current)) refuse(current);
     std::unique_ptr<CURL, void (*)(CURL*)> curl(curl_easy_init(), curl_easy_cleanup);
     if (!curl) throw std::runtime_error("libcurl failed to start a request");
     Body body;
+    body.stop = &stop;
+    Connect connect{policy.addressAllowed};
     char error[CURL_ERROR_SIZE] = {0};
     CURL* c = curl.get();
     curl_easy_setopt(c, CURLOPT_URL, current.c_str());
-    curl_easy_setopt(c, CURLOPT_PROTOCOLS_STR, "https");
+    curl_easy_setopt(c, CURLOPT_PROTOCOLS_STR, policy.protocols);
     curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(c, CURLOPT_PROXY, "");
     curl_easy_setopt(c, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(c, CURLOPT_CONNECTTIMEOUT, 15L);
     curl_easy_setopt(c, CURLOPT_TIMEOUT, 120L);
-    bool refusedAddress = false;
     curl_easy_setopt(c, CURLOPT_OPENSOCKETFUNCTION, openSocket);
-    curl_easy_setopt(c, CURLOPT_OPENSOCKETDATA, &refusedAddress);
+    curl_easy_setopt(c, CURLOPT_OPENSOCKETDATA, &connect);
     curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, onData);
     curl_easy_setopt(c, CURLOPT_WRITEDATA, &body);
+    curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(c, CURLOPT_XFERINFOFUNCTION, onProgress);
+    curl_easy_setopt(c, CURLOPT_XFERINFODATA, &stop);
     curl_easy_setopt(c, CURLOPT_ERRORBUFFER, error);
     curl_easy_setopt(c, CURLOPT_USERAGENT, "nodetool-graph-runner");
     CURLcode rc = curl_easy_perform(c);
+    if (stop.stop_requested()) return std::nullopt;
     if (body.tooLarge) throw std::runtime_error("Response too large while fetching: " + current);
-    if (refusedAddress && rc != CURLE_OK) refuse(current);
+    if (connect.refused && rc != CURLE_OK) refuse(current);
     if (rc != CURLE_OK) {
       throw std::runtime_error(std::string("fetch failed: ") + (error[0] ? error : curl_easy_strerror(rc)));
     }
-    Response r;
+    HttpResponse r;
     curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &r.status);
     char* location = nullptr;
     curl_easy_getinfo(c, CURLINFO_REDIRECT_URL, &location);
@@ -200,6 +261,36 @@ Response fetch(const std::string& start) {
     return r;
   }
   throw std::runtime_error("Too many redirects while fetching: " + start);
+}
+
+// Thread affinity: the network lane thread that runs it, or the worker in
+// inline mode. Ownership: unique, through its SubmittedJob. Owns the URL;
+// the transfer's handle, body and stop live inside run().
+class HttpGetJob final : public NativeJob {
+public:
+  HttpGetJob(std::string url, HttpFetchPolicy policy) : url_(std::move(url)), policy_(policy) {}
+
+  JobCost cost() const override { return {url_.size(), kMaxHttpBodyBytes + kResponseMetadataBytes, 0}; }
+
+  JobOutcome run(std::stop_token stop) override {
+    if (stop.stop_requested()) return JobOutcome::stopped();
+    std::optional<HttpResponse> response = fetch(url_, policy_, stop);
+    if (!response) return JobOutcome{JobOutcome::Kind::Stopped, nullptr, "The fetch was cancelled"};
+    return JobOutcome::value(std::make_unique<HttpResponse>(std::move(*response)));
+  }
+
+private:
+  std::string url_;
+  HttpFetchPolicy policy_;
+};
+
+js::Value responseObject(js::Engine& en, const HttpResponse& r, js::Value body) {
+  js::Value out = en.object();
+  en.set(out, "status", en.number(double(r.status)));
+  en.set(out, "url", en.string(r.url));
+  en.set(out, "contentType", en.string(r.contentType));
+  en.set(out, "body", std::move(body));
+  return out;
 }
 
 }  // namespace
@@ -219,20 +310,51 @@ bool isSafePublicHttpsUrl(const std::string& url) {
   return !isBlockedIpLiteral(host);
 }
 
+std::unique_ptr<NativeJob> makeHttpGetJob(std::string url, HttpFetchPolicy policy) {
+  return std::make_unique<HttpGetJob>(std::move(url), policy);
+}
+
 void installHttp(js::Engine& e, const js::Value& object, const HostOptions& options) {
   const bool allowed = options.allowHttpFetch;
-  e.set(object, "get", e.function("get", 1, [allowed](js::Engine& en, const std::vector<js::Value>& a) {
+  // Before any fetch can be submitted to a lane.
+  if (allowed) curlReady();
+  // Shared with the engine's host state and every function that submits.
+  const std::shared_ptr<RunBinding> binding = RunBinding::of(e);
+  auto refuseOff = [allowed] {
     if (!allowed) {
       throw std::runtime_error(
           "fetching http(s) URLs is turned off in the native runner (HostOptions::allowHttpFetch)");
     }
-    Response r = fetch(a.empty() ? std::string() : en.toString(a[0]));
-    js::Value out = en.object();
-    en.set(out, "status", en.number(double(r.status)));
-    en.set(out, "url", en.string(r.url));
-    en.set(out, "contentType", en.string(r.contentType));
-    en.set(out, "body", en.bytes(r.body.data(), r.body.size()));
-    return out;
+  };
+  e.set(object, "get", e.function("get", 1, [refuseOff](js::Engine& en, const std::vector<js::Value>& a) {
+    refuseOff();
+    std::stop_source never;
+    std::optional<HttpResponse> r = fetch(a.empty() ? std::string() : en.toString(a[0]), {}, never.get_token());
+    return responseObject(en, *r, en.bytes(r->body.data(), r->body.size()));
+  }));
+  e.set(object, "bound", e.function("bound", 0, [binding](js::Engine& en, const std::vector<js::Value>&) {
+    return en.boolean(binding->run() != nullptr);
+  }));
+  // Cancellable: the run's cancellation rejects it with an AbortError and
+  // stops the transfer.
+  e.set(object, "getAsync", e.function("getAsync", 1, [refuseOff, binding](js::Engine& en, const std::vector<js::Value>& a) {
+    refuseOff();
+    AsyncRun* run = binding->run();
+    JobExecutor* network = binding->network();
+    if (!run) throw std::runtime_error("asynchronous fetches need a running graph");
+    if (!network) throw std::runtime_error("asynchronous fetches need a network lane, and the run bound none");
+    Reservation reservation = run->reserve();
+    if (a.empty() || !en.isString(a[0])) throw std::invalid_argument("url must be a string");
+    std::string url = snapshotString(en, a[0], "url", reservation);
+    if (!isSafePublicHttpsUrl(url)) refuse(url);
+    auto convert = [](ResultConversion& conversion) -> js::Value {
+      auto* r = dynamic_cast<HttpResponse*>(conversion.payload());
+      if (!r) throw std::logic_error("a fetch delivered an unexpected payload");
+      conversion.chargeCopy(r->url.size() + r->contentType.size());
+      js::Value body = conversion.adoptBytes(std::move(r->body));
+      return responseObject(conversion.engine(), *r, std::move(body));
+    };
+    return run->submit(*network, makeHttpGetJob(std::move(url)), convert, true, std::move(reservation));
   }));
 }
 
@@ -240,9 +362,20 @@ void installHttp(js::Engine& e, const js::Value& object, const HostOptions& opti
 
 bool isSafePublicHttpsUrl(const std::string&) { return false; }
 
+std::unique_ptr<NativeJob> makeHttpGetJob(std::string, HttpFetchPolicy) {
+  return makeJob([](std::stop_token) {
+    return JobOutcome::failure("fetching URLs is unavailable: the native runner was built without libcurl");
+  });
+}
+
 void installHttp(js::Engine& e, const js::Value& object, const HostOptions&) {
-  e.set(object, "get", e.function("get", 1, [](js::Engine&, const std::vector<js::Value>&) -> js::Value {
+  auto unavailable = [](js::Engine&, const std::vector<js::Value>&) -> js::Value {
     throw std::runtime_error("fetching URLs is unavailable: the native runner was built without libcurl");
+  };
+  e.set(object, "get", e.function("get", 1, unavailable));
+  e.set(object, "getAsync", e.function("getAsync", 1, unavailable));
+  e.set(object, "bound", e.function("bound", 0, [](js::Engine& en, const std::vector<js::Value>&) {
+    return en.boolean(false);
   }));
 }
 

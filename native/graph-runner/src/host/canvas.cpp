@@ -1,5 +1,9 @@
 #include "host/canvas.h"
 #ifdef GR_HAVE_CANVAS
+#include "host/image.h"
+#include "host/image_jobs.h"
+#include "kernel/async_jobs.h"
+
 #include <cairo.h>
 #include <fontconfig/fontconfig.h>
 #include <pango/pangocairo.h>
@@ -289,12 +293,34 @@ void pathShadow(Surface& destination, Color shadow, double blur, double offsetX,
   cairo_restore(c);
 }
 
+// The surface's pixels as straight-alpha RGBA8. Flushes first, as cairo
+// requires before reading the data. Worker only, like the surface.
+std::vector<uint8_t> straightRgba(Surface& s) {
+  cairo_surface_flush(s.image);
+  auto* data = cairo_image_surface_get_data(s.image);
+  int stride = cairo_image_surface_get_stride(s.image);
+  std::vector<uint8_t> rgba(size_t(s.width) * s.height * 4);
+  for (int y = 0; y < s.height; ++y) {
+    for (int x = 0; x < s.width; ++x) {
+      uint32_t v = reinterpret_cast<uint32_t*>(data + y * stride)[x];
+      size_t i = (size_t(y) * s.width + x) * 4;
+      unsigned alpha = v >> 24;
+      rgba[i + 3] = alpha;
+      for (int k = 0; k < 3; ++k) {
+        rgba[i + k] = alpha ? std::min(255u, (((v >> (16 - 8 * k)) & 255) * 255 + alpha / 2) / alpha) : 0;
+      }
+    }
+  }
+  return rgba;
+}
+
 }  // namespace
 void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
   e.set(object, "available", e.boolean(true));
   // native-rules #1: budget and fonts shared by the canvas host functions, no justification
   auto budget = std::make_shared<size_t>(0);
   auto fonts = std::make_shared<Fonts>();
+  auto binding = RunBinding::of(e);
   e.set(object, "registerFont",
         e.function("registerFont", 1, [fonts](js::Engine& e, const auto& a) {
           if (a.size() != 1) {
@@ -329,7 +355,7 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
         }));
   e.set(
       object, "create",
-      e.function("create", 2, [budget, fonts](js::Engine& e, const std::vector<js::Value>& a) {
+      e.function("create", 2, [budget, fonts, binding](js::Engine& e, const std::vector<js::Value>& a) {
         if (a.size() != 2) {
           throw std::runtime_error("canvas: create needs width and height");
         }
@@ -337,24 +363,26 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
                                            budget);
         auto out = e.object();
         e.set(out, "pixels", e.function("pixels", 0, [s](js::Engine& e, const auto&) {
-          cairo_surface_flush(s->image);
-          auto* data = cairo_image_surface_get_data(s->image);
-          int stride = cairo_image_surface_get_stride(s->image);
-          std::vector<uint8_t> rgba(size_t(s->width) * s->height * 4);
-          for (int y = 0; y < s->height; ++y) {
-            for (int x = 0; x < s->width; ++x) {
-              uint32_t v = reinterpret_cast<uint32_t*>(data + y * stride)[x];
-              size_t i = (size_t(y) * s->width + x) * 4;
-              unsigned alpha = v >> 24;
-              rgba[i + 3] = alpha;
-              for (int k = 0; k < 3; ++k) {
-                rgba[i + k] =
-                    alpha ? std::min(255u, (((v >> (16 - 8 * k)) & 255) * 255 + alpha / 2) / alpha)
-                          : 0;
-              }
-            }
-          }
+          auto rgba = straightRgba(*s);
           return e.bytes(rgba.data(), rgba.size());
+        }));
+        // The pixels are copied here, on the worker that owns the surface,
+        // and the copy is encoded on the run's CPU lane, so drawing after the
+        // call cannot reach the PNG (docs/plans/
+        // graph-runner-async-host-evidence.md, Q4.1). Outside a run, encodes
+        // at the call and returns the bytes.
+        e.set(out, "encodePng", e.function("encodePng", 0, [s, binding](js::Engine& e, const auto&) {
+          const auto width = static_cast<uint32_t>(s->width), height = static_cast<uint32_t>(s->height);
+          AsyncRun* run = binding->run();
+          if (!run) {
+            auto rgba = straightRgba(*s);
+            auto png = encodePng(rgba.data(), width, height);
+            return e.bytes(png.data(), png.size());
+          }
+          Reservation reservation = run->reserve();
+          reservation.reserveSnapshot(checkedMul(checkedMul(width, height), 4));
+          auto rgba = straightRgba(*s);
+          return submitPngJob(*run, std::move(rgba), width, height, std::move(reservation));
         }));
         e.set(out, "put", e.function("put", 5, [s](js::Engine& e, const auto& a) {
           if (a.size() != 5) {

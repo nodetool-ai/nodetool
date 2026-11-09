@@ -7,7 +7,10 @@ const bytes = (input) => {
   return input;
 };
 
-/** The sharp chains used by image nodes, evaluated by native libvips. */
+/**
+ * The sharp chains used by image nodes, evaluated by native libvips. metadata
+ * and toBuffer copy their inputs at the call and run on the run's CPU lane.
+ */
 export async function loadSharp() {
   return (input, options = {}) => {
     const spec = { raw: options.raw, create: input?.create };
@@ -39,7 +42,7 @@ export async function loadSharp() {
       webp: (options = {}) => { spec.format = 'webp'; spec.webp = options; return pipeline; },
       raw: () => { spec.format = 'raw'; return pipeline; },
       toBuffer: async (options = {}) => {
-        const result = codec().transform(source(), JSON.stringify(spec), ...overlays);
+        const result = await codec().transform(source(), JSON.stringify(spec), ...overlays);
         return options.resolveWithObject ? result : result.data;
       }
     };

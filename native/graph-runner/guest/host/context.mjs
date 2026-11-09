@@ -290,7 +290,9 @@ export class GuestContext extends ContextServices {
     if (isPackageAssetUri(trimmed)) {
       const ref = parsePackageAssetUri(trimmed);
       if (!ref) throw new Error(`Invalid package asset URI: ${trimmed}`);
-      const bytes = globalThis.__host.packageAssets.read(`${ref.packageName}/${ref.path}`);
+      const packageAssets = globalThis.__host.packageAssets;
+      const packageKey = `${ref.packageName}/${ref.path}`;
+      const bytes = packageAssets.bound?.() ? await packageAssets.readAsync(packageKey) : packageAssets.read(packageKey);
       if (!bytes) throw new Error(`Package asset not found: ${trimmed}`);
       attempts.push(`package asset: ${trimmed}`);
       return { bytes, attempts };
@@ -387,7 +389,8 @@ export class GuestContext extends ContextServices {
   // ---------------------------------------------------------------- http
 
   async httpGet(url) {
-    const r = globalThis.__host.http.get(url);
+    const http = globalThis.__host.http;
+    const r = http.bound?.() ? await http.getAsync(url) : http.get(url);
     const body = r.body;
     return {
       ok: r.status >= 200 && r.status < 300,

@@ -9,6 +9,13 @@
 // access and exists, as promises and *Sync. The promise open API provides
 // read-only FileHandles. Streams, callback file descriptors, watchers and links
 // are not implemented.
+//
+// The *Sync functions and the callback API stay synchronous on the worker.
+// During a run, the promise API uses the host's asynchronous functions, which
+// run on the I/O lane and settle as macrotasks. Outside a run, where no lane
+// is bound, it falls back to the synchronous functions. A FileHandle opened
+// during a run reads in call order on the lane, and close waits for the
+// reads before it. One opened outside a run reads on the worker.
 
 import { fileURLToPath } from "./url.mjs";
 
@@ -35,6 +42,7 @@ function fsError(err) {
       EBADF: 9,
       EMFILE: 24,
       EACCES: 13,
+      EBUSY: 16,
       EEXIST: 17,
       ENOTDIR: 20,
       EISDIR: 21,
@@ -52,6 +60,18 @@ function call(fn) {
     throw fsError(err);
   }
 }
+
+/** Awaits a host promise, turning its rejection into a Node fs error. */
+async function callAsync(fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    throw fsError(err);
+  }
+}
+
+/** Whether a run is bound, so the asynchronous host functions can run. */
+const bound = () => !!globalThis.__host?.files?.bound?.();
 
 function toPath(path) {
   if (typeof path === "string") return path;
@@ -304,15 +324,77 @@ export function realpathSync(path) {
   return call(() => files().realpath(toPath(path)));
 }
 
-const async =
-  (fn) =>
-  (...args) => {
-    try {
-      return Promise.resolve(fn(...args));
-    } catch (err) {
-      return Promise.reject(err);
-    }
-  };
+/** The promise form: `hosted` during a run, the synchronous form otherwise. */
+const promised =
+  (hosted, sync) =>
+  async (...args) =>
+    bound() ? hosted(...args) : sync(...args);
+
+async function readFileHosted(path, options) {
+  const bytes = await callAsync(() => files().readFileAsync(toPath(path)));
+  return decodeBytes(bytes, encodingOf(options));
+}
+
+async function writeFileHosted(path, data, options) {
+  const flag =
+    typeof options === "object" && options ? options.flag : undefined;
+  await callAsync(() =>
+    files().writeFileAsync(
+      toPath(path),
+      asBytes(data, encodingOf(options)),
+      flag === "a"
+    )
+  );
+}
+
+async function appendFileHosted(path, data, options) {
+  await callAsync(() =>
+    files().writeFileAsync(toPath(path), asBytes(data, encodingOf(options)), true)
+  );
+}
+
+async function statHosted(path, options, follow = true) {
+  try {
+    return new Stats(
+      JSON.parse(await callAsync(() => files().statAsync(toPath(path), follow)))
+    );
+  } catch (err) {
+    if (options?.throwIfNoEntry === false && err.code === "ENOENT")
+      return undefined;
+    throw err;
+  }
+}
+
+async function listDirHosted(dir, options, prefix = "") {
+  const entries = JSON.parse(await callAsync(() => files().readdirAsync(dir)));
+  const out = [];
+  for (const [name, kind] of entries) {
+    const rel = prefix ? `${prefix}/${name}` : name;
+    out.push(
+      options?.withFileTypes
+        ? new Dirent(name, kind, prefix ? `${dir}/${prefix}` : dir)
+        : rel
+    );
+    if (options?.recursive && kind === "directory")
+      out.push(...(await listDirHosted(`${dir}/${name}`, options, rel)));
+  }
+  return out;
+}
+
+async function mkdtempHosted(prefix, options) {
+  const path = toPath(prefix);
+  const created = await callAsync(() => files().mkdtempAsync(path));
+  const result = path + created.slice(-6);
+  return encodingOf(options) === "buffer"
+    ? decodeBytes(asBytes(result), null)
+    : result;
+}
+
+async function rmHosted(path, options) {
+  await callAsync(() =>
+    files().rmAsync(toPath(path), !!options?.recursive, !!options?.force)
+  );
+}
 
 const MAX_HANDLE_READ_BYTES = 16 * 1024 * 1024;
 function readInteger(value, name) {
@@ -323,8 +405,11 @@ function readInteger(value, name) {
 
 class ReadFileHandle {
   #token;
-  constructor(token) {
+  // Opened during a run: the host's asynchronous handle functions.
+  #hosted;
+  constructor(token, hosted) {
     this.#token = token;
+    this.#hosted = hosted;
   }
   async read(buffer, offset = 0, length = undefined, position = null) {
     if (!ArrayBuffer.isView(buffer))
@@ -337,7 +422,10 @@ class ReadFileHandle {
     if (length > MAX_HANDLE_READ_BYTES)
       throw new RangeError("file read length exceeds 16 MiB limit");
     if (position !== null) readInteger(position, "position");
-    const bytes = call(() => files().readHandle(this.#token, length, position));
+    const token = this.#token;
+    const bytes = this.#hosted
+      ? await callAsync(() => files().readHandleAsync(token, length, position))
+      : call(() => files().readHandle(token, length, position));
     new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength).set(
       bytes,
       offset
@@ -345,33 +433,65 @@ class ReadFileHandle {
     return { bytesRead: bytes.byteLength, buffer };
   }
   async close() {
-    call(() => files().closeHandle(this.#token));
+    const token = this.#token;
+    if (this.#hosted) await callAsync(() => files().closeHandleAsync(token));
+    else call(() => files().closeHandle(token));
   }
 }
 
 async function openReadFile(path, flags = "r") {
   if (flags !== "r")
     throw new TypeError("FileHandle open supports only read-only flags 'r'");
-  return new ReadFileHandle(call(() => files().openRead(toPath(path), flags)));
+  if (!bound())
+    return new ReadFileHandle(
+      call(() => files().openRead(toPath(path), flags)),
+      false
+    );
+  return new ReadFileHandle(
+    await callAsync(() => files().openReadAsync(toPath(path), flags)),
+    true
+  );
 }
 
 export const promises = {
   open: openReadFile,
-  readFile: async(readFileSync),
-  writeFile: async(writeFileSync),
-  appendFile: async(appendFileSync),
-  stat: async(statSync),
-  lstat: async(lstatSync),
-  readdir: async(readdirSync),
-  mkdir: async(mkdirSync),
-  mkdtemp: async(mkdtempSync),
-  rm: async(rmSync),
-  rmdir: async(rmdirSync),
-  unlink: async(unlinkSync),
-  rename: async(renameSync),
-  copyFile: async(copyFileSync),
-  realpath: async(realpathSync),
-  access: async(accessSync),
+  readFile: promised(readFileHosted, readFileSync),
+  writeFile: promised(writeFileHosted, writeFileSync),
+  appendFile: promised(appendFileHosted, appendFileSync),
+  stat: promised(statHosted, statSync),
+  lstat: promised((path, options) => statHosted(path, options, false), lstatSync),
+  readdir: promised(
+    (path, options) =>
+      listDirHosted(toPath(path), typeof options === "string" ? {} : options),
+    readdirSync
+  ),
+  mkdir: promised(async (path, options) => {
+    const recursive =
+      typeof options === "object" && options ? !!options.recursive : false;
+    return callAsync(() => files().mkdirAsync(toPath(path), recursive));
+  }, mkdirSync),
+  mkdtemp: promised(mkdtempHosted, mkdtempSync),
+  rm: promised(rmHosted, rmSync),
+  rmdir: promised(async (path, options) => {
+    if (options?.recursive) return rmHosted(path, { recursive: true });
+    await callAsync(() => files().rmdirAsync(toPath(path)));
+  }, rmdirSync),
+  unlink: promised(async (path) => {
+    await callAsync(() => files().unlinkAsync(toPath(path)));
+  }, unlinkSync),
+  rename: promised(async (from, to) => {
+    await callAsync(() => files().renameAsync(toPath(from), toPath(to)));
+  }, renameSync),
+  copyFile: promised(async (from, to) => {
+    await callAsync(() => files().copyFileAsync(toPath(from), toPath(to)));
+  }, copyFileSync),
+  realpath: promised(
+    (path) => callAsync(() => files().realpathAsync(toPath(path))),
+    realpathSync
+  ),
+  access: promised(async (path) => {
+    await callAsync(() => files().statAsync(toPath(path), true));
+  }, accessSync),
   constants
 };
 

@@ -542,17 +542,20 @@ std::shared_ptr<RunBinding> RunBinding::of(js::Engine& engine) {
   return made;
 }
 
-RunBinding::Scope::Scope(js::Engine& engine, AsyncRun& run, JobExecutor& io) : binding_(RunBinding::of(engine)) {
+RunBinding::Scope::Scope(js::Engine& engine, AsyncRun& run, JobExecutor& io, JobExecutor* network)
+    : binding_(RunBinding::of(engine)) {
   binding_->owner_.check("gr::RunBinding");
   if (binding_->run_) throw std::logic_error("the engine already has a bound run");
   binding_->run_ = &run;
   binding_->io_ = &io;
+  binding_->network_ = network;
 }
 
 RunBinding::Scope::~Scope() {
   binding_->owner_.check("gr::RunBinding");
   binding_->run_ = nullptr;
   binding_->io_ = nullptr;
+  binding_->network_ = nullptr;
 }
 
 AsyncRun* RunBinding::run() const {
@@ -563,6 +566,11 @@ AsyncRun* RunBinding::run() const {
 JobExecutor* RunBinding::io() const {
   owner_.check("gr::RunBinding");
   return io_;
+}
+
+JobExecutor* RunBinding::network() const {
+  owner_.check("gr::RunBinding");
+  return network_;
 }
 
 }  // namespace gr

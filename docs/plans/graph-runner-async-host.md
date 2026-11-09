@@ -559,6 +559,8 @@ compose asynchronous operations, while retaining the mailbox and ownership
 protocol. GPU completion, process isolation for uninterruptible libraries,
 and tighter accounting for library-private allocations need separate designs.
 No framework or library thread-safety claim is required for this decision.
+Review findings left open after the host conversions are in the
+[backlog](graph-runner-async-host-backlog.md).
 
 ## 11. Changes from review
 

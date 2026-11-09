@@ -64,7 +64,8 @@ export class LocalWorkspace {
 
   async read(path) {
     try {
-      const bytes = fs.readFileSync(this.file(path));
+      // On the I/O lane during a run.
+      const bytes = await fs.promises.readFile(this.file(path));
       return bytes.constructor === Uint8Array ? bytes : new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     } catch (err) {
       if (missing(err)) return null;
@@ -80,8 +81,8 @@ export class LocalWorkspace {
   async write(path, data) {
     const file = this.file(path);
     const slash = file.lastIndexOf("/");
-    if (slash > this.localDir.length) fs.mkdirSync(file.slice(0, slash), { recursive: true });
-    fs.writeFileSync(file, typeof data === "string" ? encoder.encode(data) : data);
+    if (slash > this.localDir.length) await fs.promises.mkdir(file.slice(0, slash), { recursive: true });
+    await fs.promises.writeFile(file, typeof data === "string" ? encoder.encode(data) : data);
   }
 
   async exists(path) {
@@ -173,7 +174,7 @@ export class LocalWorkspace {
 
   async absorb(localPath, path) {
     if (localPath === this.file(path)) return;
-    await this.write(path, fs.readFileSync(localPath));
+    await this.write(path, await fs.promises.readFile(localPath));
   }
 
   async scratchDir() {

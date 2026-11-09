@@ -33,7 +33,8 @@ export async function fetchExternalMedia(uri, init) {
   if (method !== "GET") throw new Error(`fetch failed: the native runner fetches media with GET only, not ${method}`);
   const http = globalThis.__host?.http;
   if (!http) throw new Error("fetch failed: the http host capability is not installed");
-  return responseOf(http.get(String(uri)));
+  // During a run the fetch runs on the network lane.
+  return responseOf(http.bound?.() ? await http.getAsync(String(uri)) : http.get(String(uri)));
 }
 
 export { fetchExternalMedia as safeFetch };

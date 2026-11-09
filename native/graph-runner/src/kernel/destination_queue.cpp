@@ -1,5 +1,6 @@
 #include "kernel/destination_queue.h"
 
+#include <stdexcept>
 #include <utility>
 
 namespace gr {
@@ -40,7 +41,7 @@ private:
   bool done_ = false;
 };
 
-DestinationQueue::DestinationQueue() : state_(std::make_shared<State>()) {}
+DestinationQueue::DestinationQueue(DestinationQueueHooks hooks) : state_(std::make_shared<State>(std::move(hooks))) {}
 
 DestinationQueue::Ticket DestinationQueue::enqueue(std::string key, JobExecutor& executor) {
   uint64_t place = 0;
@@ -50,6 +51,18 @@ DestinationQueue::Ticket DestinationQueue::enqueue(std::string key, JobExecutor&
     Slot slot;
     slot.executor = &executor;
     state_->lines[key].emplace(place, std::move(slot));
+  }
+  return Ticket(state_, std::move(key), place);
+}
+
+std::optional<DestinationQueue::Ticket> DestinationQueue::enqueueIfIdle(std::string key) {
+  uint64_t place = 0;
+  {
+    std::lock_guard lock(state_->mutex);
+    auto line = state_->lines.find(key);
+    if (line != state_->lines.end() && !line->second.empty()) return std::nullopt;
+    place = state_->next++;
+    state_->lines[key].emplace(place, Slot{});
   }
   return Ticket(state_, std::move(key), place);
 }
@@ -119,7 +132,26 @@ void DestinationQueue::Ticket::ready(std::unique_ptr<DestinationStep> step) {
     std::lock_guard lock(state->mutex);
     state->lines[key_][place_].step = std::move(step);
   }
+  if (state->hooks.at) state->hooks.at("published");
   schedule(state, key_);
+}
+
+void DestinationQueue::Ticket::runHere(std::unique_ptr<DestinationStep> step) {
+  if (!state_) throw std::logic_error("an empty ticket cannot run a step");
+  {
+    std::lock_guard lock(state_->mutex);
+    auto& slots = state_->lines[key_];
+    if (slots.empty() || slots.begin()->first != place_) {
+      throw std::logic_error("a destination step can run here only at the head of its line");
+    }
+    // Claimed: schedule() never submits a running head.
+    slots.begin()->second.running = true;
+  }
+  auto state = std::exchange(state_, nullptr);
+  if (state->hooks.at) state->hooks.at("published");
+  step->run();
+  step.reset();
+  finished(state, key_, place_);
 }
 
 void DestinationQueue::Ticket::abandon() {

@@ -27,10 +27,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace gr {
@@ -43,6 +46,14 @@ class DestinationStep {
 public:
   virtual ~DestinationStep() = default;
   virtual void run() noexcept = 0;
+};
+
+// Test seams of a DestinationQueue. Production leaves them empty. `at` runs
+// on the thread that hands a step to the line, outside the queue mutex:
+// "published" once a ready step, or a synchronous step's claim, is visible
+// to other schedulers and before this thread runs or submits it.
+struct DestinationQueueHooks {
+  std::function<void(std::string_view point)> at;
 };
 
 // Serializes steps per destination key, in ticket order.
@@ -79,6 +90,13 @@ public:
     void ready(std::unique_ptr<DestinationStep> step);
     // Leaves the line without a step. The destructor does this.
     void abandon();
+    // For a place that is its line's head, such as one from
+    // enqueueIfIdle(): claims the head under the queue mutex, so no other
+    // scheduler can take it, runs `step` on the calling thread outside the
+    // mutex, then hands the line on. Returns after `step` ran. Throws
+    // std::logic_error, running nothing, when the place is not the head.
+    // Empties the ticket.
+    void runHere(std::unique_ptr<DestinationStep> step);
 
     const std::string& key() const { return key_; }
     explicit operator bool() const { return state_ != nullptr; }
@@ -94,7 +112,7 @@ public:
     uint64_t place_ = 0;
   };
 
-  DestinationQueue();
+  explicit DestinationQueue(DestinationQueueHooks hooks = {});
   DestinationQueue(const DestinationQueue&) = delete;
   DestinationQueue& operator=(const DestinationQueue&) = delete;
 
@@ -102,6 +120,11 @@ public:
   // executor must outlive the place: the process lanes and a runner's
   // InlineExecutor during its run do.
   Ticket enqueue(std::string key, JobExecutor& executor);
+  // A place in `key`'s line only when the line is empty, so the place is
+  // its head at once; otherwise nothing. For an operation that must never
+  // wait for another one, such as a synchronous asset write, which then
+  // runs its step with Ticket::runHere().
+  std::optional<Ticket> enqueueIfIdle(std::string key);
   // Tickets in `key`'s line that are not done, the running one included.
   size_t pending(const std::string& key) const;
   // Destinations with a line. A line that empties is removed.
@@ -112,7 +135,8 @@ private:
   // A place in a line, owned by value by its line under `State::mutex`.
   struct Slot {
     std::unique_ptr<DestinationStep> step;
-    // Non-owning. See enqueue().
+    // Non-owning. See enqueue(). Null for a place that runs its step with
+    // Ticket::runHere(), which is never submitted.
     JobExecutor* executor = nullptr;
     bool abandoned = false;
     // Submitted to its executor and not done.
@@ -121,6 +145,9 @@ private:
   // Thread-safe: `mutex` guards `next` and `lines`. schedule() submits
   // after releasing it.
   struct State {
+    explicit State(DestinationQueueHooks h) : hooks(std::move(h)) {}
+    // Immutable.
+    const DestinationQueueHooks hooks;
     mutable std::mutex mutex;
     uint64_t next = 1;
     // Each destination's line, by place.

@@ -247,7 +247,8 @@ for (const [name, fn] of [
 ]) {
   let failed = false;
   try {
-    fn();
+    // A refusal throws at the call, or rejects once the host checked it.
+    await fn();
   } catch {
     failed = true;
   }

@@ -19,10 +19,13 @@ function rawRgbaImageRef(rgba, width, height) {
   return { type: "image", data: rgba, mimeType: RAW_RGBA_MIME, width, height };
 }
 
-/** Straight-alpha RGBA8 to PNG bytes. Empty input gives empty bytes. */
+/**
+ * Straight-alpha RGBA8 to PNG bytes, encoded on the run's CPU lane from a
+ * copy taken at the call. Empty input gives empty bytes.
+ */
 export async function encodeRgbaToPng(data, width, height) {
   if (data.length === 0 || width === 0 || height === 0) return new Uint8Array();
-  return codec().encodePng(data, width, height);
+  return codec().encodePngAsync(data, width, height);
 }
 
 export async function loadImageBytes(ref, context) {

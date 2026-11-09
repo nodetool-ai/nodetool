@@ -310,7 +310,9 @@ void assetsStoreAndRefuseEscapes() {
 
 // Concurrent writes to one key each use their own exclusive temporary file.
 // Writers start each round together at a barrier while a reader reads the
-// destination throughout: every read must be one complete payload.
+// destination throughout: every read must be one complete payload. A
+// synchronous write never waits for another one on the same key: one that
+// finds the key busy fails at once with EBUSY.
 void assetsConcurrentWritesStayWhole() {
   TempDir t;
   fs::create_directories(t.path("assets"));
@@ -325,6 +327,8 @@ void assetsConcurrentWritesStayWhole() {
     CHECK(run(*seed, "__host.assets.write('default/same.bin', new Uint8Array(" + std::to_string(size) + ").fill(65))") == "ok");
   }
   std::atomic<int> errors{0};
+  std::atomic<int> busy{0};
+  std::atomic<int> written{0};
   std::atomic<int> badReads{0};
   std::atomic<int> reads{0};
   std::atomic<bool> done{false};
@@ -347,7 +351,14 @@ void assetsConcurrentWritesStayWhole() {
                                  ").fill(" + std::to_string(65 + i) + "))";
       for (int round = 0; round < rounds; ++round) {
         sync.arrive_and_wait();
-        if (run(*e, script) != "ok") ++errors;
+        const std::string result = run(*e, script);
+        if (result == "ok") {
+          ++written;
+        } else if (startsWith(result, "error: EBUSY")) {
+          ++busy;
+        } else {
+          ++errors;
+        }
       }
     });
   }
@@ -355,6 +366,8 @@ void assetsConcurrentWritesStayWhole() {
   done = true;
   reader.join();
   CHECK(errors == 0);
+  CHECK(written > 0);
+  CHECK(written + busy == threads * rounds);
   CHECK(reads > 0);
   CHECK(badReads == 0);
   const std::string final = readText(dest);

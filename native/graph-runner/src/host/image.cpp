@@ -1,5 +1,4 @@
 #include "host/image.h"
-#include "host/image_vips.h"
 
 #include <stdexcept>
 #include <cmath>
@@ -17,24 +16,6 @@
 #include <stb_image_write.h>
 
 namespace gr::host {
-namespace {
-
-std::vector<uint8_t> bytesArg(js::Engine& e, const std::vector<js::Value>& args, size_t i,
-                              const char* fn) {
-  if (args.size() <= i || !e.isBytes(args[i])) {
-    throw std::runtime_error(std::string("__host.image.") + fn + ": expected bytes");
-  }
-  return e.toBytes(args[i]);
-}
-
-uint32_t dimArg(js::Engine& e, const std::vector<js::Value>& args, size_t i) {
-  double d = args.size() > i ? e.toNumber(args[i]) : 0;
-  if (!(d >= 1 && d <= 65535) || d != std::floor(d)) throw std::runtime_error("__host.image: invalid image size");
-  return uint32_t(d);
-}
-
-}  // namespace
-
 RgbaImage decodeImage(const uint8_t* data, size_t size) {
   if (size > size_t(std::numeric_limits<int>::max())) throw std::runtime_error("encoded image is too large");
   uint32_t checkedW = 0, checkedH = 0;
@@ -71,7 +52,23 @@ void imageSize(const uint8_t* data, size_t size, uint32_t& width, uint32_t& heig
   height = uint32_t(h);
 }
 
-std::vector<uint8_t> encodePng(const uint8_t* rgba, uint32_t width, uint32_t height) {
+EncodedImageInfo encodedImageInfo(const uint8_t* data, size_t size) {
+  EncodedImageInfo out;
+  imageSize(data, size, out.width, out.height);
+  int iw = 0, ih = 0, channels = 0;
+  stbi_info_from_memory(data, int(size), &iw, &ih, &channels);
+  WebPBitstreamFeatures features{};
+  if (WebPGetFeatures(data, size, &features) == VP8_STATUS_OK) channels = features.has_alpha ? 4 : 3;
+  out.channels = channels;
+  out.format = size >= 12 && data[0] == 'R' && data[8] == 'W' ? "webp"
+      : size >= 8 && data[0] == 137 && data[1] == 80 ? "png"
+      : size >= 2 && data[0] == 255 && data[1] == 216 ? "jpeg"
+      : size >= 6 && data[0] == 'G' && data[1] == 'I' ? "gif"
+      : size >= 2 && data[0] == 'B' && data[1] == 'M' ? "bmp" : "unknown";
+  return out;
+}
+
+std::vector<uint8_t> encodePng(const uint8_t* rgba, uint32_t width, uint32_t height, uint64_t maxBytes) {
   const size_t count = size_t(width) * size_t(height);
   if (!width || !height || width > 65535 || height > 65535 || count > 16777216) throw std::runtime_error("Invalid native image dimensions");
   bool opaque = true;
@@ -89,17 +86,26 @@ std::vector<uint8_t> encodePng(const uint8_t* rgba, uint32_t width, uint32_t hei
     source = rgb.data();
     channels = 3;
   }
-  std::vector<uint8_t> out;
+  struct Sink {
+    std::vector<uint8_t> out;
+    uint64_t maxBytes;
+    bool overflow = false;
+  } sink{{}, maxBytes};
   auto append = [](void* context, void* data, int size) {
-    auto* sink = static_cast<std::vector<uint8_t>*>(context);
+    auto* to = static_cast<Sink*>(context);
+    if (to->overflow || size < 0 || uint64_t(size) > to->maxBytes - to->out.size()) {
+      to->overflow = true;
+      return;
+    }
     auto* bytes = static_cast<uint8_t*>(data);
-    sink->insert(sink->end(), bytes, bytes + size);
+    to->out.insert(to->out.end(), bytes, bytes + size);
   };
-  if (!stbi_write_png_to_func(append, &out, int(width), int(height), channels, source,
+  if (!stbi_write_png_to_func(append, &sink, int(width), int(height), channels, source,
                               int(width) * channels)) {
     throw std::runtime_error("cannot encode PNG");
   }
-  return out;
+  if (sink.overflow) throw std::runtime_error("PNG output exceeds its reserved size");
+  return std::move(sink.out);
 }
 
 std::string base64Encode(const uint8_t* data, size_t size) {
@@ -123,50 +129,6 @@ std::string base64Encode(const uint8_t* data, size_t size) {
     out += '=';
   }
   return out;
-}
-
-void installImage(js::Engine& e, const js::Value& object, const HostOptions&) {
-  installVipsImage(e, object);
-  using Args = const std::vector<js::Value>&;
-  e.set(object, "decode", e.function("decode", 1, [](js::Engine& e, Args a) {
-    auto bytes = bytesArg(e, a, 0, "decode");
-    RgbaImage image = decodeImage(bytes.data(), bytes.size());
-    js::Value out = e.object();
-    e.set(out, "rgba", e.bytes(image.pixels.data(), image.pixels.size()));
-    e.set(out, "width", e.number(image.width));
-    e.set(out, "height", e.number(image.height));
-    return out;
-  }));
-  e.set(object, "info", e.function("info", 1, [](js::Engine& e, Args a) {
-    auto bytes = bytesArg(e, a, 0, "info");
-    uint32_t w = 0, h = 0;
-    imageSize(bytes.data(), bytes.size(), w, h);
-    js::Value out = e.object();
-    e.set(out, "width", e.number(w));
-    e.set(out, "height", e.number(h));
-    int iw = 0, ih = 0, channels = 0;
-    stbi_info_from_memory(bytes.data(), int(bytes.size()), &iw, &ih, &channels);
-    WebPBitstreamFeatures features{};
-    if (WebPGetFeatures(bytes.data(), bytes.size(), &features) == VP8_STATUS_OK) channels = features.has_alpha ? 4 : 3;
-    e.set(out, "channels", e.number(channels));
-    const auto& b = bytes;
-    const char* format = b.size() >= 12 && b[0] == 'R' && b[8] == 'W' ? "webp"
-        : b.size() >= 8 && b[0] == 137 && b[1] == 80 ? "png"
-        : b.size() >= 2 && b[0] == 255 && b[1] == 216 ? "jpeg"
-        : b.size() >= 6 && b[0] == 'G' && b[1] == 'I' ? "gif"
-        : b.size() >= 2 && b[0] == 'B' && b[1] == 'M' ? "bmp" : "unknown";
-    e.set(out, "format", e.string(format));
-    return out;
-  }));
-  e.set(object, "encodePng", e.function("encodePng", 3, [](js::Engine& e, Args a) {
-    auto rgba = bytesArg(e, a, 0, "encodePng");
-    uint32_t w = dimArg(e, a, 1), h = dimArg(e, a, 2);
-    if (rgba.size() != size_t(w) * h * 4) {
-      throw std::runtime_error("__host.image.encodePng: pixel data does not match width * height * 4");
-    }
-    auto png = encodePng(rgba.data(), w, h);
-    return e.bytes(png.data(), png.size());
-  }));
 }
 
 }  // namespace gr::host

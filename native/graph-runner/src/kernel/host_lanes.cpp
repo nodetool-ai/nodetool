@@ -1,5 +1,6 @@
 #include "kernel/host_lanes.h"
 
+#include "host/image_vips.h"
 #include "kernel/destination_queue.h"
 
 #include "nodetool/provider_jobs.h"
@@ -584,6 +585,11 @@ ProcessLanes& processLanes() {
 }  // namespace
 
 JobDisposer& processJobDisposer() {
+  // libvips must start while no other thread can be inside it (docs/plans/
+  // graph-runner-async-host-evidence.md, Q1.6). Every pool thread starts
+  // after the disposer exists, so starting it here, once, comes first. A
+  // failure is recorded, never retried, and rejects image calls.
+  host::vipsStartup();
   ProcessLanes& process = processLanes();
   std::lock_guard lock(process.disposerMutex);
   if (!process.disposer) process.disposer = std::make_unique<JobDisposer>();

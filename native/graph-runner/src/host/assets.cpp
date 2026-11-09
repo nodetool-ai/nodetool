@@ -7,12 +7,34 @@
 // what createAsset writes.
 //
 //   available()          -> whether an asset directory is granted
-//   read(key)            -> Uint8Array, or null when missing
-//   write(key, bytes)
-//   stat(key)            -> json {size, mtimeMs}, or null
-//   list(prefix)         -> json [{key, size, mtimeMs}], every file below prefix, sorted
 //   find(dir, stem)      -> json [key], files directly in dir named <stem>.<ext>, sorted
-//   remove(key)          -> whether a file was removed
+//   bound()              -> whether a run is bound, so the *Async functions can be used
+//
+// While a run is bound, the adapter uses the asynchronous functions, which
+// return promises and run on the run's I/O lane
+// (docs/plans/graph-runner-async-host.md, sections 4.7 and 4.8):
+//
+//   readAsync(key)       -> Uint8Array, or null when missing
+//   writeAsync(key, bytes)
+//   statAsync(key)       -> json {size, mtimeMs}, or null
+//   listAsync(prefix)    -> json [{key, size, mtimeMs}], every file below prefix, sorted
+//   removeAsync(key)     -> whether a file was removed
+//
+// writeAsync and removeAsync are the jobs of host/asset_destinations.h:
+// each takes its place in the process destination queue at the call, so
+// writes and removals of one key commit in call order across every run of
+// the process. A write stages an exclusive temporary file of its own and
+// renames it over the key in its turn. Cancelling the run before that
+// rename discards the write, and a rename that happened stays.
+//
+// Outside a run the adapter uses the synchronous forms, read(key),
+// write(key, bytes), stat(key), list(prefix) and remove(key), which refuse
+// a call while a run is bound. A synchronous write or removal never waits:
+// it takes the key's place in the same destination queue only when no
+// queued or active operation holds one, commits on the worker, and
+// otherwise fails at once with EBUSY (writeAssetNow in
+// host/asset_destinations.h). One key's order thus holds across synchronous
+// and asynchronous calls of every runner in the process.
 //
 // `__host.packageAssets`: shipped sample media, read-only, from
 // HostOptions::packageAssetsDir. guest/host/context.mjs resolves
@@ -21,9 +43,17 @@
 //
 //   available()          -> whether a package assets directory is granted
 //   read(key)            -> Uint8Array, or null when missing
+//   readAsync(key)       -> as read, as a promise on the I/O lane while a run is bound
+//   bound()              -> whether a run is bound
 #include "host/capabilities.h"
+#include "host/asset_destinations.h"
 #include "host/assets.h"
+#include "host/file_jobs.h"
 #include "host/paths.h"
+#include "host/unique_fd.h"
+#include "kernel/async_jobs.h"
+#include "kernel/destination_queue.h"
+#include "kernel/job_inputs.h"
 
 #include <nlohmann/json.hpp>
 
@@ -48,6 +78,11 @@ namespace {
 
 using Args = const std::vector<js::Value>&;
 
+// One granted directory and the operations on it.
+//
+// Thread affinity: thread-safe, because it is immutable after the install
+// built it. The synchronous host functions use it on the worker, and the
+// jobs of the asynchronous ones on the I/O lane.
 struct Assets {
   std::vector<Root> roots;  // empty, or the asset directory
 
@@ -111,46 +146,30 @@ struct Assets {
     return out;
   }
 
-  void write(const std::string& key, const std::vector<uint8_t>& data) const {
-    // Create the key's directories, then write the file atomically.
-    Resolved dir = resolve(key, Access::WriteAny, "open");
-    std::string parent = dir.real.substr(0, dir.real.rfind('/'));
-    for (size_t i = root().size() + 1; i <= parent.size(); ++i) {
-      if (i == parent.size() || parent[i] == '/') {
-        std::string part = parent.substr(0, i);
-        if (::mkdir(part.c_str(), 0755) != 0 && errno != EEXIST) throwErrno(errno, "mkdir", key);
-      }
+  // The first step of an asynchronous read (host/file_jobs.h): the key's
+  // file, open, with its size. Null, as read() returns null, when the key
+  // is missing or not a regular file.
+  std::unique_ptr<OpenedFile> open(const std::string& key) const {
+    Resolved r;
+    try {
+      r = resolve(key, Access::Read, "open");
+    } catch (const FsError& e) {
+      if (e.code == "ENOENT" || e.code == "ENOTDIR") return nullptr;
+      throw;
     }
-    Resolved r = resolve(key, Access::Write, "open");
-    // An exclusive temporary file unique to this operation, so concurrent
-    // writes to one key never share bytes. Process id, a process-wide counter
-    // and EEXIST retry also keep it unique against other processes.
-    std::string tmp;
-    // native-rules #6: raw file descriptor closed by hand on each path
-    int fd = -1;
-    for (int attempt = 0; fd < 0; ++attempt) {
-      tmp = r.real + ".tmp-" + std::to_string(::getpid()) + "-" + std::to_string(tempSequence().fetch_add(1));
-      fd = ::open(tmp.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0644);
-      if (fd < 0 && (errno != EEXIST || attempt >= 100)) throwErrno(errno, "open", key);
-    }
-    size_t off = 0;
-    while (off < data.size()) {
-      ssize_t n = ::write(fd, data.data() + off, data.size() - off);
-      if (n < 0) {
-        if (errno == EINTR) continue;
-        int err = errno;
-        ::close(fd);
-        ::unlink(tmp.c_str());
-        throwErrno(err, "write", key);
-      }
-      off += size_t(n);
-    }
-    ::close(fd);
-    if (::rename(tmp.c_str(), r.real.c_str()) != 0) {
-      int err = errno;
-      ::unlink(tmp.c_str());
-      throwErrno(err, "rename", key);
-    }
+    // NONBLOCK keeps a FIFO from stalling the open before its type is checked.
+    UniqueFd fd(::open(r.real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
+    if (!fd) throwErrno(errno, "open", key);
+    struct stat st {};
+    if (::fstat(fd.get(), &st) != 0) throwErrno(errno, "fstat", key);
+    if (!S_ISREG(st.st_mode)) return nullptr;
+    if (st.st_nlink > 1) throw FsError("EACCES", "open", key, "hard-linked file");
+    if (uint64_t(st.st_size) > kMaxReadBytes) throw FsError("EFBIG", "read", key);
+    auto file = std::make_unique<OpenedFile>();
+    file->fd = std::move(fd);
+    file->size = uint64_t(st.st_size);
+    file->path = key;
+    return file;
   }
 
   nlohmann::json stat(const std::string& key) const {
@@ -166,13 +185,18 @@ struct Assets {
     return {{"size", double(st.st_size)}, {"mtimeMs", double(st.st_mtime) * 1000.0}};
   }
 
-  void walk(const std::string& dir, const std::string& prefix, nlohmann::json& out) const {
+  // `budget` is what is left of the JSON the listing may produce. Names
+  // and entries are counted as they are read, so a larger listing fails
+  // before it is held.
+  void walk(const std::string& dir, const std::string& prefix, nlohmann::json& out, uint64_t& budget) const {
     std::unique_ptr<DIR, int (*)(DIR*)> d(::opendir(dir.c_str()), ::closedir);
     if (!d) return;
     std::vector<std::string> names;
     while (struct dirent* e = ::readdir(d.get())) {
       std::string name = e->d_name;
-      if (name != "." && name != "..") names.push_back(name);
+      if (name == "." || name == "..") continue;
+      spend(budget, name.size(), prefix);
+      names.push_back(name);
     }
     std::sort(names.begin(), names.end());
     for (const auto& name : names) {
@@ -181,19 +205,28 @@ struct Assets {
       struct stat st {};
       if (::lstat(path.c_str(), &st) != 0) continue;
       if (S_ISDIR(st.st_mode)) {
-        walk(path, key, out);
+        walk(path, key, out, budget);
       } else if (S_ISREG(st.st_mode)) {
+        // A key escapes to at most six bytes per byte, with the numbers and
+        // the field names around it.
+        spend(budget, key.size() * 6 + 64, prefix);
         out.push_back({{"key", key}, {"size", double(st.st_size)}, {"mtimeMs", double(st.st_mtime) * 1000.0}});
       }
       // Symlinks are never listed.
     }
   }
 
-  nlohmann::json list(const std::string& prefix) const {
+  static void spend(uint64_t& budget, uint64_t bytes, const std::string& prefix) {
+    if (bytes > budget) throw FsError("EFBIG", "scandir", prefix, "the asset listing is too large");
+    budget -= bytes;
+  }
+
+  nlohmann::json list(const std::string& prefix, uint64_t cap = UINT64_MAX) const {
     nlohmann::json out = nlohmann::json::array();
     if (roots.empty()) return out;
+    uint64_t budget = cap;
     if (prefix.empty()) {
-      walk(root(), "", out);
+      walk(root(), "", out, budget);
       return out;
     }
     Resolved r;
@@ -203,7 +236,7 @@ struct Assets {
       if (e.code == "ENOENT" || e.code == "ENOTDIR") return out;
       throw;
     }
-    walk(r.real, prefix, out);
+    walk(r.real, prefix, out, budget);
     return out;
   }
 
@@ -238,67 +271,175 @@ struct Assets {
     }
     return out;
   }
-
-  bool remove(const std::string& key) const {
-    Resolved r = resolve(key, Access::Write, "unlink");
-    if (!r.exists) return false;
-    struct stat st {};
-    if (::lstat(r.real.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) return false;
-    if (::unlink(r.real.c_str()) != 0) throwErrno(errno, "unlink", key);
-    return true;
-  }
 };
+
+// What an asynchronous host function needs before it copies its arguments:
+// the bound run, its I/O lane, and a reservation on the run.
+//
+// Thread affinity: worker only, for the length of one host function call.
+struct Submission {
+  AsyncRun& run;
+  JobExecutor& io;
+  Reservation reservation;
+};
+
+Submission begin(const RunBinding& binding) {
+  AsyncRun* run = binding.run();
+  JobExecutor* io = binding.io();
+  if (!run || !io) throw std::runtime_error("asynchronous asset operations need a running graph");
+  return Submission{*run, *io, run->reserve()};
+}
+
+std::string keyArg(js::Engine& en, Args a, Reservation& reservation) {
+  if (a.empty() || !en.isString(a[0])) throw std::invalid_argument("Invalid storage key: the key must be a string");
+  return snapshotString(en, a[0], "key", reservation);
+}
+
+ResultConverter textConverter() {
+  return [](ResultConversion& conversion) -> js::Value {
+    auto* text = dynamic_cast<TextResult*>(conversion.payload());
+    if (!text) throw std::logic_error("an asset job delivered an unexpected payload");
+    conversion.chargeCopy(text->text.size());
+    return conversion.engine().string(text->text);
+  };
+}
+
+// An asynchronous read of `key` from `assets`: the open step here, the read
+// step from the converter.
+js::Value readAsync(js::Engine& en, Args a, const std::shared_ptr<const Assets>& assets,
+                    const std::shared_ptr<RunBinding>& binding) {
+  Submission s = begin(*binding);
+  std::string key = keyArg(en, a, s.reservation);
+  const JobCost cost{key.size(), 0, 0};
+  auto job = makeCostedJob(cost, [assets, key = std::move(key)](std::stop_token) {
+    return JobOutcome::value(assets->open(key));
+  });
+  return s.run.submit(s.io, std::move(job), wholeFileConverter(binding), true, std::move(s.reservation));
+}
 
 }  // namespace
 
 void installAssets(js::Engine& e, const js::Value& object, const HostOptions& options) {
-  // native-rules #1: state shared by the asset host functions, no justification
+  // Shared by the host functions below and the jobs of the asynchronous
+  // ones, which may run after the install is gone. Immutable.
   auto assets = std::make_shared<Assets>();
   if (!options.assetDir.empty()) assets->roots = canonicalRoots({{options.assetDir, true}});
-  auto key = [](js::Engine& en, Args a) { return a.empty() ? std::string() : en.toString(a[0]); };
+  const std::shared_ptr<const Assets> store = std::move(assets);
+  // Shared with the engine's host state and every function that submits.
+  const std::shared_ptr<RunBinding> binding = RunBinding::of(e);
+  // The key of a synchronous call, which only runs outside a run.
+  auto key = [binding](js::Engine& en, Args a) {
+    if (binding->run()) {
+      throw std::runtime_error("the synchronous asset functions run only outside a run: use the *Async functions");
+    }
+    return a.empty() ? std::string() : en.toString(a[0]);
+  };
 
-  e.set(object, "available", e.function("available", 0, [assets](js::Engine& en, Args) {
-    return en.boolean(!assets->roots.empty());
+  e.set(object, "available", e.function("available", 0, [store](js::Engine& en, Args) {
+    return en.boolean(!store->roots.empty());
   }));
-  e.set(object, "read", e.function("read", 1, [assets, key](js::Engine& en, Args a) {
-    auto data = assets->read(key(en, a));
+  e.set(object, "read", e.function("read", 1, [store, key](js::Engine& en, Args a) {
+    auto data = store->read(key(en, a));
     return data ? en.bytes(data->data(), data->size()) : en.null();
   }));
-  e.set(object, "write", e.function("write", 2, [assets, key](js::Engine& en, Args a) {
+  e.set(object, "write", e.function("write", 2, [store, key](js::Engine& en, Args a) {
     if (a.size() < 2 || !en.isBytes(a[1])) throw std::runtime_error("assets.write needs bytes");
-    assets->write(key(en, a), en.toBytes(a[1]));
+    writeAssetNow(processDestinationQueue(), store->roots, key(en, a), en.toBytes(a[1]));
     return en.undefined();
   }));
-  e.set(object, "stat", e.function("stat", 1, [assets, key](js::Engine& en, Args a) {
-    return en.string(assets->stat(key(en, a)).dump());
+  e.set(object, "stat", e.function("stat", 1, [store, key](js::Engine& en, Args a) {
+    return en.string(store->stat(key(en, a)).dump());
   }));
-  e.set(object, "list", e.function("list", 1, [assets, key](js::Engine& en, Args a) {
-    return en.string(assets->list(key(en, a)).dump());
+  e.set(object, "list", e.function("list", 1, [store, key](js::Engine& en, Args a) {
+    return en.string(store->list(key(en, a)).dump());
   }));
-  e.set(object, "find", e.function("find", 2, [assets, key](js::Engine& en, Args a) {
+  // Synchronous during a run too: the guest's findStem is synchronous.
+  e.set(object, "find", e.function("find", 2, [store](js::Engine& en, Args a) {
+    const std::string dir = a.empty() ? std::string() : en.toString(a[0]);
     const std::string stem = a.size() < 2 ? std::string() : en.toString(a[1]);
-    return en.string(assets->find(key(en, a), stem).dump());
+    return en.string(store->find(dir, stem).dump());
   }));
-  e.set(object, "remove", e.function("remove", 1, [assets, key](js::Engine& en, Args a) {
-    return en.boolean(assets->remove(key(en, a)));
+  e.set(object, "remove", e.function("remove", 1, [store, key](js::Engine& en, Args a) {
+    return en.boolean(removeAssetNow(processDestinationQueue(), store->roots, key(en, a)));
+  }));
+
+  e.set(object, "bound", e.function("bound", 0, [binding](js::Engine& en, Args) {
+    return en.boolean(binding->run() != nullptr);
+  }));
+  e.set(object, "readAsync", e.function("readAsync", 1, [store, binding](js::Engine& en, Args a) {
+    return readAsync(en, a, store, binding);
+  }));
+  // Cancellable: the run's cancellation before the commit discards the
+  // write (host/asset_destinations.h).
+  e.set(object, "writeAsync", e.function("writeAsync", 2, [store, binding](js::Engine& en, Args a) {
+    Submission s = begin(*binding);
+    std::string name = keyArg(en, a, s.reservation);
+    // The key is checked before its bytes are copied.
+    assetDestination(store->roots, name);
+    if (a.size() < 2) throw std::runtime_error("assets.write needs bytes");
+    std::vector<uint8_t> bytes = snapshotBytes(en, a[1], "bytes", s.reservation);
+    auto job = makeAssetWriteJob(processDestinationQueue(), s.io, store->roots, std::move(name), std::move(bytes));
+    return s.run.submit(s.io, std::move(job), nullptr, true, std::move(s.reservation));
+  }));
+  e.set(object, "removeAsync", e.function("removeAsync", 1, [store, binding](js::Engine& en, Args a) {
+    Submission s = begin(*binding);
+    std::string name = keyArg(en, a, s.reservation);
+    auto job = makeAssetRemoveJob(processDestinationQueue(), s.io, store->roots, std::move(name));
+    return s.run.submit(s.io, std::move(job),
+                        [](js::Engine& engine, JobPayload* payload) {
+                          auto* removed = dynamic_cast<AssetRemoved*>(payload);
+                          return engine.boolean(removed && removed->removed);
+                        },
+                        true, std::move(s.reservation));
+  }));
+  e.set(object, "statAsync", e.function("statAsync", 1, [store, binding](js::Engine& en, Args a) {
+    Submission s = begin(*binding);
+    std::string name = keyArg(en, a, s.reservation);
+    const JobCost cost{name.size(), kMetadataBytes, 0};
+    auto job = makeCostedJob(cost, [store, name = std::move(name)](std::stop_token) {
+      return JobOutcome::value(std::make_unique<TextResult>(store->stat(name).dump()));
+    });
+    return s.run.submit(s.io, std::move(job), textConverter(), true, std::move(s.reservation));
+  }));
+  e.set(object, "listAsync", e.function("listAsync", 1, [store, binding](js::Engine& en, Args a) {
+    Submission s = begin(*binding);
+    std::string prefix = a.empty() || en.isUndefined(a[0]) ? std::string() : keyArg(en, a, s.reservation);
+    const JobCost cost{prefix.size(), kMaxListingBytes, 0};
+    auto job = makeCostedJob(cost, [store, prefix = std::move(prefix)](std::stop_token) {
+      return JobOutcome::value(std::make_unique<TextResult>(store->list(prefix, kMaxListingBytes).dump()));
+    });
+    return s.run.submit(s.io, std::move(job), textConverter(), true, std::move(s.reservation));
   }));
 }
 
 void installPackageAssets(js::Engine& e, const js::Value& object, const HostOptions& options) {
-  // native-rules #1: state shared by the asset host functions, no justification
+  // Shared by the host functions below and the jobs of the asynchronous
+  // read, which may run after the install is gone. Immutable.
   auto assets = std::make_shared<Assets>();
   if (!options.packageAssetsDir.empty()) assets->roots = canonicalRoots({{options.packageAssetsDir, false}});
-  e.set(object, "available", e.function("available", 0, [assets](js::Engine& en, Args) {
-    return en.boolean(!assets->roots.empty());
-  }));
-  e.set(object, "read", e.function("read", 1, [assets](js::Engine& en, Args a) {
-    const std::string key = a.empty() ? std::string() : en.toString(a[0]);
-    if (assets->roots.empty()) {
+  const std::shared_ptr<const Assets> store = std::move(assets);
+  const std::shared_ptr<RunBinding> binding = RunBinding::of(e);
+  auto requireRoot = [store](const std::string& key) {
+    if (store->roots.empty()) {
       throw std::runtime_error("package://" + key +
                                ": the native runner has no package assets directory (--package-assets)");
     }
-    auto data = assets->read(key);
+  };
+  e.set(object, "available", e.function("available", 0, [store](js::Engine& en, Args) {
+    return en.boolean(!store->roots.empty());
+  }));
+  e.set(object, "read", e.function("read", 1, [store, requireRoot](js::Engine& en, Args a) {
+    const std::string key = a.empty() ? std::string() : en.toString(a[0]);
+    requireRoot(key);
+    auto data = store->read(key);
     return data ? en.bytes(data->data(), data->size()) : en.null();
+  }));
+  e.set(object, "bound", e.function("bound", 0, [binding](js::Engine& en, Args) {
+    return en.boolean(binding->run() != nullptr);
+  }));
+  e.set(object, "readAsync", e.function("readAsync", 1, [store, binding, requireRoot](js::Engine& en, Args a) {
+    requireRoot(a.empty() ? std::string() : en.toString(a[0]));
+    return readAsync(en, a, store, binding);
   }));
 }
 

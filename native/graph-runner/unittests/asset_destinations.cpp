@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -477,6 +478,59 @@ void keysCheckedAtSubmission(Suite& t) {
 
 }  // namespace
 
+// A synchronous write's step runs on the calling thread, and the call
+// returns only after it committed, even when another thread schedules the
+// destination's line in between. The queue's hook runs once the step is
+// visible to other schedulers. There a competing thread takes a later place
+// in the same line and abandons it, which schedules the line. The step must
+// still run on the caller.
+void syncStepRunsOnTheCaller(Suite& t) {
+  TempDir dir;
+  const std::vector<Root> roots = gr::host::canonicalRoots({{dir.path(), true}});
+  const std::string destination = assetDestination(roots, "k.bin");
+  // Shared by the hooks and the competing thread, which the hook joins.
+  // Thread-safe: atomics, a mutex for the step's thread, and a queue and an
+  // executor the competing thread reaches through shared ownership.
+  struct Probe {
+    std::weak_ptr<DestinationQueue> queue;
+    std::shared_ptr<gr::InlineExecutor> spare = std::make_shared<gr::InlineExecutor>();
+    std::string destination;
+    std::atomic<bool> competed{false};
+    std::mutex mutex;
+    std::thread::id stepThread;  // guarded by mutex
+  };
+  auto probe = std::make_shared<Probe>();
+  probe->destination = destination;
+  auto queue = std::make_shared<DestinationQueue>(gr::DestinationQueueHooks{[probe](std::string_view point) {
+    if (point != "published" || probe->competed.exchange(true)) return;
+    std::thread competitor([queue = probe->queue.lock(), spare = probe->spare, at = probe->destination] {
+      auto later = queue->enqueue(at, *spare);
+      later.abandon();
+    });
+    competitor.join();
+  }});
+  probe->queue = queue;
+  gr::host::AssetJobHooks hooks{[probe](std::string_view point) {
+    if (point != "commit:validated") return;
+    std::lock_guard lock(probe->mutex);
+    probe->stepThread = std::this_thread::get_id();
+  }};
+  gr::host::writeAssetNow(*queue, roots, "k.bin", std::vector<uint8_t>{'n', 'e', 'w'}, hooks);
+  CHECK(probe->competed);
+  {
+    std::lock_guard lock(probe->mutex);
+    CHECK(probe->stepThread == std::this_thread::get_id());
+  }
+  CHECK(readFile(dir.path() + "/k.bin") == "new");
+  CHECK(queue->pending(destination) == 0);
+  size_t entries = 0;
+  for (const auto& entry : fs::directory_iterator(dir.path())) {
+    (void)entry;
+    ++entries;
+  }
+  CHECK(entries == 1);
+}
+
 int main() {
   Suite suite;
   const std::vector<std::pair<const char*, void (*)(Suite&)>> tests = {
@@ -486,6 +540,7 @@ int main() {
       {"ownTemporaryFileOnly", ownTemporaryFileOnly},
       {"confinementAtCommit", confinementAtCommit},
       {"keysCheckedAtSubmission", keysCheckedAtSubmission},
+      {"syncStepRunsOnTheCaller", syncStepRunsOnTheCaller},
       {"abandonedTicketRunsNoStep", abandonedTicketRunsNoStep},
       {"ancestorSwapBetweenAcquisitionAndUse", ancestorSwapBetweenAcquisitionAndUse},
   };

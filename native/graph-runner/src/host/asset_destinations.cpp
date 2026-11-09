@@ -1,8 +1,10 @@
 #include "host/asset_destinations.h"
 
 #include "host/assets.h"
+#include "host/unique_fd.h"
 
 #include <algorithm>
+#include <optional>
 #include <cerrno>
 #include <exception>
 #include <fcntl.h>
@@ -16,40 +18,6 @@ namespace {
 
 // Bytes written between two stop checks.
 constexpr size_t kWriteChunk = size_t(1) << 20;
-
-// An owned file descriptor, closed by the destructor.
-//
-// Thread affinity: none, one thread at a time. Ownership: unique, move-only.
-class UniqueFd {
-public:
-  UniqueFd() = default;
-  explicit UniqueFd(int fd) : fd_(fd) {}
-  UniqueFd(UniqueFd&& other) noexcept : fd_(std::exchange(other.fd_, -1)) {}
-  UniqueFd& operator=(UniqueFd&& other) noexcept {
-    if (this != &other) {
-      reset();
-      fd_ = std::exchange(other.fd_, -1);
-    }
-    return *this;
-  }
-  UniqueFd(const UniqueFd&) = delete;
-  UniqueFd& operator=(const UniqueFd&) = delete;
-  ~UniqueFd() { reset(); }
-
-  int get() const { return fd_; }
-  explicit operator bool() const { return fd_ >= 0; }
-  void reset() {
-    if (fd_ >= 0) ::close(std::exchange(fd_, -1));
-  }
-  // Closes now and returns close()'s errno, or 0.
-  int close() {
-    if (fd_ < 0) return 0;
-    return ::close(std::exchange(fd_, -1)) == 0 ? 0 : errno;
-  }
-
-private:
-  int fd_ = -1;
-};
 
 std::string leafOf(const std::string& path) { return path.substr(path.rfind('/') + 1); }
 
@@ -231,6 +199,24 @@ struct Target {
   AssetJobHooks hooks;
 };
 
+// Removes the destination of `target`, a regular file, relative to its
+// parent acquired without following a symlink. False when there was none.
+bool removeTarget(const Target& target) {
+  UniqueFd parent;
+  try {
+    parent = acquireParent(target.roots, target.key, target.destination, /*create=*/false, "unlink");
+  } catch (const FsError& e) {
+    if (e.code == "ENOENT") return false;
+    throw;
+  }
+  hook(target.hooks, "remove:acquired");
+  const std::string leaf = leafOf(target.destination);
+  struct stat st {};
+  if (::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode)) return false;
+  if (::unlinkat(parent.get(), leaf.c_str(), 0) != 0) throwErrno(errno, "unlink", target.key);
+  return true;
+}
+
 bool stopped(const std::stop_token& lane, const JobDelivery& delivery) {
   return lane.stop_requested() || delivery.runStop().stop_requested();
 }
@@ -285,7 +271,7 @@ public:
       outcome = JobOutcome{JobOutcome::Kind::Stopped, nullptr, "The asset removal was cancelled"};
     } else {
       try {
-        outcome = JobOutcome::value(std::make_unique<AssetRemoved>(remove()));
+        outcome = JobOutcome::value(std::make_unique<AssetRemoved>(removeTarget(target_)));
       } catch (const std::exception& e) {
         outcome = JobOutcome::failure(e.what());
       }
@@ -294,22 +280,6 @@ public:
   }
 
 private:
-  bool remove() const {
-    UniqueFd parent;
-    try {
-      parent = acquireParent(target_.roots, target_.key, target_.destination, /*create=*/false, "unlink");
-    } catch (const FsError& e) {
-      if (e.code == "ENOENT") return false;
-      throw;
-    }
-    hook(target_.hooks, "remove:acquired");
-    const std::string leaf = leafOf(target_.destination);
-    struct stat st {};
-    if (::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode)) return false;
-    if (::unlinkat(parent.get(), leaf.c_str(), 0) != 0) throwErrno(errno, "unlink", target_.key);
-    return true;
-  }
-
   Target target_;
   JobDelivery delivery_;
   std::stop_token lane_;
@@ -323,6 +293,9 @@ class AssetWriteJob final : public NativeJob {
 public:
   AssetWriteJob(DestinationQueue& queue, JobExecutor& commits, Target target, std::vector<uint8_t> bytes)
       : target_(std::move(target)), bytes_(std::move(bytes)), ticket_(queue.enqueue(target_.destination, commits)) {}
+
+  // The bytes it holds until they are staged. The result has no payload.
+  JobCost cost() const override { return {bytes_.size() + target_.key.size() + target_.destination.size(), 0, 0}; }
 
   JobOutcome run(std::stop_token) override { return JobOutcome::failure("an asset write runs through start()"); }
 
@@ -352,6 +325,8 @@ public:
   AssetRemoveJob(DestinationQueue& queue, JobExecutor& commits, Target target)
       : target_(std::move(target)), ticket_(queue.enqueue(target_.destination, commits)) {}
 
+  JobCost cost() const override { return {target_.key.size() + target_.destination.size(), 0, 0}; }
+
   JobOutcome run(std::stop_token) override { return JobOutcome::failure("an asset removal runs through start()"); }
 
   std::optional<JobOutcome> start(std::stop_token stop, JobDelivery& delivery) override {
@@ -370,6 +345,66 @@ Target target(std::vector<Root> roots, std::string key, AssetJobHooks hooks) {
   return Target{std::move(roots), std::move(key), std::move(destination), std::move(hooks)};
 }
 
+// What a synchronous step reports to its caller.
+//
+// Thread affinity: written by the step and read by the caller, on the
+// caller's thread, which runs the step. Shared with the step.
+struct NowResult {
+  std::optional<std::string> error;
+  bool removed = false;
+};
+
+// A synchronous write's commit, or removal, run on the calling thread.
+//
+// Thread affinity: that thread. Ownership: unique, handed to
+// Ticket::runHere(), which runs and destroys it there.
+class NowStep final : public DestinationStep {
+public:
+  NowStep(Target target, std::unique_ptr<StagedWrite> staged, std::shared_ptr<NowResult> result)
+      : target_(std::move(target)), staged_(std::move(staged)), result_(std::move(result)) {}
+
+  void run() noexcept override {
+    try {
+      if (staged_) {
+        staged_->commit(target_.roots, target_.key, target_.destination, target_.hooks);
+      } else {
+        result_->removed = removeTarget(target_);
+      }
+    } catch (const std::exception& e) {
+      if (staged_) staged_->discard();
+      result_->error = e.what();
+    }
+    staged_.reset();
+  }
+
+private:
+  Target target_;
+  // Null for a removal.
+  std::unique_ptr<StagedWrite> staged_;
+  std::shared_ptr<NowResult> result_;
+};
+
+// Takes the destination's place only when its line is empty, stages a
+// write of `bytes` when `bytes` is given, and runs the step on this thread.
+// A line with a queued or active place fails at once with EBUSY.
+bool runNow(DestinationQueue& queue, Target t, const std::vector<uint8_t>* bytes, const char* syscall) {
+  std::optional<DestinationQueue::Ticket> ticket = queue.enqueueIfIdle(t.destination);
+  if (!ticket) throw FsError("EBUSY", syscall, t.key, "an asynchronous operation on this asset is pending");
+  std::unique_ptr<StagedWrite> staged;
+  if (bytes) {
+    staged = std::make_unique<StagedWrite>();
+    // A failure here destroys `staged`, which removes its own temporary
+    // file, and the ticket leaves the line.
+    staged->stage(t.roots, t.key, t.destination, *bytes, std::stop_token{}, t.hooks);
+  }
+  auto result = std::make_shared<NowResult>();
+  // The place is the line's head from the start: claimed under the queue
+  // mutex and run here, so no other thread runs it.
+  ticket->runHere(std::make_unique<NowStep>(std::move(t), std::move(staged), result));
+  if (result->error) throw std::runtime_error(*result->error);
+  return result->removed;
+}
+
 }  // namespace
 
 std::string assetDestination(const std::vector<Root>& roots, const std::string& key) {
@@ -377,6 +412,15 @@ std::string assetDestination(const std::vector<Root>& roots, const std::string& 
   if (!roots.front().writable) throw FsError("EACCES", "open", key, "read-only directory");
   checkKey(key);
   return lexicalNormalize(rootDir(roots) + "/" + key);
+}
+
+void writeAssetNow(DestinationQueue& queue, std::vector<Root> roots, std::string key, const std::vector<uint8_t>& bytes,
+                   AssetJobHooks hooks) {
+  runNow(queue, target(std::move(roots), std::move(key), std::move(hooks)), &bytes, "open");
+}
+
+bool removeAssetNow(DestinationQueue& queue, std::vector<Root> roots, std::string key, AssetJobHooks hooks) {
+  return runNow(queue, target(std::move(roots), std::move(key), std::move(hooks)), nullptr, "unlink");
 }
 
 std::unique_ptr<NativeJob> makeAssetWriteJob(DestinationQueue& queue, JobExecutor& commits, std::vector<Root> roots,

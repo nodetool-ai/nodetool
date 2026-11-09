@@ -513,6 +513,10 @@ public:
   // disposeUnrun().
   js::Value submit(JobExecutor& executor, std::unique_ptr<NativeJob> job, ResultConverter convert,
                    bool cancellable = false, Reservation reservation = {});
+  // The executor submit() uses when given none: the run's CPU lane, or the
+  // worker in inline mode. A host resource whose operations run there, such
+  // as a media session, is created on it.
+  JobExecutor& executor() const { return executor_; }
   // Worker. An empty charge on the run's account, for a host function to
   // reserve snapshot bytes in before it copies them (job_inputs.h).
   Reservation reserve() const { return Reservation(account_); }
@@ -631,12 +635,15 @@ public:
   // The engine's binding, created on first use.
   static std::shared_ptr<RunBinding> of(js::Engine& engine);
 
-  // Binds `run` and `io` until the scope ends. `run` and `io` must outlive
-  // the scope. Throws when the engine already has a bound run. Worker only,
-  // like the binding.
+  // Binds `run`, `io` and `network` until the scope ends. They must outlive
+  // the scope. Network jobs never fall back to `io`: lane separation is part
+  // of the production contract, so a run without `network` binds no network
+  // lane and network host functions refuse. A test or an inline runner that
+  // wants one executor for both passes it twice. Throws when the engine
+  // already has a bound run. Worker only, like the binding.
   class Scope {
   public:
-    Scope(js::Engine& engine, AsyncRun& run, JobExecutor& io);
+    Scope(js::Engine& engine, AsyncRun& run, JobExecutor& io, JobExecutor* network = nullptr);
     ~Scope();
     Scope(const Scope&) = delete;
     Scope& operator=(const Scope&) = delete;
@@ -649,12 +656,15 @@ public:
   AsyncRun* run() const;
   // The bound run's I/O lane, or null.
   JobExecutor* io() const;
+  // The bound run's network lane, or null when the run bound none.
+  JobExecutor* network() const;
 
 private:
   [[no_unique_address]] ThreadOwner owner_;
   // Non-owning. Set and cleared by Scope, which ends before either object.
   AsyncRun* run_ = nullptr;
   JobExecutor* io_ = nullptr;
+  JobExecutor* network_ = nullptr;
 };
 
 }  // namespace gr

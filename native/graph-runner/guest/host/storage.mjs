@@ -101,6 +101,10 @@ export class InMemoryStorageAdapter {
 }
 
 const assets = () => globalThis.__host?.assets;
+// During a run the adapter uses the host's asynchronous functions, which run
+// on the I/O lane. Writes and removals then commit in call order through the
+// process destination queue. Outside a run it uses the synchronous ones.
+const bound = () => !!assets()?.bound?.();
 
 /** The key a `/api/storage/<key>` URI (or an http URL to one) names, or null. */
 function keyFromUri(uri) {
@@ -126,6 +130,11 @@ function keyFromUri(uri) {
   }
 }
 
+/** The host's stat JSON of `key`. */
+async function statText(key) {
+  return bound() ? await assets().statAsync(key) : assets().stat(key);
+}
+
 /** The asset store the embedder granted (HostOptions::assetDir), or null. */
 export function hostAssetStorage() {
   return assets()?.available() ? new HostAssetStorage() : null;
@@ -134,18 +143,21 @@ export function hostAssetStorage() {
 export class HostAssetStorage {
   async store(key, data) {
     const normalized = normalizeStorageKey(key);
-    assets().write(normalized, data instanceof Uint8Array ? data : new Uint8Array(data));
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+    if (bound()) await assets().writeAsync(normalized, bytes);
+    else assets().write(normalized, bytes);
     return this.uriForKey(normalized);
   }
 
   async retrieve(uri) {
     const key = keyFromUri(uri);
-    return key ? assets().read(key) : null;
+    if (!key) return null;
+    return bound() ? await assets().readAsync(key) : assets().read(key);
   }
 
   async exists(uri) {
     const key = keyFromUri(uri);
-    return key ? JSON.parse(assets().stat(key)) !== null : false;
+    return key ? JSON.parse(await statText(key)) !== null : false;
   }
 
   uriForKey(key) {
@@ -163,7 +175,8 @@ export class HostAssetStorage {
     }
     // The host lists every file below a directory key, as the in-memory
     // adapter matches `<prefix>/`. A prefix that is no directory lists nothing.
-    const stored = JSON.parse(assets().list(normalized)).map((e) => ({ key: e.key, size: e.size, modifiedAt: e.mtimeMs }));
+    const listed = bound() ? await assets().listAsync(normalized) : assets().list(normalized);
+    const stored = JSON.parse(listed).map((e) => ({ key: e.key, size: e.size, modifiedAt: e.mtimeMs }));
     return listResult(stored, normalized, opts, (key) => this.uriForKey(key));
   }
 
@@ -182,13 +195,14 @@ export class HostAssetStorage {
 
   async delete(uri) {
     const key = keyFromUri(uri);
-    return key ? assets().remove(key) : false;
+    if (!key) return false;
+    return bound() ? await assets().removeAsync(key) : assets().remove(key);
   }
 
   async stat(uri) {
     const key = keyFromUri(uri);
     if (!key) return null;
-    const st = JSON.parse(assets().stat(key));
+    const st = JSON.parse(await statText(key));
     return st ? { key, size: st.size, modifiedAt: st.mtimeMs } : null;
   }
 

@@ -28,6 +28,7 @@ const std::map<std::string, std::string>& descriptions() {
       {"ENOSPC", "no space left on device"},
       {"EROFS", "read-only file system"},
       {"EIO", "i/o error"},
+      {"EBUSY", "resource busy or locked"},
   };
   return table;
 }

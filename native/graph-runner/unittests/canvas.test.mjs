@@ -58,6 +58,15 @@ check(
   ctx.getImageData(40, 10, 1, 1).data.join(",") === "10,20,30,255",
   "pixel roundtrip"
 );
+const synchronous = c.toBuffer();
+check(synchronous instanceof Uint8Array, "toBuffer returns bytes at the call");
+const encoded = await c.encode();
+const blob = await c.convertToBlob();
+const blobBytes = new Uint8Array(await blob.arrayBuffer());
+check(
+  encoded.join(",") === synchronous.join(",") && blobBytes.join(",") === synchronous.join(","),
+  "encode and convertToBlob match toBuffer"
+);
 const decoded = await loadImage(c.toBuffer());
 const target = createCanvas(128, 96),
   t = target.getContext("2d");
