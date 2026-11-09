@@ -117,7 +117,9 @@ describe("GalleryWidget", () => {
     expect(screen.getByText("Results")).toBeInTheDocument();
   });
 
-  it("resolves asset locators through the media primitive", () => {
+  // A gallery tile is a few hundred pixels wide, so it paints the asset's
+  // thumbnail rather than downloading the stored original.
+  it("resolves asset locators to their thumbnail through the media primitive", () => {
     const { container } = renderWidget(
       <GalleryWidget id="g1" binding="result" />,
       withOutput(["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"])
@@ -125,7 +127,7 @@ describe("GalleryWidget", () => {
 
     expect(container.querySelector("img")).toHaveAttribute(
       "src",
-      "https://cdn.test/resolved.png"
+      "https://cdn.test/thumb.png"
     );
   });
 

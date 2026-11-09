@@ -187,6 +187,7 @@ const EntityEditorDialogInternal: React.FC<EntityEditorDialogProps> = ({
             >
               <ImageRefPreview
                 value={mediaRefFromAsset({ id: referenceAssetId }, "image")}
+                preferThumbnail
               />
             </div>
             <EditorButton

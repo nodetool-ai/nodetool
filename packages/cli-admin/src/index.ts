@@ -26,12 +26,21 @@ export function createProgram(): Command {
   registerTelemetryCommands(program);
   registerTelegramCommands(program);
   registerPackCommands(program);
-  program.command("storage").command("migrate-keys").option("--dry-run").option("--user-id <id>").option("--json").action(async (flags: { dryRun?: boolean; userId?: string; json?: boolean }) => {
+  const storage = program.command("storage");
+  storage.command("migrate-keys").option("--dry-run").option("--user-id <id>").option("--json").action(async (flags: { dryRun?: boolean; userId?: string; json?: boolean }) => {
     const { setupCliDb } = await import("@nodetool-ai/cli-local/local-db");
     await setupCliDb();
     const { migrateStorageKeys, formatMigrateKeysReport } = await import("./commands/storage.js");
     const report = await migrateStorageKeys(flags);
     process.stdout.write(`${flags.json ? JSON.stringify(report, null, 2) : formatMigrateKeysReport(report, Boolean(flags.dryRun))}\n`);
+    if (report.failed > 0) { process.exitCode = 1; }
+  });
+  storage.command("refresh-cache-control").description("Rewrite asset objects stored without the upload Cache-Control").option("--dry-run").option("--user-id <id>").option("--json").action(async (flags: { dryRun?: boolean; userId?: string; json?: boolean }) => {
+    const { setupCliDb } = await import("@nodetool-ai/cli-local/local-db");
+    await setupCliDb();
+    const { refreshStorageCacheControl, formatRefreshCacheControlReport } = await import("./commands/storage-cache-control.js");
+    const report = await refreshStorageCacheControl(flags);
+    process.stdout.write(`${flags.json ? JSON.stringify(report, null, 2) : formatRefreshCacheControlReport(report, Boolean(flags.dryRun))}\n`);
     if (report.failed > 0) { process.exitCode = 1; }
   });
   const registerCodeMigration = (command: Command): void => { command.option("--dry-run").option("--user-id <id>").option("--json").action(async (flags: { dryRun?: boolean; userId?: string; json?: boolean }) => {

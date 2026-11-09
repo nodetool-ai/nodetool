@@ -31,7 +31,9 @@ Publishing requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
 The shipped previews live in the public `preset-previews` bucket of the NodeTool
 Supabase project.
 The script uses the storage adapter to upload a muted MP4 of up to three seconds
-and a PNG poster, updates the preset JSON, and regenerates the catalogue. Set
+and a JPEG poster at most 960 pixels wide, updates the preset JSON, and
+regenerates the catalogue. Both objects carry the adapter's `Cache-Control`, so
+a browser keeps them instead of downloading them again for every card. Set
 `--final` when publishing final renders. Review every clip before publishing.
 MP4 looping is controlled by the player.
 
@@ -80,3 +82,18 @@ template differs, and `packages/presets/tests/effects-template.test.ts` runs it.
 After a change, refresh the marketing copies with
 `node marketing/scripts/generate-template-entries.mjs` and
 `node marketing/scripts/generate-template-catalog.mjs`.
+
+## Refreshing published previews
+
+Previews published before posters became JPEGs, or before uploads set
+`Cache-Control`, are fixed in place with the same environment variables:
+
+```bash
+node scripts/presets/refresh-previews.mjs --dry-run
+node scripts/presets/refresh-previews.mjs
+```
+
+A PNG poster is resized into a JPEG beside it and the preset JSON points at the
+JPEG. A clip or poster without the header is written back under its own key, so
+its URL does not change. Commit the changed preset JSON and catalogue. Re-running
+the script changes nothing.
