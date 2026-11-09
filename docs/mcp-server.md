@@ -153,6 +153,7 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | `search_nodes` | Search node types by keyword. |
 | `get_node_info` | Return a node type's inputs, outputs, types, and defaults. |
 | `list_nodes` | List node types, optionally filtered by namespace. |
+| `open_app` | Open one of your mini apps. Hosts that support MCP Apps show the app's screen in the conversation. See [Mini apps in the host](#mini-apps-in-the-host). |
 
 One tool per provider capability is also direct: `generate_text`, `generate_image`, `edit_image`, `segment_image`, `generate_video`, `animate_image`, `generate_video_from_references`, `generate_speech`, `generate_music`, `transcribe_audio`, and `embed_text`. Each takes a `provider` and `model` from `find_model`. Generated media is saved as an asset and the result carries its `asset://` URI.
 
@@ -164,9 +165,44 @@ One tool per provider capability is also direct: `generate_text`, `generate_imag
 |---|---|---|
 | `nodetool://capabilities` | Resource | The modules mounted for the session, every tool an action can call, and each tool's permission category, as JSON. |
 | `nodetool://sandbox` | Resource | How to write `execute_code`: the guest contract, blocked globals, unavailable bridges, and worked examples. |
+| `ui://nodetool/mini-app.html` | Resource | The mini app renderer, an HTML page of type `text/html;profile=mcp-app` that `open_app` links to. |
 | `sandbox-action` | Prompt | A complete `execute_code` body that lists workflows, picks a model, and generates one image. |
 | `sandbox-asset` | Prompt | A complete `execute_code` body that lists one asset and fetches its ref. |
 | `<skill-name>` | Prompt | One prompt for each skill the user can load: the shipped system skills and the user's own skills. The prompt returns the skill body. The optional `request` argument adds the task. Claude Code shows each prompt as a slash command. |
+
+## Mini apps in the host
+
+`open_app` takes an app id or its 12-character short id. In a host that supports
+the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview),
+the app's screen appears in the conversation. The user fills its fields and
+presses its buttons there. Other hosts get a text summary of the app and its
+operations.
+
+The screen is the app's default working instance, the same one **Run** opens
+in Studio. It runs the released version when the app has one, otherwise the
+draft. Each run is an app run with origin `agent`: the app's spend budget
+applies, and the run appears in the app's run history.
+
+| Part | What it does |
+|---|---|
+| `ui://nodetool/mini-app.html` | One self-contained page. It draws the widgets the same way an [exported app](api-reference.md#exporting-an-app-as-a-standalone-project) does, and loads nothing from the network. |
+| `run_app_operation` | Starts one operation and waits up to 8 seconds. A short run finishes in this one call. |
+| `poll_app_run` | Returns the messages a run produced since the last call, or cancels the run. |
+
+The page calls `run_app_operation` and `poll_app_run` through the host. Both are
+marked app-only (`_meta.ui.visibility: ["app"]`), so the model does not see them.
+`upload_asset` stores files that the page's file inputs pick.
+
+Results up to 8 MB per value arrive inline as `data:` URLs. With S3 or Supabase
+asset storage, a larger asset loads from a signed URL whose origin the page's
+Content Security Policy lists. On the local file backend, a larger result does
+not display in the host. Model pickers offer the models the app's own graphs
+use. Widgets that edit NodeTool documents, such as Storyboard and Timeline,
+show a note that they work only in NodeTool.
+
+A run is tracked by the server process that started it. When a poll reaches a
+different replica or a restarted server, the page reports that the run is gone.
+The run still finishes, and its result is in the app's run history in Studio.
 
 ## Troubleshooting
 
