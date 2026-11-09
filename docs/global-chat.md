@@ -29,20 +29,26 @@ Click the model chip in the composer. The list shows models from your configured
 
 ## Composer Modes
 
-![Composer Modes](assets/screenshots/chat-composer-modes.png)
+A message sent from the chat page is always a chat turn. To generate media, start a Create tab from **Image**, **Video**, or **Audio** on the home screen. A picture or clip in a chat reply has **Open in Create**, which opens a Create tab with the reply's prompt and media as references.
 
-Click the mode chip to switch:
+The chat panel in the workflow editor keeps a mode chip. Click it to switch:
+
+![The mode menu in the workflow editor's chat panel](assets/screenshots/chat-composer-modes.png)
 
 | Mode | What it does |
 |------|--------------|
 | **Chat** | Talk to the model, run tools, and drive agents |
-| **Generate Images** | Text-to-image with your chosen image model |
-| **Edit Images** | Image-to-image edits on a dropped image |
-| **Generate Videos** | Text-to-video |
-| **Animate Image** | Turn a still image into a clip |
-| **Reference to Video** | One clip from several attached images and videos — a character plus a garment, a product plus a location, a clip whose motion the new shot follows |
-| **Generate Speech** | Text-to-speech with a voice picker |
-| **Generate Music** | Text-to-music with your chosen music model and a duration |
+| **Generate images** | Text-to-image with your chosen image model |
+| **Edit images** | Image-to-image edits on a dropped image |
+| **Generate videos** | Text-to-video |
+| **Animate image** | Turn a still image into a clip |
+| **Reference to video** | One clip from several attached images and videos — a character plus a garment, a product plus a location, a clip whose motion the new shot follows |
+| **Retake** | Change an attached video |
+| **Extend** | Add footage to an attached video |
+| **Read aloud** | Text-to-speech with a voice picker |
+| **Generate music** | Text-to-music with your chosen music model and a duration |
+
+**Audio to video** and **Motion control** are listed as **Soon** and cannot be picked yet.
 
 Each mode adds its own controls (resolution, aspect ratio, duration, voice) and attaches them to the message so the server routes to the right provider call.
 

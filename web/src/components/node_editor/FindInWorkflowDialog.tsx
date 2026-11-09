@@ -258,8 +258,8 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           <Box className="find-search">
             <SearchInput
               ref={inputRef}
-              ariaLabel={t("findInWorkflow.search")}
-              placeholder={t("findInWorkflow.search")}
+              ariaLabel={t("i18n-next32.findInWorkflow.search")}
+              placeholder={t("i18n-next32.findInWorkflow.search")}
               value={searchTerm}
               onChange={performSearch}
               onClear={clearSearch}
@@ -269,7 +269,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
           </Box>
           <Box className="navigation-buttons">
             <Tooltip
-              title={t("findInWorkflow.previousMatch")}
+              title={t("i18n-next32.findInWorkflow.previousMatch")}
               shortcut={["Shift", "Enter"]}
               describeChild
               disabled={results.length === 0}
@@ -279,13 +279,13 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                 className="nav-button"
                 onClick={navigatePrevious}
                 disabled={results.length === 0}
-                aria-label={t("findInWorkflow.previousMatch")}
+                aria-label={t("i18n-next32.findInWorkflow.previousMatch")}
               >
                 <ArrowUpwardIcon fontSize="small" />
               </button>
             </Tooltip>
             <Tooltip
-              title={t("findInWorkflow.nextMatch")}
+              title={t("i18n-next32.findInWorkflow.nextMatch")}
               shortcut={["Enter"]}
               describeChild
               disabled={results.length === 0}
@@ -295,7 +295,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                 className="nav-button"
                 onClick={navigateNext}
                 disabled={results.length === 0}
-                aria-label={t("findInWorkflow.nextMatch")}
+                aria-label={t("i18n-next32.findInWorkflow.nextMatch")}
               >
                 <ArrowDownwardIcon fontSize="small" />
               </button>
@@ -313,12 +313,12 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         <Box className="results-count">
           {results.length > 0 ? (
             <>
-              {t("findInWorkflow.resultsCount", { current: selectedIndex + 1, count: results.length })}
+              {t("i18n-next32.findInWorkflow.resultsCount", { current: selectedIndex + 1, count: results.length })}
             </>
           ) : searchTerm ? (
-            <>{t("findInWorkflow.noNodesFound")}</>
+            <>{t("i18n-next32.findInWorkflow.noNodesFound")}</>
           ) : (
-            <>{t("findInWorkflow.typeToSearch")}</>
+            <>{t("i18n-next32.findInWorkflow.typeToSearch")}</>
           )}
         </Box>
 
@@ -356,7 +356,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
             size="small"
             variant="no-results"
             icon={<SearchIcon />}
-            title={t("findInWorkflow.noMatchingNodes")}
+            title={t("i18n-next32.findInWorkflow.noMatchingNodes")}
           />
         ) : null}
       </Box>

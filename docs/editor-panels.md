@@ -111,7 +111,7 @@ Jobs for your workflows in four columns: **Running**, **Queued**, **Completed**,
 
 The GPU workers panel. It lists provisioned worker instances with status, uptime, and estimated cost, provisions a new worker from a profile, and stops one or all of them. GPU pods bill continuously, so stop workers you no longer need.
 
-![Sandboxes Panel](assets/screenshots/editor-bottom-panel-sandboxes.png)
+![Workers Panel](assets/screenshots/editor-bottom-panel-sandboxes.png)
 
 ### Versions
 

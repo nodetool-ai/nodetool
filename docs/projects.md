@@ -29,7 +29,7 @@ Click a card to open the project. The dashed **Start a project** card does the s
 
 ## Start a project
 
-**+ New project**, on the Projects page or at the top of the **Project** selector, asks for a project name. **Create project** adds the project to the list, makes it the active project, and opens its home surface, titled "What do you want to make?".
+**+ New project**, on the Projects page or at the top of the **Project** selector, asks for a project name. **Create project** adds the project to the list, makes it the active project, and opens its home surface, titled "What would you like to create?".
 
 ![Start a project](assets/screenshots/project-new.png)
 
