@@ -91,7 +91,7 @@ const seeds: FaqSeed[] = [
       "NodeTool is an open-source app for making images, video, audio, and text with AI. You describe what you want, and a built-in AI agent does the work: it writes, generates, and edits inside NodeTool's editors. Then you can change any part yourself. You get an editable project, not just a finished file, so your steps, media, and edits stay together. Run supported AI models on your own computer, or connect online AI providers such as OpenAI, Google, and fal.ai with your own accounts.",
     category: "general",
     relatedRoute: "/",
-    surfaces: ["landing", "agents", "comparison"],
+    surfaces: ["landing", "comparison"],
   },
   {
     slug: "is-nodetool-open-source",
@@ -254,8 +254,8 @@ const seeds: FaqSeed[] = [
     answerMd:
       "Yes. NodeTool runs as an MCP server. Run `npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install` and restart the agent. The command registers NodeTool with Claude Code, Codex, and OpenCode, and `nodetool-mcp config` prints a config block for Cursor, Claude Desktop, and other clients. The agent gets workflows, image, video, and audio generation, and your asset library as tools. Studio is optional. When Studio runs, the agent's changes appear in the open editor.",
     category: "general",
-    relatedRoute: "/agents",
-    surfaces: ["agents", "developers"],
+    relatedRoute: "/developers",
+    surfaces: ["developers"],
   },
   {
     slug: "what-is-a-creative-harness",

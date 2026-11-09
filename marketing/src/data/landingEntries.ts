@@ -19,7 +19,7 @@ import { templateEntries, type TemplateEntry } from "./templates";
 export type LandingKind = "use-case" | "persona";
 
 /** A shared body section to render under the hero, in order. */
-export type LandingSection = "features" | "use-cases";
+export type LandingSection = "features" | "use-cases" | "local-demo";
 
 interface LandingEntry extends PageEntry {
   slug: string;
@@ -212,7 +212,7 @@ export const landingEntries: LandingEntry[] = [
     route: "/solutions/local-first",
     title: title("Local-First AI Workflows"),
     description:
-      "Run AI workflows entirely on your own hardware. NodeTool Studio executes open-weight models locally — no account, no data leaving your machine, no per-token bill.",
+      "Run an AI workflow on your own computer with the network off. NodeTool Studio sends the prompt to a local Ollama model, keeps the project on disk, and needs no account.",
     priority: 0.7,
     changeFrequency: "monthly",
     indexable: true,
@@ -221,26 +221,27 @@ export const landingEntries: LandingEntry[] = [
     eyebrow: "For local-first builders",
     headline: "Local-First AI Workflows",
     subhead:
-      "Your models, your machine, your data. NodeTool Studio runs image, video, audio, and text workflows on your own computer using open models. There is no account to create and nothing is sent to a server you do not control.",
-    featuredTemplate: "image-enhance",
+      "Run a workflow on an open model on your own computer. Below is one run on Ollama, the memory each model needs, and what still works when you disconnect.",
+    featuredTemplate: "private-assistant",
     highlights: [
-      "Open-weight models on Apple Silicon, NVIDIA, or CPU",
-      "No account required, nothing phones home",
-      "Add cloud providers only when you want them, using your own keys",
+      "Ollama, MLX, llama.cpp, vLLM, or LM Studio",
+      "No account, and no API key for local models",
+      "Update checks and analytics stay off until you turn them on",
+      "Hosted models only on the nodes where you pick one",
     ],
-    sections: ["features", "use-cases"],
+    sections: ["local-demo"],
     faqs: [
       {
-        q: "Does NodeTool work fully offline?",
-        a: "Yes, with local models. Download them once and run image, audio, and text workflows with no internet connection. Cloud providers are only used where you choose to add them.",
+        q: "Can one workflow mix local and hosted models?",
+        a: "Yes. Each node has its own model. Keep the private step on a local model and send only the step that needs a hosted model to that provider. Only that node needs the network.",
       },
       {
-        q: "What hardware do I need?",
-        a: "NodeTool Studio runs on Apple Silicon, NVIDIA GPUs, or CPU. Heavier models want a GPU; many text and audio workflows run comfortably on a laptop.",
+        q: "Can it run image, speech, and video models locally too?",
+        a: "Yes. Image and speech models such as Stable Diffusion XL, FLUX.1 schnell, Whisper, and Kokoro run through the HuggingFace pack on an NVIDIA card, an AMD card on Linux, or an Apple Silicon Mac. Local video generation needs an NVIDIA or AMD card. The Model Manager lists the models that fit your machine.",
       },
       {
-        q: "Where is my data stored?",
-        a: "On your machine. Assets, workflows, and keys stay local unless you deliberately call a cloud model or deploy to your own server.",
+        q: "Does Cloud run local models?",
+        a: "No. Cloud runs on our servers and uses hosted providers. Local models need Studio, the desktop app.",
       },
     ],
     accent: "emerald",

@@ -150,6 +150,9 @@ export type Competitor = {
   /** Hero headline and subline, when the category default in `alternativesVisuals.ts` does not fit. */
   hero?: { headline: string; subline: string };
 
+  /** The short answer above the table, when the generic one in `shortAnswer` would only repeat the hero. */
+  answer?: string;
+
   /** Optional search snippet for pages with a distinct, high-volume query intent. */
   seo?: { title: string; description: string };
   starter?: { id: SearchStarter; source: LandingPage; heading: string };
@@ -1351,22 +1354,29 @@ export const competitors: Competitor[] = [
         "The studio around the node editor — every medium, every provider.",
     },
     competitorTagline: "Node editor for image and video generation",
+    hero: {
+      headline: "Keep the ComfyUI graph. Add the editors around it.",
+      subline:
+        "NodeTool runs a ComfyUI workflow exported in API format as one node. Its Load nodes become inputs, its Save nodes become outputs, and the images and video it returns land in the same project as your storyboard and timeline.",
+    },
+    answer:
+      "ComfyUI is a node editor for image and video generation graphs, with fine control over every sampler and model setting. NodeTool is a creative workspace in which a generation graph is one editor beside a storyboard, layered sketch, script, and video timeline. It can call a ComfyUI server, a NodeTool GPU worker, or Comfy Cloud as a node in that graph.",
     rows: [
       { label: "Media types", competitor: "Image, video, audio via supported workflows", nodetool: "Image, video, audio, text" },
       { label: "Models", competitor: "Local and partner image/video models", nodetool: "Local and hosted models across media types" },
-      { label: "Provider access", competitor: "Local and partner models", nodetool: "Local and hosted models on your accounts" },
       { label: "Editing tools (masks, inpaint, relight, layers)", competitor: "Available through workflows and nodes", nodetool: "Integrated editors and nodes" },
       { label: "Local models", competitor: true, nodetool: true },
       { label: "Desktop + browser", competitor: "Local web interface and Comfy Cloud", nodetool: "Studio and Cloud (alpha)" },
       { label: "Open source", competitor: true, nodetool: true },
       { label: "Custom-node stability", competitor: "Third-party, versions can conflict", nodetool: "Built-in, one maintained codebase" },
       { label: "Workflow portability across machines", competitor: "Custom nodes may need installation", nodetool: "Requires matching models and provider access" },
+      { label: "Runs ComfyUI workflows", competitor: true, nodetool: "As a node, on your ComfyUI server, a NodeTool GPU worker, or Comfy Cloud" },
     ],
     explainerParagraph:
-      "ComfyUI supports text-to-video and image-to-video as well as diffusion images. Choose it when you need detailed control of a generation graph and its model settings. NodeTool places generation workflows beside a storyboard, layered sketch, script, and video timeline. An agent can help build and revise the workflow, while the project remains editable. Both tools need the relevant models, extensions, or provider access for a shared workflow to run on another machine.",
-    ctaHeading: "Open, complete, and yours.",
+      "Choose ComfyUI when the graph itself is the work and you tune samplers, schedulers, and custom nodes by hand. It runs text-to-video and image-to-video as well as diffusion images. Shared graphs that use custom nodes need the same extensions and models on the next machine, and so do NodeTool workflows that call them.",
+    ctaHeading: "Bring one ComfyUI workflow.",
     ctaParagraph:
-      "Download Studio and build across image, video, audio, and text in one place.",
+      "Export it in API format and load it into the Run ComfyUI Workflow node in Studio. The rest of the graph, and the editors, work on what it returns.",
     faq: [
       {
         question: "Why do ComfyUI workflows break after sharing or updating?",
@@ -1374,14 +1384,9 @@ export const competitors: Competitor[] = [
           "A shared ComfyUI graph may refer to custom nodes or models that are missing on another machine. ComfyUI Manager can help install missing nodes. Check extension and model requirements before sharing. NodeTool workflows also need matching models and provider access, although its core editing surfaces ship with the app.",
       },
       {
-        question: "Is NodeTool open source like ComfyUI?",
+        question: "Can NodeTool run my existing ComfyUI workflows?",
         answer:
-          "Yes. NodeTool is open source under AGPL-3.0. You can run it as a desktop app on macOS, Windows, or Linux, or in the browser via NodeTool Cloud, which is managed hosting of the same open-source code.",
-      },
-      {
-        question: "How does NodeTool handle model pricing?",
-        answer:
-          "NodeTool runs on your own keys — you bring your own API keys and pay each provider their list price. There are no credits, no markup, and no hand-picked list of models. You can also run local models with Ollama, MLX, or llama.cpp in the desktop app.",
+          "Yes, when the workflow is exported in API (prompt) format. The Run ComfyUI Workflow node sends it to a ComfyUI server you run, to a NodeTool GPU worker that fronts ComfyUI, or to Comfy Cloud with a COMFY_API_KEY. The server needs the workflow's custom nodes and models.",
       },
     ],
     limitation:
@@ -2102,6 +2107,7 @@ export function getCompetitor(slug: string): Competitor | undefined {
  * and short enough to be quoted whole.
  */
 export function shortAnswer(c: Competitor): string {
+  if (c.answer) return c.answer;
   const article = /^[aeiou]/i.test(c.competitorTagline) ? "an" : "a";
   const tagline =
     c.competitorTagline.charAt(0).toLowerCase() + c.competitorTagline.slice(1);

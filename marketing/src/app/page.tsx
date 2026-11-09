@@ -8,7 +8,9 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
 import ProjectSection from "../components/ProjectSection";
-import SurfaceShowcase from "../components/SurfaceShowcase";
+import SurfaceShowcase, {
+  STORYBOARD_COST_COPY,
+} from "../components/SurfaceShowcase";
 import SpecStrip from "../components/SpecStrip";
 import FaqBlock from "../components/FaqBlock";
 import { Download } from "lucide-react";
@@ -28,6 +30,9 @@ const sectionNarrow = "mx-auto max-w-2xl px-6";
  * /node-based-workflows, editions on /studio and /cloud. Add a section here
  * only by removing one.
  */
+/** Stable across renders, so SurfaceShowcase does not rebuild its panels. */
+const HOME_SURFACE_COPY = { storyboard: STORYBOARD_COST_COPY };
+
 export default function Home() {
   const parallaxRef = useGridParallax();
 
@@ -122,6 +127,7 @@ export default function Home() {
           surfaceIds={["storyboard"]}
           heading="Approve the still before you pay for the clip."
           intro="The storyboard holds one still per shot. Only the shots you approve become video."
+          copy={HOME_SURFACE_COPY}
         />
 
         {/* 4. The shared facts, one line each, linked to the page that owns
