@@ -13,6 +13,7 @@
 
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QImage>
 #include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -355,6 +356,22 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
         observe(s, root, view, model, clock.time());
     }
     if (qEnvironmentVariableIsSet("NT_UIBENCH_ITEMS")) dumpItems(window.contentItem(), 0);
+    // NT_UIBENCH_SHOT=PATH: save the last frame as an image.
+    if (const QString shot = qEnvironmentVariable("NT_UIBENCH_SHOT"); !shot.isEmpty()) {
+        QRhiReadbackResult readback;
+        control.polishItems();
+        control.beginFrame();
+        control.sync();
+        control.render();
+        QRhiResourceUpdateBatch* batch = rhi->nextResourceUpdateBatch();
+        batch->readBackTexture(QRhiReadbackDescription(target.get()), &readback);
+        control.commandBuffer()->resourceUpdate(batch);
+        control.endFrame();
+        QImage image(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
+                     readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
+        if (rhi->isYUpInFramebuffer()) image = image.mirrored();
+        std::fprintf(stderr, "screenshot %s: %s\n", qPrintable(shot), image.copy().save(shot) ? "saved" : "FAILED");
+    }
     clock.pause();
     return report(options, model, s, script.events, view->flushCount() - flushesAtStart,
                   view->clipWindowUpdates() - windowUpdatesAtStart);

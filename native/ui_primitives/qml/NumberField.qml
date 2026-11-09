@@ -16,6 +16,10 @@ Basic.TextField {
     property bool previewWhileTyping: true
     property bool editing: false
     property real editBaseline: 0
+    // A quiet field shows its value as coloured text with no box until it has focus, as in an editor's property list.
+    property bool quiet: false
+    property color quietColor: Theme.accentPrimary
+    readonly property bool boxed: !quiet || activeFocus
     readonly property bool draftValid: text.trim() !== "" && Number.isFinite(Number(text)) && Number(text) >= from && Number(text) <= to
     signal editStarted()
     signal valuePreviewed(real value)
@@ -24,19 +28,20 @@ Basic.TextField {
     Accessible.name: accessibleName
     Accessible.description: valid && draftValid ? unit : errorText
     implicitHeight: Math.max(density === Ui.EditorButton.Compact ? Metrics.compact : density === Ui.EditorButton.Comfortable ? Metrics.comfortable : Metrics.standard, contentHeight + Metrics.md)
-    leftPadding: root.LayoutMirroring.enabled && unitLabel.visible ? unitLabel.width + Metrics.md * 2 : Metrics.md
+    leftPadding: root.LayoutMirroring.enabled && unitLabel.visible ? unitLabel.width + Metrics.md * 2 : root.boxed ? Metrics.md : 0
     rightPadding: !root.LayoutMirroring.enabled && unitLabel.visible ? unitLabel.width + Metrics.md * 2 : Metrics.md
     topPadding: Metrics.xs; bottomPadding: Metrics.xs
     font.family: Typography.family(Typography.MonoLabel)
     font.pixelSize: Typography.pixelSize(Typography.MonoLabel)
     font.weight: Typography.weight(Typography.MonoLabel)
-    color: enabled ? Theme.textPrimary : Theme.textDisabled
+    color: !enabled ? Theme.textDisabled : boxed ? Theme.textPrimary : quietColor
+    font.underline: !boxed && hovered
     selectionColor: Theme.accentPrimary; selectedTextColor: Theme.textOnAccent
     text: displayValue
-    Ui.Text { id: unitLabel; LayoutMirroring.enabled: false; anchors.left: root.LayoutMirroring.enabled ? parent.left : undefined; anchors.right: root.LayoutMirroring.enabled ? undefined : parent.right; anchors.leftMargin: Metrics.md; anchors.rightMargin: Metrics.md; anchors.verticalCenter: parent.verticalCenter; text: root.unit; visible: text !== ""; role: Typography.SansCaption; tone: Ui.Text.Secondary }
+    Ui.Text { id: unitLabel; LayoutMirroring.enabled: false; anchors.left: root.LayoutMirroring.enabled ? parent.left : undefined; anchors.right: root.LayoutMirroring.enabled || !root.boxed ? undefined : parent.right; x: root.boxed ? 0 : root.leftPadding + root.contentWidth + Metrics.xs; anchors.leftMargin: Metrics.md; anchors.rightMargin: Metrics.md; anchors.verticalCenter: parent.verticalCenter; text: root.unit; visible: text !== ""; role: Typography.SansCaption; tone: Ui.Text.Secondary }
     background: Rectangle {
-        color: root.enabled ? Theme.surfaceInput : Theme.actionDisabled; radius: Metrics.radiusControl
-        border.width: root.activeFocus ? Metrics.focus : Metrics.border
+        color: !root.boxed ? "transparent" : root.enabled ? Theme.surfaceInput : Theme.actionDisabled; radius: Metrics.radiusControl
+        border.width: !root.boxed ? 0 : root.activeFocus ? Metrics.focus : Metrics.border
         border.color: !root.valid || !root.draftValid ? Theme.borderError : root.activeFocus ? Theme.borderFocus : Theme.borderControl
     }
     function isValidDraft() { const n = Number(text); return text.trim() !== "" && Number.isFinite(n) && n >= from && n <= to }

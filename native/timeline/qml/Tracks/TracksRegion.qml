@@ -234,12 +234,15 @@ Rectangle {
             x: Ui.Metrics.lg
             height: parent.height - 1
             spacing: Ui.Metrics.sm
+            // The sequence timecode in the corner, blue as the playhead.
             Ui.Text {
                 id: eyebrow
+                objectName: "tracksTimecode"
                 anchors.verticalCenter: parent.verticalCenter
-                text: "TRACKS"
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
+                text: TimelineFormat.playheadTimecode(region.clock.time, region.timeline.fps)
+                role: Ui.Typography.MonoStrong
+                domainColor: TimelineVisuals.editBlue
+                Accessible.name: "Playhead timecode"
             }
             Row {
                 id: headerActions

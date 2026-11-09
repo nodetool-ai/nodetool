@@ -13,6 +13,9 @@ Column {
     id: root
     required property var panel
     required property var group
+    // "Video" or "Audio" on the first group of that kind, which then shows that heading above it.
+    property string category: ""
+    readonly property bool sound: group.kind === "audioEffect" || group.id === "volume"
     readonly property var controller: panel.controller
     readonly property int revision: controller.revision
     readonly property var effect: {
@@ -65,15 +68,31 @@ Column {
         }
     }
     Item {
+        objectName: "effectControlsCategory_" + root.category
+        visible: root.category !== ""
+        width: root.width
+        height: visible ? Ui.Metrics.compact : 0
+        Rectangle { width: parent.width; height: parent.height; color: Ui.Theme.surfaceOverlay }
+        Ui.Text {
+            x: Ui.Metrics.sm
+            height: parent.height
+            verticalAlignment: Text.AlignVCenter
+            text: root.category
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Secondary
+        }
+        Ui.Separator { y: parent.height - height; width: parent.width }
+    }
+    Item {
         objectName: "effectControlsGroup_" + root.group.id
         width: root.width
         height: Ui.Metrics.compact
-        Rectangle { width: parent.width; height: parent.height; color: Ui.Theme.surfacePanel }
+        Rectangle { width: root.panel.listWidth; height: parent.height; color: Ui.Theme.surfacePanel }
         RowLayout {
             x: Ui.Metrics.xs
             width: root.panel.listWidth - Ui.Metrics.md
             height: parent.height
-            spacing: Ui.Metrics.xs
+            spacing: Ui.Metrics.micro
             Ui.ToolbarIconButton {
                 objectName: "effectControlsCollapse_" + root.group.id
                 Layout.preferredWidth: Ui.Metrics.iconLg
@@ -82,21 +101,34 @@ Column {
                 accessibleName: (root.open ? "Collapse " : "Expand ") + root.label
                 onClicked: root.setOpen(!root.open)
             }
-            Ui.Toggle {
+            // The fx badge switches the effect on and off, as Premiere's does. It is struck out while off.
+            Ui.EditorButton {
                 id: enableSwitch
                 objectName: "effectControlsEnable_" + root.group.id
-                visible: root.switchable
-                enabled: !root.panel.locked
+                enabled: root.switchable && !root.panel.locked
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                text: "fx"
+                textTone: root.groupOn && root.switchable ? Ui.Text.Primary : Ui.Text.Disabled
                 accessibleName: root.label + " enabled"
+                description: (root.groupOn ? "Turn off " : "Turn on ") + root.label
                 Binding { target: enableSwitch; property: "checked"; value: root.groupOn }
-                onCheckedChangedByUser: checked => root.setOn(checked)
+                onClicked: root.setOn(!root.groupOn)
+                Rectangle {
+                    visible: !root.groupOn
+                    anchors.centerIn: parent
+                    width: parent.width - Ui.Metrics.sm
+                    height: Ui.Metrics.border
+                    rotation: -45
+                    color: Ui.Theme.textSecondary
+                }
             }
             Ui.Text {
                 Layout.fillWidth: true
                 text: root.label
                 elide: Text.ElideRight
                 role: Ui.Typography.SansLabel
-                tone: root.groupOn ? Ui.Text.Primary : Ui.Text.Secondary
+                tone: root.groupOn ? Ui.Text.Primary : Ui.Text.Disabled
             }
             Ui.ToolbarIconButton {
                 id: reorder

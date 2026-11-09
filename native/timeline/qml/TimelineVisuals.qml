@@ -11,6 +11,26 @@ QtObject {
     // Edit points, as an editor expects them: a ripple red, a roll or a regular trim yellow.
     readonly property color trimRipple: "#e53e3e"
     readonly property color trimRoll: "#f2c43d"
+    // The edit room: the playhead, the timecode and the track target and
+    // source patch boxes share one blue.
+    readonly property color editBlue: "#2d8ceb"
+    readonly property color targetFill: "#1f5c9e"
+    readonly property color clipText: "#141414"
+    readonly property color audioWave: "#7cf2c4"
+    readonly property color fxBadge: "#e8d44d"
+
+    // The solid clip fill by media type, as the label colours of a
+    // conventional NLE: violet video, teal audio.
+    function clipFill(mediaType) {
+        switch (mediaType) {
+        case "video": case "image": return "#a39ae6"
+        case "audio": return "#1d9c80"
+        case "overlay": case "text": case "shape": case "group": return "#df8fd0"
+        case "midi": return "#8ea9ec"
+        case "adjustment": return "#e0b45c"
+        default: return "#9a9aa6"
+        }
+    }
 
     function trackAccent(type) {
         switch (type) {

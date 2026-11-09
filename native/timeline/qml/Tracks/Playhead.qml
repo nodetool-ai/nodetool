@@ -52,36 +52,37 @@ Item {
     width: 16
     z: TimelineMetrics.playheadLayer
 
-    // The line and its glow (boxShadow 0 0 10px secondary/40%).
+    // The line: 1 px blue.
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
-        width: 7
+        width: 1                            // LINE_WIDTH_PX
         height: parent.height
-        color: Qt.rgba(TimelineVisuals.overlay.r, TimelineVisuals.overlay.g, TimelineVisuals.overlay.b, 0.12)
-    }
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 1.5                          // LINE_WIDTH_PX
-        height: parent.height
-        color: TimelineVisuals.overlay
-        antialiasing: true
+        color: TimelineVisuals.editBlue
     }
 
-    Rectangle {
+    // The head: a blue tab with a point at the bottom of the ruler. The
+    // timecode reads in the track header corner.
+    Item {
         id: pill
         objectName: "playheadPill"
-        y: 4
-        height: 20                          // PILL_HEIGHT_PX
-        width: pillText.implicitWidth + 2 * Ui.Metrics.md
-        radius: height / 2
-        color: TimelineVisuals.overlay
-        x: (playhead.width - width) / 2 + Math.round(TimelineFormat.pillShift(playhead.lineLeftPx, width, playhead.viewportWidthPx))
-        Ui.Text {
-            id: pillText
-            anchors.centerIn: parent
-            text: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
-            role: Ui.Typography.MonoCaption
-            domainColor: TimelineVisuals.overlayContrast
+        readonly property string timecode: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
+        x: (playhead.width - width) / 2
+        y: playhead.grabTopPx - height
+        width: 13
+        height: 14
+        Rectangle {
+            width: parent.width
+            height: parent.height - 4
+            radius: Ui.Metrics.radiusControl
+            color: TimelineVisuals.editBlue
+        }
+        Rectangle {
+            x: (parent.width - width) / 2
+            y: parent.height - 4 - height / 2
+            width: 6.5
+            height: 6.5
+            rotation: 45
+            color: TimelineVisuals.editBlue
         }
     }
 

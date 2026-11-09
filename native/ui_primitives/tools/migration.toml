@@ -3119,7 +3119,7 @@ object = "body/headerRow/dot"
 binding = "radius"
 rule = "metric"
 owner = "Timeline clip rendering"
-reason = "The media-type dot uses half its six-pixel width for its circular clip-content geometry."
+reason = "The fx badge is a one-pixel-rounded box drawn on the clip fill, sized to the clip name band."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/ClipBody.qml"
@@ -3127,11 +3127,11 @@ object = "body/headerRow/dot"
 binding = "border.width"
 rule = "metric"
 owner = "Timeline clip rendering"
-reason = "The one-pixel outline separates the media-type dot from the clip surface inside the track lane."
+reason = "The one-pixel outline draws the fx badge on the clip fill inside the track lane."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/ClipBody.qml"
-object = "body/Rectangle[2]"
+object = "body/Rectangle[1]"
 binding = "border.width"
 rule = "metric"
 owner = "Timeline clip rendering"
@@ -3160,22 +3160,6 @@ binding = "fillColor"
 rule = "color"
 owner = "Timeline audio fade rendering"
 reason = "The translucent fill visualizes amplitude under the clip fade curve, not an application surface."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/Playhead.qml"
-object = "playhead/Rectangle[0]"
-binding = "color"
-rule = "color"
-owner = "Timeline playhead rendering"
-reason = "The translucent halo marks the time cursor in timeline coordinates."
-
-[[exception]]
-path = "native/timeline/qml/Tracks/Playhead.qml"
-object = "playhead/pill"
-binding = "radius"
-rule = "metric"
-owner = "Timeline playhead rendering"
-reason = "The timecode pill radius follows its dynamic label height to keep the cursor marker rounded."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/RubberBandOverlay.qml"
@@ -3512,3 +3496,59 @@ test_host = "entities-tests"
 test_scope = "build/import"
 qml_callers = ["native/entities/qml/EntityCard.qml", "native/timeline/qml/entities/EntityEditorDialog.qml"]
 replacement = "Entity kind labels and icons"
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "editBlue"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Conventional NLE edit-room colours: a blue playhead, timecode and track target, solid label fills for clips, and dark text on them, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "targetFill"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Conventional NLE edit-room colours: a blue playhead, timecode and track target, solid label fills for clips, and dark text on them, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "clipText"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Conventional NLE edit-room colours: a blue playhead, timecode and track target, solid label fills for clips, and dark text on them, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "audioWave"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Conventional NLE edit-room colours: a blue playhead, timecode and track target, solid label fills for clips, and dark text on them, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "fxBadge"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Conventional NLE edit-room colours: a blue playhead, timecode and track target, solid label fills for clips, and dark text on them, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "@function:clipFill"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Conventional NLE edit-room colours: a blue playhead, timecode and track target, solid label fills for clips, and dark text on them, in either theme."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/ClipBody.qml"
+object = "body"
+binding = "radius"
+rule = "metric"
+owner = "Timeline clip rendering"
+reason = "Clips are near-square blocks so adjacent clips on a track read as one continuous edit."

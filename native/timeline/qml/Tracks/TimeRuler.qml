@@ -112,8 +112,18 @@ Rectangle {
                 visible: contentPx >= ruler.viewState.scrollLeftPx - 200
                          && contentPx <= ruler.viewState.scrollLeftPx + ruler.width + 200
                 x: contentPx - 1
+                // The flags sit in the lower half, under the tick labels.
+                y: ruler.height - height
                 height: 14                                  // MARKER_FLAG_HEIGHT_PX
-                width: Math.min(140, flagRow.implicitWidth + 2 * Ui.Metrics.xs)
+                // A flag ends before the next marker, so close markers do not cover each other.
+                readonly property double roomPx: {
+                    let next = Infinity
+                    for (const m of ruler.markers) {
+                        if (m.timeMs > modelData.timeMs) next = Math.min(next, m.timeMs)
+                    }
+                    return (next - modelData.timeMs) / ruler.viewState.msPerPx - 1
+                }
+                width: Math.max(Ui.Metrics.xs, Math.min(140, flagRow.implicitWidth + 2 * Ui.Metrics.xs, roomPx))
                 color: modelData.color ? modelData.color : Ui.Theme.accentPrimary
                 topRightRadius: Ui.Metrics.micro
                 bottomRightRadius: Ui.Metrics.micro
@@ -131,7 +141,8 @@ Rectangle {
                         id: flagLabel
                         objectName: "markerLabel"
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.min(implicitWidth, 140 - 2 * Ui.Metrics.xs - (deleteText.visible ? deleteText.implicitWidth + Ui.Metrics.micro : 0))
+                        visible: width > Ui.Metrics.sm
+                        width: Math.min(implicitWidth, flag.roomPx - 2 * Ui.Metrics.xs, 140 - 2 * Ui.Metrics.xs - (deleteText.visible ? deleteText.implicitWidth + Ui.Metrics.micro : 0))
                         elide: Text.ElideRight
                         text: flag.label
                         role: Ui.Typography.MonoCaption
@@ -165,7 +176,7 @@ Rectangle {
                             return Math.max(0, Math.round(at - flag.modelData.timeMs))
                         }
                         x: flag.durationPx + Ui.Metrics.border - width / 2
-                        y: 0
+                        y: -flag.y
                         width: Ui.Metrics.md
                         height: ruler.height
                         cursorShape: Qt.SizeHorCursor
@@ -203,8 +214,9 @@ Rectangle {
                 // The seek target reaches 20 px down (MARKER_HIT_HEIGHT_PX).
                 MouseArea {
                     objectName: "markerSeek"
-                    width: flagLabel.width + Ui.Metrics.xs
-                    height: 20
+                    // The flag sits on the ruler's bottom edge, so the target stays on the flag.
+                    width: Math.max(Ui.Metrics.xs, flagLabel.visible ? flagLabel.width + Ui.Metrics.xs : flag.width)
+                    height: flag.height
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onClicked: mouse => {
                         if (mouse.button === Qt.RightButton) {
