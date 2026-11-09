@@ -12776,7 +12776,6 @@
       "debuggingNotice": "Chrome viser en «Nodetool feilsøker denne nettleseren»-linje mens en forespørsel kjøres. Utvidelsen gjør ingenting på andre faner.",
       "setup": "Sett den opp",
       "step1": "La Chrome starte NodeTools nettleserbro.",
-      "windowsUnsupported": "Dette støttes ikke på Windows ennå. Mediegenerering gjennom utvidelsen fungerer på macOS og Linux.",
       "bridgeRegistered": "Ferdig. NodeTool registrerte broen sin med nettleserne dine.",
       "registering": "Registrerer med nettleserne dine …",
       "registrationFailed": "Registrering av nettleserbro mislyktes",

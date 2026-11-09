@@ -12975,7 +12975,6 @@
       "debuggingNotice": "Chrome muestra una barra \"Nodetool está depurando este navegador\" mientras se ejecuta una solicitud. La extensión no hace nada en otras pestañas.",
       "setup": "Configurarlo",
       "step1": "Deje que Chrome inicie el puente del navegador de NodeTool.",
-      "windowsUnsupported": "Esto aún no es compatible con Windows. La generación de medios a través de la extensión funciona en macOS y Linux.",
       "bridgeRegistered": "Hecho. NodeTool registró su puente con sus navegadores.",
       "registering": "Registrándose con sus navegadores…",
       "registrationFailed": "Error en el registro del puente del navegador",

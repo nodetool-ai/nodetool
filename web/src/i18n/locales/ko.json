@@ -12776,7 +12776,6 @@
       "debuggingNotice": "요청이 실행되는 동안 Chrome에 \"Nodetool이 이 브라우저를 디버깅 중입니다\" 표시줄이 표시됩니다. 확장 프로그램은 다른 탭에서는 아무 작업도 수행하지 않습니다.",
       "setup": "설정하세요",
       "step1": "Chrome이 NodeTool의 브라우저 브리지를 시작하도록 합니다.",
-      "windowsUnsupported": "아직 Windows에서는 지원되지 않습니다. 확장을 통한 미디어 생성은 macOS 및 Linux에서 작동합니다.",
       "bridgeRegistered": "완료. NodeTool은 브라우저에 브리지를 등록했습니다.",
       "registering": "브라우저에 등록하는 중…",
       "registrationFailed": "브라우저 브리지 등록 실패",
