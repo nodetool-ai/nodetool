@@ -58,6 +58,8 @@ export interface AppRuntimeContextValue {
   flushInstance?: () => Promise<void>;
   refreshInstance?: () => Promise<void>;
   reloadInstance?: () => Promise<void>;
+  /** Delete the app's values and runs and start again from the defaults. */
+  restart?: () => void;
   dispatch: (action: AppAction, source?: { widgetId: string }) => void;
   reportWidgetError?: (
     error: Error,

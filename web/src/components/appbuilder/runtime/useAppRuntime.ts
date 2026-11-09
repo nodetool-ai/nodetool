@@ -405,10 +405,7 @@ export const useAppRuntime = (
   // the select/boolean fallbacks the controls display, so an untouched form
   // runs with what it shows. Idempotent, so re-running it on any identity churn
   // costs nothing and clobbers nothing.
-  useEffect(() => {
-    if (options.deferInitialization) {
-      return;
-    }
+  const seed = useCallback((restorePersisted: boolean) => {
     const dispatchEvent = store.getState().dispatchEvent;
     const values: Record<string, unknown> = {};
     for (const entry of operationRuntimes.values()) {
@@ -429,7 +426,7 @@ export const useAppRuntime = (
     // Restored user-scoped values first, declared defaults second: seeding
     // never clobbers, so what the user left behind wins over the default.
     const variables = document?.variables ?? [];
-    if (!designMode && !persistence.enabled && !persistence.visitor) {
+    if (restorePersisted && !designMode && !persistence.enabled && !persistence.visitor) {
       dispatchEvent({
         type: "seedVariables",
         values: loadPersistedVariables(identity, variables)
@@ -444,11 +441,24 @@ export const useAppRuntime = (
     document,
     identity,
     operationRuntimes,
-    options.deferInitialization,
     persistence.enabled,
     persistence.visitor,
     store
   ]);
+
+  useEffect(() => {
+    if (!options.deferInitialization) {
+      seed(true);
+    }
+  }, [options.deferInitialization, seed]);
+
+  // Restart drops every value, saved one and run of the app, then seeds the
+  // declared defaults as on a first open. The saved values follow the store.
+  const restart = useCallback(() => {
+    store.getState().dispatchEvent({ type: "reset" });
+    seed(false);
+    void persistence.flush();
+  }, [persistence, seed, store]);
 
   useEffect(() => {
     if (designMode || persistence.enabled || persistence.visitor || !identity) {
@@ -1824,6 +1834,7 @@ export const useAppRuntime = (
       flushInstance: persistence.flush,
       refreshInstance: persistence.refresh,
       reloadInstance: persistence.reload,
+      restart,
       dispatch,
       write,
       selectResource,
@@ -1847,6 +1858,7 @@ export const useAppRuntime = (
       persistence.flush,
       persistence.refresh,
       persistence.reload,
+      restart,
       dispatch,
       write,
       selectResource,

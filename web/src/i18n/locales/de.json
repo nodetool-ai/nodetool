@@ -12182,6 +12182,31 @@
         "undo": "Rückgängig",
         "redo": "Wiederholen",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "{{step}} angezeigt",
+        "stepLabel": "Schritt {{index}} von {{total}}: {{title}}",
+        "show": "Anzeigen",
+        "hide": "Ausblenden",
+        "pressed": "„{{control}}“ gedrückt",
+        "asksForStep": "zu {{title}}",
+        "asksToRun": "{{name}} ausführen",
+        "settled": {
+          "completed": "{{name}} ist fertig",
+          "failed": "{{name}} ist fehlgeschlagen",
+          "cancelled": "{{name}} wurde abgebrochen"
+        },
+        "stepsBar": "Schrittleiste",
+        "sendFailed": "Konnte nicht an den Agenten gesendet werden: {{error}}",
+        "starter": "Beginne mit diesem Schritt oder sag dem Agenten, was du machen willst.",
+        "newChat": "Neuer Chat",
+        "pageView": "Seitenansicht",
+        "chatView": "Chatansicht",
+        "restart": "Neu starten",
+        "restartTitle": "Diese App neu starten?",
+        "restartBody": "Dadurch werden alle eingegebenen Werte und alle Ergebnisse gelöscht. Die App beginnt wieder beim ersten Schritt.",
+        "cancel": "Abbrechen",
+        "composerPlaceholder": "Frag zu einem Schritt, einem Ergebnis oder einem Problem"
       }
     }
   },

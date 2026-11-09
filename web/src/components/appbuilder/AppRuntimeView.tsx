@@ -10,7 +10,10 @@ import "@puckeditor/core/puck.css";
 
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { runJsScript } from "../jsScript/runJsScript";
-import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+import {
+  chatAppLayout,
+  type ApplicationDocument
+} from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../stores/ApiTypes";
 import ReportBugButton from "../support/ReportBugButton";
@@ -26,6 +29,8 @@ import {
   useRuntimeSelector
 } from "./runtime/AppRuntimeContext";
 import { useAppConfig } from "./puck/config";
+import ChatAppView from "./chat/ChatAppView";
+import AppRestartButton from "./AppRestartButton";
 import {
   AlertBanner,
   Box,
@@ -347,6 +352,15 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
       onInstanceReady?.(runtime.instance);
     }
   }, [runtime.instance, onInstanceReady]);
+  // A chat app runs as a conversation with its agent. The page stays one
+  // click away while the chat presentation is new.
+  const [showPage, setShowPage] = useState(false);
+  const runDocument = runtime.document ?? document;
+  const chatLayout = React.useMemo(
+    () =>
+      runDocument?.presentation === "chat" ? chatAppLayout(runDocument) : null,
+    [runDocument]
+  );
   if (runtime.instanceLoading)
     return <LoadingSpinner text={t("i18n-next8.appBuilder.runtime.loadingInstance")} />;
   const instanceError = runtime.instanceError ? (
@@ -398,7 +412,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
             onAdvanced={onAdvanced ?? (() => void runtime.reloadInstance?.())}
           />
         ) : null}
-        <RuntimeErrorBanner />
+        {chatLayout && !showPage ? null : <RuntimeErrorBanner />}
         <RuntimeRunLinks host={runActionsHost} />
         {runtime.instanceId &&
         !previewDraft &&
@@ -410,13 +424,37 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
             onSelect={onSelectRun}
           />
         ) : null}
-        {/* The parser validates Puck data while leaving widget-specific props opaque. */}
-        <RuntimeRender
-          config={appConfig}
-          data={
-            runtime.document ? (runtime.document.ui as unknown as Data) : data
-          }
-        />
+        {chatLayout && runDocument && !showPage ? (
+          <ChatAppView
+            document={runDocument}
+            layout={chatLayout}
+            appRunId={runtime.instanceId ?? application?.id ?? workflow.id}
+            title={
+              typeof runDocument.ui.root.props?.title === "string"
+                ? runDocument.ui.root.props.title
+                : workflow.name
+            }
+            onShowPage={() => setShowPage(true)}
+          />
+        ) : (
+          <>
+            <FlexRow justify="flex-end" sx={{ px: SPACING.xl, pt: SPACING.md }}>
+              <AppRestartButton />
+              {chatLayout ? (
+                <EditorButton variant="text" onClick={() => setShowPage(false)}>
+                  {t("i18n-next8.appBuilder.chatApp.chatView")}
+                </EditorButton>
+              ) : null}
+            </FlexRow>
+            {/* The parser validates Puck data while leaving widget-specific props opaque. */}
+            <RuntimeRender
+              config={appConfig}
+              data={
+                runtime.document ? (runtime.document.ui as unknown as Data) : data
+              }
+            />
+          </>
+        )}
       </Box>
     </AppRuntimeContext.Provider>
   );

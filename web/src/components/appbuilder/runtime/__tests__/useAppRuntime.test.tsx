@@ -396,6 +396,37 @@ describe("useAppRuntime — variable defaults and persistence", () => {
   });
 });
 
+describe("useAppRuntime — restart", () => {
+  it("deletes saved values and seeds the declared defaults again", async () => {
+    window.localStorage.setItem(
+      variableStorageKey("workflow:wf-a"),
+      JSON.stringify({ tone: "cool" })
+    );
+    const document = doc({
+      variables: [
+        { id: "tone", name: "Tone", default: "warm", scope: "user", persist: true },
+        { id: "draft", name: "Draft", scope: "instance", persist: false }
+      ]
+    });
+    const { result } = renderRuntime(workflowA, document);
+    act(() => {
+      result.current.dispatch({ kind: "setVariable", variableId: "draft", value: "scratch" });
+    });
+    act(() => {
+      result.current.restart?.();
+    });
+    const { variables } = result.current.store.getState();
+    expect(variables.tone).toBe("warm");
+    expect(variables.draft).toBeUndefined();
+    await waitFor(() => {
+      const stored = JSON.parse(
+        window.localStorage.getItem(variableStorageKey("workflow:wf-a")) ?? "{}"
+      );
+      expect(stored).toEqual({ tone: "warm" });
+    });
+  });
+});
+
 describe("useAppRuntime — run policy", () => {
   const operation = (policy: "replace" | "queue" | "parallel") =>
     doc({

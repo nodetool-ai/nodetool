@@ -38,14 +38,6 @@
                 "title": "Ending"
               },
               {
-                "value": "review",
-                "title": "Review"
-              },
-              {
-                "value": "build",
-                "title": "Build"
-              },
-              {
                 "value": "result",
                 "title": "Result"
               }
@@ -161,37 +153,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: The hub",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "hub"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -212,25 +173,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -259,7 +202,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -380,6 +323,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The hub",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "hub"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -870,6 +844,24 @@
                 }
               },
               {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
                 "type": "Text",
                 "props": {
                   "id": "plan-error",
@@ -921,7 +913,7 @@
                       "type": "Button",
                       "props": {
                         "id": "plan",
-                        "label": "Plan the storyboard",
+                        "label": "Make the video",
                         "disabledWhen": {
                           "binding": "op:plan/exec#running",
                           "op": "notEmpty"
@@ -1146,7 +1138,7 @@
     "operations": [
       {
         "id": "plan",
-        "name": "Plan or refresh Storyboard",
+        "name": "Make the video",
         "workflowId": "plan",
         "workflowVersion": 1,
         "inputs": {
@@ -1696,7 +1688,8 @@
             "variableId": "step"
           }
         },
-        "policy": "queue"
+        "policy": "queue",
+        "agentTask": "Make the 15-second 9:16 ad as a motion-graphics timeline. Do not plan a storyboard.\nFinish the whole build in this turn: read the values, write and save the timeline, check it and show the result. Do not end the turn after you read the state.\nObjective: Explain a SaaS or service bundle without presenting a full unreadable dashboard.\nVisual rule: A single hub remains stable while one benefit card at a time receives attention.\nBeats, in order:\n- 0–2 s hook: Hub and plain-language problem are already visible.. Motion: Hub settles in 300 ms; headline enters by word with 80 ms stagger.\n- 2–5 s feature_1: First card connects to the hub.. Motion: Draw connector via trimEnd 0→1 in 300 ms; card slides 0.08 heights and settles.\n- 5–8 s feature_2: Second card replaces the first as focal point.. Motion: First dims to 0.45 opacity; second enters in 250 ms.\n- 8–11.5 s feature_3: Third card enters; the completed hub becomes visible.. Motion: Third connects, then group scales back 8% to show the system.\n- 11.5–15 s outcome_and_cta: Three-card system, outcome and CTA hold together.. Motion: 180 ms fade for outcome; no further card movement.\n\nRead the values first with ui_app_run_get_state. Use them exactly:\n- hub (Hub icon, image)\n- featureCard1 (Benefit card 1, image)\n- featureCard2 (Benefit card 2, image)\n- featureCard3 (Benefit card 3, image)\n- logo (Logo, image)\n- problem (Problem, text)\n- benefit1 (Benefit 1, text)\n- benefit2 (Benefit 2, text)\n- benefit3 (Benefit 3, text)\n- outcomeAndCta (Outcome and call to action, text)\n- brandColor (Brand color, color)\nCopy stays word for word. When one copy line holds both a closing line and a call to action (\"Plan and build with Linear. Sign up.\"), split it at the sentence boundary: the closing line is the headline and the last short imperative is the button label. Add no label the values do not hold: the images carry their own labels.\nCopy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `asset://` uri to s.image() as it is, without looking it up in the asset library. An image you fetch or process yourself must be saved as an asset first (nodetool.media.toImage or save_asset); a file:// path does not play. Never generate or replace an image.\n\nLoad the motion-graphics skill and read nodetool.packs.docs(\"@nodetool-ai/sandbox-timeline\") before you write scenes. Then adapt the reference builder below in one execute_code action: keep its motion language, timing and structure, swap in the user's copy, images and colors, and recreate every graphic element the images do not hold (shapes, rings, cards, buttons, glows, backdrops) as timeline layers. It must look like modern motion graphics: layered depth, continuous secondary motion, eased entrances and exits, text animators, transitions between beats and a restrained finish. Save with v.save(nodetool.timelines, {name, showcase: true}).\nLegibility and layout on a 1080×1920 frame:\n- Crop each image to its content before you place it: trim a plain background border with image.crop, then save it with nodetool.media.toImage. Text inside an image must be at least 2.5% of the frame height (48 px) once scaled. Make cards and nodes that show an image at least 400×225.\n- Keep the logo, copy and button inside the safe area: 250 px from the top and 350 px from the bottom. Put the logo above the headline or next to the button.\n- Build the button as a rect and a text label parented to one group at the same y, both centered, with the label at 52 px or more. Do not use s.pill() with a dot for the button.\n- Give scene lengths in frames at the timeline's fps and check that the total, after transitions, is exactly 15 s.\nFix every showcase warning that save returns and save again. Look at preview_timeline_frame frames at each beat. Then render a draft with render_timeline at preview_scale 0.5, and finish when the draft renders.\nWrite `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image fits the frame. Pass `s` (for example s: 0.4) to scale it. The options w, h, width, height, size and scale throw.\nWrite `timeline` as {\"type\": \"timeline\", \"id\": \"<timeline_id>\"} and `finishStatus` as one sentence, then show the `result` step. Write no other values: the storyboard values (approval, planPreview and the rest) are not used in chat.\n\nReference builder (fictional brand; replace its copy, images and colors):\n```js\n// Ad library R03, One hub, three product benefits: a 15-second vertical\n// explainer for a fictional client-operations tool. The hub holds the top of\n// the frame; one benefit card at a time connects to it and takes the focus.\n//\n// `node scripts/example-timelines/ad-library.mjs build one-hub-three-product-benefits`\n// writes marketing/recipe-assets/ad-library/one-hub-three-product-benefits.timeline.json.\n//\n// The brand, its clients and its numbers are fictional. Every time value is\n// seconds from the start of the ad, the beat times in\n// marketing/src/data/adLibrary.json. Positions are px from the frame centre\n// on a 1080×1920 frame.\n//\n// Motion language: one entrance curve (SNAP), one exit curve (inExpo), 300 ms\n// connector draws, 250 ms card entrances, an 80 ms word stagger, no\n// overshoot except the hub's single settle.\nimport { video } from \"@nodetool-ai/sandbox-timeline\";\n\nconst W = 1080, H = 1920, FPS = 30;\n\nconst BG = \"#eef1f7\", BG2 = \"#dfe4f0\", CARD = \"#ffffff\", INK = \"#141a2b\", DIM = \"#5b6378\", LINE = \"#c9cfdd\";\nconst INDIGO = \"#4f5bff\";\nconst FEATURES = [\n  { title: \"Requests\", detail: \"12 new this week\", tone: \"#0f9f8f\", glyph: \"mail\", caption: \"Requests land in one inbox\" },\n  { title: \"Bookings\", detail: \"Next call Tue 10:00\", tone: \"#d98a00\", glyph: \"calendar\", caption: \"Clients book their own calls\" },\n  { title: \"Invoices\", detail: \"$4,820 sent, 3 paid\", tone: \"#d6407f\", glyph: \"invoice\", caption: \"Invoices go out when work ships\" }\n];\nconst SNAP = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETTLE = \"cubic-bezier(0.3,1.25,0.6,1)\";\n\nconst v = video({\n  width: W, height: H, fps: FPS,\n  palette: { ink: BG, ink2: BG2, text: INK, dim: DIM, accent: INDIGO },\n  fonts: { display: \"Inter\", body: \"Inter\" }\n});\n\nconst HUB = { x: 0, y: -620, d: 200 };\nconst BUS_X = -455;\nconst CARD_X = 40, CARD_W = 860, CARD_H = 230;\nconst CARD_Y = [-320, -60, 200];\n\n/** A white glyph for an app tile or a card icon, drawn around the group origin at size `u`. */\nfunction glyph(s, kind, parent, u) {\n  const o = { parent, stroke: \"#ffffff\", sw: Math.max(4, u * 0.07) };\n  if (kind === \"mail\") {\n    s.rect(u * 0.62, u * 0.44, null, { ...o, name: \"glyph-mail\", r: u * 0.05 });\n    s.path([[\"M\", -u * 0.29, -u * 0.18], [\"L\", 0, u * 0.04], [\"L\", u * 0.29, -u * 0.18]], { ...o, name: \"glyph-mail-flap\" });\n  } else if (kind === \"calendar\") {\n    s.rect(u * 0.6, u * 0.52, null, { ...o, name: \"glyph-calendar\", r: u * 0.05, y: u * 0.04 });\n    s.rect(u * 0.6, u * 0.1, \"#ffffff\", { parent, name: \"glyph-calendar-band\", y: -u * 0.17 });\n    s.ellipse(u * 0.1, \"#ffffff\", { parent, name: \"glyph-calendar-day\", x: u * 0.12, y: u * 0.1 });\n  } else if (kind === \"invoice\") {\n    s.rect(u * 0.46, u * 0.6, null, { ...o, name: \"glyph-invoice\", r: u * 0.04 });\n    [-0.12, 0.02, 0.16].forEach((dy, k) => s.rect(u * (k === 2 ? 0.16 : 0.26), u * 0.05, \"#ffffff\", { parent, name: `glyph-invoice-line-${k}`, y: dy * u, x: k === 2 ? u * 0.05 : 0 }));\n  } else if (kind === \"chat\") {\n    s.rect(u * 0.62, u * 0.44, null, { ...o, name: \"glyph-chat\", r: u * 0.14, y: -u * 0.04 });\n    s.path([[\"M\", -u * 0.14, u * 0.18], [\"L\", -u * 0.2, u * 0.3], [\"L\", -u * 0.02, u * 0.18]], { ...o, name: \"glyph-chat-tail\" });\n  } else {\n    [-0.14, 0, 0.14].forEach((dy, k) => s.rect(u * 0.52, u * 0.05, \"#ffffff\", { parent, name: `glyph-doc-line-${k}`, y: dy * u }));\n  }\n}\n\n/** A rounded app tile with a glyph, centred on its group. */\nfunction tile(s, kind, tone, o) {\n  const { x = 0, y = 0, size = 120, parent, name = `tile-${kind}`, at, dur } = o;\n  const g = s.group({ name, parent, x, y, at, dur });\n  s.rect(size, size, tone, { name: `${name}-plate`, parent: g.id, r: size * 0.24, effects: [{ type: \"dropShadow\", offsetX: 0, offsetY: 10, blur: 24, color: \"rgba(20,26,43,0.16)\" }] });\n  glyph(s, kind, g.id, size);\n  return g;\n}\n\n/** A benefit card: icon tile, title, one detail line and a status mark. */\nfunction card(s, f, i, parent) {\n  const g = s.group({ name: `card-${i}`, parent, x: CARD_X, y: CARD_Y[i], at: 2 + i * 3 });\n  s.rect(CARD_W, CARD_H, CARD, { name: `card-${i}-plate`, parent: g.id, r: 32, stroke: LINE, sw: 2, effects: [{ type: \"dropShadow\", offsetX: 0, offsetY: 18, blur: 44, color: \"rgba(20,26,43,0.12)\" }] });\n  s.rect(8, CARD_H - 64, f.tone, { name: `card-${i}-accent`, parent: g.id, x: -CARD_W / 2 + 24, r: 4 });\n  tile(s, f.glyph, f.tone, { name: `card-${i}-icon`, parent: g.id, x: -CARD_W / 2 + 124, size: 124 });\n  s.text(f.title, { name: `card-${i}-title`, parent: g.id, anchor: \"left\", x: -CARD_W / 2 + 222, y: -32, mw: 0.5, size: 60, weight: 700, color: INK, tracking: -0.02 });\n  s.text(f.detail, { name: `card-${i}-detail`, parent: g.id, anchor: \"left\", x: -CARD_W / 2 + 222, y: 42, mw: 0.55, size: 46, weight: 500, color: DIM });\n  const check = s.ellipse(64, f.tone, { name: `card-${i}-status`, parent: g.id, x: CARD_W / 2 - 80 });\n  s.path([[\"M\", CARD_W / 2 - 96, 0], [\"L\", CARD_W / 2 - 84, 12], [\"L\", CARD_W / 2 - 62, -12]], { name: `card-${i}-tick`, parent: g.id, stroke: \"#ffffff\", sw: 7 });\n  check.enter({ from: { scale: 0 }, at: 0.5, dur: 0.25, ease: SETTLE });\n  return g;\n}\n\n/** The branch from the hub along the bus into card `i`'s left edge. */\nfunction connectorPoints(i) {\n  const y = CARD_Y[i];\n  return [[\"M\", HUB.x - HUB.d / 2, HUB.y], [\"L\", BUS_X + 30, HUB.y], [\"Q\", BUS_X, HUB.y, BUS_X, HUB.y + 30], [\"L\", BUS_X, y - 30], [\"Q\", BUS_X, y, BUS_X + 30, y], [\"L\", CARD_X - CARD_W / 2, y]];\n}\n\n/** A caption in the slot under the system, rising in word by word. */\nfunction caption(s, str, at, dur, o = {}) {\n  const t = s.text(str, { name: o.name ?? \"caption\", y: o.y ?? 460, mw: 0.84, size: o.size ?? 68, weight: 700, color: INK, tracking: -0.025, at, dur, style: { lineHeight: 1.1 } });\n  t.enter({ from: { offsetY: 30, opacity: 0 }, at: 0, dur: 0.3, ease: SNAP, by: \"word\", staggerMs: 80 });\n  return t;\n}\n\nconst hub = v.scene(\"Hub\", 15, (s) => {\n  s.backdrop({ colors: [BG, BG2], opacity: 0.7, seed: 11 });\n  // A faint dot grid: the workspace the hub sits in.\n  s.ellipse(6, LINE, { name: \"grid-dots\", x: -480, y: -880, repeater: { count: 120, columns: 10, positionStep: { x: 106, y: 0 }, rowStep: { x: 0, y: 160 }, timeStepMs: 0 }, opacity: 0.8 });\n\n  const system = s.group({ name: \"system\" });\n\n  // B1 hook: five separate tools jitter around the hub, then fly into it at 2.0 s.\n  const tools = [[\"mail\", \"#0f9f8f\", -330, -250], [\"calendar\", \"#d98a00\", 300, -300], [\"chat\", \"#6b5bd6\", -250, 40], [\"doc\", \"#3b82f6\", 320, 20], [\"invoice\", \"#d6407f\", 30, -120]];\n  tools.forEach(([kind, tone, x, y], k) => {\n    const t = tile(s, kind, tone, { name: `tool-${kind}`, parent: system.id, x, y, size: 132, dur: 2.3 });\n    t.enter({ from: { scale: 0.5 }, at: k * 0.05, dur: 0.3, ease: SETTLE });\n    const wobble = s.noise(20 + k);\n    t.expr((tt) => ({ offsetX: (wobble(tt * 1.6) - 0.5) * 30, offsetY: (wobble(tt * 1.6 + 40) - 0.5) * 30, rotation: (wobble(tt * 1.2 + 80) - 0.5) * 10 }), { at: 0, dur: 2.0, role: \"emphasis\" });\n    t.exit({ to: { offsetX: HUB.x - x, offsetY: HUB.y - y, scale: 0.2, opacity: 0 }, at: 2.0, dur: 0.3, ease: \"inExpo\" });\n  });\n\n  // The connectors draw in 300 ms when their card arrives.\n  CARD_Y.forEach((_, i) => {\n    const c = s.path(connectorPoints(i), { name: `connector-${i}`, parent: system.id, stroke: INDIGO, sw: 8, at: 2 + i * 3 });\n    c.draw({ at: 0, dur: 0.3, ease: \"inOut\" });\n    const dot = s.ellipse(22, INDIGO, { name: `connector-${i}-node`, parent: system.id, x: CARD_X - CARD_W / 2, y: CARD_Y[i], at: 2.25 + i * 3 });\n    dot.enter({ from: { scale: 0 }, at: 0, dur: 0.2, ease: SETTLE });\n  });\n\n  // The hub: settles once in 300 ms, absorbs the tools with a pulse, then holds.\n  const hubG = s.group({ name: \"hub\", parent: system.id, x: HUB.x, y: HUB.y });\n  s.glow({ name: \"hub-glow\", parent: hubG.id, size: 520, alpha: 0.35, color: INDIGO });\n  s.ellipse(HUB.d, { type: \"linear\", angle: 135, stops: [{ offset: 0, color: \"#7a84ff\" }, { offset: 1, color: \"#3a43d8\" }] }, { name: \"hub-disc\", parent: hubG.id, effects: [{ type: \"dropShadow\", offsetX: 0, offsetY: 16, blur: 40, color: \"rgba(79,91,255,0.35)\" }] });\n  const pts = [[0, -38], [-36, 26], [36, 26]];\n  pts.forEach(([a, b], k) => {\n    const [c, d] = pts[(k + 1) % 3];\n    s.path([[\"M\", a, b], [\"L\", c, d]], { name: `hub-link-${k}`, parent: hubG.id, stroke: \"rgba(255,255,255,0.75)\", sw: 6 });\n  });\n  pts.forEach(([a, b], k) => s.ellipse(30, \"#ffffff\", { name: `hub-node-${k}`, parent: hubG.id, x: a, y: b }));\n  hubG.enter({ from: { scale: 0.8 }, at: 0, dur: 0.3, ease: SETTLE });\n  hubG.animate({ scale: [[0, 1], [0.4, 1.12, \"out\"], [1, 1, \"inOut\"]] }, { at: 2.15, dur: 0.5, role: \"emphasis\" });\n  const ring = s.ellipse(HUB.d, null, { name: \"hub-ring\", parent: system.id, x: HUB.x, y: HUB.y, stroke: INDIGO, sw: 4, at: 2.15, dur: 0.8 });\n  ring.animate({ scale: [1, 1.9, \"out\"], opacity: [0.8, 0, \"out\"] }, { at: 0, dur: 0.8, role: \"emphasis\" });\n\n  // Faint slots for the cards still to come, so the system reads as unfinished.\n  CARD_Y.forEach((y, i) => {\n    if (i === 0) return;\n    const slot = s.rect(CARD_W, CARD_H, \"rgba(255,255,255,0.35)\", { name: `slot-${i}`, parent: system.id, x: CARD_X, y, r: 32, stroke: LINE, sw: 3, at: 2.1, dur: i * 3 + 0.1 });\n    slot.enter({ from: { opacity: 0 }, at: 0, dur: 0.3, ease: \"linear\" });\n  });\n\n  // B2–B4: one card at a time. Each slides 0.08 heights up and settles; the\n  // one before it dims to 0.45. The finished system scales back 8%.\n  FEATURES.forEach((f, i) => {\n    const g = card(s, f, i, system.id);\n    g.enter({ from: { offsetY: 0.08 * H, opacity: 0 }, at: 0.15, dur: 0.25, ease: SNAP });\n    if (i < 2) {\n      // Dim when the next card arrives, hold, and come back when the system is complete at 9.5 s.\n      const len = 9.9 - (5 + i * 3);\n      const a = 0.25 / len, b = (len - 0.4) / len;\n      g.animate({\n        opacity: [[0, 1], [a, 0.45, \"out\"], [b, 0.45], [1, 1, \"inOut\"]],\n        scale: [[0, 1], [a, 0.97, \"out\"], [b, 0.97], [1, 1, \"inOut\"]]\n      }, { at: 3, dur: len, role: \"emphasis\" });\n    }\n  });\n  system.animate({ scale: [1, 0.92, \"inOut\"], offsetY: [0, -30, \"inOut\"] }, { at: 9.5, dur: 0.6, role: \"out\" });\n\n  // The copy slot: the problem, then one caption per benefit.\n  caption(s, \"Five apps for one client request?\", 0, 2, { name: \"problem\", size: 76 });\n  FEATURES.forEach((f, i) => caption(s, f.caption, 2 + i * 3, i === 2 ? 3.5 : 3, { name: `caption-${i}` }));\n\n  // B5 outcome and CTA: a 180 ms fade, then nothing moves.\n  s.seq(11.5, 3.5, (q) => {\n    const outcome = q.text(\"Every client, one hub.\", { name: \"outcome\", y: 425, mw: 0.84, size: 76, weight: 800, color: INK, tracking: -0.03 });\n    outcome.enter({ from: { opacity: 0 }, at: 0, dur: 0.18, ease: \"linear\" });\n    const button = q.pill(\"Try Relay free\", { name: \"cta\", y: 548, size: 52, weight: 700, color: \"#ffffff\", fillColor: INDIGO, stroke: \"rgba(0,0,0,0)\", padX: 70, padY: 28 });\n    button.enter({ from: { opacity: 0, offsetY: 20 }, at: 0.1, dur: 0.25, ease: SNAP });\n  });\n\n  s.finish({ vignette: 0.12, softness: 0.8, grain: 0.02, seed: 4 });\n});\n\nv.series([hub]);\n\nconst saved = await v.save(nodetool.timelines, {\n  name: \"One hub, three benefits — Relay\",\n  showcase: true\n});\nawait output(\"timeline\", {\n  name: \"One hub, three benefits — Relay\",\n  description: \"A 15-second vertical explainer: scattered tools collapse into one hub, three benefit cards connect to it one at a time, then the system holds under a CTA.\",\n  videoUri: \"/ad-library/videos/one-hub-three-product-benefits.mp4\",\n  posterUri: \"/ad-library/videos/one-hub-three-product-benefits.webp\",\n  ...saved\n});\n```"
       },
       {
         "id": "finish",
@@ -2269,6 +2262,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"One hub, three product benefits\".\nObjective: Explain a SaaS or service bundle without presenting a full unreadable dashboard.\nVisual rule: A single hub remains stable while one benefit card at a time receives attention.\nBeats, in order:\n- 0–2 s: Hub and plain-language problem are already visible. Shows Brand color, Hub icon, Problem.\n- 2–5 s: First card connects to the hub. Shows Brand color, Hub icon, Benefit card 1, Benefit 1.\n- 5–8 s: Second card replaces the first as focal point. Shows Brand color, Hub icon, Benefit card 2, Benefit 2.\n- 8–11.5 s: Third card enters; the completed hub becomes visible. Shows Brand color, Hub icon, Benefit card 3, Benefit 3.\n- 11.5–15 s: Three-card system, outcome and CTA hold together. Shows Brand color, Hub icon, Benefit card 1, Benefit card 2, Benefit card 3, Logo, Outcome and call to action.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (header logo, large <img> files, feature-page screenshots), then with an image search. A social preview card (og:image, a title on a gradient) is a last resort. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\nIf image search throws because no search backend is configured, tell the user in one sentence that a SerpAPI, DataForSEO or Brave key in Settings finds better images. Then take nodetool.web.screenshot of the product's feature pages instead.\nSave each image you consider as an asset and look at it with view_image before you offer it. Name in the option's description any image that is only a social preview card.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's accent color as #RRGGBB (buttons, links, highlights), not the page background or a theme-color that is near black or white\n- fields: problem (Problem: hook, at most 7 words); benefit1 (Benefit 1: feature 1, at most 7 words); benefit2 (Benefit 2: feature 2, at most 7 words); benefit3 (Benefit 3: feature 3, at most 7 words); outcomeAndCta (Outcome and call to action: outcome and cta, at most 8 words)\n- images: hub (Hub icon: An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Hub and plain-language problem are already visible. | First card connects to the hub. | Second card replaces the first as focal point. | Third card enters; the completed hub becomes visible. | Three-card system, outcome and CTA hold together.); featureCard1 (Benefit card 1: A real photo or screenshot that matches the beats that show it. Shown in: First card connects to the hub. | Three-card system, outcome and CTA hold together.); featureCard2 (Benefit card 2: A real photo or screenshot that matches the beats that show it. Shown in: Second card replaces the first as focal point. | Three-card system, outcome and CTA hold together.); featureCard3 (Benefit card 3: A real photo or screenshot that matches the beats that show it. Shown in: Third card enters; the completed hub becomes visible. | Three-card system, outcome and CTA hold together.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Three-card system, outcome and CTA hold together.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",
@@ -2355,7 +2349,7 @@
                   "id": "hub",
                   "label": "Hub icon",
                   "role": "product",
-                  "guidance": "A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout. Shown in: Hub and plain-language problem are already visible. | First card connects to the hub. | Second card replaces the first as focal point. | Third card enters; the completed hub becomes visible. | Three-card system, outcome and CTA hold together."
+                  "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Hub and plain-language problem are already visible. | First card connects to the hub. | Second card replaces the first as focal point. | Third card enters; the completed hub becomes visible. | Three-card system, outcome and CTA hold together."
                 },
                 {
                   "id": "featureCard1",
@@ -2858,6 +2852,7 @@
         }
       }
     ],
+    "presentation": "chat",
     "recipe": {
       "schemaVersion": 1,
       "slug": "ad-one-hub-three-product-benefits",

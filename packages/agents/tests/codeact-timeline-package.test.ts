@@ -463,6 +463,62 @@ describe("revising a timeline in place", () => {
     expect(before!.updated_at).not.toBe(after!.updated_at);
   });
 
+  it("refuses a size option on s.image() instead of dropping it", async () => {
+    const session = createChatCodeActSession({
+      tools: [],
+      sandboxModuleCatalog: catalog,
+      executeTool: async () => ({})
+    });
+    const observation = JSON.parse(
+      await session.executeAction({
+        code: `
+      import { video } from "@nodetool-ai/sandbox-timeline";
+      const v = video({ width: 1080, height: 1920, fps: 30 });
+      v.scene("stills", 2, (s) => { s.image("package://nodetool-base/timelines/voltra/street.jpg", { w: 400 }); });
+      return "built";
+    `
+      })
+    );
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain("s.image() has no `w` option");
+  });
+
+  it("refuses a scale option on s.image(), which s does", async () => {
+    const session = createChatCodeActSession({
+      tools: [],
+      sandboxModuleCatalog: catalog,
+      executeTool: async () => ({})
+    });
+    const observation = JSON.parse(
+      await session.executeAction({
+        code: `
+      import { video } from "@nodetool-ai/sandbox-timeline";
+      const v = video({ width: 1080, height: 1920, fps: 30 });
+      v.scene("stills", 2, (s) => { s.image("package://nodetool-base/timelines/voltra/street.jpg", { scale: 0.27 }); });
+      return "built";
+    `
+      })
+    );
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain("s.image() has no `scale` option");
+  });
+
+  it("refuses a temporary file as a timeline image", async () => {
+    const session = createChatCodeActSession({ tools: [], sandboxModuleCatalog: catalog, executeTool: async () => ({}) });
+    const observation = JSON.parse(
+      await session.executeAction({
+        code: `
+      import { video } from "@nodetool-ai/sandbox-timeline";
+      const v = video({ width: 1080, height: 1920, fps: 30 });
+      v.scene("stills", 2, (s) => { s.image("file:///tmp/assets/aa88dc53.png"); });
+      return "built";
+    `
+      })
+    );
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain("needs a library asset");
+  });
+
   it("stores s.image() asset refs as the asset's full id on v.save()", async () => {
     initTestDb();
     const context = createMockContext();
