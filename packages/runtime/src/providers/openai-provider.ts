@@ -691,6 +691,18 @@ export class OpenAIProvider extends BaseProvider {
     if (!this.servesOpenAICatalog()) return [];
     return [
       {
+        id: "gpt-image-2.6-flare",
+        name: "GPT Image 2.6 Flare",
+        provider: "openai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
+        id: "gpt-image-2.6-sunburst",
+        name: "GPT Image 2.6 Sunburst",
+        provider: "openai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
         id: "gpt-image-2.5-flare",
         name: "GPT Image 2.5 Flare",
         provider: "openai",
@@ -711,12 +723,6 @@ export class OpenAIProvider extends BaseProvider {
       {
         id: "gpt-image-1.5",
         name: "GPT Image 1.5",
-        provider: "openai",
-        supportedTasks: ["text_to_image", "image_to_image"]
-      },
-      {
-        id: "gpt-image-1",
-        name: "GPT Image 1",
         provider: "openai",
         supportedTasks: ["text_to_image", "image_to_image"]
       },

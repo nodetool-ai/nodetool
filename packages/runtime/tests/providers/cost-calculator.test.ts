@@ -237,3 +237,15 @@ describe("CostCalculator.calculate with the September 2026 price data", () => {
     expect(cost).toBeGreaterThan(0);
   });
 });
+
+describe("GPT Image 2.6 token accounting", () => {
+  it.each(["gpt-image-2.6-flare", "gpt-image-2.6-sunburst"])("prices %s from text and image token usage", (model) => {
+    expect(CostCalculator.calculate(model, {
+      inputTokens: 300,
+      inputTextTokens: 100,
+      inputImageTokens: 200,
+      outputTokens: 400,
+      outputImageTokens: 400
+    }, "openai")).toBeCloseTo(0.0141, 8);
+  });
+});
