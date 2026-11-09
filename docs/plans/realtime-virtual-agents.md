@@ -19,7 +19,7 @@ Build on the Mini App chat apps that already exist. Their chat widgets keep the 
 
 The [reactive sessions and workflow events plan](reactive-sessions-events.md) provides a small operation invocation/completion adapter over the existing app hosts. Background actions that an agent turn requests reuse it. This plan adds no workflow executor or job scheduler. **Harness** refers only to NodeTool's headless testing and debugging surfaces.
 
-This is an implementation proposal, not a shipped feature. Repository findings follow the [evidence rules](feature-interplay/README.md#evidence-and-interpretation). The separate [Pipecat and integration research](../research/realtime-agent-runtime.md) pins its external sources. No live provider benchmarks or venue tests were run. Recheck SDK compatibility during implementation. Pipecat is a reference, not a production dependency.
+This is an implementation proposal, not a shipped feature. Repository findings follow the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation). The separate [Pipecat and integration research](../research/realtime-agent-runtime.md) pins its external sources. No live provider benchmarks or venue tests were run. Recheck SDK compatibility during implementation. Pipecat is a reference, not a production dependency.
 
 A1 proves reuse with the existing chat-app, Mini App, and tool fixtures. A2 delivers a text agent in an app that its owner uses. A3 adds voice and A4 adds guided authoring, independently of each other. A5 publishes app agents to visitors, first as text and then as a browser/kiosk pilot. The [delivery plan](#delivery-plan-and-gates) defines order and exit evidence.
 

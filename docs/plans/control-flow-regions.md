@@ -109,7 +109,7 @@ linked below and `LoopNode.tsx` at `1edf9aadb9^`. Both passes read source and
 focused tests. Neither was a browser usability test or an end-to-end
 demonstration of historical region execution.
 
-Recheck claims needed for delivery under the [evidence rules](feature-interplay/README.md#evidence-and-interpretation).
+Recheck claims needed for delivery under the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation).
 
 ### Reuse
 
@@ -693,7 +693,7 @@ Depends on milestones 1-4, 4a, and 4b. Complete relevant checks in each delivery
 - [ ] **A33.** Register applicable selfchecks and verify gate selection using
   [Harness-First Engineering](../HARNESS_FIRST.md) and the
   [harness reference](../harnesses.md).
-- [ ] **A34.** Follow [repository verification requirements](../../AGENTS.md#mandatory-post-change-verification)
+- [ ] **A34.** Follow [repository verification requirements](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification)
   and record evidence in each implementing PR.
 
 Release requires the milestone acceptance criteria, legacy compatibility,

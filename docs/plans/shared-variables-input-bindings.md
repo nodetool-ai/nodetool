@@ -90,7 +90,7 @@ field takes its value from a variable instead of a typed value or a wire.
 
 ## Existing behavior to preserve
 
-Recheck source claims needed for delivery under the [evidence rules](feature-interplay/README.md#evidence-and-interpretation).
+Recheck source claims needed for delivery under the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation).
 
 | Finding | Inspected behavior | Consequence |
 |---|---|---|

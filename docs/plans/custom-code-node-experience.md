@@ -79,7 +79,7 @@ Suggested creation copy:
 
 These source observations have no recorded inspection revision. Recheck claims
 needed by a milestone and record the commit and evidence under the
-[evidence rules](feature-interplay/README.md#evidence-and-interpretation).
+[evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation).
 
 | Finding | What the code does today |
 | --- | --- |
