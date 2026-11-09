@@ -66,7 +66,8 @@
  * build instead of failing. A run first executes the prepare steps the
  * selected tests need (graph-runner: the guest bundle and the GPU catalog that
  * scripts/check-native-graph-runner.mjs builds), then builds only the targets
- * those tests need, then runs ctest, and exits with the first failing status.
+ * those tests need, then runs ctest. It runs every selected project, lists the
+ * failing ones, and exits with the first failing status.
  * It adds no sandbox of its own: callers wrap it.
  */
 import { spawnSync } from "node:child_process";
@@ -655,8 +656,8 @@ export function selectTests(model, changed, { all = false } = {}) {
   const list = model.tests
     .filter((t) => selected.has(t.name))
     .map((t) => {
-      const { rank: _rank, ...entry } = selected.get(t.name);
-      return entry;
+      const { test, trigger, why, triggers } = selected.get(t.name);
+      return { test, trigger, why, triggers };
     });
   return { all: false, reason: null, selected: list, notes, leftOut: model.tests.length - list.length };
 }
@@ -867,6 +868,20 @@ function jsonPlan(plans, reason) {
   };
 }
 
+/**
+ * Runs every selected project with tests, so one failing project does not hide
+ * the results of the others. Returns the failures in plan order.
+ */
+export function runPlans(plans, executePlan) {
+  const failed = [];
+  for (const plan of plans) {
+    if (plan.status !== "selected" || plan.selection.selected.length === 0) continue;
+    const code = executePlan(plan);
+    if (code !== 0) failed.push({ name: plan.name, code });
+  }
+  return failed;
+}
+
 function run(command, args) {
   console.log(`\n$ ${command} ${args.join(" ")}`);
   const result = spawnSync(command, args, { cwd: repoRoot, stdio: "inherit" });
@@ -932,13 +947,10 @@ async function main(argv) {
 
   if (opts.dryRun) return 0;
   // Configured projects run first, so a missing build does not hide results.
-  for (const plan of plans) {
-    if (plan.status !== "selected" || plan.selection.selected.length === 0) continue;
-    const code = execute(plan, opts);
-    if (code !== 0) {
-      console.error(`\nFailed: native/${plan.name}`);
-      return code;
-    }
+  const failed = runPlans(plans, (plan) => execute(plan, opts));
+  if (failed.length) {
+    console.error(`\nFailed: ${failed.map((f) => `native/${f.name}`).join(", ")}`);
+    return failed[0].code;
   }
   const status = planStatus(plans, opts);
   if (status !== 0) {

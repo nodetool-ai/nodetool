@@ -28,6 +28,7 @@ import {
   readDepfiles,
   readFileApi,
   resolveBuildDir,
+  runPlans,
   selectTests,
   targetOfObject
 } from "../test-affected-native.mjs";
@@ -286,6 +287,28 @@ describe("planProjects", () => {
     });
     expect(calls).toEqual([{ refresh: false }]);
     expect(plans).toEqual([]);
+  });
+
+  it("runs the remaining projects after one fails and reports every failure", () => {
+    const selected = (name) => ({ name, status: "selected", selection: { selected: [{ test: `${name}_t` }] } });
+    const plans = [
+      selected("graph-runner"),
+      { name: "chat", status: "selected", selection: { selected: [] } },
+      { name: "timeline", status: "unconfigured" },
+      selected("node-editor"),
+      selected("model-picker")
+    ];
+    const codes = { "graph-runner": 8, "node-editor": 0, "model-picker": 2 };
+    const ran = [];
+    const failed = runPlans(plans, (plan) => {
+      ran.push(plan.name);
+      return codes[plan.name];
+    });
+    expect(ran).toEqual(["graph-runner", "node-editor", "model-picker"]);
+    expect(failed).toEqual([
+      { name: "graph-runner", code: 8 },
+      { name: "model-picker", code: 2 }
+    ]);
   });
 });
 
