@@ -122,21 +122,18 @@ function readAsDataUrl(file: File): Promise<string> {
 export async function uploadFile(kind: MediaKind, file: File): Promise<MediaValue> {
   const dataUrl = await readAsDataUrl(file);
   const comma = dataUrl.indexOf(",");
-  const payload = toolPayload(
-    await hostBridge().callTool("upload_asset", {
-      name: file.name || `upload.${kind}`,
-      content_base64: comma >= 0 ? dataUrl.slice(comma + 1) : "",
-      ...(file.type ? { content_type: file.type } : {})
-    })
-  );
+  const args: Record<string, unknown> = {
+    name: file.name || `upload.${kind}`,
+    content_base64: comma >= 0 ? dataUrl.slice(comma + 1) : ""
+  };
+  if (file.type) args.content_type = file.type;
+  const payload = toolPayload(await hostBridge().callTool("upload_asset", args));
   const uri = typeof payload.asset_uri === "string" ? payload.asset_uri : null;
   if (!uri) throw new Error("Upload failed");
   if (file.size <= PREVIEW_LIMIT_BYTES) previews.set(uri, dataUrl);
-  return {
-    type: kind,
-    uri,
-    ...(typeof payload.content_type === "string" ? { content_type: payload.content_type } : {})
-  };
+  const value: MediaValue = { type: kind, uri };
+  if (typeof payload.content_type === "string") value.content_type = payload.content_type;
+  return value;
 }
 
 export interface ModelOption {

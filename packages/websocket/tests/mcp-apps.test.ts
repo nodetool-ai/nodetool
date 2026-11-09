@@ -54,16 +54,17 @@ async function connect(server: McpServer): Promise<Client> {
 async function connectMiniApps(
   userId: string,
   runWorkflow: NonNullable<MiniAppToolDeps["runWorkflow"]>,
-  waits?: MiniAppToolDeps["waits"]
+  waits: MiniAppToolDeps["waits"] = {}
 ): Promise<Client> {
   const server = new McpServer({ name: "test", version: "1.0.0" });
-  registerMiniAppMcpTools(server, {
+  const deps: MiniAppToolDeps = {
     userId,
     context: new ProcessingContext({ jobId: "mcp", userId }),
     registry: async () => ({}) as NodeRegistry,
     runWorkflow,
-    ...(waits ? { waits } : {})
-  });
+    waits
+  };
+  registerMiniAppMcpTools(server, deps);
   return connect(server);
 }
 

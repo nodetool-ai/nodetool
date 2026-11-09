@@ -430,9 +430,9 @@ export function applyPropertyOverrides(
     ...graph,
     nodes: graph.nodes.map((node: AppServerRunInput["graph"]["nodes"][number]) => {
       const changes = isString(node.id) ? byNode.get(node.id) : undefined;
-      return changes
-        ? { ...node, properties: { ...(isRecord(node.properties) ? node.properties : {}), ...changes } }
-        : node;
+      if (!changes) return node;
+      const properties = isRecord(node.properties) ? node.properties : {};
+      return { ...node, properties: { ...properties, ...changes } };
     })
   };
 }
@@ -639,7 +639,9 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
           wake(entry);
         };
         const settle = (status: string, error: string | null): void => {
-          push({ type: "job_update", status, ...(error ? { error } : {}) });
+          const terminal: Record<string, unknown> = { type: "job_update", status };
+          if (error) terminal["error"] = error;
+          push(terminal);
           entry.done = true;
           entry.settledAt = Date.now();
           wake(entry);
