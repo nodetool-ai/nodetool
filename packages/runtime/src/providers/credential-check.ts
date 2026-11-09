@@ -102,6 +102,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://api.runcrate.ai/v1/models",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  STANDARDCOMPUTE_API_KEY: {
+    label: "Standard Compute",
+    url: () => "https://api.stdcmpt.com/v1/models",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   DEEPSEEK_API_KEY: {
     label: "DeepSeek",
     url: () => "https://api.deepseek.com/v1/models",

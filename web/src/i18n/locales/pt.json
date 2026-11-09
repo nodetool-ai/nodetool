@@ -9201,6 +9201,10 @@
           "button": "Obtenha a chave da API Runcrate",
           "tooltip": "Acesse a plataforma Runcrate para obter sua chave API"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Obtenha a chave da API Standard Compute",
+          "tooltip": "Acesse a plataforma Standard Compute para obter sua chave API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Obtenha a chave de rota da API",
           "tooltip": "Vá para a página de chaves da API Route API"

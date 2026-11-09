@@ -9057,6 +9057,10 @@
           "button": "Få Runcrate API-nøkkel",
           "tooltip": "Gå til Runcrate-plattformen for å få API-nøkkelen din"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Få Standard Compute API-nøkkel",
+          "tooltip": "Gå til Standard Compute-plattformen for å få API-nøkkelen din"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Få API-rutenøkkel",
           "tooltip": "Gå til API Route API-nøkler-siden"

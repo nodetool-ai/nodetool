@@ -15,6 +15,7 @@ const CLOUD = [
   "cheaperinference",
   "api_route",
   "runcrate",
+  "standardcompute",
   "fal_ai",
   "kie",
   "replicate",

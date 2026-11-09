@@ -9061,6 +9061,10 @@
           "button": "Hanki Runcrate API-avain",
           "tooltip": "Siirry Runcraten API-avainsivulle"
         },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Hanki Standard Compute API-avain",
+          "tooltip": "Siirry Standard Computen API-avainsivulle"
+        },
         "HF_TOKEN": {
           "button": "Hanki Hugging Face -tunnus",
           "tooltip": "Siirry Hugging Facen tunnussivulle"
