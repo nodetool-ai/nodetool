@@ -12,7 +12,7 @@ This plan owns the shared finite-operation request/result adapter. App agents an
 
 Keep operation coordination separate from conversation coordination. This adapter handles captured inputs, request/run correlation, observation, and explicit cancellation through existing owners. Agent sessions add history, conversation policy, response interruption, and result presentation above it. Mini Apps and external agent clients share that agent module. Neither speech dependencies nor conversation policy belong in generic `app-runtime`, and an agent-free caller must remain usable without them.
 
-Source notes below came from code and test inspection, not execution or realtime measurements. Recheck claims needed for delivery under the [evidence rules](feature-interplay/README.md#evidence-and-interpretation).
+Source notes below came from code and test inspection, not execution or realtime measurements. Recheck claims needed for delivery under the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation).
 
 ## What already exists
 

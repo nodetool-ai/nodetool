@@ -107,4 +107,4 @@ Keep O1/O2 unscheduled until selected for delivery. No universal graph, global r
 
 ## Verification boundary
 
-Follow the [evidence rules](README.md#evidence-and-interpretation). The original source reading has no recorded inspection commit. Recheck claims needed for delivery and record that revision. These recommendations add no product behavior or runtime certification and do not establish proposed map connections as implemented.
+Follow the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation). The original source reading has no recorded inspection commit. Recheck claims needed for delivery and record that revision. These recommendations add no product behavior or runtime certification and do not establish proposed map connections as implemented.
