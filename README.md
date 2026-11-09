@@ -12,7 +12,7 @@ Create images, video, audio, and text with agents that work alongside you.
 Describe what you want, let the agent build it, then take over whenever you
 like.
 
-**Stop prompting slot machines. Direct the agent.** NodeTool combines an AI
+**Create with AI. Make it your own.** NodeTool combines an AI
 video editor with node-based workflows. Ask the agent to create a video,
 refine it in the timeline, or connect nodes to build a process you can reuse.
 

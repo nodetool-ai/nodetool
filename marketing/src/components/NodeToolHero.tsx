@@ -41,7 +41,7 @@ export default function NodeToolHero() {
   return (
     <div className="relative w-full text-slate-200">
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
-        {/* The category line stays visible above the contrast, and the
+        {/* The category line stays visible above the headline, and the
             metadata stays category-led (NARRATIVE.md § Positioning line). */}
         <p className="inline-flex max-w-full items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-300 sm:text-[11px] sm:tracking-[0.18em]">
           Open-source agent-first creative workspace
@@ -51,8 +51,8 @@ export default function NodeToolHero() {
           id="hero-title"
           className="mt-5 text-balance text-[2.125rem] font-bold leading-[1.05] tracking-tight text-slate-50 sm:mt-6 sm:text-6xl lg:text-7xl"
         >
-          Stop prompting slot machines.{" "}
-          <span className="text-sky-200">Direct the agent.</span>
+          Create with AI.{" "}
+          <span className="text-sky-200">Make it your own.</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">

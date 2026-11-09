@@ -14,11 +14,12 @@ the page is the newer of the two. Bring the doc up to it, then fix the page.
 
 The homepage, README, and docs share the primary tagline and intro in
 `BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
-`<h1>` names the contrast: "Stop prompting slot machines. Direct the agent."
+`<h1>` reads: "Create with AI. Make it your own."
 The hero paragraph introduces the AI video editor and node-based workflows.
 Below the demo, a compact feature overview covers video editing and workflows,
 the agent, other media, model choice, local projects, and integrations.
 The homepage editor showcase omits experimental game creation.
+The project section introduces the demo with "From an idea to a video you can edit."
 
 ## Shared copy
 
@@ -28,7 +29,7 @@ These lines appear on more than one surface. Change them everywhere at once.
 |---|---|
 | "Open-source agent-first creative workspace" (tagline) | Homepage line above the `<h1>`, README title line, docs home `<h1>` |
 | The intro ("Create images, video, audio, and text with agents…") | README, docs home lead, `BRAND.md` |
-| "Stop prompting slot machines. Direct the agent." and its paragraph | Homepage `<h1>`, README under the intro |
+| "Create with AI. Make it your own." and its paragraph | Homepage `<h1>`, README under the intro |
 | "Give Claude Code a creative harness." | `/agents` `<h1>`, README § MCP, docs home agents block |
 | The plan table (ChatGPT, Claude, Gemini) | `SubscriptionSection` on `/pricing`, README, docs home |
 | The category comparison rows | README § How NodeTool compares, docs `comparisons.md` |

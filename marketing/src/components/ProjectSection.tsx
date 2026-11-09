@@ -20,7 +20,7 @@ export default function ProjectSection() {
             id="projects-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Change one shot. The rest of the cut stays.
+            From an idea to a video you can edit.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
             Send the agent a one-line note about one shot. It renders that
