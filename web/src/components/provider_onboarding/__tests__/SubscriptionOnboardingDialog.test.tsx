@@ -167,7 +167,9 @@ describe("SubscriptionOnboardingDialog", () => {
     renderDialog();
     await userEvent.click(screen.getByRole("button", { name: /^More providers/ }));
     await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "zzzz");
-    expect(screen.getByRole("status")).toHaveTextContent(/providers matches “zzzz”/);
+    expect(
+      screen.getByText(/providers matches “zzzz”/).closest('[role="status"]')
+    ).toBeInTheDocument();
   });
 
   it("sends a multi-field provider to its Settings card", async () => {
