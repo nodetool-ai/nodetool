@@ -13,15 +13,19 @@ runtime.
 
 - `fal-manifest.json` — node definitions with endpoint IDs, input/output schemas
 - `fal-factory.ts` — runtime node class generator from manifest
-- `fal-base.ts` — shared API utilities (submit, upload, asset conversion)
+- `fal-base.ts` — shared node utilities (endpoint call, upload, asset conversion)
 - `fal-dynamic.ts` — schema-driven dynamic nodes (`FalRawNode`, `FalDynamicNode`)
-- `fal-provider.ts` — high-level provider for text-to-image, image-to-image, TTS
 
 ## Runtime Flow
 
 1. `src/index.ts` loads `src/fal-manifest.json`.
 2. `src/fal-factory.ts` creates runtime node classes from manifest entries.
-3. `src/fal-base.ts` handles FAL API calls, asset uploads, and output mapping.
+3. Each node calls `callFalEndpoint` in `src/fal-base.ts`, which calls
+   `context.callProviderEndpoint` with the `fal_ai` provider inside the
+   generation seam. Uploads go through `context.uploadProviderMedia`.
+4. The runtime provider (`packages/runtime/src/providers/fal-provider.ts`) owns
+   the queue, the storage upload and the API key. Node code never reads
+   `FAL_API_KEY`. `requiredSettings` still names it for the UI.
 
 If a generated FAL node exposes the wrong inputs or outputs, fix the parser,
 endpoint config override, or runtime factory instead of patching the manifest.
@@ -58,7 +62,7 @@ render previews correctly.
 ### Input: AssetRef → API URL
 
 1. `imageToDataUrl()` — converts image AssetRef to data URI (preferred for images)
-2. `assetToFalUrl()` — uploads asset to FAL CDN, returns CDN URL
+2. `assetToFalUrl()` — uploads the asset through the provider to FAL storage, returns its URL
 3. `isRefSet()` — checks if an AssetRef has meaningful content
 
 ### Output: API Response → AssetRef

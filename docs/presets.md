@@ -155,9 +155,8 @@ The server compiles, not the client:
 | Surface | How |
 |---|---|
 | Shot editor | The **Movement** field takes free text or opens the camera preset picker. See [Edit a shot](storyboard-editor.md#edit-a-shot) |
-| Chat composer | In the image and video media modes, the preset chip opens the picker for the current mode. It turns to a warning when the chosen model falls back to `default` |
 | Effects gallery | Drop one picture, pick an effect and run it. Open it from **+ New**, or from an effects studio on the start page, which shows only that studio's effects until you choose **Show all effects** |
-| Create view | A workspace tab with a prompt bar built from the composer chips and a grid of generations. Open it from **+ New**, or from a Create studio on the start page with its presets on the preset chip |
+| Create tab | A workspace tab with a prompt bar and a grid of takes. In image and video modes, the preset chip opens the picker for the current mode, and turns to a warning when the chosen model falls back to `default`. Open one from **Image**, **Video** or **Read aloud** in **+ New**, or from a Create studio on the start page with its presets on the preset chip |
 | Agent | The `list_presets`, `get_preset` and `compile_presets` capabilities, and `preset_ids` on the media tools |
 | CLI | `nodetool presets` |
 

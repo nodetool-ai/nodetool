@@ -126,7 +126,7 @@ PYTHON
 )
     qt_notice=(--qt-sdk "$qt_sdk")
 fi
-python3 scripts/macho-deps.py notices "$app" --brew-prefix "$(brew --prefix)" "${qt_notice[@]}" \
+python3 scripts/macho-deps.py notices "$app" --brew-prefix "$(brew --prefix)" ${qt_notice[@]+"${qt_notice[@]}"} \
     --local "{\"name\":\"FFmpeg\",\"match\":\"^lib(avcodec|avformat|avutil|avfilter|swscale|swresample)[.]\",\"version\":\"$ffmpeg_version\",\"licenses\":[\"FFmpeg-LGPL-2.1.txt\"],\"source\":{\"file\":\"$ffmpeg_tar\"}}" \
     --default-licence "qt=Qt-LGPL-3.0.txt,Qt-GPL-3.0.txt" > "$build/package-notices.txt"
 {

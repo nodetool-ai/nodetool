@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,6 +11,14 @@ import {
   NodeRegistry,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
+
+// Permission flags are covered in permissions.test.ts. Here every flag is held.
+vi.mock("../src/lib/permissions.js", () => ({
+  requirePermission: async () => undefined,
+  permissionsFor: async () => new Proxy({}, { get: () => true }),
+  permissionRefusal: (flag: string) => flag,
+  forgetPermissions: () => undefined
+}));
 
 const createCaller = createCallerFactory(packsRouter);
 

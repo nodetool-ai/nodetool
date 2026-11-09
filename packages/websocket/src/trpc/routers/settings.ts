@@ -61,6 +61,7 @@ import {
   recordStorageCleanup,
   saveStorageRetentionPolicy
 } from "../../storage-retention.js";
+import { requirePermission } from "../../lib/permissions.js";
 
 // ── Secret response helpers ────────────────────────────────────────
 
@@ -147,6 +148,7 @@ const secretsRouter = router({
     .input(secretUpsertInput)
     .output(secretResponse)
     .mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.userId, "manage_own_keys");
       const upsertInput: Parameters<typeof Secret.upsert>[0] = {
         userId: ctx.userId,
         key: input.key,
@@ -165,6 +167,7 @@ const secretsRouter = router({
     .input(secretDeleteInput)
     .output(secretDeleteOutput)
     .mutation(async ({ ctx, input }) => {
+      await requirePermission(ctx.userId, "manage_own_keys");
       const deleted = await Secret.deleteSecret(ctx.userId, input.key);
       if (!deleted) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Secret not found");
@@ -417,6 +420,12 @@ export const settingsRouter = router({
       // asterisk value as the mask silently dropped legitimate secrets that
       // happen to be asterisks (e.g. an 8-char "********").
       const SECRET_MASK = "****";
+      if (
+        input.secrets &&
+        Object.values(input.secrets).some((value) => value !== SECRET_MASK)
+      ) {
+        await requirePermission(ctx.userId, "manage_own_keys");
+      }
       if (input.secrets) {
         for (const [key, value] of Object.entries(input.secrets)) {
           if (value === SECRET_MASK) {

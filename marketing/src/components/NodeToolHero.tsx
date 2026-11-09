@@ -1,5 +1,5 @@
 import React from "react";
-import { Download, Code2, KeyRound, Layers } from "lucide-react";
+import { Download } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
@@ -73,26 +73,6 @@ export default function NodeToolHero() {
           edits them together.
         </p>
       </div>
-
-      <ul className="mx-auto mt-8 grid sm:mt-10 max-w-5xl grid-cols-1 gap-3 text-sm font-medium text-slate-300 sm:grid-cols-3">
-        <li className="flex items-center justify-start gap-2 rounded-xl border sm:justify-center border-slate-800/80 bg-slate-900/40 px-4 py-3">
-          <Layers className="h-4 w-4 shrink-0 text-fuchsia-400" aria-hidden />
-          Editors for scripts, storyboards, drawing, video, 3D, and games
-        </li>
-        <li>
-          <a
-            href="#subscription"
-            className="flex h-full items-center justify-start gap-2 rounded-xl border sm:justify-center border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-100 transition-colors hover:border-emerald-400 focus-ring"
-          >
-            <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-            Your $20 ChatGPT, Claude, or Gemini plan, or your own API keys
-          </a>
-        </li>
-        <li className="flex items-center justify-start gap-2 rounded-xl border sm:justify-center border-slate-800/80 bg-slate-900/40 px-4 py-3">
-          <Code2 className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
-          Open source, and your projects are files you keep
-        </li>
-      </ul>
     </div>
   );
 }

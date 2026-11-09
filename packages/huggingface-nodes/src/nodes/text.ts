@@ -2,7 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   cleanParams,
-  getHfToken,
   hfChatCompletion,
   hfPipelineJson,
   jsonArray,
@@ -113,8 +112,9 @@ export class ChatCompletionNode extends BaseNode {
   })
   declare top_p: number;
 
-  async process(): Promise<ChatCompletionNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<ChatCompletionNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
@@ -123,12 +123,16 @@ export class ChatCompletionNode extends BaseNode {
     if (system) messages.push({ role: "system", content: system });
     messages.push({ role: "user", content: prompt });
 
-    const result = await hfChatCompletion(token, {
-      model: String(this.model ?? "meta-llama/Llama-3.1-8B-Instruct"),
-      messages,
-      max_tokens: Number(this.max_tokens ?? 512),
-      temperature: Number(this.temperature ?? 0.7),
-      top_p: Number(this.top_p ?? 1.0)
+    const result = await hfChatCompletion({
+      context,
+      nodeId: this.__node_id,
+      body: {
+        model: String(this.model ?? "meta-llama/Llama-3.1-8B-Instruct"),
+        messages,
+        max_tokens: Number(this.max_tokens ?? 512),
+        temperature: Number(this.temperature ?? 0.7),
+        top_p: Number(this.top_p ?? 1.0)
+      }
     });
 
     return { output: result.content };
@@ -199,15 +203,18 @@ export class TextGenerationNode extends BaseNode {
   })
   declare return_full_text: boolean;
 
-  async process(): Promise<TextGenerationNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TextGenerationNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "HuggingFaceH4/zephyr-7b-beta"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "text-generation",
+      model: String(this.model ?? "HuggingFaceH4/zephyr-7b-beta"),
+      body: {
         inputs: prompt,
         parameters: cleanParams({
           max_new_tokens: Number(this.max_new_tokens ?? 256),
@@ -215,7 +222,7 @@ export class TextGenerationNode extends BaseNode {
           return_full_text: Boolean(this.return_full_text ?? false)
         })
       }
-    );
+    });
 
     const first = jsonObject(jsonFirst(result));
     return { output: jsonString(first["generated_text"]) };
@@ -278,25 +285,28 @@ export class SummarizationNode extends BaseNode {
   })
   declare min_length: number;
 
-  async process(): Promise<SummarizationNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<SummarizationNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
     const maxLength = Number(this.max_length ?? 0);
     const minLength = Number(this.min_length ?? 0);
 
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "facebook/bart-large-cnn"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "summarization",
+      model: String(this.model ?? "facebook/bart-large-cnn"),
+      body: {
         inputs: text,
         parameters: cleanParams({
           max_length: maxLength > 0 ? maxLength : undefined,
           min_length: minLength > 0 ? minLength : undefined
         })
       }
-    );
+    });
 
     const first = jsonObject(jsonFirst(result));
     return { output: jsonString(first["summary_text"]) };
@@ -358,22 +368,25 @@ export class TranslationNode extends BaseNode {
   })
   declare tgt_lang: string;
 
-  async process(): Promise<TranslationNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TranslationNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "facebook/nllb-200-distilled-600M"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "translation",
+      model: String(this.model ?? "facebook/nllb-200-distilled-600M"),
+      body: {
         inputs: text,
         parameters: cleanParams({
           src_lang: String(this.src_lang ?? ""),
           tgt_lang: String(this.tgt_lang ?? "")
         })
       }
-    );
+    });
 
     const first = jsonObject(jsonFirst(result));
     return { output: jsonString(first["translation_text"]) };
@@ -418,16 +431,19 @@ export class FillMaskNode extends BaseNode {
   })
   declare inputs: string;
 
-  async process(): Promise<FillMaskNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<FillMaskNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "bert-base-uncased"),
-      { inputs: text }
-    );
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "fill-mask",
+      model: String(this.model ?? "bert-base-uncased"),
+      body: { inputs: text }
+    });
 
     const predictions = jsonArray(result);
     return {
@@ -482,19 +498,22 @@ export class QuestionAnsweringNode extends BaseNode {
   })
   declare context: string;
 
-  async process(): Promise<QuestionAnsweringNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    processing?: Parameters<BaseNode["process"]>[0]
+  ): Promise<QuestionAnsweringNodeOutputs> {
     const question = String(this.question ?? "");
     const context = String(this.context ?? "");
     if (!question) throw new Error("Question cannot be empty");
     if (!context) throw new Error("Context cannot be empty");
 
     const result = jsonObject(
-      await hfPipelineJson(
-        token,
-        String(this.model ?? "deepset/roberta-base-squad2"),
-        { inputs: { question, context } }
-      )
+      await hfPipelineJson({
+        context: processing,
+        nodeId: this.__node_id,
+        task: "question-answering",
+        model: String(this.model ?? "deepset/roberta-base-squad2"),
+        body: { inputs: { question, context } }
+      })
     );
 
     return {
@@ -555,8 +574,9 @@ export class TableQuestionAnsweringNode extends BaseNode {
   })
   declare table: HfJsonObject;
 
-  async process(): Promise<TableQuestionAnsweringNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TableQuestionAnsweringNodeOutputs> {
     const question = String(this.question ?? "");
     if (!question) throw new Error("Question cannot be empty");
 
@@ -573,11 +593,13 @@ export class TableQuestionAnsweringNode extends BaseNode {
     }
 
     const result = jsonObject(
-      await hfPipelineJson(
-        token,
-        String(this.model ?? "google/tapas-base-finetuned-wtq"),
-        { inputs: { query: question, table } }
-      )
+      await hfPipelineJson({
+        context,
+        nodeId: this.__node_id,
+        task: "table-question-answering",
+        model: String(this.model ?? "google/tapas-base-finetuned-wtq"),
+        body: { inputs: { query: question, table } }
+      })
     );
 
     return {
@@ -631,16 +653,19 @@ export class FeatureExtractionNode extends BaseNode {
   })
   declare normalize: boolean;
 
-  async process(): Promise<FeatureExtractionNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<FeatureExtractionNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
-      embedBody(text, Boolean(this.normalize))
-    );
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "feature-extraction",
+      model: String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
+      body: embedBody(text, Boolean(this.normalize))
+    });
 
     return { output: result };
   }
@@ -683,17 +708,20 @@ export class TextClassificationNode extends BaseNode {
   })
   declare inputs: string;
 
-  async process(): Promise<TextClassificationNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TextClassificationNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
     const result = jsonArray(
-      await hfPipelineJson(
-        token,
-        String(this.model ?? "distilbert-base-uncased-finetuned-sst-2-english"),
-        { inputs: text }
-      )
+      await hfPipelineJson({
+        context,
+        nodeId: this.__node_id,
+        task: "text-classification",
+        model: String(this.model ?? "distilbert-base-uncased-finetuned-sst-2-english"),
+        body: { inputs: text }
+      })
     );
 
     // The API may return a flat list or a list-of-lists (one per input).
@@ -750,17 +778,20 @@ export class TokenClassificationNode extends BaseNode {
   })
   declare aggregation_strategy: string;
 
-  async process(): Promise<TokenClassificationNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TokenClassificationNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
     const strategy = String(this.aggregation_strategy ?? "simple");
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "dslim/bert-base-NER"),
-      nerBody(text, strategy)
-    );
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "token-classification",
+      model: String(this.model ?? "dslim/bert-base-NER"),
+      body: nerBody(text, strategy)
+    });
 
     return { output: jsonArray(result) };
   }
@@ -819,8 +850,9 @@ export class ZeroShotClassificationNode extends BaseNode {
   })
   declare multi_label: boolean;
 
-  async process(): Promise<ZeroShotClassificationNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<ZeroShotClassificationNodeOutputs> {
     const text = String(this.inputs ?? "");
     if (!text) throw new Error("Text cannot be empty");
 
@@ -832,17 +864,19 @@ export class ZeroShotClassificationNode extends BaseNode {
       throw new Error("Provide at least one candidate label");
     }
 
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "facebook/bart-large-mnli"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "zero-shot-classification",
+      model: String(this.model ?? "facebook/bart-large-mnli"),
+      body: {
         inputs: text,
         parameters: {
           candidate_labels: labels,
           multi_label: Boolean(this.multi_label ?? false)
         }
       }
-    );
+    });
 
     // Newer providers return [{label, score}], the classic API returns
     // {labels, scores}. Normalize both into a sorted list.

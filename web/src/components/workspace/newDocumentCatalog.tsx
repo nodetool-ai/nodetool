@@ -3,8 +3,10 @@
  * the `+ New` popover and the strip at the foot of the new-project surface.
  *
  * Each entry either creates its document straight away or names a submenu the
- * caller renders (chat modes, text templates, storyboard examples), so both surfaces offer
- * the same set without either owning the creators.
+ * caller renders (text templates, storyboard examples), so both surfaces offer
+ * the same set without either owning the creators. Generating media is not a
+ * blank document: Image, Video and Read aloud open Create tabs from the
+ * guided column, and `createSession` opens one in any mode.
  */
 
 import { useCallback, useState, type ReactNode } from "react";
@@ -23,6 +25,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
 import { comfyStarterGraph } from "../../lib/comfy/comfyStarterGraph";
+import { starterCheckpointForTarget } from "../../hooks/useStartComfyWorkflow";
 import type { Workflow } from "../../stores/ApiTypes";
 
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
@@ -39,14 +42,14 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import type { MediaMode } from "../../stores/MediaGenerationStore";
+import type { CreateMode } from "../../stores/CreateViewStore";
 import {
-  CREATE_REF,
   creationProjectId,
   useWorkspaceTabsStore,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { newDocumentId } from "../../lib/newDocumentId";
+import { openCreateSession } from "../create/openCreateSession";
 
 /** Render a blank white PNG to seed a "New sketch" canvas asset. */
 const createBlankImageFile = (): Promise<File> =>
@@ -143,7 +146,7 @@ export const TEXT_FILE_TEMPLATES: readonly TextFileTemplate[] = [
 ];
 
 /** Entries whose second choice the caller renders. */
-export type NewDocumentSubmenu = "chats" | "texts" | "storyboards";
+export type NewDocumentSubmenu = "texts" | "storyboards";
 
 export interface NewDocumentEntry {
   key: string;
@@ -170,8 +173,10 @@ interface NewDocumentCatalogOptions {
 
 export interface NewDocumentCatalog {
   entries: readonly NewDocumentEntry[];
-  /** Start a chat whose composer opens on `mode`. */
-  createChat: (mode: MediaMode) => Promise<void>;
+  /** Start a chat. */
+  createChat: () => Promise<void>;
+  /** Open a new Create tab in `mode`. */
+  createSession: (mode: CreateMode) => Promise<void>;
   createTextFile: (template: TextFileTemplate) => Promise<void>;
   createBlankStoryboard: () => Promise<void>;
   installStoryboardExample: (slug: string, name: string) => Promise<void>;
@@ -268,7 +273,9 @@ export const useNewDocumentCatalog = (
         const workflow = await createNew(destinationProjectId, {
           name: "New Comfy Workflow",
           run_mode: COMFY_RUN_MODE,
-          graph: comfyStarterGraph() as Workflow["graph"]
+          graph: comfyStarterGraph({
+            checkpoint: await starterCheckpointForTarget()
+          }) as Workflow["graph"]
         });
         openTab({
           type: "workflow",
@@ -282,11 +289,10 @@ export const useNewDocumentCatalog = (
   );
 
   const createChat = useCallback(
-    (mode: MediaMode) =>
+    () =>
       runCreate("chat", async (destinationProjectId) => {
         const threadId = await createNewThread(undefined, undefined, {
-          projectId: destinationProjectId,
-          mediaMode: mode
+          projectId: destinationProjectId
         });
         openTab({
           type: "chat",
@@ -481,17 +487,12 @@ export const useNewDocumentCatalog = (
     [runCreate, createSkill, openGlobalTab]
   );
 
-  const openCreateView = useCallback(
-    () =>
-      runCreate("Create view", async () => {
-        openGlobalTab({
-          type: "create",
-          ref: CREATE_REF,
-          mode: "view",
-          title: "Create"
-        });
+  const createSession = useCallback(
+    (mode: CreateMode) =>
+      runCreate("Create tab", async (destinationProjectId) => {
+        await openCreateSession(destinationProjectId, { mode });
       }),
-    [runCreate, openGlobalTab]
+    [runCreate]
   );
 
   const createModel = useCallback(
@@ -529,18 +530,10 @@ export const useNewDocumentCatalog = (
     {
       key: "chat",
       label: "Chat",
-      menuLabel: "New chat…",
+      menuLabel: "New chat",
       type: "chat",
       icon: <ForumOutlinedIcon fontSize="small" />,
-      submenu: "chats"
-    },
-    {
-      key: "create",
-      label: "Create",
-      menuLabel: "Create images and videos",
-      type: "create",
-      icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
-      create: openCreateView
+      create: createChat
     },
     {
       key: "text",
@@ -627,6 +620,7 @@ export const useNewDocumentCatalog = (
   return {
     entries,
     createChat,
+    createSession,
     createTextFile,
     createBlankStoryboard,
     installStoryboardExample,

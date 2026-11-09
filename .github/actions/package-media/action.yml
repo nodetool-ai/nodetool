@@ -1,0 +1,17 @@
+name: Restore package media
+description: >-
+  Put the example media that lives on media.nodetool.ai back into
+  packages/base-nodes/nodetool/assets/nodetool-base (scripts/package-media.mjs).
+  It downloads from the CDN on every run and keeps no Actions cache, so no job
+  can plant objects for another. The pull checks each file's SHA-256 against
+  the manifest. The calling job must check out the repository and set up Node
+  first.
+
+runs:
+  using: composite
+  steps:
+    - name: Pull package media
+      shell: bash
+      env:
+        NODETOOL_PACKAGE_MEDIA_CACHE: ${{ runner.temp }}/package-media
+      run: node scripts/package-media.mjs pull

@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOffOutlined";
@@ -30,11 +31,14 @@ import {
   SelectableListItem,
   Text,
   TextArea,
-  ToolbarIconButton
+  ToolbarIconButton,
+  getSpacingPx
 } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+import { getDirectGenBlocker } from "../../../lib/sketch/directGenValidation";
+import { useLayerDragDrop, type LayerDropPosition } from "../hooks/useLayerDragDrop";
 import { getLayerDataImageUrl } from "../serialization";
 import type { Layer } from "../types";
 
@@ -52,8 +56,14 @@ interface SimpleLayerRowProps {
   active: boolean;
   generated: boolean;
   generating: boolean;
+  dropPosition: LayerDropPosition | null;
   onSelect: (layerId: string) => void;
   onToggleVisibility: (layerId: string) => void;
+  onDragStart: (event: React.DragEvent<HTMLDivElement>, layerId: string) => void;
+  onDragOver: (event: React.DragEvent<HTMLDivElement>, layerId: string) => void;
+  onDragEnd: () => void;
+  onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
+  onTouchDrag: (event: React.PointerEvent<SVGSVGElement>, layerId: string) => void;
 }
 
 const SimpleLayerRow = memo(function SimpleLayerRow({
@@ -61,8 +71,14 @@ const SimpleLayerRow = memo(function SimpleLayerRow({
   active,
   generated,
   generating,
+  dropPosition,
   onSelect,
-  onToggleVisibility
+  onToggleVisibility,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
+  onTouchDrag
 }: SimpleLayerRowProps) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -76,20 +92,43 @@ const SimpleLayerRow = memo(function SimpleLayerRow({
     <SelectableListItem
       className="sketch-simple__layer"
       data-testid="sketch-simple-layer"
+      data-sketch-layer-id={layer.id}
       selected={active}
       aria-label={layer.name}
       onClick={() => onSelect(layer.id)}
+      draggable
+      onDragStart={(event) => onDragStart(event, layer.id)}
+      onDragOver={(event) => onDragOver(event, layer.id)}
+      onDragEnd={onDragEnd}
+      onDrop={onDrop}
       paddingX={SPACING.sm}
       paddingY={SPACING.sm}
       gap={SPACING.md}
       sx={{
         border: `1px solid ${active ? theme.vars.palette.primary.main : theme.vars.palette.divider}`,
         borderRadius: BORDER_RADIUS.lg,
+        cursor: "grab",
+        boxShadow: dropPosition === "before" || dropPosition === "after"
+          ? `inset 0 ${dropPosition === "before" ? "" : "-"}${getSpacingPx(SPACING.micro)} 0 ${theme.vars.palette.primary.main}`
+          : undefined,
         backgroundColor: active
           ? `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`
           : theme.vars.palette.background.paper
       }}
     >
+      <DragIndicatorIcon
+        onPointerDown={(event) => onTouchDrag(event, layer.id)}
+        onPointerMove={(event) => onTouchDrag(event, layer.id)}
+        onPointerUp={(event) => onTouchDrag(event, layer.id)}
+        onPointerCancel={(event) => onTouchDrag(event, layer.id)}
+        onLostPointerCapture={(event) => onTouchDrag(event, layer.id)}
+        sx={{
+          fontSize: ICON_SIZE.sm,
+          color: "text.secondary",
+          flexShrink: 0,
+          touchAction: "none"
+        }}
+      />
       <Box
         sx={{
           position: "relative",
@@ -164,14 +203,7 @@ const LayerPromptCard = memo(function LayerPromptCard({
   const running = isRunning(binding);
   const prompt = binding.prompt ?? "";
 
-  let blocker: string | undefined;
-  if (!binding.provider || !binding.model) {
-    blocker = t("screens4_25.sketch.directGen.pickModel");
-  } else if (prompt.trim().length === 0) {
-    blocker = t("screens4_25.sketch.directGen.writePrompt");
-  } else if (binding.kind === "image-to-image" && !binding.sourceLayerId) {
-    blocker = t("screens4_25.sketch.directGen.pickSourceLayer");
-  }
+  const blocker = getDirectGenBlocker(binding);
 
   return (
     <FlexColumn
@@ -226,8 +258,8 @@ const LayerPromptCard = memo(function LayerPromptCard({
               size="small"
               variant="contained"
               startIcon={<RefreshIcon />}
-              disabled={blocker !== undefined}
-              disabledReason={blocker}
+              disabled={blocker !== null}
+              disabledReason={blocker ? t(blocker.labelKey) : undefined}
               onClick={() => void start(layer.id)}
               data-testid="sketch-simple-regenerate"
             >
@@ -249,6 +281,7 @@ const LayerPromptCard = memo(function LayerPromptCard({
 
 export interface SimpleSketchSidebarProps {
   onToggleVisibility: (layerId: string) => void;
+  onReorderLayers: (fromIndex: number, toIndex: number) => void;
   onAddLayer: () => void;
   /** Opens Expert mode. Omit it where Expert mode is unavailable. */
   onOpenExpert?: () => void;
@@ -258,6 +291,7 @@ export interface SimpleSketchSidebarProps {
 
 export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
   onToggleVisibility,
+  onReorderLayers,
   onAddLayer,
   onOpenExpert,
   sheet = false
@@ -269,6 +303,8 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
   const setActiveLayer = useSketchStore((s) => s.setActiveLayer);
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const bindings = useSketchSessionStore((s) => s.bindings);
+  const { dropTarget, layerListRef, onDragStart, onDragOver, onDragEnd, onDrop, onTouchDrag } =
+    useLayerDragDrop(layers, onReorderLayers);
 
   // Topmost first, as the canvas stacks them. Groups are Expert-mode
   // structure, so their children list flat here.
@@ -282,7 +318,6 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
     (layerId: string) => setActiveLayer(layerId),
     [setActiveLayer]
   );
-
   if (panelsHidden && !sheet) {
     return null;
   }
@@ -319,7 +354,12 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
               data-testid="sketch-simple-add-layer"
             />
           </FlexRow>
-          <FlexColumn gap={SPACING.md} role="list" aria-label={t("i18n-next4.sketch.layers")}>
+          <FlexColumn
+            ref={layerListRef}
+            gap={SPACING.md}
+            role="list"
+            aria-label={t("i18n-next4.sketch.layers")}
+          >
             {rows.map((layer) => (
               <Box key={layer.id} role="listitem">
                 <SimpleLayerRow
@@ -327,8 +367,14 @@ export const SimpleSketchSidebar = memo(function SimpleSketchSidebar({
                   active={layer.id === activeLayerId}
                   generated={bindings[layer.id] !== undefined}
                   generating={isRunning(bindings[layer.id])}
+                  dropPosition={dropTarget?.layerId === layer.id ? dropTarget.position : null}
                   onSelect={handleSelect}
                   onToggleVisibility={onToggleVisibility}
+                  onDragStart={onDragStart}
+                  onDragOver={onDragOver}
+                  onDragEnd={onDragEnd}
+                  onDrop={onDrop}
+                  onTouchDrag={onTouchDrag}
                 />
               </Box>
             ))}

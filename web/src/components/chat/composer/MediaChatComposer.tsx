@@ -18,19 +18,13 @@ import {
   FlexRow,
   LoadingSpinner,
   Text,
-  ToggleGroup,
-  ToggleOption,
   Tooltip,
   SPACING
 } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
-  CATEGORY_SUB_MODES,
-  mediaCategoryForMode,
-  type MediaGenerationCategory,
   type MediaMode
 } from "../../../stores/MediaGenerationStore";
-import { MEDIA_MODES } from "./mediaModes";
 import MediaControlChip from "./MediaControlChip";
 import ModeChips from "./ModeChips";
 import { buildMediaGenerationRequest } from "./mediaGenerationRequest";
@@ -141,8 +135,6 @@ interface MediaChatComposerProps {
    *  new-project quick starters, an "edit and resend" on a sent message — seeds
    *  it through ChatDraftStore; the seed lands in the textarea, unsent. */
   threadId?: string | null;
-  /** Scopes the composer to a single generation modality (image, video, audio). */
-  mediaCategory?: MediaGenerationCategory | null;
 }
 
 /**
@@ -177,8 +169,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   placeholder: placeholderOverride,
   hideModePicker = false,
   hideModelPicker = false,
-  threadId,
-  mediaCategory
+  threadId
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -213,22 +204,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Mode + media params from persistent store. The params are read here for
   // the outgoing `media_generation` payload; the chips that edit them read
   // their own slice.
-  const storeMode = useMediaGenerationStore((s) =>
-    mediaCategory && threadId && s.threadModes[threadId] !== undefined
-      ? s.threadModes[threadId]
-      : s.mode
-  );
-  const setGlobalMode = useMediaGenerationStore((s) => s.setMode);
-  const setThreadMode = useMediaGenerationStore((s) => s.setThreadMode);
-  const setMode = useCallback(
-    (nextMode: MediaMode) => {
-      setGlobalMode(nextMode);
-      if (threadId) {
-        setThreadMode(threadId, nextMode);
-      }
-    },
-    [setGlobalMode, setThreadMode, threadId]
-  );
+  const storeMode = useMediaGenerationStore((s) => s.mode);
+  const setMode = useMediaGenerationStore((s) => s.setMode);
   const imageParams = useMediaGenerationStore((s) => s.image);
   const imageEditParams = useMediaGenerationStore((s) => s.imageEdit);
   const videoParams = useMediaGenerationStore((s) => s.video);
@@ -255,28 +232,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
 
   // Pure-chat panels force chat mode and ignore the global media mode.
-  // Category-scoped tabs fall back to their default sub-mode if the thread
-  // mode drifts outside the category.
-  const mode: MediaMode = useMemo(() => {
-    if (hideModePicker) {
-      return "chat";
-    }
-    if (mediaCategory) {
-      if (mediaCategoryForMode(storeMode) === mediaCategory) {
-        return storeMode;
-      }
-      return CATEGORY_SUB_MODES[mediaCategory][0];
-    }
-    return storeMode;
-  }, [hideModePicker, mediaCategory, storeMode]);
-
-  const categorySubModes = useMemo(() => {
-    if (!mediaCategory) {
-      return null;
-    }
-    const allowed = CATEGORY_SUB_MODES[mediaCategory];
-    return MEDIA_MODES.filter((item) => allowed.includes(item.id));
-  }, [mediaCategory]);
+  const mode: MediaMode = hideModePicker ? "chat" : storeMode;
 
   // When the selected mode's capability has no configured provider, surface a
   // setup banner and route the send into the provider-onboarding dialog
@@ -876,43 +832,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {categorySubModes && categorySubModes.length > 1 && (
-          <FlexRow
-            align="center"
-            sx={{
-              px: SPACING.xs,
-              pb: SPACING.xs,
-              borderBottom: 1,
-              borderColor: "divider",
-              overflowX: "auto"
-            }}
-          >
-            <ToggleGroup
-              segmented
-              exclusive
-              size="small"
-              value={mode}
-              onChange={(_e, next: MediaMode | null) => {
-                if (next) {
-                  setMode(next);
-                }
-              }}
-              aria-label={t("i18n-next22.chat.composer.mediaMode.generationMode")}
-            >
-              {categorySubModes.map((item) => (
-                <ToggleOption key={item.id} value={item.id}>
-                  <FlexRow align="center" gap={SPACING.micro}>
-                    {item.icon}
-                    <span>
-                      {t(`i18n-next22.chat.composer.mediaMode.modes.${item.labelKey}`)}
-                    </span>
-                  </FlexRow>
-                </ToggleOption>
-              ))}
-            </ToggleGroup>
-          </FlexRow>
-        )}
-
         {droppedFiles.length > 0 && (
           <div className="media-file-preview-row">
             {droppedFiles.map((file) => (
@@ -1042,7 +961,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               showChevron={false}
             />
 
-            {!hideModePicker && !mediaCategory && (
+            {!hideModePicker && (
               <ModeSelectChip
                 mode={mode}
                 onChange={setMode}

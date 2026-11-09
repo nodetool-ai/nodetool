@@ -129,10 +129,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
         }
         if (plainThreadStarted.current) return undefined;
         plainThreadStarted.current = true;
-        // Opening the panel must not reset the mode another chat is in.
-        return createNewThread(undefined, undefined, {
-          keepMediaMode: true
-        }).then(selectThread);
+        return createNewThread().then(selectThread);
       })
       .catch((err) => {
         console.error("AppBuilder agent: failed to connect", err);
@@ -210,11 +207,9 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           currentTaskUpdate={runtime.taskUpdate}
           currentLogUpdate={runtime.logUpdate}
           workflowId={workflowId}
-          workflowAssistant={Boolean(workflowId)}
           systemPrompt={APP_BUILDER_SYSTEM_PROMPT}
           chatSource="app_builder"
           uiContext={appBuilderUiContext}
-          hideModePicker
           composerPlaceholder={t("i18n-next8.appBuilder.agent.composerPlaceholder")}
           threadId={threadId}
           key={threadId ?? "no-thread"}

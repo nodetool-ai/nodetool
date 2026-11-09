@@ -45,6 +45,8 @@ import {
   findModelSpec,
   listModelsSpec,
   listProviderModelsSpec,
+  listProvidersSpec,
+  PROVIDER_CAPABILITY_TOOLS,
   SUPPORTED_CAPABILITIES,
   MODEL_TYPES
 } from "./models.specs.js";
@@ -1075,11 +1077,88 @@ const listProviderModels: CapabilityExport = {
   }
 };
 
+// ---------------------------------------------------------------------------
+// list_providers
+// ---------------------------------------------------------------------------
+
+/** One row of `list_providers`. */
+interface ListedProvider {
+  id: string;
+  local: boolean;
+  available: boolean;
+  unavailable_reason?: string;
+  capabilities: ProviderCapability[];
+  /** Capability → the tool that runs it, for the capabilities a tool covers. */
+  tools: Partial<Record<ProviderCapability, string>>;
+}
+
+const CAPABILITY_TOOL_ENTRIES: ReadonlyMap<ProviderCapability, string> =
+  new Map(Object.entries(PROVIDER_CAPABILITY_TOOLS)) as ReadonlyMap<
+    ProviderCapability,
+    string
+  >;
+
+const listProviders: CapabilityExport = {
+  spec: listProvidersSpec,
+  impl: async (run, params) => {
+    const providers = providersOf(run);
+    const capabilityFilter = isNonBlankString(params["capability"])
+      ? params["capability"].trim()
+      : undefined;
+
+    const rows: ListedProvider[] = [];
+    for (const [id, instance] of Object.entries(providers)) {
+      let capabilities: ProviderCapability[];
+      try {
+        capabilities = instance.getCapabilities();
+      } catch {
+        continue;
+      }
+      if (
+        capabilityFilter &&
+        !capabilities.some((c) => c === capabilityFilter)
+      ) {
+        continue;
+      }
+      const tools: Partial<Record<ProviderCapability, string>> = {};
+      for (const capability of capabilities) {
+        const tool = CAPABILITY_TOOL_ENTRIES.get(capability);
+        if (tool) tools[capability] = tool;
+      }
+      const reason = await unavailableReasonOf(instance);
+      const row: ListedProvider = {
+        id,
+        local: LOCAL_PROVIDER_IDS.has(id),
+        available: reason === null,
+        capabilities,
+        tools
+      };
+      if (reason !== null) row.unavailable_reason = reason;
+      rows.push(row);
+    }
+    rows.sort((a, b) => a.id.localeCompare(b.id));
+
+    const answer: {
+      total: number;
+      providers: ListedProvider[];
+      note?: string;
+    } = { total: rows.length, providers: rows };
+    if (Object.keys(providers).length === 0) {
+      answer.note =
+        "No providers are configured. Add an API key in Settings → Models & Providers.";
+    } else if (rows.length === 0 && capabilityFilter) {
+      answer.note = `No configured provider reports '${capabilityFilter}'.`;
+    }
+    return answer;
+  }
+};
+
 /** Every model capability, in the order `getAllMcpTools` offered them. */
 export const MODEL_CAPABILITIES: readonly CapabilityExport[] = [
   findModel,
   listModels,
-  listProviderModels
+  listProviderModels,
+  listProviders
 ];
 
 export const module: CapabilityModule = {
@@ -1087,4 +1166,4 @@ export const module: CapabilityModule = {
   exports: MODEL_CAPABILITIES
 };
 
-export { findModel, listModels, listProviderModels };
+export { findModel, listModels, listProviderModels, listProviders };

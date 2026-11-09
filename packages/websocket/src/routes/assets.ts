@@ -12,6 +12,7 @@ import {
 } from "../http-api.js";
 import { handleAssetPeaks } from "../lib/audio-peaks.js";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import { fetchPackageMedia } from "@nodetool-ai/config";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
 interface RouteOptions {
@@ -184,6 +185,32 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
             hit = tryServe(
               resolve(`${sourceFolder}/nodetool/assets/${pkgName}`)
             );
+          }
+        }
+        // Media that moved to storage: the manifest next to a root lists it,
+        // and the first request downloads it into the package media cache.
+        if (!hit) {
+          let cached: string | null = null;
+          try {
+            cached = await fetchPackageMedia(
+              apiOptions.packageAssetsRoots ?? [],
+              pkgName,
+              aName
+            );
+          } catch (error) {
+            return new Response(
+              JSON.stringify(
+                apiError(
+                  ApiErrorCode.ASSET_NOT_FOUND,
+                  `Asset '${aName}' of package '${pkgName}' could not be downloaded: ${error instanceof Error ? error.message : String(error)}`
+                )
+              ),
+              { status: 502, headers: { "content-type": "application/json" } }
+            );
+          }
+          if (cached) {
+            const st = statSync(cached);
+            hit = { path: cached, size: st.size, mtimeMs: st.mtimeMs };
           }
         }
         if (!hit) {

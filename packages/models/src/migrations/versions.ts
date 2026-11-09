@@ -305,10 +305,39 @@ const USER_ACCOUNTS_DDL: readonly string[] = [
     ON nodetool_user_accounts (email)`
 ];
 
+const USER_QUOTAS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_user_quotas (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    period TEXT NOT NULL DEFAULT 'month',
+    token_limit INTEGER,
+    media_usd_limit REAL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    updated_by TEXT
+  )`
+];
+
+const THREAD_KIND_DDL =
+  "ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'";
+
+const USER_PERMISSIONS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    flags TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    updated_by TEXT
+  )`
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
-  ...USER_ACCOUNTS_DDL
+  ...USER_ACCOUNTS_DDL,
+  ...USER_QUOTAS_DDL,
+  "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT",
+  ...USER_PERMISSIONS_DDL,
+  THREAD_KIND_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4327,6 +4356,56 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_user_accounts_email");
       await db.execute("DROP TABLE IF EXISTS nodetool_user_accounts");
+    }
+  },
+
+  // Spend limits for self-hosted servers, and which key paid for each
+  // prediction, so spend on a user's own keys stays out of their quota.
+  {
+    version: "20261108_000000",
+    name: "create_user_quotas",
+    createsTables: ["nodetool_user_quotas"],
+    modifiesTables: ["nodetool_predictions"],
+    async up(db) {
+      for (const statement of USER_QUOTAS_DDL) await db.execute(statement);
+      if (!(await db.columnExists("nodetool_predictions", "key_source"))) {
+        await db.execute("ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT");
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_user_quotas");
+      // Keep key_source: dropping it would lose which key paid.
+    }
+  },
+
+  // Permission flags for self-hosted servers.
+  {
+    version: "20261109_000000",
+    name: "create_user_permissions",
+    createsTables: ["nodetool_user_permissions"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of USER_PERMISSIONS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_user_permissions");
+    }
+  },
+
+  // A thread is either a conversation or a Create session, whose takes are
+  // generations tagged with its id rather than chat messages.
+  {
+    version: "20261110_000000",
+    name: "add_thread_kind",
+    createsTables: [],
+    modifiesTables: ["nodetool_threads"],
+    async up(db) {
+      if (!(await db.columnExists("nodetool_threads", "kind"))) {
+        await db.execute(THREAD_KIND_DDL);
+      }
+    },
+    async down() {
+      // Keep kind: dropping it would turn Create sessions into empty chats.
     }
   }
 ];

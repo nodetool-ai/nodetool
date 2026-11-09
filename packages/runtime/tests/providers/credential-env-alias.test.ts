@@ -20,7 +20,12 @@ class KwargCapturingProvider extends FakeProvider {
 
 const noSecrets = async () => undefined;
 
-const ENV_KEYS = ["FAL_API_KEY", "FAL_KEY"] as const;
+const ENV_KEYS = [
+  "FAL_API_KEY",
+  "FAL_KEY",
+  "HF_TOKEN",
+  "HUGGINGFACE_API_KEY"
+] as const;
 const saved: Record<string, string | undefined> = {};
 for (const key of ENV_KEYS) saved[key] = process.env[key];
 
@@ -44,6 +49,14 @@ describe("credential env aliases", () => {
     delete process.env.FAL_API_KEY;
     process.env.FAL_KEY = "alias";
     expect(readCredentialEnv("FAL_API_KEY")).toBe("alias");
+  });
+
+  // The Hugging Face nodes accepted HUGGINGFACE_API_KEY before they moved
+  // onto the provider, which reads HF_TOKEN.
+  it("falls back to the name the Hugging Face nodes used to read", () => {
+    delete process.env.HF_TOKEN;
+    process.env.HUGGINGFACE_API_KEY = "legacy";
+    expect(readCredentialEnv("HF_TOKEN")).toBe("legacy");
   });
 
   it("returns undefined when neither is set", () => {

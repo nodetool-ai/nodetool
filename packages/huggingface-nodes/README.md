@@ -3,9 +3,11 @@
 Workflow nodes for the [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/tasks/index)
 API — one node per documented task modality.
 
-All nodes call the unified router at `https://router.huggingface.co` and need a
-Hugging Face access token with the **Inference Providers** permission, stored as
-the `HF_TOKEN` secret (Settings → API Keys).
+All nodes reach the unified router at `https://router.huggingface.co` through
+the runtime Hugging Face provider (`context.callProviderEndpoint`), so each call
+writes a generation record. The provider holds the token. It needs a Hugging
+Face access token with the **Inference Providers** permission, stored as the
+`HF_TOKEN` secret (Settings → API Keys) or set as an environment variable.
 
 ## Tasks
 

@@ -4,13 +4,13 @@ vi.mock("../src/topaz-base.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/topaz-base.js")>();
   return {
     ...actual,
-    getApiKey: () => "test-key",
     refToBytes: vi.fn(async () => Uint8Array.from([1, 2, 3])),
     topazExecuteImageTask: vi.fn(async () => Uint8Array.from([4, 5, 6])),
     topazImageRef: vi.fn(async () => ({ type: "image", uri: "", data: "" }))
   };
 });
 
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import { createTopazNodeClass } from "../src/topaz-factory.js";
 import type { TopazManifestEntry } from "../src/topaz-factory.js";
 import { topazExecuteImageTask } from "../src/topaz-base.js";
@@ -43,14 +43,14 @@ describe("createTopazNodeClass scalar coercion", () => {
     const NodeClass = createTopazNodeClass(spec) as unknown as new () => {
       image: unknown;
       output_width: unknown;
-      process: () => Promise<Record<string, unknown>>;
+      process: (ctx: ProcessingContext) => Promise<Record<string, unknown>>;
     };
     const node = new NodeClass();
     node.image = { type: "image", uri: "", data: "AQID" };
     // A saved graph can carry a non-numeric string in a numeric slot.
     node.output_width = "auto";
 
-    await node.process();
+    await node.process(new ProcessingContext({ jobId: "job-1" }));
 
     const fields = vi.mocked(topazExecuteImageTask).mock.calls[0][2];
     // String(NaN) is "NaN" — the submit form skips null, never the literal.

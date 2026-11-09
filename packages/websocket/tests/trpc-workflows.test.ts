@@ -18,6 +18,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
+    // Collaborator names come from the user directory; these tests have none.
+    getUserAccounts: vi.fn(async () => new Map()),
     Workflow: {
       ...actual.Workflow,
       get: vi.fn(),
@@ -99,6 +101,14 @@ import {
   WorkflowShare
 } from "@nodetool-ai/models";
 import { syncTriggerRegistrations } from "../src/lib/workflow-service.js";
+
+// Permission flags are covered in permissions.test.ts. Here every flag is held.
+vi.mock("../src/lib/permissions.js", () => ({
+  requirePermission: async () => undefined,
+  permissionsFor: async () => new Proxy({}, { get: () => true }),
+  permissionRefusal: (flag: string) => flag,
+  forgetPermissions: () => undefined
+}));
 
 const createCaller = createCallerFactory(appRouter);
 

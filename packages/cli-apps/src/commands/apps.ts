@@ -34,6 +34,7 @@ import { checkoutPackageAssetsDir } from "@nodetool-ai/cli-common/package-assets
 
 import { asJson, printTable } from "@nodetool-ai/pack-manager/commands/output";
 import { setupLocalDb, LOCAL_USER_ID } from "@nodetool-ai/cli-local/local-db";
+import { readMissingPackageMedia } from "@nodetool-ai/config";
 
 function fail(e: unknown): never {
   console.error(String(e instanceof Error ? e.message : e));
@@ -247,13 +248,21 @@ export function registerAppsCommands(program: Command): void {
           const providerSecrets = listRegisteredProviderIds()
             .map(getProviderSecretKey)
             .filter((key): key is string => Boolean(key));
+          const assetUris = packageAssetUris(bundle);
+          const roots = await packageAssetRoots();
+          const localAssets = readPackageAssets(assetUris, roots);
+          const packageAssets = [
+            ...localAssets,
+            ...(await readMissingPackageMedia(
+              assetUris,
+              new Set(localAssets.map((file) => file.uri)),
+              roots
+            ))
+          ];
           const project = buildStandaloneProject(bundle, {
             secrets,
             providerSecrets,
-            packageAssets: readPackageAssets(
-              packageAssetUris(bundle),
-              await packageAssetRoots()
-            )
+            packageAssets
           });
           const outDir = resolve(opts.output ?? project.name);
           if (

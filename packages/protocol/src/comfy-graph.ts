@@ -316,9 +316,18 @@ function orderedInputs(
 }
 
 /** NodeTool metadata for one ComfyUI node class. */
+/**
+ * `requiredSettings` names the settings a run on the selected target needs:
+ * `COMFY_API_KEY` for Comfy Cloud, none for the user's own server or worker.
+ */
+export interface ComfyMetadataOptions {
+  requiredSettings?: string[];
+}
+
 export function comfyEntryToMetadata(
   className: string,
-  entry: ComfyObjectInfoEntry
+  entry: ComfyObjectInfoEntry,
+  options: ComfyMetadataOptions = {}
 ): NodeMetadata {
   const properties: Property[] = [];
   const seen = new Set<string>();
@@ -377,7 +386,7 @@ export function comfyEntryToMetadata(
     inline_fields: properties
       .filter((p) => !(p.type.type === "any" || p.type.type.startsWith(COMFY_SOCKET_PREFIX)))
       .map((p) => p.name),
-    required_settings: ["COMFY_API_KEY"],
+    required_settings: options.requiredSettings ?? ["COMFY_API_KEY"],
     supports_dynamic_inputs: false,
     supports_dynamic_outputs: false,
     is_streaming_output: false,
@@ -394,11 +403,14 @@ export function comfyEntryToMetadata(
 }
 
 /** NodeTool metadata for every class in a ComfyUI `/api/object_info` map. */
-export function comfyObjectInfoToMetadata(info: ComfyObjectInfo): NodeMetadata[] {
+export function comfyObjectInfoToMetadata(
+  info: ComfyObjectInfo,
+  options: ComfyMetadataOptions = {}
+): NodeMetadata[] {
   const out: NodeMetadata[] = [];
   for (const [className, entry] of Object.entries(info)) {
     if (!isRecord(entry)) continue;
-    out.push(comfyEntryToMetadata(className, entry));
+    out.push(comfyEntryToMetadata(className, entry, options));
   }
   return out;
 }

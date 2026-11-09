@@ -41,7 +41,9 @@ import {
 import { ToolbarIconButton } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
 import AntigravityCard from "./AntigravityCard";
+import CopilotCard from "./CopilotCard";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
+import LocalComfyConnect from "../comfy/LocalComfyConnect";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 import { OnePasswordPicker, type OnePasswordPick } from "./OnePasswordPicker";
 import { useOnePasswordStatus } from "../../serverState/useOnePassword";
@@ -96,7 +98,13 @@ interface ProviderCardProps {
 }
 
 export const ProviderCard = (props: ProviderCardProps) =>
-  props.meta.providerId === "antigravity" ? <AntigravityCard /> : <ApiKeyProviderCard {...props} />;
+  props.meta.providerId === "antigravity" ? (
+    <AntigravityCard />
+  ) : props.meta.providerId === "copilot" ? (
+    <CopilotCard />
+  ) : (
+    <ApiKeyProviderCard {...props} />
+  );
 
 const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
   secret,
@@ -822,6 +830,18 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       {/* Google Workspace has no API key — access rides on the Google login.
           Renders nothing when the backend does not offer the integration. */}
       <GoogleWorkspaceCard />
+
+      {(!lowerSearch || "comfyui comfy local server checkpoints".includes(lowerSearch)) && (
+        <FlexColumn
+          sx={{
+            border: `1px solid ${theme.vars.palette.divider}`,
+            borderRadius: BORDER_RADIUS.lg,
+            overflow: "hidden"
+          }}
+        >
+          <LocalComfyConnect />
+        </FlexColumn>
+      )}
 
       {!hasContent && lowerSearch && (
         <EmptyState

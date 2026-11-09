@@ -3,6 +3,8 @@ import type { Message } from "../../../stores/ApiTypes";
 export interface ThreadInfo {
   id: string;
   title?: string;
+  /** "create" marks a Create session, which opens as a Create tab. */
+  kind?: "chat" | "create";
   updatedAt: string;
   messages: Message[];
 }

@@ -5,6 +5,7 @@ import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { isString } from "../../utils/typePredicates";
+import { isComfyNodeType } from "@nodetool-ai/protocol";
 
 const formatEnumLabel = (value: string | number): string => {
   if (!isString(value)) {
@@ -29,6 +30,7 @@ interface EnumPropertyExtra {
 const EnumProperty: React.FC<PropertyProps<string | number>> = ({
   property,
   propertyIndex,
+  nodeType,
   value,
   onChange,
   tabIndex,
@@ -50,12 +52,15 @@ const EnumProperty: React.FC<PropertyProps<string | number>> = ({
            (property as EnumPropertyExtra).enum;
   }, [property]);
 
+  // ComfyUI values are file and sampler names people know verbatim, such as
+  // juggernautXL_ragnarokBy.safetensors or dpmpp_2m_sde, so they stay as is.
+  const verbatim = isComfyNodeType(nodeType);
   const options = useMemo(() => {
     return values?.map((val: string | number) => ({
-      label: formatEnumLabel(val),
+      label: verbatim ? String(val) : formatEnumLabel(val),
       value: String(val)
     })) || [];
-  }, [values]);
+  }, [values, verbatim]);
 
   // Select works on strings. Map the picked option back to the declared value
   // so an int enum such as [2, 4] keeps writing numbers.

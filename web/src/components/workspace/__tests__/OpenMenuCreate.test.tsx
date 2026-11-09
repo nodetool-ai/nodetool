@@ -44,8 +44,7 @@ describe("OpenMenu create into the selected project", () => {
   it("opens a new chat in the selected project", async () => {
     const user = userEvent.setup();
     renderOpenMenu();
-    await user.click(screen.getByText("New chat…"));
-    await user.click(screen.getByText("Chat"));
+    await user.click(screen.getByText("New chat"));
 
     await waitFor(() =>
       expect(mockOpenMenu.openTab).toHaveBeenCalledWith({
@@ -59,40 +58,17 @@ describe("OpenMenu create into the selected project", () => {
     expect(mockOpenMenu.createNewThread).toHaveBeenCalledWith(
       undefined,
       undefined,
-      { projectId: "p1", mediaMode: "chat" }
+      { projectId: "p1" }
     );
   });
 
-  it("lists every available chat mode and starts the chat in the one picked", async () => {
-    const user = userEvent.setup();
+  it("offers no chat mode submenu and no separate Create row", async () => {
     renderOpenMenu();
-    await user.click(screen.getByText("New chat…"));
-
-    for (const label of [
-      "Chat",
-      "Generate images",
-      "Edit images",
-      "Generate videos",
-      "Animate image",
-      "Reference to video",
-      "Retake",
-      "Extend",
-      "Read aloud",
-      "Generate music"
-    ]) {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    }
-    // Modes the composer marks "Soon" have nothing to start.
-    expect(screen.queryByText("Motion control")).not.toBeInTheDocument();
-
-    await user.click(screen.getByText("Generate videos"));
-    await waitFor(() =>
-      expect(mockOpenMenu.createNewThread).toHaveBeenCalledWith(
-        undefined,
-        undefined,
-        { projectId: "p1", mediaMode: "video" }
-      )
-    );
+    // Generating media starts from Image, Video and Read aloud, which open
+    // Create tabs; a chat is only a chat.
+    expect(screen.queryByText("New chat…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create images and videos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Generate videos")).not.toBeInTheDocument();
   });
 
   it("opens a new sketch in the selected project", async () => {
@@ -117,21 +93,5 @@ describe("OpenMenu create into the selected project", () => {
       title: "Untitled.png",
       projectId: "p1"
     });
-  });
-
-  it("opens the Create view as one global tab, next to the chat modes", async () => {
-    const user = userEvent.setup();
-    renderOpenMenu();
-    await user.click(screen.getByText("Create images and videos"));
-
-    await waitFor(() =>
-      expect(mockOpenMenu.openTab).toHaveBeenCalledWith({
-        type: "create",
-        ref: "create",
-        mode: "view",
-        title: "Create"
-      })
-    );
-    expect(mockOpenMenu.createNewThread).not.toHaveBeenCalled();
   });
 });

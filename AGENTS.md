@@ -297,6 +297,9 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   dependencies first, then rerun checks before investigating further. A
   workspace added since the last install has no `node_modules/@nodetool-ai/`
   link and fails every build that imports it. Run `npm install` to link it.
+- Run `npm run media:pull` in a new checkout. Example media lives on
+  media.nodetool.ai, and tests read it from disk. See
+  [package media](packages/base-nodes/AGENTS.md#package-media-nodetoolassetsnodetool-basemediajson).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.

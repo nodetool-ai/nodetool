@@ -98,21 +98,6 @@ export function presetModeForMediaMode(
     : null;
 }
 
-export const CATEGORY_SUB_MODES: Record<
-  MediaGenerationCategory,
-  readonly MediaMode[]
-> = {
-  image: ["image", "image_edit"],
-  video: [
-    "video",
-    "image_to_video",
-    "reference_to_video",
-    "retake",
-    "extend"
-  ],
-  audio: ["audio", "music"]
-};
-
 export function mediaCategoryForMode(
   mode: MediaMode | null | undefined
 ): MediaGenerationCategory | null {
@@ -298,7 +283,6 @@ interface ExtendParams {
 
 interface MediaGenerationState {
   mode: MediaMode;
-  threadModes: Record<string, MediaMode>;
   image: ImageGenerationParams;
   imageEdit: ImageEditParams;
   video: VideoGenerationParams;
@@ -319,8 +303,6 @@ interface MediaGenerationState {
   setExtendParams: (params: Partial<ExtendParams>) => void;
   setMusicParams: (params: Partial<MusicGenerationParams>) => void;
   setMode: (mode: MediaMode) => void;
-  setThreadMode: (threadId: string, mode: MediaMode) => void;
-  getThreadMode: (threadId?: string | null) => MediaMode;
   setImageParams: (params: Partial<ImageGenerationParams>) => void;
   setImageEditParams: (params: Partial<ImageEditParams>) => void;
   setVideoParams: (params: Partial<VideoGenerationParams>) => void;
@@ -390,9 +372,8 @@ export const EXTEND_DURATIONS = [2, 3, 5, 8] as const;
 
 const useMediaGenerationStore = create<MediaGenerationState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       mode: "chat",
-      threadModes: {},
       image: DEFAULT_IMAGE_PARAMS,
       imageEdit: DEFAULT_IMAGE_EDIT_PARAMS,
       video: DEFAULT_VIDEO_PARAMS,
@@ -412,18 +393,6 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
       setMusicParams: (params) =>
         set((state) => ({ music: { ...state.music, ...params } })),
       setMode: (mode) => set({ mode }),
-      setThreadMode: (threadId, mode) =>
-        set((state) => ({
-          mode,
-          threadModes: { ...state.threadModes, [threadId]: mode }
-        })),
-      getThreadMode: (threadId) => {
-        const state = get();
-        if (threadId && state.threadModes[threadId] !== undefined) {
-          return state.threadModes[threadId];
-        }
-        return state.mode;
-      },
       setImageParams: (params) =>
         set((state) => ({ image: { ...state.image, ...params } })),
       setImageEditParams: (params) =>
@@ -444,11 +413,9 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
     {
       name: "nodetool-media-generation",
       version: 5,
-      // The mode is not kept: a new chat starts in Chat unless it was opened
-      // in another mode, so a reload must not bring back the last one.
+      // The mode is not kept, so a reload does not bring back the last one.
       partialize: ({
         mode: _mode,
-        threadModes: _threadModes,
         presetIds: _presetIds,
         ...params
       }) => params,

@@ -11,6 +11,8 @@ export const threads = pgTable(
     workflow_id: text("workflow_id"),
     project_id: text("project_id").notNull().default("default"),
     title: text("title").notNull().default(""),
+    // "chat" for a conversation, "create" for a Create session.
+    kind: text("kind").notNull().default("chat"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

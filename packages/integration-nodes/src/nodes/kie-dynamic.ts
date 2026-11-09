@@ -4,10 +4,9 @@
 import * as yaml from "js-yaml";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import {
-  getApiKey,
   isRefSet,
-  kieExecuteTask,
-  kieExecuteOmniDirect,
+  kieCapability,
+  kieExecute,
   kieImageRef,
   reportKieProviderCost,
   uploadAudioInput,
@@ -15,6 +14,7 @@ import {
   uploadVideoInput,
   buildVideoClipsFromRefs
 } from "@nodetool-ai/kie-nodes";
+import type { KieExecuteRequest } from "@nodetool-ai/kie-nodes";
 import type { TypeMetadata } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
@@ -846,7 +846,6 @@ export class KieAINode extends BaseNode {
     const modelInfo = this.model_info.trim();
     if (!modelInfo)
       throw new Error("model_info is empty. Paste kie.ai API documentation.");
-    const apiKey = getApiKey(this._secrets);
     const bundle = parseKieDocs(modelInfo);
 
     const apiInput: Record<string, unknown> = {};
@@ -870,7 +869,7 @@ export class KieAINode extends BaseNode {
 
       if (p.isVideoClipList) {
         const clips = await buildVideoClipsFromRefs(
-          (ref) => uploadVideoInput(apiKey, ref, context),
+          (ref) => uploadVideoInput(ref, context),
           val
         );
         if (clips.length) apiInput[p.name] = clips;
@@ -886,7 +885,7 @@ export class KieAINode extends BaseNode {
         const urls: string[] = [];
         for (const item of items) {
           if (isRefSet(item)) {
-            urls.push(await uploadFn(apiKey, item, context));
+            urls.push(await uploadFn(item, context));
           } else if (typeof item === "string" && item) {
             urls.push(item);
           }
@@ -904,7 +903,7 @@ export class KieAINode extends BaseNode {
               ? uploadVideoInput
               : uploadImageInput;
         if (isRefSet(val)) {
-          apiInput[p.name] = await uploadFn(apiKey, val, context);
+          apiInput[p.name] = await uploadFn(val, context);
         } else if (typeof val === "string" && val) {
           apiInput[p.name] = val;
         }
@@ -913,33 +912,22 @@ export class KieAINode extends BaseNode {
       }
     }
 
-    let result: Awaited<ReturnType<typeof kieExecuteTask>>;
+    const request: KieExecuteRequest = {
+      model: bundle.modelId,
+      input: apiInput,
+      capability: kieCapability(bundle.outputType),
+      nodeId: this.__node_id || KieAINode.nodeType
+    };
     if (bundle.execution.mode === "omniDirect") {
       if (!bundle.execution.submitEndpoint || !bundle.execution.responseIdKey) {
         throw new Error(
           `Omni model ${bundle.modelId} is missing direct endpoint config`
         );
       }
-      result = await kieExecuteOmniDirect(
-        apiKey,
-        bundle.execution.submitEndpoint,
-        apiInput,
-        bundle.execution.responseIdKey,
-        context?.signal
-      );
-    } else {
-      result = await kieExecuteTask(
-        apiKey,
-        bundle.modelId,
-        apiInput,
-        2000,
-        300,
-        undefined,
-        undefined,
-        undefined,
-        context?.signal
-      );
+      request.directEndpoint = bundle.execution.submitEndpoint;
+      request.responseIdKey = bundle.execution.responseIdKey;
     }
+    const result = await kieExecute(context, request);
 
     reportKieProviderCost(context, result.creditsConsumed);
 

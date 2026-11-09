@@ -8,15 +8,7 @@
  *  4. Image output nodes are streaming
  */
 
-import { vi, describe, it, expect } from "vitest";
-
-vi.mock("@fal-ai/client", () => ({
-  createFalClient: vi.fn(() => ({
-    subscribe: vi.fn(),
-    storage: { upload: vi.fn() }
-  }))
-}));
-
+import { describe, it, expect } from "vitest";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { FAL_NODES, FalRawNode, FalDynamicNode } from "../src/index.js";
 

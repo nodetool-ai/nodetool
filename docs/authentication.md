@@ -226,11 +226,58 @@ A person is an admin when any of these holds:
 - their groups at the last sign-in include one of `OIDC_ADMIN_GROUPS`
 - an admin gave them the admin role through the `admin.users.update` API
 
+Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
+
 A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt.
 
 An admin can disable an account through `admin.users.update`. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
-Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
+### The Admin page
+
+Admins manage people on the **Admin** page. The app menu shows it only to admins in SSO mode. Everything on it is also available through the `admin.*` API, and the directory through [`nodetool deploy accounts-list` and `accounts-set`](cli.md#sso-accounts-on-the-deployment).
+
+The page lists everyone who has signed in at least once. Nobody needs to be added in advance, because the first sign-in creates the account. Search by name, email or user ID, and filter by **Status**. Each row shows the person's groups, role, status, last activity, and what they spent this period against their limits. Its buttons do the following:
+
+| Button | Effect |
+|---|---|
+| **Make admin** / **Remove admin** | Gives or takes the admin role. A person who is an admin through `ADMIN_USER_IDS` or `OIDC_ADMIN_GROUPS` stays one, whatever the role says |
+| **Disable** / **Enable** | Disabling asks first, then signs the person out everywhere and refuses their requests and sign-ins. Their work stays on the server. Enabling restores access |
+| **Limits** | Gives the person limits of their own, or puts them back on **Use the server default**. See [Spend limits](#spend-limits) |
+| **Permissions** | Allows or blocks single permissions for the person, or leaves each on the default. Not offered for admins. See [Permissions](#permissions) |
+| **Sharing** | Lists what the person shares and what others share with them, and takes any of it back. See [Sharing](#sharing) |
+
+Above the list, **Edit default limits** and **Edit default permissions** set what applies to everyone without values of their own.
+
+### Spend limits
+
+An admin can cap what each person spends on the server's own provider keys, on the Admin page or through `admin.quotas.*`. There are two budgets: language-model tokens (input plus output), and media generation (image, video, audio and 3D) in USD. Each applies per UTC day or month. A default applies to everyone. A person given limits of their own uses those instead, and an empty limit there means no limit.
+
+Only work paid with the server's keys counts. Each prediction row records whose key paid (`key_source`): `user` when the person saved that provider's key in Settings, `server` otherwise. Rows written before this column existed count as `server`. A local model with no key counts as `server` too, because it runs on the server.
+
+The limit is checked before a chat turn, a workflow run, or a direct generation starts, using the price estimate for media work. A run already admitted finishes even when it crosses the limit, and the next one is refused with a message that names the budget. Workflow runs are checked by the models their nodes select, so a node that calls a model without selecting one is not checked. With several replicas, a limit change reaches the others within 30 seconds.
+
+### Permissions
+
+An admin can turn off what a person may do, on the Admin page or through `admin.permissions.*`. Every permission is allowed until an admin blocks it. The default applies to everyone, and a person can be given their own value for any single permission, which then replaces the default for that permission only. Admins always hold every permission.
+
+| Permission | What blocking it stops |
+|---|---|
+| `use_llm` | Chat turns, direct text generation, and workflow runs whose nodes select a language or embedding model |
+| `generate_media` | Image, video, audio and 3D generation, in chat, direct calls, and workflows |
+| `use_server_keys` | Any of the above that the server's own provider key would pay for. Keys the person saves in Settings, and local models with no key, still work |
+| `manage_own_keys` | Saving or deleting provider keys in Settings, and saving custom providers |
+| `share_links` | Creating viewer or editor links for workflows and documents |
+| `share_public` | Making a workflow public and creating public workflow links |
+| `publish_apps` | Publishing, releasing and deploying mini apps |
+| `install_packs` | Changing pack trust, turning built-in packs on or off, and reloading packs, which affect every user |
+
+The checks for `use_llm`, `generate_media` and `use_server_keys` run at the same points as the spend limits. A blocked call is refused with a message that names the permission. Links and public workflows created before a permission was blocked stay as they are. With several replicas, a change reaches the others within 30 seconds.
+
+### Sharing
+
+In SSO mode the share dialog of a workflow or document can give a person access by name, without a link. Typing two or more characters searches active accounts by name and email through `people.search`, and **Invite** gives the chosen person viewer or editor access through `workflows.sharing.invite` or `documentSharing.invite`. Inviting someone who already has access sets their role. Searching and inviting need the `share_links` permission, and disabled accounts never appear. The dialog shows each collaborator's name and email instead of their user id.
+
+The **Sharing** button on a person's row on the Admin page lists what that person shares and holds: their active share links, the people they gave access, the documents others gave them access to, and their public workflows. From there an admin can revoke a link, remove one person's access, or make a public workflow private. The same actions are available as `admin.sharing.*`. Moving a document to another owner is not supported yet.
 
 ### Sign-in failures
 

@@ -91,7 +91,13 @@ export const predictions = pgTable(
     preset_ids: jsonText<string[]>()("preset_ids"),
     preset_warnings: jsonText<string[]>()("preset_warnings"),
     parameters: jsonText<Record<string, unknown>>()("parameters"),
-    metadata: jsonText<Record<string, unknown>>()("metadata")
+    metadata: jsonText<Record<string, unknown>>()("metadata"),
+    /**
+     * Whose provider key paid: "user" for a key the user saved, "server" for
+     * the server's own key or no key at all. Null on rows written before this
+     * column existed, and those count as "server" against a quota.
+     */
+    key_source: text("key_source")
   },
   (table) => [
     index("idx_predictions_user_id").on(table.user_id),

@@ -6,7 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
-import { getUserAccount, initTestDb, recordSignIn } from "@nodetool-ai/models";
+import {
+  Prediction,
+  getUserAccount,
+  initTestDb,
+  recordSignIn
+} from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -15,6 +20,7 @@ import {
   resetUserDirectoryCache,
   trackUserSocket
 } from "../src/lib/user-directory.js";
+import { forgetPermissions, permissionsFor } from "../src/lib/permissions.js";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -37,6 +43,7 @@ describe("admin router", () => {
   beforeEach(async () => {
     initTestDb();
     resetUserDirectoryCache();
+    forgetPermissions();
     // No users.json admins: point the file manager at a path that does not exist.
     vi.stubEnv(
       "USERS_FILE",
@@ -153,5 +160,112 @@ describe("admin router", () => {
     await expect(
       callerFor(ADMIN).admin.users.update({ user_id: "missing", status: "disabled" })
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  describe("quotas", () => {
+    it("is admin-only", async () => {
+      await expect(callerFor(MEMBER).admin.quotas.getDefault()).rejects.toMatchObject({
+        code: "FORBIDDEN"
+      });
+      await expect(
+        callerFor(MEMBER).admin.quotas.setUser({
+          user_id: MEMBER,
+          period: "month",
+          token_limit: null,
+          media_usd_limit: null
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("sets a default every user inherits until they get their own", async () => {
+      const admin = callerFor(ADMIN);
+      expect(await admin.admin.quotas.getDefault()).toEqual({
+        period: "month",
+        token_limit: null,
+        media_usd_limit: null,
+        configured: false
+      });
+      await admin.admin.quotas.setDefault({
+        period: "month",
+        token_limit: 5000,
+        media_usd_limit: 10
+      });
+      await Prediction.create({
+        user_id: MEMBER,
+        provider: "openai",
+        model: "m",
+        status: "completed",
+        input_tokens: 40,
+        output_tokens: 2
+      });
+
+      const member = await admin.admin.users.get({ user_id: MEMBER });
+      expect(member.quota).toMatchObject({
+        period: "month",
+        token_limit: 5000,
+        media_usd_limit: 10,
+        custom: false,
+        tokens_used: 42,
+        media_usd_used: 0
+      });
+
+      const own = await admin.admin.quotas.setUser({
+        user_id: MEMBER,
+        period: "day",
+        token_limit: null,
+        media_usd_limit: 1
+      });
+      expect(own).toMatchObject({ custom: true, period: "day", token_limit: null });
+
+      const back = await admin.admin.quotas.clearUser({ user_id: MEMBER });
+      expect(back).toMatchObject({ custom: false, token_limit: 5000 });
+    });
+
+    it("answers NOT_FOUND for limits on an id with no account", async () => {
+      await expect(
+        callerFor(ADMIN).admin.quotas.setUser({
+          user_id: "*",
+          period: "month",
+          token_limit: 1,
+          media_usd_limit: null
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("permissions", () => {
+    it("is admin-only", async () => {
+      await expect(
+        callerFor(MEMBER).admin.permissions.setUser({
+          user_id: MEMBER,
+          overrides: { install_packs: true }
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    });
+
+    it("applies the default and then one user's flags, at once", async () => {
+      const admin = callerFor(ADMIN);
+      const initial = await admin.admin.permissions.getDefault();
+      expect(initial.overrides).toEqual({});
+      expect(Object.values(initial.flags).every(Boolean)).toBe(true);
+
+      // Read once so the member's flags are cached before the change.
+      expect((await permissionsFor(MEMBER)).install_packs).toBe(true);
+      await admin.admin.permissions.setDefault({
+        overrides: { install_packs: false, share_public: false }
+      });
+      expect((await permissionsFor(MEMBER)).install_packs).toBe(false);
+
+      const own = await admin.admin.permissions.setUser({
+        user_id: MEMBER,
+        overrides: { share_public: true }
+      });
+      expect(own.overrides).toEqual({ share_public: true });
+      expect(own.flags).toMatchObject({ share_public: true, install_packs: false });
+      expect((await permissionsFor(MEMBER)).share_public).toBe(true);
+
+      const member = await admin.admin.users.get({ user_id: MEMBER });
+      expect(member.permissions).toEqual(own);
+    });
   });
 });

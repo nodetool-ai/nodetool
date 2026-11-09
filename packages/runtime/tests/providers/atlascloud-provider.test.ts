@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { AtlasCloudProvider } from "../../src/providers/atlascloud-provider.js";
+import { runWithGenerationReceipt } from "../../src/generation-receipt.js";
 import type { ImageModel, VideoModel } from "../../src/providers/types.js";
 
 const imageModel = (id: string): ImageModel => ({
@@ -986,5 +987,163 @@ describe("AtlasCloudProvider — extendVideo", () => {
         durationSeconds: 4
       })
     ).rejects.toThrow(/end extensions/);
+  });
+});
+
+describe("AtlasCloudProvider endpoint calls", () => {
+  type Route = (init: RequestInit | undefined) => Response;
+  const json = (body: unknown, status = 200): Response =>
+    new Response(JSON.stringify(body), { status });
+
+  /** Answer by `METHOD url`, record each request, and fail on anything else. */
+  function mockRoutes(routes: Record<string, Route>) {
+    const calls: Array<{ key: string; init: RequestInit | undefined }> = [];
+    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const key = `${init?.method ?? "GET"} ${String(url)}`;
+      calls.push({ key, init });
+      const route = routes[key];
+      if (!route) throw new Error(`unexpected fetch: ${key}`);
+      return route(init);
+    }) as unknown as typeof fetch;
+    return calls;
+  }
+
+  function provider(): AtlasCloudProvider {
+    return new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "  ak  " });
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("claims endpoint support", () => {
+    expect(provider().supportsEndpointCalls()).toBe(true);
+  });
+
+  it("submits a flat body on the manifest model's route and returns the finished prediction", async () => {
+    vi.stubEnv("NODETOOL_PUBLIC_URL", "");
+    const calls = mockRoutes({
+      "POST https://api.atlascloud.ai/api/v1/model/generateVideo": () =>
+        json({ data: { id: "pred-1" } }),
+      "GET https://api.atlascloud.ai/api/v1/model/prediction/pred-1": () =>
+        json({ data: { status: "completed", outputs: ["https://cdn.atlas/out.mp4"] } })
+    });
+
+    const { value: result, receipt } = await runWithGenerationReceipt(() =>
+      provider().callEndpoint({
+        model: "google/gemini-omni-1.1-flash/video-edit",
+        input: { prompt: "night", video: "https://uploads.atlas/v.mp4" }
+      })
+    );
+
+    expect(result).toEqual({
+      output: { status: "completed", outputs: ["https://cdn.atlas/out.mp4"] },
+      requestId: "pred-1"
+    });
+    expect(receipt?.provider_request_id).toBe("pred-1");
+    expect(JSON.parse(calls[0]?.init?.body as string)).toEqual({
+      model: "google/gemini-omni-1.1-flash/video-edit",
+      prompt: "night",
+      video: "https://uploads.atlas/v.mp4"
+    });
+    expect(new Headers(calls[0]?.init?.headers).get("Authorization")).toBe("Bearer ak");
+  });
+
+  it("takes an explicit route for a model outside the manifest", async () => {
+    vi.stubEnv("NODETOOL_PUBLIC_URL", "");
+    const calls = mockRoutes({
+      "POST https://api.atlascloud.ai/api/v1/model/generateAudio": () =>
+        json({ data: { id: "pred-a" } }),
+      "GET https://api.atlascloud.ai/api/v1/model/prediction/pred-a": () =>
+        json({ data: { status: "done", output: "https://cdn.atlas/a.mp3" } })
+    });
+
+    const result = await provider().callEndpoint({
+      model: "vendor/new-audio-model",
+      route: "audio",
+      input: { text: "hi" }
+    });
+
+    expect(result.requestId).toBe("pred-a");
+    expect(calls.map((c) => c.key)[0]).toBe(
+      "POST https://api.atlascloud.ai/api/v1/model/generateAudio"
+    );
+  });
+
+  it("rejects a missing, unknown or mismatched route before any request", async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(
+      provider().callEndpoint({ model: "vendor/unknown", input: {} })
+    ).rejects.toThrow('not in the manifest: pass route "image", "video" or "audio"');
+    await expect(
+      provider().callEndpoint({ model: "vendor/unknown", input: {}, route: "music" })
+    ).rejects.toThrow('got "music"');
+    await expect(
+      provider().callEndpoint({
+        model: "google/gemini-omni-1.1-flash/video-edit",
+        input: {},
+        route: "image"
+      })
+    ).rejects.toThrow("is a video model, not image");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not retry a failed submission", async () => {
+    vi.stubEnv("NODETOOL_PUBLIC_URL", "");
+    const calls = mockRoutes({
+      "POST https://api.atlascloud.ai/api/v1/model/generateImage": () =>
+        new Response("overloaded", { status: 503 })
+    });
+
+    await expect(
+      provider().callEndpoint({ model: "bytedance/seedream-v5.0-lite/edit", input: { prompt: "x" } })
+    ).rejects.toThrow("AtlasCloud submit 503");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("uploads bytes with the given type and filename and returns the URL", async () => {
+    const calls = mockRoutes({
+      "POST https://api.atlascloud.ai/api/v1/model/uploadMedia": () =>
+        json({ data: { download_url: "https://uploads.atlas/in.mp4" } })
+    });
+
+    const url = await provider().uploadMedia({
+      bytes: Uint8Array.from([1, 2]),
+      mimeType: "video/mp4",
+      filename: "input-video"
+    });
+
+    expect(url).toBe("https://uploads.atlas/in.mp4");
+    const body = calls[0]?.init?.body;
+    expect(body).toBeInstanceOf(FormData);
+    const file = (body as FormData).get("file") as File;
+    expect(file.name).toBe("input-video");
+    expect(file.type).toBe("video/mp4");
+  });
+
+  it("downloads a result URL, retrying a transient failure, and refuses internal hosts", async () => {
+    let attempts = 0;
+    mockRoutes({
+      "GET https://cdn.atlas/out.png": () => {
+        attempts += 1;
+        return attempts === 1
+          ? new Response("busy", { status: 503, headers: { "Retry-After": "0" } })
+          : new Response(Uint8Array.from([3, 4]), { status: 200 });
+      }
+    });
+
+    await expect(provider().downloadMedia("https://cdn.atlas/out.png")).resolves.toEqual(
+      Uint8Array.from([3, 4])
+    );
+    expect(attempts).toBe(2);
+    await expect(provider().downloadMedia("https://169.254.169.254/x")).rejects.toThrow();
+  });
+
+  it("rejects a blank API key", () => {
+    expect(() => new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "   " })).toThrow(
+      "ATLASCLOUD_API_KEY is required"
+    );
   });
 });

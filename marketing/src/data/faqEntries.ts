@@ -109,7 +109,7 @@ const seeds: FaqSeed[] = [
       "It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["agents", "cloud", "comparison", "developers", "models", "pricing", "studio"],
+    surfaces: ["cloud", "comparison", "models", "pricing"],
   },
   {
     slug: "use-chatgpt-claude-gemini-subscription",
@@ -118,7 +118,7 @@ const seeds: FaqSeed[] = [
       "Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["landing", "agents", "pricing", "studio"],
+    surfaces: ["landing", "pricing"],
   },
   {
     slug: "how-much-does-nodetool-cost",
@@ -163,7 +163,7 @@ const seeds: FaqSeed[] = [
       "The leading models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, reached through providers such as FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Models can also run on your own computer through MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
     category: "models",
     relatedRoute: "/studio",
-    surfaces: ["landing", "agents", "models"],
+    surfaces: ["landing", "models"],
   },
   {
     slug: "can-i-run-models-locally",
