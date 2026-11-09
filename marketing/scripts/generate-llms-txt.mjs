@@ -328,7 +328,9 @@ The agent edits the same documents you open in Studio. When it stops, the work i
 
 ${agents.SURFACES.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
 
-## Your models and your keys
+## Every step is on the record
+
+Read what the agent did, and take the work back at any point.
 
 ${agents.CONTROLS.map((c) => `- **${c.title}**: ${c.body}`).join("\n")}
 
@@ -357,17 +359,19 @@ ${surfaceFaqMarkdown("agents")}`;
 function marketingMarkdown() {
   return `${marketing.MARKETING_LEAD}
 
-## Start from a product page link
+## One brief. Four deliverables.
 
-${marketing.FROM_LINK_INTRO}
+${marketing.CAMPAIGN_CASE.intro}
 
-${marketing.FROM_LINK_ROUTES.map((r) => `- **${r.title}**: ${r.body}`).join("\n")}
+- **Hero, 16:9**: ${marketing.CAMPAIGN_CASE.hero}
+- **Social, 1:1 and story, 9:16**: ${marketing.CAMPAIGN_CASE.formats}
+- **Revision**: ${marketing.CAMPAIGN_CASE.revisionNote} ${marketing.CAMPAIGN_CASE.revision}
 
-## See the work
+${marketing.CAMPAIGN_CASE.limitation} Follow the recipe at ${BASE_URL}/recipes/directed-campaign-kit.
 
-- [Editable video ad templates](${BASE_URL}/ad-library): short vertical ad concepts, each with its beats, timing, copy budget, and a rendered example.
-- [Example AI storyboards](${BASE_URL}/storyboards): finished commercials and films with every shot they were built from.
-- [Guided recipes](${BASE_URL}/recipes): campaign kits, UGC videos, product commercials, and catalogue images, step by step.
+## More for ad teams
+
+${marketing.MORE_FOR_AD_TEAMS.map((m) => `- [${m.title}](${BASE_URL}${m.href}): ${m.body}`).join("\n")}
 - [AI video editor](${BASE_URL}/ai-video-editor.md): the storyboard and timeline the agent builds.`;
 }
 
@@ -376,11 +380,7 @@ function studioMarkdown() {
   const facts = (items) => items.map((f) => `- **${f.term}**: ${f.description}`).join("\n");
   return `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux.
 
-## A brief becomes a project you can reopen
-
-${studio.STUDIO_PROJECT}
-
-## Your files. Your models. Your keys.
+## Your projects stay on your computer
 
 Studio keeps the project on your computer. It only goes online when you use an online AI provider or service.
 

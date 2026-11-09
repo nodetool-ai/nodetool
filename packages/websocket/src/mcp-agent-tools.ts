@@ -115,6 +115,16 @@ const WORKFLOW_READINESS_TOOL_NAMES = new Set([
 ]);
 
 /**
+ * Direct tools on other entrances that the MCP mount does not list. Actions
+ * still reach them through `nodetool.*` and sandbox imports.
+ */
+const MCP_SANDBOX_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "http_request",
+  "browser",
+  "todo_write"
+]);
+
+/**
  * Per-user workspace directory the bridged file tools (read_file, write_file,
  * glob, grep, …) are rooted at. Kept under the NodeTool data dir rather than a
  * temp dir because an MCP session is long-lived and spans many calls — a file
@@ -1146,11 +1156,15 @@ export function registerAgentMcpTools(
   // `list_providers` says which configured provider serves which of them. With
   // both in the tool list, a client reads what this install can generate from
   // the surface itself instead of searching the sandbox catalog for it.
+  //
+  // `MCP_SANDBOX_ONLY_TOOL_NAMES` are direct on other entrances but stay
+  // inside the sandbox here.
   const promotedDirect = belt.filter(
     (tool) =>
-      (DIRECT_TOOL_NAMES.has(tool.name) &&
+      !MCP_SANDBOX_ONLY_TOOL_NAMES.has(tool.name) &&
+      ((DIRECT_TOOL_NAMES.has(tool.name) &&
         !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)) ||
-      PROVIDER_TOOL_NAMES.has(tool.name)
+        PROVIDER_TOOL_NAMES.has(tool.name))
   );
   // They stay on the belt: an action still calls them from code. Listing them
   // as direct only moves where the prompt documents them.

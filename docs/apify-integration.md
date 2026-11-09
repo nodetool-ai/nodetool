@@ -1,45 +1,22 @@
-# Apify: external capabilities for the sandbox
+# Apify: run actors from agents and sandbox code
 
-NodeTool's sandbox has no network, no browser, no filesystem outside the
-workspace, and no way to install a package. That is the point of it. But plenty
-of real work needs exactly those things — read this site, drive this
-JavaScript-heavy page, find these businesses, pull this video's transcript.
+The `apify` capability runs [Apify](https://apify.com) actors on Apify's machines and returns their results as NodeTool values and assets. The sandbox has no network, browser, or package installs, so actors cover work like reading a JavaScript-heavy page, finding businesses on a map, or pulling a video transcript. The guest never touches the network or the token.
 
-Apify closes that gap without opening the sandbox. Actors run on Apify's
-machines; NodeTool exposes a typed, permission-aware, credential-free interface
-to them, converts what comes back into ordinary NodeTool values and assets, and
-never lets the guest touch the network or the token.
+There is one generic capability, `run_apify_actor`, plus a shipped catalog of known actors and discovery calls for actors an agent has not seen. There are no per-site nodes.
 
-This is deliberately **one generic capability, not a shelf of scrapers**. There
-is no `YouTubeDownloader` node, no `InstagramScraper` node. There is
-`run_apify_actor`, plus a shipped catalog of actors that are known to work, plus
-the discovery calls an agent needs to find and understand an actor it has not
-seen before.
+> **Runs:** cloud, on Apify. **Needs:** an Apify account and the `APIFY_API_TOKEN` secret. **Cost:** Apify bills actor runs to your account. NodeTool caps runs per session (see [Cost control](#cost-control)).
+{: .callout-note}
 
-## Setting it up
+## Set up
 
-1. Get a token at <https://console.apify.com/account/integrations>.
-2. Settings → Secrets → `APIFY_API_TOKEN`.
+1. Create a token at <https://console.apify.com/account/integrations>.
+2. Store it as the `APIFY_API_TOKEN` secret in **Settings → Secrets**.
 
-`APIFY_API_KEY` is still read as a fallback, so an install configured before
-this existed keeps working.
+`APIFY_API_KEY` is read as a fallback.
 
 ## What an agent gets
 
-Eight capabilities in the `apify` namespace. They are agent tools and sandbox
-imports at the same time — one spec behind both — so nothing can drift between
-what a model is told and what guest code can call. The chat belt, the MCP
-bridge, and the belt a `nodetool.code.Code` node and a JS script share all
-carry them through `getApifyTools()`
-(`packages/agents/src/tools/external-capability-tools.ts`), which is what
-makes `nodetool.searchTools("apify")` find them: the search reads the belt,
-and a module reachable only by import is invisible to it.
-
-The Code node belt matters as much as the chat one, because the move a chat
-teaches is "run it here, then put the same call in a node". It carried the
-tools only in chat for a while, so that second step failed with QuickJS's
-`TypeError: not a function` — naming neither the tool nor the belt — and read
-as the sandbox having no reach at all.
+Eight capabilities in the `apify` namespace. Each is both an agent tool and a sandbox import from one spec. The chat belt, the MCP bridge, and the belt shared by `nodetool.code.Code` nodes and JS scripts all carry them through `getApifyTools()` (`packages/agents/src/tools/external-capability-tools.ts`), which is what `nodetool.searchTools("apify")` searches.
 
 | Capability | Does | Class |
 |---|---|---|
@@ -264,16 +241,10 @@ const result = await run_apify_actor({
 });
 ```
 
-**Competitive research** — an agent composes search → crawl → extract → compare
-across sites NodeTool has no integration for, which is the case the generic
-primitive exists to serve.
 
 ## Limitations
 
-- No dedicated NodeTool nodes yet. The capability is reachable from agents and
-  from sandbox code; a graph node wrapping it, with a schema-driven
-  configuration UI generated from `get_apify_actor_schema`, is the obvious next
-  step.
+- No dedicated graph nodes. The capability is reachable from agents and sandbox code.
 - No streaming. A run's dataset is read after it finishes, so a long crawl
   reports nothing until it settles. `wait_for_finish: false` plus polling is the
   workaround.

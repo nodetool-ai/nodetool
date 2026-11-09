@@ -18913,6 +18913,12 @@
     "refreshModels": "モデルを更新する",
     "statusUnavailable": "ステータスが利用不可"
   },
+  "copilot": {
+    "description": "GitHub Copilot アカウントで言語モデルを利用できます。API キーは不要です。",
+    "install": "このコンピューターのターミナルで GitHub Copilot CLI をインストールしてください。",
+    "signIn": "その後サインインしてモデルを更新してください。Copilot プランに含まれないモデルは表示されません。",
+    "refreshModels": "モデルを更新"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "ショットをビデオ トラックにドラッグするか、Enter キーを押して再生ヘッドに配置します。",

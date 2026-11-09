@@ -4,9 +4,8 @@ title: "KIE: Add Models & Nodes"
 description: "Runbook for adding KIE (kie.ai) models and nodes to NodeTool."
 ---
 
-> **Audience:** Coding agents and contributors adding new KIE models or modifying
-> KIE node behavior. This page covers the full cycle from manifest entry to
-> verified node.
+> **Runs:** cloud. **Needs:** `KIE_API_KEY`. Calls throw `KIE_API_KEY is not configured` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -228,13 +227,4 @@ npm run dev:nodetool -- validate workflow.json --json
 Check `git diff packages/kie-nodes/src/kie-manifest.json` to confirm only the
 expected entry was added or changed.
 
-## Contributing
-
-Source: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)  
-Discord: [https://discord.gg/WmQTWZRcYE](https://discord.gg/WmQTWZRcYE)
-
-Before opening a PR, run `npm run test:affected`, `npm run typecheck`, and
-`npm run lint`. Patches to `kie-manifest.json` or `src/configs/*.ts` alone will
-be rejected. Changes must come from the codegen pipeline. After an intended
-generator change, refresh the drift fixtures with
-`node scripts/provider-codegen-check.mjs --provider kie --write`.
+Patches to `kie-manifest.json` or `src/configs/*.ts` alone are rejected. After an intended generator change, refresh the drift fixtures with `node scripts/provider-codegen-check.mjs --provider kie --write`.

@@ -208,11 +208,13 @@ describe("MCP server surface", () => {
         "list_models",
         "list_providers",
         "list_directory",
-        "browser",
-        "http_request",
         "download_file"
       ])
     );
+    // Direct elsewhere, sandbox-only on this mount.
+    for (const name of ["http_request", "browser", "todo_write"]) {
+      expect(names).not.toContain(name);
+    }
   });
 
   it("offers the provider interface as top-level tools", () => {

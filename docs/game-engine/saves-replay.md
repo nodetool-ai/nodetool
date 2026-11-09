@@ -5,7 +5,7 @@ permalink: /game-engine/saves-replay
 description: "Persist player data and verify exact runtime restoration with recorded input."
 ---
 
-A player save stores intentional progress or settings. A session snapshot stores simulation state for restoration. A replay supplies the input frames needed to reproduce the session. These are separate from the authored game document.
+A player save stores progress or settings. A session snapshot stores simulation state for restoration. A replay supplies the input frames that reproduce a session. All three are separate from the game document.
 
 ![Diagram showing input frames, fixed simulation, snapshots, and separate presentation](/assets/game-engine/simulation-presentation.svg)
 

@@ -5,9 +5,7 @@ permalink: /projects
 description: "Group the documents for one job under a project, start a project from a skill, and file, copy, export, import, archive, or delete them."
 ---
 
-A project is a name over the documents that belong to one job: a storyboard, a script, a cut, key art, a mini app. It owns no content of its own. A document belongs to a project because it carries that project's id, and the project card reads status, rendered stills, and spend back from those documents.
-
-Projects are not [workspaces](workspaces.md). A workspace is a folder of files a run reads and writes. A project groups the documents you work on.
+A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. A document belongs to a project by carrying its id, and the project card reads status, stills, and spend from those documents. A [workspace](workspaces.md) is different: a folder of files a run reads and writes.
 
 ## The Personal project
 
@@ -103,4 +101,4 @@ A project's conversations are chats filed under it, and the server can also hold
 | `update_project` | Renames a project, changes its kind, or archives and restores it. |
 | `delete_project` | Permanently deletes a project. It refuses the Personal project and the project the conversation belongs to. |
 
-The agent is told to confirm with you before deleting and to prefer archiving. For the rest of the interface, see the [user interface guide](user-interface.md).
+The agent is told to confirm with you before deleting and to prefer archiving.

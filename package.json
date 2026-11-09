@@ -253,6 +253,7 @@
     "check:execution-boundary": "node scripts/check-execution-boundary.mjs",
     "check:document-sync": "node scripts/check-document-sync-boundary.mjs",
     "check:agents-docs": "node scripts/check-agents-docs.mjs",
+    "check:docs-prose": "node scripts/check-docs-prose.mjs",
     "sync:genspend": "node scripts/sync-genspend-pricing.mjs",
     "sync:genspend:check": "node scripts/sync-genspend-pricing.mjs --check",
     "sync:gguf-trending": "node scripts/sync-gguf-trending.mjs",
@@ -273,7 +274,10 @@
     "build:sandbox-flow": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs",
     "build:sandbox-flow:check": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs --check",
     "test:minimal:packed": "node scripts/minimal-packed-consumer.mjs",
-    "check:minimal:catalog": "node scripts/generate-minimal-feature-catalog.mjs --check"
+    "check:minimal:catalog": "node scripts/generate-minimal-feature-catalog.mjs --check",
+    "media:pull": "node scripts/package-media.mjs pull",
+    "media:push": "node scripts/package-media.mjs push",
+    "media:check": "node scripts/package-media.mjs check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

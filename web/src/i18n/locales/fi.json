@@ -18913,6 +18913,12 @@
     "refreshModels": "Päivitä mallit",
     "statusUnavailable": "Tila ei saatavilla"
   },
+  "copilot": {
+    "description": "Käytä GitHub Copilot -tiliäsi kielimalleihin. API-avainta ei tarvita.",
+    "install": "Asenna GitHub Copilot CLI tämän tietokoneen päätteessä.",
+    "signIn": "Kirjaudu sen jälkeen sisään ja päivitä mallit. Mallit, joita Copilot-tilauksesi ei sisällä, eivät näy.",
+    "refreshModels": "Päivitä mallit"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Vedä otos videoraidalle tai paina Enter sijoittaaksesi sen toistopisteeseen.",

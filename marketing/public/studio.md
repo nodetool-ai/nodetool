@@ -9,11 +9,7 @@ product: NodeTool
 
 NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux.
 
-## A brief becomes a project you can reopen
-
-The agent can draft the storyboard and edit the clips into a video. The result is a NodeTool project, so you can make the next change yourself in an editor or ask the agent to make it.
-
-## Your files. Your models. Your keys.
+## Your projects stay on your computer
 
 Studio keeps the project on your computer. It only goes online when you use an online AI provider or service.
 
@@ -31,14 +27,6 @@ You do not need a powerful computer. Running AI models on your own machine is op
 - **Model downloads**: The desktop app does not require a local model collection. Download only the supported models you plan to run on your machine.
 
 ## Questions
-
-### What does "bring your own keys" mean for me?
-
-It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.
-
-### Can I use my ChatGPT, Claude, or Gemini subscription?
-
-Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.
 
 ### Studio or Cloud — which should I use?
 

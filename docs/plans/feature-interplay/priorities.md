@@ -2,13 +2,13 @@
 
 This document preserves one reading of the [feature interplay graph](index.html): which proposed connections would help NodeTool's existing parts work together better, and what we could reuse to build them. It is a saved interpretation, not an implementation commitment or an automatically updated graph analysis.
 
-This ranking asks which connections would make existing NodeTool features more useful together, and which implemented parts could support them. It is a design recommendation based on the map and targeted source inspection, not measured demand, effort estimates, or a runtime audit.
+This reading asks which connections would make existing NodeTool features more useful together, and which parts could support them. O1–O5 are stable opportunity IDs, not delivery order. The recommendations are based on the map and source inspection, not measured demand, effort estimates, or a runtime audit.
 
 ## Reading and conclusions
 
 The main opportunity is to make connection behavior predictable across surfaces: what follows a source change, what stays pinned, which edits survive, and when a change starts work. Shared controls and explicit asynchronous boundaries then connect more of the system without replacing its existing execution models.
 
-| Priority | Graph features being connected | Result to aim for | Existing foundation |
+| Opportunity | Graph features being connected | Result to aim for | Existing foundation |
 | --- | --- | --- | --- |
 | O1 | Common binding controls + Follow semantic source → workflows, sketches and timelines | Change a source and update selected consumers while preserving local edits. | Generated clip/layer bindings, document references, shot reconciliation and retained game construction. |
 | O2 | Assets and source documents → Dependency impact view | Explain affected outputs before regeneration. | Dependency hashes, stale-layer handling, provenance and reference collectors. |
@@ -16,11 +16,11 @@ The main opportunity is to make connection behavior predictable across surfaces:
 | O4 | Native games → Async game / AI bridge → agents and workflows | Scene interactions invoke asynchronous work and receive controlled, replayable results. | Game events, capability contracts, jobs, cancellation and asset staging. |
 | O5 | Streaming speech + collections + agent tools → Assistant runtime | Coordinate conversation, background work and presentation through interruption. | Microphone/audio streams, speech providers, tools, retrieval and run records. |
 
-Recommended starting point: O1's selected-take transfer together with a narrow, read-only O2 impact view. For interactive games or museum guides, bring O4 forward alongside the text-first assistant work in O5. The sections below preserve the evidence, proposed additions and first proof for each recommendation.
+O1 and O2 are unscheduled research candidates with no delivery plan. Do not create new plans merely to preserve their former ranking. The [recommended sequence](#recommended-sequence) follows the existing plans. The sections below retain each opportunity's evidence and possible first proof.
 
 ## O1. Preserve source relationships across editors
 
-**First priority.** Combine the map's Common binding controls and Follow semantic source proposals into one user-facing capability: use a result, follow its source, pin a revision, or detach deliberately.
+**Unscheduled candidate.** Combine the map's Common binding controls and Follow semantic source proposals into one capability: use a result, follow its source, pin a revision, or detach deliberately.
 
 Example: a storyboard shot is regenerated after its image was used in a workflow and its clip was trimmed in a timeline. The creator can update the chosen dependents without rebuilding the connections or losing the edit.
 
@@ -38,7 +38,7 @@ The inspected [Send to workflow](https://github.com/nodetool-ai/nodetool/blob/ma
 
 ## O2. Explain downstream impact before regeneration
 
-Connect the map's Dependency impact view to O1. Start read-only: “used by,” “source changed,” “pinned,” and “missing source.” Only then add selective regeneration.
+**Unscheduled candidate.** Connect the map's Dependency impact view to O1. Start read-only: “used by,” “source changed,” “pinned,” and “missing source.” Selective regeneration would follow only after this proof.
 
 Reuse:
 
@@ -65,7 +65,7 @@ Reuse:
 
 Preserve the existing [VariableChannel](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/variable-channel.ts). Its `first()` returns the first publication and `stream()` replays history before following new values. It cannot become a latest-value store without changing existing behavior.
 
-**First proof:** one app control edits two workflow inputs through a typed binding. Run captures their values once. A later edit affects the next run, and an older run cannot overwrite a newer result. General cross-document and realtime binding can follow after this boundary works.
+**First proof, owned by [SV-A5](../shared-variables-input-bindings.md#delivery-plan):** one app control edits two workflow inputs through a typed binding. Run captures their values once. A later edit affects the next run, and an older result cannot overwrite a newer edit. SV-A5 follows local bindings and precedes loopback and Run N times. General cross-document and realtime binding remain later work.
 
 ## O4. Connect live game interactions to asynchronous AI work
 
@@ -77,7 +77,7 @@ Reuse:
 - [Capability contracts](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/src/capabilities/types.ts), existing workflow execution, jobs and cancellation.
 - Existing game asset staging for generated media accepted into a scene.
 
-New work is a host-level request/result adapter. It needs request identity, scene/session ownership, cancellation, late-result rejection and a recorded acceptance point for replay. Existing internal script events are useful contracts, but do not by themselves establish a host-injected asynchronous event path.
+The [reactive plan owns the request/result adapter (RS-A1–RS-A4)](../reactive-sessions-events.md#smallest-first-implementation). Reuse its identity, cancellation, and observer-lifetime contract. [AA-A10](../realtime-virtual-agents.md#delivery-plan-and-gates) owns scene commands and their acceptance at a game update point. Replay is a later scene-specific proof, not an extra requirement for the first adapter.
 
 [Game scripts](../../game-engine/scripts.md) are synchronous and cannot await arbitrary network or workflow calls. Keep asynchronous work outside ticks. Reuse the engine's semantic actions instead of allowing the model to write physics-owned state.
 
@@ -99,12 +99,12 @@ The missing piece is coordinated session behavior: turns, interruption, ordering
 
 ## Recommended sequence
 
-Start with O1's selected-take transfer and O2's read-only impact view over that path. O3 is a separate bounded improvement connecting apps and workflow configuration. These make existing work easier to change and reuse.
+Deliver local bindings through [SV-A1–SV-A4](../shared-variables-input-bindings.md#delivery-plan), then O3's app proof in SV-A5 before loopback and Run N times. Guided authoring in AA-A4 depends on those app revisions.
 
-For interactive installations or AI-driven games, prioritize O4 alongside the text-first part of O5. Reuse the same capability invocation and result identity where the contracts fit, while keeping game simulation and assistant conversation as separate state owners.
+The [custom-node defect fixes](../custom-code-node-experience.md#milestone-0-fix-existing-defects), [RS finite-operation proof](../reactive-sessions-events.md#smallest-first-implementation), and [AA-A2 owner-only text agent](../realtime-virtual-agents.md#a2-deliver-a-text-agent-in-an-app) can proceed independently. Visitor publication requires the agent plan's confinement and admission gates. Live scenes later consume the RS adapter through AA-A10.
 
-A universal graph, global reactive state bus, automatic cross-project regeneration, and unrestricted realtime feedback are not prerequisites for these experiments. Define each supported boundary in terms of value or event or stream, identity, revision, ownership and execution policy.
+Keep O1/O2 unscheduled until selected for delivery. No universal graph, global reactive state bus, or automatic cross-project regeneration is needed for this sequence.
 
 ## Verification boundary
 
-Implementation files linked here were inspected. The recommendation adds no product behavior and does not claim that every proposed connection is absent repository-wide. No runtime or participant tests were performed in this pass. The map has not been modified to present these recommendations as implemented features.
+Follow the [evidence rules](README.md#evidence-and-interpretation). The original source reading has no recorded inspection commit. Recheck claims needed for delivery and record that revision. These recommendations add no product behavior or runtime certification and do not establish proposed map connections as implemented.

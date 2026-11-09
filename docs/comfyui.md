@@ -4,10 +4,11 @@ title: "ComfyUI"
 description: "Run ComfyUI workflows inside NodeTool: directly against a ComfyUI server, proxied over a NodeTool GPU worker, or on Comfy Cloud."
 ---
 
-NodeTool runs ComfyUI workflows as nodes in a NodeTool graph. You export a
-workflow from ComfyUI in **API (prompt) format**, load it into a node, and its
-`Load*` nodes become typed inputs while its `Save*` nodes become typed outputs.
-Everything around it — asset handling, LLM steps, mini apps — stays NodeTool's.
+A ComfyUI workflow exported in **API (prompt) format** loads into a NodeTool node. Its
+`Load*` nodes become typed inputs and its `Save*` nodes become typed outputs.
+
+> **Runs:** on your ComfyUI server, a NodeTool GPU worker, or Comfy Cloud. **Needs:** a reachable ComfyUI endpoint for the first two, `COMFY_API_KEY` for Comfy Cloud. **Hardware:** whatever the workflow's models need on the server. NodeTool does not measure it.
+{: .callout-note}
 
 Three nodes cover three topologies:
 
@@ -78,10 +79,7 @@ numbered name, such as `image_2`, so adding a node can change a name.
 
 ## When to reach for a ComfyUI node
 
-NodeTool generates images and video with its own nodes.
-`nodetool.image.TextToImage` and its siblings take a `model` property and route
-to whichever provider owns that model, so switching models is a dropdown change
-and there is no graph to maintain. That is the shorter path for most generation.
+`nodetool.image.TextToImage` and its siblings route by `model`, which is the shorter path for most generation.
 
 A ComfyUI node earns its place when the graph itself is the point:
 
@@ -93,10 +91,8 @@ A ComfyUI node earns its place when the graph itself is the point:
 - **The weights are yours.** Checkpoints and LoRAs on your own disk never leave
   the machine that runs them.
 
-The two compose rather than compete: a ComfyUI node is one node in a NodeTool
-graph, so an agent can write its prompt, a dataframe can drive a batch of runs,
-and its stills can feed a video assembly. Those patterns are in
-[ComfyUI Recipes](comfyui-recipes.md).
+A ComfyUI node is one node in a graph, so an agent can write its prompt and a
+dataframe can drive a batch. See [ComfyUI Recipes](comfyui-recipes.md).
 
 ---
 

@@ -2,12 +2,20 @@
 layout: page
 title: "Entities"
 permalink: /entities
-description: "Save characters, locations, styles, and props as reusable entities with a reference image and a fixed descriptor, then reuse them across storyboards, prompts, and workflows."
+description: "Entities are image assets tagged with a kind, a name, and a descriptor that is pasted verbatim into every prompt that names them, across storyboards, prompts, and workflows."
 ---
 
-An entity is a named, reusable thing that should look the same every time you generate it: a character, a location, a visual style, or a prop such as a product. Each entity has a reference image and a descriptor, a short description that NodeTool pastes verbatim into every prompt that uses the entity. The verbatim descriptor and the reference image are what keep a character's look steady across shots.
+An entity is an image asset tagged with a kind, a name, and a descriptor. When a prompt uses the entity, NodeTool appends the descriptor verbatim and passes the image as a reference to models that accept one.
 
-Entities support the Creative Agent and storyboards. See [Creative Agent](creative-agent.md#entities-reusable-ingredients) for how they fit into a production.
+```
+Consistency references:
+- Nova: A young astronaut with cropped black hair and a worn orange flight suit
+```
+
+> **Runs:** locally. Creating, editing, and applying an entity makes no model call. **Needs:** no API key, except to generate a reference image with a hosted image model. **Costs:** only that optional image generation.
+{: .callout-note}
+
+Entities feed storyboards and the Creative Agent. See [Creative Agent](creative-agent.md#entities-reusable-ingredients).
 
 ## Entity kinds
 
@@ -22,28 +30,24 @@ Only a character has the optional **Voice id** field, which holds a provider-spe
 
 ## Open the library
 
-There are two places to manage entities.
-
 ![Entity library with character, location and product cards](assets/screenshots/entity-library.png)
 
 - **Sidebar panel.** Open **Entities** in the left sidebar. It lists the entities for the active project as a grid of cards. The **Open in full page** button in the panel header opens the full library as a workspace tab.
-- **Full-page library.** The page titled **Entities** shows every entity you have, with the caption "Reusable characters, locations, styles, and props". It has an **Add entity** button. With no entities it shows "No entities yet".
+- **Full-page library.** The page titled **Entities** shows every entity and has an **Add entity** button. With none it shows "No entities yet".
 
 Each card shows the reference image, the name, a kind chip, and the first two lines of the descriptor. Two buttons sit on the card: **Edit entity** and **Remove entity**.
 
 ## Create an entity
 
-Every entity is built on an image. There are two ways to start.
-
 ### From the full-page library
 
 **Add entity** opens a three-step flow. **Back to entities** returns to the grid.
 
-1. **Details.** Pick the **Entity type**, enter a **Name**, a **Descriptor**, and optional **Tags** (comma-separated). Name and descriptor are required. Describe only stable visual traits in the descriptor, for example "A young astronaut with cropped black hair and a worn orange flight suit". The step also offers **Start with a blank reference**, which makes a plain white canvas the reference image and jumps to the review step. It fills the name with "Untitled entity" and the descriptor with "A reusable visual entity." only where you left them empty.
+1. **Details.** Pick the **Entity type**, enter a **Name**, a **Descriptor**, and optional **Tags** (comma-separated). Name and descriptor are required. Describe only stable visual traits, for example "A young astronaut with cropped black hair and a worn orange flight suit". The step also offers **Start with a blank reference**, which makes a plain white canvas the reference image and jumps to the review step. It fills the name with "Untitled entity" and the descriptor with "A reusable visual entity." only where you left them empty.
 2. **Reference.** Choose the reference image. **Choose from assets** picks an existing image from your assets. **Generate with AI** opens **Generate a reference image**, where you pick a view, edit the prompt, and choose an image model. The views depend on the kind. A character offers Full body, Portrait, and Character sheet. A location offers Establishing view, Detail view, and Location sheet. A style offers Style sample, Style sheet, and Texture detail. A prop offers Product view, Detail view, and Turnaround sheet. An image that is already an entity cannot be picked again.
 3. **Review.** Check the image, name, kind, descriptor, and tags, then choose **Create entity**.
 
-NodeTool keeps an unfinished flow as a draft, so leaving the page does not lose your input.
+An unfinished flow is kept as a draft.
 
 ### From an existing image
 
@@ -59,16 +63,9 @@ If you have no images, the picker says "No images". Generate or upload one first
 
 ## Reference images
 
-The first reference image is the primary one. When an entity is used in a generation, its reference image goes along with the prompt as an image reference for models that accept one. An entity is stored on its image asset as metadata, so it needs no separate storage and appears wherever assets do.
+The first reference image is the primary one. An entity is stored as metadata on its image asset, so it needs no separate storage and appears wherever assets do.
 
 ## How entities are used in generation
-
-When an entity applies to a prompt, NodeTool appends a block to it:
-
-```
-Consistency references:
-- Nova: A young astronaut with cropped black hair and a worn orange flight suit
-```
 
 The rule for which entities apply is the same on every surface.
 
@@ -89,7 +86,17 @@ Where this happens:
 
 ## Agent tools
 
-The agent and the in-browser assistant use these tools.
+Trace: a user asks the agent to "save this render as a character called Nova". The agent calls
+
+```json
+{ "tool": "create_entity",
+  "args": { "asset_id": "<image asset id>", "kind": "character", "name": "Nova",
+            "descriptor": "A young astronaut with cropped black hair and a worn orange flight suit" } }
+```
+
+The image asset gets the entity marker and keeps its bytes. Its asset id becomes the entity id. A later `apply_entities` call with `text: "Nova opens the airlock"` returns the seasoned prompt and the reference image asset ids.
+
+`create_entity` fails when the asset is not yours, is not an image, or is already an entity (use `update_entity`). Source: `packages/agents/src/capabilities/entities.specs.ts`.
 
 | Tool | What it does |
 |------|--------------|

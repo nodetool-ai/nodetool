@@ -5,7 +5,18 @@ permalink: /game-engine/assets
 description: "Prepare images, models, colliders, audio, and fonts before installing them in a game."
 ---
 
-A game refers to logical asset slots. A binding records the installed asset and preparation metadata. Keep slot names stable when replacing artwork so entities and scripts continue to refer to the same purpose.
+A game refers to logical asset slots, and each binding records the installed asset and its preparation metadata. Keep slot names stable when replacing artwork so entities and scripts keep working.
+
+```json
+"assets": {
+  "hero-sheet": {
+    "assetId": "<full asset id>", "digest": "<content digest>", "mediaKind": "image",
+    "width": 256, "height": 64, "pivot": { "x": 0.5, "y": 0.5 }, "sampling": "nearest"
+  }
+}
+```
+
+`mediaKind` is `image`, `audio`, or `font`. `pivot` and `sampling` default to the values shown.
 
 ![Diagram showing source media becoming prepared assets, game bindings, and an exported build](/assets/game-engine/asset-pipeline.svg)
 

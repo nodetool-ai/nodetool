@@ -49,7 +49,7 @@ export const moviePosterUseCase: UseCaseEntry = {
     },
     {
       title: "Spin up concepts",
-      body: "A list generator turns the strategy into a batch of distinct plot angles, so one run gives you a spread of directions, not a single guess.",
+      body: "Generate several concepts from the same brief, then choose one to develop.",
       detail: "Five plot concepts per run",
     },
     {
@@ -226,7 +226,7 @@ export const productVideoUseCase: UseCaseEntry = {
     },
     {
       title: "Direct the shot",
-      body: "An agent turns the request into a concrete, cinematic prompt with framing, lens, and motion cues, the part most people get wrong by hand.",
+      body: "The agent adds camera angles, lighting, and movement to your description.",
       detail:
         "Gemini 3.1 Pro · 50mm macro push over the watch on a wet river rock at dawn",
     },

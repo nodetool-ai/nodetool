@@ -1,5 +1,16 @@
 # Agent features and app agents: implementation plan
 
+Cross-plan references use `AA-`, for example `AA-A4`. Local IDs stay unchanged.
+
+- **Mini Apps are the standard host for an agent session.** Creators use the Agent widget and existing app deployment flow. External applications use the same session interface and authorization, without a separate agent document or release system.
+- **A turn is an existing chat-app run.** The chat widgets keep the conversation in an instance-scoped app variable, and each message runs an app operation whose workflow contains an Agent node (D1).
+- **Two authorities, both existing.** An owner session acts as the signed-in user. A visitor session is the existing deployed-app session, pinned to the release and bounded by a finite budget (D2).
+- **One new security boundary.** The run's visitor tool policy allows only explicitly published tools and resource scopes. Unknown capabilities are denied. Owner memory, files, library, connected services, and thread persistence remain unavailable. Visitor turns add no command to the session allowlist.
+- **Settings live in existing places.** The agent's workflow holds model, instructions, and tools. The app document holds layout and conversation policy. The settings editor is a form over both, and a release freezes both.
+- **Features are optional modules.** Voice, guided paths, presentation, perception, and scene control each depend on the agent binding or the Agent node. With all of them off, an app agent is an ordinary chat app.
+- **Guided paths are optional conversation policy.** A pure reducer in the agent module tracks mode and step using existing app state. Each mode runs its own operation, so its tool scope is pinned in the release (D18).
+- **Delivery starts small.** A1 proves reuse with existing fixtures, A2 ships a text agent for its owner, and A5 publishes text agents to visitors before the voice and guided kiosk pilot.
+
 ## Recommendation
 
 Let creators place a configured agent inside a Mini App and give it optional features: voice, guided conversations, presentation, perception, and scene control. A creator who wants others to talk to an agent publishes the app that contains it, through the existing app deployment flow. Personal assistants and museum guides are two configurations of the same implementation.
@@ -8,7 +19,7 @@ Build on the Mini App chat apps that already exist. Their chat widgets keep the 
 
 The [reactive sessions and workflow events plan](reactive-sessions-events.md) provides a small operation invocation/completion adapter over the existing app hosts. Background actions that an agent turn requests reuse it. This plan adds no workflow executor or job scheduler. **Harness** refers only to NodeTool's headless testing and debugging surfaces.
 
-This is an implementation proposal, not a shipped feature. Source findings come from repository inspection and the [pinned Pipecat and integration research](../research/realtime-agent-runtime.md). No live provider benchmarks or venue tests were run. Recheck adapter compatibility against the chosen SDK versions during implementation. Pipecat is a reference, not a production dependency.
+This is an implementation proposal, not a shipped feature. Repository findings follow the [evidence rules](feature-interplay/README.md#evidence-and-interpretation). The separate [Pipecat and integration research](../research/realtime-agent-runtime.md) pins its external sources. No live provider benchmarks or venue tests were run. Recheck SDK compatibility during implementation. Pipecat is a reference, not a production dependency.
 
 A1 proves reuse with the existing chat-app, Mini App, and tool fixtures. A2 delivers a text agent in an app that its owner uses. A3 adds voice and A4 adds guided authoring, independently of each other. A5 publishes app agents to visitors, first as text and then as a browser/kiosk pilot. The [delivery plan](#delivery-plan-and-gates) defines order and exit evidence.
 
@@ -31,7 +42,7 @@ Authority depends on how the app is opened, not on its template. The owner openi
 
 The visitor session is the existing deployed-app session. Its `nda_` token authenticates as the owner, [`app-session-scope.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/lib/app-session-scope.ts) allowlists the commands a visitor may send, and `confineRunRequest` replaces any client-supplied graph with the release's pinned graph. [App deployment](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/lib/app-deployment-service.ts) refuses a public link without a finite budget and blocks releases that bind the owner's asset library. An app agent turn is an ordinary run of a published operation, so it is confined the same way. The model, instructions, and tools are part of the pinned graph. The client supplies only operation inputs such as the message, the conversation so far, and the current conversation state, and none of those grants authority.
 
-The pinned graph does not confine the Agent node's own tools, which run as the owner today (F11). Visitor sessions therefore add a visitor tool policy on the run's permission gate. It denies owner memory, files, the owner's library, connected services, and thread persistence, so a visitor who steers the model reaches only what the owner published.
+The pinned graph does not confine the Agent node's own tools, which run as the owner today (F11). Visitor sessions therefore add the [default-deny visitor tool policy](#visitor-tool-policy) on the run's permission gate. A1.7 adds an early publish warning for this existing exposure. Enforced confinement gates visitor delivery in A5.
 
 A signed-in person using someone else's agent with their own data has no precedent in either authority and is out of scope. If it becomes necessary, follow the linked-account pattern of the Telegram integration, where that person acts as themselves.
 
@@ -54,7 +65,7 @@ Each feature lives in its own module and depends on the agent binding or the Age
 | Concept | Product copy | Code identifier |
 | --- | --- | --- |
 | The built-in agent | "the agent" | Existing names (`createChatCodeActSession`, `chat-turn.ts`) |
-| Saved agent configuration | "agent" in App Builder, with its settings | `AgentProfile`, a typed view over the Agent node's settings and the app's conversation policy |
+| Agent settings view | "agent" in App Builder, with its settings | `AgentProfile`, a typed view over the Agent node's settings and the app document, with no separate saved document |
 | Role starting point | Personal Assistant, Museum Guide | `AgentTemplate` |
 | An agent placed in an app | "Agent" widget | `AppAgentBinding` |
 | One conversation with an app agent | "conversation" | `AppAgentSession` |
@@ -70,7 +81,7 @@ The editor chats bound to one surface keep their `ChatSource` values in [api-typ
 
 ## Product model
 
-An agent profile holds identity, models, knowledge, tools, features, and boundaries. An app agent session is one conversation in one app instance. Its history and conversation state live in instance-scoped app variables, and each turn is a run of the agent's app operation. A tool is an allowed action: a node the Agent node calls inside that workflow, or a separate app operation for background work. A mode changes the conversation's available tools, knowledge, and behavior. A topic path guides progress within a mode.
+An agent profile is the settings view over the Agent node's workflow and the app document. It has no separate persistence or release identity. An agent session coordinates one conversation across turns and operation runs. Mini Apps provide its standard authoring and presentation, while an external JS or C# application can host the same configured behavior. Both use instance-scoped app state for history and conversation state, and each turn runs the agent's app operation. A tool is an allowed action inside that workflow or a separate app operation for background work. A mode selects an operation and conversation behavior. A topic path guides progress within a mode.
 
 The default experience is configuration and preview. Guided paths and modes are optional. Conversation graphs edit policy, while action workflows open in the ordinary workflow editor.
 
@@ -82,27 +93,27 @@ An app agent is a defined feature built from modular parts. Its session coordina
 | --- | --- | --- |
 | Profile configuration | Personality, models, knowledge, tools, features, modes, topic paths | A working agent with defaults. The settings form and the workflow editor change the same saved settings |
 | Reusable workflows | Retrieval, perception, research, generation, answer checking, scene actions | Ordinary nodes and execution semantics, with declared inputs, outputs, permissions, and cancellation behavior |
-| Advanced modules | Custom turn detection, context selection, conversation policy, presentation | Defined event/value interfaces and lifecycle contracts. Use a workflow where its execution semantics fit, or a specialized adapter where realtime behavior requires it |
+| Advanced behavior | Custom context selection, conversation policy, result presentation | One policy interface with explicit inputs, proposed state/actions, and failure behavior. Use an ordinary workflow for computation where its execution semantics fit. Keep speech and transport adapters internal until a concrete replacement needs exposure |
 
 Extract a smaller building block when it enables a demonstrated reuse or replacement. Separating retrieval from answering lets a creator change search behavior and reuse the retrieval workflow elsewhere. Exposing every internal speech event as a freely wired node would require creators to reconstruct ordering and cancellation rules, so that coordination stays inside the session module.
 
-Custom modules may propose actions, context, or transitions through their interfaces. The session still enforces authorization, state revisions, response identity, interruption, and cleanup. Replacing a module must not bypass those rules, and every custom module must pass the same interruption, authorization, and session-isolation checks as its default. An ordinary workflow used as a tool need not understand speech timing or manage conversation history.
+Custom policy may propose context, actions, transitions, or result presentation. The session validates proposals and coordinates response identity, revisions, interruption, and cleanup. Existing execution gates enforce permissions and budgets independently of client policy. The default policy and a custom policy implement the same interface, with one active policy owner. Async policy work has a deadline and cancellation signal. On failure or timeout, apply no proposed state or actions and report a recoverable error. Late proposals cannot cross a response or session reset. An ordinary workflow used as a tool need not understand speech timing or manage conversation history.
 
-Do not promise that an arbitrary graph of existing nodes can reproduce a complete app agent. Each turn is an ordinary workflow, but interruption, result delivery, and reset stay in the app host and the agent binding.
+The session interface accepts input and domain events, exposes outcomes, and supports interrupt and reset. It hides coordinated model cancellation, playback flush, stale-output rejection, and history repair. Hosts supply input and presentation adapters without copying that coordination. An arbitrary workflow graph alone does not supply a complete agent session.
 
 ### Ownership across features
 
 | Feature | Responsibility | How app agents use it |
 | --- | --- | --- |
-| Shared caller adapter | Operation request/result correlation and observer cleanup over existing host dispatch | Reuses finite-operation coordination. App state retains value ownership |
+| [Reactive sessions plan](reactive-sessions-events.md#smallest-first-implementation) | Owns the shared finite-operation adapter (RS-A1–RS-A4) | Reuses request/result correlation and observer cleanup. App state retains value ownership |
 | Agent node | Provider calls, tool calls through connected nodes, streamed output, per-run cost cap and timeout | Runs each turn with the profile's model, instructions, and tools |
 | Mini Apps | Layout, typed bindings, instance state, chat widgets, and operation presentation | Hold the conversation and host Try and published layouts through the agent binding |
 | App deployment | Releases, public links, visitor session tokens, command allowlist, budget requirement | Publishes app agents to visitors without a new command. Supplies the visitor authority |
 | Existing workflow execution | Run nodes, stream inputs/results, cancel runs, manage execution resources | Executes perception, retrieval, generation, research, and other actions |
 | Existing capabilities and app operations | Authorized invocation, declared arguments, operation identity, budgets and run policy | The same approved action can be used from an agent or its existing surface |
-| Shared variables proposal | Typed values, bindings, snapshot reads, checked publication | Supplies tool settings and bound controls |
+| [Shared variables plan](shared-variables-input-bindings.md#delivery-plan) | Typed values, bindings, snapshot reads, checked publication, and app-variable revisions in SV-A5 | Supplies tool settings and bound controls. A4 depends on SV-A5's app revisions |
 | Control-flow regions proposal | Selected branches, sequential iteration, explicit completion and shared budgets | Composes work inside action workflows, such as conditional retrieval or bounded research |
-| Conversation policy | Session context, modes, topic progress, allowed transitions, effective tool and knowledge scope | Decides what may happen next in response to an event |
+| Conversation policy | Context selection, modes, topic progress, proposed transitions and result presentation | Proposes what happens next within server-enforced permissions and budgets |
 | Media and presentation adapters | Speech turns, capture, playback, avatar timing, observation sampling | Turn user input into events and present authorized results through voice, text, or a scene |
 | Existing jobs and artifacts | Execution status, outputs, usage, result history | Hold tool work and generated results. Agent records correlate these resources rather than replacing them |
 
@@ -112,11 +123,47 @@ Keep **values, events, and streams** distinct. A language setting is a value. �
 
 The [reactive sessions plan](reactive-sessions-events.md) extracts common invocation/observation mechanics from the existing app hosts and validates them with a Mini App and an agent-free game fixture. This plan owns conversation state and the agent binding. Sending a message is the existing chat composer run. Interrupt-response and conversation state belong to the agent binding, not to the shared finite-operation adapter. A turn that requests background work hands it to the shared adapter as a separate operation run.
 
-### Conversation policy in the app host
+### External clients and RTVI
 
-Conversation policy is an optional pure reducer in [`app-runtime`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/README.md), so web, mobile, and `app debug` interpret it the same way. It accepts validated events, such as a chosen option or a turn's structured output, and returns the next conversation state plus requested actions. The state lives in instance-scoped app variables. The host dispatches requested actions as app operation runs and sends their results back as events. The reducer owns no model loop, workflow scheduling, provider credentials, or job persistence, and the same interface supports deterministic tests and preview.
+Use [RTVI](https://docs.pipecat.ai/api-reference/server/rtvi/introduction) as the
+reference for external agent interactions and event coverage. Reuse its concepts
+and message shapes where their semantics fit: readiness and capabilities,
+transcripts, speaking state, tool activity, errors, and metrics. This is an
+RTVI-informed design, not a commitment to full protocol support or Pipecat's
+pipeline architecture.
 
-Conversation state steers behavior and grants no authority. In a visitor session the client holds it, so a visitor who edits it still reaches only what the release publishes under the visitor tool policy.
+Keep the session interface independent of React and App Builder so a custom JS
+or C# application can submit input and domain events, observe results, interrupt,
+and reset. External clients call NodeTool's hosted session interface, with the
+same coordinator and policy implementation behind both client paths. Separate
+incoming command validation from outgoing event translation,
+following RTVI's processor/observer separation. Adapt existing agent-session and
+app-operation behavior, with the RS adapter handling finite background work.
+Media stays in its transport and workflow control keeps its MsgPack protocol.
+
+NodeTool retains execution, permissions, budgets, and result-delivery ownership.
+Disconnect ends observation unless an explicit host policy requests cancellation.
+Response interruption, visitor reset, and independent task cancellation remain
+distinct. Synthesis completion does not imply playback completion. Client-side
+actions require published capabilities, request/session identity, and validated
+results. An external message grants no authority or unrestricted workflow access.
+Where an RTVI message would change these meanings, document the difference rather
+than silently treating it as equivalent. Protocol support does not itself provide
+custom conversation-policy plugins.
+
+Claim compatibility only for tested protocol/client versions, message coverage,
+and matching transports. The proof uses an external client without App Builder:
+connect, exchange text and voice, complete one client-side action, and interrupt
+speech while an independent workflow continues. Reset rejects old results and
+denied actions stay denied. Record unsupported interactions explicitly. This
+proof gates compatibility claims, not A2 or the first voice release. Full RTVI
+coverage and additional client SDKs remain outside the initial scope.
+
+### Conversation policy across hosts
+
+The default conversation policy uses a pure reducer in the agent module, shared across hosts. It accepts validated events, such as a chosen option or a turn's structured output, and proposes the next conversation state plus requested actions. State remains in instance-scoped app variables. The session validates proposals, commits state through its existing owner, and dispatches authorized app operations through the host. Results return as events. The reducer owns no model loop, workflow scheduling, provider credentials, or job persistence. Generic state, admission, and folding stay in dependency-free [`app-runtime`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/README.md). Conversation history, topic progress, endpointing, and speech interruption stay in the agent module.
+
+Conversation state guides behavior and grants no authority. Visitors can edit client-held progress, so every published operation must be safe to invoke regardless of asserted mode or step. Action prerequisites and permissions are checked server-side independently of that progress. Enforced conversation sequencing and server-owned progression are deferred.
 
 Use concrete adapters for actual variation: text versus voice input, browser versus scene presentation, and owner versus visitor session. Do not build a universal plugin framework, new scheduler, global reactive variable bus, or new state-machine library before a demonstrated requirement.
 
@@ -241,7 +288,7 @@ Try runs as the owner, with effectful tools simulated by default and live execut
 
 Creators can save a test conversation as a reusable scenario. Include tests for a normal request, a no-go request, switching paths, interrupting speech, a slow background task, and a missing source.
 
-Publishing uses the app's existing flow and destinations: public link, embed, or kiosk presentation. For an app with an agent, the publish screen adds the model/provider requirements, enabled tools and scopes, memory policy, the visitor-authority sentence, and blocking issues. The release freezes the profile, models, conversation policy, operations, knowledge references, presentation, and session limits. Active sessions keep their release. Editing continues in the draft, with rollback and explicit republish. A saved draft stays usable when credentials or an optional tool are missing, and the editor identifies the exact blocked setting rather than presenting a generic failure.
+Publishing uses the app's existing flow and destinations: public link, embed, or kiosk presentation. For an app with an agent, the publish screen adds provider requirements, enabled tools and scopes, memory policy, the visitor-authority sentence, and blocking issues. The release freezes the app document and its operation graphs, including the settings shown in the profile view. Active sessions keep their release. Editing continues in the draft, with rollback and explicit republish. Missing credentials or an optional tool leave the draft editable and identify the blocked setting.
 
 ### Advanced modularity without a second product
 
@@ -294,7 +341,7 @@ Speech interruption cancels the current response by default, not every accepted 
 
 Short and long research use the same task contract with different depth, time, and source budgets. Return a sourced answer and, for longer work, a retained report. Describe progress from actual job events. Retrieved web content must not expand tool permissions or change the task brief. Deadline expiry returns a clearly partial result when useful rather than pretending research finished.
 
-Visitor-scoped work is cancelled or quarantined on kiosk reset and never appears for the next visitor. Personal tasks in owner sessions may survive disconnect only when the profile and task authorization permit it. Persist task identity and reconcile completion after reconnect without replaying side effects. Cross-session notification or external delivery is a separate authorized capability.
+Visitor work follows the [explicit reset policy](#cancellation-reconnect-and-retained-work) and never appears for the next visitor. Personal tasks may survive disconnect only when their settings and authorization permit it. Persist task identity and reconcile completion without replaying side effects. Cross-session notification or external delivery is a separate authorized capability.
 
 ### Result delivery policy
 
@@ -383,14 +430,11 @@ Approval widgets work only with the existing permission gate and the correct app
 
 ### Visitor tool policy
 
-A visitor turn is an ordinary `run_job` on a published operation, so `confineRunRequest` already pins its graph, and interrupting it is the allowlisted `cancel_job`. No command joins `APP_SESSION_COMMANDS`. The one new boundary is a visitor tool policy, applied to the run's permission gate in every deployed-app session:
+A visitor turn is an ordinary `run_job` on a published operation, so `confineRunRequest` pins its graph, and interrupting it uses the allowlisted `cancel_job`. No command joins `APP_SESSION_COMMANDS`. Every deployed-app run applies a default-deny policy at its permission gate, including nested tool calls.
 
-- it denies owner memory, files, the owner's library, and connected services,
-- it ignores `thread_id`, so no visitor history persists under the owner's account,
-- it allows retrieval only over collections the release binds explicitly, a new publish choice next to the existing asset-library block,
-- it denies tools that need approval unless the creator preconfirmed them at publish time.
+A tool needs an explicit published grant for its capability and resource scope. Reuse existing capability metadata. Unknown or unclassified capabilities are denied, and adding a tool later grants visitors nothing automatically. Owner memory, files, library, connected services, and thread persistence remain unavailable. Ignore `thread_id`. Retrieval uses only collections bound by the release. Effects needing approval also require the creator's publish-time confirmation, which cannot override a denied scope.
 
-Each app instance is a separate conversation, and kiosk reset ends it. Publishing lists the tools the policy would deny, so the creator sees the difference before visitors do.
+Each app instance is a separate conversation. Publishing lists unavailable tools. A1.7 ships the warning with A2. A5 requires enforcement tests, including an unclassified tool and forged mode/step inputs, before visitor delivery. A warning alone does not satisfy that gate.
 
 ## Research basis
 
@@ -416,10 +460,11 @@ Evaluate LiveKit's transport independently of its Agents framework. Reuse existi
 | D12. Provider compatibility | Validate capabilities when publishing | Unsupported cancellation, timing, language, or mid-session updates produce a clear error or an explicit fallback |
 | D13. Background execution | Attach existing jobs to explicit agent task records | Accepted work continues through speech interruption without duplicating the workflow scheduler |
 | D14. Input and output policy | Separate observations, task results, and presentation decisions | Detected objects and completed jobs do not become unsolicited spoken turns |
-| D15. Session hosting | Per-turn operation runs in the existing app hosts | Test a long-lived streaming run only for voice. Lean-server support remains optional |
+| D15. Session hosting | Mini Apps and external clients share the agent session interface over existing app operations | A1.6 proves a second host and policy without duplicating session logic. Test a long-lived streaming run only for voice. Lean-server support remains optional |
 | D16. Invocation routing | Tools run inside the turn's workflow or as the app's other operations. Every tool is part of the app | Preserve each surface's ownership, budgets, tracing, persistence, and invocation rules. Never create a second job for an owned app run |
 | D17. Lifetimes | Separate connection, app agent session, response, and tool-run lifetimes | Interrupt speech locally. Cancel jobs through their existing owner. Reconnect support does not imply crash recovery |
 | D18. Conversation graph | Store modes, topic steps, and transitions as a declarative hierarchical state machine in the app document. Each mode runs its own operation | Reuse graph editing components. Execute actions with ordinary workflows. A mode's tool scope is pinned in its operation's graph. Transition edges are not workflow data edges |
+| D19. External client contract | Use RTVI as the reference, reusing concepts and message shapes where semantics fit | Preserve NodeTool's lifecycle and authority. Full adoption is not a release requirement. Compatibility claims require the [external-client proof](#external-clients-and-rtvi) |
 
 ## Fit with current execution options
 
@@ -444,7 +489,7 @@ For an open workflow run, the [execution runner](https://github.com/nodetool-ai/
 
 | Related proposal | Reuse for app agents | Boundary to keep explicit |
 | --- | --- | --- |
-| [Shared variables and direct input bindings](shared-variables-input-bindings.md) | Typed bindings for language, selected exhibit, audience, and tool parameters. Capture values/revisions when an action starts. Use checked writes for returned artifacts and progress | Editing configuration must not start paid work. Run snapshots stay fixed. Conversation events and mode changes need explicit events, not Watch subscriptions |
+| [Shared variables and direct input bindings](shared-variables-input-bindings.md#delivery-plan) | Typed bindings and checked publication. SV-A5 owns app-variable revisions and is a dependency of A4 | Editing configuration starts no paid work. Run snapshots stay fixed. Progress stays on job messages. Latest-value run reads are deferred in SV-A6. Conversation changes use events, not Watch subscriptions |
 | [Control-flow regions](control-flow-regions.md) | Execute only the chosen action branch, await sequential tool work, collect results, and share budgets through nested actions | A region controls execution within one invocation. A conversation state waits for future events across invocations |
 
 Profile draft edits apply to a fresh preview session or a newly published release. Explicit live session inputs, such as selected exhibit, affect the next admitted action. Neither starts paid work.
@@ -471,6 +516,14 @@ The policy determines current instructions, eligible tools, and state events. It
 | Workflow or app run | The existing execution owner settles status, output, usage, and cancellation. Task records refer to its job or app-run ID |
 | Retained task | Requires explicit retention policy and recoverable status, and exists only in owner sessions. A persisted receipt alone does not make computation restartable |
 
+Closing an observer or losing a connection does not cancel execution, following
+[RS-D2](reactive-sessions-events.md#decisions-for-the-first-adapter). On explicit
+visitor End or kiosk reset, the app host first invalidates result delivery, then
+requests cancellation of that visitor's runs through their existing execution
+owner. Late or uncancellable results remain inaccessible to the next visitor.
+Server admission keeps running work counted until settlement, even after reset
+or a cancellation request. Reset cannot replenish quotas or release capacity.
+
 The [WebSocket job registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/job-run-registry.ts) supports detachment, bounded message replay, and reconnect grace. Its delivery attachment is not a multi-subscriber event bus. The [active-run registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution/src/service/active-runs.ts) is process-local. [Job cancellation](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/job-control.ts) supports remote-owner paths, whose latency is unsuitable for stopping audible speech. Reuse these for jobs and add session reconnect state without claiming crash-resumable execution.
 
 Store correlations between session, response, state revision, tool call, and run IDs. On reconnect, reconcile job status and artifacts before delivery. After a process failure, recover an explicit conversation checkpoint or offer a new session. Never replay an external side effect because its result was not delivered.
@@ -492,7 +545,10 @@ Store correlations between session, response, state revision, tool call, and run
 ```mermaid
 flowchart LR
   Author[App Builder and agent settings] --> Release[Published app release]
-  Release --> Session[App agent session policy]
+  Release --> Session[Agent session coordinator]
+  MiniApp[Mini App host] <--> Session
+  External[External application host] <--> Session
+  Policy[Default or custom conversation policy] <--> Session
   Session <--> Reactive[Existing host dispatch and shared caller adapter]
   Visitor[Browser or kiosk] <-->|WebRTC media| Transport[Transport adapter]
   Transport --> Input[Audio normalization and speech activity]
@@ -522,17 +578,17 @@ These are logical modules, not a requirement for new packages. A1 identifies exi
 | Module | Responsibility | Required contract behavior |
 | --- | --- | --- |
 | Existing host and shared caller adapter | Authorized operation dispatch, request correlation, completion observation, observer cleanup | Reuse state and execution ownership |
-| App agent session policy | Conversation state reducer, response scopes, result relevance | Runs turns as app operations. Keeps session and response identity isolated |
-| Visitor tool policy | Permission-gate rules for deployed-app runs | Denies owner-scoped tools and thread persistence in every visitor run |
+| Agent session coordinator | Validates policy proposals, manages response scopes, interruption, and result delivery | Runs turns as app operations. Uses existing state ownership and keeps session and response identity isolated across hosts |
+| Visitor tool policy | Permission-gate rules for deployed-app runs | Allows only published capabilities and scopes, with unknown capabilities and owner-scoped data denied |
 | Transport | Capture/receive tracks, publish audio/video, signaling | Report connection state, timestamps, device failures, playout state, and flush completion |
 | Audio normalization | Decode/resample/channel conversion at boundaries | Explicit sample rate, channel count, encoding, sequence, and media clock |
 | Speech activity and turns | VAD, end-of-turn detection, push-to-talk, barge-in | Distinguish partial transcripts, finalized input, and interrupted responses |
 | STT adapter | Stream audio to partial/final transcript events | Cancellation, language configuration, stable segment IDs, documented finalization |
-| Dialogue policy over the Agent node | State-specific instructions and allowed transitions | Reuse model/tool execution. Validate model-proposed actions and guards before changing state |
+| Default or custom conversation policy | Context, state-specific instructions, proposed actions/transitions and presentation | One active implementation through the same interface. Cannot bypass session validation or execution gates |
 | Tool gateway | App operations and scoped retrieval | Authorization, deadline, cancellation, result bounds, and idempotency for effects |
 | TTS adapter | Incremental text to audio and optional timing cues | Flush input, cancel output, expose supported timestamps/visemes |
 | Presentation adapter | Captions, abstract animation, rigged character, or live video | Follow actual playout, stop on interruption, degrade to voice/text |
-| Session telemetry | Correlate events, latency, cost, and errors | Content-free defaults and configurable retained diagnostic content |
+| Session telemetry | Link an initiating event to its operation/run, captured input revisions, and result disposition | Explain why a result was presented, delayed, or discarded using existing run IDs and records. Content-free defaults, with authorized diagnostic detail. No duplicate job history |
 
 Use discriminated event schemas. Shared events carry session/source identity and request correlation or state revision where needed. Agent events add `turn_id` and `utterance_id`. Stream adapters supply sequence and media timestamps within their own clock domain, with no assumed global ordering across sources. Agent events include speech start/end, transcript updates, accepted turns, tool requests/results, playout progress, interruption, state change, and session end. Binary media stays in the transport path, and workflow control stays on its existing MsgPack protocol through `GlobalWebSocketManager`.
 
@@ -594,11 +650,11 @@ Reuse canvas components, selection, node inspectors, and workflow reference pick
 
 ### Effective policy and transitions
 
-Tool authorization is the intersection of session authority and the active mode's tools, which are pinned in that mode's operation. Steps narrow which of those tools the model is offered. That narrowing is guidance, because the client holds the active step. An omitted state setting inherits its parent. An explicit empty subset disables those tools. Knowledge access follows the same rule. A preferred collection or search hint adjusts relevance only within the authorized scope.
+Tool authorization is the intersection of session authority, published grants, and the selected operation's pinned tools. The client can select a mode's operation directly, so mode order is not an authorization boundary. Steps narrow the tools offered to the model as guidance only. An omitted setting inherits its parent. An empty subset offers no tools. Knowledge hints only adjust relevance within the server-authorized scope.
 
-Behavior hints apply from profile to mode to path to step, with more specific wording taking precedence only where compatible with global boundaries. Prompt guidance is distinct from enforced restrictions. Required steps, tool permissions, source scope, budgets, and prohibited actions have deterministic checks at execution boundaries.
+Behavior hints apply from profile to mode to path to step where compatible with global boundaries. Guided progress is UX policy, not proof of consent or prerequisite completion. Tool permissions, source scope, budgets, and action prerequisites have deterministic server checks independent of client-held progress. A feature requiring an unskippable sequence needs server-owned progression and remains deferred.
 
-Each event has an identity and originating session. State-changing proposals carry an expected state revision. Tool completions keep their originating revision for reconciliation, even when the conversation has moved on. Inputs include committed user intent, a touch choice, tool completion, a scene event, and a timeout. The model may propose a typed intent or transition, and the reducer validates it. Guards use declared facts and bounded expressions, with explicit ordering when branches overlap. Publishing rejects missing targets, ambiguous priorities, structurally unreachable required steps, and unbounded automatic transition cycles. Loops that wait for new input are valid. Dynamic conditions need runtime limits and scenario tests.
+Each event has an identity and originating session. State-changing proposals carry an expected state revision supplied by SV-A5. Tool completions keep their originating revision for reconciliation. Inputs include committed intent, a touch choice, tool completion, a scene event, and a timeout. The model may propose a typed transition, which the reducer validates. Guards use declared facts and bounded expressions, with explicit ordering when branches overlap. Publishing rejects missing targets, ambiguous priorities, unreachable steps, and unbounded automatic transition cycles. Loops waiting for new input are valid. These checks improve conversation behavior without making client progress authoritative.
 
 Commit one state change atomically, then dispatch its declared actions with invocation identities derived from the session and transition. An action failure emits a new event with an explicit recovery destination. Prerequisite actions use a pending step until their result is known. Saving state and an external side effect are not atomic together: reconcile known invocation results after failure and surface uncertain outcomes instead of replaying them.
 
@@ -632,7 +688,7 @@ Visitor camera input is a separate feature. Start with explicit exhibit selectio
 
 | Area | Required work |
 | --- | --- |
-| Session admission | Reuse deployed-app sessions: signed `nda_` tokens, the required finite budget, and withdrawable links. Add per-device/session quotas and concurrency limits for agent turns |
+| Session admission | Before A5 text publication, enforce finite per-session and per-device quotas and concurrency limits server-side, within the app budget. Define the device key and its limits for anonymous web visitors. Reset and new conversations do not erase running work or replenish device allowance. Show an understandable limit-reached state |
 | Host lifecycle | Extend existing backend supervision with session admission, maximum duration, idle timeout, cleanup, deployment draining, and release rollback. Add dedicated worker deployment only if measurements require it |
 | Venue audio | Test directional microphones or handsets, speaker placement, echo cancellation, room reverberation, crowd noise, and adjacent kiosks |
 | Network | Verify venue firewall and TURN behavior, reconnect, packet loss, bandwidth, and provider-region latency |
@@ -648,7 +704,7 @@ An offline fallback of approved text and prerecorded audio is feasible without c
 
 ## Delivery plan and gates
 
-Action IDs are local to this plan. A2 requires A1.1–A1.3 and A1.6, not completion of the reactive-session plan. A1.4 is a conditional hosting experiment. A1.5 gates A3 only. A1.7 gates A5 only. A3 and A4 proceed independently after A2. A5 publishes text agents once A2 and A1.7 pass, and runs the pilot once A3 and A4 land. A6–A10 are optional extensions.
+A2 requires A1.1–A1.3, A1.6, and A1.7's audit and publish warning, not completion of the reactive plan. A1.4 is a conditional voice experiment. A1.5 gates A3. A4 also requires [SV-A5 app revisions](shared-variables-input-bindings.md#delivery-plan). A5 publishes text only after visitor enforcement and admission limits pass, then runs the pilot after A3 and A4. A6–A10 are optional extensions. A10 consumes the shared adapter from [RS-A1–RS-A4](reactive-sessions-events.md#smallest-first-implementation).
 
 ### A1. Prove agent, Mini App, and execution reuse
 
@@ -661,8 +717,8 @@ Build a small headless fixture before adding the full editor, a new package, or 
 | A1.3. Exercise existing tools | Invoke one bounded and one delayed background operation through their current paths. Continue conversation, cancel a selected task, and deliver a completion twice | Existing run IDs and accounting remain authoritative. Response cancellation leaves independent work running. Duplicate completion produces one presentation update. Session reset isolates the next conversation |
 | A1.4. Evaluate streaming hosting for voice | Feed one long-lived run of the agent's operation through `stream_input`, which reaches `pushInput` and `finishInputStream`, reusing the reactive plan's streaming fixtures when available | Successive turns, idle waiting, interruption without closing input, and cleanup pass before adopting this host. No new model loop or duplicate production host |
 | A1.5. Check the voice path | Exercise current capture, speech nodes, chunk bus, and playback with recorded input. Audit cancellation and chosen SDK/platform support. Evaluate transport-only WebRTC integration | A measured baseline and a capability matrix distinguishing reuse, required adapter extraction, and missing playout/interruption support |
-| A1.6. Map the shared caller integration | Share the finite-operation fixture with the [reactive-session plan](reactive-sessions-events.md). Distinguish its operation observer from the agent binding | Identity, state, dispatch, cancellation, and cleanup each have one owner |
-| A1.7. Check visitor confinement | Run the chat fixture from a deployed-app session with memory, file, and thread tools selected. Draft the visitor tool policy on the run's gate | A report of what owner-scoped data a published Agent node can reach today, the policy, a publish check for it, and tests with forged inputs and foreign IDs |
+| A1.6. Prove host and policy independence | Run the same configured text agent through the Mini App binding and a minimal external client fixture. Replace its default policy with one deterministic custom policy through the same interface. Share finite-operation mechanics with the [reactive-session plan](reactive-sessions-events.md). Map commands/events against [RTVI](#external-clients-and-rtvi), recording differences | Both hosts reuse session coordination and existing operation execution. Custom policy changes behavior without replacing execution or interruption. Denied actions, policy failure/timeout, duplicate results, and reset isolation pass. Trace an input event to its run and result disposition. No production SDK or RTVI interoperability claim is required |
+| A1.7. Audit visitor confinement and warn at publish | Run a deployed-app fixture with memory, file, and thread tools. Define default-deny grants and ship a warning in the existing publish flow with A2 | Record the inspected commit and reproduced exposure. The warning names tools whose visitor confinement is missing. Define forged-input, foreign-ID, and unknown-capability fixtures for A5 enforcement |
 
 A minimal Pipecat comparison is optional when it resolves a specific orchestration question, and stays outside production dependencies. A1 ends with a working reuse fixture and a concrete change list.
 
@@ -672,6 +728,12 @@ Implement the settings editor as a form over the agent's Agent node and the app'
 
 Provide the Agent widget, the New app templates, and a text Try experience using the Mini App composition proven in A1. Expose Add a workflow as a tool, with fixed versus model-supplied inputs. Invoke one scoped retrieval operation and one background operation, show existing run status and result widgets, and support explicit task cancellation and session reset. Map existing invocation IDs. For paths without retry-safe invocation, surface uncertain outcomes rather than reissuing effects.
 
+Extend the scoped retrieval response to return citation metadata (F5): stable
+source identity, title, location, and revision where available. Show references
+beside the answer and report missing source details without inventing them.
+Test metadata from collection query through the result widget. This is part of
+A2's sourced-answer acceptance, not later guided authoring.
+
 Accept A2 when a creator can save an app agent and test a sourced answer while background work continues. Editing the layout preserves the agent's settings, and editing the agent's workflow directly keeps the form in sync. A denied tool stays denied through every invocation route, duplicate results do not duplicate cards, and late outputs cannot cross a reset. App-operation invocation owns its run without a second job record. Existing chat apps without the new settings keep working.
 
 ### A3–A10. Voice, guidance, pilot, and extensions
@@ -679,17 +741,17 @@ Accept A2 when a creator can save an app agent and test a sourced answer while b
 | Action | Deliverable | Dependency | Exit evidence |
 | --- | --- | --- | --- |
 | A3. Add voice and abstract presentation | One STT/model/TTS combination, selected transport, captions, push-to-talk, then automatic turns, abstract avatar | A2 and A1.5 | Interrupt stops rendered speech while input remains open. Initialization, late synthesis, graceful/forced close, and provider failure fixtures pass. Client-rendered timing is measured separately from sender drain |
-| A4. Add guided authoring | Modes, topic steps, guarded transitions, simple list and advanced graph over one profile, grounded retrieval configuration | A2 | Branch, digression/return, mode change during a task, unknown answer, and source-scope tests pass. List/graph round-trip preserves supported settings and custom configuration. Retrieval-before-generation is compared with model-selected retrieval |
-| A5. Publish to visitors, then pilot | Text first: the visitor tool policy, collection binding in releases, the agent-specific publish screen, Try as a visitor, admission limits, kiosk reset. Then the browser/kiosk pilot: supervision, reconnect, and fallback content | Text: A2 and A1.7. Pilot: A3 and A4 | Text: visitor confinement, publish/rollback, and scoped reconnect pass. Pilot: provider failure and a full-day venue soak pass, and one creator-configured guide handles a topic branch, interruption, and background result without exposing owner data or host configuration |
+| A4. Add guided authoring | Modes, topic steps, guarded transitions, list and advanced graph over the same settings, grounded retrieval configuration | A2 and SV-A5 app revisions | Branch, digression/return, mode changes, stale state writes, unknown answers, and source-scope tests pass. Forged progress grants no authority. List/graph round-trip preserves configuration |
+| A5. Publish to visitors, then pilot | Text first: enforced visitor policy, release-bound collections, publish screen, Try as a visitor, session/device quotas, concurrency limits, and kiosk reset. Then supervision, reconnect, and fallback content | Text: A2 and A1.7, with enforcement and admission checks in this row. Pilot: A3 and A4 | Text: denied and unclassified tools stay denied. Forged state grants no authority. Exhausted session/device allowance rejects new work. Repeated resets retain quota and in-flight accounting. Publish/rollback and scoped reconnect pass. Pilot: provider failure and a full-day venue soak pass. One configured guide handles branching, interruption, and background completion with visitor isolation |
 | A6. Add richer presentation | Rigged character or one live video adapter | A5 | Lip-sync and interruption are measured. Changing presentation preserves conversation policy. Avatar outage retains voice/text operation |
 | A7. Expand background tools | Image generation and short/long research presets, task revision/supersession, richer progress and delivery controls | A2, with A3 for speech-delivery checks | Conversation continues during work, stale results cannot replace newer briefs, partial research is labeled, and completion respects current delivery policy |
 | A8. Add perception | Snapshot vision, then one sampled detector with evidence references and expiry | A2, A7 | Repeated frames do not flood model calls. Delayed observations cannot resolve current-scene references incorrectly. No dependency on video-avatar output |
 | A9. Validate personal continuity | Personal Assistant template with explicit memory and retained-task policy in owner sessions | A2, A7 | Authorized task status reconciles after reconnect without replaying effects. Personal data stays isolated. Crash resumption is supported only where separately proven |
-| A10. Connect live scenes | Read/highlight/focus first, then approved simulation commands and generated-asset placement | A2, A4. Asset generation also requires A7 | The same command contract passes headless and renderer checks. Stale/unauthorized commands fail, retries do not duplicate effects, and visitor control and reset remain correct |
+| A10. Connect live scenes | Scene-specific read/highlight/focus, then approved simulation commands and generated-asset placement, using the RS adapter | A2, A4, and RS-A1–RS-A4. Asset generation also requires A7 | Scene commands pass headless and renderer checks. Stale/unauthorized commands fail, retries do not duplicate effects, and visitor reset remains correct. Shared request/result behavior is verified in the reactive plan |
 
-Adopt the shared-variable and region contracts as those plans ship. A2 uses existing workflow parameters and ordinary actions, so neither blocks the first agent. Session-owned bindings preserve snapshot, revision, and visitor-isolation rules. Region-based actions must prove that inactive branches make no provider calls and that nested actions share budgets.
+A2 uses existing inputs and invocation ownership, so new bindings and regions do not block the owner-only text agent. A4 waits for SV-A5 revisions instead of inventing a second app-state mechanism. Region-based actions adopt CF contracts when available and prove that inactive branches make no provider calls and nested actions share budgets.
 
-Keep richer avatars, camera perception, personal continuity, and live scene commands outside A5's required scope. Defer speculative generation, generalized multi-agent handoffs, arbitrary custom turn/policy plugins, and a generic frame-processing editor. If speculation becomes necessary, gate output and effects on final turn confirmation and measure discarded inference cost.
+Keep richer avatars, camera perception, personal continuity, and live scene commands outside A5's required scope. Defer speculative generation, generalized multi-agent handoffs, a public plugin framework, and a generic frame-processing editor. A1.6 proves one bounded policy replacement, not arbitrary customization of session internals. If speculation becomes necessary, gate output and effects on final turn confirmation and measure discarded inference cost.
 
 ### Proposed acceptance budgets
 
@@ -710,7 +772,7 @@ Measure stage timing, overall p50/p95, false interruptions, missed speech, turn 
 
 Use deterministic tests for state, authorization, and confinement, recorded audio for repeatable timing, and browser/venue tests for actual acoustics. Model-judged simulated conversations supplement those checks. [Pipecat Evals](https://docs.pipecat.ai/pipecat/evals/overview) show the distinction between scripted and simulated evaluation.
 
-Extend the [harness registry approach](../HARNESS_FIRST.md) with a session fixture runner when implementing the feature. Follow [mandatory repository verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification) for code changes. This document requires link and text checks, not application test suites.
+Implementation follows [mandatory repository verification](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).
 
 ## Cost, risks, and open questions
 

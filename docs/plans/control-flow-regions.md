@@ -1,5 +1,36 @@
 # Control-flow regions
 
+Cross-plan references use `CF-`, for example `CF-D28`. Local IDs stay unchanged.
+
+A region is a container on the canvas whose contents run under a rule. The first
+release adds two kinds, plus a way to test and inspect them. The main decisions:
+
+- **If Region (D1).** Only the chosen area, Then or Else, runs. Nodes in the
+  other area never start, even ones with no inputs. Both areas must produce
+  every output, so an empty Else connects its input through.
+- **For Each Region (D3, D18, D19, D26).** One list in, one item at a time. The
+  next item starts only after the current one finishes. Results come back in
+  list order. Keep, Stop after iteration, and State for next item are optional.
+  A list longer than the maximum fails before any work starts.
+- **Failure (D22, D25).** A failed item stops the region, and no partial Results
+  reach downstream nodes. Existing recovery that produces a value, such as
+  retries, still applies. Recovery that would drop an item counts as a failure.
+- **Execution (D24).** Each region invocation and each item runs as an isolated
+  inner run on the executor the Subgraph and Workflow nodes already use. A
+  spike (A53) must confirm the cost per item before this is final.
+- **Membership (D5, D28).** Membership is stored explicitly in `parent_id` and
+  never inferred from position. Unknown-type execution rejection and lossless
+  saving in supported older editors must be proven by A6. The choice to omit
+  a format version field remains conditional on that evidence.
+- **Shared execution prerequisite (D27).** Workflow execution owns the optional
+  Spending limit per run and reservations across nested work. This affects all
+  workflow runs, not only regions. Paid-region release requires A37/A40/A41.
+- **Test one item and Inspect item (D15 to D17, D12 to D14).** Test one item runs
+  one item with supplied inputs, separate from normal runs. Inspect item only
+  reads what an earlier run recorded and never executes anything.
+- **Compatibility (D29).** Existing If, For Each, and Loop nodes keep their
+  names and behavior. Nothing is converted automatically.
+
 ## First release
 
 Ship If Region and sequential For Each Region, followed by Test one item and read-only
@@ -13,7 +44,8 @@ control-flow framework.
 
 Delivery order is milestones 1, 2, 3, 4, 4a, 4b, then 7. Existing identifiers are
 retained so earlier discussions remain traceable. Milestones 5 and 6 are deferred.
-D27 and D28 answer the two former [open questions](#resolved-questions).
+D27 and D28 record the spending and compatibility choices, with their
+[verification conditions](#resolved-questions).
 
 ## Terms authors see
 
@@ -76,6 +108,8 @@ generation seam, and the credit gate. Historical sources were the region commit
 linked below and `LoopNode.tsx` at `1edf9aadb9^`. Both passes read source and
 focused tests. Neither was a browser usability test or an end-to-end
 demonstration of historical region execution.
+
+Recheck claims needed for delivery under the [evidence rules](feature-interplay/README.md#evidence-and-interpretation).
 
 ### Reuse
 
@@ -248,7 +282,7 @@ need reproduction tests in A1 before runtime work depends on them.
 
 ### Execution strategy
 
-**D24 (proposed, confirmed by A53).** Run each region invocation as an isolated
+**D24 (provisional, awaiting A53).** Run each region invocation as an isolated
 inner run through the F18 executor. The editor document keeps one graph with
 explicit membership (D5). The region node declares its boundary ports as dynamic
 inputs and outputs, the mechanism the Subgraph node already uses. At load, each
@@ -305,8 +339,8 @@ Collect kept results in input order. Label outputs Results and optional feedback
 ports State for next item. State fields require initial values and explicit next
 values. Commit state only after successful body completion.
 
-**D26 (proposed).** Each For Each Region has a maximum item count. A collection longer
-than the maximum fails the region before the first item starts, naming both
+**D26 (accepted behavior, bounds set by A36).** Each For Each Region has a maximum
+item count. A collection longer than the maximum fails before the first item starts, naming both
 numbers. Never truncate silently. A36 sets the default and the upper bound.
 Show the item count beside Run workflow's estimate when it is known.
 
@@ -328,8 +362,8 @@ Do not introduce a region-level retry or skip-error policy. Identify the failed
 item. Cancellation cannot undo completed side effects or accepted provider work.
 Successful early stopping is distinct from failure or budget exhaustion.
 
-**D25 (proposed).** Inside a region body, existing recovery that produces a
-value for the item stays allowed: supervisor `retry` under its existing rules,
+**D25 (accepted behavior, verification required in A21).** Inside a region body,
+existing recovery that produces a value stays allowed: supervisor `retry` under its existing rules,
 supervisor `substitute` after validation, and the bounded content-filter
 retries. Recovery that removes an item is an item failure: supervisor `skip`
 and `end_stream`, and the content-filter drop after its retries are exhausted.
@@ -374,15 +408,17 @@ estimates and gates multiply a For Each Region body's estimate by the collection
 when it is known and mark it per item when it is not (F25). This release does
 not require a new pricing engine or account-wide billing system.
 
-**D27. One spending limit per workflow run.** Every workflow run gets a
-`RunBudget`, created by the job runner, so regions, loops and fan-outs outside
-regions follow the same rule. Authors see one control and one message.
+**D27. Shared execution prerequisite: one spending limit per workflow run.**
+Workflow execution owns this work at the common invocation boundary, including
+ordinary runs. A37/A40/A41 are release gates for paid regions, not optional
+region controls. Every workflow run gets a `RunBudget` created by the job
+runner, so regions, loops and fan-outs follow the same rule. Authors see one
+control and one message.
 
 - **The setting.** Settings has one field, Spending limit per run, in USD. The
   CLI takes `--cost-cap <usd>` as agent runs do. Empty means no limit, so
   existing workflows run as before. Agent-started runs, mini-app budgets and
-  hosted credits keep their own limits, and a run started under one of them
-  uses the stricter of the two.
+  hosted spending budgets keep their limits. A run uses the stricter applicable limit.
 - **Admission.** Before a paid node invocation starts, the actor reserves that
   node's estimate from `estimateWorkflowCost`, the lookup the editor estimate
   already uses. After the invocation, it commits the actual cost from the
@@ -399,13 +435,14 @@ regions follow the same rule. Authors see one control and one message.
   the setting's help text reads "NodeTool stops starting paid steps once this
   amount is reached. A step already running can finish above it."
 
-**D28. No format version field.** A region is a container node of a new type,
-and members point to it through `parent_id` (D24 describes its ports). Builds that predate regions reject
-the unknown type before running, which is the correct outcome. A version field
-would not help those builds because they ignore fields they do not know. Make
-the unknown-type error name the type and say that the workflow may need a newer
-NodeTool version. Saving a graph that contains an unknown node type must keep
-that node, its data, and its members' `parent_id` unchanged.
+**D28. No format version field, conditional on compatibility evidence.** A region
+is a new node type whose members use `parent_id`. A6 must test execution rejection
+and load/save preservation separately in each older editor version claimed as
+supported. Unknown-type rejection alone does not prove safe saving. Preserve the
+unknown node, its data, and members' `parent_id` through a round trip. Name the
+unknown type in the run error and recommend upgrading. If preservation fails,
+define the supported-version boundary and revisit this choice before release.
+Adding a field cannot make an already-shipped client honor it.
 
 ### Test one item
 
@@ -444,16 +481,17 @@ Inspection makes no provider calls and does not regenerate missing data.
 
 ## Resolved questions
 
-Both are decided. Revisit them only with evidence from A42 usability checks or
-from A53.
+These are design choices, not verified implementation claims. D28 remains
+conditional on A6. D24 is separately provisional until A53. D25 and D26 define
+the accepted first-release behavior, with bounds measured in A36.
 
 - **Q1. Spending policy for ordinary workflow runs.** Decided by D27. Every
   workflow run gets the same optional limit. The rejected option allowed paid
   regions only on surfaces that already have a budget. It was less work, but it
   meant authors had to know which surface they were on.
-- **Q2. Workflow format marker.** Decided by D28. Rely on unknown-node rejection
-  and improve its message. A version field cannot protect builds that already
-  shipped.
+- **Q2. Workflow format marker.** D28 proposes omitting a marker only after A6
+  proves rejection and preservation for the supported versions. Silent data
+  loss requires revisiting compatibility before release.
 
 ## Risks and mitigations
 
@@ -480,9 +518,12 @@ from A53.
   list). Verify reuse through behavior, not comments.
 - [ ] **A2.** Define the schema for ownership, nesting, stable ports, and legal
   crossing edges. Distinguish visual groups from execution regions, including
-  the root-scope rule in F22.
-- [ ] **A52.** Before production UI implementation, prototype conditional repair
-  and a For Each Region containing an If Region using current group interactions. Resolve the
+  the root-scope rule in F22. Define the semantic agent-edit contract needed by
+  A52: create region, assign branch membership, and edit boundary ports without
+  coordinates. This contract portion of A30 moves here. Full adapters remain A30.
+- [ ] **A52.** After A2 and before production UI implementation, prototype
+  conditional repair and a For Each Region containing an If Region using
+  current group interactions. Resolve the
   missing behaviors in F12, F13, and F16. Exercise equivalent semantic edits
   through the proposed agent contract, without requiring coordinate placement to
   express membership. Verify the resulting graph is readable and editable by a
@@ -497,9 +538,11 @@ from A53.
   table, D25, and D26.
 - [ ] **A5.** Map errors, cancellation, exhaustion, and late messages to the
   existing run lifecycle without treating them as successful completion.
-- [ ] **A6.** Define legacy compatibility tests under D28: old fixtures keep
-  their behavior, an unknown region type fails with the improved message, and
-  saving preserves unknown nodes and their members' `parent_id`.
+- [ ] **A6.** Run legacy compatibility fixtures under D28. Record the exact older
+  editor versions tested and the inspected source commit. Load and save a graph
+  with unknown region nodes, node data, and members' `parent_id`, then compare
+  the saved graph. Separately verify execution refusal and old-fixture behavior.
+  A destructive round trip blocks the compatibility claim and region release.
 - [ ] **A35.** Define structural-depth and subworkflow call-depth accounting,
   including how regions count toward `MAX_INNER_GRAPH_DEPTH`.
 - [ ] **A39.** Complete the budget audit started in F23 to F25. List every paid
@@ -508,9 +551,9 @@ from A53.
   node type has an invocation-level estimate for D27, and list the ones that
   would be refused as unpriced under a limit.
 
-Acceptance: the contract has no unresolved output or exit semantics, and D24 is
-confirmed or replaced. Required changes and existing implementation support are
-identified before scheduler work.
+Acceptance: output and exit semantics are defined, D24 is confirmed or replaced,
+and A6 establishes a safe compatibility boundary. Required changes and existing
+implementation support are identified before scheduler work.
 
 ## Milestone 2: Format and execution foundation
 
@@ -582,7 +625,8 @@ Depends on milestone 3.
 - [ ] **A20.** Show progress and completion reason. Reveal state and optional
   controls on demand, without logging sensitive payloads.
 - [ ] **A54.** Price a For Each Region body per item in the editor estimate and the
-  pre-run gates, multiplied by the collection size when known (D10, F25).- [ ] **A21.** Test the outcome table, nested loops, concurrent parent inputs,
+  pre-run gates, multiplied by the collection size when known (D10, F25).
+- [ ] **A21.** Test the outcome table, nested loops, concurrent parent inputs,
   constant inputs, result ordering, and D25. Failure, a supervisor skip, and a
   content-filter drop must stop subsequent items and must not publish a
   successful partial collection.
@@ -634,8 +678,8 @@ and earlier revisions are explicit. Selecting an item incurs no execution.
 
 Depends on milestones 1-4, 4a, and 4b. Complete relevant checks in each delivery.
 
-- [ ] **A30.** Extend shared tools and browser/headless adapters for the operations
-  in F17, including recorded-iteration inspection. Test agent creation, branch
+- [ ] **A30.** Implement shared tools and browser/headless adapters from A2's
+  semantic-edit contract, plus recorded-iteration inspection. Test agent creation, branch
   reparenting, port edits, save/reload, and subsequent manual editing. Verify
   revision conflicts, failed edits leaving the graph unchanged, and resource-ID
   boundaries. Return readable membership and status without requiring a screenshot.
@@ -649,10 +693,8 @@ Depends on milestones 1-4, 4a, and 4b. Complete relevant checks in each delivery
 - [ ] **A33.** Register applicable selfchecks and verify gate selection using
   [Harness-First Engineering](../HARNESS_FIRST.md) and the
   [harness reference](../harnesses.md).
-- [ ] **A34.** After code changes, build packages, then run `npm run test:affected`,
-  `npm run typecheck`, `npm run lint`, and
-  `npm run dev:nodetool -- harness gate --base origin/main`. Record evidence in
-  each implementing PR. Run `npm run check:agents-docs` for instruction changes.
+- [ ] **A34.** Follow [repository verification requirements](../../AGENTS.md#mandatory-post-change-verification)
+  and record evidence in each implementing PR.
 
 Release requires the milestone acceptance criteria, legacy compatibility,
 round-trip persistence, and required checks. No deferred task is a release gate.

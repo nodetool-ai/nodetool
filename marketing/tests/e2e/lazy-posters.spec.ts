@@ -1,9 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 // A <video poster> downloads on page load wherever the video sits. The home
-// page fetched 13 posters (about 700 KB) for ad cards, the timeline film and
-// closed storyboard dialogs before a phone reader scrolled at all. Posters now
-// wait until their video is near the screen, or until the dialog opens.
+// page once fetched 13 posters (about 700 KB) before a phone reader scrolled
+// at all. Posters now wait until their video is near the screen.
 test.describe("home page posters on a phone", () => {
   test.use({ viewport: { width: 412, height: 823 } });
 
@@ -18,20 +17,8 @@ test.describe("home page posters on a phone", () => {
     );
     expect(early).toEqual([]);
 
-    const adVideo = page.locator('a[href^="/ad-library/"] video').first();
-    await adVideo.scrollIntoViewIfNeeded();
-    await expect(adVideo).toHaveAttribute("poster", /\/ad-library\/videos\/.+\.webp$/);
-
-    const timelineFilm = page.locator("#timeline-showcase-film video");
-    await timelineFilm.scrollIntoViewIfNeeded();
-    await expect(timelineFilm).toHaveAttribute("poster", /\/timelines\/.+\/poster\.webp$/);
-
-    const watch = page.getByRole("button", { name: /Watch the film/ }).first();
-    await watch.scrollIntoViewIfNeeded();
-    await watch.click();
-    await expect(page.locator("dialog[open] video")).toHaveAttribute(
-      "poster",
-      /\/storyboards\/.+\/poster\.jpg$/
-    );
+    const poster = page.locator('#surfaces img[src$="-poster.webp"]').first();
+    await page.locator("#surfaces").scrollIntoViewIfNeeded();
+    await expect(poster).toHaveAttribute("src", /\/surface-storyboard-poster\.webp$/);
   });
 });

@@ -4,7 +4,8 @@ title: "MiniMax: Add Models & Nodes"
 description: "How to add new MiniMax models or workflow nodes to the NodeTool repo."
 ---
 
-> **Audience:** contributors and coding agents adding new MiniMax models or workflow nodes.
+> **Runs:** cloud. **Needs:** `MINIMAX_API_KEY`. The provider constructor throws `MINIMAX_API_KEY is required` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -12,8 +13,6 @@ description: "How to add new MiniMax models or workflow nodes to the NodeTool re
 2. For a new node type, copy an existing node file in `packages/minimax-nodes/src/nodes/`, register it in `src/index.ts`, add a test under `tests/`.
 3. Build: `npm run build:packages`.
 4. Verify: `npm run typecheck`, then `npm run dev:nodetool -- node run minimax.<YourNodeType> --props '{...}'`.
-
----
 
 ## Where things live
 
@@ -27,8 +26,6 @@ description: "How to add new MiniMax models or workflow nodes to the NodeTool re
 | Provider ID constant | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS.MINIMAX`) |
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.MINIMAX, ...)`) |
 | API docs | <https://platform.minimax.io/docs/api-reference/api-overview> |
-
----
 
 ## How MiniMax models and nodes are defined
 
@@ -65,8 +62,6 @@ export const MINIMAX_T2V_MODELS: string[] = [
 **Node registration**
 
 `src/index.ts` exports `MINIMAX_NODES` (the full array) and `registerMinimaxNodes` (the registry helper). Every new node class must be imported and added to both.
-
----
 
 ## Add a new model or node
 
@@ -186,8 +181,6 @@ Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D n
 
 4. **Update `tests/registration.test.ts`** — add `"minimax.TextTo3D"` to both `registry.has(...)` checks and the `types` array.
 
----
-
 ## Verify
 
 Run these in order after any change:
@@ -214,21 +207,3 @@ npm run dev:nodetool -- validate workflow.json
 The `--no-secrets` flag lets the node runner skip the database. The node will
 fail when the provider is built (no real API key), but a type error or
 missing-field panic surfaces before that.
-
----
-
-## Contributing
-
-Source: <https://github.com/nodetool-ai/nodetool>  
-Discord: <https://discord.gg/WmQTWZRcYE>
-
-Before opening a PR:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-npm run dev:nodetool -- harness gate --base origin/main
-```
-
-All four must pass.

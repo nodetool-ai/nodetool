@@ -6,9 +6,8 @@ description: "How to add new Gemini text, image, Veo and Omni video, and Lyria m
 
 The Gemini provider supports seven modalities: text/chat, image generation, video generation, music generation, TTS, ASR, and embeddings. Language models are auto-discovered from the API; every other modality uses a hand-maintained array in the provider file.
 
-> **Audience:** coding agents and contributors who need to add a new Gemini, Veo, or Lyria model to NodeTool.
-
----
+> **Runs:** cloud. **Needs:** `GEMINI_API_KEY`. The provider constructor throws `GEMINI_API_KEY is required` without it. Model discovery returns an empty list when the request fails.
+{: .callout-note}
 
 ## TL;DR
 
@@ -18,8 +17,6 @@ The Gemini provider supports seven modalities: text/chat, image generation, vide
 - **Music models** (Lyria): add one entry to `getAvailableMusicModels()`.
 - **TTS / ASR / embedding models**: add one entry to the matching method.
 - Run `npm run test:affected`, `npm run typecheck`, and `npm run lint` before committing.
-
----
 
 ## Where things live
 
@@ -36,8 +33,6 @@ The Gemini provider supports seven modalities: text/chat, image generation, vide
 | Token/chat cost | `@pydantic/genai-prices` catalog (automatic — no edit needed) |
 | Non-token cost tiers | `packages/runtime/src/providers/cost-calculator.ts` — `PRICING_TIERS` / `MODEL_TO_TIER` |
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.GEMINI, ...)`) |
-
----
 
 ## How Gemini models are defined
 
@@ -63,8 +58,6 @@ The Gemini provider supports seven modalities: text/chat, image generation, vide
 ### TTS / ASR / Embedding — static arrays
 
 Each is a simple array returned from the matching `getAvailable*` method. TTS models carry a `voices` field. Embedding models carry a `dimensions` field.
-
----
 
 ## Add a new model
 
@@ -167,8 +160,6 @@ async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
 }
 ```
 
----
-
 ## Verify
 
 ```bash
@@ -191,9 +182,3 @@ npm run dev:chat -- --provider gemini --model gemini-3.5-flash
 # 6. Harness gate
 npm run dev:nodetool -- harness gate --base origin/main
 ```
-
----
-
-## Contributing
-
-Open a PR at <https://github.com/nodetool-ai/nodetool>. Run the checks in the Verify section before pushing. Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

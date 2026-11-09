@@ -4,37 +4,25 @@ title: "Install NodeTool on Windows, macOS, or Linux"
 description: "Download NodeTool for Windows (Nodetool-Setup .exe), macOS (.dmg), or Linux (AppImage), then connect an AI provider so agents and media generation can run."
 ---
 
-Download, install, open, connect a provider. There is no setup wizard, but
-NodeTool can't run an agent or generate an image until it has a model to call,
-so connecting a provider is part of installing. The larger pieces some workflows
-need, such as local AI models, download later and only when you actually use
-them.
-
----
+Download the installer from [nodetool.ai](https://nodetool.ai) (`.dmg` on macOS, `.exe` on Windows, AppImage on Linux), open NodeTool, then connect a provider.
 
 ## The short version
 
-1. Download NodeTool from [nodetool.ai](https://nodetool.ai)
-2. Run the installer
-3. Open NodeTool
-4. Connect an AI provider — [see below](#connect-an-ai-provider)
+1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
+2. Run the installer: [macOS](#macos), [Windows](#windows), [Linux](#linux).
+3. Open NodeTool.
+4. [Connect an AI provider](#connect-an-ai-provider).
 
-The file you get is a `.dmg` on macOS, an `.exe` on Windows, and an AppImage on
-Linux. Exact steps for each are below: [macOS](#macos), [Windows](#windows),
-[Linux](#linux).
+Expected result: NodeTool opens, and the model dropdown in a node or chat lists at least one connected provider.
 
 ---
 
 ## macOS
 
-1. Download the `.dmg` from [nodetool.ai](https://nodetool.ai). There are two
-   builds: one for Apple Silicon (arm64) and one for Intel (x64). To see which
-   Mac you have, open the Apple menu → About This Mac.
-2. Open the downloaded file and drag Nodetool into your Applications folder.
-3. Open it from Applications. Released builds are signed and approved by Apple,
-   so macOS should not warn you or block the first launch.
-4. If a workflow records audio or video, macOS asks once for microphone or
-   camera permission. Approve it or those nodes won't work.
+1. Download the `.dmg` from [nodetool.ai](https://nodetool.ai). Builds exist for Apple Silicon (arm64) and Intel (x64). Check your Mac under Apple menu → About This Mac.
+2. Open the file and drag Nodetool into Applications.
+3. Open it from Applications. Released builds are signed and notarized, so macOS does not block the first launch.
+4. When a workflow records audio or video, macOS asks once for microphone or camera permission. Approve it or those nodes fail.
 
 On Apple Silicon Macs with macOS 14 or newer, local models can run on Apple's
 [MLX framework](models.md#mlx-framework-apple-silicon). MLX is an optional
@@ -47,85 +35,50 @@ Ollama, and llama.cpp.
 
 ## Windows
 
-1. Download the installer (`Nodetool-Setup-<version>.exe`) from
-   [nodetool.ai](https://nodetool.ai). It is built for 64-bit x64 Windows.
-2. Run it. You choose where it installs. It then adds a desktop shortcut and
-   opens NodeTool when it finishes.
-3. Approve the Windows firewall prompt. NodeTool runs a small server on your own
-   machine (on port 7777) that the app window talks to. Nothing is exposed to
-   the internet.
+1. Download `Nodetool-Setup-<version>.exe` (64-bit x64) from [nodetool.ai](https://nodetool.ai).
+2. Run it and choose an install location. It adds a desktop shortcut and opens NodeTool when it finishes.
+3. Approve the Windows firewall prompt. NodeTool runs a local server on port 7777 that the app window talks to.
 
-Both the installer and the app are code-signed. To run local models on your
-graphics card, see [GPU requirements](#gpu-requirements).
+The installer and the app are code-signed. For local models on a graphics card, see [GPU requirements](#gpu-requirements).
 
 ---
 
 ## Linux
 
-1. Download the AppImage from [nodetool.ai](https://nodetool.ai). It is the only
-   Linux package NodeTool ships today.
+1. Download the AppImage from [nodetool.ai](https://nodetool.ai). It is the only Linux package NodeTool ships.
 2. Mark it executable and run it:
    ```bash
    chmod +x Nodetool-*.AppImage
    ./Nodetool-*.AppImage
    ```
-3. There is no install step. An AppImage is a single self-contained file that
-   runs wherever you put it.
 
-Prefer Flatpak? Unsigned builds are produced from every change to the project.
-See [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml).
-They are not on Flathub yet.
+Unsigned Flatpak builds are produced from every change: see [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml). They are not on Flathub.
 
 ---
 
 ## Connect an AI provider
 
-A fresh install has no model behind it. Agents, chat, image and video
-generation, speech — every one of them calls a model, and until NodeTool has
-somewhere to call, those nodes fail with a missing-provider error. Do this
-before your first workflow.
+Agents, chat, image, video, and speech nodes call a model. Without a connected provider they fail with a missing-provider error. Connect one before your first workflow, from the cloud, locally, or both.
 
-Two ways to get one, and you can mix them:
+**Cloud provider.** Open **Settings → Models & Providers**. Some providers sign in without a key: a Claude subscription (desktop app only), a ChatGPT account (Codex), and Hugging Face. For the rest, paste an API key created on the provider's site.
 
-**A cloud provider (fastest).** Open **Settings → Models & Providers** and
-connect one. Some providers sign you in without a key: a Claude subscription
-(desktop app only), a ChatGPT account (Codex), and Hugging Face. For the rest, paste an **API key**: a
-password-like string you create on that company's website, which lets NodeTool
-use your account there.
+- [OpenAI](https://platform.openai.com): chat, images, video, speech, transcription, embeddings.
+- [Anthropic](https://www.anthropic.com): Claude chat models. Text only.
+- [Google Gemini](https://ai.google.dev): chat, images, Veo video, speech, transcription, embeddings.
+- [FAL](https://fal.ai) or [Replicate](https://replicate.com): image, video, and audio generation across many models.
 
-- [OpenAI](https://platform.openai.com) — chat, images, video, speech,
-  transcription, embeddings. The broadest single key.
-- [Anthropic](https://www.anthropic.com) — Claude chat models, the usual choice
-  for agents. Text only.
-- [Google Gemini](https://ai.google.dev) — chat, images, Veo video, speech,
-  transcription, embeddings.
-- [FAL](https://fal.ai) or [Replicate](https://replicate.com) — image, video,
-  and audio generation across many models.
-
-> **Note:** NodeTool is bring-your-own-key. It never marks up a provider's
-> price, and the provider bills you directly.
+> NodeTool does not mark up provider prices. The provider bills you directly.
 {: .callout-note}
 
-Keys are stored encrypted (AES-256-GCM) in a local
-database, not in a plaintext config file. The encryption key lives in your
-operating system's keychain (macOS Keychain, Windows Credential Manager, or the
-Linux Secret Service). The `SECRETS_MASTER_KEY` environment variable overrides
-it.
+Keys are stored encrypted (AES-256-GCM) in a local database. The encryption key lives in the operating system keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). The `SECRETS_MASTER_KEY` environment variable overrides it.
 
-**Local models (no key, no bill).** Install [Ollama](https://ollama.com), pull a
-model with `ollama pull <model>`, and it shows up in NodeTool automatically.
-This covers chat and embeddings, so agents work. Image and video generation
-mostly need either a cloud provider or a graphics card and the local model
-downloads described below.
+**Local models.** Install [Ollama](https://ollama.com) and run `ollama pull <model>`. The model appears in NodeTool automatically. This covers chat and embeddings. Image and video generation need a cloud provider or a graphics card plus the model downloads below.
 
-Wherever a missing provider blocks you — a model dropdown, a node warning, the
-getting-started checklist — NodeTool opens the connect dialog in place, so you
-don't have to hunt through settings.
+Where a missing provider blocks you (a model dropdown, a node warning, the getting-started checklist), NodeTool opens the connect dialog in place.
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
-Each connected provider carries a **Test** button that calls the provider to
-confirm the key still works. From the terminal:
+Each connected provider has a **Test** button that calls the provider to confirm the key works. From the terminal:
 
 ```bash
 nodetool secrets store OPENAI_API_KEY   # prompts for the value, stores it encrypted
@@ -133,46 +86,23 @@ nodetool secrets list                   # list stored keys (values are never sho
 nodetool secrets get OPENAI_API_KEY     # print one stored value
 ```
 
-The full list of 30+ providers, what each one can generate, and which key it
-needs is in [Providers](providers.md).
+Every provider, what it generates, and its key name are in [Providers](providers.md).
 
 ---
 
 ## What downloads later
 
-The app itself is small. NodeTool starts without a Python environment. These
-pieces arrive only when you install them:
+NodeTool starts without a Python environment. These pieces install on demand:
 
-- **Python and Conda.** Some nodes are written in Python rather than
-  JavaScript, and they need this to run. Install it from **Tools → Package
-  Manager → Engines & tools**, or accept the **Install required runtimes** prompt
-  that appears when a workflow contains nodes that need a runtime. The prompt
-  installs runtimes only. A workflow with no Python nodes never needs Python.
-  Allow several GB of disk space.
-- **Python node packs.** HuggingFace and MLX nodes come in packs you
-  install from **Tools → Package Manager → Python nodes**. Installing a pack
-  sets up Python first if it is missing. The
-  HuggingFace pack downloads a PyTorch build for your graphics card, which
-  takes several GB. See [Node Packs](node-packs.md#engines--tools-built-in-nodes-python-nodes-and-community-nodes).
-- **In-process model runners.** llama.cpp (the `llama.cpp local` provider)
-  and whisper.cpp run inside NodeTool. Install them from **Package Manager →
-  Engines & tools**.
-- **Ollama** is a separate program. Download it from
-  [ollama.com](https://ollama.com) and keep it running. NodeTool does not ship
-  or start it. A `llama-server` you run yourself connects through
-  `LLAMA_CPP_URL`. See [Providers](providers.md).
-- **The models themselves.** Several GB each, depending on the model.
-  Download them from **Tools → Model Manager**.
+- **Python and Conda.** Required by Python nodes. Install from **Tools → Package Manager → Engines & tools**, or accept the **Install required runtimes** prompt that appears when a workflow contains nodes that need a runtime. A workflow with no Python nodes never needs Python. Allow several GB of disk space.
+- **Python node packs.** HuggingFace and MLX nodes install from **Tools → Package Manager → Python nodes**, which sets up Python first if it is missing. The HuggingFace pack downloads a PyTorch build for your graphics card (several GB). See [Node Packs](node-packs.md#engines--tools-built-in-nodes-python-nodes-and-community-nodes).
+- **In-process model runners.** llama.cpp (the `llama.cpp local` provider) and whisper.cpp install from **Package Manager → Engines & tools**.
+- **Ollama** is a separate program from [ollama.com](https://ollama.com). NodeTool does not ship or start it. A `llama-server` you run yourself connects through `LLAMA_CPP_URL`. See [Providers](providers.md).
+- **Model weights.** Several GB each. Download from **Tools → Model Manager**.
 
-No graphics card, or no room for the downloads? Use a cloud provider with your
-own API key instead — see [Connect an AI provider](#connect-an-ai-provider)
-above, [Providers](providers.md), and
-[Models & Providers](models-and-providers.md).
+Without a graphics card or disk space, use a cloud provider: [Connect an AI provider](#connect-an-ai-provider), [Providers](providers.md), [Models & Providers](models-and-providers.md).
 
 ### What different tasks need
-
-What matters is the kind of hardware you have, not the exact model of graphics
-card:
 
 | Your hardware | What runs the model | Good for |
 |----------|--------|----------|
@@ -230,16 +160,23 @@ the GPU host needs NVIDIA driver 580 or newer. See
 llama.cpp and Ollama do not use PyTorch, so these limits do not apply to them.
 On a card PyTorch cannot use, they still run on the GPU.
 
-Rough VRAM (or unified memory on a Mac) per model family:
+Memory to run a model comfortably (VRAM, or unified memory on a Mac), from the
+curated list behind the Model Manager's **Get Started** tab
+(`web/src/components/hugging_face/onboarding/onboardingCatalog.ts`). The
+figures are approximate.
 
-| Model family | Memory |
-|---|---|
-| 7–8B language model, 4-bit GGUF or MLX | 6–8 GB |
-| SDXL | 8–12 GB |
-| Flux, full precision | 24 GB or more; less with CPU offload, but slower |
-| Wan video models | 8 GB and up, depending on resolution and length |
+| Model | Engine | Download | Memory |
+|---|---|---|---|
+| Qwen3.5 2B | Ollama | 2.7 GB | 4 GB |
+| Qwen3.5 9B | Ollama | 6.6 GB | 8 GB |
+| GPT-OSS 20B | Ollama | 14 GB | 16 GB |
+| Qwen3.6 35B A3B | Ollama | 24 GB | 28 GB |
+| Stable Diffusion XL | Hugging Face | 6.9 GB | 8 GB |
+| FLUX.1 schnell | Hugging Face | 23 GB | 24 GB |
+| Whisper Large v3 Turbo | Hugging Face | 1.6 GB | 3 GB |
+| Kokoro 82M | Hugging Face | 0.4 GB | 2 GB |
 
-The Model Manager's **Get Started** tab estimates fit for your machine. To pick
+The **Get Started** tab compares these figures with your machine's memory. To pick
 which GPU Python nodes use, set **NODETOOL_TORCH_DEVICE** in Settings to
 `cuda`, `cuda:1` (a second card), `mps`, or `cpu`. See
 [Configuration](configuration.md#python-nodes).
@@ -248,33 +185,25 @@ which GPU Python nodes use, set **NODETOOL_TORCH_DEVICE** in Settings to
 
 ## Other ways to install
 
-If you don't want the desktop app:
-
-**Command line only** — install the `nodetool` command without the desktop app.
-With npm (Node.js 22 or newer):
+**Command line only.** Install the `nodetool` command with npm (Node.js 22 or newer):
 
 ```bash
 npm install -g @nodetool-ai/cli
 nodetool serve   # API on 127.0.0.1:7777; use --host and --port to change
 ```
 
-This runs every TypeScript node. Python nodes need a Python environment, which
-you set up yourself: see
-[Python nodes without the desktop app](#python-nodes-without-the-desktop-app).
-See the [CLI Reference](cli.md).
+This runs every TypeScript node. Python nodes need a Python environment you set up yourself: see [Python nodes without the desktop app](#python-nodes-without-the-desktop-app) and the [CLI Reference](cli.md).
 
-**On your own server (Docker)** — run NodeTool's backend on your machine or a
-remote host:
+**Docker.** Run the backend on your machine or a remote host:
 
 ```bash
 cp .env.example .env
 docker compose up -d
 ```
 
-See [Self-Hosted Deployment](self-hosted-deployment.md) for logins, upgrades,
-and remote hosts, or the [Deployment Guide](deployment.md) for the full picture.
+See [Self-Hosted Deployment](self-hosted-deployment.md) and the [Deployment Guide](deployment.md).
 
-**From source code** — for people who want to change NodeTool itself:
+**From source.**
 
 ```bash
 nvm use
@@ -283,29 +212,19 @@ npm run build:packages
 npm run dev
 ```
 
-Needs the Node.js version in `.nvmrc`. For Python nodes, set up a Python
-environment as described next.
+Needs the Node.js version in `.nvmrc`. For Python nodes, set up a Python environment as described next.
 
 ### Python nodes without the desktop app
 
-The desktop app manages Python for you. With the npm CLI or a source checkout,
-you create the environment yourself. The server starts Python nodes
-by running `python -m nodetool.worker --stdio`, so `nodetool-core` and every
-pack you want must be installed in the interpreter it picks.
+The desktop app manages Python. With the npm CLI or a source checkout, you create the environment yourself. The server runs `python -m nodetool.worker --stdio`, so `nodetool-core` and every pack you want must be installed in the interpreter it picks.
 
-On Linux and macOS,
-[install.sh](https://github.com/nodetool-ai/nodetool/blob/main/install.sh)
-does steps 1 to 3 below for you. It creates a Python 3.11 environment with
-ffmpeg in `~/.local/share/nodetool/conda_env` and installs `nodetool-core` plus the packs you name with `--pack`
-(`huggingface` or `mlx`):
+On Linux and macOS, [install.sh](https://github.com/nodetool-ai/nodetool/blob/main/install.sh) does steps 1 to 3 below. It creates a Python 3.11 environment with ffmpeg in `~/.local/share/nodetool/conda_env` and installs `nodetool-core` plus the packs you name with `--pack` (`huggingface` or `mlx`):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash -s -- -y --pack huggingface
 ```
 
-It prints the `nodetool serve` command to run at the end. On Linux the server
-finds that environment by itself. On macOS it does not search there, so always
-start the server with `NODETOOL_PYTHON` set as the script shows.
+It prints the `nodetool serve` command to run. On Linux the server finds that environment by itself. On macOS it does not search there, so start the server with `NODETOOL_PYTHON` set as the script shows.
 
 To set up the environment by hand:
 
@@ -353,36 +272,19 @@ tried.
 
 ## If installing goes wrong
 
-Most install problems are one of these. For problems that show up once NodeTool
-is running, see [Troubleshooting](troubleshooting.md).
+For problems after NodeTool is running, see [Troubleshooting](troubleshooting.md).
 
-**A node says no provider is configured** — nothing is connected yet, or the key
-you pasted is for a provider that can't do what the node asks (Anthropic makes
-no images, FAL runs no chat). Connect one in **Settings → Models & Providers**
-and press **Test**; the [capability matrix](providers.md#capability-matrix)
-shows which provider covers which modality.
+**A node says no provider is configured.** Nothing is connected, or the key is for a provider that cannot do what the node asks (Anthropic makes no images, FAL runs no chat). Connect one in **Settings → Models & Providers** and press **Test**. The [capability matrix](providers.md#capability-matrix) lists which provider covers which modality.
 
-**The Python install fails** — it needs an internet connection and free disk
-space. Retry from **Tools → Package Manager**.
+**The Python install fails.** It needs an internet connection and free disk space. Retry from **Tools → Package Manager**.
 
-**NodeTool doesn't see my graphics card** — on NVIDIA, open a terminal and run
-`nvidia-smi`. That is the same check NodeTool runs for Help → System
-Information, and it shows the driver version. Compare it with
-[GPU requirements](#gpu-requirements). On a card PyTorch does not support,
-set `NODETOOL_TORCH_DEVICE` to `cpu` so Python nodes run on the CPU, or use an
-online service instead.
+**NodeTool does not see my graphics card.** On NVIDIA, run `nvidia-smi`, the same check NodeTool runs for Help → System Information. Compare the driver version with [GPU requirements](#gpu-requirements). On an unsupported card, set `NODETOOL_TORCH_DEVICE` to `cpu` or use a cloud provider.
 
-**A model download stalls or fails** — usually disk space or network.
-[Model Download Troubleshooting](troubleshooting.md#a-model-download-fails-or-stalls)
-covers disk space, resuming, and HuggingFace download limits.
+**A model download stalls or fails.** Usually disk space or network. See [Model Download Troubleshooting](troubleshooting.md#a-model-download-fails-or-stalls).
 
-**The app can't reach its own server** — approve the firewall prompt for
-NodeTool's local server on port 7777. Running the Docker version instead? See
-[Deployment Troubleshooting](troubleshooting.md#a-deployment-fails-or-the-service-wont-start).
+**The app cannot reach its own server.** Approve the firewall prompt for the local server on port 7777. For Docker, see [Deployment Troubleshooting](troubleshooting.md#a-deployment-fails-or-the-service-wont-start).
 
-**Still stuck** — ask on [Discord](https://discord.gg/WmQTWZRcYE) or open a
-[GitHub Issue](https://github.com/nodetool-ai/nodetool/issues). Include your
-operating system and your NodeTool version (Help → System Information).
+**Still stuck.** Ask on [Discord](https://discord.gg/WmQTWZRcYE) or open a [GitHub Issue](https://github.com/nodetool-ai/nodetool/issues) with your operating system and NodeTool version (Help → System Information).
 
 ---
 
@@ -401,7 +303,7 @@ to start completely fresh.
 ## Next steps
 
 <div class="card-grid">
-  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Turn one sentence into a finished video.</span></a>
+  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Generate a video from one sentence.</span></a>
   <a class="doc-card" href="{{ '/first-workflow' | relative_url }}"><strong>Your First Workflow</strong><span>Build a four-node image workflow from an empty canvas.</span></a>
   <a class="doc-card" href="{{ '/providers' | relative_url }}"><strong>Providers</strong><span>What each provider can generate and which key it needs.</span></a>
   <a class="doc-card" href="{{ '/models-and-providers' | relative_url }}"><strong>Models &amp; Providers</strong><span>Choose models or run them locally.</span></a>

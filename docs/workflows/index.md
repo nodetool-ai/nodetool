@@ -4,12 +4,7 @@ title: "Examples"
 description: "Every kind of example that ships with NodeTool: apps, recipes, workflows, storyboards, timelines, sketches, 3D models, and games."
 ---
 
-NodeTool ships examples for every editor, not only workflows. Open the
-**Examples** page from the **More** panel, or choose **Browse examples** on the
-new-project screen. Each tab adds an editable copy to your project, so the
-shipped original never changes. The
-[Templates Gallery]({{ '/templates-gallery' | relative_url }}) covers the
-page itself.
+Open **Examples** from the **More** panel, or choose **Browse examples** on the new-project screen. Each tab adds an editable copy to your project and the shipped original never changes. The page itself is covered in [Templates Gallery]({{ '/templates-gallery' | relative_url }}).
 
 | Tab | What you get | Opens in |
 |---|---|---|

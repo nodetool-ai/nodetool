@@ -5,21 +5,40 @@ permalink: /mcp-server
 description: "Use NodeTool from Claude Code, Codex, OpenCode, Cursor, or any MCP client. One command registers the server. The desktop app is optional."
 ---
 
-NodeTool runs as a Model Context Protocol (MCP) server. An agent harness such
-as Claude Code, Codex, or OpenCode starts it and gets NodeTool's toolbelt:
-workflows, image, video, and audio generation, assets, nodes, collections, and
-the editors. The desktop app is optional.
-
-## Install
-
-You need Node.js 22 or later. Run this in a terminal:
+`nodetool-mcp serve` starts NodeTool as a Model Context Protocol (MCP) server over stdio. A harness such as Claude Code, Codex, or OpenCode launches it and calls the tools below. The desktop app is optional.
 
 ```bash
 npx -y @nodetool-ai/cli-mcp install
 ```
 
-npm selects the package’s single executable, `nodetool-mcp`, automatically.
-See [npm executable selection](https://docs.npmjs.com/cli/v11/commands/npm-exec#description).
+The command writes this entry into each client it finds (Node.js 22 or later):
+
+```json
+{
+  "mcpServers": {
+    "nodetool": {
+      "command": "nodetool-mcp",
+      "args": ["serve"]
+    }
+  }
+}
+```
+
+A tool call the harness then sends:
+
+```json
+{
+  "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+  "params": { "name": "search_nodes", "arguments": { "query": ["resize"], "n_results": 5 } }
+}
+```
+
+Restart the harness, then ask it: "Use NodeTool to list my workflows."
+
+## Install
+
+> **Runs:** locally over stdio, or against a running NodeTool server over HTTP. **Needs:** Node.js 22 or later. Generation tools need provider keys (see [Provider keys](#provider-keys)).
+{: .callout-note}
 
 Or install the executable globally:
 
@@ -28,29 +47,19 @@ npm install -g @nodetool-ai/cli-mcp
 nodetool-mcp install
 ```
 
-The command does these steps:
+`install` does these steps:
 
 1. It finds Claude Code, Codex, and OpenCode on the machine.
-2. It starts the server once and lists its tools. This proves that the server
-   works and fills the `npx` cache, so the harness's first start is fast.
+2. It starts the server once and lists its tools. This proves that the server works and fills the `npx` cache, so the harness's first start is fast.
 3. It writes a `nodetool` entry into each client's config.
 
-Restart the harness, then ask it: "Use NodeTool to list my workflows."
+To install for one client, add `--claude`, `--codex`, or `--opencode`. Add `--no-verify` to write the config without starting the server first. Check the result with `nodetool-mcp status --check`. Remove the entries with `nodetool-mcp uninstall`.
 
-To install for one client, add `--claude`, `--codex`, or `--opencode`.
-Add `--no-verify` to write the config without starting the server first.
-Check the result with `nodetool-mcp status --check`. Remove the entries with
-`nodetool-mcp uninstall`.
-
-To use the same feature through the default CLI, run
-`nodetool packs add cli-mcp --yes`, then use `nodetool mcp` in place of
-`nodetool-mcp`. Pack-managed features do not add global binaries.
+To use the same feature through the default CLI, run `nodetool packs add cli-mcp --yes`, then use `nodetool mcp` in place of `nodetool-mcp`. Pack-managed features do not add global binaries.
 
 ## What the install writes
 
-The entry starts `nodetool-mcp serve` over stdio. The command is `nodetool-mcp` when
-the CLI is on `PATH`, and `npx -y @nodetool-ai/cli-mcp` when it
-is not. Add `--npx` to always use `npx`.
+The entry starts `nodetool-mcp serve` over stdio. The command is `nodetool-mcp` when the CLI is on `PATH`, and `npx -y @nodetool-ai/cli-mcp serve` when it is not. Add `--npx` to always use `npx`.
 
 | Client | File | Scope |
 |---|---|---|
@@ -67,22 +76,10 @@ entry to the user scope.
 
 ## Other clients
 
-Print a config block for Cursor, Claude Desktop, Windsurf, or any client that
-reads `mcpServers` JSON:
+Print the `mcpServers` block above for Cursor, Claude Desktop, Windsurf, or any client that reads that JSON:
 
 ```bash
 nodetool-mcp config
-```
-
-```json
-{
-  "mcpServers": {
-    "nodetool": {
-      "command": "nodetool",
-      "args": ["mcp", "serve"]
-    }
-  }
-}
 ```
 
 To register the server with Claude Code by hand, run:
@@ -96,8 +93,7 @@ Claude Desktop also installs the bundled extension from Studio: open
 
 ## Provider keys
 
-Generation tools call provider APIs, so the server needs your keys. Store a key
-once in the NodeTool secret store:
+Store a key once in the NodeTool secret store:
 
 ```bash
 nodetool secrets store FAL_API_KEY
@@ -137,7 +133,7 @@ For a NodeTool server on another machine, create an access token in
 
 ## What the agent gets
 
-The server registers a short list of direct tools. Everything else NodeTool can do is reached through `execute_code`, which runs sandboxed JavaScript that calls `nodetool.<namespace>.<method>()`. Through it the agent reaches workflow building and debugging, media generation, assets, collections, documents, web search, and memory. The agent finds a tool with `nodetool.searchTools("query")`. The full list of sandbox tools is in the [CLI reference](cli.md#what-the-mcp-server-exposes).
+Everything beyond the direct tools goes through `execute_code`, which runs sandboxed JavaScript that calls `nodetool.<namespace>.<method>()`. The agent finds a tool with `nodetool.searchTools("query")`. The full list of sandbox tools is in the [CLI reference](cli.md#what-the-mcp-server-exposes).
 
 ### Direct tools
 
@@ -148,18 +144,19 @@ The server registers a short list of direct tools. Everything else NodeTool can 
 | `upload_asset` | Save bytes in your asset library. Takes `content_base64`, or an absolute `file_path` on a local connection. Returns the asset id and URI. |
 | `download_asset` | Return an asset you own as base64, or write it to an absolute `output_path` on a local connection. |
 | `list_directory` | List files and subdirectories in a workspace directory. |
-| `browser` | Fetch a web page and return its readable text. |
-| `http_request` | Make an HTTP request and return the response body as text. |
 | `download_file` | Download a file from a URL, or from an `asset://` URI, a `/api/storage/` key, or a `data:` URI, into the workspace. |
 | `run_subtask` | Hand a task to a child agent that has the NodeTool toolbelt. |
 | `find_model` | Find a real provider and model id for a capability such as image, video, or speech. |
+| `list_providers` | List configured providers, their capabilities, the tool that runs each capability, and `unavailable_reason` when a provider cannot serve calls here. |
 | `list_models` | List the models available from the providers you configured. |
 | `list_provider_models` | List the language models of one provider. |
 | `search_nodes` | Search node types by keyword. |
 | `get_node_info` | Return a node type's inputs, outputs, types, and defaults. |
 | `list_nodes` | List node types, optionally filtered by namespace. |
 
-`search_nodes`, `get_node_info`, and `list_nodes` are offered only when the session has the node registry loaded. The file and search tools `read_file`, `write_file`, `edit_file`, `glob`, `grep`, `web_search`, and `todo_write` are not direct tools, because Claude Code and similar clients already provide their own. They stay available inside `execute_code`.
+One tool per provider capability is also direct: `generate_text`, `generate_image`, `edit_image`, `segment_image`, `generate_video`, `animate_image`, `generate_video_from_references`, `generate_speech`, `generate_music`, `transcribe_audio`, and `embed_text`. Each takes a `provider` and `model` from `find_model`. Generated media is saved as an asset and the result carries its `asset://` URI.
+
+`search_nodes`, `get_node_info`, and `list_nodes` are offered only when the session has the node registry loaded. `read_file`, `write_file`, `edit_file`, `glob`, `grep`, and `web_search` are not direct tools, because Claude Code and similar clients provide their own. `browser`, `http_request`, and `todo_write` are also not direct on this server. All of them stay available inside `execute_code`.
 
 ### Resources and prompts
 

@@ -44,13 +44,10 @@ import {
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
 import { isFunction } from "../../utils/typePredicates";
-
-/** Where a dragged layer will be inserted relative to the drop target. */
-export type DropPosition = "before" | "after" | "into" | null;
+import type { LayerDropPosition } from "./hooks/useLayerDragDrop";
 
 interface LayerItemProps {
   layer: Layer;
-  realIdx: number;
   depth?: number;
   /** Layer that receives paint and tool edits. */
   isPaintTarget: boolean;
@@ -58,7 +55,7 @@ interface LayerItemProps {
   isRowSelected: boolean;
   isMask: boolean;
   isIsolated: boolean;
-  dropPosition: DropPosition;
+  dropPosition: LayerDropPosition | null;
   /** True only for the row being renamed — keeps other rows' memo stable while typing. */
   isEditing: boolean;
   /**
@@ -94,9 +91,9 @@ interface LayerItemProps {
   onFinishRename: (layerId: string) => void;
   onEditNameChange: (value: string) => void;
   onCancelRename: () => void;
-  onDragStart: (e: React.DragEvent, realIdx: number) => void;
-  onDragOver: (e: React.DragEvent, realIdx: number) => void;
-  onDrop: (realIdx: number, e: React.DragEvent) => void;
+  onDragStart: (e: React.DragEvent, layerId: string) => void;
+  onDragOver: (e: React.DragEvent, layerId: string) => void;
+  onDrop: (e: React.DragEvent) => void;
   onDragEnd: () => void;
   onToggleGroupCollapsed?: (groupId: string) => void;
   /**
@@ -109,7 +106,6 @@ interface LayerItemProps {
 
 const LayerItem: React.FC<LayerItemProps> = ({
   layer,
-  realIdx,
   depth = 0,
   isPaintTarget,
   isRowSelected,
@@ -183,14 +179,14 @@ const LayerItem: React.FC<LayerItemProps> = ({
   const dropIndicatorSx = (() => {
     switch (dropPosition) {
       case "before":
-        return { borderTop: "2px solid", borderTopColor: "primary.main" };
+        return { borderTop: `${getSpacingPx(SPACING.micro)} solid`, borderTopColor: "primary.main" };
       case "after":
-        return { borderBottom: "2px solid", borderBottomColor: "primary.main" };
+        return { borderBottom: `${getSpacingPx(SPACING.micro)} solid`, borderBottomColor: "primary.main" };
       case "into":
         return {
-          outline: "2px solid",
+          outline: `${getSpacingPx(SPACING.micro)} solid`,
           outlineColor: "primary.main",
-          outlineOffset: "-2px"
+          outlineOffset: `-${getSpacingPx(SPACING.micro)}`
         };
       default:
         return {};
@@ -216,16 +212,9 @@ const LayerItem: React.FC<LayerItemProps> = ({
           e.preventDefault();
           onContextMenu(e, layer.id);
         }}
-        onDragStart={(e) => {
-          const t = e.target as HTMLElement;
-          if (t.closest("button")) {
-            e.preventDefault();
-            return;
-          }
-          onDragStart(e, realIdx);
-        }}
-        onDragOver={(e) => onDragOver(e, realIdx)}
-        onDrop={(e) => onDrop(realIdx, e)}
+        onDragStart={(e) => onDragStart(e, layer.id)}
+        onDragOver={(e) => onDragOver(e, layer.id)}
+        onDrop={onDrop}
         onDragEnd={onDragEnd}
         onPointerDown={(e) => onLayerRowPointerDown(e, layer.id)}
         onClick={(e) => onLayerRowClick(e, layer.id)}

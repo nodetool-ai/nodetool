@@ -18913,6 +18913,12 @@
     "refreshModels": "Modellen vernieuwen",
     "statusUnavailable": "Status niet beschikbaar"
   },
+  "copilot": {
+    "description": "Gebruik je GitHub Copilot-account voor taalmodellen. Geen API-sleutel nodig.",
+    "install": "Installeer de GitHub Copilot CLI in een terminal op deze computer.",
+    "signIn": "Meld je daarna aan en ververs de modellen. Modellen die je Copilot-abonnement niet bevat, verschijnen niet.",
+    "refreshModels": "Modellen verversen"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Sleep een opname naar een videotrack of druk op Enter om deze op de afspeelkop te plaatsen.",

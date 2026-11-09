@@ -61,8 +61,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Cheap stages first",
-    body: `Settle the framing and the cast on stills before you pay for video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
+    headline: "Preview each shot before animating it",
+    body: `Try out characters and camera angles as still images before spending money on video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
     asset: "surface-storyboard",
   },
   {
@@ -125,7 +125,7 @@ export default function SurfaceShowcase({
   surfaceIds,
   heading = "Seven editors. The agent works in all of them.",
   intro =
-    "The agent is not stuck in a chat panel. Each editor exposes its actions to the agent as tools, so when you ask it to tighten the opening cut or recast a voice, it changes the document you have open. Take over at any point and hand it back.",
+    "Ask the agent to shorten the opening scene or change a character's voice. It makes the changes directly in your project. You can also edit any part yourself.",
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>
@@ -309,6 +309,7 @@ export default function SurfaceShowcase({
           <p className="text-lg text-slate-300">{intro}</p>
         </div>
 
+        {surfaces.length > 1 && (
         <div
           role="tablist"
           aria-label="Editing surfaces"
@@ -350,13 +351,19 @@ export default function SurfaceShowcase({
             );
           })}
         </div>
+        )}
 
+        {/* A single surface renders without tabs, as a plain figure. */}
         {surfaces.map((surface, i) => (
           <div
             key={surface.id}
-            role="tabpanel"
+            {...(surfaces.length > 1
+              ? {
+                  role: "tabpanel",
+                  "aria-labelledby": `surface-tab-${surface.id}`,
+                }
+              : {})}
             id={`surface-panel-${surface.id}`}
-            aria-labelledby={`surface-tab-${surface.id}`}
             hidden={i !== active}
           >
             <div className="relative overflow-hidden rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5">

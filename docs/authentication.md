@@ -4,12 +4,15 @@ title: "NodeTool Server Authentication"
 description: "How the NodeTool server decides who a request is: Supabase mode, SSO mode, Local mode, access tokens, and the trust settings for proxies and Docker."
 ---
 
-See [API Reference](api-reference.md) for a matrix of endpoints, auth requirements, and streaming behavior.
-For environment variable defaults and precedence, see the [Configuration Guide](configuration.md#environment-variables-index).
+The server picks its auth mode from the environment. Endpoint auth requirements are in the [API Reference](api-reference.md), variable defaults in the [Configuration Guide](configuration.md#environment-variables-index).
 
 ## Quick Start
 
-The server picks its mode from the environment. When **both** `SUPABASE_URL` and `SUPABASE_KEY` are set, it runs in **Supabase mode** and enforces authentication on every non-public request. When **both** `OIDC_ISSUER` and `OIDC_CLIENT_ID` are set, it runs in **SSO mode**: users sign in through your own OpenID Connect identity provider, and authentication is enforced the same way. The server refuses to start with both configured. Otherwise it runs in **Local mode**: loopback connections are trusted and run as user `"1"`, and non-loopback requests are rejected with `401` unless they come from a network listed in `NODETOOL_TRUST_LOCAL_NETWORKS` or carry a valid access token.
+- **Supabase mode**: `SUPABASE_URL` and `SUPABASE_KEY` both set. Auth is enforced on every non-public request.
+- **SSO mode**: `OIDC_ISSUER` and `OIDC_CLIENT_ID` both set. Users sign in through your OpenID Connect provider, and auth is enforced the same way.
+- **Local mode**: neither pair set. Loopback connections run as user `"1"`. Non-loopback requests get `401` unless they come from a network in `NODETOOL_TRUST_LOCAL_NETWORKS` or carry a valid access token.
+
+The server refuses to start with both Supabase and OIDC configured.
 
 ```bash
 # Local mode: loopback trusted
@@ -32,39 +35,23 @@ nodetool serve
 
 ## Authentication Modes
 
-The server does not read an `AUTH_PROVIDER` variable. The mode comes only from the presence of both Supabase variables or both OIDC variables (`packages/websocket/src/server.ts`).
+The mode comes only from the presence of both Supabase variables or both OIDC variables (`packages/websocket/src/server.ts`). The server never reads `AUTH_PROVIDER`. Only the `@nodetool-ai/deploy` tooling writes it into container environments.
 
-- **Supabase mode.** The server validates a Supabase JWT on every non-public request, over HTTP and WebSocket.
-- **SSO mode.** The server runs the OpenID Connect sign-in itself and validates its own `nts_` session token on every non-public request. See [Single Sign-On (OIDC)](#single-sign-on-oidc).
-- **Local mode.** `LocalAuthProvider` maps requests to user `"1"`. Loopback connections bypass auth (gated by `NODETOOL_TRUST_LOCALHOST`). Other sources are rejected with `401` unless a trust rule, a valid access token, or the `SERVER_AUTH_TOKEN` bearer token applies.
-
-> `AUTH_PROVIDER` is only written into deployed-container environments by the `@nodetool-ai/deploy` tooling. The server itself never branches on it.
+- **Supabase mode** validates a Supabase JWT on every non-public request, over HTTP and WebSocket.
+- **SSO mode** runs the OpenID Connect sign-in itself and validates its own `nts_` session token. See [Single Sign-On (OIDC)](#single-sign-on-oidc).
+- **Local mode** (`LocalAuthProvider`) maps requests to user `"1"`. Loopback bypasses auth, gated by `NODETOOL_TRUST_LOCALHOST`. Other sources get `401` unless a trust rule, a valid access token, or the `SERVER_AUTH_TOKEN` bearer token applies.
 
 In Supabase mode the web UI shows a sign-in screen before anything else loads:
 
 ![Sign-in screen](assets/screenshots/login-screen.png)
 
-Supabase token verification results are cached in-process. The cache defaults to a 60-second TTL and at most 2000 entries. These are constructor options on `SupabaseAuthProvider` and are not configurable through environment variables.
+Supabase token verification results are cached in-process for 60 seconds, up to 2000 entries. These are `SupabaseAuthProvider` constructor options, not environment variables.
 
 ---
 
 ## Sending Credentials
 
 Clients send the credential as `Authorization: Bearer <token>`. For WebSocket connections the server also accepts a `?api_key=<token>` query parameter when the header is absent.
-
-```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:7777/v1/models
-```
-
-```bash
-curl -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -X POST http://localhost:7777/v1/chat/completions \
-  -d '{
-    "model": "llama3.2:latest",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
-```
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" http://localhost:7777/api/workflows/
@@ -137,16 +124,7 @@ A rejected WebSocket upgrade gets a bare `401 Unauthorized` response with no bod
 
 ## Rate Limiting
 
-Requests are limited per client IP before any token verification runs. Loopback is exempt. Excess requests receive `429`.
-
-| Variable | Default | Effect |
-|---|---|---|
-| `NODETOOL_RATE_LIMIT_DISABLED` | unset | Set truthy to turn the HTTP limiter off. |
-| `NODETOOL_RATE_LIMIT_MAX` | `1000` | Requests per window per IP. |
-| `NODETOOL_RATE_LIMIT_WINDOW_MS` | `60000` | Window length in milliseconds. |
-| `NODETOOL_RATE_LIMIT_TRUST_PROXY` | unset | Key by `X-Forwarded-For` instead of the socket address. |
-
-WebSocket messages have their own cap (`NODETOOL_WS_RATE_LIMIT_DISABLED`, `NODETOOL_WS_RATE_LIMIT_MAX`, default 200 messages per window). Source: `packages/websocket/src/lib/http-rate-limit.ts`, `packages/websocket/src/lib/ws-rate-limit.ts`.
+Requests are limited per client IP before any token verification runs. Loopback is exempt. Excess requests receive `429`. The limit is 1000 requests per 60 seconds per IP by default, and WebSocket connections have their own cap of 200 messages per second. Variables (`NODETOOL_RATE_LIMIT_*`, `NODETOOL_WS_RATE_LIMIT_*`) are in the [Configuration Guide](configuration.md#environment-variables-index). Source: `packages/websocket/src/lib/http-rate-limit.ts`, `packages/websocket/src/lib/ws-rate-limit.ts`.
 
 ---
 
@@ -173,9 +151,7 @@ The token is stored as `server_auth_token` in `~/.config/nodetool/deployment.yam
 
 ## Single Sign-On (OIDC)
 
-SSO mode lets a self-hosted server sign people in through an identity provider you already run: Keycloak, Authentik, Okta, Microsoft Entra ID, Google Workspace, Auth0, Dex, or any other OpenID Connect provider. Nobody needs a Supabase project.
-
-The server is the OIDC client. It uses the authorization code flow with PKCE and a nonce, verifies the ID token's signature against the provider's published keys (asymmetric algorithms only), and checks its issuer, audience, expiry, nonce, and `azp`. It then mints an `nts_` session token, which the web app sends as its bearer token on HTTP and WebSocket requests.
+SSO mode signs people in through an OpenID Connect provider you already run, such as Keycloak, Authentik, Okta, Microsoft Entra ID, Google Workspace, Auth0, or Dex, with no Supabase project. The server is the OIDC client. It uses the authorization code flow with PKCE and a nonce, verifies the ID token's signature against the provider's published keys (asymmetric algorithms only), and checks its issuer, audience, expiry, nonce, and `azp`. It then mints an `nts_` session token, which the web app sends as its bearer token on HTTP and WebSocket requests.
 
 SAML is not built in. Providers that only speak SAML can sit behind an OIDC bridge such as Keycloak or Dex.
 
@@ -226,11 +202,27 @@ A person is an admin when any of these holds:
 - their groups at the last sign-in include one of `OIDC_ADMIN_GROUPS`
 - an admin gave them the admin role through the `admin.users.update` API
 
+Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
+
 A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt.
 
 An admin can disable an account through `admin.users.update`. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
-Admins manage the directory on the **Admin** page, which the app menu shows only to admins in SSO mode.
+### The Admin page
+
+Admins manage people on the **Admin** page. The app menu shows it only to admins in SSO mode. Everything on it is also available through the `admin.*` API, and the directory through [`nodetool deploy accounts-list` and `accounts-set`](cli.md#sso-accounts-on-the-deployment).
+
+The page lists everyone who has signed in at least once. Nobody needs to be added in advance, because the first sign-in creates the account. Search by name, email or user ID, and filter by **Status**. Each row shows the person's groups, role, status, last activity, and what they spent this period against their limits. Its buttons do the following:
+
+| Button | Effect |
+|---|---|
+| **Make admin** / **Remove admin** | Gives or takes the admin role. A person who is an admin through `ADMIN_USER_IDS` or `OIDC_ADMIN_GROUPS` stays one, whatever the role says |
+| **Disable** / **Enable** | Disabling asks first, then signs the person out everywhere and refuses their requests and sign-ins. Their work stays on the server. Enabling restores access |
+| **Limits** | Gives the person limits of their own, or puts them back on **Use the server default**. See [Spend limits](#spend-limits) |
+| **Permissions** | Allows or blocks single permissions for the person, or leaves each on the default. Not offered for admins. See [Permissions](#permissions) |
+| **Sharing** | Lists what the person shares and what others share with them, and takes any of it back. See [Sharing](#sharing) |
+
+Above the list, **Edit default limits** and **Edit default permissions** set what applies to everyone without values of their own.
 
 ### Spend limits
 
@@ -263,8 +255,6 @@ In SSO mode the share dialog of a workflow or document can give a person access 
 
 The **Sharing** button on a person's row on the Admin page lists what that person shares and holds: their active share links, the people they gave access, the documents others gave them access to, and their public workflows. From there an admin can revoke a link, remove one person's access, or make a public workflow private. The same actions are available as `admin.sharing.*`. Moving a document to another owner is not supported yet.
 
-Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
-
 ### Sign-in failures
 
 A refused sign-in returns to the login screen with a reason code. The server log holds the detail.
@@ -282,22 +272,10 @@ A refused sign-in returns to the login screen with a reason code. The server log
 
 ## Localhost Trust and Reverse Proxies
 
-By default the server bypasses authentication for connections from loopback
-(`127.0.0.1`/`::1`) and runs them as user `1`. This is convenient for the
-desktop app and local development, but **dangerous behind a reverse proxy,
-container network, or SSH tunnel**, where the proxy itself connects from
-loopback — a blanket bypass would silently disable auth in exactly the
-deployment that needs it.
+The server bypasses authentication for loopback connections (`127.0.0.1`, `::1`) and runs them as user `1`. Behind a reverse proxy, container network, or SSH tunnel the proxy itself connects from loopback, so a blanket bypass would disable auth in exactly the deployment that needs it. Two settings handle this:
 
-To make this safe:
-
-- The loopback bypass is gated by `NODETOOL_TRUST_LOCALHOST`. It defaults
-  **off** whenever auth is enforced (Supabase mode) and **on** otherwise. Set
-  it explicitly (`true`/`false`) to override.
-- `X-Forwarded-For` is trusted only for proxies listed in
-  `NODETOOL_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). When unset, the
-  header is ignored and the unspoofable socket peer address is used to identify
-  the client, so a remote client cannot forge a loopback origin.
+- `NODETOOL_TRUST_LOCALHOST` gates the bypass. It defaults **off** when auth is enforced (Supabase mode) and **on** otherwise. Set `true` or `false` to override.
+- `X-Forwarded-For` is trusted only for proxies in `NODETOOL_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). Unset, the header is ignored and the socket peer address identifies the client, so a remote client cannot forge a loopback origin.
 
 ```bash
 # Behind an nginx reverse proxy on the same host, enforcing Supabase auth:
@@ -308,38 +286,17 @@ export NODETOOL_TRUSTED_PROXIES=127.0.0.1   # trust the local proxy's XFF
 
 ### Local mode in Docker
 
-Docker NATs a published-port connection to the bridge gateway (e.g.
-`172.17.0.1`), so in Local mode the request never arrives from loopback and the
-`NODETOOL_TRUST_LOCALHOST` bypass can't fire — the UI loads (static assets and
-`/api/config` are public) but every API/WebSocket call returns
-`401 "Remote access requires authentication"`.
+Docker NATs a published-port connection to the bridge gateway (for example `172.17.0.1`). In Local mode the request never arrives from loopback, so the `NODETOOL_TRUST_LOCALHOST` bypass cannot fire. The UI loads (static assets and `/api/config` are public) but every API and WebSocket call returns `401 "Remote access requires authentication"`.
 
-`NODETOOL_TRUST_LOCAL_NETWORKS` (comma-separated source CIDRs) restores the
-single-local-user model by trusting those sources as user `"1"` without a token.
-It is honored **only in Local mode** — in Supabase mode it is ignored so every
-request must present a valid token.
+`NODETOOL_TRUST_LOCAL_NETWORKS` (comma-separated source CIDRs) trusts those sources as user `"1"` without a token. It applies **only in Local mode**. Supabase mode ignores it.
 
-> ### ⚠️ This bypasses authentication
->
-> Every source IP in `NODETOOL_TRUST_LOCAL_NETWORKS` is trusted as **admin user
-> `"1"` with no password** — full access to your workflows, files, stored
-> secrets, and API keys. **Anyone who can reach the published port from a listed
-> range gets that access.**
->
-> - **`172.16.0.0/12`** — the Docker bridge range on Linux. Every
->   published-port connection arrives from the bridge gateway, whoever sent it,
->   so this trusts anything that can reach the port, plus the other containers
->   on the host.
-> - **`192.168.65.0/24`** — Docker Desktop's VM gateway subnet. Published-port
->   traffic on macOS/Windows arrives from `192.168.65.1`, whoever sent it, so
->   the Linux range alone leaves every call 401 there. The bundled Compose
->   file defaults to both and publishes the port on `127.0.0.1` only
->   (`NODETOOL_BIND`), which keeps other machines off it.
-> - **`0.0.0.0/0`** — trusts *every* source, the whole internet if the port is
->   reachable. **Never use this on a public IP.** Only on a network you fully
->   control (private LAN / VPN), ideally with the port firewalled.
-> - Exposing NodeTool to the internet or untrusted users? **Do not widen this
->   list — enable Supabase auth** so every request needs a real login.
+> **This bypasses authentication.** Every source IP in `NODETOOL_TRUST_LOCAL_NETWORKS` is trusted as admin user `"1"` with no password, with full access to workflows, files, stored secrets, and API keys. Anyone who can reach the published port from a listed range gets that access.
+{: .callout-warning}
+
+- `172.16.0.0/12` is the Docker bridge range on Linux. Every published-port connection arrives from the bridge gateway whoever sent it, so this trusts anything that can reach the port, plus other containers on the host.
+- `192.168.65.0/24` is Docker Desktop's VM gateway subnet. Published-port traffic on macOS and Windows arrives from `192.168.65.1`, so the Linux range alone leaves every call `401` there. The bundled Compose file defaults to both and publishes the port on `127.0.0.1` only (`NODETOOL_BIND`), which keeps other machines off it.
+- `0.0.0.0/0` trusts every source. Never use it on a public IP. Use it only on a network you control, ideally with the port firewalled.
+- For internet or untrusted users, do not widen the list. Enable SSO or Supabase auth so every request needs a login.
 
 ```bash
 # Docker self-host, single user, no login (safe on a private LAN):
@@ -375,9 +332,4 @@ clients, scripts) are unaffected.
 
 ## Security Hardening
 
-- Production: enable SSO mode (`OIDC_ISSUER` and `OIDC_CLIENT_ID`) or Supabase mode (`SUPABASE_URL` and `SUPABASE_KEY`), terminate TLS in front of all non-public endpoints, and rotate Supabase service-role keys via your secrets manager.
-- Localhost trust: keep `NODETOOL_TRUST_LOCALHOST` off in any reverse-proxied or containerized deployment, and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`.
-- Staging: keep asset buckets private or signed, and run workflows in subprocess or Docker isolation.
-- Development: restrict Local mode to isolated machines and avoid storing real secrets in `.env.development`.
-
-See [Security Hardening](security-hardening.md) for detailed checklists across dev, staging, and production.
+For production, enable SSO or Supabase mode, terminate TLS in front of all non-public endpoints, keep `NODETOOL_TRUST_LOCALHOST` off behind proxies, and list only real proxies in `NODETOOL_TRUSTED_PROXIES`. Checklists are in [Security Hardening](security-hardening.md).

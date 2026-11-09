@@ -5,7 +5,18 @@ permalink: /game-engine/debugging
 description: "Validate documents, inspect runtime failures, measure frames, and verify exported games."
 ---
 
-Use a different check for each failure boundary. Validation catches document problems. Simulation catches gameplay failures. Capture checks the renderer. Browser play checks input and audio. Export smoke checks the packaged player.
+Each check covers one failure boundary:
+
+| Boundary | Command |
+|---|---|
+| Document | `nodetool game validate game.json --json` |
+| Gameplay | `nodetool game simulate game.json --ticks 600 --inputs route.json --json` |
+| Renderer | `nodetool game capture game.json --ticks 60 --out frame.png` |
+| Tick cost | `nodetool game bench game.json --fail-on-budget` |
+| Frame cost | `nodetool game perf game.json --fail-on-budget` |
+| Exported player | `nodetool game smoke game-build --json` |
+
+Browser play checks input and audio. No command covers them.
 
 ![Existing game editor with scene tree, inspector, assets, and diagnostic status](/assets/screenshots/game-editor.png)
 
@@ -13,7 +24,7 @@ Use a different check for each failure boundary. Validation catches document pro
 
 ## Find the first failure
 
-Start with `nodetool game validate game.json --json`. Read the diagnostic path and fix the referenced field. Then simulate a short recorded input sequence. Preserve the seed and inputs when comparing a fix.
+Read the diagnostic path from `validate` and fix the referenced field. Then simulate a short recorded input sequence. Preserve the seed and inputs when comparing a fix.
 
 The editor Console shows validation failures, script errors with entity and tick, log messages, reload errors, and diagnostic runs. **Run 10 s** uses an independent session. **Replay to tick** returns to an earlier point after a script failure. A script hot-reload compilation error keeps the previous source active.
 

@@ -119,13 +119,15 @@ const EXAMPLES_DIR = path.resolve(
 const PER_WORKFLOW_TIMEOUT_MS = 30_000;
 
 /**
- * Examples whose real ffmpeg work outlasts the default timeout: reframing the
- * 8 s sample clip and rendering a timeline to video. Alone on
- * one machine they take 13–80 s. The CI nodes shard runs them beside the
- * other package suites on four cores, where the 30 s and 120 s limits
- * expired, so each gets several times its solo duration.
+ * Examples whose real media work outlasts the default timeout: reframing the
+ * 8 s sample clip, rendering a timeline to video, and compositing two
+ * full-size campaign artboards in the sandbox. Alone on one machine they take
+ * 8–80 s. The CI nodes shard runs them beside the other package suites on
+ * four cores, where the 30 s and 120 s limits expired, so each gets several
+ * times its solo duration.
  */
 const SLOW_WORKFLOW_TIMEOUT_MS: Record<string, number> = {
+  "Compose Directed Campaign Formats.json": 120_000,
   "Cut a Landscape Clip for Vertical.json": 120_000,
   "Direct a Short Film.json": 300_000,
   "Directed Film to Timeline.json": 300_000

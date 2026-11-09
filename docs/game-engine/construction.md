@@ -5,7 +5,20 @@ permalink: /game-engine/construction
 description: "Rebuild generated games while preserving deliberate manual changes."
 ---
 
-Retained construction stores the program and inputs that produced a game. You can change a parameter, preview the resulting document, and apply the rebuild while preserving recorded manual overrides.
+Retained construction stores the program and inputs that produced a game. Change a parameter, preview the resulting document, and apply the rebuild while recorded manual overrides stay.
+
+```js
+import { constructGame, saveGame } from "@nodetool-ai/sandbox-game";
+const bundle = constructGame({ seed: 17, inputs: { speed: 4 } }, (inputs, builder) => {
+  const speed = builder.parameter("speed", { type: "number", default: 4, min: 1, max: 10 });
+  const document = builder.game();
+  builder.prefab("marker", builder.entity("definition", 0, 0));
+  builder.instance(document.scenes[0], "north-marker", "marker", {
+    transform2d: { x: speed, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }
+  });
+  return document;
+});
+```
 
 ![Diagram of a draft, construction preview, reviewed apply, and separate publication](/assets/game-engine/authoring-flow.svg)
 
@@ -13,7 +26,7 @@ Retained construction stores the program and inputs that produced a game. You ca
 
 ## Construct with stable identity
 
-The sandbox game builder's `constructGame({inputs, seed}, callback)` returns a construction bundle for `saveGame`. The callback has explicit inputs and cannot close over outside variables. Give generated objects and prefab instances explicit keys. Names and construction order do not define their identity.
+`constructGame` returns a construction bundle for `saveGame`. The callback receives explicit inputs and cannot close over outside variables. Give generated objects and prefab instances explicit keys. Names and construction order do not define their identity.
 
 Retained metadata records the program, inputs, seed, generated baseline, parameter schemas, and prefab relationships. The resulting document still uses the ordinary 2D or 3D schema. A hand-authored document does not need construction metadata.
 
