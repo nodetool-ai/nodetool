@@ -695,6 +695,54 @@ void shutdownTimesOutWithoutJoiningLiveThreads() {
   CHECK(*f.liveJobs == 0);
 }
 
+// A detached job whose refused() records its thread and blocks until its
+// gate opens, as a refusal callback that wakes a waiter might.
+//
+// Thread affinity: refused() runs on the refusing thread or the disposer.
+// The shared state is atomics and a gate.
+struct BlockingRefusal final : gr::NativeJob {
+  struct Seen {
+    Gate gate;
+    Gate entered;
+    std::atomic<std::thread::id> thread{};
+  };
+  explicit BlockingRefusal(std::shared_ptr<Seen> s) : seen(std::move(s)) {}
+  JobOutcome run(std::stop_token) override { return JobOutcome::value(nullptr); }
+  void refused(const JobOutcome&) override {
+    seen->thread = std::this_thread::get_id();
+    seen->entered.release();
+    seen->gate.wait();
+  }
+  // Shared with the test, which opens the gate.
+  std::shared_ptr<Seen> seen;
+};
+
+// Gate: a detached job submitted to a shut-down lane from a worker thread.
+// submit() returns while the job's refused() callback is still blocked,
+// and that callback runs on the process disposer's refusal thread.
+void detachedRefusalLeavesTheSubmitter() {
+  ThreadPoolExecutor pool("refused", 1);
+  pool.shutdown(Clock::now());
+  auto seen = std::make_shared<BlockingRefusal::Seen>();
+  auto returned = std::make_shared<Gate>();
+  std::thread worker([&pool, seen, returned] {
+    pool.submit(gr::SubmittedJob(0, std::make_unique<BlockingRefusal>(seen), nullptr, {}, RunnerTracker::Ticket{}));
+    returned->release();
+  });
+  const auto workerId = worker.get_id();
+  bool prompt = false;
+  {
+    std::unique_lock lock(returned->mutex);
+    prompt = returned->cv.wait_for(lock, std::chrono::seconds(2), [&] { return returned->open; });
+  }
+  CHECK(prompt);
+  seen->entered.wait();
+  CHECK(seen->thread.load() != workerId);
+  CHECK(seen->thread.load() == gr::processJobDisposer().refusalThread());
+  seen->gate.release();
+  worker.join();
+}
+
 // Gate: the process lanes and their supervisor. shutdownHostLanes() times out
 // while a job ignores stop, and hands back a supervisor. With every strong
 // reference the caller held dropped, the lanes and the running thread stay
@@ -1223,6 +1271,7 @@ int main() {
       {"sharedBufferInputsCopied", sharedBufferInputsCopied},
       {"stressManyJobsWithCancellation", stressManyJobsWithCancellation},
       {"processLanesSupervisor", processLanesSupervisor},
+      {"detachedRefusalLeavesTheSubmitter", detachedRefusalLeavesTheSubmitter},
   };
   const char* only = std::getenv("GR_LANES_ONLY");
   for (const auto& [name, fn] : tests) {

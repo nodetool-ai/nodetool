@@ -656,7 +656,9 @@ void runRetirement() {
         call.progress(R"({"n":0})");
         return R"({"ok":1})";
       },
-      {.maxJobs = 256});
+      // Hundreds of retired workers may still be returning. Each reserves
+      // its result cap in the process admission ledger, so keep it small.
+      {.maxJobs = 256, .maxResultBytes = 1024 * 1024});
   const auto kept = fixture.start({{"mode", "block"}}, "live");
   fixture.close(kept);
   for (int round = 0; round < 200; ++round) {
@@ -705,7 +707,9 @@ void retirementRacesWaiters() {
         }
         throw std::runtime_error("cancelled");
       },
-      {.maxJobs = 1024});
+      // Retired workers may still be returning while later rounds start, and
+      // each reserves its result cap in the process admission ledger.
+      {.maxJobs = 1024, .maxResultBytes = 1024 * 1024});
   std::atomic<long> calls{0}, nexts{0}, unexpected{0};
   for (int round = 0; round < 300; ++round) {
     const auto run = "race-" + std::to_string(round);
@@ -764,7 +768,9 @@ void startRacesShutdown() {
           ++counts->returned;
           return "null";
         },
-        ProviderJobs::Limits{.maxJobs = 64});
+        // 64 jobs of one run fit its 1 GiB admission budget only with a
+        // result cap below the 64 MiB default.
+        ProviderJobs::Limits{.maxJobs = 64, .maxResultBytes = 1024 * 1024});
     jobs->grant(options, {"p"}, [run = gr::host::newRunIdentity("r")] { return run; });
     const auto start = options.operations.at("provider:p:jobs:start");
     std::barrier sync(2);

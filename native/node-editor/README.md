@@ -76,6 +76,15 @@ run messages carry a `local-media://` URI, which `MediaResolver` resolves
 without a server. A run's images are released when the session drops the run.
 Saving one writes a PNG.
 
+The local runner gets no context operation and no provider endpoint jobs.
+[Grants of the in-repo embedders](../graph-runner/README.md#grants-of-the-in-repo-embedders)
+lists the callbacks it does get and why each stays synchronous. On exit the
+editor destroys its windows, and with the last session the runner, which
+cancels its run and joins its worker thread. Then it gives the graph runner's
+host lanes 2 s to finish a running native job. If one is still running, the
+editor prints a warning and exits with `std::quick_exit`, so static destructors
+never run under a live job.
+
 CMake also fetches QuickJS-ng and nlohmann/json for the runner. Supply
 `-DFETCHCONTENT_SOURCE_DIR_QUICKJS` and `-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON`
 for offline builds. The `node_editor_local_run` test loads

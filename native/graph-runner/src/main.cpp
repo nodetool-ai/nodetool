@@ -132,6 +132,8 @@ int main(int argc, char** argv) {
   bool printSummary = false;
   
   host.gpu.enabled = true;
+  // The CLI's one runner owns the process's admission limits.
+  host.admissionLedger = gr::newAdmissionLedger();
   for (int i = 2; i < argc; ++i) {
     std::string a = argv[i];
     if (a == "--job-summary") {

@@ -1,5 +1,6 @@
 #include "nodetool/provider_jobs.h"
 #include "host/provider_job_grants.h"
+#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/host_lanes.h"
 #include <algorithm>
@@ -10,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 namespace gr::host {
 using Json = nlohmann::json;
@@ -25,6 +27,12 @@ constexpr const char *kNotRun = "Provider job was cancelled before it ran";
 constexpr const char *kShutDown = "Provider jobs are shut down";
 
 constexpr const char *kNoRun = "Provider jobs need a run in progress";
+
+// The envelope next() wraps a progress event in.
+constexpr std::string_view kProgressOpen = R"({"state":"progress","event":)";
+constexpr std::string_view kProgressClose = "}";
+// The bytes a progress event of `size` bytes takes once wrapped.
+constexpr size_t progressBytes(size_t size) { return kProgressOpen.size() + size + kProgressClose.size(); }
 
 // Refuses a call outside a run, and a request that names a run other than
 // the caller's. The guest no longer names the run: the host stamps it.
@@ -75,7 +83,8 @@ struct Job {
   Job(std::shared_ptr<Shared> shared, std::string provider, RunIdentity run)
       : shared(std::move(shared)), provider(std::move(provider)), run(std::move(run)),
         partBytes(this->shared->limits.partBytes),
-        maxEvents(this->shared->limits.maxQueuedEvents) {
+        maxEvents(this->shared->limits.maxQueuedEvents),
+        outputCap(this->shared->limits.maxResultBytes) {
     ++this->shared->aliveJobs;
   }
   ~Job() { --shared->aliveJobs; }
@@ -88,6 +97,9 @@ struct Job {
   const RunIdentity run;
   const size_t partBytes;
   const size_t maxEvents;
+  // The output bytes the job's reservation holds: the most its result and
+  // queued events may keep together.
+  const size_t outputCap;
   // Requested by stop() and close() outside `mutex`. The lane forwards it to
   // the running worker's token through its reaper.
   std::stop_source stopSource;
@@ -102,6 +114,20 @@ struct Job {
   // The terminal result (done or error) was handed to a reader.
   bool terminalTaken = false;
   Completion waiter;
+  // Bytes of `events`.
+  size_t eventBytes = 0;
+  // A reference to the job's admission charge, shared with the lane job
+  // running the worker. Dropped, outside `mutex`, when the job's data is.
+  gr::Reservation reservation;
+
+  // Caller holds `mutex`. Drops the oldest events until `incoming` more
+  // bytes fit the output cap with the result.
+  void makeRoomLocked(size_t incoming) {
+    while (!events.empty() && eventBytes + result.size() + incoming > outputCap) {
+      eventBytes -= events.front().size();
+      events.pop_front();
+    }
+  }
 
   // Takes the next item for a reader, or nothing while the job runs with an
   // empty queue. Stopped and Closed win over queued items. Then progress in
@@ -115,7 +141,8 @@ struct Job {
     if (!events.empty()) {
       auto event = std::move(events.front());
       events.pop_front();
-      return Outcome{Outcome::Kind::Value, R"({"state":"progress","event":)" + event + "}"};
+      eventBytes -= event.size();
+      return Outcome{Outcome::Kind::Value, std::string(kProgressOpen) + event + std::string(kProgressClose)};
     }
     if (state == JobState::Running)
       return std::nullopt;
@@ -147,12 +174,22 @@ struct Job {
       std::lock_guard lock(mutex);
       if (state != JobState::Running)
         return;
+      // The output cap holds before the event is kept or wrapped for a
+      // waiting reader: an event that does not fit it with its envelope is
+      // dropped.
+      if (progressBytes(event.size()) > outputCap)
+        return;
       if (waiter) {
         ready = std::move(waiter);
-        answer = R"({"state":"progress","event":)" + event + "}";
+        answer = std::string(kProgressOpen) + event + std::string(kProgressClose);
       } else {
-        if (events.size() >= maxEvents)
+        // Older events make room for this one.
+        if (events.size() >= maxEvents) {
+          eventBytes -= events.front().size();
           events.pop_front();
+        }
+        makeRoomLocked(event.size());
+        eventBytes += event.size();
         events.push_back(std::move(event));
       }
     }
@@ -167,6 +204,19 @@ struct Job {
       std::lock_guard lock(mutex);
       if (state != JobState::Running)
         return;
+      // The output cap holds before the result is kept.
+      if (text.size() > outputCap) {
+        const auto size = text.size();
+        std::string().swap(text);
+        if (succeeded) {
+          succeeded = false;
+          text = "Provider job result of " + std::to_string(size) + " bytes exceeds its reserved " +
+                 std::to_string(outputCap) + " bytes";
+        }
+        if (text.size() > outputCap)
+          text = "Provider job failed";
+      }
+      makeRoomLocked(text.size());
       state = succeeded ? JobState::Finished : JobState::Failed;
       result = std::move(text);
       // A waiter implies an empty queue, so it gets the first result part or
@@ -186,6 +236,8 @@ struct Job {
   // but not close.
   void cancel(bool closing) {
     Completion stopped;
+    // Released after the mutex, with the data it charged.
+    gr::Reservation released;
     {
       std::lock_guard lock(mutex);
       const bool terminal = state == JobState::Stopped || state == JobState::Closed;
@@ -195,10 +247,13 @@ struct Job {
         state = JobState::Stopped;
       if (state == JobState::Stopped || state == JobState::Closed) {
         events.clear();
+        eventBytes = 0;
         std::string().swap(result);
         stopped = std::move(waiter);
+        released = std::move(reservation);
       }
     }
+    released = {};
     stopSource.request_stop();
     if (stopped)
       std::move(stopped)(
@@ -238,9 +293,9 @@ private:
 class ProviderCall final : public gr::NativeJob {
 public:
   ProviderCall(std::shared_ptr<Job> job, std::shared_ptr<Shared> shared, ExecutionTicket ticket,
-               std::string method, std::string args)
+               std::string method, std::string args, gr::Reservation reservation)
       : job_(std::move(job)), shared_(std::move(shared)), ticket_(std::move(ticket)),
-        method_(std::move(method)), args_(std::move(args)) {}
+        reservation_(std::move(reservation)), method_(std::move(method)), args_(std::move(args)) {}
   ProviderCall(const ProviderCall &) = delete;
   ProviderCall &operator=(const ProviderCall &) = delete;
   // A job destroyed unrun fails, so a waiter still hears from it, unless
@@ -266,7 +321,11 @@ public:
     call.method = std::move(method_);
     call.argsJson = std::move(args_);
     std::weak_ptr<Job> weak = job_;
-    call.progress = [weak](const std::string &eventJson) {
+    call.progress = [weak, cap = job_->outputCap](const std::string &eventJson) {
+      // An event that cannot fit the output cap is dropped before it is
+      // parsed. progress() checks again after the canonical dump.
+      if (progressBytes(eventJson.size()) > cap)
+        return;
       // Validate here, so a malformed event fails the worker, not the guest.
       auto event = Json::parse(eventJson).dump();
       if (auto target = weak.lock())
@@ -298,6 +357,10 @@ private:
   const std::shared_ptr<Job> job_;
   const std::shared_ptr<Shared> shared_;
   ExecutionTicket ticket_;
+  // The job's admission charge while the worker may still use its request
+  // and produce output. Declared before the request, so it is released
+  // after it.
+  gr::Reservation reservation_;
   std::string method_;
   std::string args_;
   bool ran_ = false;
@@ -354,9 +417,16 @@ struct ProviderJobs::State {
     std::string provider;
     RunIdentity run;
     std::string data;
+    // The charge of each appended part, taken before it was appended.
+    std::vector<gr::Reservation> reserved;
   };
   std::map<std::string, Upload> uploads;
   uint64_t nextId = 0;
+  // For runs whose identity carries no admission account: a runner account
+  // on a private ledger with the default limits, created on first use, and
+  // one run account per run until it is retired.
+  std::shared_ptr<gr::RunnerAccount> fallbackRunner;
+  std::map<RunIdentity, std::shared_ptr<gr::RunAccount>> fallbackRuns;
 
   ~State() {
     stopAll();
@@ -367,10 +437,14 @@ struct ProviderJobs::State {
   // Stops every job outside `mutex`, without waiting for workers.
   void stopAll() {
     std::vector<std::shared_ptr<Job>> all;
+    // Released after the mutex, with their charges.
+    std::map<std::string, Upload> dropped;
+    std::map<RunIdentity, std::shared_ptr<gr::RunAccount>> accounts;
     {
       std::lock_guard lock(mutex);
       shutdown = true;
-      uploads.clear();
+      dropped.swap(uploads);
+      accounts.swap(fallbackRuns);
       for (auto &[id, job] : jobs)
         all.push_back(job);
     }
@@ -401,11 +475,45 @@ struct ProviderJobs::State {
     return found->second;
   }
 
+  // The admission account of `run`. Accounts are opened outside `mutex`.
+  std::shared_ptr<gr::RunAccount> accountFor(const RunIdentity &run) {
+    if (run && run->account)
+      return run->account;
+    std::shared_ptr<gr::RunnerAccount> runner;
+    {
+      std::lock_guard lock(mutex);
+      if (auto found = fallbackRuns.find(run); found != fallbackRuns.end())
+        return found->second;
+      runner = fallbackRunner;
+    }
+    if (!runner) {
+      // The first published runner wins, before any run account is opened
+      // on it, so every fallback run shares one private ledger. A losing
+      // runner is released after the mutex.
+      auto created = std::make_shared<gr::AdmissionLedger>()->openRunner();
+      std::lock_guard lock(mutex);
+      if (!fallbackRunner)
+        fallbackRunner = std::move(created);
+      runner = fallbackRunner;
+    }
+    // Released after the mutex when another thread opened one for this run
+    // first.
+    auto made = runner->openRun();
+    std::lock_guard lock(mutex);
+    return fallbackRuns.try_emplace(run, std::move(made)).first->second;
+  }
+
   std::string put(const std::string &provider, const RunIdentity &run,
                   const std::string &payload) {
     const auto request = Json::parse(payload);
     checkRun(request, run);
     const auto data = request.at("data").get<std::string>();
+    // Charged before it is appended, and released, outside the mutex, if
+    // the append fails.
+    gr::Reservation part(accountFor(run));
+    part.reserveSnapshot(data.size());
+    // Only a start or the run's retirement releases it.
+    part.retain();
     std::lock_guard lock(mutex);
     if (shutdown)
       throw std::runtime_error(kShutDown);
@@ -419,9 +527,12 @@ struct ProviderJobs::State {
       if (found->second.data.size() + data.size() > shared->limits.maxRequestBytes)
         throw std::runtime_error("Provider request is too large");
       found->second.data += data;
+      found->second.reserved.push_back(std::move(part));
     } else {
       id = "u" + std::to_string(++nextId);
-      uploads[id] = {provider, run, data};
+      Upload upload{provider, run, data, {}};
+      upload.reserved.push_back(std::move(part));
+      uploads[id] = std::move(upload);
     }
     return Json{{"upload", id}}.dump();
   }
@@ -435,36 +546,74 @@ struct ProviderJobs::State {
       throw std::runtime_error("Unknown provider job method: " + method);
     const auto &limits = shared->limits;
     auto job = std::make_shared<Job>(shared, provider, run);
+    const auto account = accountFor(run);
     std::unique_ptr<ProviderCall> call;
     gr::JobExecutor *target = nullptr;
     std::string id;
+    std::string args;
+    // An upload stays registered until every check passed, so a start that
+    // fails leaves it for a later start.
+    const std::optional<std::string> upload =
+        request.contains("upload") ? std::optional(request.at("upload").get<std::string>()) : std::nullopt;
+    auto findUpload = [&]() {
+      auto found = uploads.find(*upload);
+      if (found == uploads.end() || found->second.provider != provider || found->second.run != job->run)
+        throw std::runtime_error("Unknown provider upload: " + *upload);
+      return found;
+    };
     {
       std::lock_guard lock(mutex);
       if (shutdown)
         throw std::runtime_error(kShutDown);
-      std::string args;
-      if (request.contains("upload")) {
-        const auto upload = request.at("upload").get<std::string>();
-        auto found = uploads.find(upload);
-        if (found == uploads.end() || found->second.provider != provider ||
-            found->second.run != job->run)
-          throw std::runtime_error("Unknown provider upload: " + upload);
-        args = std::move(found->second.data);
-        uploads.erase(found);
-      } else {
-        args = request.value("args", Json::object()).dump();
-      }
+      // Checked again below, after admission. Checked here too, so a start
+      // over maxJobs reports that rather than the admission ledger's limits.
+      if (shared->executing.load() >= limits.maxJobs)
+        throw std::runtime_error("Too many provider jobs are running");
+      if (upload)
+        findUpload();
+    }
+    // Admission (design section 4.7), outside the mutex: the result cap and
+    // one operation slot, with inline arguments their bytes too, now or
+    // never, since a start cannot wait. An upload's bytes are charged
+    // already, in its parts.
+    gr::Reservation reservation(account);
+    if (!upload) {
+      args = request.value("args", Json::object()).dump();
+      reservation.reserveSnapshot(args.size());
+    }
+    if (reservation.admit({args.size(), limits.maxResultBytes, 0}, gr::Reservation::Order::Immediate) ==
+        gr::Reservation::Admission::Blocked)
+      throw std::runtime_error("Provider job cannot start: the host job budget is exhausted");
+    job->reservation = reservation.share();
+    // Takes over the upload's parts after the mutex, so no ledger lock nests
+    // under it.
+    gr::Reservation charge = reservation.share();
+    std::vector<gr::Reservation> parts;
+    {
+      std::lock_guard lock(mutex);
+      if (shutdown)
+        throw std::runtime_error(kShutDown);
       // Lane jobs only decrement the count, so checking and taking a ticket
       // under the registry mutex cannot admit more than maxJobs. A closed
       // job keeps its ticket until its worker returns.
       if (shared->executing.load() >= limits.maxJobs)
         throw std::runtime_error("Too many provider jobs are running");
+      if (upload) {
+        auto found = findUpload();
+        args = std::move(found->second.data);
+        parts = std::move(found->second.reserved);
+        uploads.erase(found);
+      }
       ExecutionTicket ticket(shared);
       target = &laneLocked();
-      call = std::make_unique<ProviderCall>(job, shared, std::move(ticket), method, std::move(args));
+      call = std::make_unique<ProviderCall>(job, shared, std::move(ticket), method, std::move(args),
+                                            std::move(reservation));
       id = "j" + std::to_string(++nextId);
       jobs[id] = job;
     }
+    for (auto &part : parts)
+      charge.absorb(std::move(part));
+    charge = {};
     // Outside the mutex: an executor may run the job here or refuse it, and
     // either runs worker or job code. stopAll() racing this sees the job in
     // `jobs` and stops it, and the lane then destroys it unrun.
@@ -507,8 +656,15 @@ struct ProviderJobs::State {
 
   void retireRun(const RunIdentity &run) {
     std::vector<std::shared_ptr<Job>> retired;
+    // Released after the mutex, with their charges.
+    std::vector<Upload> dropped;
+    std::shared_ptr<gr::RunAccount> account;
     {
       std::lock_guard lock(mutex);
+      if (auto found = fallbackRuns.find(run); found != fallbackRuns.end()) {
+        account = std::move(found->second);
+        fallbackRuns.erase(found);
+      }
       for (auto it = jobs.begin(); it != jobs.end();) {
         if (it->second->run == run) {
           retired.push_back(std::move(it->second));
@@ -517,7 +673,14 @@ struct ProviderJobs::State {
           ++it;
         }
       }
-      std::erase_if(uploads, [&](const auto &entry) { return entry.second.run == run; });
+      for (auto it = uploads.begin(); it != uploads.end();) {
+        if (it->second.run == run) {
+          dropped.push_back(std::move(it->second));
+          it = uploads.erase(it);
+        } else {
+          ++it;
+        }
+      }
     }
     // A queued or running lane job holds its own reference until it ends.
     for (auto &job : retired)
@@ -526,10 +689,15 @@ struct ProviderJobs::State {
 
   ProviderJobs::Stats stats() {
     ProviderJobs::Stats counts;
+    std::shared_ptr<gr::RunnerAccount> fallback;
     {
       std::lock_guard lock(mutex);
       counts.registered = jobs.size();
+      fallback = fallbackRunner;
     }
+    // Outside the mutex: the ledger lock never nests under it.
+    if (fallback)
+      counts.fallbackBytes = fallback->ledger()->usage().bytes;
     counts.executing = shared->executing.load();
     counts.alive = shared->aliveJobs.load();
     return counts;

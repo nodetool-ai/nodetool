@@ -17,14 +17,20 @@
 namespace gr::host {
 
 // A Value result of an asynchronous context call: the callback's JSON text.
-// The worker checks its size when it settles the promise.
+// The worker checks its size when it settles the promise. A response larger
+// than the call's reserved response bytes keeps only its size, so the text
+// is freed on the completing thread and the worker still reports it as too
+// large.
 //
 // Thread affinity: none. Created on the completing thread, it travels in its
 // JobResult to the worker, or is destroyed on the completing thread when the
 // mailbox is closed.
 struct ContextResponse final : JobPayload {
-  explicit ContextResponse(std::string json) : text(std::move(json)) {}
+  explicit ContextResponse(std::string json) : text(std::move(json)), bytes(text.size()) {}
+  ContextResponse(size_t oversized, std::nullptr_t) : bytes(oversized) {}
   std::string text;
+  // The size of the callback's response.
+  size_t bytes;
 };
 
 // The outcome state one asynchronous call shares between its job, its
@@ -42,16 +48,22 @@ struct ContextResponse final : JobPayload {
 // the call. Stop callbacks hold only a weak reference.
 //
 // The state keeps the callback (and so everything it captures), the stop
-// source handed to the callback and a tracker ticket alive until the last
-// owner is gone. The result's delivery right, with its own tracker ticket
-// and mailbox reference, leaves the state at the first terminal outcome.
+// source handed to the callback, a tracker ticket and a reference to the
+// call's admission charge alive until the last owner is gone, so a call that
+// settled Stopped while the embedder still works keeps its memory charged.
+// The result's delivery right, with its own tracker ticket, reservation
+// reference and mailbox reference, leaves the state at the first terminal
+// outcome.
 class ContextCompletionState {
 public:
   enum class Phase { Pending, Value, Error, Stopped };
 
+  // `responseCap` is the most response bytes the call reserved. A larger
+  // response is dropped on arrival and fails as too large, and a larger
+  // error message is replaced by a short diagnostic with its first bytes.
   ContextCompletionState(std::string operation, std::shared_ptr<const ContextOptions::AsyncCallback> owner,
                          std::shared_ptr<StopRelay> relay, JobDelivery delivery, RunnerTracker::Ticket retention,
-                         RunIdentity run);
+                         RunIdentity run, uint64_t responseCap, Reservation reservation);
   ContextCompletionState(const ContextCompletionState&) = delete;
   ContextCompletionState& operator=(const ContextCompletionState&) = delete;
 
@@ -76,7 +88,8 @@ public:
   void complete(ContextResult result);
   // ContextCompletion: destroyed without a call.
   void dropped();
-  // ContextJob: the callback returned, or threw `thrown`.
+  // ContextJob: the callback returned, or threw `thrown`, a message the job
+  // already bounded to the response cap.
   void endInvocation(std::optional<std::string> thrown);
 
 private:
@@ -97,7 +110,12 @@ private:
   // captures: the runner's tracker counts the call until nothing of it is
   // left. Touched only by the constructor and the destructor.
   RunnerTracker::Ticket retention_;
+  // The call's admission charge, shared with its result: released when the
+  // state and the result are both gone. Touched only by the constructor and
+  // the destructor.
+  Reservation reservation_;
   const std::string operation_;
+  const uint64_t responseCap_;
   // The callback, which owns the embedder's captures. Immutable.
   const std::shared_ptr<const ContextOptions::AsyncCallback> owner_;
   // The I/O lane's relay: where the run's stop reaches the callback's token.
@@ -120,9 +138,11 @@ private:
 
 // The job callAsync submits to the I/O lane.
 // `relay` is the I/O lane's stop relay. `run` is the submitting run, which
-// the callback reads from its completion.
+// the callback reads from its completion. Its cost is the request plus
+// `responseCap` response bytes, the most a response may hold.
 std::unique_ptr<NativeJob> makeContextJob(std::string operation, std::string request,
                                           std::shared_ptr<const ContextOptions::AsyncCallback> callback,
-                                          std::shared_ptr<StopRelay> relay, RunIdentity run);
+                                          std::shared_ptr<StopRelay> relay, RunIdentity run,
+                                          uint64_t responseCap);
 
 }  // namespace gr::host

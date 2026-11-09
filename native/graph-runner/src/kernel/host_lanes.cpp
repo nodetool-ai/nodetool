@@ -1,5 +1,7 @@
 #include "kernel/host_lanes.h"
 
+#include "kernel/destination_queue.h"
+
 #include "nodetool/provider_jobs.h"
 
 #include <algorithm>
@@ -40,7 +42,9 @@ JobDisposer::JobDisposer() : queue_(std::make_shared<Queue>()) {
   thread_ = std::thread([queue = queue_] {
     std::unique_lock lock(queue->mutex);
     for (;;) {
-      queue->work.wait(lock, [&] { return !queue->items.empty() || queue->stopping; });
+      // Exits only after the refusal thread left, since it hands its
+      // refused jobs here for destruction.
+      queue->work.wait(lock, [&] { return !queue->items.empty() || (queue->stopping && queue->refuserDone); });
       if (queue->items.empty()) return;
       Item item = std::move(queue->items.front());
       queue->items.pop_front();
@@ -49,6 +53,35 @@ JobDisposer::JobDisposer() : queue_(std::make_shared<Queue>()) {
       lock.lock();
     }
   });
+  try {
+    refuser_ = std::thread([queue = queue_] {
+      std::unique_lock lock(queue->mutex);
+      for (;;) {
+        queue->refusalWork.wait(lock, [&] { return !queue->refusals.empty() || queue->stopping; });
+        if (queue->refusals.empty()) break;
+        Item item = std::move(queue->refusals.front());
+        queue->refusals.pop_front();
+        lock.unlock();
+        item.job->refuse(std::move(*item.refusal));
+        item.refusal.reset();
+        lock.lock();
+        // The refused job's inputs go to the destruction thread.
+        queue->items.push_back(std::move(item));
+        queue->work.notify_one();
+      }
+      queue->refuserDone = true;
+      queue->work.notify_all();
+    });
+  } catch (...) {
+    {
+      std::lock_guard lock(queue_->mutex);
+      queue_->stopping = true;
+      queue_->refuserDone = true;
+    }
+    queue_->work.notify_all();
+    thread_.join();
+    throw;
+  }
 }
 
 JobDisposer::~JobDisposer() {
@@ -56,7 +89,9 @@ JobDisposer::~JobDisposer() {
     std::lock_guard lock(queue_->mutex);
     queue_->stopping = true;
   }
+  queue_->refusalWork.notify_all();
   queue_->work.notify_all();
+  refuser_.join();
   thread_.join();
 }
 
@@ -64,6 +99,17 @@ void JobDisposer::dispose(SubmittedJob job) {
   Item item;
   item.job.emplace(std::move(job));
   push(std::move(item));
+}
+
+void JobDisposer::refuse(SubmittedJob job, JobOutcome outcome) {
+  Item item;
+  item.job.emplace(std::move(job));
+  item.refusal.emplace(std::move(outcome));
+  {
+    std::lock_guard lock(queue_->mutex);
+    queue_->refusals.push_back(std::move(item));
+  }
+  queue_->refusalWork.notify_one();
 }
 
 void JobDisposer::dispose(std::deque<JobResult> results) {
@@ -220,9 +266,20 @@ void ThreadPoolExecutor::submit(SubmittedJob job) {
       refused.emplace(std::move(job));
     }
   }
-  // The refusal first, then the inputs, off this thread.
-  refused->refuse(std::move(outcome));
-  disposer_.dispose(std::move(*refused));
+  refuseAndDispose(std::move(*refused), std::move(outcome));
+}
+
+void ThreadPoolExecutor::refuseAndDispose(SubmittedJob job, JobOutcome outcome) {
+  if (job.detached()) {
+    // Its refused() callback is job code: it runs on the disposer, then the
+    // disposer destroys the inputs.
+    disposer_.refuse(std::move(job), std::move(outcome));
+    return;
+  }
+  // A mailbox refusal is delivered here, at once; the inputs go off this
+  // thread.
+  job.refuse(std::move(outcome));
+  disposer_.dispose(std::move(job));
 }
 
 void ThreadPoolExecutor::dispose(std::deque<JobResult> results) {
@@ -390,8 +447,7 @@ void ThreadPoolExecutor::beginShutdown() {
   for (auto& work : unreaped) {
     if (work.stop) work.stop->request_stop();
     if (work.job && work.outcome) {
-      work.job->refuse(std::move(*work.outcome));
-      disposer_.dispose(std::move(*work.job));
+      refuseAndDispose(std::move(*work.job), std::move(*work.outcome));
     }
   }
 }
@@ -509,6 +565,11 @@ struct ProcessLanes {
   // Created on first use. The registry is never destroyed, so neither is it.
   // native-rules #14: process-wide disposer thread, kept alive by the never-destroyed registry
   std::unique_ptr<JobDisposer> disposer;
+  // Guards `destinations` alone.
+  std::mutex destinationsMutex;
+  // Created on first use and never destroyed, like the disposer.
+  // native-rules #14: process-wide asset destination queue, kept alive by the never-destroyed registry
+  std::unique_ptr<DestinationQueue> destinations;
 };
 
 ProcessLanes& processLanes() {
@@ -527,6 +588,13 @@ JobDisposer& processJobDisposer() {
   std::lock_guard lock(process.disposerMutex);
   if (!process.disposer) process.disposer = std::make_unique<JobDisposer>();
   return *process.disposer;
+}
+
+DestinationQueue& processDestinationQueue() {
+  ProcessLanes& process = processLanes();
+  std::lock_guard lock(process.destinationsMutex);
+  if (!process.destinations) process.destinations = std::make_unique<DestinationQueue>();
+  return *process.destinations;
 }
 
 std::shared_ptr<HostLanes> processHostLanes(LaneSizes sizes) {

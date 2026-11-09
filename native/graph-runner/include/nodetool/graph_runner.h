@@ -46,6 +46,39 @@ struct GpuOptions {
   std::function<std::string(OutputImage)> outputImages;
 };
 
+// Admission limits of native host jobs (docs/plans/graph-runner-async-host.md,
+// section 4.7). Every job, its copied inputs, its worst-case output and its
+// undrained result count against its run and its admission ledger until the
+// result is disposed. A job that exceeds a byte limit fails. One that waits
+// for capacity starts later, in submission order. Bytes handed to JavaScript
+// without a copy count against the JavaScript limits until the garbage
+// collector frees their buffer. 0 keeps a default, and a larger value is
+// clamped to it: configuration may only lower a limit.
+struct HostJobLimits {
+  // Per run: 1 GiB and 64 operations.
+  uint64_t runBytes = 0;
+  size_t runOperations = 0;
+  // Per runner, across its runs: 1 GiB.
+  uint64_t runnerJavaScriptBytes = 0;
+};
+
+// The limits shared by every runner given the same admission ledger:
+// 4 GiB, 256 operations and 4 GiB in JavaScript by default. 0 keeps a
+// default, and a larger value is clamped to it.
+struct AdmissionLimits {
+  uint64_t bytes = 0;
+  size_t operations = 0;
+  uint64_t javaScriptBytes = 0;
+};
+
+// The counters that bound host jobs across runners (src/kernel/admission.h).
+// Opaque to embedders.
+class AdmissionLedger;
+
+// A new admission ledger with `limits`. Give it to every runner that should
+// share them through HostOptions::admissionLedger.
+std::shared_ptr<AdmissionLedger> newAdmissionLedger(AdmissionLimits limits = {});
+
 // What the embedder lets node code reach: storage, files, secrets and
 // devices. Each host capability (src/host/) reads its own fields. The
 // defaults grant nothing.
@@ -122,6 +155,14 @@ struct HostOptions {
   // instead of on the lanes. Results still settle as macrotasks, but a
   // cancelled run cannot end at its deadline while a job runs.
   bool inlineHostJobs = false;
+  // Admission limits of host jobs, threaded and inline alike.
+  HostJobLimits hostJobLimits;
+  // The ledger whose limits this runner shares with every other runner given
+  // the same one (newAdmissionLedger). Unset: the runner creates a private
+  // ledger with the default limits. Shared: every runner given it, and every
+  // reservation and JavaScript buffer charged to it, which can outlive the
+  // runner, keep it alive.
+  std::shared_ptr<AdmissionLedger> admissionLedger;
 };
 
 class GraphRunner {

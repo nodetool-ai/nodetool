@@ -2,6 +2,7 @@
 #include "host/context_async.h"
 #include "host/sandbox_ocr.h"
 #include "kernel/async_jobs.h"
+#include "kernel/job_inputs.h"
 #include <array>
 #include <cmath>
 #include <random>
@@ -104,21 +105,36 @@ void installContext(js::Engine& e, const js::Value& object, const ContextOptions
     }
     const auto& callback = ContextCallRules::grant(asyncGrants, operation);
     rules->admit(operation);
-    auto input = en.toString(args[1]);
-    rules->checkRequestSize(input.size());
     AsyncRun* run = binding->run();
+    // The request's bytes are charged to the run before they are copied
+    // (design section 4.7). A string longer than the payload limit fails
+    // before its copy as well.
+    Reservation reservation = run ? run->reserve() : Reservation{};
+    std::string input;
+    if (run && en.isString(args[1])) {
+      const uint64_t bound = stringBytesBound(en, args[1], "Context payload");
+      if (bound / 3 > grants->maxPayloadBytes) rules->checkRequestSize(bound / 3);
+      input = snapshotString(en, args[1], "Context payload", reservation);
+    } else {
+      input = en.toString(args[1]);
+      if (run) reservation.reserveSnapshot(input.size());
+    }
+    rules->checkRequestSize(input.size());
     if (!run) throw std::runtime_error("Asynchronous context calls need a running graph");
     JobExecutor& io = *binding->io();
     // Cleanup keeps running through the run's cancellation; every other call
     // rejects with an AbortError when the cancellation begins.
     const bool cancellable = !ContextCallRules::isCleanup(operation);
-    return run->submit(io, makeContextJob(operation, std::move(input), callback, io.stopRelay(), run->identity()),
-                       [rules, operation](js::Engine& engine, JobPayload* payload) {
-                         const std::string& text = static_cast<ContextResponse*>(payload)->text;
-                         rules->checkResponse(operation, text.size());
-                         return engine.string(text);
+    return run->submit(io,
+                       makeContextJob(operation, std::move(input), callback, io.stopRelay(), run->identity(),
+                                      grants->maxPayloadBytes),
+                       [rules, operation](ResultConversion& conversion) {
+                         const auto* response = static_cast<ContextResponse*>(conversion.payload());
+                         rules->checkResponse(operation, response->bytes);
+                         conversion.chargeCopy(response->text.size());
+                         return conversion.engine().string(response->text);
                        },
-                       cancellable);
+                       cancellable, std::move(reservation));
   }));
 }
 }

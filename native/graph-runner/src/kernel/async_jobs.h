@@ -13,10 +13,13 @@
 
 #include "js/engine.h"
 #include "js/thread_owner.h"
+#include "kernel/admission.h"
 #include "kernel/task.h"
 #include "nodetool/context_options.h"
 
+#include <atomic>
 #include <chrono>
+#include <concepts>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -27,6 +30,7 @@
 #include <optional>
 #include <stop_token>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -101,6 +105,9 @@ struct JobOutcome {
 struct JobResult {
   // Declared first so it is released last, after the payload is destroyed.
   RunnerTracker::Ticket ticket;
+  // The job's admission charge (design section 4.7). Released after the
+  // payload, when the result is disposed or the worker converted it.
+  Reservation reservation;
   uint64_t id = 0;
   JobOutcome outcome;
 };
@@ -118,6 +125,10 @@ public:
   // Once closed, destroys `result` on the calling thread after unlocking.
   // Returns whether the result was accepted.
   bool deliver(JobResult result);
+  // Thread-safe. Wakes the loop while the mailbox is open, under the mailbox
+  // mutex as deliver() does. A run's admission waiter calls it when capacity
+  // was released, after the ledger mutex was unlocked.
+  void wake();
   // Worker. Drops the wake target and hands back the results still waiting,
   // so the caller can destroy them off the worker (a payload's destructor
   // may block). Idempotent: a second call returns nothing.
@@ -139,18 +150,103 @@ struct JobAborted : std::runtime_error {
   using std::runtime_error::runtime_error;
 };
 
+// What a converter works with: the engine, the result's payload and the
+// result's charges. Bytes a converter hands to JavaScript go through
+// adoptBytes() or copyBytes(), which account for them in the runner's
+// JavaScript external-byte ledger (design section 4.7).
+//
+// Thread affinity: worker only. Lives for one conversion, and releases the
+// charges of its copies after the native payload was destroyed.
+class ResultConversion {
+public:
+  // Results smaller than this are copied by adoptBytes(): the copy is cheap,
+  // and it keeps the number of adopted buffers at most the JavaScript cap
+  // divided by this size.
+  static constexpr size_t kAdoptMinimum = 64 * 1024;
+
+  // `runner` is the runner whose JavaScript ledger takes the bytes. It may
+  // be null only for conversions that hand over no bytes.
+  ResultConversion(js::Engine& engine, JobPayload* payload, Reservation& reservation,
+                   std::shared_ptr<RunnerAccount> runner)
+      : engine_(engine), payload_(payload), reservation_(reservation), runner_(std::move(runner)) {}
+  ResultConversion(const ResultConversion&) = delete;
+  ResultConversion& operator=(const ResultConversion&) = delete;
+
+  js::Engine& engine() const { return engine_; }
+  JobPayload* payload() const { return payload_; }
+
+  // A Uint8Array over `bytes`. From kAdoptMinimum bytes on, without a copy:
+  // their charge moves from the result's reservation into the JavaScript
+  // ledger, in one transaction, and leaves it when the ArrayBuffer is
+  // finalized. Smaller ones are copied as copyBytes() does. Throws
+  // AdmissionError when the JavaScript ledger cannot take them, which
+  // rejects the promise.
+  js::Value adoptBytes(std::vector<uint8_t> bytes);
+  // A Uint8Array holding a copy. The copy is charged to the JavaScript
+  // ledger until the native payload is destroyed, so both representations
+  // are charged while both exist. Throws AdmissionError like adoptBytes().
+  js::Value copyBytes(const uint8_t* data, size_t size);
+  // Charges a copy of `bytes` the converter makes itself, such as a string,
+  // in the same way. Call it before making the copy.
+  void chargeCopy(uint64_t bytes);
+
+private:
+  RunnerAccount& runner() const;
+
+  js::Engine& engine_;
+  JobPayload* payload_;
+  Reservation& reservation_;
+  std::shared_ptr<RunnerAccount> runner_;
+  // Released when the conversion ends, after the payload.
+  std::vector<ExternalCharge> copies_;
+};
+
 // Turns a Value result's payload into the JavaScript value its promise
 // resolves with. Runs on the worker. Throwing rejects the promise: with an
 // AbortError for JobAborted, with an Error otherwise.
 using Converter = std::function<js::Value(js::Engine&, JobPayload*)>;
 
+// A converter in either form: a Converter, or a callable that takes the
+// ResultConversion and can hand bytes to JavaScript. Empty resolves with
+// undefined.
+//
+// Thread affinity: worker only, like the settler that holds it.
+class ResultConverter {
+public:
+  ResultConverter() = default;
+  ResultConverter(std::nullptr_t) {}
+  template <class F>
+    requires(std::invocable<F&, js::Engine&, JobPayload*> && !std::same_as<std::remove_cvref_t<F>, ResultConverter>)
+  ResultConverter(F convert) {
+    if constexpr (std::is_constructible_v<bool, F&>) {
+      if (!static_cast<bool>(convert)) return;
+    }
+    fn_ = [convert = std::move(convert)](ResultConversion& conversion) mutable {
+      return convert(conversion.engine(), conversion.payload());
+    };
+  }
+  template <class F>
+    requires(std::invocable<F&, ResultConversion&> && !std::invocable<F&, js::Engine&, JobPayload*> &&
+             !std::same_as<std::remove_cvref_t<F>, ResultConverter>)
+  ResultConverter(F convert) : fn_(std::move(convert)) {}
+
+  explicit operator bool() const { return static_cast<bool>(fn_); }
+  js::Value operator()(ResultConversion& conversion) const { return fn_(conversion); }
+
+private:
+  std::function<js::Value(ResultConversion&)> fn_;
+};
+
 // The worker's pending promises, indexed by job id.
 class SettlerRegistry {
 public:
-  explicit SettlerRegistry(js::Engine& engine) : engine_(engine) {}
+  // `account` is the run whose runner's JavaScript ledger takes converted
+  // bytes when a result carries no reservation. It may be null.
+  explicit SettlerRegistry(js::Engine& engine, std::shared_ptr<RunAccount> account = {})
+      : engine_(engine), account_(std::move(account)) {}
 
   // A cancellable settler is listed by cancellable().
-  void add(uint64_t id, js::PromiseCapability capability, Converter convert, bool cancellable = false);
+  void add(uint64_t id, js::PromiseCapability capability, ResultConverter convert, bool cancellable = false);
   // Settles the promise registered under result.id: Value resolves with the
   // converted payload, Error rejects with an Error, Stopped with an
   // AbortError. A result without a settler is destroyed. Returns whether a
@@ -165,12 +261,13 @@ public:
 private:
   struct Settler {
     js::PromiseCapability capability;
-    Converter convert;
+    ResultConverter convert;
     bool cancellable = false;
   };
   js::Value error(const std::string& message, const char* name);
 
   js::Engine& engine_;
+  const std::shared_ptr<RunAccount> account_;
   [[no_unique_address]] ThreadOwner owner_;
   std::unordered_map<uint64_t, Settler> settlers_;
 };
@@ -184,8 +281,9 @@ private:
 class JobDelivery {
 public:
   JobDelivery(uint64_t id, std::shared_ptr<RunMailbox> mailbox, RunnerTracker::Ticket ticket,
-              std::stop_token runStop)
-      : ticket_(std::move(ticket)), id_(id), mailbox_(std::move(mailbox)), runStop_(std::move(runStop)) {}
+              std::stop_token runStop, Reservation reservation = {})
+      : ticket_(std::move(ticket)), reservation_(std::move(reservation)), id_(id), mailbox_(std::move(mailbox)),
+        runStop_(std::move(runStop)) {}
   // A moved-from delivery is empty, and destroying it does nothing.
   JobDelivery(JobDelivery&&) noexcept = default;
   JobDelivery& operator=(JobDelivery&&) = delete;
@@ -202,11 +300,17 @@ public:
   // A second tracker ticket for the job's runner and run, for work that
   // outlives the delivered result.
   RunnerTracker::Ticket retain() const { return ticket_.share(); }
+  // A second reference to the job's admission charge, for work that may
+  // still use memory after its result was delivered, such as an embedder
+  // that keeps a context call's completion. The charge goes when both the
+  // result and this reference are gone.
+  Reservation retainReservation() const { return reservation_.share(); }
   const std::stop_token& runStop() const { return runStop_; }
   explicit operator bool() const { return mailbox_ != nullptr; }
 
 private:
   RunnerTracker::Ticket ticket_;
+  Reservation reservation_;
   uint64_t id_;
   std::shared_ptr<RunMailbox> mailbox_;
   std::stop_token runStop_;
@@ -239,6 +343,12 @@ public:
   // detached job, which has no mailbox, can report the refusal first. It
   // must not block. The default does nothing.
   virtual void refused(const JobOutcome& outcome) { (void)outcome; }
+  // What the job needs from the admission ledger (design section 4.7),
+  // computed from the inputs it owns, with checked arithmetic. Called on the
+  // worker at submission and again when a deferred start is admitted, never
+  // after start(). Throws AdmissionError when the size overflows. The
+  // default needs nothing but the operation slot.
+  virtual JobCost cost() const { return {}; }
 };
 
 template <class F>
@@ -259,13 +369,13 @@ std::unique_ptr<NativeJob> makeJob(F work) {
 class SubmittedJob {
 public:
   SubmittedJob(uint64_t id, std::unique_ptr<NativeJob> job, std::shared_ptr<RunMailbox> mailbox,
-               std::stop_token stop, RunnerTracker::Ticket ticket)
+               std::stop_token stop, RunnerTracker::Ticket ticket, Reservation reservation = {})
       : id_(id), job_(std::move(job)), mailbox_(std::move(mailbox)), stop_(std::move(stop)),
-        ticket_(std::move(ticket)) {}
+        ticket_(std::move(ticket)), reservation_(std::move(reservation)) {}
   SubmittedJob(SubmittedJob&&) noexcept = default;
   SubmittedJob& operator=(SubmittedJob&&) noexcept = default;
-  // The job's inputs and mailbox go first, so the ticket counts the job
-  // until nothing of it is left.
+  // The job's inputs and mailbox go first, then the reservation, so the
+  // ticket counts the job until nothing of it is left.
   ~SubmittedJob() {
     job_.reset();
     mailbox_.reset();
@@ -289,6 +399,12 @@ public:
   // it, here, before its inputs go.
   bool refuse(JobOutcome outcome);
   const std::stop_token& stopToken() const { return stop_; }
+  // No mailbox: the job reports a refusal through NativeJob::refused().
+  bool detached() const { return !mailbox_; }
+  // The job's admission charge. It travels into the result.
+  Reservation& reservation() { return reservation_; }
+  // NativeJob::cost() of the job. Before execute() or cancel() only.
+  JobCost cost() const { return job_->cost(); }
 
 private:
   uint64_t id_;
@@ -297,6 +413,8 @@ private:
   std::shared_ptr<RunMailbox> mailbox_;
   std::stop_token stop_;
   RunnerTracker::Ticket ticket_;
+  // Declared after the ticket, so it is released before it.
+  Reservation reservation_;
 };
 
 // Requests stop on a stop source away from the caller when it can, so a stop
@@ -351,10 +469,22 @@ public:
 };
 
 // The worker's per-run bridge between host functions and native jobs.
+//
+// Every job holds a Reservation on the run's admission account (design
+// section 4.7). submit() admits a job at once when the run and the process
+// have capacity and no earlier start of the run waits, and otherwise defers
+// it: the job, with its snapshot, waits in the run's FIFO without an
+// executor slot. pollAdmission() admits deferred starts in order once the
+// ledger reports released capacity.
+//
+// Thread affinity: worker only. The admission waiter it registers with the
+// ledger is the only part other threads reach, through a weak reference.
 class AsyncRun {
 public:
   // `identity` names the run to host code, such as the provider job grants,
-  // which read it from a context call's completion. It may be empty.
+  // which read it from a context call's completion. It may be empty. Jobs
+  // are charged to identity->account, or, when there is none, to a run on a
+  // private ledger with the default limits.
   AsyncRun(js::Engine& engine, Loop& loop, std::shared_ptr<RunnerTracker> tracker, uint64_t run,
            JobExecutor& executor, host::RunIdentity identity = {});
   AsyncRun(const AsyncRun&) = delete;
@@ -364,7 +494,7 @@ public:
 
   // Worker. Registers a settler and hands `job` to the executor. Returns the
   // promise the job's result settles.
-  js::Value submit(std::unique_ptr<NativeJob> job, Converter convert) {
+  js::Value submit(std::unique_ptr<NativeJob> job, ResultConverter convert) {
     return submit(executor_, std::move(job), std::move(convert));
   }
   // As above, on `executor`, such as one of the process lanes. The executor
@@ -374,11 +504,32 @@ public:
   // so does submitting after teardown(). Either way the job goes to the
   // executor's disposeUnrun() first, never destroyed on this thread by a
   // pool lane.
-  js::Value submit(JobExecutor& executor, std::unique_ptr<NativeJob> job, Converter convert,
-                   bool cancellable = false);
-  // Worker. Settles the oldest waiting result. False when none waits.
+  //
+  // `reservation` holds the snapshot bytes the host function reserved
+  // before copying the job's inputs, from reserve(). Empty: the run's
+  // account is charged here. The job's cost() is then checked: a cost that
+  // overflows or exceeds a byte limit, or a start that cannot be deferred
+  // within the deferred limits, throws AdmissionError after the job went to
+  // disposeUnrun().
+  js::Value submit(JobExecutor& executor, std::unique_ptr<NativeJob> job, ResultConverter convert,
+                   bool cancellable = false, Reservation reservation = {});
+  // Worker. An empty charge on the run's account, for a host function to
+  // reserve snapshot bytes in before it copies them (job_inputs.h).
+  Reservation reserve() const { return Reservation(account_); }
+  const std::shared_ptr<RunAccount>& account() const { return account_; }
+  // Worker. Admits deferred starts in FIFO order while the ledger lets
+  // them, recomputing each one's cost() from its snapshot first. A start
+  // whose cost became invalid fails with an Error. Cheap when the ledger
+  // reported nothing since the last call.
+  void pollAdmission();
+  // Deferred starts waiting for admission.
+  size_t deferred() const { return deferred_.size(); }
+  // Worker. Admits what it can, then settles the oldest waiting result.
+  // False when none waits.
   bool dispatchOne();
-  bool resultsPending() const { return mailbox_->pending(); }
+  // A result waits, or the ledger reported released capacity while a
+  // deferred start waits.
+  bool resultsPending() const;
   // Submitted jobs whose result has not been dispatched.
   size_t inFlight() const { return settlers_.size(); }
   // Worker. Requests stop on every job of the run, cancellable or not,
@@ -392,7 +543,8 @@ public:
   }
   // Worker. The run's cancellation began (design section 4.6): a Stopped
   // result for every cancellable job goes into the mailbox, in submission
-  // order, and those jobs are asked to stop. Each result settles at the
+  // order, and those jobs are asked to stop. Cancellable deferred starts are
+  // dropped without running, which releases their snapshots. Each result settles at the
   // loop's completion point, one per turn like any result, as an AbortError
   // unless a result for that job was dispatched first. The result that is
   // dispatched first settles the promise, and later ones are destroyed.
@@ -403,8 +555,11 @@ public:
   // Worker. Ends the run's side of its jobs, in the order of section 4.10:
   // requests stop outside every lock, closes the mailbox and hands its
   // waiting results to the run's executor for disposal, destroys the jobs
-  // still queued on the executors it used, then drops the settlers. The caller then clears timers, abandons frames and releases
-  // run resources. Idempotent.
+  // still queued on the executors it used and the deferred starts, then
+  // drops the settlers. Running jobs and the results they deliver into the
+  // closed mailbox keep their reservations until they are disposed. The
+  // caller then clears timers, abandons frames and releases run resources.
+  // Idempotent.
   void teardown();
 
   uint64_t run() const { return run_; }
@@ -412,6 +567,35 @@ public:
   const std::shared_ptr<RunMailbox>& mailbox() const { return mailbox_; }
 
 private:
+  // A start waiting for admission. `executor` is one submit() attached to,
+  // which outlives this object.
+  struct Deferred {
+    JobExecutor* executor;
+    SubmittedJob job;
+    bool cancellable;
+  };
+  // Tells the run that capacity was released: sets `signaled` and wakes the
+  // loop through the mailbox, which drops its wake target at teardown.
+  //
+  // Thread affinity: thread-safe. `signaled` is atomic, and the mailbox
+  // reference is weak and locks the mailbox mutex to wake.
+  class Waiter final : public AdmissionWaiter {
+  public:
+    explicit Waiter(std::weak_ptr<RunMailbox> mailbox) : mailbox_(std::move(mailbox)) {}
+    void admissionChanged() noexcept override;
+    std::atomic<bool> signaled{false};
+
+  private:
+    const std::weak_ptr<RunMailbox> mailbox_;
+  };
+  // Refuses a job before it reached an executor: its inputs and charge go
+  // to `executor`'s disposeUnrun(), then `error` is thrown.
+  [[noreturn]] void refuse(JobExecutor& executor, std::unique_ptr<NativeJob> job, Reservation reservation,
+                           const std::string& error);
+  // Drops the deferred starts `drop` selects without running them.
+  template <class Drop>
+  void dropDeferred(Drop drop);
+
   js::Engine& engine_;
   JobExecutor& executor_;
   // Every executor submit() used, for teardown's discardStopped().
@@ -419,12 +603,20 @@ private:
   std::shared_ptr<RunnerTracker> tracker_;
   uint64_t run_;
   const host::RunIdentity identity_;
+  // The run's admission account. Shared with the run's reservations, which
+  // may outlive it.
+  const std::shared_ptr<RunAccount> account_;
   std::stop_source stop_;
   // The stop of cancellable jobs: requested by cancel() and by requestStop().
   std::stop_source cancel_;
   // native-rules #1: mailbox shared with lane threads, no comment explains why unique fails
   std::shared_ptr<RunMailbox> mailbox_;
+  // Shared with the ledger, which holds it weakly and may tell it from any
+  // thread while this object owns it.
+  const std::shared_ptr<Waiter> waiter_;
   SettlerRegistry settlers_;
+  // Starts waiting for admission, oldest first.
+  std::deque<Deferred> deferred_;
   uint64_t nextId_ = 1;
 };
 

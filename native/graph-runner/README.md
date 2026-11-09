@@ -247,7 +247,8 @@ as the TypeScript node does.
 ### Native jobs and lanes
 
 A host function that moves work off the worker copies the JavaScript
-arguments the job needs at the call (`src/kernel/job_inputs.h`): bytes of an
+arguments the job needs at the call (`src/kernel/job_inputs.h`), after
+reserving their bytes (see [Admission limits](#admission-limits)): bytes of an
 ArrayBuffer or typed array, strings, and options as JSON text. A detached or
 out-of-bounds buffer is rejected there, and later changes to a buffer never
 reach the job. A typed array over a SharedArrayBuffer is copied like any
@@ -300,6 +301,89 @@ returns a supervisor that keeps the lanes, their threads and the running
 jobs alive. The process keeps its own reference, so static teardown never
 destroys a lane with a live thread. The caller retries or ends the process.
 No library destructor ends the process.
+
+### Resource control blocks
+
+Rollout step 5 converts host resources that outlive one call, such as media
+inputs, encoders, file handles and track staging directories. The shared
+pieces exist, and no host function uses them yet.
+
+A `ResourceControl` (`src/kernel/resource_control.h`) wraps one resource
+and is its serial queue. A host function submits an operation through
+`AsyncRun::submit(control->operations(), control->operation<Body>(fn), ...)`.
+The control keeps operations in a FIFO and hands one at a time to its lane,
+and only that operation touches the resource. `control->terminal()` takes a
+finish: it runs after the operations accepted before it, sees whether one of
+them failed, and nothing is accepted after it. `close()` runs what was
+accepted. `abort()` and run cleanup reject the queued operations with an
+AbortError and ask the running one to stop. A lease keeps the resource alive
+for a dependent, such as a media input reading from a staging directory.
+Once its last operation returned and its last lease is released, the
+resource goes to the reaper thread of its lane, or of another lane named in
+`ResourceOptions::destroyOn`, which destroys it and only then releases its
+own dependency leases. Library cleanup and directory removal therefore never
+run on the worker, and they are part of the lane's timed shutdown. A staging
+directory is removed after its readers. `abort()` never runs an operation's
+stop callbacks on the aborting thread.
+
+A session that keeps a library interrupt callback, such as an FFmpeg input,
+owns a `SessionStopBridge` (`src/kernel/session_stop.h`) and points the
+callback at it. Each operation binds its stop token to the bridge while it
+runs, and abort sets the bridge's session flag for good. An operation that
+leaves its codec unusable calls `retireSession()`, and the control rejects
+the operations queued behind it.
+
+Asset writes and removals go through the process `DestinationQueue`
+(`src/kernel/destination_queue.h`), kept in the lane registry and keyed by
+the canonical destination path. `src/host/asset_destinations.h` builds the
+jobs: a write takes its place in the queue on the worker. On the I/O lane it
+opens the destination's directories one at a time from the asset directory,
+relative to the descriptor before, never following a symlink, and writes its
+own temporary file into the directory it holds. In queue order it acquires
+the directory again, checks that it is the same one, and renames the file
+over the destination relative to the held directory. The queue submits each
+commit to the I/O lane, so cancelling or dropping one operation never runs
+another's commit on the cancelling thread. A stop before the rename discards
+the write, and every failed operation removes only its own temporary file.
+
+### Admission limits
+
+Every native job holds a reservation in an admission ledger
+(`src/kernel/admission.h`) from the first copied input byte until its result
+is drained or discarded. It charges the job's copied inputs, its worst-case
+output and one operation slot to its run and the ledger. By default a run
+may hold 1 GiB and 64 operations, and a ledger 4 GiB and 256 operations.
+`HostOptions::hostJobLimits` lowers a runner's run limits. Runners share a
+ledger's limits when the embedder creates one with `gr::newAdmissionLedger`
+and passes it to each in `HostOptions::admissionLedger`. A runner given none
+gets a private ledger with the default limits. The CLI creates one ledger
+for its runner. Inline jobs are charged too.
+
+A host function reserves its inputs before it copies them, so an input that
+cannot fit fails before the copy. A job larger than a byte limit fails at the
+call. A job that has to wait for capacity starts later: it keeps its copied
+inputs, with at most 64 MiB and 1024 waiting jobs per run, and the run starts
+its waiting jobs in call order. A job whose waiting inputs would leave an
+earlier waiting job too little room to ever start fails instead, and so does
+a job that could start only after the guest starts or retires a provider
+upload. Runs blocked by the ledger wait in the order they began waiting. A
+result keeps its charge while it waits for the worker, and a run that ends
+keeps the charge of its running jobs until they finish, so a cancelled run
+with a stuck job still holds back other runs.
+
+Bytes a converter hands to JavaScript without a copy
+(`ResultConversion::adoptBytes`) move to a separate JavaScript ledger, 1 GiB
+per runner and 4 GiB per process, and leave it when the garbage collector
+frees the buffer. A conversion that would pass those caps rejects its promise
+with an Error. Results under 64 KiB are copied, and an adopted buffer stays
+charged at least 64 KiB when a transfer shrinks it. Asynchronous context
+calls reserve their request and the payload limit for the response, and an
+error message over that limit reaches the guest as a short diagnostic.
+Provider jobs reserve their request and `ProviderJobs::Limits::maxResultBytes`,
+64 MiB by default, for their result and progress events. A progress event
+that does not fit that cap is dropped, and a start the ledger cannot admit
+fails and keeps its upload. The design is section 4.7 of
+[`docs/plans/graph-runner-async-host.md`](../../docs/plans/graph-runner-async-host.md).
 
 ## Guest environment
 
@@ -639,6 +723,38 @@ Calling the completion then is safe: its result is destroyed on the calling
 thread and never reaches the runner thread. Captures must therefore own what
 they use. With `inlineHostJobs`, the callback runs on the runner thread, as
 every host job does in that mode.
+
+#### Grants of the in-repo embedders
+
+The CLI (`src/main.cpp`) and the node editor's local runner
+(`sharedLocalRunner` in `native/node-editor/src/server/WorkflowSession.cpp`)
+grant no context operation of their own, in either map, and no
+`providerJobs`. Each callback they hand the runner stays synchronous:
+
+| Embedder | Callback | What it does | Decision |
+|---|---|---|---|
+| Both | the runner's own `message` operation | Forwards each kernel message to the job's `MessageHandler` on the runner thread. | Synchronous. The runner refuses `message` in `asyncOperations`, because message order is the run's output. |
+| CLI | `MessageHandler` | Writes the message to stdout under a mutex. A slow stdout reader blocks the runner thread. | Synchronous. The line order on stdout is the CLI's contract. |
+| Node editor | `MessageHandler` | Posts the message to the session on the GUI thread with a queued `QMetaObject::invokeMethod`. It never waits for the GUI thread. | Synchronous. |
+| Node editor | `GpuOptions::outputImages` | Moves the pixels into `LocalMediaStore` under its mutex, with no I/O. | Synchronous. It is not a context operation and has no asynchronous form. |
+
+Asset, file, media and HTTP access are not embedder callbacks. The runner
+implements them in `src/host/` and the embedders enable them through
+`HostOptions` fields such as `assetDir` and `workspaceDir`, so moving them off
+the runner thread is a change to the runner (rollout step 5 of the
+[asynchronous host design](../../docs/plans/graph-runner-async-host.md#8-rollout)),
+not to the embedders.
+
+Neither embedder grants provider endpoint jobs. A `ProviderJobs` needs a
+worker that calls the vendor with its credentials, and neither embedder has
+one. The CLI runs example workflows offline, with `--fake-providers` for
+provider nodes. The node editor runs a graph in process only when every node
+works without a secret or the network (`guest/local-nodes.mjs`), and sends
+other graphs, provider nodes included, to the server.
+
+The node editor ends the process lanes on exit as [Run](#run) describes for
+the CLI: after its last `GraphRunner` is destroyed, `shutdownHostLanes` gets
+a 2 s deadline, and `TimedOut` ends the process with `std::quick_exit`.
 
 ### Provider endpoint jobs
 

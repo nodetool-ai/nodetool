@@ -2,6 +2,7 @@
 #include "MsgPack.h"
 #include "../media/LocalMediaStore.h"
 #include "nodetool/graph_runner.h"
+#include "nodetool/host_lanes.h"
 #include <QCoreApplication>
 #include "../document/WorkflowMerge.h"
 #include <QJsonArray>
@@ -11,6 +12,7 @@
 #include <QJsonDocument>
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
+#include <QPointer>
 #include <QSet>
 #include <QTimer>
 #include <algorithm>
@@ -94,6 +96,9 @@ std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   };
   options.allowMedia = true;
   options.mediaEncoders = {"libx264", "aac", "libmp3lame", "libopus"};
+  // One admission ledger for the editor's runner, so its host jobs share one
+  // set of process limits.
+  options.admissionLedger = gr::newAdmissionLedger();
   auto runner = std::make_shared<gr::GraphRunner>(QFile::encodeName(path).toStdString(), std::move(options));
   shared = runner;
   return runner;
@@ -107,6 +112,10 @@ struct WorkflowSession::LocalRunRelay {
   WorkflowSession *session = nullptr;
 };
 void WorkflowSession::setGuestBundlePath(const QString &path) { guestBundleOption() = path; }
+size_t WorkflowSession::finishLocalRunJobs(std::chrono::steady_clock::time_point deadline) {
+  const gr::HostShutdown lanes = gr::shutdownHostLanes(deadline);
+  return lanes.status == gr::HostShutdownStatus::TimedOut ? lanes.supervisor->liveThreads() : 0;
+}
 bool WorkflowSession::localRunnerReady() const { return m_localRunner && m_localRunner->ready(); }
 WorkflowSession::WorkflowSession(QObject *parent)
     : QObject(parent), m_autosave(this, [this] { flushAutosave(); }), m_history(&m_generations, this), m_network(this),
@@ -1117,9 +1126,9 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
                           [relay = m_localRelay, id, workflowId](const std::string &message, bool) {
                             std::lock_guard lock(relay->mutex);
                             if (!relay->session) { return; }
-                            auto *session = relay->session;
-                            QMetaObject::invokeMethod(session, [session, id, workflowId, json = QByteArray::fromStdString(message)] {
-                              session->receiveLocal(id, workflowId, json);
+                            QPointer<WorkflowSession> session = relay->session;
+                            QMetaObject::invokeMethod(relay->session, [session, id, workflowId, json = QByteArray::fromStdString(message)] {
+                              if (session) { session->receiveLocal(id, workflowId, json); }
                             }, Qt::QueuedConnection);
                           });
   } else if (!send("run_job", data)) {

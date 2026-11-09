@@ -41,15 +41,20 @@ namespace gr {
 
 // Destroys what a lane must not destroy on the thread that hands it over:
 // the inputs of jobs it refused and results it could not give its reaper.
-// One per process, kept by the process lane registry and never destroyed,
-// so its thread exists before any lane accepts a job and outlives them all.
-// A destructor that blocks delays only later disposals.
+// It also runs the refused() callbacks of detached jobs a lane refused, on
+// a second thread of its own, so a refusal is reported even while a
+// destructor blocks the destruction thread. One per process, kept by the
+// process lane registry and never destroyed, so its threads exist before
+// any lane accepts a job and outlive them all. A destructor that blocks
+// delays only later disposals, and a refused() callback that blocks only
+// later refusals.
 //
-// Thread affinity: thread-safe. `mutex_` guards the queue, and items are
-// destroyed only on the disposer's own thread.
+// Thread affinity: thread-safe. `Queue::mutex` guards both queues. Items are
+// destroyed only on the destruction thread, and refused() runs only on the
+// refusal thread.
 class JobDisposer {
 public:
-  // Starts the thread. Throws std::system_error when it cannot start.
+  // Starts both threads. Throws std::system_error when one cannot start.
   JobDisposer();
   // Disposes what is queued, then joins the thread. The process registry
   // never destroys its disposer, so this runs only for a disposer of a test.
@@ -59,10 +64,18 @@ public:
 
   void dispose(SubmittedJob job);
   void dispose(std::deque<JobResult> results);
+  // Refuses `job` with `outcome` on the refusal thread, then destroys it on
+  // the destruction thread: a detached job's NativeJob::refused() callback,
+  // such as one that wakes a waiter, never runs on the refusing thread.
+  void refuse(SubmittedJob job, JobOutcome outcome);
+  // The thread that runs refused() callbacks.
+  std::thread::id refusalThread() const { return refuser_.get_id(); }
 
 private:
   struct Item {
     std::optional<SubmittedJob> job;
+    // Delivered through job->refuse() before the job is destroyed.
+    std::optional<JobOutcome> refusal;
     std::deque<JobResult> results;
   };
   // What the thread shares with the disposer. Thread-safe: `mutex` guards
@@ -70,14 +83,20 @@ private:
   struct Queue {
     std::mutex mutex;
     std::condition_variable work;
+    std::condition_variable refusalWork;
     std::deque<Item> items;
+    // Jobs whose refused() callback has not run yet.
+    std::deque<Item> refusals;
     bool stopping = false;
+    // The refusal thread left and hands over nothing more.
+    bool refuserDone = false;
   };
   void push(Item item);
 
-  // Shared with the thread, which must not reach the disposer itself.
+  // Shared with both threads, which must not reach the disposer itself.
   std::shared_ptr<Queue> queue_;
   std::thread thread_;
+  std::thread refuser_;
 };
 
 // The process's disposer, started on the first call. Throws
@@ -101,8 +120,10 @@ LaneSizes resolveLaneSizes(LaneSizes requested, unsigned hardwareThreads);
 // any worker, and no job runs while the lane has no reaper. A submission
 // the lane refuses, because no reaper or worker can start or because the
 // lane shut down, gets its Error or AbortError through its mailbox first,
-// and the process JobDisposer then destroys its inputs, so job code, input
-// destructors and stop callbacks never run on the submitting thread. The
+// and the process JobDisposer then destroys its inputs. A detached job,
+// which has no mailbox, gets its NativeJob::refused() call on the disposer
+// too. Job code, input destructors and stop callbacks never run on the
+// submitting thread. The
 // constructor starts the disposer if needed, so a lane exists only with it.
 //
 // Thread affinity: thread-safe. `mutex_` guards the queue, the threads and
@@ -128,8 +149,7 @@ public:
 
   // Queues `job` behind the jobs already queued. A job whose run requested
   // stop before it started is destroyed instead of run. After shutdown
-  // began, the job is cancelled with an AbortError at once, on the calling
-  // thread, which then also destroys its inputs.
+  // began, the job is refused with an AbortError as described above.
   void submit(SubmittedJob job) override;
   // Hands the stopped queued jobs to the reaper, which destroys them.
   size_t discardStopped() override;
@@ -213,6 +233,10 @@ private:
   // is, when there is no reaper to take it: the caller then does it itself
   // after unlocking.
   bool queueReap(Reap& work);
+  // Refuses a job the lane will not run: a mailbox refusal on this thread,
+  // a detached job's refused() callback on the process disposer. Its inputs
+  // are destroyed on the disposer either way.
+  void refuseAndDispose(SubmittedJob job, JobOutcome outcome);
   // From a running job's link to its run: forwards the run's stop.
   void forwardStop(const std::stop_source& stop);
   void confirmExit(Thread& self);

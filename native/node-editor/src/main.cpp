@@ -6,6 +6,19 @@
 #include <QJsonDocument>
 #include <QQuickWindow>
 #include <QTimer>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+namespace {
+// How long native host jobs of local runs get to finish after the editor
+// closed, as in the graph runner CLI.
+constexpr auto kLaneShutdownGrace = std::chrono::seconds(2);
+// Shows the editor until it quits. Returns the exit status. The window, its
+// tabs and their sessions are destroyed on return, and with the last session
+// the in-process runner, whose destructor cancels its run and joins its
+// worker thread.
+int runEditor(QApplication &app, const QCommandLineParser &parser);
+}
 int main(int argc, char **argv) {
   QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
   QApplication app(argc, argv);
@@ -23,6 +36,22 @@ int main(int argc, char **argv) {
   if (parser.isSet("guest-bundle")) {
     nodetool::node_editor::WorkflowSession::setGuestBundlePath(parser.value("guest-bundle"));
   }
+  const int status = runEditor(app, parser);
+  // A native host job of a local run that ignores its stop request keeps
+  // running after the runner is gone. Static destructors could run under it,
+  // so the editor then ends without them.
+  const auto live = nodetool::node_editor::WorkflowSession::finishLocalRunJobs(
+      std::chrono::steady_clock::now() + kLaneShutdownGrace);
+  if (live > 0) {
+    std::fprintf(stderr, "nodetool-node-editor: %zu host lane threads still running a job, exiting without static teardown\n", live);
+    std::fflush(stdout);
+    std::fflush(stderr);
+    std::quick_exit(status);
+  }
+  return status;
+}
+namespace {
+int runEditor(QApplication &app, const QCommandLineParser &parser) {
   nodetool::EditorWindow window;
   if (!parser.isSet("open") && !parser.isSet("workflow")) window.restoreTabs();
   if (parser.isSet("open") && !window.openFile(parser.value("open"))) {
@@ -106,4 +135,5 @@ int main(int argc, char **argv) {
     });
   }
   return app.exec();
+}
 }

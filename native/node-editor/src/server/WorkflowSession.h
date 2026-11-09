@@ -12,6 +12,8 @@
 #include <QTimer>
 #include <QWebSocket>
 #include <QSet>
+#include <chrono>
+#include <cstddef>
 #include <functional>
 #include <memory>
 namespace gr { class GraphRunner; }
@@ -44,6 +46,14 @@ public:
   // guest.js next to the executable are the fallbacks. NODETOOL_LOCAL_RUNNER=0
   // turns in-process runs off.
   static void setGuestBundlePath(const QString &path);
+  // Gives native host jobs of local runs until `deadline` to finish. They run
+  // on the graph runner's process lanes, which outlive every runner. Call it
+  // once every session, and with the last one the in-process runner, is
+  // gone. Returns how many lane threads were still running a job at the
+  // deadline. While any is, the caller must not run static destructors and
+  // should end the process with std::quick_exit. Later local runs in this
+  // process cannot start host jobs.
+  static size_t finishLocalRunJobs(std::chrono::steady_clock::time_point deadline);
   // Supported graphs run in this process, with or without a server.
   bool localRunnerReady() const;
   bool runsInProcess(const QString &jobId) const { return m_inProcessRuns.contains(jobId); }

@@ -23,7 +23,13 @@ public:
   size_t drainMicrotasks(size_t limit) override { return engine_.drainJobs(limit); }
   bool microtasksPending() override { return engine_.hasPendingJobs(); }
   bool dispatchCompletion() override { return async_.dispatchOne(); }
-  bool completionsPending() override { return async_.resultsPending(); }
+  // Admits deferred starts first, so a start the ledger now lets through
+  // reaches its executor before the loop decides to wait. Admission runs no
+  // JavaScript. In inline mode it runs the admitted jobs here.
+  bool completionsPending() override {
+    async_.pollAdmission();
+    return async_.resultsPending();
+  }
   bool externalWork() override { return async_.inFlight() > 0; }
   std::optional<CancelSnapshot> cancellation() override { return cancel_.cancellation(generation_); }
   // The first observation also cancels the run's cancellable jobs, before

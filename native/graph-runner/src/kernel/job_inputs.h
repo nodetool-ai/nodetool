@@ -8,6 +8,7 @@
 #pragma once
 
 #include "js/engine.h"
+#include "kernel/admission.h"
 
 #include <cstdint>
 #include <string>
@@ -30,5 +31,18 @@ std::string snapshotString(js::Engine& engine, const js::Value& value, std::stri
 // give "{}". Throws std::invalid_argument for a value that is not an object,
 // and passes on a JsError from a toJSON method or getter.
 std::string snapshotOptions(js::Engine& engine, const js::Value& value, std::string_view name);
+
+// The reserving forms (design section 4.7): each first charges the bytes
+// its copy needs to `reservation`, so a copy the admission ledger cannot
+// hold throws AdmissionError before it is made. A string reserves three
+// bytes per UTF-16 unit, the most its UTF-8 text can need, and gives back
+// what the text did not use.
+std::vector<uint8_t> snapshotBytes(js::Engine& engine, const js::Value& value, std::string_view name,
+                                   Reservation& reservation);
+std::string snapshotString(js::Engine& engine, const js::Value& value, std::string_view name,
+                           Reservation& reservation);
+// The most bytes the UTF-8 text of string `value` can need. Throws
+// std::invalid_argument, naming the argument `name`, for another type.
+uint64_t stringBytesBound(js::Engine& engine, const js::Value& value, std::string_view name);
 
 }  // namespace gr

@@ -1,5 +1,6 @@
 #include "kernel/job_inputs.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace gr {
@@ -20,6 +21,31 @@ std::vector<uint8_t> snapshotBytes(js::Engine& engine, const js::Value& value, s
 std::string snapshotString(js::Engine& engine, const js::Value& value, std::string_view name) {
   if (!engine.isString(value)) throw badArgument(name, "must be a string");
   return engine.toString(value);
+}
+
+uint64_t stringBytesBound(js::Engine& engine, const js::Value& value, std::string_view name) {
+  if (!engine.isString(value)) throw badArgument(name, "must be a string");
+  const double units = engine.toNumber(engine.get(value, "length"));
+  // A UTF-16 unit becomes at most three UTF-8 bytes; a surrogate pair, two
+  // units, becomes four.
+  return checkedMul(static_cast<uint64_t>(units), 3);
+}
+
+std::vector<uint8_t> snapshotBytes(js::Engine& engine, const js::Value& value, std::string_view name,
+                                   Reservation& reservation) {
+  if (!engine.isBytes(value)) throw badArgument(name, "must be an ArrayBuffer or a typed array");
+  if (engine.isDetached(value)) throw badArgument(name, "is a detached or out-of-bounds buffer");
+  reservation.reserveSnapshot(engine.byteLength(value));
+  return engine.toBytes(value);
+}
+
+std::string snapshotString(js::Engine& engine, const js::Value& value, std::string_view name,
+                           Reservation& reservation) {
+  const uint64_t bound = stringBytesBound(engine, value, name);
+  reservation.reserveSnapshot(bound);
+  std::string text = engine.toString(value);
+  reservation.releaseSnapshot(bound - std::min<uint64_t>(bound, text.size()));
+  return text;
 }
 
 std::string snapshotOptions(js::Engine& engine, const js::Value& value, std::string_view name) {

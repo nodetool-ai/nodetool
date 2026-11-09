@@ -31,6 +31,20 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 const char* kLog = "graph-runner";
+
+// The runner's account on the embedder's ledger, or on a private ledger with
+// the default limits, which the account keeps alive.
+std::shared_ptr<RunnerAccount> openRunnerAccount(const HostOptions& options) {
+  const HostJobLimits& limits = options.hostJobLimits;
+  RunnerLimits runner;
+  runner.runBytes = limits.runBytes;
+  runner.runOperations = limits.runOperations;
+  runner.javaScriptBytes = limits.runnerJavaScriptBytes;
+  runner.runDeferredBytes = 0;
+  runner.runDeferredEntries = 0;
+  const auto ledger = options.admissionLedger ? options.admissionLedger : std::make_shared<AdmissionLedger>();
+  return ledger->openRunner(runner);
+}
 // A cancelled run gets this long to unwind before running JavaScript is
 // interrupted. Cancellation normally lands at the next kernel step.
 constexpr auto kCancelGrace = std::chrono::milliseconds(500);
@@ -128,7 +142,8 @@ struct GraphRunner::Impl {
         options(std::move(hostOptions)),
         lanes(options.inlineHostJobs
                   ? HostLanes::inlined()
-                  : processHostLanes({options.cpuThreads, options.ioThreads, options.networkThreads})) {
+                  : processHostLanes({options.cpuThreads, options.ioThreads, options.networkThreads})),
+        account(openRunnerAccount(options)) {
     // native-rules #12: lambda captures raw this and runs on the worker thread
     worker = std::thread([this] { work(); });
   }
@@ -170,6 +185,10 @@ struct GraphRunner::Impl {
   // The process lanes, or the worker itself with inlineHostJobs. They
   // outlive the runner.
   const std::shared_ptr<HostLanes> lanes;
+  // The runner's admission account on the process ledger. Each run opens
+  // its own run account under it. Shared with the runs' reservations and
+  // JavaScript buffers, which can outlive the runner.
+  const std::shared_ptr<RunnerAccount> account;
 
   // Worker thread only.
   std::vector<uint8_t> bundle;
@@ -409,7 +428,7 @@ void GraphRunner::Impl::runJob(Job& job) {
     active = &runner;
     // Tells this run apart from every other, also from runs with the same
     // job id in this or another runner.
-    const host::RunIdentity identity = host::newRunIdentity(job.id);
+    const host::RunIdentity identity = host::newRunIdentity(job.id, account->openRun());
     AsyncRun async(engine, loop, tracker, job.generation, lanes->cpu(), identity);
     // Host functions submit to this run while it lasts. Asynchronous context
     // callbacks run on the I/O lane. Unbound before `async` is destroyed.
@@ -484,6 +503,14 @@ void GraphRunner::Impl::runJob(Job& job) {
     }
     context.reset();
   }
+}
+
+std::shared_ptr<AdmissionLedger> newAdmissionLedger(AdmissionLimits limits) {
+  ProcessLimits process;
+  process.bytes = limits.bytes;
+  process.operations = limits.operations;
+  process.javaScriptBytes = limits.javaScriptBytes;
+  return std::make_shared<AdmissionLedger>(process);
 }
 
 GraphRunner::GraphRunner(std::string bundlePath, HostOptions options)

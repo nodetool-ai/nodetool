@@ -299,6 +299,18 @@ public:
     return wrap(value);
   }
   void detachArrayBuffer(const Value& buffer) override { own(); JS_DetachArrayBuffer(ctx_, raw(buffer)); }
+  Value adoptBytes(std::unique_ptr<AdoptedBytes> bytes) override {
+    own();
+    // On failure the buffer was never made, and `bytes` still owns the data.
+    JSValue buffer = check(JS_NewArrayBuffer(ctx_, bytes->data(), bytes->size(), 0, &adoptedRealloc, bytes.get(), false));
+    // The buffer owns it from here on: adoptedRealloc destroys it when the
+    // buffer is finalized or detached, also if the array below fails.
+    (void)bytes.release();
+    JSValueConst argv[] = {buffer};
+    JSValue array = JS_NewTypedArray(ctx_, 1, argv, JS_TYPED_ARRAY_UINT8);
+    JS_FreeValue(ctx_, buffer);
+    return wrap(check(array));
+  }
   Value bytes(const uint8_t* data, size_t size) override {
     own();
     return wrap(check(JS_NewUint8ArrayCopy(ctx_, data, size)));
@@ -451,6 +463,18 @@ public:
   }
 
 private:
+  // The realloc callback of adopted buffers. A size of 0 means the buffer
+  // was finalized or detached: the bytes go with it. Another size is a
+  // transfer to that length.
+  static void* adoptedRealloc(JSRuntime*, void* opaque, void*, size_t newSize) {
+    auto* bytes = static_cast<AdoptedBytes*>(opaque);
+    if (newSize == 0) {
+      // Takes back the ownership adoptBytes handed to the buffer.
+      std::unique_ptr<AdoptedBytes> owned(bytes);
+      return nullptr;
+    }
+    return bytes->resize(newSize);
+  }
   // Every override checks first, before any QuickJS call, so a foreign
   // thread aborts before it can run guest code or touch the runtime.
   void own() const { owner_.check("js::Engine"); }

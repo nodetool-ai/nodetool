@@ -105,9 +105,13 @@ add_library(gr_kernel STATIC
   src/kernel/durable_delivery.cpp
   src/kernel/task.cpp
   src/kernel/cancel_state.cpp
+  src/kernel/admission.cpp
   src/kernel/async_jobs.cpp
   src/kernel/host_lanes.cpp
   src/kernel/job_inputs.cpp
+  src/kernel/session_stop.cpp
+  src/kernel/resource_control.cpp
+  src/kernel/destination_queue.cpp
   src/kernel/inbox.cpp
   src/kernel/graph.cpp
   src/kernel/correlation.cpp
@@ -129,6 +133,7 @@ add_library(gr_kernel STATIC
   src/host/paths.cpp
   src/host/files.cpp
   src/host/assets.cpp
+  src/host/asset_destinations.cpp
   src/host/secrets.cpp
   src/host/http.cpp
   src/host/process.cpp
@@ -187,15 +192,32 @@ if(PROJECT_IS_TOP_LEVEL)
   add_executable(gr_lanes_tests unittests/host_lanes.cpp)
   target_link_libraries(gr_lanes_tests PRIVATE gr_kernel gr_js Threads::Threads)
   add_test(NAME gr_lanes_tests COMMAND gr_lanes_tests)
+  # Resource control blocks, serial queues and session stop bridges
+  # (rollout step 5 infrastructure).
+  add_executable(gr_resource_tests unittests/resource_control.cpp)
+  target_link_libraries(gr_resource_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  add_test(NAME gr_resource_tests COMMAND gr_resource_tests)
+  # The asset destination queue: ordered commits, cancellation and
+  # confinement at commit (rollout step 5 infrastructure).
+  add_executable(gr_asset_destination_tests unittests/asset_destinations.cpp)
+  target_link_libraries(gr_asset_destination_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  add_test(NAME gr_asset_destination_tests COMMAND gr_asset_destination_tests)
   # The asynchronous context transport and shared grant rules (rollout
   # step 3). The runner cases load the guest bundle when it is passed.
   add_executable(gr_async_context_tests unittests/async_context.cpp)
   target_link_libraries(gr_async_context_tests PRIVATE nodetool_graph_runner gr_kernel gr_js
                         nlohmann_json::nlohmann_json Threads::Threads)
+  # The admission ledger and the JavaScript external-byte ledger (rollout
+  # step 7).
+  add_executable(gr_admission_tests unittests/admission.cpp)
+  target_link_libraries(gr_admission_tests PRIVATE nodetool_graph_runner gr_kernel gr_js
+                        nlohmann_json::nlohmann_json Threads::Threads)
+  add_test(NAME gr_admission_tests COMMAND gr_admission_tests)
+  set_tests_properties(gr_admission_tests PROPERTIES TIMEOUT 300)
   # Worker thread ownership checks (invariant I5), compiled into this test
   # only, so a release build can exercise them.
   add_executable(gr_thread_check_tests unittests/thread_checks.cpp
-    src/kernel/task.cpp src/kernel/async_jobs.cpp src/js/quickjs_engine.cpp)
+    src/kernel/task.cpp src/kernel/async_jobs.cpp src/kernel/admission.cpp src/js/quickjs_engine.cpp)
   target_include_directories(gr_thread_check_tests PRIVATE src include)
   target_compile_definitions(gr_thread_check_tests PRIVATE GR_THREAD_CHECKS=1)
   target_link_libraries(gr_thread_check_tests PRIVATE qjs Threads::Threads)

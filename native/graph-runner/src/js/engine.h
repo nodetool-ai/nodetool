@@ -19,6 +19,23 @@ namespace gr::js {
 class Engine;
 struct NativePayload { virtual ~NativePayload() = default; };
 
+// Native bytes that a Uint8Array from Engine::adoptBytes views without a
+// copy. The array's ArrayBuffer owns this object and destroys it when the
+// buffer is finalized or detached, so the destructor is where the bytes and
+// their accounting go.
+//
+// Thread affinity: the engine's worker thread, which creates the array and
+// finalizes the buffer.
+class AdoptedBytes : public NativePayload {
+public:
+  virtual uint8_t* data() = 0;
+  virtual size_t size() const = 0;
+  // ArrayBuffer.prototype.transfer to a new, nonzero length: returns the
+  // data at that length, or null to refuse, which leaves the bytes as they
+  // are and makes the transfer throw in JavaScript. Must not throw.
+  virtual uint8_t* resize(size_t size) noexcept = 0;
+};
+
 // A reference to a value owned by an Engine. Copies share the reference.
 // Every Value must be released before its Engine is destroyed.
 class Value {
@@ -164,6 +181,12 @@ public:
   virtual void setInterruptHandler(std::function<bool()> handler) = 0;
   virtual Value externalArrayBuffer(uint8_t* data, size_t size, std::shared_ptr<NativePayload> owner) = 0;
   virtual void detachArrayBuffer(const Value& buffer) = 0;
+  // A Uint8Array over a new ArrayBuffer that adopts `bytes` without copying
+  // them. Unlike externalArrayBuffer, which keeps WebAssembly memories
+  // rooted until the engine is destroyed, the buffer is collected like any
+  // other, may be transferred, and counts toward no view limit. Throws
+  // JsError, destroying `bytes`, when the array cannot be made.
+  virtual Value adoptBytes(std::unique_ptr<AdoptedBytes> bytes) = 0;
 
 };
 

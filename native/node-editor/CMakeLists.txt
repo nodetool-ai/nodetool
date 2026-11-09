@@ -116,6 +116,18 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_remaining_property_tests)
     add_test(NAME node_editor_remaining_property COMMAND node_editor_remaining_property_tests)
     set_tests_properties(node_editor_remaining_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ # The exit policy for native host jobs of local runs. Every slot runs in a
+ # process of its own, because shutting the process lanes down is permanent.
+ # The binary links the graph runner's kernel for its test-only lane jobs and
+ # compiles src/main.cpp, so its --exit-probe mode runs the shipped main().
+ qt_add_executable(node_editor_exit_tests tests/ui/EditorExitTest.cpp)
+ target_link_libraries(node_editor_exit_tests PRIVATE node_editor_core gr_kernel Qt6::Test)
+ target_compile_definitions(node_editor_exit_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}")
+ nodetool_use_ui_primitives(node_editor_exit_tests)
+ foreach(slot drainsJobThatOutlivesSession timesOutOnJobIgnoringStop editorExitsWithinGraceAndKeepsTabs)
+  add_test(NAME node_editor_exit_${slot} COMMAND node_editor_exit_tests ${slot})
+  set_tests_properties(node_editor_exit_${slot} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 300)
+ endforeach()
  qt_add_executable(node_editor_workflow_tabs_tests tests/ui/WorkflowTabsTest.cpp)
  target_link_libraries(node_editor_workflow_tabs_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_workflow_tabs_tests)

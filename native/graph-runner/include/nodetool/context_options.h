@@ -6,6 +6,11 @@
 #include <stop_token>
 #include <string>
 #include <utility>
+namespace gr {
+// A run's account in the admission ledger (src/kernel/admission.h). Opaque
+// to embedders.
+class RunAccount;
+} // namespace gr
 namespace gr::host {
 
 // What an asynchronous context callback reports: a JSON response, or an
@@ -29,13 +34,17 @@ struct ContextResult {
 struct RunTag {
   // The run's public job id, for reports and the provider worker.
   std::string jobId;
+  // The admission account the run's host jobs are charged to, provider jobs
+  // included. GraphRunner sets it. Empty: each user picks its own account
+  // on the process ledger.
+  std::shared_ptr<gr::RunAccount> account;
 };
 // Shared: the runner, every context call of the run and every provider job
 // filed under it hold the same tag, and its address identifies the run while
 // any of them is alive.
 using RunIdentity = std::shared_ptr<const RunTag>;
-inline RunIdentity newRunIdentity(std::string jobId) {
-  return std::make_shared<const RunTag>(RunTag{std::move(jobId)});
+inline RunIdentity newRunIdentity(std::string jobId, std::shared_ptr<gr::RunAccount> account = {}) {
+  return std::make_shared<const RunTag>(RunTag{std::move(jobId), std::move(account)});
 }
 
 class ContextCompletionState;

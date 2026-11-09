@@ -2,6 +2,7 @@
 #include "nodetool/context_options.h"
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <stop_token>
@@ -121,6 +122,12 @@ public:
     size_t maxJobs = 8;
     // Largest request a sequence of puts may assemble.
     size_t maxRequestBytes = 256 * 1024 * 1024;
+    // Most bytes a job keeps of its result and queued progress events. A
+    // start reserves this much in the host admission ledger, with its
+    // request bytes and one operation slot, and fails when the ledger cannot
+    // admit it. A result larger than this fails the job, and progress events
+    // that would exceed it drop the oldest ones first.
+    size_t maxResultBytes = 64 * 1024 * 1024;
     // Progress events kept per job before the oldest are dropped.
     size_t maxQueuedEvents = 64;
   };
@@ -253,6 +260,9 @@ public:
     // Job objects in memory: registered ones and retired ones a queued or
     // running worker still holds.
     size_t alive = 0;
+    // Bytes charged to the private admission ledger that holds the jobs and
+    // uploads of runs whose RunIdentity carries no account.
+    uint64_t fallbackBytes = 0;
   };
   Stats stats();
 
