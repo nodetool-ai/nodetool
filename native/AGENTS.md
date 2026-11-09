@@ -64,7 +64,12 @@ that needs a marker.
 
 13. Callbacks, signals and async tasks must not outlive the objects they
     reference. Disconnect or cancel them in the destructor.
-14. Do not add global or static mutable state.
+14. Do not add global or static mutable state. One exception exists: the
+    graph runner's process lane registry in
+    `graph-runner/src/kernel/host_lanes.cpp` is never destroyed, because lane
+    threads can still run when static destructors do. It may hold the host
+    lanes, the job disposer and the asset destination queue, and nothing
+    else. Its markers stay. Adding anything else to it needs a new decision.
 
 ## Verification
 
