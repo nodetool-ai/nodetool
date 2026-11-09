@@ -35,8 +35,8 @@ async function collect(
   return items;
 }
 
-// The merged OpenAIProvider routes Responses-capable models (gpt-5*, gpt-4.1*,
-// gpt-4o*, o<n>*) through the Responses API. These tests exercise that path by
+// OpenAIProvider routes GPT-5 and GPT-6 models through the Responses API.
+// These tests exercise that path by
 // constructing the provider with a mocked `responses.create` and a Responses
 // model id.
 function providerWithCreate(create: ReturnType<typeof vi.fn>) {
@@ -221,12 +221,20 @@ describe("OpenAIProvider Responses path", () => {
     });
   });
 
-  it("filters the live model list to the supported gpt-5 family", async () => {
+  it("keeps GPT-5 and GPT-6 language models from the live model list", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           data: [
             { id: "gpt-5.4" },
+            { id: "gpt-6-astra" },
+            { id: "gpt-6.1-sol" },
+            { id: "gpt-6.1-terra" },
+            { id: "gpt-6-luna" },
+            { id: "gpt-6-audio" },
+            { id: "gpt-6-realtime" },
+            { id: "gpt-6-transcribe" },
+            { id: "gpt-60" },
             { id: "gpt-4.1-mini" },
             { id: "gpt-4o" },
             { id: "o3-mini" },
@@ -244,11 +252,17 @@ describe("OpenAIProvider Responses path", () => {
     const models = await provider.getAvailableLanguageModels();
 
     // Everything before gpt-5 is retired.
-    expect(models.map((m) => m.id)).toEqual(["gpt-5.4"]);
+    expect(models.map((m) => m.id)).toEqual([
+      "gpt-5.4",
+      "gpt-6-astra",
+      "gpt-6.1-sol",
+      "gpt-6.1-terra",
+      "gpt-6-luna"
+    ]);
     expect(models.every((m) => m.provider === PROVIDER_IDS.OPENAI)).toBe(true);
   });
 
-  it("generates a non-streaming Responses message", async () => {
+  it.each(["gpt-5", "gpt-6-astra"])("generates a non-streaming Responses message with %s", async (model) => {
     const create = vi.fn().mockResolvedValue({
       id: "resp_1",
       output_text: "done",
@@ -270,14 +284,14 @@ describe("OpenAIProvider Responses path", () => {
     const provider = providerWithCreate(create);
 
     const result = await provider.generateMessage({
-      model: "gpt-5",
+      model,
       messages: [{ role: "user", content: "hi" }],
       tools: [{ name: "web_search" }, { name: "lookup" }]
     });
 
     expect(create).toHaveBeenCalledTimes(1);
     expect(create.mock.calls[0][0]).toMatchObject({
-      model: "gpt-5",
+      model,
       stream: false,
       store: false,
       tools: [{ type: "web_search" }, { type: "function", name: "lookup" }],
