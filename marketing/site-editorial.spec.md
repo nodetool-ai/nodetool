@@ -59,7 +59,7 @@ Five blocks, in order:
 3. **The cost behaviour.** Approve the still before paying for the clip. The
    prices come from `src/data/stageCosts.ts`.
 4. **Plans and costs.** A short strip links to the pricing details.
-5. **The way in.** Three short FAQ answers cover hardware, accounts and
+5. **The way in.** Five short FAQ answers cover hardware, accounts, costs, editions and
    editing the agent's work. They emit matching FAQPage schema. Keep the
    download and Cloud actions, with GitHub, Discord, and email in one line.
 

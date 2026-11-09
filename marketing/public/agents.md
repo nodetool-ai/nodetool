@@ -65,11 +65,11 @@ Connect Claude Code, Codex, or Cursor with one command. The setup, the CLI, and 
 
 ### What does it mean that NodeTool is agent-first?
 
-It means the AI agent works in the same editors you do. The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, game editor, and app builder each give the agent the actions you have, so it can change your project the way you would. A log records every action the agent took, its result, and any error. Coding agents outside NodeTool, such as Claude Code, can use the same actions through **MCP**, the standard way AI agents connect to outside tools.
+The agent edits the same projects you open in NodeTool, including storyboards, timelines and workflows. You can inspect its tool calls, results and errors, then take over yourself. External coding agents can also use NodeTool through **MCP**.
 
 ### What is a creative harness?
 
-A harness is what an AI agent works inside: the tools it can call, the documents it can change, the models and keys it may use, and the record of what it did. NodeTool is a creative harness. It gives the built-in agent, or a coding agent such as Claude Code over **MCP**, image, video, and audio generation and the same editors you use. The agent runs on your provider accounts, every tool call is logged, and the work stays as editable workflows and projects. NodeTool is open source under AGPL-3.0.
+A creative harness gives an AI agent tools, editors, model access and a record of its actions. NodeTool provides these to its built-in agent and coding agents connected through **MCP**. Their work is saved as projects and workflows you can edit.
 
 ### What is a planning agent?
 

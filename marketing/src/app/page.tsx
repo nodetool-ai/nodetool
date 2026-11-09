@@ -142,6 +142,12 @@ export default function Home() {
           emitSchema
         />
 
+        <p className="mx-auto mt-6 max-w-3xl px-6">
+          <a href="/faq" className="rounded text-sm font-medium text-blue-300 hover:text-blue-200 focus-ring">
+            See all FAQs →
+          </a>
+        </p>
+
         <section aria-labelledby="closing-cta-title" className="relative py-16 sm:py-24">
           <div className={`scroll-fade ${sectionNarrow} text-center`}>
             <h2

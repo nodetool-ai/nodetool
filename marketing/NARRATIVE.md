@@ -138,7 +138,7 @@ shot.
 
 **Keep the homepage useful on its own.** The overview cards summarize what
 people can do. The download note explains provider accounts and local models.
-The plans strip and three short FAQ answers cover costs, setup and editing.
+The plans strip and five short FAQ answers cover costs, editions, setup and editing.
 Contextual links lead to detail without requiring another page for the basics.
 
 ## Vertical pages
