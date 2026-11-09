@@ -33,6 +33,7 @@ namespace nt::audio {
 
 class LoudnessReadout;
 
+// native-rules #9: shared by the UI thread, the decode worker and the device callback, no affinity comment
 class AudioEngine {
 public:
     enum class Backend { Null, System };
@@ -98,6 +99,7 @@ public:
     // Publishes the mix before returning, so the next device block uses it.
     // Unchanged PCM mappings retain their rings. New/remapped voices become
     // audible as the worker primes them, without a transport seek.
+    // native-rules #1: takes std::shared_ptr with no comment on why unique ownership is impossible
     void setTimeline(std::shared_ptr<const Timeline> timeline);
 
     playback::AudioClockFeed& feed();

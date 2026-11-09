@@ -27,6 +27,7 @@ public:
             while (auto* socket = listener.nextPendingConnection()) {
                 ++connections;
                 sockets.append(socket);
+                // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
                 auto buffer = std::make_shared<QByteArray>();
                 QPointer<QTcpSocket> guard(socket);
                 connect(socket, &QTcpSocket::readyRead, this, [this, guard, buffer]() {

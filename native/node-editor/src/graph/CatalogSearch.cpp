@@ -354,6 +354,7 @@ SearchIndex buildIndex(const QList<CatalogSearchNode> &nodes) {
 }
 
 const SearchIndex &indexFor(const QList<CatalogSearchNode> &nodes) {
+    // native-rules #14: function-static mutable cache (cached, built), not thread-safe
     static SearchIndex cached;
     static bool built = false;
     if (!built || cached.nodes != nodes) {

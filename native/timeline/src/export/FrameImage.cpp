@@ -19,6 +19,7 @@ void FrameImage::setStretch(bool stretch) {
 }
 QSGNode* FrameImage::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (m_image.isNull() || width() <= 0 || height() <= 0) {
+        // native-rules #2: naked delete of the previous QSGNode, scene graph owner not documented
         delete old;
         return nullptr;
     }

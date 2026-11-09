@@ -53,6 +53,7 @@ private slots:
   bool fail = false;
   connect(&server, &QTcpServer::newConnection, &server, [&] {
    auto* socket = server.nextPendingConnection();
+   // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
    auto buffer = std::make_shared<QByteArray>();
    connect(socket, &QTcpSocket::readyRead, socket, [&, socket, buffer] {
     buffer->append(socket->readAll());
@@ -228,6 +229,7 @@ private slots:
   QPointer<QTcpSocket> held;
   connect(&server, &QTcpServer::newConnection, &server, [&] {
    auto* socket = server.nextPendingConnection();
+   // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
    auto buffer = std::make_shared<QByteArray>();
    connect(socket, &QTcpSocket::readyRead, socket, [&, socket, buffer] {
     buffer->append(socket->readAll());

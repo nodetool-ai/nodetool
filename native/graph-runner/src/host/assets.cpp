@@ -39,6 +39,7 @@
 namespace gr::host {
 
 std::atomic<uint64_t>& tempSequence() {
+  // native-rules #14: process-wide mutable counter
   static std::atomic<uint64_t> sequence{0};
   return sequence;
 }
@@ -125,6 +126,7 @@ struct Assets {
     // writes to one key never share bytes. Process id, a process-wide counter
     // and EEXIST retry also keep it unique against other processes.
     std::string tmp;
+    // native-rules #6: raw file descriptor closed by hand on each path
     int fd = -1;
     for (int attempt = 0; fd < 0; ++attempt) {
       tmp = r.real + ".tmp-" + std::to_string(::getpid()) + "-" + std::to_string(tempSequence().fetch_add(1));
@@ -250,6 +252,7 @@ struct Assets {
 }  // namespace
 
 void installAssets(js::Engine& e, const js::Value& object, const HostOptions& options) {
+  // native-rules #1: state shared by the asset host functions, no justification
   auto assets = std::make_shared<Assets>();
   if (!options.assetDir.empty()) assets->roots = canonicalRoots({{options.assetDir, true}});
   auto key = [](js::Engine& en, Args a) { return a.empty() ? std::string() : en.toString(a[0]); };
@@ -282,6 +285,7 @@ void installAssets(js::Engine& e, const js::Value& object, const HostOptions& op
 }
 
 void installPackageAssets(js::Engine& e, const js::Value& object, const HostOptions& options) {
+  // native-rules #1: state shared by the asset host functions, no justification
   auto assets = std::make_shared<Assets>();
   if (!options.packageAssetsDir.empty()) assets->roots = canonicalRoots({{options.packageAssetsDir, false}});
   e.set(object, "available", e.function("available", 0, [assets](js::Engine& en, Args) {

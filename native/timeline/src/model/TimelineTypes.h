@@ -130,6 +130,7 @@ struct Clip {
     std::string generatedMattePath;
     // Groups, animations, repeaters, mattes and the other scene fields,
     // parsed once from `raw` (src/scene/ClipScene.h). Null: none of them.
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const scene::ClipScene> scene;
     QJsonObject raw;
 
@@ -148,6 +149,7 @@ struct Timeline {
     std::vector<Track> tracks;
     std::vector<Clip> clips;
     // The scene camera (camera2d), parsed from `raw` (src/scene/ClipScene.h).
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const scene::SequenceScene> scene;
     QJsonObject raw;  // the whole sequence object, tracks and clips included
     // Names this snapshot's content: TimelineModel gives every new snapshot a
@@ -193,6 +195,7 @@ struct Timeline {
 
 // A process-wide counter: two snapshots never share a revision.
 inline std::uint64_t nextTimelineRevision() {
+    // native-rules #14: static mutable revision counter
     static std::atomic<std::uint64_t> next{1};
     return next.fetch_add(1, std::memory_order_relaxed);
 }

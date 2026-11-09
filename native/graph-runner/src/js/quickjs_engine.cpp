@@ -55,6 +55,7 @@ public:
     JS_SetMaxStackSize(rt_, 8 * 1024 * 1024);
     ctx_ = JS_NewContext(rt_);
     JS_SetContextOpaque(ctx_, this);
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue global = JS_GetGlobalObject(ctx_);
     JSValue ctor = JS_GetPropertyStr(ctx_, global, "ArrayBuffer");
     JSValue prototype = JS_GetPropertyStr(ctx_, ctor, "prototype");
@@ -80,6 +81,7 @@ public:
     def.class_name = "HostFunctionBox";
     def.finalizer = [](JSRuntime* rt, JSValue obj) {
       auto* engine = static_cast<QuickJsEngine*>(JS_GetRuntimeOpaque(rt));
+      // native-rules #2: naked delete in a QuickJS finalizer, no smart pointer
       delete static_cast<HostFunctionBox*>(JS_GetOpaque(obj, engine->boxClass_));
     };
     JS_NewClassID(rt_, &nativeClass_);
@@ -87,6 +89,7 @@ public:
     native.class_name = "NativeResource";
     native.finalizer = [](JSRuntime* rt, JSValue obj) {
       auto* engine = static_cast<QuickJsEngine*>(JS_GetRuntimeOpaque(rt));
+      // native-rules #2: naked delete in a QuickJS finalizer, no smart pointer
       delete static_cast<std::shared_ptr<NativePayload>*>(JS_GetOpaque(obj, engine->nativeClass_));
     };
     JS_NewClass(rt_, nativeClass_, &native);
@@ -123,6 +126,7 @@ public:
 
   // Converts a pending exception into a JsError carrying its message.
   [[noreturn]] void throwPending() {
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue exc = JS_GetException(ctx_);
     std::string message;
     if (JS_IsObject(exc)) {
@@ -142,6 +146,7 @@ public:
 
   std::string cString(JSValue v) {
     size_t len = 0;
+    // native-rules #6: raw C string freed by hand with JS_FreeCString
     const char* s = JS_ToCStringLen(ctx_, &len, v);
     if (!s) {
       JS_FreeValue(ctx_, JS_GetException(ctx_));
@@ -164,9 +169,11 @@ public:
                                      const std::string& filename) override {
     own();
     std::string src(source);
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue fn = check(JS_Eval(ctx_, src.c_str(), src.size(), filename.c_str(),
                                JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY));
     size_t size = 0;
+    // native-rules #6: raw QuickJS buffer freed by hand with js_free
     uint8_t* buf = JS_WriteObject(ctx_, &size, fn, JS_WRITE_OBJ_BYTECODE);
     JS_FreeValue(ctx_, fn);
     if (!buf) throwPending();
@@ -187,9 +194,11 @@ public:
                                      const std::string& filename) override {
     own();
     std::string src(source);
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue m = check(JS_Eval(ctx_, src.c_str(), src.size(), filename.c_str(),
                               JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));
     size_t size = 0;
+    // native-rules #6: raw QuickJS buffer freed by hand with js_free
     uint8_t* buf = JS_WriteObject(ctx_, &size, m, JS_WRITE_OBJ_BYTECODE);
     JS_FreeValue(ctx_, m);
     if (!buf) throwPending();
@@ -200,6 +209,7 @@ public:
 
   Value evaluateBytecode(const std::vector<uint8_t>& bytecode) override {
     own();
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue fn = check(JS_ReadObject(ctx_, bytecode.data(), bytecode.size(),
                                      JS_READ_OBJ_BYTECODE));
     // Module bytecode links (it has no imports to resolve) and evaluates to
@@ -225,6 +235,7 @@ public:
   Value nativeObject(std::shared_ptr<NativePayload> payload) override {
     own();
     auto value = check(JS_NewObjectClass(ctx_, nativeClass_));
+    // native-rules #2: naked new, ownership handed to a JS object finalizer
     JS_SetOpaque(value, new std::shared_ptr<NativePayload>(std::move(payload)));
     return wrap(value);
   }
@@ -258,7 +269,9 @@ public:
   Value function(const std::string& name, unsigned arity,
                  HostFunction fn) override {
     own();
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue box = check(JS_NewObjectClass(ctx_, boxClass_));
+    // native-rules #2: naked new, ownership handed to a JS object finalizer
     JS_SetOpaque(box, new HostFunctionBox{std::move(fn)});
     JSValue f = JS_NewCFunctionData(ctx_, &trampoline, int(arity), 0, 1, &box);
     JS_FreeValue(ctx_, box);
@@ -274,6 +287,7 @@ public:
     auto retained = std::make_unique<std::shared_ptr<NativePayload>>(std::move(owner));
     auto value = JS_NewArrayBuffer(ctx_, data, size, 0,
       [](JSRuntime*, void* opaque, void*, size_t newSize) -> void* {
+        // native-rules #2: naked delete in an ArrayBuffer free callback
         if (newSize == 0) delete static_cast<std::shared_ptr<NativePayload>*>(opaque);
         return nullptr;
       },
@@ -298,6 +312,7 @@ public:
     size_t size=0;
     if(JS_IsArrayBuffer(raw(v))) { JS_GetArrayBuffer(ctx_,&size,raw(v)); return size; }
     size_t offset=0, perElement=0;
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     auto buffer=check(JS_GetTypedArrayBuffer(ctx_,raw(v),&offset,&size,&perElement));
     JS_FreeValue(ctx_,buffer);
     return size;
@@ -315,6 +330,7 @@ public:
       return !JS_GetArrayBuffer(ctx_, &size, raw(v)) && JS_HasException(ctx_) ? failed() : false;
     }
     if (JS_GetTypedArrayType(raw(v)) < 0) return false;
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue buffer = JS_GetTypedArrayBuffer(ctx_, raw(v), nullptr, nullptr, nullptr);
     if (JS_IsException(buffer)) return failed();
     JS_FreeValue(ctx_, buffer);
@@ -329,6 +345,7 @@ public:
       return std::vector<uint8_t>(data, data + size);
     }
     size_t offset = 0, perElement = 0;
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue buffer = check(
         JS_GetTypedArrayBuffer(ctx_, raw(v), &offset, &size, &perElement));
     size_t total = 0;
@@ -351,6 +368,7 @@ public:
 
   std::string toString(const Value& v) override {
     own();
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue s = check(JS_ToString(ctx_, raw(v)));
     std::string out = cString(s);
     JS_FreeValue(ctx_, s);
@@ -393,6 +411,7 @@ public:
 
   PromiseCapability newPromise() override {
     own();
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue funcs[2];
     JSValue p = check(JS_NewPromiseCapability(ctx_, funcs));
     return {wrap(p), wrap(funcs[0]), wrap(funcs[1])};
@@ -437,9 +456,12 @@ private:
   void own() const { owner_.check("js::Engine"); }
   [[no_unique_address]] ThreadOwner owner_;
   std::unordered_set<void*> externalBuffers_;
+  // native-rules #6: vector of raw JSValue, each freed by hand in the destructor
   std::vector<JSValue> externalBufferRoots_;
   std::function<bool()> interrupt_;
+  // native-rules #6: raw JSRuntime freed by hand in the destructor, no custom deleter
   JSRuntime* rt_ = nullptr;
+  // native-rules #6: raw JSContext freed by hand in the destructor, no custom deleter
   JSContext* ctx_ = nullptr;
   JSClassID boxClass_ = 0;
   JSClassID nativeClass_ = 0;

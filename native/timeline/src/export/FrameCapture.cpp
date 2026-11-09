@@ -149,7 +149,10 @@ int FrameCapture::request(bool sequence, const QString& path, double timeMs, Cal
     return id;
 }
 std::shared_ptr<FrameCapture::Snapshot> FrameCapture::prepareSnapshot(const QJsonObject& raw) {
+    // native-rules #2: naked new Snapshot given to a shared_ptr with a manual delete in the deleter
+    // native-rules #12: deleter lambda captures raw this and runs on whichever thread drops the last reference
     auto snapshot = std::shared_ptr<Snapshot>(new Snapshot, [this](Snapshot* value) {
+        // native-rules #2: naked delete of the Snapshot inside a pool job
         m_pool.start([value] { QFile::remove(value->path); delete value; });
     });
     snapshot->path = m_directory.filePath(QStringLiteral("sequence-%1.json").arg(++m_snapshotSerial));
@@ -159,6 +162,7 @@ std::shared_ptr<FrameCapture::Snapshot> FrameCapture::prepareSnapshot(const QJso
     for (const auto& clip : raw.value("clips").toArray()) drawn.insert(clip.toObject().value("id").toString());
     auto timeline = m_timeline->timeline();
     std::erase_if(timeline.clips, [&drawn](const auto& clip) { return !drawn.contains(QString::fromStdString(clip.id)); });
+    // native-rules #12: lambda captures raw this and runs on a pool thread, relies on the destructor waiting
     m_pool.start([this, snapshot, raw, timeline = std::move(timeline)] {
         QString error = nt::exporting::unavailableOriginalMedia(timeline);
         if (error.isEmpty()) {
@@ -269,6 +273,7 @@ void FrameCapture::readResponses() {
         }
         const double time = discard ? 0 : it->timeMs;
         const auto directory = m_directory.path();
+        // native-rules #12: lambda captures raw this and runs on a pool thread, relies on the destructor waiting
         m_pool.start([this, json, id, path, time, directory, discard] {
             FrameCaptureResult result{id, {}, time, {}};
             if (QFileInfo(path).absolutePath() != directory) {

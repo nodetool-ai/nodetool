@@ -205,6 +205,7 @@ void RunOutputModel::resetAudio() {
   for (const auto &stream : m_streams) { if (stream && stream != &m_pcm) { streams.append(stream); } }
   if (m_audioQueue) { m_audioQueue->stopStreams(streams); }
   m_richEntries.setGroups(m_selected, {});
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (auto *stream : streams) { if (stream != &m_pcm) { delete stream; } }
   m_streams.clear(); ++m_audioGeneration; m_pcm.reset();
   for (auto &run : m_runs) {

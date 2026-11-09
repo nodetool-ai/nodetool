@@ -172,6 +172,7 @@ private slots:
     QVERIFY(!layer.linkItem("lineage"));
     QObject owner;
     auto disposable = std::make_unique<QGraphicsScene>();
+    // native-rules #3: object has both a QObject parent (&owner) and a std::unique_ptr
     auto surviving = std::make_unique<LineageLayer>(*disposable, &owner);
     QVERIFY(surviving->update(original, geometry()).isEmpty());
     disposable.reset();

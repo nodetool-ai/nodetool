@@ -33,11 +33,14 @@ bool usesVulkan() {
 }
 
 QVulkanInstance* sharedInstance() {
+    // native-rules #14: static mutable process-wide instance
     static QVulkanInstance* instance = []() {
+        // native-rules #2: naked new with no owner in the type, leaked on purpose
         auto* inst = new QVulkanInstance();  // lives for the process
         inst->setApiVersion(QVersionNumber(1, 1));
         inst->setExtensions(QQuickGraphicsConfiguration::preferredInstanceExtensions());
         if (!inst->create()) {
+            // native-rules #2: naked delete of a raw pointer
             delete inst;
             return static_cast<QVulkanInstance*>(nullptr);
         }

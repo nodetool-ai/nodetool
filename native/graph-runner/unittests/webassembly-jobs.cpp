@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <vector>
 using Json = nlohmann::json;
+// native-rules #9: written from the worker thread and read by the test, no affinity comment
 struct Job {
   std::mutex mutex;
   std::condition_variable changed;

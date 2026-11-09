@@ -156,7 +156,9 @@ QRectF TranscriptWords::wordRect(int word) const {
 
 QSGNode* TranscriptWords::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     ++m_paints;
+    // native-rules #2: naked new, no documented owner for the node returned to the scene graph
     auto* root = old ? old : new QSGNode;
+    // native-rules #2: naked delete of a scene graph child node
     while (auto* child = root->firstChild()) { delete child; }
     if (!m_layout || !m_session) { return root; }
     const auto addRects = [this, root](const QList<QRectF>& rects, const QColor& color) {

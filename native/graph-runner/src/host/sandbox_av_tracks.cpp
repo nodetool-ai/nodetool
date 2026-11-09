@@ -22,6 +22,7 @@ void check(int code) {
   throw std::runtime_error(std::string("Code media tracks: ") + message);
 }
 struct Input {
+  // native-rules #6: raw libav handles freed by hand in the destructor, no per-handle RAII
   AVFormatContext *format = nullptr;
   AVPacket *packet = av_packet_alloc();
   std::vector<int> mapping;
@@ -87,6 +88,7 @@ void installSandboxAvTracks(js::Engine &engine, const js::Value &object,
     paths.emplace_back(root, false);
   }
   const auto roots = canonicalRoots(paths);
+  // native-rules #1: state shared with the cleanup callback, no justification
   const auto temporary = std::make_shared<std::set<std::string>>();
   engine.addRunCleanup([temporary] {
     for (const auto &path : *temporary) {
@@ -205,6 +207,7 @@ void installSandboxAvTracks(js::Engine &engine, const js::Value &object,
                     return *fn && (*fn)() ? 1 : 0;
                   },
                   const_cast<std::function<bool()> *>(&grant.cancelled)};
+              // native-rules #6: raw AVDictionary freed by hand with av_dict_free
               AVDictionary *dictionary = nullptr;
               av_dict_set(&dictionary, "protocol_whitelist", "file", 0);
               av_dict_set(&dictionary, "format_whitelist", "mov,matroska,webm",

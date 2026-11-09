@@ -11,6 +11,7 @@
 
 using namespace gr;
 namespace {
+// native-rules #14: file-scope mutable test counters
 int checks = 0;
 void check(bool ok, const std::string& reason) {
   ++checks;

@@ -123,6 +123,7 @@ class HeaderRowTest final : public QObject {
     }
 
     static FakeRunServer *serve(QObject *parent, const QJsonObject &data) {
+        // native-rules #2: naked new, parent set on the next line instead of in the statement
         auto *server = new FakeRunServer;
         server->setParent(parent);
         server->metadata = data["metadata"].toArray();

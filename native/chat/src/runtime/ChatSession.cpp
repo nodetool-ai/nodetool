@@ -23,6 +23,7 @@ void ChatSession::copyText(const QString &text) { QGuiApplication::clipboard()->
 ChatSession::ChatSession(QObject *parent)
     : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this), m_mediaCatalog(this) {
   m_catalog.setMode("chat");
+    // native-rules #12: async callback captures raw this, not a QPointer
     m_mediaCatalog.setQuery([this](const QString &procedure, QJsonObject input,
                                    nt::modelpicker::Catalog::Completion done) {
         m_client.call(procedure, input, false, [done = std::move(done)](QJsonValue value, QString error) mutable {
@@ -38,12 +39,14 @@ ChatSession::ChatSession(QObject *parent)
         emit stateChanged();
     });
     connect(&m_mediaCatalog, &nt::modelpicker::Catalog::changed, this, &ChatSession::stateChanged);
+    // native-rules #2: Qt parent is not documented
     m_assetTimer = new QTimer(this);
     m_assetTimer->setSingleShot(true);
     m_assetTimer->setInterval(150);
     connect(m_assetTimer, &QTimer::timeout, this, [this] {
         requestAssets(false);
     });
+  // native-rules #12: async callback captures raw this, not a QPointer
   m_catalog.setQuery([this](const QString &procedure, QJsonObject input,
                             nt::modelpicker::Catalog::Completion done) {
     m_client.call(procedure, input, false,
@@ -336,6 +339,7 @@ void ChatSession::setWorkflow(const QString &id) {
 }
 void ChatSession::deleteThread(const QString &id) {
     m_client.call("threads.delete", {{"id", id}}, true,
+        // native-rules #12: async callback captures raw this, not a QPointer
         [this, id](QJsonValue, QString error) {
             if (!error.isEmpty()) {
                 fail("Could not delete the conversation. Please try again.");
@@ -374,6 +378,7 @@ void ChatSession::createThread(const QString &draft) {
         input["workflow_id"] = workflow;
     }
     m_client.call("threads.create", input, true,
+        // native-rules #12: async callback captures raw this, not a QPointer
         [this, workflow, draft](QJsonValue result, QString error) {
             m_creatingWorkflows.remove(workflow);
             if (!error.isEmpty()) {
@@ -395,6 +400,7 @@ void ChatSession::refresh() {
   }
   m_client.call(
       "threads.list", {{"limit", 100}, {"reverse", true}}, false,
+      // native-rules #12: async callback captures raw this, not a QPointer
       [this](QJsonValue result, QString error) {
         if (!error.isEmpty()) {
           fail(error);
@@ -429,6 +435,7 @@ void ChatSession::loadHistory(const QString &id, bool prepend) {
     emit stateChanged();
   }
   m_client.call("messages.list", input, false,
+                // native-rules #12: async callback captures raw this, not a QPointer
                 [this, id, prepend](QJsonValue result, QString error) {
                   if (!error.isEmpty()) {
                     state(id).reconciling = false;
@@ -500,6 +507,7 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
     const auto uri = image.value("uri").toString(image.value("data").toString());
     const auto key =
         projectionKey.isEmpty() ? message["id"].toString() : projectionKey;
+    // native-rules #12: async callback captures raw this, not a QPointer
     auto receive = [this, id, key, part](QJsonValue data, QString error) {
       if (m_previewBytes + data.toString().size() * 2 > 32 * 1024 * 1024) {
         error = "Image preview memory limit reached";
@@ -520,6 +528,7 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
                              ? uri.mid(8)
                              : image["asset_id"].toString();
       m_client.call("assets.get", {{"id", asset}}, false,
+                    // native-rules #12: async callback captures raw this, not a QPointer
                     [this, receive](QJsonValue value, QString error) {
                       if (!error.isEmpty()) {
                         receive({}, "Image preview unavailable");
@@ -752,6 +761,7 @@ void ChatSession::addAttachment(const QUrl &local) {
   emit stateChanged();
   m_client.upload(
       id, local,
+      // native-rules #12: async callback captures raw this, not a QPointer
       [this, thread, id](QJsonValue value, QString error) {
         auto &items = state(thread).attachments;
         bool found = false;
@@ -781,6 +791,7 @@ void ChatSession::addAttachment(const QUrl &local) {
         }
         emit stateChanged();
       },
+      // native-rules #12: async callback captures raw this, not a QPointer
       [this, thread, id](qint64 done, qint64 total) {
         auto &items = state(thread).attachments;
         for (int i = 0; i < items.size(); ++i) {
@@ -814,10 +825,13 @@ void ChatSession::openResource(const QString &uri) {
 void ChatSession::openMedia(const QVariantMap &locator) {
   const auto uri = locator.value("uri").toString();
   const auto asset = locator.value("asset_id", uri.startsWith("asset://") ? uri.mid(8) : QString()).toString();
+  // native-rules #12: async callback captures raw this, not a QPointer
   auto open = [this](const QUrl &url) {
+    // native-rules #12: async callback captures raw this, not a QPointer
     m_client.openMedia(url, [this](QJsonValue, const QString &error) { if (!error.isEmpty()) { fail(error); } });
   };
   if (!asset.isEmpty()) {
+    // native-rules #12: async callback captures raw this, not a QPointer
     m_client.call("assets.get", {{"id", asset}}, false, [this, open](QJsonValue value, QString error) {
       if (!error.isEmpty()) { fail("Media unavailable"); return; }
       const auto url = value.toObject()["get_url"].toString();
@@ -1136,6 +1150,7 @@ void ChatSession::requestAssets(bool append) {
     if (append) {
         input["cursor"] = m_assetCursor;
     }
+    // native-rules #12: async callback captures raw this, not a QPointer
     m_client.call("assets.search", input, false, [this, token, append](QJsonValue value, QString error) {
         if (token != m_assetSearch) {
             return;

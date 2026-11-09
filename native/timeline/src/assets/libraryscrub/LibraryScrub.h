@@ -56,6 +56,7 @@ public:
     double timeMs() const;
     bool frameReady() const { return m_set != nullptr; }
     int frameIndex() const;
+    // native-rules #1: returns std::shared_ptr with no comment on why unique ownership is impossible
     std::shared_ptr<const nt::ui::ThumbnailSet> frames() const { return m_set; }
 
     // The pointer is at `fraction` across the tile of `asset`.
@@ -103,6 +104,7 @@ private:
     bool m_enabled = true;
     QVariantMap m_asset;
     double m_fraction = 0;
+    // native-rules #1: std::shared_ptr ThumbnailSet, no comment on why unique ownership is impossible
     std::shared_ptr<const nt::ui::ThumbnailSet> m_set;
     std::shared_ptr<const nt::ui::ThumbnailSet> m_testSet;
     QString m_path;

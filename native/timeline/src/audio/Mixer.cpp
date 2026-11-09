@@ -39,11 +39,13 @@ struct Stage {
     int priority;
 };
 struct StageRegistry {
+    // native-rules #10: mutex does not say that it guards stages and next
     std::mutex mutex;
     std::vector<Stage> stages;
     MixPlanStageToken next = 1;
 };
 StageRegistry& registry() {
+    // native-rules #14: function-local static StageRegistry, mutable global state
     static StageRegistry instance;
     return instance;
 }

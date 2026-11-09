@@ -207,6 +207,7 @@ void installIntl(js::Engine& engine, const js::Value& object) {
     const auto tag = e.toString(args.at(0));
     const auto options = Json::parse(e.toString(args.at(1)));
     UErrorCode error = U_ZERO_ERROR;
+    // native-rules #1: state shared by the collator host functions, no justification
     auto state = std::make_shared<Collation>();
     state->value.reset(icu::Collator::createInstance(locale(tag),error)); status(error);
     auto set = [&](UColAttribute key,UColAttributeValue value) { state->value->setAttribute(key,value,error); status(error); };

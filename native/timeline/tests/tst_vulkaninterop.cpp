@@ -208,6 +208,7 @@ private slots:
         const int before = VulkanInterop::liveCompletionMarks();
         const int callbacksBefore = testing::completedReadbacks();
         RestoreReadbackObserver restore;
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto callbackLiveCounts = std::make_shared<std::vector<int>>();
         testing::setReadbackObserver([callbackLiveCounts](int live) { callbackLiveCounts->push_back(live); });
         auto interop = VulkanInterop::create(m_rhi.get());
@@ -308,6 +309,7 @@ private slots:
         }
         const auto before = testing::releaseStats();
         std::weak_ptr<VulkanInterop> oldInterop = interop;
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         std::vector<std::shared_ptr<FrameRef>> frames;
         for (auto& fixture : fixtures) {
             std::string error;

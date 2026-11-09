@@ -82,6 +82,7 @@ public:
     return it == hostStates_.end() ? nullptr : it->second;
   }
 private:
+  // native-rules #1: shared_ptr payload shared with JS objects, no comment says why unique fails
   std::map<std::string, std::shared_ptr<NativePayload>> hostStates_;
   std::vector<std::function<void()>> cleanups_;
   std::vector<std::function<void()>> contextCleanups_;
@@ -113,6 +114,7 @@ public:
   virtual Value string(std::string_view s) = 0;
   virtual Value object() = 0;
   // Opaque native payload, finalized with its JS object. Never readable by JS.
+  // native-rules #1: shared_ptr<NativePayload> shared with JS objects, no justification
   virtual Value nativeObject(std::shared_ptr<NativePayload> payload) = 0;
   virtual std::shared_ptr<NativePayload> nativePayload(const Value& object) = 0;
   virtual Value function(const std::string& name, unsigned arity,

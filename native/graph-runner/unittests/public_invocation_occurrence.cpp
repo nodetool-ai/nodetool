@@ -7,6 +7,7 @@
 
 namespace {
 using Json=nlohmann::json;
+// native-rules #14: file-scope mutable test counters
 int checks=0;
 void check(bool value,const char* message) { ++checks;if(!value) throw std::runtime_error(message); }
 std::string identityKey(const gr::InvocationIdentity& identity) {

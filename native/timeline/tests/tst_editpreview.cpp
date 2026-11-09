@@ -77,6 +77,7 @@ private slots:
             nt::hw::prepareWindow(&window);  // a Vulkan scene graph needs its instance (M6)
             const QSize size(320, 180);
             window.resize(size);
+            // native-rules #2: naked new, parent item is set only later by setParentItem
             auto* compositor = new PreviewCompositor();
             compositor->setTimeline(&doc);
             compositor->setClock(&playback);
@@ -126,6 +127,7 @@ private slots:
             renderFrame();
             renderFrame();
             QCOMPARE(compositor->frameStats()[n + 3].layers, 1);
+            // native-rules #2: naked delete of an item that also has a parent item
             delete compositor;
         }
     }

@@ -31,6 +31,7 @@ Q_LOGGING_CATEGORY(syncLog, "nodetool.timeline.sync", QtInfoMsg)
 
 namespace {
 
+// native-rules #14: namespace-scope mutable atomic counter shared by all controllers
 std::atomic<int> liveWorkers{0};
 
 QByteArray contentHash(const QJsonObject& document) {
@@ -117,11 +118,13 @@ AutosaveController::~AutosaveController() {
     } else if (m_fetchWorker) {
         // A finished worker's deleteLater never runs once the event loop has
         // stopped at quit, so delete it here.
+        // native-rules #2: naked delete of a QThread that also has deleteLater queued on finished
         delete m_fetchWorker.data();
     }
     if (m_restoreWorker && !m_restoreWorker->wait(remaining())) {
         qCWarning(syncLog, "sync: restore media worker still running after shutdown wait");
     } else if (m_restoreWorker) {
+        // native-rules #2: naked delete of a QThread that also has deleteLater queued on finished
         delete m_restoreWorker.data();
     }
 }
@@ -275,6 +278,7 @@ void AutosaveController::fetchExternal(bool recovery) {
         : m_target.backupDir; // standalone library callers can supply a plain backup folder
     const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot, m_target.token,
         true, m_target.expectedInstance};
+    // native-rules #1: std::shared_ptr result shared with the worker, no justification comment
     auto result = std::make_shared<ServerOpenResult>();
     const QPointer<AutosaveController> guard(this);
     ++liveWorkers;
@@ -318,6 +322,7 @@ void AutosaveController::fetchExternal(bool recovery) {
         guard->processExternal();
     }, Qt::QueuedConnection);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    // native-rules #1: worker has two owners, deleteLater on finished and delete in the destructor
     m_fetchWorker = worker;
     worker->start();
     emit stateChanged();
@@ -720,6 +725,7 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
     const QByteArray startingHash = currentHash();
     const QPointer<AutosaveController> guard(this);
     const QPointer<QObject> target(timeline);
+    // native-rules #1: std::shared_ptr result shared with the worker, no justification comment
     auto result = std::make_shared<ServerOpenResult>();
     m_restoringEarlier = true;
     m_earlierCopyError.clear();
@@ -756,6 +762,7 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
         emit guard->stateChanged();
     }, Qt::QueuedConnection);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    // native-rules #1: worker has two owners, deleteLater on finished and delete in the destructor
     m_restoreWorker = worker;
     worker->start();
     emit stateChanged();

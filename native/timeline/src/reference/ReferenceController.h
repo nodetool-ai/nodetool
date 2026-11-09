@@ -24,6 +24,7 @@ namespace nt::assets { class MediaProtection; }
 // frame always shows the current document.
 //
 // Everything here is view state. It writes neither the document nor undo.
+// native-rules #9: used across threads (QThread worker) and declares no thread affinity at its top
 class ReferenceController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -131,6 +132,7 @@ private:
     QPointer<TimelineModel> m_observed;
     QTimer m_timer;
     std::optional<Target> m_target;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
     TakeMediaResolver m_resolver;
     QImage m_image;

@@ -123,8 +123,10 @@ InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorScen
 }
 InlineTitlePresenter::~InlineTitlePresenter() {
   qApp->removeEventFilter(this); cancel(); clearNotes(); clearControls();
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &widget : retired_) delete widget.data();
 }
+// native-rules #2: naked delete on a Qt child that also has a parent or scene owner
 void InlineTitlePresenter::clearNotes() { for (const auto &note : notes_) delete note.data(); notes_.clear(); }
 void InlineTitlePresenter::clearControls() {
   for (const auto &widget : controls_) { if (widget) { widget->hide(); widget->setEnabled(false); widget->deleteLater(); } }

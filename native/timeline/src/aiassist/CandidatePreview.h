@@ -39,6 +39,7 @@ private:
     QPointer<TimelineModel> m_timeline;
     TimelineModel* m_preview;
     PlaybackClock* m_clock;
+    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QThread* m_worker = nullptr;
     struct PendingPreview { QString assetId; QString mediaType; double durationMs; };

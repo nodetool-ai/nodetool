@@ -20,6 +20,7 @@ size_t descriptors() {
   return std::distance(fs::directory_iterator(path), fs::directory_iterator{});
 }
 #ifdef GR_FILE_HANDLE_WRAP_IO
+// native-rules #14: file-scope mutable fault-injection flags read by wrapped syscalls
 bool interruptRead = false, interruptPread = false;
 extern "C" ssize_t __real_read(int fd, void *buffer, size_t size);
 extern "C" ssize_t __real_pread(int fd, void *buffer, size_t size,

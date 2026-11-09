@@ -10,6 +10,7 @@
 namespace gr::host {
 
 void installSecrets(js::Engine& e, const js::Value& object, const HostOptions& options) {
+  // native-rules #1: map shared by one host function, no justification
   auto secrets = std::make_shared<std::map<std::string, std::string>>(options.secrets);
   e.set(object, "get", e.function("get", 1, [secrets](js::Engine& en, const std::vector<js::Value>& a) {
     if (a.empty()) return en.null();

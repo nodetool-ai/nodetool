@@ -363,6 +363,7 @@ struct Files {
 }  // namespace
 
 void installFiles(js::Engine& e, const js::Value& object, const HostOptions& options) {
+  // native-rules #1: state shared by the file host functions, no justification
   auto files = std::make_shared<Files>();
   std::vector<std::pair<std::string, bool>> dirs;
   if (!options.workspaceDir.empty()) dirs.emplace_back(options.workspaceDir, true);

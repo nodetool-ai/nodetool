@@ -70,6 +70,7 @@ private:
             inner_->setParameter(p.name,p.gain?20*std::log10(std::max(value,1e-300)):value);
         }
     }
+    // native-rules #1: std::shared_ptr BlockProcessor, no comment on why unique ownership is impossible
     std::shared_ptr<audio::BlockProcessor> inner_;
     std::vector<Parameter> parameters_;
     bool quantum_;

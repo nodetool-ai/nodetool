@@ -7,12 +7,14 @@
 #include <stdexcept>
 #include <vector>
 using Json = nlohmann::json;
+// native-rules #9: written from the worker thread and read by the test, no affinity comment
 struct Messages {
   std::mutex mutex;
   std::condition_variable changed;
   std::vector<std::pair<Json, bool>> rows;
   bool finished = false;
   auto handler() {
+    // native-rules #12: lambda captures raw this and runs on the worker thread
     return [this](const std::string &text, bool last) {
       std::lock_guard lock(mutex);
       rows.emplace_back(Json::parse(text), last);

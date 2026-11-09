@@ -53,6 +53,7 @@ TakeSwitcher::TakeSwitcher(TimelineModel* model) : QObject(model), m_model(model
     m_messageTimer.setSingleShot(true);
     m_messageTimer.setInterval(MESSAGE_MS);
     connect(&m_messageTimer, &QTimer::timeout, this, [this] { setMessage({}); });
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto protection = std::make_shared<nt::assets::MediaProtection>();
     m_resolver = [protection](const QJsonObject& rawClip, const QString& assetId) {
         return resolveFromServer(rawClip, assetId, protection);
@@ -63,6 +64,7 @@ TakeSwitcher::~TakeSwitcher() {
     if (m_worker) {
         m_worker->requestInterruption();
         m_worker->wait();
+        // native-rules #2: naked delete, the finished handler also calls deleteLater on the thread
         delete m_worker;
     }
 }

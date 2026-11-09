@@ -25,6 +25,7 @@ inline bool renderHook(const EffectContext& ctx, const LayerFrame& first, const 
         std::array<float,4> sizes;
     } u{};
     static_assert(sizeof(Uniforms) == 96);
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     auto resources = std::make_shared<Resources>();
     auto* rhi = ctx.rhi;
     resources->vertices.reset(rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, 64));

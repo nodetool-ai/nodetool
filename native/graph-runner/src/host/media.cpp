@@ -125,6 +125,7 @@ struct Policy {
   }
 };
 struct Input {
+  // native-rules #6: raw libav handles freed by hand in the destructor, no per-handle RAII
   AVFormatContext *format = nullptr;
   AVCodecContext *codec = nullptr;
   AVPacket *packet = av_packet_alloc();
@@ -238,6 +239,7 @@ struct Input {
   }
 };
 struct Filter {
+  // native-rules #6: raw AVFilterGraph freed by hand in the destructor
   AVFilterGraph *graph = avfilter_graph_alloc();
   AVFilterContext *sink = nullptr;
   std::vector<AVFilterContext *> sources;
@@ -252,6 +254,7 @@ struct Filter {
     policy = p;
     audio = opts.value("outputKind", "video") == "audio";
     graph->nb_threads = 1;
+    // native-rules #6: raw AVFilterInOut freed by hand on every exit path
     AVFilterInOut *outputs = nullptr;
     AVFilterInOut *in = avfilter_inout_alloc();
     try {
@@ -359,6 +362,7 @@ struct Filter {
 };
 struct Encoder {
   std::shared_ptr<Policy> policy;
+  // native-rules #6: raw libav handles freed by hand in the destructor, no per-handle RAII
   AVFormatContext *format = nullptr;
   AVCodecContext *codec = nullptr;
   AVFilterGraph *graph = nullptr;
@@ -720,7 +724,9 @@ Json probe(Input &i) {
 } // namespace
 void installMedia(js::Engine &e, const js::Value &object,
                   const HostOptions &host, const MediaOptions &options) {
+  // native-rules #1: state shared by the media host functions, no justification
   auto s = std::make_shared<State>();
+  // native-rules #1: Policy shared by inputs, filters and encoders, no justification
   s->policy = std::make_shared<Policy>();
   s->policy->options = options;
   std::vector<std::pair<std::string, bool>> roots;

@@ -535,6 +535,7 @@ Executor& Runner::resolveExecutor(const Node& node) {
     ? makeSubgraphExecutor(catalog_, *this, node.id, options_)
     : catalog_.create(node.raw);
   if (!created) throw std::runtime_error("Unknown node type: " + node.type);
+  // native-rules #12: lambda captures raw this and is stored in the executor, runs later
   created = statefulExecutor(std::move(created), node, options_.executionPolicy, [this] { return cancelled_; });
   Executor& ref = *created;
   executors_[node.id] = std::move(created);

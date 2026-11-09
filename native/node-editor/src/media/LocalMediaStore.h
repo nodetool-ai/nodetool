@@ -17,16 +17,19 @@ namespace nodetool::node_editor {
 struct LocalImage {
   uint32_t width = 0;
   uint32_t height = 0;
+  // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
   std::shared_ptr<const std::vector<uint8_t>> rgba;
   bool isNull() const { return !rgba; }
 };
 
+// native-rules #9: used from the runner worker thread and the GUI thread, no affinity comment at the top
 class LocalMediaStore {
 public:
   static constexpr char Scheme[] = "local-media://";
 
   // One store per process: every session shares the one in-process runner.
   static LocalMediaStore &instance() {
+    // native-rules #14: process-wide singleton holding mutable state
     static LocalMediaStore store;
     return store;
   }
@@ -54,6 +57,7 @@ private:
     QString run;
     LocalImage image;
   };
+  // native-rules #10: mutex does not say which data it guards (entries_, next_)
   mutable std::mutex mutex_;
   QHash<QString, Entry> entries_;
   quint64 next_ = 0;

@@ -24,6 +24,7 @@ class TimelineModel;
 // What the number keys do on one timeline: switch or cut while stopped, and cut
 // live during a recording pass. Keeps the media of the takes it can reach.
 // The state here is view state. Only the commits reach the document.
+// native-rules #9: used across threads (QThread worker) and declares no thread affinity at its top
 class TakeSwitcher : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -85,6 +86,7 @@ private:
     QSet<QString> m_failed;
     QList<MediaRequest> m_mediaQueue;
     QString m_resolving;
+    // native-rules #1: raw pointer owns the thread, deleted by hand in the destructor
     QThread* m_worker = nullptr;
 };
 

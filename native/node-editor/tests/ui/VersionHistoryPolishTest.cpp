@@ -51,7 +51,9 @@ public:
         connect(this, &QTcpServer::newConnection, this, [this] {
             auto socket = nextPendingConnection();
             socket->setParent(this);
+            // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
             auto buffer = std::make_shared<QByteArray>();
+            // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
             auto served = std::make_shared<bool>(false);
             connect(socket, &QTcpSocket::readyRead, this, [this, socket, buffer, served] {
                 // The WebSocket upgrade must reach the WebSocket server unread.

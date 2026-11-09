@@ -134,6 +134,7 @@ const char* adapterTypeName(WGPUAdapterType t) {
 // A texture as the Executor sees a LabeledTexture: size, format and the
 // alpha association its metadata records.
 struct Tex {
+  // native-rules #6: raw WGPUTexture destroyed and released by hand
   WGPUTexture texture = nullptr;
   uint32_t width = 0;
   uint32_t height = 0;
@@ -146,8 +147,10 @@ struct Stored {
   std::string run;
 };
 
+// native-rules #14: process-wide mutable texture id counter
 std::atomic<uint64_t> nextTextureId{1};
 
+// native-rules #9: process-wide device used from many threads, no affinity comment
 class WgpuDevice final : public Device {
 public:
   explicit WgpuDevice(const GpuOptions& options) { open(options); }
@@ -158,6 +161,7 @@ public:
 
   std::string description() const override { return description_; }
 
+  // native-rules #5: passes raw WGPU instance, device and queue across a module boundary
   void compute(const std::function<void(void*, void*, void*)>& fn) override {
     std::lock_guard lock(mutex_);
     wgpuDevicePushErrorScope(device_, WGPUErrorFilter_Validation);
@@ -237,8 +241,10 @@ public:
     WGPUBufferDescriptor bd = WGPU_BUFFER_DESCRIPTOR_INIT;
     bd.size = uint64_t(rowStride) * tex.height;
     bd.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead;
+    // native-rules #6: raw WGPUBuffer released by hand
     WGPUBuffer buffer = wgpuDeviceCreateBuffer(device_, &bd);
     WGPUCommandEncoderDescriptor ced = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
+    // native-rules #6: raw WGPUCommandEncoder released by hand
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(device_, &ced);
     WGPUTexelCopyTextureInfo src = WGPU_TEXEL_COPY_TEXTURE_INFO_INIT;
     src.texture = tex.texture;
@@ -332,8 +338,11 @@ private:
 
   // Objects one run() creates, released after submission.
   struct Encoding {
+    // native-rules #6: raw WGPU handles released by hand in release()
     WGPUCommandEncoder encoder = nullptr;
+    // native-rules #6: raw WGPUBuffer handles released by hand in release()
     std::vector<WGPUBuffer> buffers;
+    // native-rules #6: raw WGPUBindGroup handles released by hand in release()
     std::vector<WGPUBindGroup> bindGroups;
     std::vector<Tex> scratch;
     void release() {
@@ -355,6 +364,7 @@ private:
   };
 
   struct Pipeline {
+    // native-rules #6: raw WGPU pipeline handles never released
     WGPUBindGroupLayout layout = nullptr;
     WGPURenderPipeline render = nullptr;
     WGPUComputePipeline compute = nullptr;
@@ -530,6 +540,7 @@ private:
     sd.lodMinClamp = d.value("lodMinClamp", 0.0f);
     sd.lodMaxClamp = d.value("lodMaxClamp", 32.0f);
     sd.maxAnisotropy = d.value("maxAnisotropy", uint16_t(1));
+    // native-rules #6: raw WGPUSampler kept in a map, never released
     WGPUSampler s = wgpuDeviceCreateSampler(device_, &sd);
     samplers_[key] = s;
     return s;
@@ -589,8 +600,10 @@ private:
     WGPUPipelineLayoutDescriptor pld = WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
     pld.bindGroupLayoutCount = 1;
     pld.bindGroupLayouts = &p.layout;
+    // native-rules #6: raw WGPUPipelineLayout released by hand, leaks if creation throws
     WGPUPipelineLayout pipelineLayout = wgpuDeviceCreatePipelineLayout(device_, &pld);
     if (module.kind == "fragment") {
+      // native-rules #6: raw WGPUShaderModule released by hand
       WGPUShaderModule shader = shaderModule(module.key, catalog.vertex + "\n" + module.wgsl);
       WGPUColorTargetState color = WGPU_COLOR_TARGET_STATE_INIT;
       color.format = target;
@@ -609,6 +622,7 @@ private:
       p.render = wgpuDeviceCreateRenderPipeline(device_, &rd);
       wgpuShaderModuleRelease(shader);
     } else {
+      // native-rules #6: raw WGPUShaderModule released by hand
       WGPUShaderModule shader = shaderModule(module.key, module.wgsl);
       WGPUComputePipelineDescriptor cd = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
       cd.label = view(module.key);
@@ -648,6 +662,7 @@ private:
     }
 
     const Pipeline& p = pipeline(catalog, module, output.format);
+    // native-rules #6: raw WGPUBuffer released by hand through Encoding
     WGPUBuffer uniform = nullptr;
     if (module.hasUniform) {
       std::vector<uint8_t> data = packUniform(module, params);
@@ -660,6 +675,7 @@ private:
     }
 
     std::vector<WGPUBindGroupEntry> entries;
+    // native-rules #6: raw WGPUTextureView handles released by hand
     std::vector<WGPUTextureView> views;
     for (const auto& b : module.bindings) {
       WGPUBindGroupEntry entry = WGPU_BIND_GROUP_ENTRY_INIT;
@@ -708,6 +724,7 @@ private:
     bgd.layout = p.layout;
     bgd.entryCount = entries.size();
     bgd.entries = entries.data();
+    // native-rules #6: raw WGPUBindGroup released by hand through Encoding
     WGPUBindGroup group = wgpuDeviceCreateBindGroup(device_, &bgd);
     enc.bindGroups.push_back(group);
 
@@ -721,6 +738,7 @@ private:
       WGPURenderPassDescriptor rpd = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
       rpd.colorAttachmentCount = 1;
       rpd.colorAttachments = &color;
+      // native-rules #6: raw WGPURenderPassEncoder released by hand
       WGPURenderPassEncoder pass = wgpuCommandEncoderBeginRenderPass(enc.encoder, &rpd);
       wgpuRenderPassEncoderSetPipeline(pass, p.render);
       wgpuRenderPassEncoderSetBindGroup(pass, 0, group, 0, nullptr);
@@ -730,6 +748,7 @@ private:
     } else {
       if (!dispatch.compute) throw std::runtime_error(module.key + ": compute module without a dispatch size");
       WGPUComputePassDescriptor cpd = WGPU_COMPUTE_PASS_DESCRIPTOR_INIT;
+      // native-rules #6: raw WGPUComputePassEncoder released by hand
       WGPUComputePassEncoder pass = wgpuCommandEncoderBeginComputePass(enc.encoder, &cpd);
       wgpuComputePassEncoderSetPipeline(pass, p.compute);
       wgpuComputePassEncoderSetBindGroup(pass, 0, group, 0, nullptr);
@@ -805,6 +824,7 @@ private:
   }
 
   mutable std::recursive_mutex mutex_;
+  // native-rules #6: raw WGPU instance, adapter, device and queue are never released
   WGPUInstance instance_ = nullptr;
   WGPUAdapter adapter_ = nullptr;
   WGPUDevice device_ = nullptr;
@@ -818,13 +838,18 @@ private:
   std::map<std::string, WGPUSampler> samplers_;
 };
 
+// native-rules #14: process-wide mutex for the device registry
 std::mutex devicesMutex;
 std::map<std::string, std::shared_ptr<Device>>& devices() {
   // Never destroyed (see ~WgpuDevice).
+  // native-rules #14: process-wide device registry, never destroyed
+  // native-rules #2: naked new for a leaked registry
   static auto* map = new std::map<std::string, std::shared_ptr<Device>>();
   return *map;
 }
 std::map<std::string, std::string>& failures() {
+  // native-rules #14: process-wide failure cache, never destroyed
+  // native-rules #2: naked new for a leaked cache
   static auto* map = new std::map<std::string, std::string>();
   return *map;
 }

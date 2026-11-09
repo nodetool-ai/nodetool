@@ -42,6 +42,7 @@ QJsonObject acceptanceSnapshot(const QJsonObject& raw, const QJsonObject& payloa
     }
     return {{"clips", clips}, {"locks", locks}};
 }
+// native-rules #9: atomic flag is set by the UI thread and read by a worker, no affinity comment
 struct AcceptanceGuard {
     std::atomic_bool current{true};
     QMetaObject::Connection changed;
@@ -275,6 +276,7 @@ void ShotWorkflow::persist(const QJsonObject& board, const QJsonObject& localEdi
     const auto protection = m_protection; const auto mediaGeneration = protection->generation(); const auto resolver = m_mediaResolver;
     QJsonArray mediaClips;
     QJsonObject expectedAcceptance;
+    // native-rules #1: std::shared_ptr AcceptanceGuard shared with a worker, no justification comment
     std::shared_ptr<AcceptanceGuard> acceptance;
     if (localEdit.value("edit").toString() == "shot.accept") {
         const auto payload = localEdit.value("payload").toObject();

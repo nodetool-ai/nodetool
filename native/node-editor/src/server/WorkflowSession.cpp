@@ -20,6 +20,7 @@
 namespace nodetool::node_editor {
 namespace {
 QString &guestBundleOption() {
+  // native-rules #14: function-static mutable guest bundle path
   static QString path;
   return path;
 }
@@ -70,6 +71,7 @@ QString localAssetDir() {
 // media nodes use.
 std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   if (qEnvironmentVariable("NODETOOL_LOCAL_RUNNER") == "0") { return {}; }
+  // native-rules #14: function-static mutable runner handle shared by all sessions
   static std::weak_ptr<gr::GraphRunner> shared;
   if (auto runner = shared.lock()) { return runner; }
   const auto path = guestBundlePath();
@@ -814,6 +816,7 @@ void WorkflowSession::checkpointBeforeRun(std::function<void(bool)> done) {
     // The web queues the checkpoint behind a save in flight (queueWorkflowSave), so the token
     // that save leaves is the one the checkpoint sends.
     const auto epoch = m_documentEpoch;
+    // native-rules #1: shared_ptr<Connection> shared by lambda copies, no justification comment
     auto link = std::make_shared<QMetaObject::Connection>();
     *link = connect(this, &WorkflowSession::stateChanged, this, [this, epoch, done, link] {
       if (m_saving || m_remoteLoading) return;

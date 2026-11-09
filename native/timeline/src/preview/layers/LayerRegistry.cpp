@@ -12,6 +12,7 @@ struct Registry {
     std::vector<EffectRegistration> effects;
     std::uint64_t next = 1;
 };
+// native-rules #14: static process-wide mutable registry
 Registry& registry() { static Registry value; return value; }
 }
 LayerSourceToken registerLayerSource(std::string kind, LayerSourceFactory factory) {

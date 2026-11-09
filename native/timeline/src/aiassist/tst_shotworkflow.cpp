@@ -367,6 +367,7 @@ private slots:
         QFETCH(bool, delayCas);
         QFETCH(bool, addLinkedClip);
         struct Gate { QSemaphore entered; QSemaphore proceed; std::atomic<int> resolutions{0}; std::atomic<int> writes{0}; };
+        // native-rules #1: std::shared_ptr gate shared with a worker, no justification comment
         const auto gate = std::make_shared<Gate>();
         QTemporaryDir folder; QVERIFY(folder.isValid());
         QFile media(folder.filePath("candidate.bin")); QVERIFY(media.open(QIODevice::WriteOnly)); media.write("fixture"); media.close();

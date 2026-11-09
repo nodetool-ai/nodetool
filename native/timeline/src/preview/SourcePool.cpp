@@ -15,6 +15,7 @@
 
 namespace nt {
 
+// native-rules #12: lambda captures raw this and runs on the reaper thread
 SourcePool::SourcePool() : m_reaper([this] { reapLoop(); }) {}
 
 SourcePool::~SourcePool() {

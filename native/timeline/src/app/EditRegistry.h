@@ -20,10 +20,12 @@ struct EditRefusal {
 };
 namespace detail {
 inline QList<EditRegistration>& registrations() {
+    // native-rules #14: static mutable registry
     static QList<EditRegistration> value;
     return value;
 }
 inline QList<EditRefusal>& refusals() {
+    // native-rules #14: static mutable registry
     static QList<EditRefusal> value;
     return value;
 }
@@ -60,10 +62,12 @@ inline bool recordEdit(const QString& name, const Edit& edit, bool override, boo
 inline const QList<EditRegistration>& editRegistrations() { return detail::registrations(); }
 inline const QList<EditRefusal>& editRefusals() { return detail::refusals(); }
 inline QHash<QString, Edit>& edits() {
+    // native-rules #14: static mutable registry
     static QHash<QString, Edit> value;
     return value;
 }
 inline QHash<QString, Edit>& editOverrides() {
+    // native-rules #14: static mutable registry
     static QHash<QString, Edit> value;
     return value;
 }

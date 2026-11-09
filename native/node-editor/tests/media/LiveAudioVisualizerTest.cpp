@@ -22,6 +22,7 @@ struct Record {
 };
 class Sink final : public PcmSink {
 public:
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  explicit Sink(std::shared_ptr<Record> record) : record_(std::move(record)) {}
  QAudioFormat preferredFormat() const override { return record_->format; }
  bool supports(const QAudioFormat &format) const override { return format == record_->format; }
@@ -36,9 +37,12 @@ public:
  bool failed() const override { return false; }
  void stop() override {}
 private:
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  std::shared_ptr<Record> record_;
 };
+// native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
 std::shared_ptr<Record> attach(PcmStream &stream, QAudioFormat::SampleFormat format = QAudioFormat::Float, int channels = 1) {
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  auto record = std::make_shared<Record>(); record->format.setSampleRate(24000); record->format.setChannelCount(channels); record->format.setSampleFormat(format);
  stream.setSinkFactory([record] { return std::make_unique<Sink>(record); }); return record;
 }
@@ -159,6 +163,7 @@ private slots:
   nodetool::EditorWindow window; window.resize(size); window.setDarkTheme(dark);
   window.setCatalog(QJsonArray{QJsonObject{{"node_type", "nodetool.audio.realtime.AudioOutput"}, {"title", "Audio output"}, {"outputs", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "audio"}}}}}}}});
   QVERIFY(window.document()->load(QJsonObject{{"name", "Live audio visual fixture"}, {"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", node}, {"type", "nodetool.audio.realtime.AudioOutput"}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}}}}}}, {"edges", QJsonArray{}}}}}));
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto record = std::make_shared<Record>(); record->format.setSampleRate(24000); record->format.setChannelCount(1); record->format.setSampleFormat(QAudioFormat::Float); record->capacity = 100000;
   window.runOutput()->setPcmSinkFactory([record] { return std::make_unique<Sink>(record); });
   window.show(); window.activateWindow(); window.action("Output");

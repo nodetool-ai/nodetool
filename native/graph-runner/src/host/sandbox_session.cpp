@@ -19,6 +19,7 @@ namespace {
 using Json = nlohmann::json;
 using Clock = std::chrono::steady_clock;
 std::string text(JSContext* ctx, JSValueConst value) {
+  // native-rules #6: raw C string freed by hand with JS_FreeCString
   const char* raw = JS_ToCString(ctx,value);
   if (!raw) throw std::runtime_error("Sandbox value cannot be serialized");
   std::string out(raw); JS_FreeCString(ctx,raw); return out;
@@ -38,6 +39,7 @@ struct Session {
   std::function<bool(const std::string&)> streamOpen;
   std::function<std::string(const std::string&,const std::string&)> synchronous;
   Clock::time_point deadline;
+  // native-rules #6: raw JSValues freed by hand in the destructor
   std::map<unsigned, std::pair<JSValue,JSValue>> pending;
   std::deque<Json> events;
   unsigned serial = 0;
@@ -46,6 +48,7 @@ struct Session {
   size_t outputLimit, outputBytes = 0;
   size_t emitCalls = 0;
   std::string error;
+  // native-rules #6: raw JSValue freed by hand in the destructor
   JSValue evaluation = JS_UNDEFINED;
   bool loaderLocked = false;
   std::map<std::string,std::string> moduleSources, moduleNames;
@@ -114,6 +117,7 @@ struct Session {
       const auto operation = text(ctx,args[0]);
       const auto payload = text(ctx,args[1]);
       if (payload.size() > 10 * 1024 * 1024) throw std::runtime_error("Sandbox bridge size limit exceeded");
+      // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
       JSValue functions[2];
       auto promise = JS_NewPromiseCapability(ctx,functions);
       session.pending.emplace(session.serial,std::pair{functions[0],functions[1]});
@@ -123,8 +127,10 @@ struct Session {
     } catch(const std::exception& error) { return JS_ThrowInternalError(ctx,"%s",error.what()); }
   }
   void evaluate(const std::string& code,const char* filename) {
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     auto value = JS_Eval(context,code.c_str(),code.size(),filename,JS_EVAL_TYPE_GLOBAL);
     if (JS_IsException(value)) {
+      // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
       auto exception = JS_GetException(context); error = text(context,exception); JS_FreeValue(context,exception);
     }
     JS_FreeValue(context,value);
@@ -158,6 +164,7 @@ struct Session {
     for(const auto& [_,source]:moduleSources)sourceBytes+=source.size();
     if(sourceBytes>16*1024*1024)throw std::runtime_error("Sandbox module source limit exceeded");
     JS_SetModuleLoaderFunc(runtime,normalize,load,this);
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     auto global=JS_GetGlobalObject(context);
     JS_SetPropertyStr(context,global,"__sync",JS_NewCFunction(context,sync,"sync",2));
     JS_SetPropertyStr(context,global,"__openStream",JS_NewCFunction(context,open,"streamOpen",1));
@@ -217,6 +224,7 @@ globalThis.__runDone = false;
     std::string source;
     for(const auto& declaration:options.value("imports",Json::array()))source+=declaration.get<std::string>()+"\n";
     source+="globalThis.__task = (async()=>{"+options.at("code").get<std::string>()+"\n})().then(value=>{globalThis.__runValue=value;globalThis.__runDone=true;},error=>{globalThis.__runError=String(error);globalThis.__runDone=true;});";
+    // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     auto compiled=JS_Eval(context,source.c_str(),source.size(),"code-node.mjs",JS_EVAL_TYPE_MODULE|JS_EVAL_FLAG_COMPILE_ONLY);
     if(!JS_IsException(compiled) && JS_ResolveModule(context,compiled)>=0) {
       loaderLocked=true;
@@ -307,6 +315,7 @@ globalThis.__runDone = false;
 };
 }
 void installSandboxSessions(js::Engine& engine,const js::Value& object,std::function<bool()> cancelled) {
+  // native-rules #1: state shared by several host functions, no justification
   auto sessions=std::make_shared<std::map<unsigned,std::unique_ptr<Session>>>();
   auto next=std::make_shared<unsigned>(0);
   engine.addRunCleanup([weak=std::weak_ptr(sessions)] { if(auto active=weak.lock())active->clear(); });
@@ -315,6 +324,7 @@ void installSandboxSessions(js::Engine& engine,const js::Value& object,std::func
     std::function<bool(const std::string&)> open;
     if(args.size()>1 && en.isFunction(args[1])) {
       auto callback=args[1];
+      // native-rules #12: stored callback captures an Engine reference and runs later
       open=[&en,callback](const std::string& name){return en.toBoolean(en.call(callback,en.undefined(),{en.string(name)}));};
     }
     const auto id=++*next; sessions->emplace(id,std::make_unique<Session>(Json::parse(en.toString(args[0])),cancelled,std::move(open),args.size()>2 && en.isFunction(args[2]) ? std::function<std::string(const std::string&,const std::string&)>([&en,callback=args[2]](const std::string& name,const std::string& payload){return en.toString(en.call(callback,en.undefined(),{en.string(name),en.string(payload)}));}):std::function<std::string(const std::string&,const std::string&)>{}));return en.number(id);

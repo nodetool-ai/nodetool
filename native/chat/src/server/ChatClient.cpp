@@ -81,6 +81,7 @@ void ChatClient::disconnectFromServer() {
     reply->abort();
   }
   m_network.clearAccessCache();
+  // native-rules #2: Qt parent is not documented
   m_network.setCookieJar(new QNetworkCookieJar(&m_network));
   m_ready = false;
   m_socket.abort();
@@ -131,9 +132,12 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
     callback({}, "Choose a local file");
     return;
   }
+  // native-rules #2: naked new with no owner until setParent() after post
   auto *multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+  // native-rules #2: Qt parent is not documented
   auto *file = new QFile(local.toLocalFile(), multipart);
   if (!file->open(QIODevice::ReadOnly) || file->size() > 32 * 1024 * 1024) {
+    // native-rules #2: naked delete of a Qt object
     delete multipart;
     callback({}, "File is unreadable or exceeds 32 MiB");
     return;

@@ -4,6 +4,7 @@
 
 namespace {
 std::vector<nt::wiring::KeyAction>& actions() {
+    // native-rules #14: static mutable registry
     static std::vector<nt::wiring::KeyAction> value;
     return value;
 }

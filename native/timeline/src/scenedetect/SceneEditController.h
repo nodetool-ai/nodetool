@@ -25,6 +25,7 @@
 #include <mutex>
 #include <vector>
 
+// native-rules #9: used across threads (QThreadPool, mutex, atomics) and declares no thread affinity at its top
 class SceneEditController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -146,6 +147,7 @@ private:
     QTimer m_poll;
     int m_generation = 0;
     std::shared_ptr<Run> m_run = std::make_shared<Run>();
+    // native-rules #10: mutex does not say which members it guards
     mutable std::mutex m_statusMutex;
     QString m_current;
 };

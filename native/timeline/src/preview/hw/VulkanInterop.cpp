@@ -34,22 +34,39 @@ extern "C" {
 namespace nt::hw {
 namespace {
 
+// native-rules #14: global mutable state
 std::atomic<bool> g_dropNextReadback{false};
+// native-rules #14: global mutable state
 std::atomic<int> g_completedReadbacks{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_destroyedImages{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_freedMemory{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_releaseFailures{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_fenceWaitFailures{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_releasesSubmitted{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_releasesCompleted{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_freedWithoutRelease{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_retainedMappings{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_unconfirmedPending{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_unconfirmedUnreleased{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_liveFrameRefs{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_liveCompletionMarks{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_releasedInFlight{0};
+// native-rules #14: global mutable state
 std::atomic<long long> g_completedFrame{-1};
+// native-rules #14: global mutable state
 std::atomic<int> g_framesInFlight{2};
 
 // Never destroy this store: its mappings must not return to live decoders,
@@ -64,6 +81,8 @@ struct RetainedMappings {
 
 void retainMapping(std::unique_ptr<AVFrame, DrmFrameFree>& frame) {
     if (!frame) return;
+    // native-rules #1: release() leaks the owner on purpose, ownership not expressed in the type
+    // native-rules #14: static mutable state
     static auto* const retained = std::make_unique<RetainedMappings>().release();
     std::lock_guard lock(retained->mutex);
     retained->frames.push_back(std::move(frame));
@@ -83,7 +102,9 @@ struct FrameMark {
     QRhiCommandBuffer* cb = nullptr;
     long long frame = -1;
 };
+// native-rules #14: thread_local mutable state
 thread_local FrameMark t_frameMark;
+// native-rules #14: thread_local mutable state
 thread_local std::function<void(int)> t_readbackObserver;
 
 std::string avError(int rc) {
@@ -594,6 +615,7 @@ void VulkanInterop::flush() {
             // Qt copies callbacks and stops touching their results before
             // invoking them. An orphan may free only marks whose own callbacks
             // ran, even when Qt invokes the newer callback first.
+            // native-rules #12: lambda captures raw CompletionMark* and runs later, on Qt readback completion
             m->result.completed = [ledger = vk.ledger, m, frame] {
                 if (t_readbackObserver) {
                     t_readbackObserver(g_liveCompletionMarks.load());
@@ -663,6 +685,7 @@ std::shared_ptr<VulkanInterop> VulkanInterop::create(QRhi* rhi) {
     if (!rhi || rhi->backend() != QRhi::Vulkan) return nullptr;
     const auto* handles = static_cast<const QRhiVulkanNativeHandles*>(rhi->nativeHandles());
     if (!handles || !handles->dev || !handles->inst || !handles->gfxQueue) return nullptr;
+    // native-rules #2: naked new inside shared_ptr, use make_shared
     std::shared_ptr<VulkanInterop> interop(new VulkanInterop());
     Vk& vk = *interop->m_vk;
     vk.physDev = handles->physDev;
@@ -729,10 +752,12 @@ std::shared_ptr<FrameRef> VulkanInterop::wrap(const AVFrame* frame, std::string*
     if (frame->format != AV_PIX_FMT_VAAPI) return fail("VAAPI returned a software frame");
     if (softwareFormatOf(frame) != AV_PIX_FMT_NV12) return fail("VAAPI output is not 8-bit NV12 (10-bit waits for P010)");
 
+    // native-rules #2: naked new inside shared_ptr, use make_shared
     std::shared_ptr<FrameRef> ref(new FrameRef());
     ++g_liveFrameRefs;
     ref->m_interop = shared_from_this();
     ref->m_size = QSize(frame->width & ~1, frame->height & ~1);
+    // native-rules #6: raw av_frame_alloc result, not wrapped at the call site
     ref->m_drm = av_frame_alloc();
     ref->m_drm->format = AV_PIX_FMT_DRM_PRIME;
     // Syncs the surface, then exports it with one layer per plane.

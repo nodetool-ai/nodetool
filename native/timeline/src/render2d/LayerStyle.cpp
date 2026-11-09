@@ -134,6 +134,7 @@ struct Compiled {
     std::vector<scene::CompiledAnimation> animations;
 };
 const Compiled& compiledFor(const Clip& clip, QSize size) {
+    // native-rules #14: thread_local mutable cache
     thread_local std::unordered_map<std::string, Compiled> cache;
     if (const auto it = cache.find(clip.id);
         it != cache.end() && it->second.raw == clip.raw && it->second.size == size) {

@@ -37,6 +37,7 @@ std::vector<PluginInfo> scan(const juce::StringArray& extraDirs, bool instrument
 }
 
 bool Instance::load(const juce::String& path, const juce::String& uid, juce::String& error) {
+    // native-rules #2: naked new, ownership passes to the JUCE format manager
     if (formats_.getNumFormats() == 0) formats_.addFormat(new juce::VST3PluginFormat());
     juce::OwnedArray<juce::PluginDescription> descs;
     juce::VST3PluginFormat format;

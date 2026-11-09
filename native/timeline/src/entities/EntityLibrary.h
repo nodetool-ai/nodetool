@@ -8,6 +8,7 @@
 #include <QSet>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// native-rules #9: used across threads (QThread workers post back) and declares no thread affinity at its top
 class EntityLibrary : public QObject {
     Q_OBJECT
     QML_ELEMENT

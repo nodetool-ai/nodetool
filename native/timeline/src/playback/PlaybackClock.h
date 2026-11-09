@@ -21,6 +21,7 @@
 // never jumps. `currentTimeMs()` is exact whenever it is read. The `time`
 // property is the value at the last `tick()`; QML drives `tick()` once per
 // frame. Only the playhead and the timecode bind to it, never the track list.
+// native-rules #9: used across threads (mutex shared with the audio callback feed) and declares no thread affinity at its top
 class PlaybackClock : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -128,6 +129,7 @@ private:
     bool spanActive() const { return m_spanToMs >= 0.0; }
     void clearSpanLocked();
 
+    // native-rules #10: mutex does not say which members it guards
     mutable std::mutex m_mutex;
     std::function<std::int64_t()> m_nowNs;
     nt::playback::AudioClockFeed* m_feed = nullptr;

@@ -109,6 +109,7 @@ namespace {
 QImage localImage(const QString &uri) {
   const auto stored = LocalMediaStore::instance().image(uri);
   if (stored.isNull()) { return {}; }
+  // native-rules #2: naked new of a shared_ptr box, freed by the naked delete in the cleanup lambda below
   auto *owner = new std::shared_ptr<const std::vector<uint8_t>>(stored.rgba);
   return QImage(stored.rgba->data(), int(stored.width), int(stored.height), int(stored.width) * 4,
                 QImage::Format_RGBA8888,

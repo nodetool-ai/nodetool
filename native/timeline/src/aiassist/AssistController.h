@@ -89,10 +89,12 @@ private:
     QPointer<TimelineModel> m_model;
     Call m_call;
     MediaResolver m_mediaResolver;
+    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     bool m_busy = false;
     bool m_offline = false;
     bool m_documentOnly = false;
+    // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
     std::shared_ptr<std::atomic_bool> m_cancelled;
     QString m_error;
     QVariant m_result;

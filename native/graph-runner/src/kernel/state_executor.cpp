@@ -4,6 +4,7 @@
 namespace gr {
 namespace {
 Task<void> pauseDecision() {
+  // native-rules #1: shared with a timer callback, no justification
   auto signal = std::make_shared<Signal>();
   Loop::current().setTimer(std::chrono::milliseconds(1),[signal] { signal->notifyAll(); });
   co_await signal->wait();

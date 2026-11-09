@@ -5,10 +5,12 @@
 namespace nt::app {
 namespace {
 DefaultStartup& defaultStartup() {
+    // native-rules #14: function-local static mutable handler
     static DefaultStartup handler;
     return handler;
 }
 std::vector<CliMode>& modes() {
+    // native-rules #14: static mutable registry
     static std::vector<CliMode> value;
     return value;
 }

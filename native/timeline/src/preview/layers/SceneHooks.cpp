@@ -17,6 +17,7 @@ struct Registry {
     std::vector<Hook> hooks;
     SceneHookToken next = 1;
 };
+// native-rules #14: static process-wide mutable registry
 Registry& registry() { static Registry value; return value; }
 SceneHookToken add(Hook hook) {
     auto& r = registry();

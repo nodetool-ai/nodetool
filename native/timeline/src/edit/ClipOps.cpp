@@ -17,6 +17,7 @@ namespace {
 constexpr double SOURCE_BOUND_TOLERANCE_MS = 0.000001;
 
 std::function<QString()>& idGenerator() {
+    // native-rules #14: static mutable id generator
     static std::function<QString()> generator;
     return generator;
 }

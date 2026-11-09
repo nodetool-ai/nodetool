@@ -96,6 +96,7 @@ struct ReadGuard {
 #ifdef Q_OS_UNIX
 constexpr size_t MAX_LOCAL_IO_HELPERS = 8;
 // Apple libc++ has no std::atomic<std::shared_ptr>, so a mutex guards the hook.
+// native-rules #14: namespace-scope mutable hook state guarded by a free-standing mutex
 std::mutex localIoHookMutex;
 std::shared_ptr<const LocalIoHook> localIoHook;
 
@@ -129,9 +130,11 @@ private:
     int m_fd;
 };
 
+// native-rules #9: used from a decode thread and a helper jthread, no thread affinity comment
 class InterruptibleFile : public QIODevice {
     enum class Request { None, Read, Seek };
     struct State {
+        // native-rules #10: mutex does not say which State fields it guards
         std::mutex mutex;
         std::condition_variable changed;
         std::atomic<bool> abandoned{false};
@@ -147,6 +150,7 @@ class InterruptibleFile : public QIODevice {
         std::vector<char> buffer;
     };
     struct Registry {
+        // native-rules #10: mutex does not say that it guards the running list
         std::mutex mutex;
         std::vector<std::pair<QString, std::shared_ptr<State>>> running;
     };
@@ -154,6 +158,7 @@ class InterruptibleFile : public QIODevice {
     static std::shared_ptr<Registry> registry() {
         // Each helper keeps its registry alive through detached work and removal,
         // even if the static owner has already been destroyed at process exit.
+        // native-rules #14: function-local static registry shared by all helper threads
         static const auto value = std::make_shared<Registry>();
         return value;
     }
@@ -329,6 +334,7 @@ private:
         }
     }
 
+    // native-rules #1: std::shared_ptr State shared with a detached jthread, no comment on why not unique
     std::shared_ptr<State> m_state = std::make_shared<State>();
     ReadGuard& m_guard;
     std::jthread m_thread;
@@ -355,6 +361,7 @@ struct InputIo {
         file = std::make_unique<InterruptibleFile>(path, guard);
         if (!file->isOpen()) return false;
         constexpr int bufferSize = 32768;
+        // native-rules #6: av_malloc buffer is raw until avio_alloc_context takes it, freed by hand with av_free
         auto* buffer = static_cast<unsigned char*>(av_malloc(bufferSize));
         if (!buffer) return false;
         context.reset(avio_alloc_context(buffer, bufferSize, 0, file.get(),
@@ -392,6 +399,7 @@ struct InputIo {
         if (handle == INVALID_HANDLE_VALUE) return false;
         file.reset(handle);
         constexpr int bufferSize = 32768;
+        // native-rules #6: av_malloc buffer is raw until avio_alloc_context takes it, freed by hand with av_free
         auto* buffer = static_cast<unsigned char*>(av_malloc(bufferSize));
         if (!buffer) return false;
         context.reset(avio_alloc_context(buffer, bufferSize, 0, file.get(),
@@ -433,6 +441,7 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
     if (openTimeoutMs > 0) {
         guard.openDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(openTimeoutMs);
     }
+    // native-rules #6: raw AVFormatContext from avformat_alloc_context, freed by hand on error paths
     AVFormatContext* f = avformat_alloc_context();
     if (!f) return false;
     f->interrupt_callback.callback = &ReadGuard::interrupted;
@@ -503,6 +512,7 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
                         : FALLBACK_BLOCK_SAMPLES;
 
     // The first channel as float ("pan=mono|c0=c0", pcm_f32le).
+    // native-rules #6: raw SwrContext freed by hand with swr_free on three paths, no RAII wrapper
     SwrContext* swr = nullptr;
     AVChannelLayout mono = AV_CHANNEL_LAYOUT_MONO;
     AVChannelLayout inLayout;
@@ -630,6 +640,7 @@ std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int wid
     PacketPtr packet(av_packet_alloc());
     FramePtr frame(av_frame_alloc());
     FramePtr best(av_frame_alloc());
+    // native-rules #6: raw SwsContext freed by hand with sws_freeContext, no RAII wrapper
     SwsContext* sws = nullptr;
     const double startSec = st->start_time != AV_NOPTS_VALUE ? st->start_time * av_q2d(st->time_base) : 0.0;
     bool started = false;
@@ -820,7 +831,9 @@ double beyondSourceFraction(const std::vector<Thumbnail>& thumbnails, double inP
 namespace {
 
 QThreadPool& decodePool() {
+    // native-rules #14: function-local static QThreadPool, never destroyed, shared by all decode jobs
     static QThreadPool* pool = [] {
+        // native-rules #2: naked new QThreadPool, leaked into a static pointer with no owner
         auto* p = new QThreadPool;
         p->setMaxThreadCount(2);  // MAX_CONCURRENT
         return p;
@@ -842,6 +855,8 @@ void MediaPreviewCache::setThumbnailCacheDirectoryForTesting(const QString& dire
 }
 
 MediaPreviewCache& MediaPreviewCache::instance() {
+    // native-rules #14: function-local static singleton pointer, mutable global state
+    // native-rules #2: naked new MediaPreviewCache, leaked into a static pointer with no owner
     static MediaPreviewCache* cache = new MediaPreviewCache;
     return *cache;
 }
@@ -1012,11 +1027,13 @@ void MediaPreviewCache::waitForIdle() {
 
 namespace {
 
+// native-rules #9: used from the scene graph thread and the GUI thread under m_lock, no affinity comment
 class TextureCache {
 public:
     static TextureCache* of(QQuickWindow* window) {
         QMutexLocker guard(&registryLock());
         if (TextureCache* cache = registry().value(window)) return cache;
+        // native-rules #2: naked new TextureCache, owned by the static registry() map, owner not in the type
         auto* cache = new TextureCache(window);
         registry().insert(window, cache);
         // Direct: these run on the scene graph's thread.
@@ -1026,6 +1043,7 @@ public:
                          Qt::DirectConnection);
         QObject::connect(window, &QObject::destroyed, [window]() {
             QMutexLocker inner(&registryLock());
+            // native-rules #2: naked delete of the registry entry taken from a raw-pointer hash
             delete registry().take(window);
         });
         return cache;
@@ -1095,10 +1113,12 @@ private:
     explicit TextureCache(QQuickWindow* window) : m_window(window) {}
     ~TextureCache() { clear(); }
     static QMutex& registryLock() {
+        // native-rules #14: function-local static QMutex, global mutable state
         static QMutex lock;
         return lock;
     }
     static QHash<QQuickWindow*, TextureCache*>& registry() {
+        // native-rules #14: function-local static registry of raw TextureCache pointers, global mutable state
         static QHash<QQuickWindow*, TextureCache*> caches;
         return caches;
     }
@@ -1120,17 +1140,20 @@ private:
             if (unused <= m_budget) break;
             Entry e = m_entries.take(key);
             unused -= e.bytes;
+            // native-rules #2: naked delete of a QSGTexture held as a raw pointer in m_entries
             delete e.texture;
         }
     }
     void clear() {
         QMutexLocker guard(&m_lock);
+        // native-rules #2: naked delete of a QSGTexture held as a raw pointer in m_entries
         for (const Entry& e : std::as_const(m_entries)) delete e.texture;
         m_entries.clear();
         ++m_generation;
     }
 
     QQuickWindow* m_window;
+    // native-rules #10: QMutex does not say which members it guards
     QMutex m_lock;
     QHash<qint64, Entry> m_entries;
     qint64 m_budget = qint64(64) << 20;
@@ -1298,6 +1321,7 @@ QSGNode* WaveformItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     m_bars = computeBars(m_drawn);
     m_barCount = static_cast<int>(m_bars.size());
     if (!node) {
+        // native-rules #2: naked new QSGGeometryNode, scene graph owner not documented
         node = new QSGGeometryNode;
         auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 0);
         geometry->setDrawingMode(QSGGeometry::DrawTriangles);
@@ -1359,7 +1383,9 @@ QImage stripeTile(const QColor& color) {
 
 // One tile per colour, shared, so its texture is shared too.
 const QImage& sharedStripeTile(const QColor& color) {
+    // native-rules #14: function-local static QMutex, global mutable state
     static QMutex lock;
+    // native-rules #14: function-local static tile cache, global mutable state
     static QHash<QRgb, QImage> tiles;
     QMutexLocker guard(&lock);
     QImage& tile = tiles[color.rgba()];
@@ -1440,6 +1466,7 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (!m_dirty && old) return old;
     m_dirty = false;
     ++m_paintCount;
+    // native-rules #2: naked delete of the previous QSGNode, scene graph owner not documented
     delete old;
     m_cellCount = 0;
     m_drawnCells = 0;
@@ -1469,12 +1496,14 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (!texture) return done(nullptr);
     m_textureKeys.append(m_thumbs->atlas.cacheKey());
 
+    // native-rules #2: naked new QSGOpacityNode, ownership passes to the scene graph without a documented owner
     auto* root = new QSGOpacityNode;
     root->setOpacity(0.78);
     const double w = width();
     const double h = height();
     const QSizeF thumbSize = m_thumbs->thumbSize;
     const auto addCell = [&](const QRectF& rect, int index) {
+        // native-rules #2: naked new QSGSimpleTextureNode, parent node not documented
         auto* node = new QSGSimpleTextureNode;
         node->setTexture(texture);
         node->setFiltering(QSGTexture::Linear);
@@ -1515,12 +1544,14 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         QSGTexture* stripes = tailTo > tailFrom ? cache->acquire(tile, true, &m_textureGeneration) : nullptr;
         if (stripes) {
             m_textureKeys.append(tile.cacheKey());
+            // native-rules #2: naked new QSGSimpleTextureNode, parent node not documented
             auto* node = new QSGSimpleTextureNode;
             node->setTexture(stripes);
             node->setRect(QRectF(tailFrom, 0, tailTo - tailFrom, h));
             node->setSourceRect(QRectF(tailFrom, 0, tailTo - tailFrom, h));
             // The stripes are opaque to the cells' 78 %: not under the
             // opacity node.
+            // native-rules #2: naked new QSGNode, ownership passes to the scene graph without a documented owner
             auto* group = new QSGNode;
             group->appendChildNode(root);
             group->appendChildNode(node);

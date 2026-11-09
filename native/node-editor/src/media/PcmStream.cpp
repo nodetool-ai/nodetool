@@ -169,6 +169,7 @@ qint64 PcmBuffer::drain(QIODevice &device, qsizetype available) {
  return written;
 }
 PcmQueue *PcmQueue::applicationQueue() {
+ // native-rules #14: static mutable queue pointer
  static QPointer<PcmQueue> queue;
  if (!queue) { queue = new PcmQueue(QCoreApplication::instance()); }
  return queue;

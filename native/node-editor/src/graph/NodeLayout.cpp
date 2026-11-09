@@ -118,6 +118,7 @@ QString webTypeIcon(const QString &type) {
 }
 
 QByteArray webTypeIconSvg(const QString &key, const QColor &color) {
+    // native-rules #14: function-static mutable SVG cache
     static QHash<QString, QByteArray> sources;
     auto found = sources.find(key);
     if (found == sources.end()) {

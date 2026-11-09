@@ -22,6 +22,7 @@ public:
     LoudnessMeter(double sampleRate, int channels);
     void reset() noexcept;
     void processPlanar(const float* const* channels, int frames) noexcept;
+    // native-rules #5: raw const float* sample buffer crosses the module boundary
     void processInterleaved(const float* data, int frames) noexcept;
     double momentary() const noexcept;
     double shortTerm() const noexcept;

@@ -10,6 +10,7 @@ private slots:
         auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Null, &init));
         QVERIFY(rhi);
         nt::motion::ScratchPool pool;
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         std::vector<std::shared_ptr<nt::motion::ScratchPool::Surface>> inFlight;
         auto firstLease = pool.beginLease(1);
         auto a = pool.acquire(firstLease, rhi.get(), {64, 32}, 1); QVERIFY(a);

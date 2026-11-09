@@ -223,6 +223,7 @@ void ColorMatchController::capturedCurrent(const FrameCaptureResult& result) {
     m_step = Step::Solving;
     m_cancel = std::make_shared<std::atomic_bool>(false);
     const int run = m_run;
+    // native-rules #12: lambda captures raw this and runs on a pool thread
     m_pool.start([this, run, current = result.image, reference = m_reference, effects = m_targetClip.value("effects").toArray(),
                   track = nt::effects::convertTrackEffects(m_targetTrackEffects), skin = m_protectSkin, cancel = m_cancel] {
         nt::color::MatchInput input;

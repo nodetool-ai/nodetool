@@ -202,6 +202,7 @@ int avSyncCli(int argc, char** argv) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
     }
+    // native-rules #1: std::shared_ptr Timeline with no comment on why unique ownership is impossible
     const auto timeline = std::make_shared<const Timeline>(*loaded.timeline);
     const double periodMs = parser.value(periodOpt).toDouble();
     const double seconds = parser.value(secondsOpt).toDouble();
@@ -387,6 +388,7 @@ int avSyncLiveCli(int argc, char** argv) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
     }
+    // native-rules #1: std::shared_ptr Timeline with no comment on why unique ownership is impossible
     const auto timeline = std::make_shared<const Timeline>(*loaded.timeline);
     const double periodMs = parser.value(periodOpt).toDouble();
     const double seconds = std::min(parser.value(secondsOpt).toDouble(), timeline->durationMs / 1000.0 - 0.5);

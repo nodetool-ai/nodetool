@@ -43,6 +43,7 @@ public:
     if (!options.rootJobId) options.rootJobId = options_.jobId;
     if (options.executionPolicy) options.executionPolicy = std::make_shared<ExecutionPolicy>(*options.executionPolicy);
     // Display IDs may vary. Persistence and callback identity use executionScope.
+    // native-rules #14: thread_local mutable job counter
     static thread_local unsigned long long nextJob = 0;
     options.jobId += "/sub-" + std::to_string(++nextJob);
     std::string childError;

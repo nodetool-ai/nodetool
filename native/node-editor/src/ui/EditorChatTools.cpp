@@ -133,6 +133,7 @@ QString documentRevision(const node_editor::WorkflowDocument &document) {
     return "graph:" + QString::fromLatin1(digest.toHex());
 }
 bool parsesCode(const QString &code) {
+    // native-rules #14: thread_local mutable parser and init flag
     thread_local QJSEngine parser;
     thread_local bool initialized = false;
     if (!initialized) {
@@ -274,6 +275,7 @@ void EditorWindow::initializeChatTools() {
         }
     }
     chat_.setHostTools(tools);
+    // native-rules #1: shared_ptr<ToolAccount> shared by lambdas, no justification comment
     auto account = std::make_shared<ToolAccount>();
     auto *network = new QNetworkAccessManager(this);
     connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this,
@@ -411,6 +413,7 @@ void EditorWindow::initializeChatTools() {
                 const auto epoch = account->epoch;
                 auto *timer = new QTimer(this);
                 timer->setInterval(20);
+                // native-rules #1: shared_ptr<int> counter shared by lambda copies, no justification comment
                 auto elapsed = std::make_shared<int>(0);
                 connect(timer, &QTimer::timeout, this,
                         [this, owner, timer, elapsed, id, call, name, account, epoch] {

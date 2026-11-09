@@ -15,6 +15,7 @@ QJsonObject withVisibleCodePorts(QJsonObject node) {
 QJsonObject withInferredCodePorts(QJsonObject node, const QJsonArray& edges) {
     if (node["type"] != "nodetool.code.Code") { return node; }
     // The parser is local and never evaluates the user's source.
+    // native-rules #14: thread_local mutable engine and init flag
     thread_local QJSEngine engine;
     thread_local bool initialized = false;
     if (!initialized) {
@@ -31,6 +32,7 @@ QJsonObject withInferredCodePorts(QJsonObject node, const QJsonArray& edges) {
         initialized = true;
     }
     // Graph projection asks for every card on each refresh, so parse each source once.
+    // native-rules #14: thread_local mutable parse cache
     thread_local QHash<QString, QJsonObject> parsed;
     const auto source = node["data"].toObject()["code"].toString();
     auto cached = parsed.constFind(source);

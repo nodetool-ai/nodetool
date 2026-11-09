@@ -31,8 +31,10 @@ using gr::Loop;
 namespace js = gr::js;
 using Clock = std::chrono::steady_clock;
 
+// native-rules #14: file-scope mutable test counters
 int failures = 0;
 int checks = 0;
+// native-rules #14: file-scope mutable bundle path
 std::string bundlePath;
 
 #define CHECK(cond)                                                    \
@@ -420,6 +422,7 @@ const char* kTestNodes = R"(
 }
 )";
 
+// native-rules #9: written from the worker thread and read by the test, no affinity comment
 struct Collector {
   std::mutex mutex;
   std::condition_variable changed;
@@ -428,6 +431,7 @@ struct Collector {
   std::string status;
 
   gr::GraphRunner::MessageHandler handler() {
+    // native-rules #12: lambda captures raw this and runs on the worker thread
     return [this](const std::string& text, bool last) {
       std::lock_guard lock(mutex);
       Json msg = Json::parse(text);

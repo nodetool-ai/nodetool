@@ -19,6 +19,7 @@ constexpr int kPlayingIntervalMs = 200;
 constexpr double kFrameEpsilon = 1e-6;
 
 std::vector<ReferenceController*>& liveInstances() {
+    // native-rules #14: static mutable instance list
     static std::vector<ReferenceController*> instances;
     return instances;
 }
@@ -390,7 +391,9 @@ void ReferenceController::startTake(const Target& target) {
         return;
     }
     const quint64 run = m_run;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto media = std::make_shared<nt::Clip>();
+    // native-rules #13: worker is not interrupted or joined when the owner is destroyed
     auto* thread = QThread::create([resolver = std::move(resolver), media, assetId = projection.clip.value("currentAssetId").toString(), raw = projection.clip] {
         *media = resolver(assetId, raw);
     });

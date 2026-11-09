@@ -26,6 +26,7 @@ struct Memory {
 };
 struct State : js::NativePayload {
   Engine& js;
+  // native-rules #6: raw wasm engine and store freed by hand in the destructor
   wasm_engine_t* engine;
   wasmtime_store_t* store;
   std::function<bool()> cancelled;
@@ -66,6 +67,7 @@ struct State : js::NativePayload {
 };
 struct Module : js::NativePayload {
   std::shared_ptr<State> state;
+  // native-rules #6: raw wasmtime module freed by hand in the destructor
   wasmtime_module_t* module = nullptr;
   ~Module() override { if (module) wasmtime_module_delete(module); }
 };
@@ -78,6 +80,7 @@ struct Budget {
     if (s.depth++ == 0) {
       check(wasmtime_context_set_fuel(s.context(), 100000000));
       wasmtime_context_set_epoch_deadline(s.context(), 1);
+      // native-rules #12: lambda holds a raw State reference on another thread
       watchdog = std::jthread([&s](std::stop_token stop) {
         auto end = std::chrono::steady_clock::now() + std::chrono::seconds(5);
         while (!stop.stop_requested()) {
@@ -187,6 +190,7 @@ Value table(std::shared_ptr<State> s, wasmtime_table_t t) {
 }
 }
 void installWebAssembly(Engine& e, const Value& object, std::function<bool()> cancelled) {
+  // native-rules #1: state shared by many wasm functions, no justification
   auto s = std::make_shared<State>(e, std::move(cancelled));
   e.addContextCleanup([s] { s->close(); });
   e.set(object, "compile", e.function("compile", 1, [s](Engine& en, const auto& args) {

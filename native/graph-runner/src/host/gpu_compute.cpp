@@ -20,13 +20,16 @@ struct Resource;
 struct State { std::set<uint64_t> timers; std::vector<std::weak_ptr<Resource>> resources; std::shared_ptr<gpu::Device> device; size_t bytes = 0, count = 0, pendingCount = 0; bool dead = false; };
 enum Kind { Buffer, Shader, Pipeline, Layout, Group, Encoder, Pass, Commands, Texture, View, Sampler, PipelineLayout, RenderPipeline, RenderPass };
 struct Resource : js::NativePayload {
+  // native-rules #1: Resource and Pending share State, no justification
   std::shared_ptr<State> state;
   Kind kind;
+  // native-rules #6: type-erased raw WGPU handle freed by a switch in release()
   void* handle = nullptr;
   uint32_t width=0,height=0,texelBytes=0;
   WGPUTextureFormat format=WGPUTextureFormat_Undefined;
   uint64_t size = 0, usage = 0, offset = 0, length = 0;
   bool dead = false, pending = false, mapped = false, active = false, used = false;
+  // native-rules #1: Resource tree shared with JS payloads, no justification
   std::shared_ptr<Resource> parent;
   std::vector<std::shared_ptr<Resource>> dependencies;
   Resource(std::shared_ptr<State> s, Kind k) : state(std::move(s)), kind(k) {
@@ -95,6 +98,8 @@ std::shared_ptr<Resource> resource(E& e, const V& v, const std::shared_ptr<State
   if (r->state != s || r->kind != kind || r->dead || s->dead || (r->parent && r->parent->dead)) throw std::runtime_error("WebGPU stale or wrong-device resource");
   return r;
 }
+// native-rules #9: written by a wgpu callback and read on the loop, no affinity comment
+// native-rules #10: mutex does not name the data it guards
 struct Completion { std::atomic<bool> done{false}; std::mutex mutex; std::string error; };
 // Callbacks only publish native status. JS settlement happens in a loop timer.
 struct Pending {
@@ -369,16 +374,20 @@ V invoke(E& e, Args a, const std::shared_ptr<State>& s) {
       wgpuQueueSubmit(q,count,commands.data()); for(auto& r:rs) r->used=true;
     } else if(op=="map" || op=="done") {
       if(s->pendingCount>=256) throw std::runtime_error("WebGPU pending operation budget exceeded");
+      // native-rules #1: Pending shared with the poll timer, no justification
       pending=std::make_shared<Pending>(); pending->engine=&e; pending->state=s; ++s->pendingCount; pending->promise=e.newPromise(); pending->completion=std::make_shared<Completion>();
       std::shared_ptr<Completion>* ud = nullptr;
       if(op=="map") {
         auto b=get(1,Buffer); auto mode=num(e,arg(2),2), off=num(e,arg(3)), len=num(e,arg(4));
+        // native-rules #2: naked delete of a pointer that is always null
         if(mode!=1 || !(b->usage&1) || b->pending||b->mapped||off%8||len%4||!len||off>b->size||len>b->size-off) { delete ud; throw std::runtime_error("WebGPU map requires unmapped MAP_READ buffer and valid range"); }
         pending->buffer=b; b->pending=true; b->offset=off; b->length=len;
+        // native-rules #2: naked new passed as callback userdata, freed in the callback
         WGPUBufferMapCallbackInfo cb=WGPU_BUFFER_MAP_CALLBACK_INFO_INIT; cb.mode=WGPUCallbackMode_AllowProcessEvents; cb.userdata1=new std::shared_ptr<Completion>(pending->completion);
         cb.callback=[](WGPUMapAsyncStatus status,WGPUStringView msg,void* ud,void*) { auto c=static_cast<std::shared_ptr<Completion>*>(ud); complete(*c,status==WGPUMapAsyncStatus_Success,msg); delete c; };
         wgpuBufferMapAsync((WGPUBuffer)b->handle,WGPUMapMode_Read,off,len,cb);
       } else {
+        // native-rules #2: naked new passed as callback userdata, freed in the callback
         WGPUQueueWorkDoneCallbackInfo cb=WGPU_QUEUE_WORK_DONE_CALLBACK_INFO_INIT; cb.mode=WGPUCallbackMode_AllowProcessEvents; cb.userdata1=new std::shared_ptr<Completion>(pending->completion);
         cb.callback=[](WGPUQueueWorkDoneStatus status,WGPUStringView msg,void* ud,void*) { auto c=static_cast<std::shared_ptr<Completion>*>(ud); complete(*c,status==WGPUQueueWorkDoneStatus_Success,msg); delete c; };
         wgpuQueueOnSubmittedWorkDone(q,cb);
@@ -398,6 +407,7 @@ V invoke(E& e, Args a, const std::shared_ptr<State>& s) {
 }
 }
 void installCompute(E& e, const GpuOptions& options, const V& host) {
+  // native-rules #1: list shared by several host functions, no justification
   auto states=std::make_shared<std::vector<std::weak_ptr<State>>>();
   e.addRunCleanup([states] {
     for (auto& weak : *states) if (auto s=weak.lock()) {

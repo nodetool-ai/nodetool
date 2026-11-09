@@ -40,6 +40,7 @@ Json call(const std::vector<uint8_t>& bytes,const std::string& name,const Json& 
   check(wasmtime_context_set_fuel(context,100000000));
   wasmtime_context_set_epoch_deadline(context,1);
   const auto deadline=std::chrono::steady_clock::now()+std::chrono::milliseconds(timeout);
+  // native-rules #12: lambda captures locals by reference on another thread
   std::jthread watchdog([&](std::stop_token stop){
     while(!stop.stop_requested()) {
       if(std::chrono::steady_clock::now()>=deadline || (cancelled && cancelled())) {wasmtime_engine_increment_epoch(engine.get());return;}

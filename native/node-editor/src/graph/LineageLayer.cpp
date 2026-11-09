@@ -196,6 +196,7 @@ LineageLayer::~LineageLayer() {
   // Qt owner deleting first and lets a surviving layer rebuild on update.
   for (const auto &item : items_) {
     if (item) {
+      // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
       delete item.data();
     }
   }
@@ -245,6 +246,7 @@ QString LineageLayer::update(const QJsonObject &graph,
     visible.insert(id);
     auto *item = static_cast<LineageItem *>(items_.value(id).data());
     if (!item) {
+      // native-rules #3: item has a QObject parent (layer), a scene owner and a manual delete in ~LineageLayer
       item = new LineageItem(id, *this);
       scene_->addItem(item);
       items_.insert(id, item);
@@ -256,6 +258,7 @@ QString LineageLayer::update(const QJsonObject &graph,
   for (auto it = items_.begin(); it != items_.end();) {
     if (!visible.contains(it.key())) {
       if (it.value()) {
+        // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
         delete it.value().data();
       }
       it = items_.erase(it);

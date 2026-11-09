@@ -112,11 +112,13 @@ class ChatQuickSetup : public QObject {
     Q_OBJECT
 public slots:
     void qmlEngineAvailable(QQmlEngine* engine) {
+        // native-rules #2: Qt parent is not documented
         auto* session = new nt::chat::ChatSession(engine);
         session->upsertThread({{"id", "a"}, {"title", "First conversation"}});
         session->upsertThread({{"id", "b"}, {"title", "Second conversation"}});
         session->selectThread("a");
         engine->rootContext()->setContextProperty("testSession", session);
+        // native-rules #2: Qt parent is not documented
         engine->rootContext()->setContextProperty("testDriver", new ChatTestDriver(session));
     }
 };

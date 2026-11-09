@@ -37,8 +37,10 @@
 
 namespace {
 
-int failures = 0;
-int checks = 0;
+// native-rules #14: file-scope mutable test counters
+// Atomic: lane threads call CHECK concurrently in the stress test.
+std::atomic<int> failures{0};
+std::atomic<int> checks{0};
 
 #define CHECK(cond)                                                                    \
   do {                                                                                 \
@@ -72,10 +74,13 @@ double msSince(Clock::time_point start) {
 
 // A test that hangs fails the process instead of waiting for ctest. A
 // shutdown that joined a live thread would hang here.
+// native-rules #14: file-scope mutable watchdog gate
 std::atomic<Clock::rep> watchdogDeadline{0};
+// native-rules #14: file-scope mutable current-test name
 const char* currentTest = "";
 
 void startWatchdog() {
+  // native-rules #13: detached watchdog thread outlives every test object
   std::thread([] {
     for (;;) {
       std::this_thread::sleep_for(milliseconds(50));
@@ -129,6 +134,7 @@ struct Alive {
   Alive(const Alive& other) : count(other.count) { ++*count; }
   Alive& operator=(const Alive&) = delete;
   ~Alive() { --*count; }
+  // native-rules #1: counter shared by every copy, no justification
   std::shared_ptr<std::atomic<int>> count;
 };
 
@@ -146,7 +152,9 @@ struct Fixture {
   std::unique_ptr<js::Engine> engine = js::createQuickJsEngine();
   AsyncRun* run = nullptr;
   JobExecutor* lane = nullptr;
+  // native-rules #1: counter shared with jobs, no justification
   std::shared_ptr<std::atomic<int>> liveJobs = std::make_shared<std::atomic<int>>(0);
+  // native-rules #1: counter shared with payloads, no justification
   std::shared_ptr<std::atomic<int>> livePayloads = std::make_shared<std::atomic<int>>(0);
   std::vector<std::string> notes;
   // Threads that converted a payload, which must be the worker.
@@ -159,6 +167,7 @@ struct Fixture {
     auto job = gr::makeJob([work = std::move(work), alive = Alive(liveJobs)](std::stop_token stop) {
       return work(std::move(stop));
     });
+    // native-rules #12: lambda captures raw this and runs on the worker later
     gr::Converter convert = [this](js::Engine& e, JobPayload* payload) {
       converters.insert(std::this_thread::get_id());
       return e.string(static_cast<TextPayload*>(payload)->text);
@@ -178,8 +187,10 @@ struct Fixture {
   }
 
   Fixture() {
+    // native-rules #12: lambda captures raw this and is stored in the engine, runs later
     bind("nativeEcho", [this](const std::vector<js::Value>& a) {
       std::string value = gr::snapshotString(*engine, a.at(0), "text");
+      // native-rules #12: lambda captures raw this and runs on a lane thread
       return submit([this, value](std::stop_token) { return text(value); });
     });
     bind("note", [this](const std::vector<js::Value>& a) {
@@ -871,6 +882,7 @@ struct BlockingPayload final : JobPayload {
   Gate* gate;
   std::atomic<bool>* entered;
   std::atomic<bool>* destroyedOnWorker;
+  // native-rules #14: static mutable test gate shared across payload objects
   static inline std::thread::id teardownThread;
 };
 
@@ -910,6 +922,7 @@ void blockingResultPayload() {
 // --- thread exit ----------------------------------------------------------------
 
 Gate* tlsGate = nullptr;
+// native-rules #14: file-scope mutable test gate
 std::atomic<bool> tlsEntered{false};
 
 // A thread_local whose destructor blocks until tlsGate opens.
@@ -940,6 +953,7 @@ void blockingThreadLocalDestructor() {
   f.run = &async;
   f.bind("nativeTls", [&](const std::vector<js::Value>&) {
     return f.submit([&](std::stop_token) {
+      // native-rules #14: thread_local test gate
       thread_local TlsBlocker blocker;
       blocker.armed = true;
       return f.text("ran");
@@ -960,6 +974,7 @@ void blockingThreadLocalDestructor() {
 }
 
 Gate* tsdGate = nullptr;
+// native-rules #14: file-scope mutable test gate
 std::atomic<bool> tsdEntered{false};
 
 // Gate: concurrent retries. A pthread key destructor runs after the lane
@@ -1219,6 +1234,6 @@ int main() {
     watchdogDeadline = 0;
     std::fprintf(stderr, "%s %s\n", failures == before ? "PASS" : "FAIL", name);
   }
-  std::fprintf(stderr, "%d checks, %d failed\n", checks, failures);
+  std::fprintf(stderr, "%d checks, %d failed\n", checks.load(), failures.load());
   return failures == 0 ? 0 : 1;
 }

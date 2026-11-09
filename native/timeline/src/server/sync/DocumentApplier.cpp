@@ -9,10 +9,12 @@
 namespace nt::server::sync {
 namespace {
 DocumentApplier& applier() {
+    // native-rules #14: function-local static mutable DocumentApplier
     static DocumentApplier value;
     return value;
 }
 MediaRegistrar& mediaRegistrar() {
+    // native-rules #14: function-local static mutable MediaRegistrar
     static MediaRegistrar value;
     return value;
 }

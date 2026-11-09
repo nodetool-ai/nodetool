@@ -25,11 +25,13 @@ public:
   // The process-wide device for these options, created on first use and
   // kept for the life of the process. Returns null and sets `error` when
   // the build has no GPU support or no adapter is available.
+  // native-rules #1: process-wide shared Device, comment gives no reason unique fails
   static std::shared_ptr<Device> acquire(const GpuOptions& options, std::string& error);
 
   // Adapter name, backend and type, for logs.
   virtual std::string description() const = 0;
   // Internal binding seam. Native handles are borrowed under the device lock.
+  // native-rules #5: hands raw WGPU instance, device and queue to the callback
   virtual void compute(const std::function<void(void*, void*, void*)>&) {
     throw std::runtime_error("WebGPU compute unavailable in this build");
   }

@@ -48,7 +48,9 @@ InlinePropertyPresenter::~InlinePropertyPresenter() {
   descriptor_.clear();
   auto widget = widget_.data();
   widget_.clear();
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   delete widget;
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &retired : retiredWidgets_) { delete retired.data(); }
 }
 QQuickWidget *InlinePropertyPresenter::editorWidget() const { return widget_; }

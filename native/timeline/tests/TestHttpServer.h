@@ -85,6 +85,7 @@ public:
 
 private:
     void accept(QTcpSocket* socket) {
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto buffer = std::make_shared<QByteArray>();
         QObject::connect(socket, &QTcpSocket::readyRead, socket, [this, socket, buffer]() {
             buffer->append(socket->readAll());
@@ -205,6 +206,7 @@ private:
             return;
         }
         // Slow: 16 KiB per tick.
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto offset = std::make_shared<qint64>(0);
         auto* timer = new QTimer(socket);
         QPointer<QTcpSocket> guard(socket);

@@ -47,6 +47,7 @@ struct ClipScene {
     // (SceneEval) keys on one pointer for all of them. Never null.
     std::shared_ptr<const std::vector<AnimationDef>> animations = std::make_shared<const std::vector<AnimationDef>>();
     // Keys for parameters with no animation channel. Null when the clip has none.
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const ParamCurves> paramCurves;
     std::optional<Repeater> repeater;
     std::optional<TemporalEcho> temporalEcho;

@@ -39,6 +39,8 @@ class Still {
     std::unique_ptr<QRhiRenderPassDescriptor> m_pass;
     PreviewCompositor* m_compositor = nullptr;
 public:
+    // native-rules #2: naked delete
+    // native-rules #3: object has a Qt parent (contentItem) and is also deleted by hand
     ~Still() { delete m_compositor; }
     bool initialize(TimelineModel& model) {
         hw::prepareWindow(&m_window);

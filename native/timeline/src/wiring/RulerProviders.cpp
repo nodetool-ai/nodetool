@@ -69,6 +69,7 @@ std::vector<nt::wiring::RulerTick> timecodeTicks(const nt::wiring::RulerRequest&
     return result;
 }
 QMap<QString, nt::wiring::RulerProvider>& providers() {
+    // native-rules #14: static mutable registry
     static QMap<QString, nt::wiring::RulerProvider> value{{QStringLiteral("time"), timeTicks},
         {QStringLiteral("timecode"), timecodeTicks}};
     return value;

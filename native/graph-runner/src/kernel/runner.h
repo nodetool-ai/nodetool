@@ -83,7 +83,9 @@ struct RunOptions {
   std::string executionScope = "[]";
   std::optional<std::string> rootJobId;
   unsigned innerGraphDepth = 0;
+  // native-rules #1: shared with child runners, no comment explains why unique fails
   std::shared_ptr<ExecutionPolicy> executionPolicy;
+  // native-rules #1: shared with child runners, no comment explains why unique fails
   std::shared_ptr<ExecutionState> durableState;
 };
 
@@ -165,6 +167,7 @@ private:
   std::map<std::string, std::chrono::steady_clock::time_point> edgeLastEmit_;
   std::vector<std::string> edgeDirty_;  // insertion-ordered set
   Json outputs_ = Json::object();
+  // native-rules #1: shared_ptr kept for weak_ptr timer callbacks, no justification
   std::shared_ptr<Quiescence> quiescence_;
 };
 

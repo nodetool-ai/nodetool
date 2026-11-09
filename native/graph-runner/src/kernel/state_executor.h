@@ -42,6 +42,7 @@ struct SupervisorDecisionBudget {
   bool deciding = false;
 };
 struct ExecutionPolicy {
+  // native-rules #1: shared across policy copies, no justification
   std::shared_ptr<ExecutionState> state;
   std::string userId;
   // Set from RunOptions on each Runner, and copied into child policies.

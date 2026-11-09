@@ -82,6 +82,8 @@ MediaFacts probeMedia(const std::string& path);
 // One decoded frame. It owns its AVFrame (planes in I420 or NV12, 8-bit), and
 // its matrix and range describe those planes as stored.
 struct DecodedFrame {
+    // native-rules #5: raw AVFrame* is a public member of a struct passed across modules
+    // native-rules #6: raw AVFrame* freed by hand in ~DecodedFrame, not an RAII handle type
     AVFrame* frame = nullptr;
     double ptsSec = 0.0;
     long long generation = 0;
@@ -105,6 +107,7 @@ size_t frameBytes(const DecodedFrame& f);
 // no progress for this long is stalled.
 inline constexpr std::chrono::milliseconds kDecoderStallLimit{1000};
 
+// native-rules #9: shared by the worker thread and the render thread, no thread affinity comment
 class FfmpegDecoder {
 public:
     // Starts the worker, which opens `path` and pre-rolls to `initialSec`.
@@ -121,6 +124,7 @@ public:
     // pick when it is decoded, else the frame shown last (hold), or null
     // before the first frame. Never blocks on decode.
     enum class FrameAccess { Cached, Sequential };
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<DecodedFrame> frameAt(double targetSec, FrameAccess access = FrameAccess::Cached);
     // Sequential analysis consumes actual PTS, including variable-rate frames.
     // After an exact sequential pick, null means end of stream.
@@ -209,6 +213,7 @@ private:
     std::atomic<long long> m_reopenCount{0};
 
     mutable std::mutex m_factsMutex;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<const MediaFacts> m_facts;
 
     // Watchdog state the worker writes: the time of its last loop step, and
@@ -230,6 +235,7 @@ private:
     std::atomic<bool> m_stop{false};
 
     // Render thread only.
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<DecodedFrame> m_shown;
     bool m_exact = false;
     std::optional<double> m_nextFrameSec;
@@ -270,10 +276,12 @@ private:
     PlaneLayout m_layout = PlaneLayout::I420;
     QSize m_texSize;
     const DecodedFrame* m_uploaded = nullptr;
+    // native-rules #1: shared_ptr, comment says what it does but not why unique ownership is impossible
     std::shared_ptr<DecodedFrame> m_uploadedRef;  // keeps the uploaded frame alive
 
     // Hardware frames (D11): the displayed FrameRef, the frame it wraps, the
     // last frame number that drew with it, and where to retire it.
+    // native-rules #1: type-erased shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<void> m_frameRef;
     bool m_importOk = false;        // a hardware frame was imported and shown
     bool m_importReported = false;  // the decoder was told about a failure

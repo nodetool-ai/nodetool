@@ -6,10 +6,12 @@
 
 namespace {
 std::vector<nt::app::MenuItem>& items() {
+    // native-rules #14: static mutable registry
     static std::vector<nt::app::MenuItem> value;
     return value;
 }
 std::vector<nt::app::ShellMenuEntry>& entries() {
+    // native-rules #14: static mutable registry
     static std::vector<nt::app::ShellMenuEntry> value;
     return value;
 }

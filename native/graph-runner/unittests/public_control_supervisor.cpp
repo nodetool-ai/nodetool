@@ -10,6 +10,7 @@
 
 namespace {
 using gr::Json;
+// native-rules #14: file-scope mutable test counters
 int checks = 0;
 void check(bool condition, const char* message) {
   ++checks;

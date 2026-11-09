@@ -9,7 +9,9 @@ class ToneInstrument : public juce::AudioProcessor {
 public:
     ToneInstrument()
         : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
+        // native-rules #2: naked new, ownership passes to the JUCE processor
         addParameter(level_ = new juce::AudioParameterFloat(juce::ParameterID { "level", 1 }, "Level", 0.0f, 1.0f, 0.5f));
+        // native-rules #2: naked new, ownership passes to the JUCE processor
         addParameter(latency_ = new juce::AudioParameterInt(juce::ParameterID { "latency", 1 }, "Latency", 0, 2048, 0));
     }
 
@@ -23,6 +25,7 @@ public:
     const juce::String getProgramName(int) override { return {}; }
     void changeProgramName(int, const juce::String&) override {}
     bool hasEditor() const override { return true; }
+    // native-rules #4: returns a raw owning pointer the caller must free
     juce::AudioProcessorEditor* createEditor() override { return new juce::GenericAudioProcessorEditor(*this); }
 
     void prepareToPlay(double sampleRate, int) override {
@@ -84,4 +87,5 @@ private:
     double rate_ = 48000;
 };
 
+// native-rules #4: returns a raw owning pointer the caller must free
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new ToneInstrument(); }

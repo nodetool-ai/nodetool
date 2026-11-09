@@ -24,6 +24,7 @@ struct SinkRecord {
 };
 class RecordingSink final : public PcmSink {
 public:
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  explicit RecordingSink(std::shared_ptr<SinkRecord> record) : record(std::move(record)) {}
  QAudioFormat preferredFormat() const override { return record->supported; }
  bool supports(const QAudioFormat &format) const override { return format == record->supported; }
@@ -38,9 +39,12 @@ public:
  bool drained() const override { return record->drain && record->buffered == 0; }
  bool failed() const override { return record->error; }
  void stop() override { ++record->stops; record->buffered = 0; }
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  std::shared_ptr<SinkRecord> record;
 };
+// native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
 static std::shared_ptr<SinkRecord> attach(PcmStream &player, int rate = 24000, int channels = 1, QAudioFormat::SampleFormat format = QAudioFormat::Float) {
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  auto record = std::make_shared<SinkRecord>(); record->supported.setSampleRate(rate); record->supported.setChannelCount(channels); record->supported.setSampleFormat(format);
  player.setSinkFactory([record] { return std::make_unique<RecordingSink>(record); }); return record;
 }
@@ -55,6 +59,7 @@ class PcmStreamTest : public QObject {
 private slots:
  void mixedPreviewBytePressureKeepsPcmControls() {
   PcmQueue queue; RunOutputModel model(nullptr, &queue);
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto record = std::make_shared<SinkRecord>(); record->supported.setSampleRate(24000); record->supported.setChannelCount(1); record->supported.setSampleFormat(QAudioFormat::Float); record->drain = false;
   model.setPcmSinkFactory([record] { return std::make_unique<RecordingSink>(record); }); model.beginRun("mixed");
   auto chunk = samples(1024); chunk["type"] = "chunk"; chunk["content_type"] = "audio";
@@ -76,6 +81,7 @@ private slots:
  void historyEvictionKeepsAudibleAndQueuedControls() {
   QFETCH(int, logSize);
   PcmQueue queue; RunOutputModel model(nullptr, &queue);
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto record = std::make_shared<SinkRecord>(); record->supported.setSampleRate(24000); record->supported.setChannelCount(1); record->supported.setSampleFormat(QAudioFormat::Float); record->drain = false;
   model.setPcmSinkFactory([record] { return std::make_unique<RecordingSink>(record); });
   model.setLiveNodes({"a", "b"}); model.beginRun("history");
@@ -110,6 +116,7 @@ private slots:
  }
  void cancellationClearsScopedPcmAndRejectsLateFrames() {
   PcmQueue queue; RunOutputModel model(nullptr, &queue);
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto record = std::make_shared<SinkRecord>(); record->supported.setSampleRate(24000); record->supported.setChannelCount(1); record->supported.setSampleFormat(QAudioFormat::Float); record->drain = false;
   model.setPcmSinkFactory([record] { return std::make_unique<RecordingSink>(record); }); model.beginRun("run");
   auto value = samples(1024); value["type"] = "chunk"; value["content_type"] = "audio";
@@ -155,6 +162,7 @@ private slots:
  void nonPcmReplacementReleasesQueue() {
   for (const auto replacement : {QJsonValue("replacement text"), QJsonValue(QJsonArray{}), QJsonValue(QJsonObject{{"type", "audio"}, {"uri", "asset://completed"}})}) {
    PcmQueue queue; RunOutputModel model(nullptr, &queue);
+   // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
    auto record = std::make_shared<SinkRecord>(); record->supported.setSampleRate(24000); record->supported.setChannelCount(1); record->supported.setSampleFormat(QAudioFormat::Float); record->drain = false;
    model.setPcmSinkFactory([record] { return std::make_unique<RecordingSink>(record); }); model.beginRun("run");
    auto value = samples(1024); value["type"] = "chunk"; value["content_type"] = "audio";
@@ -210,6 +218,7 @@ private slots:
  }
  void replacementPreservesStopAndClearsReplay() {
   PcmQueue queue; RunOutputModel model(nullptr, &queue);
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto record = std::make_shared<SinkRecord>(); record->supported.setSampleRate(24000); record->supported.setChannelCount(1); record->supported.setSampleFormat(QAudioFormat::Float); record->drain = false;
   model.setPcmSinkFactory([record] { return std::make_unique<RecordingSink>(record); }); model.beginRun("run");
   auto event = [](QJsonObject value, QString disposition) { value["type"] = "chunk"; value["content_type"] = "audio"; return QJsonObject{{"job_id", "run"}, {"type", "output_update"}, {"node_id", "n"}, {"output_name", "chunk"}, {"value", value}, {"disposition", disposition}}; };
@@ -276,6 +285,7 @@ private slots:
  void sharedQueueAcrossModelsAndDestruction() {
   PcmQueue queue;
   auto first = std::make_unique<RunOutputModel>(nullptr, &queue); RunOutputModel second(nullptr, &queue);
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto a = std::make_shared<SinkRecord>(), b = std::make_shared<SinkRecord>();
   for (const auto &record : {a, b}) { record->supported.setSampleRate(24000); record->supported.setChannelCount(1); record->supported.setSampleFormat(QAudioFormat::Float); record->drain = false; }
   first->setPcmSinkFactory([a] { return std::make_unique<RecordingSink>(a); }); second.setPcmSinkFactory([b] { return std::make_unique<RecordingSink>(b); });

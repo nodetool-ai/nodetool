@@ -22,6 +22,7 @@ namespace {
 namespace fs = std::filesystem;
 namespace js = gr::js;
 
+// native-rules #14: file-scope mutable test counters
 int failures = 0;
 int checks = 0;
 
@@ -49,6 +50,7 @@ struct TempDir {
     fs::remove_all(path, ec);
   }
   static int& counter() {
+    // native-rules #14: function-local static mutable counter
     static int n = 0;
     return n;
   }

@@ -21,6 +21,7 @@
 
 class QThread;
 
+// native-rules #9: used across threads (worker QThread), no thread affinity comment
 class AudioRoles : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -91,7 +92,9 @@ private:
                             int* skippedNoRole, int* skippedLocked) const;
 
     QPointer<TimelineModel> m_timeline;
+    // native-rules #1: raw owning QThread* from QThread::create, deleted by hand in the destructor
     QThread* m_thread = nullptr;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<std::atomic_bool> m_cancel;
     QString m_task;
     double m_progress = 0;
@@ -101,6 +104,7 @@ private:
     nt::audioroles::DuckSettings m_duck;
 
     // Results of the worker, kept for `apply`.
+    // native-rules #10: written on the worker thread, read on the GUI thread, no mutex or documented handoff
     std::vector<nt::audioroles::Measurement> m_measurements;
     std::vector<nt::audioroles::DuckPlan> m_plans;
     quint64 m_generation = 0;

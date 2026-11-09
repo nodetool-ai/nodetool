@@ -51,7 +51,9 @@ CompatibleNodePicker::CompatibleNodePicker(WorkflowGraphModel &model,
 CompatibleNodePicker::~CompatibleNodePicker() {
   qApp->removeEventFilter(this);
   active_=false; ++generation_;
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   auto widget=widget_.data(); widget_.clear(); delete widget;
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &retired:retired_) { delete retired.data(); }
 }
 QQuickWidget *CompatibleNodePicker::widget() const { return widget_; }

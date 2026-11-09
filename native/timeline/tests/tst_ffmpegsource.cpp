@@ -47,6 +47,7 @@ std::shared_ptr<DecodedFrame> waitExact(FfmpegDecoder& d, double target, int tim
 // The burnt-in barcode (scripts/make-fixtures.sh): bit k is the 80 px cell at
 // x = 80k in the top 40 rows. A 640 px frame carries bits 0-7.
 int barcode(const DecodedFrame& f) {
+    // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
     const AVFrame* fr = f.frame;
     int value = 0;
     const int bits = std::min(16, fr->width / 80);
@@ -62,6 +63,7 @@ int barcode(const DecodedFrame& f) {
 // app never maps hardware frames).
 int hardwareBarcode(const DecodedFrame& f) {
 #if !NT_HW_VIDEOTOOLBOX
+    // native-rules #6: raw AVFrame freed by hand with av_frame_free, no RAII type
     AVFrame* sw = av_frame_alloc();
     int value = 0;
     if (av_hwframe_transfer_data(sw, f.frame, 0) == 0) {
@@ -325,6 +327,7 @@ private slots:
         auto f = waitExact(d, 0.0);
         QVERIFY(f);
         QCOMPARE(f->layout, PlaneLayout::Rgba);
+        // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
         const AVFrame* fr = f->frame;
         const uint8_t* px = fr->data[0] + (fr->height / 2) * fr->linesize[0] + (fr->width / 2) * 4;
         // lavfi's colour source is YUV, so the encoded RGB can be 1 off.
@@ -341,6 +344,7 @@ private slots:
         auto f = waitExact(d, 0.0);
         QVERIFY(f);
         QCOMPARE(f->layout, PlaneLayout::I420);
+        // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
         const AVFrame* fr = f->frame;
         const int x = fr->width / 2;
         const int y = fr->height / 2;
@@ -614,6 +618,7 @@ private slots:
         QVERIFY(f);
         QCOMPARE(int(f->matrix), matrix);
         QCOMPARE(f->range, YuvRange::Limited);
+        // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
         const AVFrame* fr = f->frame;
         const int x = fr->width / 2;
         const int y = fr->height / 2;

@@ -25,6 +25,7 @@ extern "C" {
 namespace nt {
 
 namespace {
+// native-rules #14: global mutable state
 std::atomic<DecodeMode> g_decodeMode{DecodeMode::Software};
 }  // namespace
 
@@ -37,6 +38,7 @@ DecodeMode decodeMode() {
 }
 
 namespace {
+// native-rules #14: global mutable state
 std::atomic<int> g_testFailAfterPackets{-1};
 }  // namespace
 
@@ -45,6 +47,7 @@ void setTestDecodeFailureAfterPackets(int packets) {
 }
 
 namespace {
+// native-rules #14: global mutable state
 std::atomic<int> g_testFailHardwareOnOpen{-1};
 }  // namespace
 
@@ -53,10 +56,15 @@ void setTestHardwareSetupFailureOnOpen(int open) {
 }
 
 namespace {
+// native-rules #14: global mutable state
 std::atomic<int> g_testStallAfterPackets{-1};
+// native-rules #14: global mutable state
 std::atomic<int> g_testFrameLossAfterFrames{-1};
+// native-rules #14: global mutable state
 std::mutex g_testStallMutex;
+// native-rules #14: global mutable state
 std::condition_variable g_testStallCv;
+// native-rules #14: global mutable state
 long long g_testStallRelease = 0;  // bumped by releaseTestStalls()
 
 // Blocks like a VideoToolbox call that never returns, until the test releases it.
@@ -84,6 +92,7 @@ void releaseTestStalls() {
 }
 
 namespace {
+// native-rules #14: global mutable state
 std::atomic<const char*> g_decodeWorkerQos{"none"};
 }  // namespace
 
@@ -341,6 +350,7 @@ FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<
       m_targetSec(initialSec),
       m_restartSec(initialSec) {
     beat();
+    // native-rules #12: lambda captures raw this and runs on the worker thread (detached after stopWithin grace)
     m_thread = std::thread([this] {
         run();
         std::unique_lock lock(m_doneMutex);
@@ -349,6 +359,8 @@ FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<
             // stopWithin() gave up on this worker and detached it: nothing
             // else owns the decoder now.
             lock.unlock();
+            // native-rules #1: ownership passes to the detached worker, not expressed in the type
+            // native-rules #2: naked delete this from the detached worker thread
             delete this;
             return;
         }
@@ -400,6 +412,7 @@ bool FfmpegDecoder::stopWithin(std::unique_ptr<FfmpegDecoder> decoder, std::chro
     decoder->m_abandoned = true;
     decoder->m_thread.detach();
     lock.unlock();
+    // native-rules #1: unique_ptr released, the detached worker becomes the owner
     (void)decoder.release();  // the worker deletes it if it ever returns
     return false;
 }
@@ -955,6 +968,7 @@ void FfmpegDecoder::run() {
                 sws_setColorspaceDetails(sws.get(), sws_getCoefficients(sourceSpace), full ? 1 : 0,
                                          sws_getCoefficients(sourceSpace), 1, 0, 1 << 16, 1 << 16);
             }
+            // native-rules #6: raw av_frame_alloc result, not wrapped at the call site, leaks if get_buffer fails
             AVFrame* conv = av_frame_alloc();
             conv->format = AV_PIX_FMT_RGB0;
             conv->width = frm->width;
@@ -978,6 +992,7 @@ void FfmpegDecoder::run() {
             const int srcSpace = matrixFor(cs, frm->height) == YuvMatrix::Bt709 ? SWS_CS_ITU709 : SWS_CS_ITU601;
             sws_setColorspaceDetails(sws.get(), sws_getCoefficients(srcSpace), full ? 1 : 0,
                                      sws_getCoefficients(SWS_CS_ITU709), 0, 0, 1 << 16, 1 << 16);
+            // native-rules #6: raw av_frame_alloc result, not wrapped at the call site, leaks if get_buffer fails
             AVFrame* conv = av_frame_alloc();
             conv->format = AV_PIX_FMT_YUV420P;
             conv->width = frm->width;

@@ -12,6 +12,7 @@
 #include <unistd.h>
 using Json = nlohmann::json;
 namespace {
+// native-rules #14: file-scope mutable test counters
 int checks = 0;
 void check(bool ok, const std::string &why) {
   ++checks;
@@ -25,6 +26,7 @@ Json graph(const std::string &mode) {
                                   {"properties", {{"mode", mode}}}}})},
           {"edges", Json::array()}};
 }
+// native-rules #9: written from the worker thread and read by the test, no affinity comment
 struct Run {
   std::mutex mutex;
   std::condition_variable cv;
@@ -32,6 +34,7 @@ struct Run {
   std::string status;
   Json messages = Json::array(), outputs;
   gr::GraphRunner::MessageHandler handler() {
+    // native-rules #12: lambda captures raw this and runs on the worker thread
     return [this](const std::string &text, bool last) {
       std::lock_guard lock(mutex);
       auto msg = Json::parse(text);

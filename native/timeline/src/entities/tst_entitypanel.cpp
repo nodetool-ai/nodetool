@@ -397,6 +397,7 @@ class TestEntityPanel : public QObject {
     QString referenceId() { return find("entityEditorDialog")->property("referenceAssetId").toString(); }
     QJsonObject frameData(int index) { return socket->frames[index].value("data").toObject(); }
     QVariantList imageFiles(int count) {
+        // native-rules #14: test-only static
         static QTemporaryDir directory;
         QVariantList urls;
         for (int index = 0; index < count; ++index) {

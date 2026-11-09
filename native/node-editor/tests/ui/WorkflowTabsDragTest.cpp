@@ -122,7 +122,9 @@ void choose(QMenu *menu, const QString &text) {
     QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(action).center());
 }
 void answer(QMessageBox::StandardButton choice, int *asked) {
+    // native-rules #13: timer on qApp has no expiry and can outlive the caller's asked pointer
     auto timer = new QTimer(qApp);
+    // native-rules #12: lambda runs later on a timer and captures raw int* asked
     QObject::connect(timer, &QTimer::timeout, qApp, [choice, timer, asked] {
         auto box = qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
         if (!box) {

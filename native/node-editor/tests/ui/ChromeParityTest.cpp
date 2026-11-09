@@ -702,6 +702,7 @@ private slots:
     // and Run selected, which runs the selection that many times in sequence
     // (hooks/nodes/useRunSelectedNodes.ts).
     void inspectorFooterRunsTheSelectionRepeatedly() {
+        // native-rules #2: naked new, parent set on the next line instead of in the statement
         auto *server = new FakeRunServer;
         server->setParent(this);
         server->metadata = fixture()["metadata"].toArray();
@@ -768,6 +769,7 @@ private slots:
     // (costs/WorkflowCostEstimatePanel.tsx). Native asks the server's preflight,
     // which runs the same estimateWorkflowCost (sdk-static-preflight-service.ts).
     void inspectorShowsTheServerCostEstimate() {
+        // native-rules #2: naked new, parent set on the next line instead of in the statement
         auto *server = new FakeRunServer;
         server->setParent(this);
         server->metadata = fixture()["metadata"].toArray();

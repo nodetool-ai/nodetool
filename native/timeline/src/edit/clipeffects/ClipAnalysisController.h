@@ -4,6 +4,7 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <thread>
 
+// native-rules #9: owns a std::jthread worker and is called back from it, no thread affinity comment
 class ClipAnalysisController : public QObject {
     Q_OBJECT
     QML_ELEMENT

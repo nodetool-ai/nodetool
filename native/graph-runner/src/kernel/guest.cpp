@@ -20,6 +20,7 @@ struct PromiseAwaiter {
   };
   js::Engine& engine;
   js::Value promise;
+  // native-rules #1: shared with promise callbacks, no justification
   std::shared_ptr<State> state = std::make_shared<State>();
 
   bool await_ready() const noexcept { return false; }
@@ -234,6 +235,7 @@ void Guest::settleEvaluation(const js::Value& result,
     bool done = false;
     std::string error;
   };
+  // native-rules #1: shared by two promise callbacks, no justification
   auto st = std::make_shared<Settled>();
   js::then(
       engine_, result, [st](js::Engine&, const js::Value&) { st->done = true; },
@@ -243,6 +245,7 @@ void Guest::settleEvaluation(const js::Value& result,
         if (st->error.empty()) st->error = "the bundle's evaluation was rejected";
       });
   Loop& loop = Loop::current();
+  // native-rules #12: lambda captures raw this and is stored in the loop, runs later
   loop.setPump([this] { return engine_.drainJobs() > 0; });
   bool stopped = false;
   try {
@@ -283,6 +286,7 @@ Json Guest::types() {
     std::optional<std::string> value;
     std::optional<std::string> error;
   };
+  // native-rules #1: shared by two promise callbacks, no justification
   auto st = std::make_shared<Settled>();
   js::then(
       engine_, engine_.call(api("types"), engine_.undefined(), {}),
@@ -347,6 +351,7 @@ void Guest::installHost() {
     return e.undefined();
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "next", e.function("next", 2, [this](js::Engine& e, Args a) {
     StreamIO* s = &io(a.at(0));
     std::optional<std::string> handle;
@@ -356,6 +361,7 @@ void Guest::installHost() {
     return cap.promise;
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "emit", e.function("emit", 4, [this](js::Engine& e, Args a) {
     StreamIO* s = &io(a.at(0));
     std::string slot = e.toString(a.at(1));
@@ -367,6 +373,7 @@ void Guest::installHost() {
     return cap.promise;
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "emitGroup", e.function("emitGroup", 3, [this](js::Engine& e, Args a) {
     StreamIO* s = &io(a.at(0));
     Json values = optJson(e, a, 1).value_or(Json::object());
@@ -377,6 +384,7 @@ void Guest::installHost() {
     return cap.promise;
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "drop", e.function("drop", 3, [this](js::Engine& e, Args a) {
     StreamIO* s = &io(a.at(0));
     std::string slot = e.toString(a.at(1));
@@ -386,24 +394,29 @@ void Guest::installHost() {
     return cap.promise;
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "complete", e.function("complete", 2, [this](js::Engine& e, Args a) {
     io(a.at(0)).complete(e.toString(a.at(1)));
     return e.undefined();
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "hasBuffered", e.function("hasBuffered", 2, [this](js::Engine& e, Args a) {
     return e.boolean(io(a.at(0)).hasBuffered(e.toString(a.at(1))));
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "hasStream", e.function("hasStream", 2, [this](js::Engine& e, Args a) {
     return e.boolean(io(a.at(0)).hasStream(e.toString(a.at(1))));
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "scopeFor", e.function("scopeFor", 2, [this](js::Engine& e, Args a) {
     Json s = io(a.at(0)).scopeFor(e.toString(a.at(1)));
     return e.string(s.dump());
   }));
 
+  // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "invocationScope", e.function("invocationScope", 1, [this](js::Engine& e, Args a) {
     Json s = io(a.at(0)).invocationScope();
     return e.string(s.dump());

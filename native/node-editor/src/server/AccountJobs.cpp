@@ -8,6 +8,7 @@
 
 namespace nodetool::node_editor {
 QSharedPointer<AccountJobs> AccountJobs::acquire(const QUrl &base, const QString &token, const QString &user) {
+    // native-rules #14: function-static mutable cache of AccountJobs, shared across tabs
     static QHash<QString, QWeakPointer<AccountJobs>> caches;
     for (auto it = caches.begin(); it != caches.end();) {
         if (it.value().isNull()) {

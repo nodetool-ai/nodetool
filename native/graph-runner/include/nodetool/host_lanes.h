@@ -26,6 +26,7 @@ enum class HostShutdownStatus {
 // handle destroys nothing, and normal static teardown never destroys a lane
 // whose thread still runs. The caller either retries or ends the process
 // explicitly, for example with std::quick_exit.
+// native-rules #9: retried from any thread, no thread-safety comment
 class HostLaneSupervisor {
 public:
   struct State;

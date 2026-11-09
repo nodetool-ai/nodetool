@@ -31,6 +31,7 @@
 
 namespace {
 
+// native-rules #14: file-scope mutable test counters
 int failures = 0;
 int checks = 0;
 
@@ -48,6 +49,7 @@ using gr::Json;
 namespace gpu = gr::host::gpu;
 namespace js = gr::js;
 
+// native-rules #14: file-scope mutable catalog text
 std::string catalogText;
 std::shared_ptr<const gpu::Catalog> catalog;
 

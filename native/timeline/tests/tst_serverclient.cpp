@@ -118,6 +118,7 @@ public:
     InstanceServer() {
         connect(&m_server, &QTcpServer::newConnection, this, [this]() {
             while (QTcpSocket* s = m_server.nextPendingConnection()) {
+                // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
                 auto buffer = std::make_shared<QByteArray>();
                 connect(s, &QTcpSocket::readyRead, s, [this, s, buffer]() {
                     buffer->append(s->readAll());
@@ -935,6 +936,7 @@ private slots:
             for (const nt::Clip& c : r.timeline->clips) {
                 if (c.id == id) return c;
             }
+            // native-rules #14: test-only static
             static nt::Clip none;
             return none;
         };

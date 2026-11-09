@@ -78,10 +78,12 @@ private slots:
         const size_t bytes = 64 * 32 * 3 / 2;
         nt::FrameCache cache(bytes * 2);
         auto first = std::make_shared<nt::DecodedFrame>();
+        // native-rules #5: raw AVFrame* handle released out of its RAII wrapper into DecodedFrame
         first->frame = copy.release();
         first->hardware = true;
         first->ptsSec = 1.0;
         auto second = std::make_shared<nt::DecodedFrame>();
+        // native-rules #5: raw AVFrame* handle released out of its RAII wrapper into DecodedFrame
         second->frame = nt::hw::cacheCopy(first->frame).release();
         QVERIFY(second->frame);
         second->hardware = true;

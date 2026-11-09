@@ -11,6 +11,11 @@ breaks any of them has a bug, even when it compiles and its tests pass. If a
 requirement cannot be met cleanly, stop and explain the conflict instead of
 working around these rules.
 
+Code that predates these rules carries a marker at each known violation:
+`// native-rules #N: <why it breaks rule N>`. When you change marked code,
+bring it into line with the rule and delete the marker. Never add new code
+that needs a marker.
+
 ## Ownership
 
 1. Every heap object has exactly one owner, expressed in the type.

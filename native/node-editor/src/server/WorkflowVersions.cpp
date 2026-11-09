@@ -187,6 +187,7 @@ void WorkflowVersions::createVersion(const QString &name) {
     m_error.clear();
     emit changed();
     const auto epoch = m_epoch;
+    // native-rules #1: shared_ptr<QList<Connection>> shared by lambda copies, no justification comment
     auto links = std::make_shared<QList<QMetaObject::Connection>>();
     const auto release = [this, links] {
         for (const auto &link : *links) {
@@ -486,6 +487,7 @@ void WorkflowVersions::restore(bool confirmDirty) {
   m_session->acknowledgeRestoredVersion(data);
  });
  // Keep autosave paused through the request. Restore the preference on completion.
+ // native-rules #1: shared_ptr<Connection> shared by lambda copies, no justification comment
  auto connection = std::make_shared<QMetaObject::Connection>();
  *connection = connect(this, &WorkflowVersions::changed, this, [this, autosave, epoch, connection] {
   if (m_busy) { return; } disconnect(*connection);

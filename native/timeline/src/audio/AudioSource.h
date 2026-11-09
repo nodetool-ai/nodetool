@@ -37,6 +37,7 @@ public:
     // Output frame of the next read.
     std::int64_t position() const { return m_position; }
     // Reads up to `frames` stereo frames. Returns 0 at the end of the stream.
+    // native-rules #5: raw float* sample buffer crosses the module boundary
     std::int64_t read(float* stereo, std::int64_t frames);
 
     // Packets or frames the demuxer or decoder rejected so far.

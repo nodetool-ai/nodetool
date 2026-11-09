@@ -15,6 +15,7 @@ struct Keyframe {
 class EnvelopeBuilder {
 public:
     EnvelopeBuilder(double sampleRate, double hopS = 0.01, int windowHops = 5);
+    // native-rules #5: raw const float* sample buffer crosses the module boundary
     void feed(const float* stereo, int frames);
     std::vector<float> finish();
     double hopS() const;

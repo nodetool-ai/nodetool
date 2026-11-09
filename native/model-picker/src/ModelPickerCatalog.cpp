@@ -371,7 +371,9 @@ void Catalog::reload() {
         guard->m_pending = names.size() + 1;
         guard->m_totalProviders = names.size();
         if (names.isEmpty()) { guard->m_models.clear(); guard->m_providers.clear(); guard->m_loading = false; guard->complete(revision); return; }
+        // native-rules #1: shared by the provider callbacks, no justification
         auto accumulated = std::make_shared<QVariantList>();
+        // native-rules #1: shared by the provider callbacks, no justification
         auto errors = std::make_shared<QStringList>();
         const auto finish = [guard, revision, names, accumulated, errors] {
             if (!guard || revision != guard->m_revision || --guard->m_pending != 0) return;

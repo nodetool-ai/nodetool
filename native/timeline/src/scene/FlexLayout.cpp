@@ -371,6 +371,7 @@ void applyFlexItemStyle(YGNodeRef node, const QJsonValue& itemValue) {
 
 // ── the tree ──────────────────────────────────────────────────────────────
 
+// native-rules #14: global mutable counter
 std::atomic<int> gLiveNodes{0};
 
 // Owns one Yoga node from its creation. Freeing a node detaches it from its

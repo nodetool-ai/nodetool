@@ -96,7 +96,10 @@ std::shared_ptr<ContextGpu> contextGpu(js::Engine& engine) {
 
 // Parsed catalogs by document, shared by the contexts that load one bundle.
 std::shared_ptr<const Catalog> catalogFor(const std::string& json) {
+  // native-rules #14: process-wide mutex for the catalog cache
   static std::mutex mutex;
+  // native-rules #14: process-wide catalog cache, never destroyed
+  // native-rules #2: naked new for a leaked cache
   static auto* cache = new std::map<std::string, std::shared_ptr<const Catalog>>();
   std::lock_guard lock(mutex);
   auto it = cache->find(json);
@@ -222,6 +225,7 @@ void installGpu(js::Engine& e, const js::Value& object, const HostOptions& optio
   installCompute(e, options.gpu, object);
 #endif
   using Args = const std::vector<js::Value>&;
+  // native-rules #1: state shared by the gpu host functions, no justification
   auto state = std::make_shared<ContextGpu>();
   state->options = options.gpu;
   e.setHostState(kCatalogState, state);

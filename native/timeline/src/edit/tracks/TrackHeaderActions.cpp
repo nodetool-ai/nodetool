@@ -5,6 +5,7 @@
 
 namespace {
 std::vector<nt::tracks::HeaderAction>& actions() {
+    // native-rules #14: static mutable registry, unsynchronized
     static std::vector<nt::tracks::HeaderAction> value;
     return value;
 }

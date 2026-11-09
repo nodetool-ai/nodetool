@@ -92,7 +92,9 @@ int vfsCurrentTimeInt64(sqlite3_vfs* v, sqlite3_int64* out) {
 // One registered VFS per granted directory, kept for the life of the process
 // (SQLite holds a pointer to it, and other runners may share it).
 const char* sandboxVfs(const std::string& root) {
+  // native-rules #14: process-wide mutex for the VFS registry
   static std::mutex mutex;
+  // native-rules #14: process-wide VFS registry, never destroyed
   static std::map<std::string, std::unique_ptr<SandboxVfs>> registered;
   std::lock_guard<std::mutex> lock(mutex);
   auto it = registered.find(root);
@@ -182,6 +184,7 @@ std::string codeName(int code) {
 // --- state -------------------------------------------------------------------
 
 struct Statement {
+  // native-rules #6: raw sqlite3_stmt finalized by hand
   sqlite3_stmt* handle = nullptr;
   int db = 0;
   bool reader = false;
@@ -192,6 +195,7 @@ struct Statement {
 struct State {
   std::string root;      // canonical granted directory, or empty
   std::string vfs;       // sandbox VFS name
+  // native-rules #6: raw sqlite3 handles closed by hand in the destructor
   std::unordered_map<int, sqlite3*> dbs;
   std::unordered_map<int, Statement> statements;
   int next = 1;
@@ -358,6 +362,7 @@ js::Value fnOpen(State& st, js::Engine& e, Args a) {
                               : mustExist ? SQLITE_OPEN_READWRITE
                                           : (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE)) |
                     SQLITE_OPEN_NOMUTEX | (memory ? 0 : SQLITE_OPEN_NOFOLLOW);
+  // native-rules #6: raw sqlite3 handle closed by hand on each path
   sqlite3* db = nullptr;
   const int rc = sqlite3_open_v2(path.c_str(), &db, flags, st.vfs.c_str());
   if (rc != SQLITE_OK) {
@@ -387,6 +392,7 @@ js::Value fnExec(State& st, js::Engine& e, Args a) {
   const char* p = sql.c_str();
   for (;;) {
     while (skipped(*p)) ++p;
+    // native-rules #6: raw sqlite3_stmt finalized by hand, leaks if step throws
     sqlite3_stmt* s = nullptr;
     const char* tail = nullptr;
     if (sqlite3_prepare_v2(db, p, -1, &s, &tail) != SQLITE_OK) dbError(db);
@@ -424,6 +430,7 @@ js::Value fnPrepare(State& st, js::Engine& e, Args a) {
   sqlite3* db = st.db(dbId);
   const std::string sql = e.toString(a.at(1));
   const bool pragma = a.size() > 2 && e.toBoolean(a.at(2));
+  // native-rules #6: raw sqlite3_stmt finalized by hand on each path
   sqlite3_stmt* s = nullptr;
   const char* tail = nullptr;
   if (sqlite3_prepare_v3(db, sql.c_str(), static_cast<int>(sql.size()) + 1,
@@ -548,6 +555,7 @@ js::Value fnLoadExtension(State& st, js::Engine& e, Args a) {
 }  // namespace
 
 void installSqlite(js::Engine& engine, const js::Value& object, const HostOptions& options) {
+  // native-rules #1: state shared by the sqlite host functions, no justification
   auto state = std::make_shared<State>();
   if (!options.sqliteDirectory.empty()) {
     std::error_code ec;

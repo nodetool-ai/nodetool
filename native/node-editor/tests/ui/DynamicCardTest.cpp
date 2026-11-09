@@ -117,6 +117,7 @@ private slots:
             QVERIFY(QMetaObject::invokeMethod(quick->rootObject(), "cancel"));
             QVERIFY(popup); QVERIFY(!popup->isVisible());
         } else if (mode == "deleted-quick") {
+            // native-rules #2: explicit delete of a QPointer-held QQuickItem
             delete quick.data();
             host->window.dynamicPorts()->setSelectedNode("source");
             QVERIFY(!quick);

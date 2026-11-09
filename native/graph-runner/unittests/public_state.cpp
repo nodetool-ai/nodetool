@@ -14,6 +14,7 @@
 
 namespace {
 using Json=nlohmann::json;
+// native-rules #14: file-scope mutable test counters
 int checks=0;
 void check(bool ok,const char* message) { ++checks; if(!ok) throw std::runtime_error(message); }
 struct Result { std::string status; Json outputs; std::string jobId; std::string workflowId; };

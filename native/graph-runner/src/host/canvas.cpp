@@ -28,6 +28,7 @@ int dimension(double n) {
   return static_cast<int>(n);
 }
 struct Fonts {
+  // native-rules #6: raw Pango, fontconfig and fd handles freed by hand in the destructor
   PangoFontMap* map = pango_cairo_font_map_new();
   FcConfig* config = FcConfigCreate();
   std::vector<int> descriptors;
@@ -55,10 +56,12 @@ struct Fonts {
   }
 };
 struct Surface {
+  // native-rules #1: budget shared by all surfaces, no justification
   std::shared_ptr<size_t> budget;
   int width, height;
   unsigned savedDepth = 0;
   size_t pathCommands = 0;
+  // native-rules #6: raw cairo handles freed by hand in the destructor
   cairo_surface_t* image = nullptr;
   cairo_t* ctx = nullptr;
   Surface(int w, int h, std::shared_ptr<size_t> b) : budget(std::move(b)), width(w), height(h) {
@@ -289,6 +292,7 @@ void pathShadow(Surface& destination, Color shadow, double blur, double offsetX,
 }  // namespace
 void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
   e.set(object, "available", e.boolean(true));
+  // native-rules #1: budget and fonts shared by the canvas host functions, no justification
   auto budget = std::make_shared<size_t>(0);
   auto fonts = std::make_shared<Fonts>();
   e.set(object, "registerFont",

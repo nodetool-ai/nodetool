@@ -24,6 +24,7 @@ public:
     bool render(const EffectContext& ctx, const LayerFrame& input,
                 QRhiTextureRenderTarget& output, const QJsonObject& ext) override {
         if (!ext.value("invert").toBool() || input.format != LayerFrame::Format::Rgba8Premultiplied) { return false; }
+        // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
         auto resources = std::make_shared<Resources>();
         auto* rhi = ctx.rhi;
         resources->vertices.reset(rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, 64));

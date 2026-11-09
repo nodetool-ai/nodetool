@@ -3,6 +3,7 @@
 
 namespace {
 using namespace gr;
+// native-rules #14: file-scope mutable test counters
 int checks=0;
 void check(bool value,const char* message) { ++checks;if(!value) throw std::runtime_error(message); }
 template<class T> T finish(Task<T> task) { Loop::current().run();check(task.done(),"task finishes");return task.get(); }

@@ -9,6 +9,7 @@
 
 namespace {
 std::vector<MonitorViewState*>& liveInstances() {
+    // native-rules #14: function-local static list of raw instance pointers, unguarded mutable global
     static std::vector<MonitorViewState*> instances;
     return instances;
 }

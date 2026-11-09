@@ -3,6 +3,7 @@
 namespace gr {
 
 Loop& Loop::current() {
+  // native-rules #14: thread_local Loop::current() is hidden per-thread global state
   thread_local Loop loop;
   return loop;
 }

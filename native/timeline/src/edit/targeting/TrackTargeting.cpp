@@ -7,6 +7,7 @@ TrackTargeting& TrackTargeting::current() {
     // One application-owned editor state bridges registry edits and the QML
     // singleton. It is never part of a document or its undo history.
     Q_ASSERT(QCoreApplication::instance());
+    // native-rules #14: static mutable singleton pointer
     static QPointer<TrackTargeting> instance;
     if (!instance) {
         instance = new TrackTargeting(QCoreApplication::instance());

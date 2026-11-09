@@ -25,12 +25,14 @@ namespace {
 
 constexpr int kMaxAttempts = 4;
 
+// native-rules #10: mutex below does not say that it guards counts
 struct ActiveLeases {
     std::mutex mutex;
     std::map<QString, size_t> counts;
 };
 
 ActiveLeases& activeLeases() {
+    // native-rules #14: function-local static ActiveLeases, mutable global state
     static ActiveLeases registry;
     return registry;
 }
@@ -60,8 +62,11 @@ struct LeaseHolder {
 
 // One in-process mutex per variant folder. The lock file covers other
 // processes; this covers threads of this one.
+// native-rules #1: std::shared_ptr mutex, the comment explains the lock but not why it is shared
 std::shared_ptr<std::mutex> folderMutex(const QString& dir) {
+    // native-rules #14: function-local static mutex, global mutable state
     static std::mutex guard;
+    // native-rules #14: function-local static mutex map, global mutable state
     static std::map<QString, std::weak_ptr<std::mutex>> mutexes;
     std::lock_guard lock(guard);
     auto& weak = mutexes[pathKey(dir)];

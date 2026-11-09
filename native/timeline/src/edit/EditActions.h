@@ -40,6 +40,7 @@ struct EditDoc {
     IdSet clipsWithMediaTracks;
     // Clip id to its index in `clips`, built on first use. A caller can set
     // one it already has. A stale entry (edited `clips`) falls back to a scan.
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     mutable std::shared_ptr<const QHash<QString, int>> idIndex;
 
     int indexOf(const QString& id) const;

@@ -775,6 +775,7 @@ QJsonObject AssistantCommands::readScopes(const QJsonObject& args, const QString
     }
     m_scopes->setCapture(frames);
     const auto generation = m_model.documentGeneration();
+    // native-rules #12: lambda captures raw this and runs later when the scope reading finishes
     m_scopes->readNumbers(at, options, [this, callId, generation](const QJsonObject& numbers) {
         if (generation != m_model.documentGeneration()) {
             emit toolCompleted(callId, failure("The timeline changed during the reading.").toVariantMap());
@@ -813,6 +814,7 @@ QJsonObject AssistantCommands::captureFrame(const QJsonObject& args, const QStri
             return;
         }
         // Encoding a large frame would stall the interface.
+        // native-rules #12: pool job captures a raw QObject pointer and posts to it from the pool thread
         self->m_encoder.start([owner = self.data(), callId, image = frame.image, timeMs = frame.timeMs, width] {
             // Never larger than the frame, and a very tall sequence stays small too.
             const QSize box(std::min(width, image.width()), MAX_FRAME_HEIGHT);

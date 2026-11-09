@@ -7,6 +7,7 @@ struct DefaultProvider {
     DecodeModeProvider function;
 };
 DefaultProvider& provider() {
+    // native-rules #14: static mutable provider
     static DefaultProvider value;
     return value;
 }

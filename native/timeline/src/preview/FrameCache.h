@@ -30,6 +30,7 @@ namespace nt {
 
 struct DecodedFrame;
 
+// native-rules #9: shared by every decoder thread and the render thread, no thread affinity comment
 class FrameCache {
 public:
     static constexpr size_t kDefaultBudgetBytes = 256u * 1024u * 1024u;
@@ -63,6 +64,7 @@ private:
     struct Entry {
         std::string source;
         double pts = 0.0;
+        // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
         std::shared_ptr<DecodedFrame> frame;
         size_t bytes = 0;
         double successorPts = -1.0;  // negative: unknown

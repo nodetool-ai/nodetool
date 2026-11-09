@@ -50,10 +50,12 @@ std::string voiceKey(const VoicePlan& voice) {
 
 // One mix snapshot's PCM: rings are retained across unchanged mappings and
 // released by the worker after the callback no longer reads their snapshots.
+// native-rules #9: atomics shared by the worker and the device callback, no affinity comment at the top
 struct Session {
     std::atomic<std::uint64_t> seekSeq{0};
     double startMs = 0.0;
     std::uint64_t planVersion = 0;
+    // native-rules #1: std::shared_ptr MixPlan, no comment on why unique ownership is impossible
     std::shared_ptr<const MixPlan> plan;
     // Shared only between worker-owned snapshots. The callback never copies
     // or destroys an owner. Old snapshots retain rings until their hazard clears.
@@ -133,6 +135,7 @@ struct AudioEngine::Impl {
     std::mutex mutex;  // guards plan, planVersion, stopWorker
     std::condition_variable wake;
     bool stopWorker = false;
+    // native-rules #1: std::shared_ptr MixPlan, no comment on why unique ownership is impossible
     std::shared_ptr<const MixPlan> plan = std::make_shared<MixPlan>();
     std::uint64_t planVersion = 1;
     std::uint64_t publishedPlanVersion = 0;  // guarded by mutex, caller publication acknowledgement
@@ -143,6 +146,7 @@ struct AudioEngine::Impl {
     std::vector<float> chunk = std::vector<float>(static_cast<std::size_t>(kChunkFrames) * 2);
 
     // ---- device ----
+    // native-rules #6: ma_context and ma_device are freed by hand with uninit calls, no RAII wrapper
     ma_context context{};
     ma_device device{};
     bool contextReady = false;

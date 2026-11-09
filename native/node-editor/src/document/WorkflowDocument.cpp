@@ -1271,6 +1271,7 @@ EditResult WorkflowDocument::applyCommand(const QJsonObject& command, const QStr
         if (!error.isEmpty()) {
             return failure(error);
         }
+        // native-rules #2: naked new, QUndoStack takes ownership of a raw QUndoCommand, no parent or smart pointer
         undo_.push(new NodeDeltaEdit(*this, {}, QJsonObject{{id, value}}, title));
         return success();
     }
@@ -1323,6 +1324,7 @@ EditResult WorkflowDocument::applyCommand(const QJsonObject& command, const QStr
         if (!edge.value("sourceHandle").isString() || !edge.value("targetHandle").isString()) {
             return failure("Edge requires named ports");
         }
+        // native-rules #2: naked new, QUndoStack takes ownership of a raw QUndoCommand, no parent or smart pointer
         undo_.push(new EdgeDeltaEdit(*this, edge, title));
         return success();
     }
@@ -1380,12 +1382,14 @@ EditResult WorkflowDocument::applyCommand(const QJsonObject& command, const QStr
             after.insert(it.key(), value);
         }
         if (before != after) {
+            // native-rules #2: naked new, QUndoStack takes ownership of a raw QUndoCommand, no parent or smart pointer
             undo_.push(new NodeDeltaEdit(*this, before, after, title));
         }
         return success();
     }
     auto candidate = snapshot();
     auto result = edit(candidate, command, metadata_);
+    // native-rules #2: naked new, QUndoStack takes ownership of a raw QUndoCommand, no parent or smart pointer
     if (result && candidate != workflow_) { undo_.push(new DocumentEdit(*this, workflow_, candidate, label.isEmpty() ? command.value("op").toString() : label)); }
     return result;
 }

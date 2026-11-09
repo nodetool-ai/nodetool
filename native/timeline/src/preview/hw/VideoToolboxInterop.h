@@ -46,8 +46,11 @@ private:
     friend class VideoToolboxInterop;
     FrameRef() = default;
 
+    // native-rules #1: shared_ptr, comment names the role but not why unique ownership is impossible
     std::shared_ptr<VideoToolboxInterop> m_interop;  // keeps the texture cache alive
+    // native-rules #6: raw CVPixelBufferRef released by hand, no RAII wrapper
     void* m_pixelBuffer = nullptr;                   // CVPixelBufferRef, retained
+    // native-rules #6: raw CF objects released by hand, no RAII wrapper
     std::array<void*, 2> m_cvTextures{};             // CVMetalTextureRef, owned
     std::array<std::unique_ptr<QRhiTexture>, 2> m_planes;
     QSize m_size;
@@ -60,6 +63,8 @@ private:
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber);
 long long completedFrame();
 
+// native-rules #1: shared ownership without a comment on why unique ownership is impossible
+// native-rules #9: used from decoder and render threads, no thread affinity comment
 class VideoToolboxInterop : public std::enable_shared_from_this<VideoToolboxInterop> {
 public:
     // Null when `rhi` is not a Metal QRhi or the texture cache fails.
@@ -68,6 +73,7 @@ public:
 
     // Wraps an NV12 CVPixelBufferRef (8-bit, video or full range). Null with
     // `error` set when the buffer is another format or the cache fails.
+    // native-rules #5: raw native buffer handle crosses a module boundary
     std::shared_ptr<FrameRef> wrap(void* cvPixelBuffer, std::string* error);
 
     // Lets the cache drop textures it no longer needs; call once per frame.
@@ -76,6 +82,7 @@ public:
 private:
     VideoToolboxInterop() = default;
     QRhi* m_rhi = nullptr;
+    // native-rules #6: raw CVMetalTextureCacheRef released by hand, no RAII wrapper
     void* m_cache = nullptr;  // CVMetalTextureCacheRef
 };
 

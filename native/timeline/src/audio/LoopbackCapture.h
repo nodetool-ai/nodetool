@@ -22,6 +22,7 @@ struct AudioDeviceList {
 
 AudioDeviceList listAudioDevices(std::string* error);
 
+// native-rules #9: written by the miniaudio callback thread and read by the caller, no affinity comment
 class LoopbackCapture {
 public:
     LoopbackCapture();

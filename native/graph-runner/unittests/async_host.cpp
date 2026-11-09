@@ -30,6 +30,7 @@
 
 namespace {
 
+// native-rules #14: file-scope mutable test counters
 int failures = 0;
 int checks = 0;
 
@@ -62,10 +63,13 @@ double msSince(Clock::time_point start) {
 }
 
 // A test that hangs fails the process instead of waiting for ctest.
+// native-rules #14: file-scope mutable watchdog gate
 std::atomic<Clock::rep> watchdogDeadline{0};
+// native-rules #14: file-scope mutable current-test name
 const char* currentTest = "";
 
 void startWatchdog() {
+  // native-rules #13: detached watchdog thread outlives every test object
   std::thread([] {
     for (;;) {
       std::this_thread::sleep_for(milliseconds(50));
@@ -99,6 +103,7 @@ struct TextPayload final : JobPayload {
     if (disposals) disposals->add(text);
   }
   std::string text;
+  // native-rules #1: shared by payloads and the test, no justification
   std::shared_ptr<Disposals> disposals;
 };
 
@@ -113,12 +118,14 @@ struct HeldExecutor final : gr::JobExecutor {
 struct Fixture {
   std::unique_ptr<js::Engine> engine = js::createQuickJsEngine();
   AsyncRun* run = nullptr;
+  // native-rules #1: shared by payloads and the test, no justification
   std::shared_ptr<Disposals> disposals = std::make_shared<Disposals>();
   std::vector<std::string> notes;
 
   Fixture() {
     js::Engine& e = *engine;
     e.set(e.global(), "nativeEcho",
+          // native-rules #12: lambda captures raw this and is stored in the engine, runs later
           e.function("nativeEcho", 1, [this](js::Engine& en, const std::vector<js::Value>& a) {
             std::string text = en.toString(a.at(0));
             auto disposals = this->disposals;
@@ -130,6 +137,7 @@ struct Fixture {
                   return en2.string(static_cast<TextPayload*>(payload)->text);
                 });
           }));
+    // native-rules #12: lambda captures raw this and is stored in the engine, runs later
     e.set(e.global(), "note", e.function("note", 1, [this](js::Engine& en, const std::vector<js::Value>& a) {
       notes.push_back(en.toString(a.at(0)));
       return en.undefined();

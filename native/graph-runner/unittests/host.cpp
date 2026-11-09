@@ -24,6 +24,7 @@
 
 namespace {
 
+// native-rules #14: file-scope mutable test counters
 int failures = 0;
 int checks = 0;
 

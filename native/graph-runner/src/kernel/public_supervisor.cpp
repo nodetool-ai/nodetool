@@ -20,11 +20,14 @@ SupervisorAction actionOf(const std::string& action) {
   return SupervisorAction::Fail;
 }
 Task<void> nextDecisionPoll() {
+  // native-rules #1: shared with a timer callback, no justification
   auto signal=std::make_shared<Signal>();
   Loop::current().setTimer(std::chrono::milliseconds(1),[signal] { signal->notifyAll(); });
   co_await signal->wait();
 }
+// native-rules #9: shared between loop and supervisor callback thread, no affinity comment
 struct Pending {
+  // native-rules #10: mutex does not name the data it guards
   std::mutex mutex;
   std::optional<SupervisorVerdict> result;
   std::atomic<bool> cancelled{false};
@@ -32,6 +35,7 @@ struct Pending {
 Task<RecoveryDecision> decidePublic(SupervisorOptions::Decide decide,
                                    std::string jobId, RecoveryRequest request,
                                    RecoverySignal signal) {
+  // native-rules #1: shared with the decide callback, no justification
   auto pending=std::make_shared<Pending>();
   struct CancelOnExit {
     std::shared_ptr<Pending> pending;

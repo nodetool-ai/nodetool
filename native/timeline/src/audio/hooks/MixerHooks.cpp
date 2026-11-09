@@ -11,7 +11,9 @@ public:
         return m_envelope->valueAt(timeMs, m_upstream ? m_upstream->valueAt(timeMs, base) : base);
     }
 private:
+    // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
     std::shared_ptr<const ParameterSource> m_upstream;
+    // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
     std::shared_ptr<const ParameterSource> m_envelope;
 };
 std::unordered_map<std::string, const Clip*> clipsById(const Timeline& timeline) {

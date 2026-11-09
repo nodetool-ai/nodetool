@@ -908,6 +908,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
  connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
  connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
  if (kind == "command" || kind == "shortcuts") {
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   delete menu;
   auto *panel = new QDialog(this, Qt::Popup);
   panel->setObjectName(kind + "-panel");

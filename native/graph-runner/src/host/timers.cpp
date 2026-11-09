@@ -32,6 +32,7 @@ void installTimers(js::Engine& engine, const js::Value& object, const HostOption
     js::Value callback = a[0];
     const uint64_t id = Loop::current().setTimer(
         std::chrono::milliseconds(static_cast<int64_t>(ms)),
+        // native-rules #12: timer lambda captures a raw Engine pointer and runs later
         [engine, callback] {
           try {
             engine->call(callback, engine->undefined(), {});

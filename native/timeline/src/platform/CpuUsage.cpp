@@ -94,10 +94,15 @@ struct Slot {
     NativeThread native{};
     bool live = false;
 };
+// native-rules #10: mutex does not say which globals it guards
+// native-rules #14: global mutex
 std::mutex g_mutex;
+// native-rules #14: global mutable thread table
 std::vector<Slot> g_threads;
+// native-rules #14: global mutable counter
 int g_live = 0;
 #if defined(__linux__)
+// native-rules #14: global mutable test hook
 testing::NativeQuery g_nativeQuery;
 #endif
 
@@ -119,6 +124,7 @@ struct Registration {
         if (index) releaseSlot(index);
     }
 };
+// native-rules #14: thread_local mutable registration
 thread_local Registration t_registration;
 }  // namespace
 

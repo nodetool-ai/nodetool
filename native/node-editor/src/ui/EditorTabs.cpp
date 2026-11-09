@@ -399,6 +399,7 @@ bool EditorWindow::closeSurface(int index) {
         connect(&session_, &node_editor::WorkflowSession::credentialsChanged, tab,
             [tab] { tab->chat_.disconnectFromServer(); });
     } else {
+        // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
         delete tab;
     }
     if (tabs_.isEmpty()) {

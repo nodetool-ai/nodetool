@@ -4,6 +4,7 @@
 namespace nt::automation {
 namespace {
 struct Registry {
+    // native-rules #10: mutex does not say that it guards channels
     std::mutex mutex;
     std::unordered_map<std::string,std::weak_ptr<MeterPeaks>> channels;
 };

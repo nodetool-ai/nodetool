@@ -526,6 +526,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   auto status = panel("StatusBar");
   status->setFixedHeight(status->initialSize().height());
   statusBar_ = status;
+  // native-rules #2: naked new with no QObject parent, a later addLayout call takes ownership
   auto column = new QVBoxLayout;
   statusColumn_ = column;
   column->setContentsMargins(0, 0, 0, 0);
@@ -569,6 +570,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   }
   setupGuide_ = overlay("SetupGuide");
   setupGuide_->show();
+  // native-rules #2: naked new, parent (the view) is set inside the MiniMap constructor, not documented here
   auto miniMap = new MiniMap(model_, *scene_, *view_);
   miniMap->navigated = [this] { fitActive_ = false; cancelViewAnimation(); };
   miniMap->colorByType = [this] { return miniMapColorMode_ == "type"; };
@@ -805,6 +807,7 @@ EditorWindow::~EditorWindow() {
     disconnect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
   if (!tabOwner_) {
     for (const auto &host : retainedChatHosts_) {
+        // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
         delete host.data();
     }
     retainedChatHosts_.clear();
@@ -813,34 +816,47 @@ EditorWindow::~EditorWindow() {
     for (auto panel : findChildren<QQuickWidget *>()) {
       const auto inTab = std::any_of(tabs.cbegin(), tabs.cend(), [panel](EditorWindow *tab) { return tab->isAncestorOf(panel); });
       if (!inTab) {
+        // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
         delete panel;
       }
     }
     tabs_.clear();
     // Children forward to their parent surface and open after it, so they go first.
     for (auto it = tabs.crbegin(); it != tabs.crend(); ++it) {
+      // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
       delete *it;
     }
     return;
   }
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete canvasDropDialog_.data();
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete canvasDrops_;
   canvasDrops_ = nullptr;
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete compatiblePicker_;
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete serverSyncDialog_.data();
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete lineage_;
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete canvasMedia_;
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete cardMediaLoader_;
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete inlineTitle_;
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete inlinePresenter_;
   // Dock animations can resize the viewport while bound overlays are destroyed.
   view_->removeEventFilter(this);
   view_->viewport()->removeEventFilter(this);
   // Panels bind to members of this class and must die before those members.
   for (auto panel : findChildren<QQuickWidget *>()) {
+    // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
     delete panel;
   }
   view_->setScene(nullptr);
+  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete scene_;
 }
 QQuickWidget *EditorWindow::panel(const QString &file) {
@@ -1567,6 +1583,7 @@ void EditorWindow::clearDynamicPortDialogs() {
         if (auto *quick = dialog->findChild<QQuickWidget *>()) {
             if (quick->rootObject()) { quick->rootObject()->setProperty("finished", true); }
         }
+        // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
         delete dialog;
     }
     dynamicPortDialog_.clear();
@@ -2062,6 +2079,7 @@ void EditorWindow::cancelCatalogPlacement() {
 void EditorWindow::dragNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->dragNode(type); return; }
   if (readOnly() || !knownNodeType(type)) { return; }
+  // native-rules #2: naked new with no parent, QDrag takes ownership after setMimeData
   auto mime = new QMimeData;
   mime->setData("application/x-nodetool-node-type", type.toUtf8());
   QDrag drag(this);

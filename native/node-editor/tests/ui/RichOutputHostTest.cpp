@@ -26,6 +26,7 @@ static QQuickItem *visualItem(QQuickItem *root, const QString &name) {
 struct PcmUiRecord { QByteArray bytes; int stops = 0; };
 class PcmUiSink final : public node_editor::PcmSink {
 public:
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  explicit PcmUiSink(std::shared_ptr<PcmUiRecord> record) : record(std::move(record)) {}
  QAudioFormat preferredFormat() const override { QAudioFormat format; format.setSampleRate(24000); format.setChannelCount(1); format.setSampleFormat(QAudioFormat::Float); return format; }
  bool supports(const QAudioFormat &format) const override { return format == preferredFormat(); }
@@ -35,6 +36,7 @@ public:
  bool drained() const override { return false; }
  bool failed() const override { return false; }
  void stop() override { ++record->stops; }
+ // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
  std::shared_ptr<PcmUiRecord> record;
 };
 static QJsonObject pcmUiEvent(const QString &output) {
@@ -60,6 +62,7 @@ class RichOutputHostTest final : public QObject {
 private slots:
  void pcmInvokableResultsRemainNativelyOwned() {
   EditorWindow window; window.resize(1400, 1000); window.show(); window.action("Output");
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   window.runOutput()->setPcmSinkFactory([] { return std::make_unique<PcmUiSink>(std::make_shared<PcmUiRecord>()); });
   window.runOutput()->beginRun("pcm-ui"); window.runOutput()->ingest("pcm-ui", pcmUiEvent("left")); window.runOutput()->ingest("pcm-ui", pcmUiEvent("right"));
   auto panel = pcmUiPanel(window); QVERIFY(panel); QTRY_COMPARE(panel->status(), QQuickWidget::Ready);
@@ -86,7 +89,9 @@ private slots:
   EditorWindow window; window.resize(1400, 1200); window.show(); window.action("Output");
   if (auto dock = window.findChild<QDockWidget *>("run-output-dock")) { dock->setMinimumHeight(600); }
   const auto snapshot = window.document()->snapshot(); const auto undo = window.document()->undoStack()->count();
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   auto records = std::make_shared<QList<std::shared_ptr<PcmUiRecord>>>();
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   window.runOutput()->setPcmSinkFactory([records] { auto record = std::make_shared<PcmUiRecord>(); records->append(record); return std::make_unique<PcmUiSink>(record); });
   window.runOutput()->beginRun("pcm-ui"); window.runOutput()->ingest("pcm-ui", pcmUiEvent("left")); window.runOutput()->ingest("pcm-ui", pcmUiEvent("right"));
   auto left = qobject_cast<node_editor::PcmStream *>(window.runOutput()->pcmFor("speaker", "left"));
@@ -126,6 +131,7 @@ private slots:
   QFETCH(bool, newSibling);
   EditorWindow window; window.resize(1400, 1200); window.show(); window.action("Output");
   if (auto dock = window.findChild<QDockWidget *>("run-output-dock")) { dock->setMinimumHeight(600); }
+  // native-rules #1: std::shared_ptr without a comment explaining why unique ownership is impossible
   window.runOutput()->setPcmSinkFactory([] { return std::make_unique<PcmUiSink>(std::make_shared<PcmUiRecord>()); });
   window.runOutput()->beginRun("pcm-ui"); window.runOutput()->ingest("pcm-ui", pcmUiEvent("left"));
   if (!newSibling) { window.runOutput()->ingest("pcm-ui", pcmUiEvent("right")); }

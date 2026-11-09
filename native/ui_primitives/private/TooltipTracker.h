@@ -38,5 +38,6 @@ private:
     QPointer<QQuickItem> m_overlay;
     QList<QMetaObject::Connection> m_connections;
     bool m_active = false;
+    // native-rules #14: static mutable pointer to the active tracker
     static QPointer<TooltipTracker> s_current;
 };

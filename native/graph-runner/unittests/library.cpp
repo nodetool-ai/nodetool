@@ -20,8 +20,10 @@ namespace {
 
 using Json = nlohmann::json;
 
+// native-rules #14: file-scope mutable test counters
 int failures = 0;
 int checks = 0;
+// native-rules #14: file-scope mutable bundle path
 std::string bundlePath;
 
 #define CHECK(cond)                                                    \
@@ -46,6 +48,7 @@ struct Collector {
   int afterLast = 0;
 
   gr::GraphRunner::MessageHandler handler() {
+    // native-rules #12: lambda captures raw this and runs on the worker thread
     return [this](const std::string& text, bool last) {
       std::lock_guard lock(mutex);
       if (finished) ++afterLast;

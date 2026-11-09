@@ -33,6 +33,7 @@ class ShapeMaskStage final : public LayerEffectStage {
 
   private:
     MaskRasterizer m_rasterizer;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::list<std::pair<qint64, std::shared_ptr<QRhiTexture>>> m_textures;
     std::shared_ptr<DrawCache> m_cache;
 };

@@ -71,8 +71,11 @@ CanvasMediaPresenter::~CanvasMediaPresenter() {
   qApp->removeEventFilter(this);
   view_.removeEventFilter(this);
   view_.viewport()->removeEventFilter(this);
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &entry : active_) { delete entry.widget.data(); }
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &player : players_) { delete player.widget.data(); }
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &widget : retired_) { delete widget.data(); }
 }
 QList<QQuickWidget *> CanvasMediaPresenter::activeWidgets() const {
@@ -352,6 +355,7 @@ void CanvasMediaPresenter::closeImageViewer() {
   imageViewerNode_.clear();
   imageViewerSource_.clear();
   QMetaObject::invokeMethod(viewer, "dismiss");
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   delete viewer;
 }
 bool CanvasMediaPresenter::canViewImage(const QString &nodeId) const {
@@ -385,6 +389,7 @@ bool CanvasMediaPresenter::openImageViewer(QtNodes::NodeId id) {
   auto object = component.createWithInitialProperties({{"items", items}, {"selected", items.first()},
       {"currentIndex", 0}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}});
   auto viewer = qobject_cast<QQuickWindow *>(object);
+  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   if (!viewer) { delete object; return false; }
   viewer->QObject::setParent(this);
   imageViewer_ = viewer;

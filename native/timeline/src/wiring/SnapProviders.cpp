@@ -5,6 +5,7 @@
 
 namespace {
 QMap<QString, nt::wiring::SnapProvider>& providers() {
+    // native-rules #14: static mutable registry
     static QMap<QString, nt::wiring::SnapProvider> value;
     return value;
 }

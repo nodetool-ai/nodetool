@@ -58,6 +58,7 @@ public:
     QList<Request> requests() const { return m_requests; }
 private:
     void accept(QTcpSocket* socket) {
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto buffer = std::make_shared<QByteArray>();
         connect(socket, &QTcpSocket::readyRead, socket, [this, socket, buffer] {
             buffer->append(socket->readAll());
@@ -91,6 +92,7 @@ private:
             socket->disconnectFromHost();
             return;
         }
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto offset = std::make_shared<qint64>(0);
         auto* timer = new QTimer(socket);
         connect(timer, &QTimer::timeout, socket, [socket, timer, offset, reply] {

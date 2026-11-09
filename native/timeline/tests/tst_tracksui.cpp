@@ -170,6 +170,7 @@ class StalledLocalIo {
         bool released = false;
         std::atomic<int> entered{0};
     };
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<State> m_state = std::make_shared<State>();
 
 public:
@@ -305,7 +306,9 @@ class TestTracksUi : public QObject {
 
     void unload() {
         view.reset();
+        // native-rules #2: naked delete of an object that has the parent this
         delete model;
+        // native-rules #2: naked delete of an object that has the parent this
         delete clock;
         model = nullptr;
         clock = nullptr;
@@ -343,7 +346,9 @@ class TestTracksUi : public QObject {
     }
 
     void pinch(QPointF pos, double value) {
+        // native-rules #14: test-only static
         static const QPointingDevice* touchpad = [] {
+            // native-rules #2: naked new, never freed after registerInputDevice
             auto* d = new QPointingDevice(QStringLiteral("test touchpad"), 4242, QInputDevice::DeviceType::TouchPad,
                                           QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 2,
                                           0);
@@ -901,7 +906,9 @@ private slots:
         QCOMPARE(facts.durationSec, 2.0);
         auto* pool = QThreadPool::globalInstance();
         const int previousMaximum = pool->maxThreadCount();
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto entered = std::make_shared<QSemaphore>();
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto proceed = std::make_shared<QSemaphore>();
         pool->setMaxThreadCount(1);
         const auto restorePool = qScopeGuard([pool, proceed, previousMaximum]() {
@@ -3070,6 +3077,7 @@ private slots:
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
             saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
             QVERIFY(r.ok && r.keptCopy.isEmpty() && !r.recoveryError.isEmpty());
@@ -3090,6 +3098,7 @@ private slots:
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
             saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             const QJsonObject firstDoc = docFn();
             const auto failed = saver.saveNow();
@@ -3101,6 +3110,7 @@ private slots:
             QCOMPARE(QJsonDocument::fromJson(oldCopy.readAll()).object(), firstDoc);
             oldCopy.close();
             auto root = banners(&saver);
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             QVERIFY(docFn() != firstDoc);
             QVERIFY(QDir(backup).mkpath(QStringLiteral("ui.stripped.json")));
@@ -3124,6 +3134,7 @@ private slots:
             const QString fallback = dir.filePath(QStringLiteral("fallback"));
             saver.setQuitFallbackDirs({fallback});
             saver.setAutosave(false);
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             const auto saved = saver.saveNow();
             QVERIFY(saved.ok);
@@ -3147,6 +3158,7 @@ private slots:
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
             saver.setQuitFallbackDirs({dir.filePath(QStringLiteral("fallback"))});
             saver.setAutosave(false);
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
             QVERIFY(r.conflict);
@@ -3444,6 +3456,7 @@ private slots:
         QCOMPARE(st.textures, 1);
         QCOMPARE(st.unused, 0);
         QCOMPARE(strip->drawnCells(), strip->cellCount());
+        // native-rules #2: naked delete of an item that has a parent item
         delete strip;
         render();
         window.setRenderTarget(QQuickRenderTarget());

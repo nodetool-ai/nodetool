@@ -14,6 +14,7 @@ using Json = nlohmann::json;
 constexpr size_t maxPixels = 16777216;
 constexpr size_t maxEncoded = 64 * 1024 * 1024;
 void init() {
+  // native-rules #14: process-wide libvips init flag
   static std::once_flag once;
   std::call_once(once, [] {
     if (vips_init("nodetool-graph-runner")) throw std::runtime_error(vips_error_buffer());

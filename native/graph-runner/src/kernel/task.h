@@ -70,6 +70,7 @@ public:
   virtual void onCancellation(const CancelSnapshot&) {}
 };
 
+// native-rules #9: worker-owned but woken from other threads, no affinity comment
 class Loop {
 public:
   using Clock = std::chrono::steady_clock;
@@ -254,6 +255,7 @@ namespace detail {
 
 template <class T>
 struct PromiseBase {
+  // native-rules #1: shared by promise and task, no comment explains why unique fails
   std::shared_ptr<TaskState<T>> state = std::make_shared<TaskState<T>>();
   Loop* loop = &Loop::current();
   Loop::Frame frame;

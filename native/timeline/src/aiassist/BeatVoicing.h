@@ -58,6 +58,7 @@ private:
     QJsonObject m_candidate;
     std::optional<nt::Clip> m_candidateMedia;
     MediaResolver m_mediaResolver = nt::assets::resolveDroppedMedia;
+    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     QString m_requestId;
     QString m_lineId;

@@ -9,6 +9,7 @@ void publish(std::atomic<float>& target, float value) noexcept {
     auto current = target.load(std::memory_order_relaxed);
     while (current < value && !target.compare_exchange_weak(current, value, std::memory_order_relaxed)) {}
 }
+// native-rules #9: runs on the render thread and publishes atomics read elsewhere, no affinity comment
 class Meter final : public audio::BlockProcessor {
 public:
     Meter(std::shared_ptr<MeterPeaks> peaks, double gain, double pan,
@@ -33,8 +34,10 @@ public:
         audio::BlockProcessor::reset(); peaks_->left.store(0,std::memory_order_relaxed); peaks_->right.store(0,std::memory_order_relaxed);
     }
 private:
+    // native-rules #1: std::shared_ptr MeterPeaks shared with the registry, no justification comment
     std::shared_ptr<MeterPeaks> peaks_;
     double gain_, pan_;
+    // native-rules #1: std::shared_ptr ParameterSource shared with the plan, no justification comment
     std::shared_ptr<const audio::ParameterSource> gainSource_, panSource_;
 };
 std::shared_ptr<audio::BlockProcessor> tap(const std::string& id, double gain, double pan,
@@ -45,6 +48,7 @@ std::shared_ptr<audio::BlockProcessor> tap(const std::string& id, double gain, d
     return meter;
 }
 }
+// native-rules #14: thread_local mutable global flag
 namespace { thread_local bool suppressed = false; }
 ScopedNoMeters::ScopedNoMeters() : previous_(suppressed) { suppressed = true; }
 ScopedNoMeters::~ScopedNoMeters() { suppressed = previous_; }
