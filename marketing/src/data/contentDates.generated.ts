@@ -7,8 +7,8 @@ export const contentDates: {
 } = {
   "routes": {
     "/agents": {
-      "date": "2026-11-08",
-      "hash": "8bac00b13dac09d6"
+      "date": "2026-11-09",
+      "hash": "0f616c87dc19f052"
     },
     "/marketing": {
       "date": "2026-11-08",
@@ -35,8 +35,8 @@ export const contentDates: {
       "hash": "6565a6e3cc7f6c2e"
     },
     "/developers": {
-      "date": "2026-10-30",
-      "hash": "77d284892b9ad83e"
+      "date": "2026-11-09",
+      "hash": "f6cbe1983f0825ce"
     },
     "/studio": {
       "date": "2026-11-08",
