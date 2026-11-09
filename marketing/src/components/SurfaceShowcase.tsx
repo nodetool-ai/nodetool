@@ -61,8 +61,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Cheap stages first",
-    body: `Settle the framing and the cast on stills before you pay for video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
+    headline: "Preview each shot before animating it",
+    body: `Try out characters and camera angles as still images before spending money on video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
     asset: "surface-storyboard",
   },
   {
@@ -125,7 +125,7 @@ export default function SurfaceShowcase({
   surfaceIds,
   heading = "Seven editors. The agent works in all of them.",
   intro =
-    "The agent is not stuck in a chat panel. Each editor exposes its actions to the agent as tools, so when you ask it to tighten the opening cut or recast a voice, it changes the document you have open. Take over at any point and hand it back.",
+    "Ask the agent to shorten the opening scene or change a character's voice. It makes the changes directly in your project. You can also edit any part yourself.",
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>

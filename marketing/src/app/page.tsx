@@ -217,8 +217,11 @@ export default function Home() {
         <SubscriptionSection className="mt-16 sm:mt-20" />
 
         {/* What the reader controls once the agent has built something: the
-            seven editors, each over a loop of the real thing (#surface-<id>) */}
-        <SurfaceShowcase />
+            editors, each over a demo loop (#surface-<id>) */}
+        <SurfaceShowcase
+          surfaceIds={["storyboard", "script", "timeline", "sketch", "3d", "nodes"]}
+          heading="Six editors. The agent works in all of them."
+        />
 
         <TimelineShowcase />
 

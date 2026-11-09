@@ -58,7 +58,8 @@ export default function OwnershipSection({
             className="text-lg text-slate-400 leading-relaxed"
           >
             NodeTool does not resell AI models. You connect your own provider
-            accounts and pay them directly. Your projects stay files you own.
+            accounts and pay them directly. Studio saves your projects on your
+            computer. You can back them up or move them to another machine.
           </motion.p>
         </div>
 
