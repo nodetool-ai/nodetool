@@ -136,6 +136,9 @@ void EditorWindow::showNotifications(const QPointF &global) {
   if (!notificationPopup_) {
     auto *popup = new QQuickWidget(engine_, this);
     popup->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
+    // The QML panel draws its own rounded border, so the window stays transparent.
+    popup->setAttribute(Qt::WA_TranslucentBackground);
+    popup->setClearColor(Qt::transparent);
     popup->setAttribute(Qt::WA_DeleteOnClose);
     popup->setResizeMode(QQuickWidget::SizeRootObjectToView);
     popup->setSource(QUrl(QStringLiteral("qrc:/editor/NotificationsPanel.qml")));

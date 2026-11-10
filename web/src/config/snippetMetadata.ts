@@ -13,8 +13,11 @@ import {
 import type {
   NodeMetadata,
   Property,
-  PropertyTypeMetadata
+  PropertyTypeMetadata,
+  TypeMetadata
 } from "../stores/ApiTypes";
+import type { DynamicSlotDeclaration, NodeData } from "../stores/NodeData";
+import { defaultValueForType as slotDefaultValue } from "../utils/dynamicSlots";
 import {
   inferOutputKeysFromCode,
   inferInputKeysFromCode
@@ -178,4 +181,64 @@ export function generateSnippetMetadata() {
   }
 
   return result;
+}
+
+const typeMetadata = (type: string): TypeMetadata => ({
+  type,
+  type_args: [],
+  optional: false
+});
+
+/**
+ * The dynamic IO a Code node created from `snippet` receives once it exists.
+ * The native editor embeds this output through
+ * `native/node-editor/scripts/generate-code-snippets.mjs`.
+ */
+export function snippetCodeNodeData(
+  snippet: CodeSnippet
+): Partial<NodeData> | undefined {
+  const outputKeys = inferOutputKeysFromCode(snippet.code);
+  const inputKeys = inferInputKeysFromCode(snippet.code);
+  const afterAdd: Partial<NodeData> = {};
+  if (outputKeys) {
+    const dynOutputs: Record<string, TypeMetadata> = {};
+    for (const key of outputKeys) {
+      dynOutputs[key] = typeMetadata(snippet.outputs?.[key] ?? "any");
+    }
+    afterAdd.dynamic_outputs = dynOutputs;
+  }
+  if (inputKeys) {
+    const dynProps: Record<string, unknown> = {};
+    const dynInputs: Record<string, DynamicSlotDeclaration> = {};
+    for (const key of inputKeys) {
+      const declared = snippet.inputs?.[key];
+      dynProps[key] = declared
+        ? (declared.default ?? slotDefaultValue(typeMetadata(declared.type)))
+        : "";
+      if (declared) {
+        const slot: DynamicSlotDeclaration = {
+          type: typeMetadata(declared.type)
+        };
+        if (declared.description !== undefined) {
+          slot.description = declared.description;
+        }
+        if (declared.default !== undefined) {
+          slot.default = declared.default;
+        }
+        if (declared.min !== undefined) slot.min = declared.min;
+        if (declared.max !== undefined) slot.max = declared.max;
+        dynInputs[key] = slot;
+      }
+    }
+    afterAdd.dynamic_properties = dynProps;
+    if (Object.keys(dynInputs).length > 0) {
+      afterAdd.dynamic_inputs = dynInputs;
+    }
+  }
+  const hasFollowUp =
+    (afterAdd.dynamic_outputs &&
+      Object.keys(afterAdd.dynamic_outputs).length > 0) ||
+    (afterAdd.dynamic_properties &&
+      Object.keys(afterAdd.dynamic_properties).length > 0);
+  return hasFollowUp ? afterAdd : undefined;
 }

@@ -910,8 +910,9 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
  if (kind == "command" || kind == "shortcuts") {
   // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   delete menu;
-  auto *panel = new QDialog(this, Qt::Popup);
+  auto *panel = new QDialog(this, Qt::Popup | Qt::FramelessWindowHint);
   panel->setObjectName(kind + "-panel");
+  panel->setAttribute(Qt::WA_TranslucentBackground);
   panel->setAttribute(Qt::WA_DeleteOnClose);
   auto *dispatch = new MenuDispatch(panel);
   dispatch->invoke = [this, panel, epoch, credentials, selection](const QString &name) {
@@ -951,6 +952,8 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   }
   auto *quick = new QQuickWidget(engine_, panel);
   quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  quick->setAttribute(Qt::WA_TranslucentBackground);
+  quick->setClearColor(Qt::transparent);
   const bool german = QLocale().name().startsWith("de");
 #ifdef Q_OS_MACOS
   const QString platform = "mac";

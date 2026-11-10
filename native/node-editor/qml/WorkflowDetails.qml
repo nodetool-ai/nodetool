@@ -13,7 +13,10 @@ Rectangle {
     readonly property var roleLabels: ({viewer: "Can view", editor: "Can edit", "public": "Public view"})
     readonly property int linkCount: root.controller.rows.filter(row => row.kind === "link").length
     readonly property int collaboratorCount: root.controller.rows.filter(row => row.kind === "collaborator").length
-    color: Ui.Theme.surfacePanel
+    color: Ui.Theme.surfaceOverlay
+    border.color: Ui.Theme.borderControl
+    border.width: Ui.Metrics.border
+    radius: Ui.Metrics.radiusOverlay
     Basic.ScrollView {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.xl

@@ -63,6 +63,7 @@ jest.mock("../../stores/RecentNodesStore", () => ({
 }));
 
 jest.mock("../../config/snippetMetadata", () => ({
+  ...jest.requireActual("../../config/snippetMetadata"),
   findSnippetByNodeType: jest.fn()
 }));
 

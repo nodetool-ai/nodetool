@@ -3,6 +3,8 @@
 #include "graph/EditorScene.h"
 #include <QCursor>
 #include <QDir>
+#include <QFile>
+#include <QJsonDocument>
 #include <QGraphicsView>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -504,6 +506,47 @@ private slots:
 
     // Enter adds nothing until an arrow picks a row. Arrows wrap. Enter adds
     // the picked row once, with one undo entry (stores/NodeMenuStore.ts:614-633).
+    // The web node menu lists code snippets, and choosing one creates a Code
+    // node with its code (config/snippetMetadata.ts, utils/instantiatePaletteNode.ts).
+    void codeSnippetsAddCodeNodes() {
+        QFile file(":/editor/code/snippets.json");
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto snippets = QJsonDocument::fromJson(file.readAll())["snippets"].toArray();
+        QVERIFY(snippets.size() > 100);
+        QJsonObject snippet;
+        for (const auto &value : snippets) {
+            if (value.toObject()["node_type"].toString() == "nodetool.boolean_logic.bool_conditional") { snippet = value.toObject(); }
+        }
+        QVERIFY(!snippet.isEmpty());
+
+        EditorWindow without;
+        without.setCatalog(catalogFixture());
+        const auto listed = [](const EditorWindow &window, const QString &type) {
+            for (const auto &value : window.catalog()) { if (value.toMap()["type"].toString() == type) { return true; } }
+            return false;
+        };
+        QVERIFY(!listed(without, snippet["node_type"].toString()));
+
+        auto catalog = catalogFixture();
+        auto code = entry("nodetool.code.Code", "Code", "Run JavaScript.");
+        code["properties"] = QJsonArray{QJsonObject{{"name", "code"}, {"default", ""}, {"type", QJsonObject{{"type", "str"}}}}};
+        code["supports_dynamic_inputs"] = true; code["supports_dynamic_outputs"] = true;
+        catalog.append(code);
+        EditorWindow window;
+        window.setCatalog(catalog);
+        window.show();
+        QVERIFY(listed(window, snippet["node_type"].toString()));
+        window.addNode(snippet["node_type"].toString());
+        const auto nodes = window.document()->nodes();
+        QCOMPARE(nodes.size(), 1);
+        const auto node = nodes.first().toObject();
+        QCOMPARE(node["type"].toString(), QString("nodetool.code.Code"));
+        QCOMPARE(node["data"]["code"].toString(), snippet["code"].toString());
+        QCOMPARE(node["ui_properties"]["title"].toString(), QString("Conditional Switch"));
+        QCOMPARE(node["dynamic_properties"].toObject().keys(), (QStringList{"condition", "if_false", "if_true"}));
+        QCOMPARE(node["dynamic_outputs"]["output"]["type"].toString(), QString("any"));
+    }
+
     void arrowsPickAndEnterAddsOnce() {
         EditorWindow window;
         window.setCatalog(catalogFixture());

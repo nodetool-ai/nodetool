@@ -588,6 +588,9 @@ private:
   EditorScene *scene_ = nullptr;
   QGraphicsView *view_ = nullptr;
   QJsonArray metadata_;
+  // Code snippets keyed by their menu node type, read from the generated
+  // resource on the first catalog (scripts/generate-code-snippets.mjs).
+  QHash<QString, QJsonObject> codeSnippets_;
   QString selected_, message_, file_, run_;
   QVariantList outputMedia_;
   QHash<QString, QVariant> runtimePreviewSources_;

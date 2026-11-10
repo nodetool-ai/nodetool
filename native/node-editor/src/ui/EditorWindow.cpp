@@ -17,6 +17,7 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QDrag>
+#include <memory>
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <QUuid>
@@ -36,6 +37,7 @@
 #include <QClipboard>
 #include <QCloseEvent>
 #include <QDockWidget>
+#include <QDebug>
 #include <QDialog>
 #include <QFile>
 #include <QFileDialog>
@@ -52,6 +54,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
+#include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -105,6 +108,29 @@ void EditorWindow::styleOutputMarkdown(QObject *source, const QColor &link,
 }
 
 namespace {
+// The web node menu lists code snippets as virtual node types. Choosing one
+// creates a Code node with the snippet's code (web/src/config/snippetMetadata.ts).
+QHash<QString, QJsonObject> loadCodeSnippets() {
+  QFile file(":/editor/code/snippets.json");
+  if (!file.open(QIODevice::ReadOnly)) { return {}; }
+  QHash<QString, QJsonObject> snippets;
+  for (const auto &value : QJsonDocument::fromJson(file.readAll())["snippets"].toArray()) {
+    const auto snippet = value.toObject();
+    snippets.insert(snippet["node_type"].toString(), snippet);
+  }
+  return snippets;
+}
+// Snippets appear only when the catalog has the Code node they create.
+QJsonArray withCodeSnippets(const QJsonArray &metadata, const QHash<QString, QJsonObject> &snippets) {
+  QSet<QString> types;
+  for (const auto &entry : metadata) { types.insert(entry.toObject()["node_type"].toString()); }
+  if (!types.contains("nodetool.code.Code")) { return metadata; }
+  auto result = metadata;
+  for (auto it = snippets.cbegin(); it != snippets.cend(); ++it) {
+    if (!types.contains(it.key())) { result.append(it.value()["metadata"]); }
+  }
+  return result;
+}
 constexpr int narrowWindowWidth = 1000;
 constexpr int compactToolbarWidth = 480;
 // NodeSelectionToolbar.tsx TOOLBAR_SHOW_DELAY.
@@ -285,14 +311,40 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   });
     connect(scene_, &EditorScene::outputFormRequested, this, [this](const QString &id) {
         if (readOnly() || !selectNode(id)) { return; }
-        auto *dialog = new QDialog(this, Qt::Popup);
+        // Frameless and transparent so only the QML overlay surface shows.
+        auto *dialog = new QDialog(this, Qt::Popup | Qt::FramelessWindowHint);
         dialog->setObjectName("subgraph-output-form");
         dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->setAttribute(Qt::WA_TranslucentBackground);
         auto *quick = new QQuickWidget(engine_, dialog);
+        quick->setAttribute(Qt::WA_TranslucentBackground);
+        quick->setClearColor(Qt::transparent);
         quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
-        quick->setInitialProperties({{"controller", QVariant::fromValue(&dynamicPorts_)}, {"outputsOnly", true}});
-        quick->setSource(QUrl("qrc:/editor/DynamicPorts.qml"));
+        // DynamicPorts.qml is also embedded in the Inspector, so the overlay
+        // surface wraps it here instead of in its root.
+        const QUrl surfaceUrl("qrc:/editor/DynamicPortsOverlay.qml");
+        QQmlComponent surface(engine_);
+        surface.setData(QByteArrayLiteral(
+            "import QtQuick\n"
+            "import NodeTool.UiPrimitives as Ui\n"
+            "Rectangle {\n"
+            "  id: root\n"
+            "  required property var controller\n"
+            "  property bool outputsOnly: false\n"
+            "  color: Ui.Theme.surfaceOverlay\n"
+            "  border.color: Ui.Theme.borderControl\n"
+            "  border.width: Ui.Metrics.border\n"
+            "  radius: Ui.Metrics.radiusOverlay\n"
+            "  implicitWidth: ports.implicitWidth + Ui.Metrics.lg * 2\n"
+            "  implicitHeight: ports.implicitHeight + Ui.Metrics.lg * 2\n"
+            "  DynamicPorts { id: ports; anchors.fill: parent; anchors.margins: Ui.Metrics.lg; controller: root.controller; outputsOnly: root.outputsOnly }\n"
+            "}\n"), surfaceUrl);
+        auto *root = qobject_cast<QQuickItem *>(surface.createWithInitialProperties(
+            {{"controller", QVariant::fromValue(&dynamicPorts_)}, {"outputsOnly", true}}, engine_->rootContext()));
+        if (!root) { qWarning() << surface.errorString(); dialog->deleteLater(); return; }
+        quick->setContent(surfaceUrl, &surface, root);
         auto *layout = new QVBoxLayout(dialog);
+        layout->setContentsMargins(0, 0, 0, 0);
         layout->addWidget(quick);
         dialog->resize(350, 400);
         dialog->move(QCursor::pos());
@@ -886,6 +938,36 @@ QString EditorWindow::saveState() const {
   if (file_.isEmpty()) { return document_.undoStack()->isClean() ? tr("New workflow") : tr("Unsaved"); }
   return document_.undoStack()->isClean() ? tr("Saved locally") : tr("Unsaved local changes");
 }
+namespace {
+// DESIGN.md dialogs: a frameless, transparent overlay that stays inside the
+// editor window, so only the QML overlay surface shows. Focus returns to the
+// widget that had it when the dialog opened. Escape closes through QDialog.
+QQuickWidget *createOverlayDialog(QDialog *dialog, QQmlEngine *engine, const QVariantMap &properties, const QUrl &source) {
+  dialog->setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+  dialog->setAttribute(Qt::WA_DeleteOnClose);
+  dialog->setAttribute(Qt::WA_TranslucentBackground);
+  const QPointer<QWidget> trigger(QApplication::focusWidget());
+  QObject::connect(dialog, &QDialog::finished, dialog, [trigger] {
+    if (trigger) { trigger->setFocus(Qt::OtherFocusReason); }
+  });
+  auto *content = new QQuickWidget(engine, dialog);
+  content->setAttribute(Qt::WA_TranslucentBackground);
+  content->setClearColor(Qt::transparent);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties(properties);
+  content->setSource(source);
+  auto *layout = new QVBoxLayout(dialog);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->addWidget(content);
+  return content;
+}
+void showOverlayDialog(QDialog *dialog, QQuickWidget *content, QWidget *window, QSize size) {
+  dialog->resize(size.boundedTo(window->size()));
+  dialog->move(window->mapToGlobal(window->rect().center()) - QPoint(dialog->width() / 2, dialog->height() / 2));
+  dialog->show();
+  content->setFocus(Qt::OtherFocusReason);
+}
+}
 void EditorWindow::showWorkflowDetails(const QString &kind) {
   if (kind == "versions") {
     for (auto *existing : findChildren<QDockWidget *>("workflow-versions-dock")) { existing->close(); }
@@ -919,16 +1001,12 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
   for (auto *existing : findChildren<QDialog *>("workflow-details-dialog")) { existing->close(); }
   auto *dialog = new QDialog(this);
   dialog->setObjectName("workflow-details-dialog");
-  dialog->setAttribute(Qt::WA_DeleteOnClose);
-  auto *content = new QQuickWidget(engine_, dialog);
-  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  content->setInitialProperties({{"controller", QVariant::fromValue(&versions_)}, {"kind", kind}});
-  content->setSource(QUrl("qrc:/editor/WorkflowDetails.qml"));
-  auto *layout = new QVBoxLayout(dialog); layout->setContentsMargins(0, 0, 0, 0); layout->addWidget(content);
+  auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(&versions_)}, {"kind", kind}},
+                                      QUrl("qrc:/editor/WorkflowDetails.qml"));
   connect(this, &EditorWindow::documentEpochChanged, dialog, &QDialog::close);
   connect(this, &EditorWindow::credentialsEpochChanged, dialog, &QDialog::close);
-  dialog->resize(std::min(640, width()), std::min(680, height()));
-  versions_.load(kind); dialog->show();
+  showOverlayDialog(dialog, content, this, {640, 680});
+  versions_.load(kind);
 }
 void EditorWindow::showRunTrace() {
   for (auto *dock : findChildren<QDockWidget *>("run-trace-dock")) {
@@ -973,38 +1051,28 @@ void EditorWindow::showServerSync() {
   }
   auto dialog = new QDialog(this);
   dialog->setObjectName("server-sync-dialog");
-  dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowTitle(tr("Server workflow"));
   serverSyncDialog_ = dialog;
-  auto content = new QQuickWidget(engine_, dialog);
-  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  content->setInitialProperties({{"workflowSession", QVariant::fromValue(&session_)},
-                               {"lastError", session_.autosaveState() == "error" ? message_ : QString{}}});
-  content->setSource(QUrl("qrc:/editor/ServerSyncPanel.qml"));
-  auto layout = new QVBoxLayout(dialog);
-  layout->setContentsMargins(0, 0, 0, 0);
-  layout->addWidget(content);
+  auto *content = createOverlayDialog(dialog, engine_,
+                                      {{"workflowSession", QVariant::fromValue(&session_)},
+                                       {"lastError", session_.autosaveState() == "error" ? message_ : QString{}}},
+                                      QUrl("qrc:/editor/ServerSyncPanel.qml"));
   if (const auto root = content->rootObject()) {
     connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
     connect(root, SIGNAL(saveLocalAsRequested()), this, SLOT(saveLocalCopyAs()));
   }
-  dialog->resize(std::min(720, width()), std::min(640, height()));
-  dialog->show();
+  showOverlayDialog(dialog, content, this, {720, 640});
 }
 void EditorWindow::showCanvasDrops() {
   if (canvasDropDialog_) { canvasDropDialog_->show(); canvasDropDialog_->raise(); return; }
   auto *dialog = new QDialog(this);
   dialog->setObjectName("canvas-drop-dialog");
-  dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->setWindowTitle(tr("Canvas uploads"));
   canvasDropDialog_ = dialog;
-  auto *content = new QQuickWidget(engine_, dialog);
-  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  content->setInitialProperties({{"controller", QVariant::fromValue(canvasDrops_)}});
-  content->setSource(QUrl("qrc:/editor/CanvasDropPanel.qml"));
-  auto *layout = new QVBoxLayout(dialog); layout->setContentsMargins(0, 0, 0, 0); layout->addWidget(content);
+  auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(canvasDrops_)}},
+                                      QUrl("qrc:/editor/CanvasDropPanel.qml"));
   if (const auto root = content->rootObject()) connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
-  dialog->resize(std::min(444, width()), std::min(540, height())); dialog->show();
+  showOverlayDialog(dialog, content, this, {444, 540});
 }
 void EditorWindow::saveLocalCopyAs() {
   const auto snapshot = document_.snapshot();
@@ -1456,9 +1524,24 @@ void EditorWindow::layoutOverlays() {
 namespace {
 class DynamicPortPopup final : public QDialog {
 public:
-    explicit DynamicPortPopup(QWidget *parent) : QDialog(parent, Qt::Popup) {}
+    // The QML panel draws its own rounded border. Keep the window frameless
+    // and transparent so no square window edge shows around it.
+    explicit DynamicPortPopup(QWidget *parent) : QDialog(parent, Qt::Popup | Qt::FramelessWindowHint) {
+        setAttribute(Qt::WA_TranslucentBackground);
+    }
     QPointer<QQuickItem> form;
     bool renaming = false;
+    // Focus taken before the popup is activated does not stick: the field
+    // keeps focus without active focus, and every key is dropped. The
+    // activation arrives after show(), so focus the field again here.
+    bool event(QEvent *event) override {
+        const bool handled = QDialog::event(event);
+        if (event->type() == QEvent::WindowActivate && form && !focused_) {
+            focused_ = true;
+            QMetaObject::invokeMethod(form, "activate", Qt::QueuedConnection);
+        }
+        return handled;
+    }
     void reject() override {
         if (renaming && form && !form->property("finished").toBool()) {
             QMetaObject::invokeMethod(form, "submit");
@@ -1466,6 +1549,8 @@ public:
         }
         QDialog::reject();
     }
+private:
+    bool focused_ = false;
 };
 }
 
@@ -1494,6 +1579,8 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
     // controller alive while the root's bindings and focus handlers tear down.
     controller->setParent(quick);
     quick->setObjectName("dynamic-port-dialog-host");
+    quick->setAttribute(Qt::WA_TranslucentBackground);
+    quick->setClearColor(Qt::transparent);
     quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
     quick->setInitialProperties({{"controller", QVariant::fromValue(controller)}, {"nodeId", id}, {"output", output}, {"originalName", name}});
     quick->setSource(QUrl("qrc:/editor/DynamicPortDialog.qml"));
@@ -1535,7 +1622,7 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
     connect(quick->rootObject(), &QQuickItem::implicitHeightChanged, dialog, [dialog, place] { QTimer::singleShot(0, dialog, place); });
     place();
     dialog->show();
-    quick->setFocus(Qt::MouseFocusReason);
+    quick->setFocus(Qt::PopupFocusReason);
     QMetaObject::invokeMethod(quick->rootObject(), "activate");
     connect(dialog, &QDialog::finished, view_, [view = QPointer<QGraphicsView>(view_)] {
         if (view) { view->setFocus(Qt::OtherFocusReason); }
@@ -1731,7 +1818,9 @@ bool EditorWindow::apply(const QJsonObject &c) {
     }
   return r.ok;
 }
-void EditorWindow::setCatalog(const QJsonArray &metadata) {
+void EditorWindow::setCatalog(const QJsonArray &source) {
+  if (codeSnippets_.isEmpty()) { codeSnippets_ = loadCodeSnippets(); }
+  const auto metadata = withCodeSnippets(source, codeSnippets_);
   if (!tabOwner_) { metadata_ = metadata; for (auto tab : tabs_) tab->setCatalog(metadata); emit catalogChanged(); return; }
   metadata_ = metadata;
   // Panels can bind to the tab or to the window that owns the tabs.
@@ -1950,11 +2039,22 @@ bool EditorWindow::knownNodeType(const QString &type) const {
 }
 bool EditorWindow::addNodeAt(const QString &type, const QPointF &position, bool clearOverlap) {
   if (!knownNodeType(type) || !std::isfinite(position.x()) || !std::isfinite(position.y())) { return false; }
+  const auto snippet = codeSnippets_.constFind(type);
+  const auto created = snippet == codeSnippets_.cend() ? type : QStringLiteral("nodetool.code.Code");
   for (const auto &entry : metadata_) {
     const auto metadata = entry.toObject();
-    if (metadata["node_type"].toString(metadata["type"].toString()) != type) continue;
+    if (metadata["node_type"].toString(metadata["type"].toString()) != created) continue;
     NodeCreationOptions options; options.paletteStarters = true;
     auto node = createNativeNode(metadata, position, document_.nodes(), {}, options);
+    if (snippet != codeSnippets_.cend()) {
+      // instantiatePaletteNode.ts: the snippet's code, title and dynamic IO.
+      auto data = node["data"].toObject(); data["code"] = snippet->value("code"); node["data"] = data;
+      auto ui = node["ui_properties"].toObject(); ui["title"] = snippet->value("title"); node["ui_properties"] = ui;
+      const auto io = snippet->value("data").toObject();
+      for (const auto key : {"dynamic_properties", "dynamic_inputs", "dynamic_outputs"}) {
+        if (io.contains(key)) { node[key] = io[key]; }
+      }
+    }
     if (clearOverlap) {
       // The card's real size is known before it is added, so one pass replaces
       // the web's estimate and its post-measure correction.
@@ -2079,12 +2179,16 @@ void EditorWindow::cancelCatalogPlacement() {
 void EditorWindow::dragNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->dragNode(type); return; }
   if (readOnly() || !knownNodeType(type)) { return; }
-  // native-rules #2: naked new with no parent, QDrag takes ownership after setMimeData
-  auto mime = new QMimeData;
-  mime->setData("application/x-nodetool-node-type", type.toUtf8());
-  QDrag drag(this);
-  drag.setMimeData(mime);
-  drag.exec(Qt::CopyAction, Qt::CopyAction);
+  // QDrag::exec runs a nested event loop. Started inside the catalog
+  // DragHandler's signal, that loop deletes the delegate whose handler is
+  // still on the stack, and QML aborts. Start the drag after the handler returns.
+  QTimer::singleShot(0, this, [this, type] {
+    auto mime = std::make_unique<QMimeData>();
+    mime->setData("application/x-nodetool-node-type", type.toUtf8());
+    QDrag drag(this);
+    drag.setMimeData(mime.release());  // QDrag owns the mime data from here.
+    drag.exec(Qt::CopyAction, Qt::CopyAction);
+  });
 }
 void EditorWindow::autoLayout(bool selectedOnly) {
   if (readOnly()) { message_ = readOnlyReason(); schedulePanelChanged(); return; }
@@ -3317,24 +3421,17 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
     }
     auto *dialog = new QDialog(this);
     setupDialog_ = dialog;
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setObjectName("setup-dialog");
     dialog->setWindowTitle(tr("Runtimes and packs"));
-    auto *content = new QQuickWidget(engine_, dialog);
-    content->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    content->setInitialProperties(
-        {{"controller", QVariant::fromValue(&setup_)}});
-    content->setSource(QUrl("qrc:/editor/SetupPanel.qml"));
-    auto *layout = new QVBoxLayout(dialog);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(content);
+    auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(&setup_)}},
+                                        QUrl("qrc:/editor/SetupPanel.qml"));
     if (content->rootObject()) {
         connect(content->rootObject(), SIGNAL(closeRequested()), dialog,
                 SLOT(close()));
     }
     connect(dialog, &QDialog::finished, &setup_,
             &node_editor::SetupController::cancel);
-    dialog->resize(content->sizeHint());
-    dialog->show();
+    showOverlayDialog(dialog, content, this, content->sizeHint());
     if (name == "templates") {
         setup_.browseTemplates();
     } else {

@@ -130,6 +130,17 @@ private slots:
         QVERIFY(!quick); QVERIFY(!popup);
         QCOMPARE(changes.count(), 0);
     }
+    void popupTakesKeysWithoutAClick() {
+        Host h;
+        h.click(h.action("addInput")); QTRY_VERIFY(h.dialog());
+        auto *quick = h.dialog();
+        auto *field = find(quick->rootObject(), "dynamic-port-name"); QVERIFY(field);
+        QTRY_VERIFY(field->hasActiveFocus());
+        auto *target = QApplication::activePopupWidget() ? QApplication::activePopupWidget()->focusWidget() : QApplication::focusWidget();
+        QVERIFY(target);
+        QTest::keyClicks(target, "typed");
+        QTRY_COMPARE(field->property("text").toString(), QString("typed"));
+    }
     void genericCardAddsNamedInputsAndOutputs() {
         Host h;
         QVERIFY2(!h.action("addInput").isEmpty(), "Generic card must expose Add input");

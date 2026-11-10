@@ -7,7 +7,10 @@ Rectangle {
     id: root
     required property var controller
     signal closeRequested()
-    color: Ui.Theme.surfacePanel
+    color: Ui.Theme.surfaceOverlay
+    border.color: Ui.Theme.borderControl
+    border.width: Ui.Metrics.border
+    radius: Ui.Metrics.radiusOverlay
     implicitWidth: Ui.Metrics.dialogCompactWidth
     implicitHeight: Ui.Metrics.dialogWidth
     ColumnLayout {

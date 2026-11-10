@@ -291,7 +291,7 @@ menu's pointer placement.
 | 13 | The query, its pieces split on whitespace and commas, and its last dotted segment are terms. The two expansions are not merged, so a piece that both produce counts twice (`ranking.ts` 98-108, `utils/nodeSearch.ts` 328-335) | Missing | Implemented, including the double count. Native had merged the pieces |
 | 14 | The loose pass (separator-free matches at 0.6, subsequences at 0.3) is off for nodes. It serves the model menu only (`ranking.ts` 82-95, 196-205, `nodeRanking.ts` `buildConfig` sets no `fuzzyFallback`) | Wrongly implemented for nodes | Removed. The fuzzy boost below replaces it |
 | 15 | Recent nodes add 10 / (rank + 1) and quick-action types add 6, with or without a query, then node type breaks ties with the locale collation (`ranking.ts` 225-253, `config/quickActionNodeTypes.ts`, `stores/RecentNodesStore.ts` 23, 51) | Missing. Browse order was catalog order | Implemented. Twelve recent types persist in settings. The quick-action list now includes the three dynamic provider nodes that native had lacked |
-| 16 | Prefix-tree boosts (title 8, namespace 4, description 2, times the field weight and 2 for an exact title), BM25 boosts (six fields, k1 1.5, b 0.75, 200 results, scale 1.5) and fuzzy boosts under 100 results (`nodeSearch.ts` 215-374, `PrefixTreeSearch.ts`, `bm25.ts`, `fuzzyMatch.ts`) | Missing | Implemented. `CatalogTest::rankingMatchesTheWebAlgorithmOnRealMetadata` compares the order of 25 queries over 718 real node names with the output of `rankSearchNodes` run under Node (`scripts/generate-catalog-search-fixture.mjs`, `tests/ui/CatalogSearchFixture.json`). Removing the prefix, BM25 or fuzzy boosts each fails it |
+| 16 | Prefix-tree boosts (title 8, namespace 4, description 2, times the field weight and 2 for an exact title), BM25 boosts (six fields, k1 1.5, b 0.75, 200 results, scale 1.5) and fuzzy boosts under 100 results (`nodeSearch.ts` 215-374, `PrefixTreeSearch.ts`, `bm25.ts`, `fuzzyMatch.ts`) | Missing | Implemented. `CatalogTest::rankingMatchesTheWebAlgorithmOnRealMetadata` compares the order of 25 queries over 918 real node and code snippet names with the output of `rankSearchNodes` run under Node (`scripts/generate-catalog-search-fixture.mjs`, `tests/ui/CatalogSearchFixture.json`). Removing the prefix, BM25 or fuzzy boosts each fails it |
 | 17 | A provider chip in the search row lists All providers, Local and each API provider with counts, and narrows the list and counts (`NodeLibrary.tsx` 363-430, 537-544, `components/node_menu/NodeProviderFilter.tsx`, `utils/nodeProvider.ts` 140-175) | Missing | Implemented. `CatalogCategories.cpp` ports the provider table |
 | 18 | Nodes whose provider key is missing stay hidden behind a notice with Show them. Hidden nodes stay out of the list, the counts and the search (`hooks/useNodeProviderFilter.ts`, `components/node_menu/MissingKeyNodesNotice.tsx`, `NodeLibrary.tsx` 336-353, `NodeMenu.tsx` 238-246) | Implemented | Implemented. Sign-in and machine gates (Vertex AI, Codex, Claude Code) depend on the server provider list and are not gated. `ChromeParityTest::catalogHidesNodesThatNeedAMissingKey` covers it |
 | 19 | Hovering a row shows its description, with a hint when nothing is hovered (`NodeLibrary.tsx` 443-448, 608-617) | Implemented | Implemented |
@@ -720,8 +720,14 @@ are `NodeStore.createNode`, `instantiatePaletteNode`, `OutputContextMenu`, and
 [NodeCreationTest](../tests/graph/NodeCreationTest.cpp) covers canonical defaults,
 geometry precedence, task-compatible model pins, name collisions, overrides and
 one-undo creation. Run `ctest --test-dir <build> -R 'node_editor_creation$'
---output-on-failure`. Custom user-script and snippet materialization, the virtual
-AI code entry, and persisted native model preferences remain separate flows.
+--output-on-failure`. Code snippets appear in the node menu when the catalog has
+the Code node. Choosing one creates a Code node with the snippet code, title and
+dynamic slots, as `instantiatePaletteNode` does. The snippets come from
+`resources/code/snippets.json`. Regenerate it with
+`node native/node-editor/scripts/generate-code-snippets.mjs`. Its `--check` flag
+fails when the web snippets move. `CatalogTest::codeSnippetsAddCodeNodes` covers
+the menu entry and the created node. Custom user-script materialization, the
+virtual AI code entry, and persisted native model preferences remain separate flows.
 
 [PresentationPropertyTest](../tests/models/PresentationPropertyTest.cpp) compares
 native color and image-size presets with the checked-out web tables. It checks

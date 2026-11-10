@@ -7,7 +7,10 @@ Rectangle {
     id: root
     objectName: "runtime-dialog"
     required property var controller
-    color: Ui.Theme.surfacePanel
+    color: Ui.Theme.surfaceOverlay
+    border.color: Ui.Theme.borderControl
+    border.width: Ui.Metrics.border
+    radius: Ui.Metrics.radiusOverlay
     implicitWidth: Ui.Metrics.dialogCompactWidth
     implicitHeight: Ui.Metrics.dialogWidth
     signal closeRequested

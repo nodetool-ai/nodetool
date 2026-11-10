@@ -81,6 +81,10 @@ async function registryNodes() {
             }
         });
     }
+    // The web menu adds the code snippets after the server nodes
+    // (serverState/useMetadata.ts). The snippet resource holds that metadata.
+    const snippets = JSON.parse(readFileSync(join(editor, "resources/code/snippets.json"), "utf8")).snippets;
+    nodes.push(...snippets.map((snippet) => snippet.metadata));
     // The ranking reads these fields only.
     return nodes.map((meta) => ({
         node_type: meta.node_type,

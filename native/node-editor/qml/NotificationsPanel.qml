@@ -14,8 +14,10 @@ Rectangle {
     border.color: Ui.Theme.borderControl
     border.width: Ui.Metrics.border
     radius: Ui.Metrics.radiusOverlay
-    implicitWidth: 600
-    implicitHeight: Math.min(600, (entries.length === 0 ? empty.implicitHeight : list.contentHeight) + Ui.Metrics.xxl * 2)
+    readonly property real pad: Ui.Metrics.lg
+    implicitWidth: Ui.Metrics.dialogWidth
+    implicitHeight: Math.min(Ui.Metrics.dialogWidth, pad * 2 + header.implicitHeight + Ui.Metrics.md
+                             + (entries.length === 0 ? empty.implicitHeight : list.contentHeight))
     Accessible.role: Accessible.Pane
     Accessible.name: qsTr("Notifications")
     function edgeColor(type) {
@@ -25,11 +27,21 @@ Rectangle {
             : type === "info" ? Ui.Theme.statusInfo : Ui.Theme.textDisabled
     }
     Keys.onEscapePressed: Window.window.close()
+    Ui.Text {
+        id: header
+        objectName: "notifications-header"
+        x: root.pad
+        y: root.pad
+        text: qsTr("Notifications")
+        role: Ui.Typography.SansLabel
+        Accessible.ignored: true
+    }
     Ui.EmptyState {
         id: empty
         objectName: "notifications-empty"
-        anchors.centerIn: parent
-        width: parent.width - Ui.Metrics.xxl * 2
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: list.y
+        width: parent.width - root.pad * 2
         maxTextWidth: width
         visible: root.entries.length === 0
         title: qsTr("No notifications")
@@ -37,8 +49,10 @@ Rectangle {
     ListView {
         id: list
         objectName: "notifications-list"
-        anchors.fill: parent
-        anchors.margins: Ui.Metrics.xxl
+        x: root.pad
+        y: root.pad + header.implicitHeight + Ui.Metrics.md
+        width: parent.width - root.pad * 2
+        height: parent.height - y - root.pad
         visible: root.entries.length > 0
         clip: true
         spacing: Ui.Metrics.lg
@@ -54,11 +68,23 @@ Rectangle {
             implicitHeight: content.implicitHeight + Ui.Metrics.xl * 2
             height: implicitHeight
             radius: Ui.Metrics.radiusControl
-            color: hover.hovered ? Ui.Theme.actionHover : roles.panel
+            color: root.edgeColor(modelData.type)
             Accessible.role: Accessible.ListItem
             Accessible.name: modelData.type + " notification: " + modelData.content
-            HoverHandler { id: hover }
-            Rectangle { width: Ui.Metrics.focus + Ui.Metrics.border; height: parent.height; color: root.edgeColor(entry.modelData.type) }
+            // The type edge follows the row radius: the panel fill covers all but the left stripe.
+            Rectangle {
+                x: Ui.Metrics.focus + Ui.Metrics.border
+                width: parent.width - x
+                height: parent.height
+                radius: entry.radius
+                color: roles.panel
+            }
+            Rectangle {
+                x: Ui.Metrics.focus + Ui.Metrics.border
+                width: entry.radius
+                height: parent.height
+                color: roles.panel
+            }
             ColumnLayout {
                 id: content
                 anchors.left: parent.left

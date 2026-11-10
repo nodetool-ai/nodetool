@@ -16,7 +16,10 @@ Rectangle {
     readonly property bool busy: workflowSession && (workflowSession.saving || workflowSession.remoteLoading)
     readonly property bool deleted: workflowSession && workflowSession.autosaveState === "deleted"
     readonly property string serverState: workflowSession ? workflowSession.autosaveState : ""
-    color: Ui.Theme.surfacePanel
+    color: Ui.Theme.surfaceOverlay
+    border.color: Ui.Theme.borderControl
+    border.width: Ui.Metrics.border
+    radius: Ui.Metrics.radiusOverlay
     implicitWidth: Ui.Metrics.dialogWidth
     implicitHeight: content.implicitHeight + Ui.Metrics.xl * 2
     // Wording from conflictBannerLabel in web/src/hooks/useDocumentConflicts.ts.

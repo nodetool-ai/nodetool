@@ -400,7 +400,7 @@ if(BUILD_TESTING)
  set_tests_properties(node_editor_image_comparison PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
-qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js)
+qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js resources/code/snippets.json)
 qt_add_resources(node_editor_core chat_tool_manifest PREFIX /editor/chat BASE resources/chat FILES resources/chat/tool-manifest.json)
 
 if(BUILD_TESTING)
