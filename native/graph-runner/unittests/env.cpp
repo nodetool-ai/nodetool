@@ -449,7 +449,19 @@ const char* kTestNodes = R"(
       setInterval(() => { globalThis.__ticks = (globalThis.__ticks ?? 0) + 1; }, p.value);
       return { output: 0 };
     },
-    "test.Pending": async () => ({ output: { pending: __host.timers.pending(), ticks: globalThis.__ticks ?? 0 } })
+    "test.Pending": async () => ({ output: { pending: __host.timers.pending(), ticks: globalThis.__ticks ?? 0, abortFired: globalThis.__abortFired ?? 0, listenerTimers: globalThis.__listenerTimers ?? -1 } }),
+    "test.AbortListener": () => new Promise((resolve) => {
+      // A long timer stands for the job the node waits on, so the run is not stalled.
+      const wait = setTimeout(() => resolve({ output: 1 }), 60000);
+      const before = __host.timers.pending();
+      const signal = __hostAbort.signal();
+      signal.addEventListener("abort", () => {
+        globalThis.__abortFired = (globalThis.__abortFired ?? 0) + 1;
+        clearTimeout(wait);
+        resolve({ output: 0 });
+      });
+      globalThis.__listenerTimers = __host.timers.pending() - before;
+    })
   };
   const isTest = (type) => Object.hasOwn(behaviors, type);
   const own = new Map();
@@ -633,6 +645,24 @@ void cancelledRunsLeaveNoTimers(bool bytecode) {
   CHECK(runner.contextLoads() == 2);
 }
 
+// PT16: a cancel reaches an abort listener without a poll timer.
+void cancelReachesAbortListenerWithoutPoll() {
+  gr::GraphRunner runner(testBundle(true));
+  CHECK(runner.waitUntilLoaded(60000));
+  Collector c;
+  runner.submit("abort", "wf", graphOf("test.AbortListener", 0), "", c.handler());
+  CHECK(c.waitFor([&] { return c.started("n"); }));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  const auto start = Clock::now();
+  CHECK(runner.cancel("abort"));
+  CHECK_EQ(c.waitTerminal(), "cancelled");
+  std::fprintf(stderr, "cancel to terminal: %.0f ms\n", msSince(start));
+  Json pending = pendingAfter(runner, "after-abort");
+  CHECK(pending.is_object() && pending["abortFired"] == 1);
+  CHECK(pending["listenerTimers"] == 0);
+  CHECK(runner.contextLoads() == 1);
+}
+
 // PT8: the spare context, loaded while the runner is idle, replaces a
 // discarded context, so the next run starts without a bundle load.
 void spareContextReplacesADiscardedContext(bool withSpare) {
@@ -719,6 +749,7 @@ int main(int argc, char** argv) {
   tests.push_back({"runsWaitForTimersAndDropThemAfter (bytecode)", [] { runsWaitForTimersAndDropThemAfter(true); }});
   tests.push_back({"cancelledRunsLeaveNoTimers (source)", [] { cancelledRunsLeaveNoTimers(false); }});
   tests.push_back({"cancelledRunsLeaveNoTimers (bytecode)", [] { cancelledRunsLeaveNoTimers(true); }});
+  tests.push_back({"cancelReachesAbortListenerWithoutPoll", [] { cancelReachesAbortListenerWithoutPoll(); }});
   tests.push_back({"spareContextReplacesADiscardedContext (without)", [] { spareContextReplacesADiscardedContext(false); }});
   tests.push_back({"spareContextReplacesADiscardedContext (with)", [] { spareContextReplacesADiscardedContext(true); }});
   tests.push_back({"teardownDuringATimerWait", teardownDuringATimerWait});

@@ -1,7 +1,7 @@
 import "../guest/env/index.mjs";
 import { ContextAbortController } from "../guest/host/context-services.mjs";
 import { PNG } from "./timeline-process-media.mjs";
-import { writeFile } from "node:fs/promises";
+import { writeFile, readFile } from "node:fs/promises";
 import {
   hasEncoder,
   probeMedia,
@@ -11,7 +11,8 @@ import {
   decodeAudioToPcm,
   openFilterComplex,
   muxAudioWithVideoCopy,
-  concatSegments
+  concatSegments,
+  convertAudioToWav
 } from "../guest/host/media-native.mjs";
 const root = globalThis.__timelineRoot;
 let checks = 0;
@@ -311,6 +312,50 @@ assert(invalidRefused, "invalid codec options release dictionaries");
       assert(message.startsWith("RangeError: "), `${op}(${id}) throws a RangeError, got "${message}"`);
     }
   }
+}
+
+// PT14: audio decode batches frames, and convertAudioToWav matches the
+// per-sample float to int16 formula.
+{
+  const seconds = 60, rate = 48000;
+  const long = new Uint8Array(44 + seconds * rate * 4);
+  const lv = new DataView(long.buffer);
+  const lstr = (at, s) => { for (let i = 0; i < s.length; i++) long[at + i] = s.charCodeAt(i); };
+  lstr(0, "RIFF"); lv.setUint32(4, long.length - 8, true); lstr(8, "WAVE");
+  lstr(12, "fmt "); lv.setUint32(16, 16, true); lv.setUint16(20, 1, true);
+  lv.setUint16(22, 2, true); lv.setUint32(24, rate, true); lv.setUint32(28, rate * 4, true);
+  lv.setUint16(32, 4, true); lv.setUint16(34, 16, true);
+  lstr(36, "data"); lv.setUint32(40, long.length - 44, true);
+  let seed = 12345;
+  for (let i = 0; i < seconds * rate * 2; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const v = i % 997 === 0 ? 32767 : i % 991 === 0 ? -32768 : (seed >> 8) % 65536 - 32768;
+    lv.setInt16(44 + i * 2, v, true);
+  }
+  await writeFile(`${root}/long.wav`, long);
+  const media = globalThis.__host.media;
+  const realNext = media.next;
+  let nextCalls = 0;
+  media.next = (...args) => { nextCalls++; return realNext.apply(media, args); };
+  const decoded = await decodeAudioToPcm(`${root}/long.wav`, { sampleRate: rate, channels: 2 });
+  await convertAudioToWav(`${root}/long.wav`, `${root}/long-out.wav`);
+  media.next = realNext;
+  const out = new Uint8Array(await readFile(`${root}/long-out.wav`));
+  let hash = 2166136261;
+  for (let i = 0; i < out.length; i++) hash = Math.imul(hash ^ out[i], 16777619) >>> 0;
+  console.log(`PT14 next calls ${nextCalls} wav bytes ${out.length} fnv ${hash}`);
+  // The old formula, applied to the float decode.
+  const ref = new DataView(new ArrayBuffer(decoded.samples.length * 2));
+  for (let i = 0; i < decoded.samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, decoded.samples[i]));
+    ref.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  assert(out.length === 44 + decoded.samples.length * 2, "wav length");
+  const body = out.subarray(44);
+  let same = true;
+  for (let i = 0; i < body.length; i++) if (body[i] !== ref.getUint8(i)) { same = false; break; }
+  assert(same, "convertAudioToWav matches the float to int16 formula");
+  assert(nextCalls <= 130, `audio decode batches frames, got ${nextCalls} next calls`);
 }
 globalThis.__timelineChecks = checks;
 globalThis.__timelineResult = JSON.stringify({ checks, probe, mixed });

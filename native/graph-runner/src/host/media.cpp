@@ -892,6 +892,10 @@ struct ReaderBody final : nodetool::jobs::ResourceBody {
   const std::shared_ptr<const Limits> limits;
   SessionStopBridge bridge;
   Filter filter;
+  // A batched audio read that stopped at its size target holds the frame
+  // that did not fit here, and an end of stream that came after frames.
+  decltype(std::declval<Filter &>().next()) pending;
+  bool ended = false;
   SessionStopBridge *stopBridge() override { return &bridge; }
   MediaStop stop() const { return {bridge, limits->hooks}; }
 };
@@ -1407,16 +1411,33 @@ void installMedia(js::Engine &e, const js::Value &object,
     auto it = s->readers.find(id);
     if (it == s->readers.end())
       throw std::runtime_error("native media reader closed");
-    const uint64_t cap = s->limits->frameBytes();
+    // Optional: batch audio frames up to about `batchSec` seconds for each
+    // call, and make 16-bit samples from the float output. Video ignores
+    // both. A batch is reserved at the audio ceiling, not the video one.
+    const double batchSec =
+        a.size() > 1 && en.isNumber(a[1]) ? std::max(0.0, en.toNumber(a[1])) : 0;
+    const bool s16 = a.size() > 2 && en.toBoolean(a[2]);
+    constexpr uint64_t kAudioBatchBytes = 8ull * 1024 * 1024;
+    const uint64_t cap = batchSec > 0
+                             ? std::min(s->limits->frameBytes(), kAudioBatchBytes)
+                             : s->limits->frameBytes();
     auto control = it->second.control;
     return run.submit(
         control->operations(),
         makeSessionOperation<ReaderBody>(
             control, "next", s->hooks(), JobCost{0, cap, 0},
-            [cap](ReaderBody &body, ResourceOperationContext &) {
-              auto f = body.filter.next();
+            [cap, batchSec, s16](ReaderBody &body, ResourceOperationContext &) {
               auto out = std::make_unique<DecodedFrame>();
+              auto pull = [&] {
+                if (body.pending)
+                  return std::move(body.pending);
+                if (body.ended)
+                  return decltype(body.pending){};
+                return body.filter.next();
+              };
+              auto f = pull();
               if (!f) {
+                body.ended = true;
                 out->end = true;
                 return JobOutcome::value(std::move(out));
               }
@@ -1438,20 +1459,60 @@ void installMedia(js::Engine &e, const js::Value &object,
                   std::memcpy(out->bytes.data() + size_t(y) * f->width * 4,
                               f->data[0] + y * f->linesize[0],
                               size_t(f->width) * 4);
-              } else {
+                return JobOutcome::value(std::move(out));
+              }
+              out->channels = f->ch_layout.nb_channels;
+              out->sampleRate = f->sample_rate;
+              const uint64_t target =
+                  uint64_t(batchSec * f->sample_rate * f->ch_layout.nb_channels * 4);
+              uint64_t sourceBytes = 0;
+              // The bytes of the output so far are in `out->bytes`.
+              for (;;) {
                 if (f->format != AV_SAMPLE_FMT_FLT)
                   throw std::runtime_error(
                       "native media expected interleaved float output");
-                size_t size =
-                    size_t(f->nb_samples) * f->ch_layout.nb_channels * 4;
+                const size_t count =
+                    size_t(f->nb_samples) * f->ch_layout.nb_channels;
+                const size_t size = count * 4;
                 if (size > body.limits->maxBytes)
                   throw std::runtime_error("native media audio quota exceeded");
-                if (size > cap)
-                  throw std::runtime_error(
-                      "native media frame exceeds its reserved size");
-                out->bytes.assign(f->data[0], f->data[0] + size);
-                out->channels = f->ch_layout.nb_channels;
-                out->sampleRate = f->sample_rate;
+                const size_t outSize = s16 ? count * 2 : size;
+                if (out->bytes.size() + outSize > cap) {
+                  if (out->bytes.empty())
+                    throw std::runtime_error(
+                        "native media frame exceeds its reserved size");
+                  body.pending = std::move(f);
+                  break;
+                }
+                const size_t at = out->bytes.size();
+                if (s16) {
+                  out->bytes.resize(at + outSize);
+                  const float *in = reinterpret_cast<const float *>(f->data[0]);
+                  auto *dst = out->bytes.data() + at;
+                  for (size_t i = 0; i < count; ++i) {
+                    // As the guest's Math.max(-1, Math.min(1, s)) followed
+                    // by s < 0 ? s * 0x8000 : s * 0x7fff, truncated.
+                    double v = in[i];
+                    int16_t q = 0;
+                    if (!std::isnan(v)) {
+                      v = std::max(-1.0, std::min(1.0, v));
+                      q = int16_t(v < 0 ? v * 0x8000 : v * 0x7fff);
+                    }
+                    dst[i * 2] = uint8_t(uint16_t(q) & 0xff);
+                    dst[i * 2 + 1] = uint8_t(uint16_t(q) >> 8);
+                  }
+                } else {
+                  out->bytes.insert(out->bytes.end(), f->data[0],
+                                    f->data[0] + size);
+                }
+                sourceBytes += size;
+                if (sourceBytes >= target)
+                  break;
+                f = body.filter.next();
+                if (!f) {
+                  body.ended = true;
+                  break;
+                }
               }
               return JobOutcome::value(std::move(out));
             }),

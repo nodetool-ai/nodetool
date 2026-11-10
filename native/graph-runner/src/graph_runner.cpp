@@ -543,6 +543,13 @@ void GraphRunner::Impl::runJob(Job& job) {
       if (!cancelForwarded) {
         cancelForwarded = true;
         runner.cancel();
+        // Abort listeners in the guest run now, not at a later poll.
+        try {
+          const js::Value hook = engine.get(engine.global(), "__hostAbort");
+          if (engine.isObject(hook)) engine.call(engine.get(hook, "cancel"), hook, {});
+        } catch (const std::exception&) {
+          // A listener that throws must not stop the cancel.
+        }
       }
       // Timers due within the cancel grace period still fire, so work
       // waiting on a short timer can unwind. Later ones are dropped.

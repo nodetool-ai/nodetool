@@ -124,7 +124,7 @@ export async function openFilterComplex(options) {
         id = await opening;
         for (;;) {
           poll(options.signal);
-          const frame = await host().next(id);
+          const frame = await host().next(id, options.batchSec ?? 0, options.s16 === true);
           if (!frame) return;
           yield {
             ...frame,
@@ -164,10 +164,12 @@ export async function openFilterGraph(options) {
     graph: `[in]${options.filter}[out]`,
     output: "out",
     outputKind: options.kind,
+    batchSec: options.batchSec,
+    s16: options.s16,
     signal: options.signal
   });
 }
-export async function decodeAudioToPcm(path, options) {
+async function readAudioChunks(path, options) {
   poll(options.signal);
   const layout = options.channels
     ? `:channel_layouts=${options.channels === 1 ? "mono" : options.channels === 2 ? "stereo" : `${options.channels}c`}`
@@ -184,6 +186,8 @@ export async function decodeAudioToPcm(path, options) {
     filePath: path,
     kind: "audio",
     filter,
+    batchSec: 1,
+    s16: options.s16 === true,
     signal: options.signal
   });
   const chunks = [];
@@ -200,13 +204,22 @@ export async function decodeAudioToPcm(path, options) {
   } finally {
     await run.close();
   }
-  const samples = new Float32Array(bytes / 4);
-  let offset = 0;
-  for (const chunk of chunks) {
-    new Uint8Array(samples.buffer).set(chunk, offset);
-    offset += chunk.byteLength;
+  return { chunks, bytes, channels, sampleRate: options.sampleRate };
+}
+// Copies the chunks into `target` from `offset`, dropping each as it goes so
+// the pieces and the whole are not all alive at the peak.
+function joinChunks(chunks, target, offset) {
+  for (let i = 0; i < chunks.length; i++) {
+    target.set(chunks[i], offset);
+    offset += chunks[i].byteLength;
+    chunks[i] = null;
   }
-  return { samples, channels, sampleRate: options.sampleRate };
+}
+export async function decodeAudioToPcm(path, options) {
+  const { chunks, bytes, channels, sampleRate } = await readAudioChunks(path, options);
+  const samples = new Float32Array(bytes / 4);
+  joinChunks(chunks, new Uint8Array(samples.buffer), 0);
+  return { samples, channels, sampleRate };
 }
 export async function muxAudioWithVideoCopy(options) {
   poll(options.signal);
@@ -334,12 +347,14 @@ export async function convertAudioToWav(source, outPath, options = {}) {
     const info = await probeMedia(path, options);
     if (!info.audio) throw new Error("The media has no audio track");
     const sampleRate = options.sampleRate ?? info.audio.sampleRate;
-    const pcm = await decodeAudioToPcm(path, {
+    // The host makes the 16-bit samples, so no sample passes through here.
+    const pcm = await readAudioChunks(path, {
       sampleRate,
       channels: options.channels ?? info.audio.channels,
+      s16: true,
       signal: options.signal
     });
-    const count = pcm.samples.length;
+    const count = pcm.bytes / 2;
     const wav = new Uint8Array(44 + count * 2);
     const view = new DataView(wav.buffer);
     const text = (at, s) => { for (let i = 0; i < s.length; i++) wav[at + i] = s.charCodeAt(i); };
@@ -349,10 +364,7 @@ export async function convertAudioToWav(source, outPath, options = {}) {
     view.setUint32(28, sampleRate * pcm.channels * 2, true);
     view.setUint16(32, pcm.channels * 2, true); view.setUint16(34, 16, true);
     text(36, "data"); view.setUint32(40, count * 2, true);
-    for (let i = 0; i < count; i++) {
-      const s = Math.max(-1, Math.min(1, pcm.samples[i]));
-      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-    }
+    joinChunks(pcm.chunks, wav, 44);
     await writeFile(outPath, wav);
   } finally {
     if (temp) { try { await unlink(temp); } catch {} }

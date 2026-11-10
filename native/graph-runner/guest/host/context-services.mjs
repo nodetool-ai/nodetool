@@ -128,17 +128,18 @@ globalThis.AbortSignal ??= ContextAbortSignal;
 installCryptoGlobals();
 installFetch();
 
+// Signals with an abort listener, checked once when the host reports the run's
+// cancellation (cancelHostSignals), so no timer polls the host.
+const listening = new Set();
+export function cancelHostSignals() {
+  for (const check of [...listening]) check();
+}
 export function hostSignal() {
   const controller = new ContextAbortController();
   const listeners = new Set();
-  let timer;
-  const stop = () => {
-    if (timer !== undefined) clearInterval(timer);
-    timer = undefined;
-  };
   const poll = () => {
     if (globalThis.__host?.context?.aborted() && !controller.signal.aborted) {
-      stop();
+      listening.delete(poll);
       controller.abort(abortError());
     }
   };
@@ -156,13 +157,13 @@ export function hostSignal() {
       controller.signal.addEventListener(name, listener, options);
       if (name === "abort" && !controller.signal.aborted) {
         listeners.add(listener);
-        timer ??= setInterval(poll, 10);
+        listening.add(poll);
       }
     },
     removeEventListener(name, listener) {
       controller.signal.removeEventListener(name, listener);
       listeners.delete(listener);
-      if (listeners.size === 0) stop();
+      if (listeners.size === 0) listening.delete(poll);
     },
     throwIfAborted() {
       poll();
@@ -170,6 +171,9 @@ export function hostSignal() {
     }
   };
 }
+// The host calls `cancel` once from the run's cancellation. `signal` makes a
+// run signal, as a node's context.signal.
+globalThis.__hostAbort = { cancel: cancelHostSignals, signal: hostSignal };
 
 // The run's abort signal combined with a caller's, as provider jobs check it.
 // The run's cancellation reaches a waiting job through the host, so only the
