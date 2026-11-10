@@ -6826,6 +6826,7 @@
       "allCategories": "すべて",
       "categories": {
         "workflows": "ワークフロー",
+        "comfy": "ComfyUI",
         "apps": "アプリ",
         "storyboards": "絵コンテ",
         "timelines": "タイムライン",

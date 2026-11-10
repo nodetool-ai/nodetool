@@ -6826,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Arbeidsflyter",
+        "comfy": "ComfyUI",
         "apps": "Apper",
         "storyboards": "Storyboards",
         "timelines": "Tidslinjer",

@@ -6925,6 +6925,7 @@
       "allCategories": "Tutto",
       "categories": {
         "workflows": "Flussi di lavoro",
+        "comfy": "ComfyUI",
         "apps": "App",
         "storyboards": "Storyboard",
         "timelines": "Cronologia",

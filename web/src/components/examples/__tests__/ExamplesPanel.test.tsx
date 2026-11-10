@@ -30,6 +30,17 @@ const groups: ExampleGroup[] = [
     retry: jest.fn()
   },
   {
+    kind: "comfy",
+    label: "ComfyUI",
+    icon: Icon,
+    entries: [
+      { key: "workflows:c1", name: "Comfy Flux Portrait", secondary: "9 nodes" }
+    ],
+    isLoading: false,
+    isError: false,
+    retry: jest.fn()
+  },
+  {
     kind: "models",
     label: "3D models",
     icon: Icon,
@@ -112,4 +123,20 @@ it("carries a draggable example's payload, and leaves other rows undraggable", (
     DRAG_DATA_MIME,
     JSON.stringify({ type: "example-model", payload: model })
   );
+});
+
+it("shows ComfyUI examples in their own section with their own filter", async () => {
+  showPanel();
+  const comfy = screen.getByRole("region", { name: "Example ComfyUI" });
+  expect(within(comfy).getByText("Comfy Flux Portrait")).toBeInTheDocument();
+  expect(
+    within(screen.getByRole("region", { name: "Example Workflows" })).queryByText(
+      "Comfy Flux Portrait"
+    )
+  ).not.toBeInTheDocument();
+  const types = screen.getByRole("group", { name: "Example types" });
+  await userEvent.click(within(types).getByRole("button", { name: "ComfyUI" }));
+  expect(screen.queryByText("Image Upscale")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: /Comfy Flux Portrait/ }));
+  expect(open).toHaveBeenCalledWith("workflows:c1");
 });

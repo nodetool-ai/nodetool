@@ -6826,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Workflows",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Timelines",

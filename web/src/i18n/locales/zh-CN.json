@@ -6826,6 +6826,7 @@
       "allCategories": "全部",
       "categories": {
         "workflows": "工作流",
+        "comfy": "ComfyUI",
         "apps": "应用",
         "storyboards": "分镜",
         "timelines": "时间线",
