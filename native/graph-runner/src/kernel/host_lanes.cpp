@@ -12,13 +12,42 @@
 #include <cstdlib>
 #include <system_error>
 #include <utility>
+#include <functional>
 #include <vector>
+
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
 
 using nodetool::jobs::JobOutcome;
 using nodetool::jobs::SubmittedJob;
 
 namespace gr {
 namespace {
+
+constexpr size_t kLaneStackBytes = 8u * 1024 * 1024;
+
+// Runs `body` on a new thread with a stack of `bytes` and waits for it. The
+// calling thread only waits. Without pthreads the body runs on the caller.
+void runWithStack(size_t bytes, const std::function<void()>& body) {
+#if defined(_WIN32)
+  (void)bytes;
+  body();
+#else
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, bytes);
+  pthread_t thread;
+  auto entry = [](void* arg) -> void* {
+    (*static_cast<const std::function<void()>*>(arg))();
+    return nullptr;
+  };
+  const bool started = pthread_create(&thread, &attr, entry, const_cast<std::function<void()>*>(&body)) == 0;
+  pthread_attr_destroy(&attr);
+  if (started) pthread_join(thread, nullptr);
+  else body();
+#endif
+}
 
 constexpr size_t kMaxDefaultCpuThreads = 4;
 constexpr size_t kDefaultIoThreads = 8;
@@ -220,10 +249,13 @@ bool ThreadPoolExecutor::startThread(void (ThreadPoolExecutor::*body)(Thread&)) 
     // unlocks it.
     // native-rules #12: lambda captures raw this and runs on a lane thread
     thread.thread = std::thread([this, body, &thread] {
-      // native-rules #14: thread_local mutable state
-      thread_local ExitNotice notice;
-      notice.arm(this, &thread);
-      (this->*body)(thread);
+      // libav, libvips and libcurl run here: give them an explicit stack.
+      runWithStack(kLaneStackBytes, [this, body, &thread] {
+        // native-rules #14: thread_local mutable state
+        thread_local ExitNotice notice;
+        notice.arm(this, &thread);
+        (this->*body)(thread);
+      });
     });
   } catch (const std::system_error&) {
     threads_.pop_back();

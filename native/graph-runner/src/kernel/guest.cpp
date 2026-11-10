@@ -2,14 +2,32 @@
 
 #include "host/capabilities.h"
 
+#include <quickjs.h>
+
 #include <coroutine>
 #include <cstdio>
 #include <cstring>
+#include <span>
 
 namespace gr {
 namespace {
 
 constexpr char kMagic[8] = {'N', 'T', 'G', 'R', 'B', 'C', '1', '\0'};
+// Header: magic, the QuickJS version string (NUL padded), then an FNV-1a 64
+// hash of the bytecode that follows (little endian).
+constexpr size_t kVersionSize = 24;
+constexpr size_t kHashSize = 8;
+constexpr size_t kHeaderSize = sizeof kMagic + kVersionSize + kHashSize;
+
+uint64_t fnv1a(const uint8_t* data, size_t size) {
+  uint64_t h = 1469598103934665603ull;
+  for (size_t i = 0; i < size; ++i) h = (h ^ data[i]) * 1099511628211ull;
+  return h;
+}
+
+std::string currentQuickJsVersion() {
+  return std::string(JS_GetVersion()).substr(0, kVersionSize - 1);
+}
 
 // Awaits a guest promise that settles with a string.
 struct PromiseAwaiter {
@@ -203,6 +221,11 @@ std::vector<uint8_t> Guest::compile(const std::string& source,
                                     const std::string& filename) {
   std::vector<uint8_t> out(kMagic, kMagic + sizeof kMagic);
   auto bc = engine_.compileModule(source, filename);
+  std::string version = currentQuickJsVersion();
+  version.resize(kVersionSize, '\0');
+  out.insert(out.end(), version.begin(), version.end());
+  uint64_t hash = fnv1a(bc.data(), bc.size());
+  for (size_t i = 0; i < kHashSize; ++i) out.push_back(uint8_t(hash >> (8 * i)));
   out.insert(out.end(), bc.begin(), bc.end());
   return out;
 }
@@ -212,8 +235,26 @@ void Guest::load(const std::vector<uint8_t>& bundle,
                  const std::function<bool()>& stop) {
   js::Value result;
   if (isBytecode(bundle)) {
-    result = engine_.evaluateBytecode(
-        std::vector<uint8_t>(bundle.begin() + sizeof kMagic, bundle.end()));
+    if (bundle.size() < kHeaderSize) {
+      throw std::runtime_error("bytecode header is truncated: rebuild guest.bin with the compile command");
+    }
+    const char* field = reinterpret_cast<const char*>(bundle.data() + sizeof kMagic);
+    std::string version(field, strnlen(field, kVersionSize));
+    if (version != currentQuickJsVersion()) {
+      throw std::runtime_error("bytecode was built with QuickJS version " + version +
+                               " but this runner uses " + currentQuickJsVersion() +
+                               ": rebuild guest.bin with the compile command");
+    }
+    const uint8_t* payload = bundle.data() + kHeaderSize;
+    size_t payloadSize = bundle.size() - kHeaderSize;
+    uint64_t stored = 0;
+    for (size_t i = 0; i < kHashSize; ++i) {
+      stored |= uint64_t(bundle[sizeof kMagic + kVersionSize + i]) << (8 * i);
+    }
+    if (stored != fnv1a(payload, payloadSize)) {
+      throw std::runtime_error("bytecode hash mismatch: guest.bin is corrupt or stale, rebuild it with the compile command");
+    }
+    result = engine_.evaluateBytecode(std::span<const uint8_t>(payload, payloadSize));
   } else {
     result = engine_.evaluateModule(
         std::string_view(reinterpret_cast<const char*>(bundle.data()),

@@ -11,6 +11,7 @@
 #include "nodetool/jobs/session_stop.h"
 #include <algorithm>
 #include <cctype>
+#include <climits>
 #include <cmath>
 #include <cstring>
 #include <map>
@@ -38,6 +39,15 @@ using nodetool::jobs::checkedMul;
 
 namespace gr::host {
 namespace {
+// Guest handle ids are converted to int only after this check. NaN, infinite
+// and out-of-range values are undefined behavior in the cast. The "RangeError: "
+// prefix is the convention of the sqlite host.
+int intArg(js::Engine &e, const js::Value &v) {
+  const double d = e.toNumber(v);
+  if (!(d >= INT_MIN && d <= INT_MAX) || d != std::floor(d))
+    throw std::runtime_error("RangeError: native media: expected an integer id");
+  return int(d);
+}
 void check(int code) {
   if (code >= 0)
     return;
@@ -47,14 +57,80 @@ void check(int code) {
 }
 // Validate before libav initializes filters: some filters open their own files.
 void filterPolicy(const std::string &chain) {
+  // Every filter of the linked libavfilter that works on its streams in
+  // memory. Left out: filters that read or write files or load models,
+  // fonts or plugins (movie, sendcmd, lut3d, drawtext, ladspa, ...), stats
+  // writers (psnr, ssim, loudnorm), hardware and OS device filters, wall-clock
+  // waits (realtime, cue) and the buffer and sink endpoints the host adds.
   static const std::set<std::string> allowed = {
-      "scale",    "format",   "fps",         "trim",      "setpts",
-      "pad",      "crop",     "setsar",      "null",      "anull",
-      "atrim",    "asetpts",  "aresample",   "aformat",   "volume",
-      "adelay",   "apad",     "amix",        "afade",     "atempo",
-      "pan",      "lowshelf", "highshelf",   "equalizer", "lowpass",
-      "highpass", "bandpass", "acompressor", "aecho",     "asoftclip",
-      "anullsrc"};
+      "a3dscope", "aap", "abench", "abitscope", "acompressor", "acontrast", "acopy",
+      "acrossfade", "acrossover", "acrusher", "addroi", "adeclick", "adeclip",
+      "adecorrelate", "adelay", "adenorm", "aderivative", "adrawgraph", "adrc",
+      "adynamicequalizer", "adynamicsmooth", "aecho", "aemphasis", "aeval", "aevalsrc",
+      "aexciter", "afade", "afdelaysrc", "afftdn", "afftfilt", "afir", "afireqsrc",
+      "afirsrc", "aformat", "afreqshift", "afwtdn", "agate", "agraphmonitor",
+      "ahistogram", "aiir", "aintegral", "ainterleave", "alatency", "alimiter",
+      "allpass", "allrgb", "allyuv", "aloop", "alphaextract", "alphamerge", "amerge",
+      "amix", "amplify", "amultiply", "anequalizer", "anlmdn", "anlmf", "anlms",
+      "anoisesrc", "anull", "anullsrc", "apad", "aperms", "aphasemeter", "aphaser",
+      "aphaseshift", "apsnr", "apsyclip", "apulsator", "aresample", "areverse",
+      "arls", "asdr", "asegment", "aselect", "asetnsamples", "asetpts", "asetrate",
+      "asettb", "ashowinfo", "asidedata", "asisdr", "asoftclip", "aspectralstats",
+      "asplit", "astats", "astreamselect", "asubboost", "asubcut", "asupercut",
+      "asuperpass", "asuperstop", "atadenoise", "atempo", "atilt", "atrim", "avectorscope",
+      "avgblur", "avsynctest", "axcorrelate", "backgroundkey", "bandpass", "bandreject",
+      "bass", "bbox", "bench", "bilateral", "biquad", "bitplanenoise", "blackdetect",
+      "blackframe", "blend", "blockdetect", "blurdetect", "bm3d", "boxblur", "bwdif",
+      "cas", "ccrepack", "channelmap", "channelsplit", "chorus", "chromahold",
+      "chromakey", "chromanr", "chromashift", "ciescope", "codecview", "color",
+      "colorbalance", "colorchannelmixer", "colorchart", "colorcontrast", "colorcorrect",
+      "colordetect", "colorhold", "colorize", "colorkey", "colorlevels", "colormap",
+      "colormatrix", "colorspace", "colorspectrum", "colortemperature", "compand",
+      "compensationdelay", "concat", "convolution", "convolve", "copy", "corr",
+      "crop", "cropdetect", "crossfeed", "crystalizer", "datascope", "dblur",
+      "dcshift", "dctdnoiz", "deband", "deblock", "decimate", "deconvolve", "dedot",
+      "deesser", "deflate", "deflicker", "dejudder", "delogo", "despill", "detelecine",
+      "dialoguenhance", "dilation", "displace", "doubleweave", "drawbox", "drawgraph",
+      "drawgrid", "drmeter", "dynaudnorm", "earwax", "ebur128", "edgedetect",
+      "elbg", "entropy", "epx", "eq", "equalizer", "erosion", "estdif", "exposure",
+      "extractplanes", "extrastereo", "fade", "feedback", "fftdnoiz", "fftfilt",
+      "field", "fieldmatch", "fieldorder", "fillborders", "flanger", "floodfill",
+      "format", "fps", "framepack", "framerate", "framestep", "freezedetect",
+      "freezeframes", "fspp", "gblur", "geq", "gradfun", "gradients", "graphmonitor",
+      "grayworld", "greyedge", "guided", "haas", "haldclut", "haldclutsrc", "hdcd",
+      "headphone", "hflip", "highpass", "highshelf", "hilbert", "histeq", "histogram",
+      "hqdn3d", "hqx", "hstack", "hsvhold", "hsvkey", "hue", "huesaturation",
+      "hwdownload", "hwmap", "hwupload", "hysteresis", "identity", "idet", "il",
+      "inflate", "interlace", "interleave", "join", "kerndeint", "kirsch", "lagfun",
+      "latency", "lenscorrection", "limitdiff", "limiter", "loop", "lowpass",
+      "lowshelf", "lumakey", "lut", "lut2", "lutrgb", "lutyuv", "mandelbrot",
+      "maskedclamp", "maskedmax", "maskedmerge", "maskedmin", "maskedthreshold",
+      "maskfun", "mcdeint", "mcompand", "median", "mergeplanes", "mestimate",
+      "midequalizer", "minterpolate", "mix", "monochrome", "morpho", "mpdecimate",
+      "mptestsrc", "msad", "multiply", "negate", "nlmeans", "noformat", "noise",
+      "normalize", "null", "nullsrc", "oscilloscope", "overlay", "owdenoise",
+      "pad", "pal100bars", "pal75bars", "palettegen", "pan", "perlin", "perms",
+      "perspective", "phase", "photosensitivity", "pixdesctest", "pixelize", "pixscope",
+      "pp7", "premultiply", "premultiply_dynamic", "prewitt", "pseudocolor", "pullup",
+      "qp", "random", "readeia608", "readvitc", "remap", "removegrain", "repeatfields",
+      "replaygain", "reverse", "rgbashift", "rgbtestsrc", "roberts", "rotate",
+      "sab", "scale", "scale2ref", "scdet", "scharr", "scroll", "segment", "select",
+      "separatefields", "setdar", "setfield", "setparams", "setpts", "setrange",
+      "setsar", "settb", "shear", "showcwt", "showfreqs", "showinfo", "showpalette",
+      "showspatial", "showspectrum", "showspectrumpic", "showvolume", "showwaves",
+      "showwavespic", "shuffleframes", "shufflepixels", "shuffleplanes", "sidechaincompress",
+      "sidechaingate", "sidedata", "sierpinski", "signalstats", "silencedetect",
+      "silenceremove", "sinc", "sine", "siti", "smartblur", "smptebars", "smptehdbars",
+      "sobel", "spectrumsynth", "speechnorm", "split", "spp", "stereo3d", "stereotools",
+      "stereowiden", "streamselect", "super2xsai", "superequalizer", "surround",
+      "swaprect", "swapuv", "tblend", "telecine", "testsrc", "testsrc2", "thistogram",
+      "threshold", "thumbnail", "tile", "tiltandshift", "tiltshelf", "tinterlace",
+      "tlut2", "tmedian", "tmidequalizer", "tmix", "tonemap", "tpad", "transpose",
+      "treble", "tremolo", "trim", "unpremultiply", "unsharp", "untile", "uspp",
+      "v360", "vaguedenoiser", "varblur", "vectorscope", "vflip", "vfrdet", "vibrance",
+      "vibrato", "vif", "vignette", "virtualbass", "volume", "volumedetect", "vstack",
+      "w3fdif", "waveform", "weave", "xbr", "xcorrelate", "xfade", "xmedian",
+      "xstack", "yadif", "yaepblur", "yuvtestsrc", "zoneplate", "zoompan",};
   if (chain.size() > 65536)
     throw std::runtime_error("native media filter size quota exceeded");
   bool start = true, quote = false, escape = false;
@@ -93,7 +169,8 @@ void filterPolicy(const std::string &chain) {
             chain[end] == '_'))
       ++end;
     if (!allowed.contains(chain.substr(i, end - i)))
-      throw std::runtime_error("native media filter is not granted");
+      throw std::runtime_error("native media filter is not granted: " +
+                               chain.substr(i, end - i));
     start = false;
     i = end - 1;
   }
@@ -738,9 +815,16 @@ void muxAudio(const Limits &limits, MediaStop stop, const MuxSpec &spec) {
       }
       audioTime = f->pts * av_q2d(f->time_base);
       f->pts = av_rescale_q(f->pts, f->time_base, output.codec->time_base);
-      f->nb_samples = std::min(
-          f->nb_samples,
-          int(std::ceil((duration - audioTime) * output.codec->sample_rate)));
+      // Cut in whole samples: a floating-point ceil of the remainder can
+      // round 896.0000001 up and leave the audio one sample past the video.
+      const int64_t endSample = av_rescale_q(video.format->duration, AV_TIME_BASE_Q,
+                                             output.codec->time_base);
+      if (f->pts >= endSample) {
+        audioDone = true;
+        output.send(nullptr);
+        continue;
+      }
+      f->nb_samples = int(std::min<int64_t>(f->nb_samples, endSample - f->pts));
       output.send(f.get());
     }
   }
@@ -1319,7 +1403,7 @@ void installMedia(js::Engine &e, const js::Value &object,
   bind("next", [s](auto &en, const auto &a) {
     s->poll();
     AsyncRun &run = s->run();
-    int id = int(en.toNumber(a.at(0)));
+    int id = intArg(en, a.at(0));
     auto it = s->readers.find(id);
     if (it == s->readers.end())
       throw std::runtime_error("native media reader closed");
@@ -1376,7 +1460,7 @@ void installMedia(js::Engine &e, const js::Value &object,
   // Explicit close: operations already accepted still run, in order, then
   // the reader's body is destroyed (design section 4.8).
   bind("close", [s](auto &en, const auto &a) {
-    auto it = s->readers.find(int(en.toNumber(a.at(0))));
+    auto it = s->readers.find(intArg(en, a.at(0)));
     if (it != s->readers.end()) {
       auto control = std::move(it->second.control);
       s->readers.erase(it);
@@ -1433,7 +1517,7 @@ void installMedia(js::Engine &e, const js::Value &object,
   bind("write", [s](auto &en, const auto &a) {
     s->poll();
     AsyncRun &run = s->run();
-    int id = int(en.toNumber(a.at(0)));
+    int id = intArg(en, a.at(0));
     auto it = s->encoders.find(id);
     if (it == s->encoders.end())
       throw std::runtime_error("native media encoder closed");
@@ -1503,7 +1587,7 @@ void installMedia(js::Engine &e, const js::Value &object,
   bind("finish", [s](auto &en, const auto &a) {
     s->poll();
     AsyncRun &run = s->run();
-    int id = int(en.toNumber(a.at(0)));
+    int id = intArg(en, a.at(0));
     auto it = s->encoders.find(id);
     if (it == s->encoders.end())
       throw std::runtime_error("native media encoder closed");
@@ -1535,7 +1619,7 @@ void installMedia(js::Engine &e, const js::Value &object,
   // to stop, and destroys the encoder once it returned. A finish that is
   // already running may still publish.
   bind("abort", [s](auto &en, const auto &a) {
-    auto it = s->encoders.find(int(en.toNumber(a.at(0))));
+    auto it = s->encoders.find(intArg(en, a.at(0)));
     if (it != s->encoders.end()) {
       auto control = std::move(it->second.control);
       s->encoders.erase(it);

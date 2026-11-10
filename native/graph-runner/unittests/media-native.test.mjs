@@ -237,6 +237,26 @@ for (const [name, fn] of [
       })
   ],
   [
+    "file-reading filter",
+    () =>
+      globalThis.__host.media.openFilter({
+        inputs: [{ filePath: path, kind: "video", label: "in" }],
+        graph: "[in]lut3d=file=/etc/passwd[out]",
+        output: "out",
+        outputKind: "video"
+      })
+  ],
+  [
+    "command-file filter",
+    () =>
+      globalThis.__host.media.openFilter({
+        inputs: [{ filePath: path, kind: "video", label: "in" }],
+        graph: "[in]sendcmd=f=/etc/passwd,null[out]",
+        output: "out",
+        outputKind: "video"
+      })
+  ],
+  [
     "codec grant",
     () =>
       globalThis.__host.media.openEncoder({
@@ -275,6 +295,23 @@ try {
   await invalid.abort();
 }
 assert(invalidRefused, "invalid codec options release dictionaries");
+// Handle ids that are NaN, infinite, not integers or outside the int range
+// throw a RangeError before the host converts them to int.
+{
+  const host = globalThis.__host.media;
+  const badIds = [NaN, Infinity, -Infinity, 2 ** 31, -(2 ** 31) - 1, 1.5];
+  for (const op of ["next", "write", "finish", "close", "abort"]) {
+    for (const id of badIds) {
+      let message = "";
+      try {
+        await host[op](id, new Uint8Array(0));
+      } catch (error) {
+        message = String(error?.message ?? error);
+      }
+      assert(message.startsWith("RangeError: "), `${op}(${id}) throws a RangeError, got "${message}"`);
+    }
+  }
+}
 globalThis.__timelineChecks = checks;
 globalThis.__timelineResult = JSON.stringify({ checks, probe, mixed });
 globalThis.__nodetool = {};

@@ -112,6 +112,36 @@ void moduleTopLevelAwaitFromBytecode() {
   CHECK_EQ(evaluatedLog(*e), "start,after timer");
 }
 
+// A guest.bin with a changed header or a wrong hash is refused by name.
+void bytecodeHeaderIsChecked() {
+  std::vector<uint8_t> bc;
+  {
+    auto e = js::createQuickJsEngine();
+    gr::Guest guest(*e);
+    bc = guest.compile("globalThis.__nodetool = {};", "h.mjs");
+  }
+  auto loadWith = [](const std::vector<uint8_t>& bundle) {
+    auto e = js::createQuickJsEngine();
+    gr::Guest guest(*e);
+    try {
+      guest.load(bundle, "h.bin");
+    } catch (const std::exception& err) {
+      return std::string(err.what());
+    }
+    return std::string();
+  };
+  CHECK_EQ(loadWith(bc), "");
+  auto bad = bc;
+  bad[10] ^= 0x55;  // inside the QuickJS version field
+  CHECK(loadWith(bad).find("QuickJS version") != std::string::npos);
+  bad = bc;
+  bad.back() ^= 0x55;  // inside the bytecode payload
+  CHECK(loadWith(bad).find("hash") != std::string::npos);
+  bad = bc;
+  bad.resize(12);  // truncated header
+  CHECK(loadWith(bad).find("header") != std::string::npos);
+}
+
 std::string loadError(const std::string& source, bool bytecode) {
   std::vector<uint8_t> bundle = bytesOf(source);
   if (bytecode) {
@@ -598,6 +628,7 @@ int main(int argc, char** argv) {
       {"moduleTopLevelAwaitFromSource", moduleTopLevelAwaitFromSource},
       {"moduleTopLevelAwaitFromBytecode", moduleTopLevelAwaitFromBytecode},
       {"moduleFailuresAreLoadErrors", moduleFailuresAreLoadErrors},
+      {"bytecodeHeaderIsChecked", bytecodeHeaderIsChecked},
       {"loadStopsWhenAsked", loadStopsWhenAsked},
       {"loopTimersFireInDeadlineOrder", loopTimersFireInDeadlineOrder},
       {"loopLimitDropsLaterTimers", loopLimitDropsLaterTimers},

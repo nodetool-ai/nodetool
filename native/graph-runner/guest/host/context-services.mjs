@@ -573,7 +573,10 @@ export class ContextServices {
   }
   postMessage(message) {
     this.signal.throwIfAborted();
-    this._messages.push(message);
+    const host = globalThis.__host?.context;
+    const sendToHost = typeof host?.postMessage === "function" && host.has("message");
+    // The host keeps every message it receives, so the guest does not.
+    if (!sendToHost) this._messages.push(message);
     if (message.type === "node_update" && message.node_id)
       this._nodeStatuses.set(message.node_id, message);
     if (message.type === "edge_update" && message.edge_id)
@@ -585,8 +588,7 @@ export class ContextServices {
         /* Observers cannot stop the run. */
       }
     }
-    const host = globalThis.__host?.context;
-    if (host?.has("message")) host.call("message", toJson(message));
+    if (sendToHost) host.postMessage(toJson(message));
   }
   addMessageListener(listener) {
     this._messageListeners.add(listener);

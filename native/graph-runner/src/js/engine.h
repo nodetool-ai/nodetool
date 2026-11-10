@@ -10,11 +10,19 @@
 #include <memory>
 #include <map>
 #include <stdexcept>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace gr::js {
+
+// The graph runner worker's thread stack, and the JS stack limit inside it.
+// The difference is headroom for C++, libav, Cairo and wasm frames.
+inline constexpr size_t kWorkerStackBytes = 32u * 1024 * 1024;
+inline constexpr size_t kJsStackBytes = 24u * 1024 * 1024;
+// The engine heap limit when the host sets none.
+inline constexpr size_t kJsHeapBytes = size_t(4) * 1024 * 1024 * 1024;
 
 class Engine;
 struct NativePayload { virtual ~NativePayload() = default; };
@@ -55,9 +63,23 @@ private:
 };
 
 // A JavaScript exception surfaced to C++. `what()` is the error's message.
+// A host function may throw one with a `name`, such as "AbortError", to raise
+// an Error of that name. An engine that surfaces a guest exception records
+// `exceptionId`: thrown back through a host function of the same engine, the
+// original exception object is rethrown.
 class JsError : public std::runtime_error {
 public:
   using std::runtime_error::runtime_error;
+  JsError(const std::string& message, std::string name)
+      : std::runtime_error(message), name_(std::move(name)) {}
+  JsError(const std::string& message, uint64_t exceptionId)
+      : std::runtime_error(message), exceptionId_(exceptionId) {}
+  const std::string& name() const noexcept { return name_; }
+  uint64_t exceptionId() const noexcept { return exceptionId_; }
+
+private:
+  std::string name_;
+  uint64_t exceptionId_ = 0;
 };
 
 // A C++ function callable from JavaScript. Throwing a std::exception raises a
@@ -120,7 +142,7 @@ public:
                                const std::string& filename) = 0;
   virtual std::vector<uint8_t> compileModule(std::string_view source,
                                              const std::string& filename) = 0;
-  virtual Value evaluateBytecode(const std::vector<uint8_t>& bytecode) = 0;
+  virtual Value evaluateBytecode(std::span<const uint8_t> bytecode) = 0;
 
   // Value construction.
   virtual Value global() = 0;
@@ -179,6 +201,12 @@ public:
   // Polled while JavaScript runs. Returning true aborts the running script
   // with an uncatchable error, which surfaces as JsError.
   virtual void setInterruptHandler(std::function<bool()> handler) = 0;
+  // Runs a full garbage collection. Finalizers of adopted buffers release
+  // their ledger charges.
+  virtual void collectGarbage() = 0;
+  // Caps the engine heap. A guest allocation past it raises an out-of-memory
+  // error. The default is kJsHeapBytes.
+  virtual void setMemoryLimit(size_t bytes) = 0;
   virtual Value externalArrayBuffer(uint8_t* data, size_t size, std::shared_ptr<NativePayload> owner) = 0;
   virtual void detachArrayBuffer(const Value& buffer) = 0;
   // A Uint8Array over a new ArrayBuffer that adopts `bytes` without copying

@@ -700,6 +700,26 @@ void conversionRejectedWhenJavaScriptLedgerIsFull() {
   r.async.teardown();
 }
 
+// Cyclic garbage holds an adopted 768 KiB buffer under a 1 MiB cap. Only a
+// garbage collection frees it, so the next adoption collects and succeeds.
+void conversionCollectsGarbageBeforeRefusal() {
+  Fixture f;
+  auto ledger = std::make_shared<AdmissionLedger>();
+  auto runner = ledger->openRunner(runnerLimits(0, 0, 1 * kMiB));
+  nodetool::jobs::InlineExecutor inlineJobs;
+  Run r(*f.engine, runner, inlineJobs);
+  gr::RunBinding::Scope bound(*f.engine, r.async, inlineJobs);
+  f.eval("const fail = (e) => log.push(e.name + ':' + e.message);"
+         "nativeJob({ result: 786432, adopt: 1 }).then((b) => {"
+         "  const a = { b }; const c = { a }; a.c = c; log.push('cycle'); }, fail);");
+  CHECK(r.runUntil(*f.engine, [&] { return f.logged() == 1; }) == RunExit::Done);
+  CHECK(runner->usage().javaScriptBytes == 786432);
+  f.eval("log = []; nativeJob({ result: 786432, adopt: 1 }).then((b) => log.push('after:' + b.length), fail);");
+  CHECK(r.runUntil(*f.engine, [&] { return f.logged() == 1; }) == RunExit::Done);
+  CHECK(f.log() == "after:786432");
+  r.async.teardown();
+}
+
 // Gate: cancellation of deferred starts. With the run's slot held, a
 // cancellable start and a cleanup start wait. cancel() drops the cancellable
 // one, which never runs and rejects with an AbortError, and releases its
@@ -1494,6 +1514,7 @@ int main(int argc, char** argv) {
   const Case cases[] = {
       {"deferredSnapshotsIgnoreLaterMutation", deferredSnapshotsIgnoreLaterMutation},
       {"revalidationAndOverflow", revalidationAndOverflow},
+      {"conversionCollectsGarbageBeforeRefusal", conversionCollectsGarbageBeforeRefusal},
       {"crossRunAndRunnerPressure", crossRunAndRunnerPressure},
       {"resultsKeepReservationsUntilDrainedOrDisposed", resultsKeepReservationsUntilDrainedOrDisposed},
       {"abandonedRunsKeepBackpressure", abandonedRunsKeepBackpressure},

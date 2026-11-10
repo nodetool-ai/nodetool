@@ -123,6 +123,63 @@ void enginePromisesSettleThroughJobs() {
   CHECK(doubled == "42");
 }
 
+// A long host error message arrives whole, and a host error can carry a name.
+void engineHostErrorsKeepMessageAndName() {
+  auto e = js::createQuickJsEngine();
+  e->set(e->global(), "failLong", e->function("failLong", 0, [](js::Engine&, const std::vector<js::Value>&) -> js::Value {
+    throw std::runtime_error(std::string(999, 'x') + "\xc3\xa9");
+  }));
+  e->set(e->global(), "failAbort", e->function("failAbort", 0, [](js::Engine&, const std::vector<js::Value>&) -> js::Value {
+    throw js::JsError("stopped", "AbortError");
+  }));
+  js::Value r = e->evaluateScript(
+      "(() => { try { failLong(); } catch (x) { return x instanceof Error && x.message.length === 1000 && x.message.endsWith('x\\u00e9'); } })()",
+      "t.js");
+  CHECK(e->toBoolean(r));
+  r = e->evaluateScript(
+      "(() => { try { failAbort(); } catch (x) { return x.name + ':' + x.message; } })()", "t.js");
+  CHECK(e->toString(r) == "AbortError:stopped");
+  // A JS exception thrown through a re-entrant host call keeps its object.
+  e->set(e->global(), "reenter", e->function("reenter", 1, [](js::Engine& en, const std::vector<js::Value>& a) -> js::Value {
+    return en.call(a.at(0), en.undefined(), {});
+  }));
+  r = e->evaluateScript(
+      "(() => { const original = new TypeError('inner'); try { reenter(() => { throw original; }); } catch (x) { return x === original; } })()",
+      "t.js");
+  CHECK(e->toBoolean(r));
+}
+
+// Bytecode without source still names the file and line in a stack trace.
+void engineBytecodeKeepsStackLines() {
+  std::vector<uint8_t> bc;
+  {
+    auto e = js::createQuickJsEngine();
+    bc = e->compileScript("\n\nglobalThis.trace = () => { try { throw new Error('x'); } catch (x) { return x.stack; } };", "lines.js");
+  }
+  auto e = js::createQuickJsEngine();
+  e->evaluateBytecode(bc);
+  const std::string stack = e->toString(e->call(e->get(e->global(), "trace"), e->undefined(), {}));
+  CHECK(stack.find("lines.js:3") != std::string::npos);
+  const std::string source = e->toString(e->evaluateScript("String(globalThis.trace)", "t.js"));
+  CHECK(source.find("throw new Error") == std::string::npos);
+}
+
+// A runaway allocation past the heap limit raises an out-of-memory error.
+void engineHeapLimitRaisesOutOfMemory() {
+  auto e = js::createQuickJsEngine();
+  e->setMemoryLimit(64u * 1024 * 1024);
+  std::string message;
+  try {
+    e->evaluateScript("globalThis.hog = []; for (;;) hog.push(new Array(100000).fill(1));", "oom.js");
+  } catch (const js::JsError& err) {
+    message = err.what();
+  }
+  CHECK(message.find("out of memory") != std::string::npos);
+  e->evaluateScript("globalThis.hog = undefined;", "t.js");
+  e->collectGarbage();
+  CHECK(e->toNumber(e->evaluateScript("1 + 1", "t.js")) == 2);
+}
+
 void engineBytecodeRoundTrip() {
   std::vector<uint8_t> bc;
   {
@@ -538,6 +595,9 @@ int main() {
       {"engineBytesRoundTrip", engineBytesRoundTrip},
       {"enginePromisesSettleThroughJobs", enginePromisesSettleThroughJobs},
       {"engineBytecodeRoundTrip", engineBytecodeRoundTrip},
+      {"engineHeapLimitRaisesOutOfMemory", engineHeapLimitRaisesOutOfMemory},
+      {"engineBytecodeKeepsStackLines", engineBytecodeKeepsStackLines},
+      {"engineHostErrorsKeepMessageAndName", engineHostErrorsKeepMessageAndName},
       {"tasksResumeThroughTheLoop", tasksResumeThroughTheLoop},
       {"abandonDestroysSuspendedFrames", abandonDestroysSuspendedFrames},
       {"finishedTasksLeaveNoFrames", finishedTasksLeaveNoFrames},

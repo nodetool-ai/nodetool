@@ -83,8 +83,20 @@ function fail(message) {
  * The machine has real provider keys, so the runner never starts any other
  * way.
  */
+// macOS has no network namespaces: sandbox-exec denies every outbound
+// connection except loopback. assertOffline proves it either way.
+const MAC_OFFLINE_PROFILE =
+  '(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip "localhost:*"))(allow network-outbound (remote unix-socket))';
+
 function sandboxed(command, args, env, options = {}) {
   const pairs = Object.entries(env).map(([k, v]) => `${k}=${v}`);
+  if (process.platform === "darwin") {
+    return spawn(
+      "/usr/bin/sandbox-exec",
+      ["-p", MAC_OFFLINE_PROFILE, "/usr/bin/env", "-i", ...pairs, command, ...args],
+      { env: {}, ...options }
+    );
+  }
   return spawn(
     "/usr/bin/unshare",
     ["-rn", "/usr/bin/env", "-i", ...pairs, "/bin/sh", "-c", 'ip link set lo up && exec "$@"', "sh", command, ...args],
@@ -252,7 +264,9 @@ async function runExample(example, opts, bundle, home) {
     "run", "--bundle", bundle, "--graph", graphFile,
     "--workspace", dirs.workspace, "--asset-dir", dirs.assets,
     "--sqlite-dir", dirs.sqlite, "--models-db", "models.sqlite",
-    "--package-assets", PACKAGE_ASSETS, "--allow-media", "--fake-providers"
+    "--package-assets", PACKAGE_ASSETS, "--allow-media", "--fake-providers",
+    // The encoders the node editor grants (WorkflowSession.cpp).
+    ...["libx264", "aac", "libmp3lame", "libopus"].flatMap((name) => ["--media-encoder", name])
   ];
   const r = await collect(sandboxed(opts.runner, args, sandboxEnv(home, dirs.tmp)), opts.timeout);
   writeFileSync(join(runDir, "stdout.jsonl"), r.stdout);

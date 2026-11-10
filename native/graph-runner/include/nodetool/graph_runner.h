@@ -159,6 +159,9 @@ struct HostOptions {
   bool inlineHostJobs = false;
   // Admission limits of host jobs, threaded and inline alike.
   HostJobLimits hostJobLimits;
+  // The guest engine's heap limit in bytes. A guest allocation past it
+  // raises an out-of-memory error. 0: the engine default (4 GiB).
+  size_t javaScriptHeapBytes = 0;
   // The ledger whose limits this runner shares with every other runner given
   // the same one (newAdmissionLedger). Unset: the runner creates a private
   // ledger with the default limits. Shared: every runner given it, and every

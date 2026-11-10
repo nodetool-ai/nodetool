@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     int closed = 0, next = 0, httpCalls = 0, modelResourceDenials = 0;
     gr::host::ContextOptions grants;
     grants.cancelled = [&] { return cancelled.load(); };
-    grants.ocrDataDirectory = "/usr/share/tessdata";
+    grants.ocrDataDirectory = GR_TEST_TESSDATA;
     grants.operations["http:request"] = [&](const std::string &payload) {
       const auto request = Json::parse(payload);
       if (request.at("url") != "https://fixture.invalid/echo") {
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
     expectOcrError(context, "../eng", "Invalid OCR language");
     const auto ocrRoot = temp / "ocr";
     std::filesystem::create_directory(ocrRoot);
-    std::filesystem::create_symlink("/usr/share/tessdata/eng.traineddata",
+    std::filesystem::create_symlink(std::filesystem::path(GR_TEST_TESSDATA) / "eng.traineddata",
                                     ocrRoot / "eng.traineddata");
     auto escapedOcr = engine->object();
     auto escapedGrants = grants;

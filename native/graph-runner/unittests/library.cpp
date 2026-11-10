@@ -149,8 +149,8 @@ void checksSupport() {
   CHECK(runner.waitUntilLoaded(60000));
   CHECK(runner.canRun(editorGraph(3)));
   Json unknown = Json::parse(editorGraph(3));
-  unknown["nodes"][0]["type"] = "nodetool.text.Concat";
-  CHECK(runner.unsupportedReason(unknown.dump()).find("nodetool.text.Concat") != std::string::npos);
+  unknown["nodes"][0]["type"] = "nodetool.test.NoSuchNode";
+  CHECK(runner.unsupportedReason(unknown.dump()).find("nodetool.test.NoSuchNode") != std::string::npos);
   Json control = Json::parse(editorGraph(3));
   control["edges"][0]["edge_type"] = "control";
   CHECK(runner.canRun(control.dump()));
@@ -204,7 +204,7 @@ void sendsJobSummaryWhenCompleted() {
                          {"status", "completed"},
                          {"job_id", "job"},
                          {"workflow_id", "wf"},
-                         {"result", {{"outputs", {{"Output", {Json::array({0, 1, 2})}}}}}}};
+                         {"result", {{"outputs", {{"items", {Json::array({0, 1, 2})}}}}}}};
   CHECK(updates[1] == expected);
   std::lock_guard lock(c.mutex);
   CHECK(c.messages.back() == expected);
@@ -232,7 +232,7 @@ void sendsJobSummaryWhenFailed() {
   CHECK(updates[1]["error"] == updates[0]["error"]);
   CHECK(updates[1]["error"].get<std::string>().find("Node \"pick\" failed") == 0);
   // The Output node finished without a value, so its key holds no values.
-  CHECK(updates[1]["result"] == Json({{"outputs", {{"Output", Json::array()}}}}));
+  CHECK(updates[1]["result"] == Json({{"outputs", {{"picked", Json::array()}}}}));
 }
 
 void sendsNoJobSummaryWithoutOutputs() {
@@ -261,7 +261,7 @@ void sendsJobSummaryWhenCancelled() {
   if (updates.size() != 2) return;
   CHECK(updates[1]["status"] == "cancelled");
   CHECK(!updates[1].contains("error"));
-  CHECK(updates[1]["result"]["outputs"].contains("Output"));
+  CHECK(updates[1]["result"]["outputs"].contains("items"));
 }
 
 // Comment and Group nodes are pruned with their edges, as on the server. The
@@ -379,6 +379,28 @@ void reportsMissingBundle() {
   CHECK(c.waitTerminal() == "failed");
 }
 
+// A Code node that recurses without end fails with a RangeError. The worker
+// thread has a stack larger than the JS limit, so no signal ends the process.
+std::string codeGraph(const std::string& code) {
+  const Json graph = {
+      {"nodes",
+       {{{"id", "code"}, {"type", "nodetool.code.Code"}, {"data", {{"code", code}}}}}},
+      {"edges", Json::array()}};
+  return graph.dump();
+}
+
+void deepRecursionFailsTheNode() {
+  gr::GraphRunner runner(bundlePath);
+  for (const char* code : {"function f(){f()} f()",
+                           "JSON.parse('['.repeat(1000000)+']'.repeat(1000000))"}) {
+    Collector c;
+    runner.submit("job", "wf", codeGraph(code), "", c.handler());
+    CHECK(c.waitTerminal() == "failed");
+    auto updates = c.terminalUpdates();
+    CHECK(!updates.empty() && updates[0]["error"].dump().find("RangeError") != std::string::npos);
+  }
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -409,6 +431,7 @@ int main(int argc, char** argv) {
       {"teardownDuringLoad", teardownDuringLoad},
       {"reportsBadInput", reportsBadInput},
       {"reportsMissingBundle", reportsMissingBundle},
+      {"deepRecursionFailsTheNode", deepRecursionFailsTheNode},
   };
   for (const auto& [name, fn] : tests) {
     int before = failures;

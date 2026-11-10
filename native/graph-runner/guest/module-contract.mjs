@@ -168,6 +168,7 @@ export const MODULES = {
       parseObjectTrackingResult: pure("a parser of the runtime's object tracking provider"),
       parseWithTypeCoercion: guest("@nodetool-ai/protocol/zod-schema"),
       probeVideoDurationSeconds: unavailable("native-addon", "probes with node-av and sharp in the runtime's video frames module"),
+      rasterizeSvgInput: impl("host/runtime.mjs"),
       rasterizeSvg: unavailable("native-addon", "rasterizes with sharp in the runtime's image codec"),
       recordTraceEvent: realRuntime("run-trace-context.js"),
       registerCostReconciler: realRuntime("cost-reconciler.js"),
@@ -207,10 +208,11 @@ export const MODULES = {
   [`${RT}/media`]: {
     provider: "host/runtime.mjs",
     exports: {
-      concatCopy: nodeMedia(),
+      concatCopy: host("media.abort", "media.close", "media.finish", "media.muxAudio", "media.next", "media.openEncoder",
+        "media.openFilter", "media.probe", "media.write"),
       concatSegments: host("media.abort", "media.close", "media.finish", "media.muxAudio", "media.next", "media.openEncoder",
         "media.openFilter", "media.probe", "media.write"),
-      convertAudioToWav: nodeMedia(),
+      convertAudioToWav: host("media.close", "media.next", "media.openFilter", "media.probe"),
       decodeAudioToPcm: host("media.close", "media.next", "media.openFilter"),
       ensureMediabunnyServer: unavailable("server-only", "starts the server's mediabunny helper"),
       hasEncoder: host("media.hasEncoder"),
@@ -221,13 +223,14 @@ export const MODULES = {
       openRgbaFrameReader: host("media.close", "media.next", "media.openFilter"),
       openVideoFrameEncoder: host("media.abort", "media.finish", "media.openEncoder", "media.write"),
       packetTimes: host("media.packetTimes"),
-      pngFrames: nodeMedia(),
+      pngFrames: host("media.close", "media.next", "media.openFilter"),
       probeDurationSec: host("media.probe"),
       probeHasAudio: host("media.probe"),
       probeMedia: host("media.probe"),
       probeVideoStream: host("media.probe"),
       transcodeVideo: nodeMedia(),
-      transformMedia: nodeMedia()
+      transformMedia: host("media.abort", "media.close", "media.finish", "media.muxAudio", "media.next", "media.openEncoder",
+        "media.openFilter", "media.probe", "media.write")
     }
   },
   [`${RT}/media-ref-bytes`]: {

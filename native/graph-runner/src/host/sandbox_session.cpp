@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <map>
 #include <memory>
@@ -13,6 +14,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
 
 namespace gr::host {
 namespace {
@@ -23,6 +27,28 @@ std::string text(JSContext* ctx, JSValueConst value) {
   const char* raw = JS_ToCString(ctx,value);
   if (!raw) throw std::runtime_error("Sandbox value cannot be serialized");
   std::string out(raw); JS_FreeCString(ctx,raw); return out;
+}
+// The bytes of the current thread's stack below this frame, minus headroom
+// for the C++ frames that the nested runtime's host calls add. Zero when the
+// platform cannot tell.
+size_t remainingStack() {
+  constexpr size_t headroom = 1024*1024;
+  char here = 0;
+  const auto sp = reinterpret_cast<uintptr_t>(&here);
+  uintptr_t low = 0;
+#if defined(__APPLE__)
+  const auto self = pthread_self();
+  low = reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(self))-pthread_get_stacksize_np(self);
+#elif defined(__linux__)
+  pthread_attr_t attr;
+  if (pthread_getattr_np(pthread_self(),&attr)!=0) return 0;
+  void* addr=nullptr; size_t size=0;
+  pthread_attr_getstack(&attr,&addr,&size);
+  pthread_attr_destroy(&attr);
+  low = reinterpret_cast<uintptr_t>(addr);
+#endif
+  if (!low || sp<=low+headroom) return 0;
+  return sp-low-headroom;
 }
 size_t bounded(const Json& value, const char* key, size_t fallback, size_t lo, size_t hi) {
   if (!value.contains(key)) return fallback;
@@ -46,6 +72,14 @@ struct Session {
   std::set<unsigned> inputWaits;
   Clock::time_point suspendedAt;
   size_t outputLimit, outputBytes = 0;
+  size_t stackLimit = 0;
+  // Each entry runs at another depth of the outer stack. Measure from here
+  // and give the runtime min(requested, remaining).
+  void enter() {
+    JS_UpdateStackTop(runtime);
+    const auto remaining = remainingStack();
+    JS_SetMaxStackSize(runtime, remaining ? std::min(stackLimit, remaining) : stackLimit);
+  }
   size_t emitCalls = 0;
   std::string error;
   // native-rules #6: raw JSValue freed by hand in the destructor
@@ -143,7 +177,8 @@ struct Session {
     runtime = runtimeOwner.get();
     if (!runtime) throw std::runtime_error("Cannot allocate sandbox runtime");
     JS_SetMemoryLimit(runtime,bounded(limits,"memoryLimitBytes",64*1024*1024,1024*1024,512*1024*1024));
-    JS_SetMaxStackSize(runtime,bounded(limits,"stackLimitBytes",512*1024,16*1024,8*1024*1024));
+    stackLimit = bounded(limits,"stackLimitBytes",512*1024,16*1024,8*1024*1024);
+    enter();
     JS_SetInterruptHandler(runtime,interrupt,this);
     contextOwner.reset(JS_NewContext(runtime));
     context = contextOwner.get();
@@ -243,6 +278,7 @@ globalThis.__runDone = false;
 
   }
   Json step() {
+    enter();
     JSContext* jobContext=nullptr;
     while(error.empty() && events.empty() && JS_IsJobPending(runtime)) {
       if(interrupt(context,this)) {error="Sandbox cancelled or deadline exceeded";break;}
@@ -299,6 +335,7 @@ globalThis.__runDone = false;
     return {{"done",true},{"result",result}};
   }
   void resume(unsigned token,const Json& result,bool failed) {
+    enter();
     const auto it=pending.find(token);
     if(it==pending.end()) throw std::runtime_error("Unknown sandbox bridge token");
     if(inputWaits.erase(token) && inputWaits.empty()) deadline+=Clock::now()-suspendedAt;

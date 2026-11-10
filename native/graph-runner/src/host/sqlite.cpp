@@ -5,6 +5,8 @@
 #include <sqlite3.h>
 
 #include <cerrno>
+#include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -262,7 +264,13 @@ std::string resolvePath(const State& state, const std::string& filename) {
 
 // --- value conversion ----------------------------------------------------------
 
-int toInt(js::Engine& e, const js::Value& v) { return static_cast<int>(e.toNumber(v)); }
+// Guest numbers become int only after this check. NaN, infinite and
+// out-of-range values are undefined behavior in the cast.
+int toInt(js::Engine& e, const js::Value& v) {
+  const double d = e.toNumber(v);
+  if (!(d >= INT_MIN && d <= INT_MAX) || d != std::floor(d)) fail("RangeError", "expected an integer value");
+  return static_cast<int>(d);
+}
 
 js::Value newArray(js::Engine& e) {
   js::Value ctor = e.get(e.global(), "Array");

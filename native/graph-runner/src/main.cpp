@@ -5,6 +5,7 @@
 //                             [--sqlite-dir <dir> [--models-db <file>]]
 //                             [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]
 //                             [--secrets <file.json>] [--allow-http] [--allow-media]
+//                             [--media-encoder <name>]...
 //                             [--package-assets <dir>] [--fake-providers] [--host-threads <n>]
 //   nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>
 //
@@ -52,6 +53,12 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <sys/resource.h>
+#if defined(__APPLE__)
+#include <mach/mach.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace {
 
@@ -67,6 +74,7 @@ int usage(const char* message) {
                "      [--sqlite-dir <dir> [--models-db <file>]]\n"
                "      [--workspace <dir>] [--read-root <dir>]... [--asset-dir <dir>]\n"
                "      [--secrets <file.json>] [--allow-http] [--allow-media]\n"
+               "      [--media-encoder <name>]...\n"
                "      [--package-assets <dir>] [--fake-providers] [--host-threads <n>]\n"
                "  nodetool-graph-runner compile --bundle <guest.js> --out <guest.bin>\n");
   return 2;
@@ -90,6 +98,32 @@ double msSince(std::chrono::steady_clock::time_point start) {
                                                    start)
       .count();
 }
+
+#if defined(__APPLE__)
+size_t residentBytes() {
+  mach_task_basic_info info{};
+  mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
+  if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, reinterpret_cast<task_info_t>(&info), &count) != KERN_SUCCESS) return 0;
+  return info.resident_size;
+}
+size_t peakResidentBytes() {
+  rusage usage{};
+  getrusage(RUSAGE_SELF, &usage);
+  return static_cast<size_t>(usage.ru_maxrss);
+}
+#else
+size_t residentBytes() {
+  std::ifstream in("/proc/self/statm");
+  size_t total = 0, resident = 0;
+  in >> total >> resident;
+  return resident * static_cast<size_t>(sysconf(_SC_PAGESIZE));
+}
+size_t peakResidentBytes() {
+  rusage usage{};
+  getrusage(RUSAGE_SELF, &usage);
+  return static_cast<size_t>(usage.ru_maxrss) * 1024;
+}
+#endif
 
 // Runs one job and waits for its last message. Returns the status of its
 // first terminal job_update. Messages after that one are the job summary.
@@ -130,6 +164,7 @@ int main(int argc, char** argv) {
   std::map<std::string, std::string> flags;
   gr::HostOptions host;
   bool printSummary = false;
+  bool benchLoad = false;
   
   host.gpu.enabled = true;
   // The CLI's one runner owns the process's admission limits.
@@ -140,6 +175,7 @@ int main(int argc, char** argv) {
       printSummary = true;
       continue;
     }
+    if (a == "--bench-load") { benchLoad = true; continue; }
     if (a == "--no-gpu") { host.gpu.enabled = false; continue; }
     if (a == "--allow-http") {
       host.allowHttpFetch = true;
@@ -147,6 +183,11 @@ int main(int argc, char** argv) {
     }
     if (a == "--allow-media") {
       host.allowMedia = true;
+      continue;
+    }
+    if (a == "--media-encoder" && i + 1 < argc) {
+      // Grants one libav encoder to the media host; repeat for more.
+      host.mediaEncoders.push_back(argv[++i]);
       continue;
     }
     if (a == "--fake-providers") {
@@ -181,12 +222,12 @@ int main(int argc, char** argv) {
   }
 
   if (command != "run") return usage(("unknown command " + command).c_str());
-  if (!flags.count("graph")) return usage("--graph is required");
+  if (!flags.count("graph") && !benchLoad) return usage("--graph is required");
 
   std::string graph;
   std::string params = flags.count("params") ? flags["params"] : "{}";
-  if (!readFile(flags["graph"], graph)) return usage("cannot read --graph");
-  if (!nlohmann::json::accept(graph)) return usage("invalid JSON in --graph");
+  if (!benchLoad && !readFile(flags["graph"], graph)) return usage("cannot read --graph");
+  if (!benchLoad && !nlohmann::json::accept(graph)) return usage("invalid JSON in --graph");
   if (!nlohmann::json::accept(params)) return usage("invalid JSON in --params");
   {
     std::string probe;
@@ -242,6 +283,13 @@ int main(int argc, char** argv) {
     if (!runner.waitUntilLoaded(INT_MAX)) {
       std::fprintf(stderr, "bundle load failed: %s\n", runner.loadError().c_str());
       return 1;
+    }
+
+    if (benchLoad) {
+      // Resident size after load. The phase times are in the "load phases"
+      // log line on stderr, which parity/bench-load.mjs reads.
+      std::printf("{\"resident_bytes\":%zu,\"peak_resident_bytes\":%zu}\n", residentBytes(), peakResidentBytes());
+      return 0;
     }
 
     // --repeat runs the graph again in the same loaded context. Only the last

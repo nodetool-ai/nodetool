@@ -2,12 +2,19 @@
 // Uint8Array travels as {"__bytes__": "<base64>"} and comes back out of
 // fromJson() as a Uint8Array. A Node Buffer (the `buffer` polyfill) adds
 // "__buffer__": true and comes back as a Buffer when the guest has one.
-// Every other value is plain JSON.
+// Every other typed array, DataView and ArrayBuffer travels as
+// {"__typed__": "<constructor name>", "__bytes__": "<base64>"} and comes back
+// with the same type. Every other value is plain JSON.
 //
 // The kernel keeps the tagged form, so the messages a host receives carry
 // bytes as {"__bytes__": "<base64>"}.
 
 const TAG = "__bytes__";
+const TYPED = "__typed__";
+const VIEWS = {
+  Int8Array, Uint8ClampedArray, Int16Array, Uint16Array, Int32Array, Uint32Array,
+  Float32Array, Float64Array, BigInt64Array, BigUint64Array, DataView,
+};
 
 function encode(bytes) {
   if (typeof bytes.toBase64 === "function") return bytes.toBase64();
@@ -36,12 +43,28 @@ function replacer(key, value) {
     const plain = raw.constructor === Uint8Array ? raw : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
     return isBuffer(raw) ? { [TAG]: encode(plain), __buffer__: true } : { [TAG]: encode(plain) };
   }
+  if (raw instanceof ArrayBuffer) {
+    return { [TYPED]: "ArrayBuffer", [TAG]: encode(new Uint8Array(raw)) };
+  }
+  if (ArrayBuffer.isView(raw)) {
+    const name = raw instanceof DataView ? "DataView" : raw[Symbol.toStringTag];
+    if (VIEWS[name]) {
+      return { [TYPED]: name, [TAG]: encode(new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)) };
+    }
+  }
   return value;
 }
 
 function reviver(_key, value) {
   if (value !== null && typeof value === "object" && typeof value[TAG] === "string") {
     const keys = Object.keys(value);
+    if (keys.length === 2 && typeof value[TYPED] === "string") {
+      const bytes = decode(value[TAG]);
+      const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      if (value[TYPED] === "ArrayBuffer") return buffer;
+      const View = VIEWS[value[TYPED]];
+      if (View) return new View(buffer);
+    }
     if (keys.length === 1 || (keys.length === 2 && value.__buffer__ === true)) {
       const bytes = decode(value[TAG]);
       return value.__buffer__ && typeof globalThis.Buffer === "function"

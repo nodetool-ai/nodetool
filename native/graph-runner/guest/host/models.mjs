@@ -50,6 +50,8 @@ export function openModelRepository(databasePath, userId) {
     client.transaction(() => {
       if (!client.pragma('table_info("nodetool_assets")').some((column) => column.name === 'favorite')) client.exec(ASSET_FAVORITE_DDL);
       if (!client.pragma('table_info("nodetool_jobs")').some((column) => column.name === 'has_run_trace')) client.exec(JOB_TRACE_MARKER_DDL);
+      // The 20261110_000000 add_thread_kind migration in @nodetool-ai/models.
+      if (!client.pragma('table_info("nodetool_threads")').some((column) => column.name === 'kind')) client.exec("ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'");
     })();
     db = drizzle(client);
   } catch (error) {

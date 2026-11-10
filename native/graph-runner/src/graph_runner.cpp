@@ -19,11 +19,16 @@
 #include <condition_variable>
 #include <deque>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <mutex>
 #include <set>
 #include <thread>
+
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
 
 using nodetool::jobs::AdmissionLedger;
 
@@ -33,6 +38,28 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 const char* kLog = "graph-runner";
+
+// Runs `body` on a new thread with a stack of `bytes` and waits for it. The
+// calling thread only waits. Without pthreads the body runs on the caller.
+void runWithStack(size_t bytes, const std::function<void()>& body) {
+#if defined(_WIN32)
+  (void)bytes;
+  body();
+#else
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setstacksize(&attr, bytes);
+  pthread_t thread;
+  auto entry = [](void* arg) -> void* {
+    (*static_cast<const std::function<void()>*>(arg))();
+    return nullptr;
+  };
+  const bool started = pthread_create(&thread, &attr, entry, const_cast<std::function<void()>*>(&body)) == 0;
+  pthread_attr_destroy(&attr);
+  if (started) pthread_join(thread, nullptr);
+  else body();
+#endif
+}
 
 // The runner's account on the embedder's ledger, or on a private ledger with
 // the default limits, which the account keeps alive.
@@ -147,7 +174,9 @@ struct GraphRunner::Impl {
                   : processHostLanes({options.cpuThreads, options.ioThreads, options.networkThreads})),
         account(openRunnerAccount(options)) {
     // native-rules #12: lambda captures raw this and runs on the worker thread
-    worker = std::thread([this] { work(); });
+    // The worker runs on a thread with an explicit stack, so the JS stack
+    // limit (js::kWorkerStackBytes minus C++ headroom) is reached first.
+    worker = std::thread([this] { runWithStack(js::kWorkerStackBytes, [this] { work(); }); });
   }
 
   void work();
@@ -213,16 +242,25 @@ void GraphRunner::Impl::load() {
   std::set<std::string> types;
   std::map<std::string, std::string> missing;
   std::string failure;
+  double guestMs = 0;
+  double readMs = 0;
+  double catalogMs = 0;
+  double firstNodeMs = 0;
   try {
     if (bundle.empty()) {
-      std::ifstream in(bundlePath, std::ios::binary);
+      std::ifstream in(bundlePath, std::ios::binary | std::ios::ate);
       if (!in) throw std::runtime_error("cannot read guest bundle " + bundlePath);
-      bundle.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+      bundle.resize(static_cast<size_t>(in.tellg()));
+      in.seekg(0);
+      in.read(reinterpret_cast<char*>(bundle.data()), static_cast<std::streamsize>(bundle.size()));
+      if (!in) throw std::runtime_error("cannot read guest bundle " + bundlePath);
     }
+    readMs = msSince(start);
     if (!executionState && (options.durableInboxes || !options.cacheNodeTypes.empty())) {
       executionState = std::make_shared<ExecutionState>(options.executionStateDirectory);
     }
     next->engine = js::createQuickJsEngine();
+    if (options.javaScriptHeapBytes) next->engine->setMemoryLimit(options.javaScriptHeapBytes);
     // native-rules #12: lambda captures raw this and is stored in the engine, runs later
     next->engine->setInterruptHandler([this] { return interruptRequested(); });
     // The runner serves "message" itself, synchronously.
@@ -247,11 +285,16 @@ void GraphRunner::Impl::load() {
     };
     next->guest = std::make_unique<Guest>(*next->engine, std::move(guestOptions));
     // native-rules #12: lambda captures raw this and is stored in the guest, runs later
+    const auto guestStart = Clock::now();
     next->guest->load(bundle, bundlePath, [this] { return cancelState.snapshot().immediate; });
+    guestMs = msSince(guestStart);
+    const auto catalogStart = Clock::now();
     next->catalog = std::make_unique<GuestCatalog>(*next->guest);
     for (const auto& type : next->catalog->types()) {
       if (kRejectedTypes.count(type)) continue;
+      const auto describeStart = Clock::now();
       auto flags = next->catalog->describe(Json{{"type", type}});
+      if (firstNodeMs == 0) firstNodeMs = msSince(describeStart);
       if (!flags) continue;
       if (flags->contains("requires") && (*flags)["requires"].is_array() && !(*flags)["requires"].empty()) {
         std::string reason;
@@ -264,15 +307,24 @@ void GraphRunner::Impl::load() {
       }
       types.insert(type);
     }
+    catalogMs = msSince(catalogStart);
   } catch (const std::exception& e) {
     failure = e.what();
   }
   interrupted = false;
+  // QuickJS keeps no reference to the bundle bytes after load. A reload reads
+  // the file again.
+  const bool bytecodeBundle = Guest::isBytecode(bundle);
+  const size_t bundleBytes = bundle.size();
+  std::vector<uint8_t>().swap(bundle);
   if (failure.empty()) {
     context = std::move(next);
     logLine("INFO", kLog,
+            "load phases " + Json{{"read_ms", readMs}, {"guest_ms", guestMs}, {"catalog_ms", catalogMs},
+                                  {"first_node_ms", firstNodeMs}, {"bundle_bytes", bundleBytes}}.dump());
+    logLine("INFO", kLog,
             std::string("bundle loaded (") +
-                (Guest::isBytecode(bundle) ? "bytecode" : "source") + ") in " +
+                (bytecodeBundle ? "bytecode" : "source") + ") in " +
                 std::to_string(msSince(start)) + " ms");
   } else {
     logLine("ERROR", kLog, "bundle load failed: " + failure);

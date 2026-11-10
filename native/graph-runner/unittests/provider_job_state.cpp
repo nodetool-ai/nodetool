@@ -663,6 +663,10 @@ void runRetirement() {
   fixture.close(kept);
   for (int round = 0; round < 200; ++round) {
     const auto run = "run-" + std::to_string(round);
+    // Retired workers return at the network lane's pace, slower than the
+    // rounds start. Let them overlap, but leave room for this round's starts.
+    check(eventually([&] { return fixture.jobs.stats().executing + 12 <= 256; }),
+          "retired workers return");
     std::vector<Fixture::Pending> waiting;
     std::vector<std::string> ids;
     for (int i = 0; i < 12; ++i) {

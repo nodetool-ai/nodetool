@@ -38,13 +38,15 @@ struct Messages {
     return false;
   }
 };
-std::string graph(const std::string &label, int count = 1, bool spoof = false) {
+std::string graph(const std::string &label, int count = 1, bool spoof = false,
+                  int padding = 0) {
   return Json{{"nodes",
                Json::array({Json{
                    {"id", "node"},
                    {"type", "fixture.ContextMessage"},
                    {"properties",
-                    {{"label", label}, {"count", count}, {"spoof", spoof}}}}})},
+                    {{"label", label}, {"count", count}, {"spoof", spoof},
+                     {"padding", padding}}}}})},
               {"edges", Json::array()}}
       .dump();
 }
@@ -86,8 +88,8 @@ int main(int argc, char **argv) {
     runner.submit("exceeded", "workflow", graph("exceeded", 2), "{}",
                   exceeded.handler());
     exceeded.wait();
-    if (exceeded.completed("exceeded"))
-      throw std::runtime_error("Within-job context call limit was lost");
+    if (!exceeded.completed("exceeded"))
+      throw std::runtime_error("Messages were charged to the context call budget");
     Messages recovered;
     runner.submit("recovered", "workflow", graph("recovered"), "{}",
                   recovered.handler());
@@ -133,7 +135,20 @@ int main(int argc, char **argv) {
         if (last)
           throw std::runtime_error("Node claimed public terminal authority");
       }
-    if (!seen || observerCalls != 4)
+    // Many messages and one over the payload cap use the message budget only.
+    Messages many;
+    spoofRunner.submit("many", "workflow", graph("many", 20000), "{}",
+                       many.handler());
+    many.wait();
+    if (!many.completed("many"))
+      throw std::runtime_error("20000 messages failed the node");
+    Messages large;
+    spoofRunner.submit("large", "workflow", graph("large", 1, false, 2 << 20),
+                       "{}", large.handler());
+    large.wait();
+    if (!large.completed("large"))
+      throw std::runtime_error("A 2 MiB message failed the node");
+    if (!seen || observerCalls != 5)
       throw std::runtime_error("Observer or spoof fixture not exercised");
     gr::HostOptions codeOptions;
     codeOptions.context.userId = "public-code-owner";

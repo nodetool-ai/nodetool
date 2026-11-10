@@ -52,7 +52,8 @@ class QuickJsEngine final : public Engine {
 public:
   QuickJsEngine() {
     rt_ = JS_NewRuntime();
-    JS_SetMaxStackSize(rt_, 8 * 1024 * 1024);
+    JS_SetMaxStackSize(rt_, kJsStackBytes);
+    JS_SetMemoryLimit(rt_, kJsHeapBytes);
     ctx_ = JS_NewContext(rt_);
     JS_SetContextOpaque(ctx_, this);
     // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
@@ -110,6 +111,7 @@ public:
     releaseContextResources();
     for (auto buffer : externalBufferRoots_) JS_FreeValue(ctx_, buffer);
     externalBufferRoots_.clear();
+    JS_FreeValue(ctx_, lastException_);
     JS_FreeContext(ctx_);
     JS_FreeRuntime(rt_);
   }
@@ -135,8 +137,24 @@ public:
       JS_FreeValue(ctx_, m);
     }
     if (message.empty()) message = cString(exc);
-    JS_FreeValue(ctx_, exc);
-    throw JsError(message);
+    // The engine keeps the latest surfaced exception, so a host function can
+    // rethrow it as is (trampoline).
+    JS_FreeValue(ctx_, lastException_);
+    lastException_ = exc;
+    throw JsError(message, ++lastExceptionId_);
+  }
+
+  // Throws an Error with the whole message and an optional name.
+  JSValue throwHostError(std::string_view message, const std::string& name) {
+    JSValue error = JS_NewError(ctx_);
+    if (JS_IsException(error)) return error;
+    JS_DefinePropertyValueStr(ctx_, error, "message", JS_NewStringLen(ctx_, message.data(), message.size()),
+                              JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    if (!name.empty()) {
+      JS_DefinePropertyValueStr(ctx_, error, "name", JS_NewStringLen(ctx_, name.data(), name.size()),
+                                JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    }
+    return JS_Throw(ctx_, error);
   }
 
   JSValue check(JSValue v) {
@@ -174,7 +192,7 @@ public:
                                JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY));
     size_t size = 0;
     // native-rules #6: raw QuickJS buffer freed by hand with js_free
-    uint8_t* buf = JS_WriteObject(ctx_, &size, fn, JS_WRITE_OBJ_BYTECODE);
+    uint8_t* buf = JS_WriteObject(ctx_, &size, fn, JS_WRITE_OBJ_BYTECODE | JS_WRITE_OBJ_STRIP_SOURCE);
     JS_FreeValue(ctx_, fn);
     if (!buf) throwPending();
     std::vector<uint8_t> out(buf, buf + size);
@@ -199,7 +217,7 @@ public:
                               JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY));
     size_t size = 0;
     // native-rules #6: raw QuickJS buffer freed by hand with js_free
-    uint8_t* buf = JS_WriteObject(ctx_, &size, m, JS_WRITE_OBJ_BYTECODE);
+    uint8_t* buf = JS_WriteObject(ctx_, &size, m, JS_WRITE_OBJ_BYTECODE | JS_WRITE_OBJ_STRIP_SOURCE);
     JS_FreeValue(ctx_, m);
     if (!buf) throwPending();
     std::vector<uint8_t> out(buf, buf + size);
@@ -207,7 +225,7 @@ public:
     return out;
   }
 
-  Value evaluateBytecode(const std::vector<uint8_t>& bytecode) override {
+  Value evaluateBytecode(std::span<const uint8_t> bytecode) override {
     own();
     // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
     JSValue fn = check(JS_ReadObject(ctx_, bytecode.data(), bytecode.size(),
@@ -260,9 +278,14 @@ public:
     try {
       Value result = box->fn(*engine, args);
       return result.empty() ? JS_UNDEFINED : JS_DupValue(ctx, raw(result));
+    } catch (const JsError& e) {
+      if (e.exceptionId() != 0 && e.exceptionId() == engine->lastExceptionId_) {
+        return JS_Throw(ctx, JS_DupValue(ctx, engine->lastException_));
+      }
+      return engine->throwHostError(e.what(), e.name());
     } catch (const std::exception& e) {
       // JS_ThrowInternalError is not catchable from script in QuickJS-ng.
-      return JS_ThrowPlainError(ctx, "%s", e.what());
+      return engine->throwHostError(e.what(), {});
     }
   }
 
@@ -457,6 +480,16 @@ public:
     return ran;
   }
 
+  void collectGarbage() override {
+    own();
+    JS_RunGC(rt_);
+  }
+
+  void setMemoryLimit(size_t bytes) override {
+    own();
+    JS_SetMemoryLimit(rt_, bytes);
+  }
+
   void setInterruptHandler(std::function<bool()> handler) override {
     own();
     interrupt_ = std::move(handler);
@@ -485,6 +518,9 @@ private:
   std::function<bool()> interrupt_;
   // native-rules #6: raw JSRuntime freed by hand in the destructor, no custom deleter
   JSRuntime* rt_ = nullptr;
+  // The latest exception throwPending() surfaced, owned here.
+  JSValue lastException_ = JS_UNDEFINED;
+  uint64_t lastExceptionId_ = 0;
   // native-rules #6: raw JSContext freed by hand in the destructor, no custom deleter
   JSContext* ctx_ = nullptr;
   JSClassID boxClass_ = 0;

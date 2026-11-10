@@ -77,6 +77,19 @@ void installContext(js::Engine& e, const js::Value& object, const ContextOptions
   e.set(object, "aborted", e.function("aborted", 0, [grants](js::Engine& en, const std::vector<js::Value>&) {
     return en.boolean(grants->cancelled && grants->cancelled());
   }));
+  // Posted messages bypass ContextCallRules: no call count and no payload
+  // limit, only cancellation and their own byte cap. The text is passed on
+  // unparsed to the "message" operation.
+  e.set(object, "postMessage", e.function("postMessage", 1, [grants](js::Engine& en, const std::vector<js::Value>& args) {
+    if (args.size() != 1) throw std::invalid_argument("Context postMessage requires a JSON text");
+    const auto found = grants->operations.find("message");
+    if (found == grants->operations.end()) throw std::runtime_error("ProcessingContext service 'message' is not granted");
+    if (grants->cancelled && grants->cancelled()) throw std::runtime_error("Run cancelled");
+    const auto text = en.toString(args[0]);
+    if (text.size() > grants->maxMessageBytes) throw std::runtime_error("Context message size limit exceeded");
+    found->second(text);
+    return en.string("null");
+  }));
   // Both transports check, in this order: the grant, cancellation, the call
   // count, payload conversion and the request size. Each transport refuses
   // the other map's names.

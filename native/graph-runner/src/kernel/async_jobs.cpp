@@ -55,6 +55,18 @@ private:
 
 }  // namespace
 
+// Garbage can hold adopted buffers whose charges fill the JavaScript ledger.
+// Before a refusal, collect once and try again.
+template <typename Charge>
+ExternalCharge chargeWithCollection(js::Engine& engine, Charge&& charge) {
+  try {
+    return charge();
+  } catch (const nodetool::jobs::AdmissionError&) {
+    engine.collectGarbage();
+    return charge();
+  }
+}
+
 nodetool::jobs::RunnerAccount& ResultConversion::runner() const {
   if (!runner_) throw std::logic_error("no runner account takes converted bytes");
   return *runner_;
@@ -63,8 +75,9 @@ nodetool::jobs::RunnerAccount& ResultConversion::runner() const {
 js::Value ResultConversion::adoptBytes(std::vector<uint8_t> bytes) {
   if (bytes.size() < kAdoptMinimum) return copyBytes(bytes.data(), bytes.size());
   // The charge moves before the native one is released, in one transaction.
-  ExternalCharge charge =
-      reservation_ ? reservation_.transferToJavaScript(bytes.size()) : runner().reserveJavaScript(bytes.size());
+  ExternalCharge charge = chargeWithCollection(engine_, [&] {
+    return reservation_ ? reservation_.transferToJavaScript(bytes.size()) : runner().reserveJavaScript(bytes.size());
+  });
   return engine_.adoptBytes(std::make_unique<ChargedBytes>(std::move(bytes), std::move(charge)));
 }
 
@@ -75,7 +88,7 @@ js::Value ResultConversion::copyBytes(const uint8_t* data, size_t size) {
 
 void ResultConversion::chargeCopy(uint64_t bytes) {
   if (bytes == 0) return;
-  copies_.push_back(runner().reserveJavaScript(bytes));
+  copies_.push_back(chargeWithCollection(engine_, [&] { return runner().reserveJavaScript(bytes); }));
 }
 
 void SettlerRegistry::add(uint64_t id, js::PromiseCapability capability, ResultConverter convert, bool cancellable) {

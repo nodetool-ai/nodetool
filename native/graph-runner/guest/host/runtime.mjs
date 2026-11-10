@@ -86,3 +86,11 @@ export async function withTimelineRenderSlot(render, signal) {
   signal?.throwIfAborted();
   return await render();
 }
+
+// As rasterizeSvgInput in @nodetool-ai/runtime: raster bytes pass through.
+// SVG needs sharp, which the native runner does not have.
+export async function rasterizeSvgInput(bytes) {
+  const { isSvgBytes: isSvg, sniffImageMime: sniff } = await import("guest-real:@nodetool-ai/runtime/providers/image-mime.js");
+  if (sniff(bytes) !== null || !isSvg(bytes)) return bytes;
+  throw new Error("SVG rasterization is unavailable in the native runner: it needs sharp. Export the SVG as PNG first.");
+}

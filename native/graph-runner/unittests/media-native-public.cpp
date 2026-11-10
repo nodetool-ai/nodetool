@@ -88,7 +88,7 @@ void verify(const Json &result, bool rendered = true) {
   check(result.at("probe").at("video").at("width") == 8, "Width mismatch");
   if (rendered) {
     check(result.at("metadata").at("render_mode") == "composited",
-          "Not actual compositor output");
+          "Not actual compositor output: " + result.at("metadata").dump());
   }
   std::ifstream file(result.at("path").get<std::string>(), std::ios::binary);
   char magic[8]{};

@@ -138,7 +138,7 @@ try {
     singleProbe.video.width !== 8 ||
     singleProbe.video.height !== 8
   )
-    throw new Error("Single-frame duration or dimensions mismatch");
+    throw new Error(`Single-frame duration or dimensions mismatch: ${JSON.stringify(singleProbe)}`);
   globalThis.__timelineChecks += 1;
   globalThis.__timelineResult = JSON.stringify({
     encodedBytes: bytes.length,

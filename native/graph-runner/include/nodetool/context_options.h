@@ -135,5 +135,8 @@ struct ContextOptions {
   std::string ocrDataDirectory;
   size_t maxPayloadBytes = 1024 * 1024;
   size_t maxCalls = 10000;
+  // Largest single message text for the "message" operation. Messages do not
+  // count toward maxCalls or maxPayloadBytes.
+  size_t maxMessageBytes = 64 * 1024 * 1024;
 };
 }

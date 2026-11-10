@@ -8,9 +8,12 @@
 #include <fontconfig/fontconfig.h>
 #include <pango/pangocairo.h>
 #include <pango/pangofc-fontmap.h>
+#include <unistd.h>
 #if defined(__linux__)
 #include <sys/mman.h>
-#include <unistd.h>
+#else
+#include <cstdlib>
+#include <filesystem>
 #endif
 #include <algorithm>
 #include <cmath>
@@ -33,12 +36,16 @@ int dimension(double n) {
 }
 struct Fonts {
   // native-rules #6: raw Pango, fontconfig and fd handles freed by hand in the destructor
-  PangoFontMap* map = pango_cairo_font_map_new();
+  // The fontconfig map on every platform. The default map on macOS is
+  // CoreText, which cannot take a private FcConfig.
+  PangoFontMap* map = pango_cairo_font_map_new_for_font_type(CAIRO_FONT_TYPE_FT);
   FcConfig* config = FcConfigCreate();
   std::vector<int> descriptors;
+  // Without memfd, each font is a private temporary file, removed here.
+  std::vector<std::string> paths;
   size_t byteCount = 0;
   Fonts() {
-    if (!map || !config) {
+    if (!map || !PANGO_IS_FC_FONT_MAP(map) || !config) {
       if (map) {
         g_object_unref(map);
       }
@@ -52,11 +59,13 @@ struct Fonts {
   ~Fonts() {
     g_object_unref(map);
     FcConfigDestroy(config);
-#if defined(__linux__)
     for (int fd : descriptors) {
       close(fd);
     }
-#endif
+    for (const auto& path : paths) {
+      std::error_code ignored;
+      std::filesystem::remove(path, ignored);
+    }
   }
 };
 struct Surface {
@@ -334,11 +343,17 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
 #if defined(__linux__)
           int fd = memfd_create("graph-runner-font", MFD_CLOEXEC);
           if (fd < 0) throw std::runtime_error("canvas: cannot allocate font storage");
+          std::string path = "/proc/self/fd/" + std::to_string(fd);
+#else
+          std::string path = (std::filesystem::temp_directory_path() / "graph-runner-font-XXXXXX").string();
+          int fd = mkstemp(path.data());
+          if (fd < 0) throw std::runtime_error("canvas: cannot allocate font storage");
+          fonts->paths.push_back(path);
+#endif
           if (write(fd, bytes.data(), bytes.size()) != static_cast<ssize_t>(bytes.size())) {
             close(fd);
             throw std::runtime_error("canvas: cannot write font storage");
           }
-          std::string path = "/proc/self/fd/" + std::to_string(fd);
           if (!FcConfigAppFontAddFile(fonts->config,
                                       reinterpret_cast<const FcChar8*>(path.c_str()))) {
             close(fd);
@@ -348,10 +363,6 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
           fonts->byteCount += bytes.size();
           pango_fc_font_map_config_changed(PANGO_FC_FONT_MAP(fonts->map));
           return e.boolean(true);
-#else
-    throw std::runtime_error("canvas: memory font registration is unavailable on this platform");
-    return e.boolean(false);
-#endif
         }));
   e.set(
       object, "create",

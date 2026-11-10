@@ -19,7 +19,7 @@
 import { build } from "esbuild";
 import { providerCapabilitiesPlugin } from "./provider-capabilities-plugin.mjs";
 import { textEncodingBanner } from "./text-encoding-banner.mjs";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hostModulesPlugin } from "./host-modules.mjs";
@@ -59,6 +59,10 @@ const options = {
   banner: { js: textEncodingBanner },
   write: false,
   metafile: true,
+  // Smaller source to parse and keep. Names stay: node code and stack traces read them.
+  minifySyntax: true,
+  minifyWhitespace: true,
+  legalComments: "none",
   plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), hostModulesPlugin(), contractPlugin({ profile: "core" })],
   logLevel: "warning",
 };
@@ -69,13 +73,35 @@ if (profile === "core") {
 } else {
   const { parityPlugins } = await import("./parity/profile.mjs");
   const { baseNodeModules } = await import("../parity/modules.mjs");
-  const modules = moduleList ? moduleList.split(",").filter(Boolean) : baseNodeModules();
+  let modules = moduleList ? moduleList.split(",").filter(Boolean) : baseNodeModules();
   const admit = profile === "default" ? (await import("./local-nodes.mjs")).localAdmission() : null;
+  if (admit && !moduleList) {
+    // The default profile runs only the admitted types, so a module that
+    // defines none of them stays out of the bundle. The inventory maps each
+    // type to its module. An admitted type it lacks fails the build, because
+    // dropping its module would drop the node.
+    const inventory = JSON.parse(readFileSync(join(here, "..", "parity", "inventory.json"), "utf8"));
+    const moduleOf = new Map(inventory.map((entry) => [entry.type, entry.module]));
+    const needed = new Set(admit.modules);
+    for (const type of admit.types) {
+      const module = moduleOf.get(type);
+      if (!module) throw new Error(`admitted node type ${type} is not in parity/inventory.json`);
+      needed.add(module);
+    }
+    modules = modules.filter((spec) => needed.has(spec));
+    for (const spec of needed) {
+      if (!modules.includes(spec)) throw new Error(`admitted module ${spec} is not a base node module`);
+    }
+  }
   result = await build({ ...options, logLevel: "silent", plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), ...await parityPlugins({ modules, admit })] });
 }
 // The drift check, the node requirements manifest and the write
 // (module-contract-build.mjs). Only a build of every node module can tell
-// that a table entry is no longer imported.
-const finished = await finishBundle(result, outfile, { complete: profile !== "core" && !moduleList });
+// that a table entry is no longer imported. The default profile bundles
+// only the modules of admitted types, so it leaves that check to the parity
+// profile.
+const finished = await finishBundle(result, outfile, { complete: profile === "parity" && !moduleList });
+// The esbuild metafile, for the size accounting of the bundle.
+if (result.metafile) writeFileSync(`${outfile}.meta.json`, JSON.stringify(result.metafile));
 console.log(outfile);
 console.error(`node requirements: ${finished.manifest} (${finished.types} of ${finished.classes} node types)`);

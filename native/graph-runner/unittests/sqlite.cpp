@@ -197,6 +197,16 @@ void errorsSurfaceAsJavaScriptErrors() {
     expect(thrown(() => S.exec(db, "INSERT INTO nope VALUES (1)")).startsWith("SQLITE_ERROR: no such table"), "exec error");
     // The connection still works after errors.
     expect(S.run(ins.id, ["c", 3], "sd", false).changes === 1, "usable after errors");
+    const sel = S.prepare(db, "SELECT 1", false);
+    for (const bad of [NaN, Infinity, -Infinity, 2 ** 31, -(2 ** 31) - 1, 1.5]) {
+      expect(thrown(() => S.close(bad)).startsWith("RangeError: "), "close id " + bad);
+      expect(thrown(() => S.exec(bad, "SELECT 1")).startsWith("RangeError: "), "exec db id " + bad);
+      expect(thrown(() => S.prepare(bad, "SELECT 1", false)).startsWith("RangeError: "), "prepare db id " + bad);
+      expect(thrown(() => S.run(bad, [], "", false)).startsWith("RangeError: "), "run statement id " + bad);
+      expect(thrown(() => S.query(bad, [], "", false, 0)).startsWith("RangeError: "), "query statement id " + bad);
+      expect(thrown(() => S.query(sel.id, [], "", false, bad)).startsWith("RangeError: "), "query limit " + bad);
+      expect(thrown(() => S.open(":memory:", false, false, bad)).startsWith("RangeError: "), "open timeout " + bad);
+    }
   )JS")));
 }
 

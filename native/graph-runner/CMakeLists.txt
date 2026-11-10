@@ -331,6 +331,9 @@ if(PROJECT_IS_TOP_LEVEL)
     VERBATIM)
   add_executable(gr_context_tests unittests/context.cpp)
   target_link_libraries(gr_context_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
+  # The installed tesseract's language data, wherever its prefix is.
+  set(GR_TEST_TESSDATA "${GR_TESSERACT_PREFIX}/share/tessdata" CACHE PATH "Tesseract data the context tests grant")
+  target_compile_definitions(gr_context_tests PRIVATE GR_TEST_TESSDATA="${GR_TEST_TESSDATA}")
   add_dependencies(gr_context_tests gr_context_test_bundle)
   add_test(NAME gr_context_tests COMMAND gr_context_tests "${GR_CONTEXT_TEST}")
   # A parity bundle of the image module: the default bundle does not admit
@@ -469,8 +472,12 @@ if(PROJECT_IS_TOP_LEVEL)
   # lavapipe when it is installed, so they need no hardware GPU.
   set(NODETOOL_GPU_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/build/gpu-catalog.json"
       CACHE FILEPATH "Shader catalog the gpu tests load")
+  add_custom_target(gr_gpu_catalog ALL
+    COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/guest/host/gpu-catalog.mjs" "${NODETOOL_GPU_CATALOG}"
+    VERBATIM)
   add_executable(gr_gpu_tests unittests/gpu.cpp)
   target_link_libraries(gr_gpu_tests PRIVATE nodetool_graph_runner gr_kernel gr_js nlohmann_json::nlohmann_json)
+  add_dependencies(gr_gpu_tests gr_gpu_catalog)
   if(GR_ESBUILD)
     set(GR_RENDER_TEST "${CMAKE_CURRENT_BINARY_DIR}/render-test.js")
     add_custom_target(gr_render_test_bundle ALL

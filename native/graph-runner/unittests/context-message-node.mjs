@@ -11,6 +11,7 @@ export class ContextMessageNode extends BaseNode {
     this.count = properties.count ?? 1;
     this.spoof = properties.spoof ?? false;
     this.environment = properties.environment ?? false;
+    this.padding = properties.padding ?? 0;
   }
   async process(context) {
     if (this.environment) {
@@ -30,7 +31,7 @@ export class ContextMessageNode extends BaseNode {
         type: "node_log",
         node_id: this.__node_id,
         job_id: context.jobId,
-        content: this.label,
+        content: this.padding ? this.label + "x".repeat(this.padding) : this.label,
         index
       });
     if (this.spoof)

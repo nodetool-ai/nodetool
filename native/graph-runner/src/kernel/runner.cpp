@@ -716,14 +716,15 @@ void Runner::collectOutputs(const Node& node, const ActorResult& result) {
   }
 }
 
-// _outputCollectionKey: the node's name, else an Output node's `name`
-// property, else its id.
+// _outputCollectionKey: an Output node's `name` property, else the node's
+// name, else its id. The property wins: a saved workflow carries the type
+// title ("Output") as the node name.
 std::string Runner::outputCollectionKey(const Node& node) const {
-  if (node.name && !trim(*node.name).empty()) return *node.name;
   if (startsWith(node.type, "nodetool.output.")) {
     std::string name = propertyName(node);
     if (!name.empty()) return name;
   }
+  if (node.name && !trim(*node.name).empty()) return *node.name;
   return node.id;
 }
 
