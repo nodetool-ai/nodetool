@@ -68,6 +68,9 @@ Basic.ComboBox {
     }
     onValueChanged: synchronize()
     onOptionsChanged: synchronize()
+    // ComboBox resets currentIndex when the model changes, after onOptionsChanged runs.
+    onModelChanged: synchronize()
+    onCountChanged: synchronize()
     onReadOnlyChanged: if (readOnly) { popup.close(); synchronize() }
     Component.onCompleted: synchronize()
     onActivated: index => commitIndex(index)
