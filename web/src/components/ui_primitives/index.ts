@@ -466,6 +466,7 @@ export { ContextMenu } from "./ContextMenu";
 export type { ContextMenuProps } from "./ContextMenu";
 
 export { TextInput } from "./TextInput";
+export { TemplateTextArea } from "./TemplateTextArea";
 export type { TextInputProps } from "./TextInput";
 export { TextArea } from "./TextArea";
 export type { TextAreaProps } from "./TextArea";

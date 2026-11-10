@@ -1,4 +1,5 @@
 #include "app/CliModes.h"
+#include "server/BundledServer.h"
 #include "server/TimelineList/TimelineListController.h"
 #include <QCommandLineParser>
 #include <QEventLoop>
@@ -7,8 +8,16 @@
 #include <QQuickView>
 #include <QTimer>
 
+#include <cstdio>
+
 namespace {
 nt::app::StartupResult showTimelines(QCoreApplication&, QCommandLineParser&) {
+    QString serverError;
+    if (const QUrl bundled = nt::server::startBundledServer(&serverError); !bundled.isEmpty()) {
+        qputenv("NODETOOL_SERVER_URL", bundled.toString().toUtf8());
+    } else if (!serverError.isEmpty()) {
+        std::fprintf(stderr, "error: %s\n", qPrintable(serverError));
+    }
     nt::server::TimelineListController controller;
     QQuickView view;
     view.setTitle(QStringLiteral("Timelines"));

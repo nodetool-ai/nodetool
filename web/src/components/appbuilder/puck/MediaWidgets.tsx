@@ -186,6 +186,7 @@ const GalleryTile: React.FC<GalleryTileProps> = React.memo(
     const image = (
       <ResponsiveImage
         locator={src}
+        preferThumbnail
         alt=""
         fit="cover"
         borderRadius={BORDER_RADIUS.sm}

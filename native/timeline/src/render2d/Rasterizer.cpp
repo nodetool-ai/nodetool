@@ -29,6 +29,9 @@
 #include <utility>
 #include <vector>
 
+// Qt's DPI for a QFont with no paint device: 72 on macOS, 96 on Linux and Windows.
+Q_GUI_EXPORT int qt_defaultDpiY();
+
 namespace nt::render2d {
 QString resolveFontDirectory(const QString& applicationDir) {
     const QStringList candidates{
@@ -77,7 +80,9 @@ QFont fontFor(const scene::TextStyle& style, double spacing = 0) {
     }
     QFont font;
     font.setFamilies({family, QStringLiteral("Inter")});
-    font.setPointSizeF(std::max(1.0, style.fontSizePx) * 72 / 96);
+    // Shaping and line metrics read the font's pixel size, which Qt derives
+    // from the point size at its default DPI. FreeType draws at fontSizePx.
+    font.setPointSizeF(std::max(1.0, style.fontSizePx) * 72 / qt_defaultDpiY());
     const bool interStatic = family.compare("Inter", Qt::CaseInsensitive) == 0 && style.fontStyle != "italic" &&
                              style.fontStyle != "oblique";
     // Skia selects Inter's static ExtraBold for 700..900 and SemiBold for

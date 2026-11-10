@@ -49,7 +49,7 @@ struct MediaReport {
     std::string mediaPath;
     bool ok = false;
     std::string reason;    // rejection or open/decode error, empty when ok
-    std::string decoder;   // "videotoolbox" or "software"
+    std::string decoder;   // "videotoolbox", "software" or "image"
     std::string fallback;  // why VideoToolbox is not used (--decode auto)
 };
 
@@ -84,6 +84,9 @@ private:
         std::unique_ptr<FfmpegSource> decoder;
         std::string mediaPath;
         std::unique_ptr<LayerSource> placeholder;
+        // An image clip rejected only for its alpha channel draws from this.
+        std::unique_ptr<LayerSource> still;
+        bool image = false;
         std::string label;
         QSize nominal;
     };

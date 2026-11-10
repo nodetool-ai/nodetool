@@ -107,7 +107,9 @@ async function openComposerChip(
     which === "permission"
       ? ".permission-selector-trigger"
       : ".media-chip-main .media-control-chip";
-  const index = which === "mode" ? 1 : which === "model" ? 2 : 0;
+  // Chips after the add button: the chat page shows the model chip, the
+  // editor's chat panel shows the mode chip.
+  const index = which === "permission" ? 0 : 1;
   const chip = page.locator(selector).nth(index);
   await chip.waitFor({ state: "visible", timeout: 15000 });
   await chip.click();
@@ -611,15 +613,13 @@ async function waitForScreenshotReady(
     case "collections-explorer.png": {
       await ensureNoVisibleProgress(page);
       if (screenshotName === "models-list.png") {
-        // The manager opens on its Installed tab, which lists the local
-        // models the server knows of (the whisper.cpp files, none downloaded
-        // yet). Assert on a listed model instead of accepting a blank shell.
+        // Assert on a non-empty list instead of accepting a blank shell.
         await page
-          .getByText("ggml-small.bin", { exact: true })
+          .getByText(/^[1-9]\d* models$/)
           .first()
           .waitFor({ state: "visible", timeout: 15_000 });
         await expect(
-          page.getByText("Model categories", { exact: false }).first()
+          page.getByText("Categories", { exact: false }).first()
         ).toBeVisible();
       } else {
         // screenshot-docs-seed.ts seeds three collections. Waiting on one
@@ -724,14 +724,14 @@ if (process.env.JEST_WORKER_ID) {
     // the welcome surface and the checklist render regardless of what the
     // legacy `onboarding` key says.
 
-    // The first-run welcome is the editor home ("What do you want to make?")
+    // The first-run welcome is the editor home ("What would you like to create?")
     // with the getting-started checklist above the prompt.
     test("Onboarding – welcome flow", async ({ page }) => {
       test.skip(shouldSkip("onboarding-welcome.png"), "Already captured");
       await seedFirstRunOnboarding(page);
       await gotoPage(page, "/dashboard");
       await page
-        .getByText("What do you want to make?")
+        .getByText("What would you like to create?")
         .first()
         .waitFor({ state: "visible", timeout: 15000 });
       await page
@@ -778,7 +778,7 @@ if (process.env.JEST_WORKER_ID) {
       const empty = page.locator(".workspace-empty").first();
       await empty.waitFor({ state: "visible", timeout: 15000 });
       await empty
-        .getByText("What do you want to make?")
+        .getByText("What would you like to create?")
         .first()
         .waitFor({ state: "visible", timeout: 10000 });
       await ensureNoVisibleProgress(page);
@@ -860,7 +860,7 @@ if (process.env.JEST_WORKER_ID) {
       // The picker's "Select Language Model" title is for assistive tech
       // only; its search field is the visible landmark.
       await page
-        .getByPlaceholder("Search language models...")
+        .getByPlaceholder(/Search language models/)
         .first()
         .waitFor({ state: "visible", timeout: 8000 });
       await ensureNoVisibleProgress(page);
@@ -868,12 +868,15 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "chat-model-selector.png");
     });
 
-    // The composer mode menu — chat, image, video, and speech generation all
-    // run from the same box.
+    // The composer mode menu. The chat page always sends a chat turn, so the
+    // menu is captured from the workflow editor's chat panel.
     test("Chat – composer modes", async ({ page }) => {
       test.skip(shouldSkip("chat-composer-modes.png"), "Already captured");
-      await gotoPage(page, "/chat/thread-story");
-      await waitForScreenshotReady(page, "global-chat-interface.png");
+      await gotoPage(page, "/editor/wf-story-generator");
+      await page
+        .locator(".react-flow__node")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 });
       await openComposerChip(page, "mode");
       await page.getByRole("menu", { name: /generation mode/i }).first().waitFor({ state: "visible", timeout: 8000 });
       await saveScreenshot(page, "chat-composer-modes.png");
@@ -1008,6 +1011,9 @@ if (process.env.JEST_WORKER_ID) {
     test("Models", async ({ page }) => {
       test.skip(shouldSkip("models-list.png"), "Already captured");
       await gotoPage(page, "/models");
+      // An empty local install opens on Get started, and Installed is empty
+      // without downloads. Recommended shows the list with its categories.
+      await page.getByRole("button", { name: "Recommended", exact: true }).first().click();
       await waitForScreenshotReady(page, "models-list.png");
       await saveScreenshot(page, "models-list.png");
     });
@@ -1016,8 +1022,11 @@ if (process.env.JEST_WORKER_ID) {
     test("Package manager", async ({ page }) => {
       test.skip(shouldSkip("packages-manager.png"), "Already captured");
       await gotoPage(page, "/packages");
+      // The page opens on Engines & tools, which the web UI can only
+      // describe. Built-in nodes shows the pack switches.
+      await page.getByText("Built-in nodes", { exact: true }).first().click();
       await page
-        .getByText("Included packs")
+        .getByText(/Base Nodes/)
         .first()
         .waitFor({ state: "visible", timeout: 15000 });
       await ensureNoVisibleProgress(page);
@@ -1300,6 +1309,18 @@ if (process.env.JEST_WORKER_ID) {
       await openEditorWithNodes(page, {
         right: { visible: true }
       });
+      // The Inspector follows the selection; without one the panel shows
+      // the workflow chat.
+      await page
+        .locator(".react-flow__node")
+        .filter({ hasText: "Agent" })
+        .first()
+        .click({ position: { x: 40, y: 12 } });
+      await page
+        .getByText("Params", { exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await waitForAnimation(page, 600);
       await saveScreenshot(page, "editor-right-panel.png");
     });
 
@@ -1319,7 +1340,7 @@ if (process.env.JEST_WORKER_ID) {
     }> = [
       { view: "logs", filename: "editor-bottom-panel-logs.png" },
       { view: "queue", filename: "editor-bottom-panel-queue.png" },
-      { view: "sandboxes", filename: "editor-bottom-panel-sandboxes.png" },
+      { view: "workers", filename: "editor-bottom-panel-sandboxes.png" },
       { view: "versions", filename: "editor-bottom-panel-versions.png" },
       { view: "trace", filename: "editor-bottom-panel-trace.png" }
     ];
@@ -1494,7 +1515,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.keyboard.press(" ");
       // The menu opens with its search field focused.
       await page
-        .getByRole("searchbox", { name: "Search for nodes..." })
+        .getByRole("searchbox", { name: "Search for nodes" })
         .first()
         .waitFor({ state: "visible", timeout: 5000 });
       await ensureNoVisibleProgress(page);
@@ -1689,7 +1710,7 @@ if (process.env.JEST_WORKER_ID) {
       await page.mouse.move(point.x, point.y);
       await page.keyboard.press(" ");
       const search = page
-        .getByRole("searchbox", { name: "Search for nodes..." })
+        .getByRole("searchbox", { name: "Search for nodes" })
         .first();
       await search.waitFor({ state: "visible", timeout: 5000 });
       await search.fill("string input");
@@ -1965,7 +1986,7 @@ if (process.env.JEST_WORKER_ID) {
       );
       await gotoPage(page, "/workspace");
       await page
-        .getByText("What do you want to make?")
+        .getByText("What would you like to create?")
         .first()
         .waitFor({ state: "visible", timeout: 20000 });
       // A project starts from a skill: a `/name` in the prompt lights that
@@ -1974,7 +1995,7 @@ if (process.env.JEST_WORKER_ID) {
       // projects whose kind equals the skill's name, and the two fixture
       // trailers are kind "trailer-template".
       await page
-        .getByPlaceholder(/30-second launch spot/)
+        .getByPlaceholder(/Describe what you want to create/)
         .fill(
           "/trailer-template A 60-second teaser for a desert convoy chase, rust and dust, no dialogue"
         );
@@ -2097,7 +2118,7 @@ if (process.env.JEST_WORKER_ID) {
       await captureTab(
         page,
         { type: "audio", ref: "audio-trailer-score", title: "trailer_score.mp3" },
-        "Save to audio"
+        "Drag to select, click to seek"
       );
       // The waveform is decoded after the toolbar mounts; the duration
       // readout switches from 0:00.000 once the file has been read.
@@ -2166,7 +2187,7 @@ if (process.env.JEST_WORKER_ID) {
       await captureTab(
         page,
         { type: "timeline", ref: "tl-motion-demo", title: "Motion demo" },
-        "Motion Title"
+        "Orbit"
       );
       // At 0:00 the title has not faded in yet.
       await page
@@ -2228,16 +2249,23 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "examples-page.png");
     });
 
-    test("Guided flow – new image", async ({ page }) => {
+    // Image, Video and Read aloud now open Create tabs, so the guided flow
+    // shown is Workflow, started from the + New menu.
+    test("Guided flow – new workflow", async ({ page }) => {
       test.skip(shouldSkip("guided-flow.png"), "Already captured");
       await captureTab(
         page,
         { type: "project-new", ref: "new", title: "New project" },
-        "What do you want to make?"
+        "What would you like to create?"
       );
-      await page.getByText("Image", { exact: true }).first().click();
+      await page.getByRole("button", { name: "Open or create a tab" }).first().click();
+      await page.getByRole("menuitem", { name: /^Workflow/ }).first().click();
+      await page
+        .getByText("What should this workflow do?")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 });
       const example = page.getByText(
-        "A ceramic pour-over coffee dripper on a sunlit kitchen counter"
+        "Turn each row of a product CSV into a studio photo"
       );
       await example.first().waitFor({ state: "visible", timeout: 15000 });
       await example.first().click();
@@ -2273,13 +2301,27 @@ if (process.env.JEST_WORKER_ID) {
           title: "Kindle",
           projectId: "proj-scrapheart"
         },
-        "Scene tree",
+        "Hierarchy",
         4000
       );
       // Select the player so the inspector shows a sprite, not the scene.
-      await page.getByPlaceholder("Search entities").first().fill("hero");
+      await page.getByPlaceholder("Search", { exact: true }).first().fill("hero");
       await page.getByText("hero", { exact: true }).first().click();
       await waitForAnimation(page, 1500);
+      // Headless Chromium has no GPU, so the play session reports that its
+      // GPU effects are off. A desktop with a GPU never shows this banner.
+      // Hide it rather than remove it: React still owns the node.
+      await page
+        .getByText("GPU effects unavailable; playing without them")
+        .first()
+        .evaluate((node) => {
+          const banner = node.closest<HTMLElement>(
+            '.MuiAlert-root, [role="alert"]'
+          );
+          if (banner) {
+            banner.style.display = "none";
+          }
+        });
       await saveScreenshot(page, "game-editor.png");
     });
 

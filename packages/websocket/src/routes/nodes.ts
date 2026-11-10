@@ -5,13 +5,12 @@ import {
   getUserId,
   handleNodeMetadata
 } from "../http-api.js";
-import { getSecret } from "@nodetool-ai/models";
 import {
-  comfyObjectInfoToMetadata,
-  comfyOutputNames,
-  comfyPromptToGraph,
-  type ComfyApiPrompt
-} from "@nodetool-ai/protocol";
+  handleComfyImportGraph,
+  handleComfyNodes,
+  handleComfyResolveWorkflow,
+  handleComfyServerStatus
+} from "../lib/comfy-api.js";
 import { importPack, MissingPackError } from "@nodetool-ai/node-catalog";
 type IntegrationModule = typeof import("@nodetool-ai/integration-nodes");
 import { ApiErrorCode, apiError } from "../error-codes.js";
@@ -85,121 +84,32 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
    * outputs, and exposable params the editor shows. Stateless, like the KIE
    * route above.
    */
-  app.post(
-    "/api/comfy/resolve-workflow",
-    {
-      schema: {
-        body: {
-          type: "object",
-          properties: {
-            workflow: {},
-            png_base64: { type: "string", minLength: 1 }
-          },
-          oneOf: [{ required: ["workflow"] }, { required: ["png_base64"] }]
-        }
-      }
-    },
-    async (req, reply) => {
-      const body = req.body as { workflow?: unknown; png_base64?: string };
-      try {
-        const { resolveComfyWorkflow } = await importPack<IntegrationModule>("integration");
-        reply.send(
-          resolveComfyWorkflow(
-            isString(body.png_base64)
-              ? { png_base64: body.png_base64 }
-              : { workflow: body.workflow }
-          )
-        );
-      } catch (error) {
-        if (error instanceof MissingPackError) {
-          reply.status(503).send({ ...error.details, ...apiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message) });
-          return;
-        }
-        reply
-          .status(400)
-          .send(
-            apiError(
-              ApiErrorCode.INVALID_INPUT,
-              error instanceof Error ? error.message : String(error)
-            )
-          );
-      }
-    }
-  );
-
-  /**
-   * Comfy workflows (`run_mode: "comfy"`): the selected server's node catalog as
-   * NodeTool node metadata, one `comfy.<ClassName>` type per ComfyUI class.
-   * Needs the caller's Comfy target settings, so unlike `/api/nodes/metadata` it is
-   * per user.
-   */
-  app.get("/api/comfy/nodes", async (req, reply) => {
-    await bridge(req, reply, async (request) => {
-      const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const { fetchComfyTargetCatalog, resolveComfyTarget } =
-        await importPack<IntegrationModule>("integration");
-      let target;
-      try {
-        target = await resolveComfyTarget((key) => getSecret(key, userId));
-      } catch (error) {
-        return Response.json(
-          apiError(
-            ApiErrorCode.INVALID_INPUT,
-            error instanceof Error ? error.message : String(error)
-          ),
-          { status: 400 }
-        );
-      }
-      try {
-        const info = await fetchComfyTargetCatalog(target, { signal: request.signal });
-        return Response.json(comfyObjectInfoToMetadata(info));
-      } catch (error) {
-        return Response.json(
-          apiError(
-            ApiErrorCode.SERVICE_UNAVAILABLE,
-            error instanceof Error ? error.message : String(error)
-          ),
-          { status: 502 }
-        );
-      }
-    });
+  app.post("/api/comfy/resolve-workflow", async (req, reply) => {
+    await bridge(req, reply, (request) => handleComfyResolveWorkflow(request));
   });
 
   /**
-   * Import a ComfyUI API-format workflow as a Comfy workflow graph of
-   * `comfy.*` nodes, laid out by dependency depth.
+   * Comfy workflows (`run_mode: "comfy"`): the selected server's node catalog as
+   * NodeTool node metadata. Per user, unlike `/api/nodes/metadata`.
    */
+  app.get("/api/comfy/nodes", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleComfyNodes(request, getUserId(request, apiOptions.userIdHeader ?? "x-user-id"))
+    );
+  });
+
+  /** The saved ComfyUI server's version, GPU and model files. */
+  app.get("/api/comfy/server-status", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      handleComfyServerStatus(request, getUserId(request, apiOptions.userIdHeader ?? "x-user-id"))
+    );
+  });
+
+  /** Import a ComfyUI API-format workflow as a Comfy workflow graph. */
   app.post("/api/comfy/import-graph", async (req, reply) => {
-    await bridge(req, reply, async (request) => {
-      const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
-      const body = (await request.json().catch(() => null)) as { workflow?: unknown } | null;
-      let workflow = body?.workflow;
-      if (isString(workflow)) {
-        try {
-          workflow = JSON.parse(workflow);
-        } catch {
-          workflow = null;
-        }
-      }
-      if (!isObjectLike(workflow) || Array.isArray(workflow)) {
-        return Response.json(
-          apiError(ApiErrorCode.INVALID_INPUT, "workflow must be a ComfyUI API-format object"),
-          { status: 400 }
-        );
-      }
-      const prompt = workflow as ComfyApiPrompt;
-      let outputNames: (cls: string) => string[] | undefined = () => undefined;
-      try {
-        const { fetchComfyTargetCatalog, resolveComfyTarget } =
-          await importPack<IntegrationModule>("integration");
-        const target = await resolveComfyTarget((key) => getSecret(key, userId));
-        const info = await fetchComfyTargetCatalog(target, { signal: request.signal });
-        outputNames = (cls) => (info[cls] ? comfyOutputNames(info[cls]) : undefined);
-      } catch {
-        // Without the catalog, edges fall back to `output_<index>` handles.
-      }
-      return Response.json(comfyPromptToGraph(prompt, outputNames));
-    });
+    await bridge(req, reply, (request) =>
+      handleComfyImportGraph(request, getUserId(request, apiOptions.userIdHeader ?? "x-user-id"))
+    );
   });
 };
 

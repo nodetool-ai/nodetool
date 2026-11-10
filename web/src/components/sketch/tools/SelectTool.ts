@@ -142,6 +142,10 @@ export class SelectTool implements ToolHandler {
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+    // A missed key event can leave the keyboard refs stale between gestures.
+    ctx.shiftHeldRef.current = event.nativeEvent.shiftKey;
+    ctx.altHeldRef.current = event.nativeEvent.altKey;
+
     const pt = event.point;
     const { selection } = ctx;
     const { doc } = ctx;

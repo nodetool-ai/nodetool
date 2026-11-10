@@ -3,6 +3,7 @@
 #include "preview/FfmpegSource.h"
 #include "preview/FrameCache.h"
 #include "preview/SceneEval.h"
+#include "preview/StillImageSource.h"
 #include "preview/SyntheticSource.h"
 
 #include <QColor>
@@ -113,6 +114,7 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             Entry e;
             e.label = clip.name;
             e.mediaPath = clip.mediaPath;
+            e.image = clip.mediaType == MediaType::Image;
             e.nominal = QSize(clip.width.value_or(timeline.width), clip.height.value_or(timeline.height));
             // Pre-roll: decode from where the clip will start showing.
             const double startSourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
@@ -151,6 +153,25 @@ void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::str
     if (!e.decoder) return;
     const auto facts = e.decoder->decoder().facts();
     if (!facts) return;  // still opening
+    const QString path = QString::fromStdString(mediaPath);
+    if (e.image && facts->opened && facts->error.empty() && facts->rejection == "alpha" &&
+        StillImageSource::canRead(path)) {
+        // The YUV path has no alpha plane. A still image needs no decoder:
+        // one RGBA texture keeps its transparency.
+        e.still = std::make_unique<StillImageSource>(path);
+        MediaReport r;
+        r.clipId = clipId;
+        r.mediaPath = mediaPath;
+        r.ok = true;
+        r.decoder = "image";
+        {
+            std::lock_guard lock(m_reportMutex);
+            m_report[clipId] = r;
+            ++m_reportVersion;
+        }
+        retire(e);
+        return;
+    }
     {
         // Facts are republished when a decoder falls back to software, so
         // the entry follows the newest.
@@ -188,6 +209,7 @@ std::optional<DecodeMode> SourcePool::modeFor(const std::string& mediaPath) cons
 LayerSource* SourcePool::sourceFor(const std::string& clipId) {
     auto it = m_entries.find(clipId);
     if (it == m_entries.end()) return nullptr;
+    if (it->second.still) return it->second.still.get();
     if (it->second.placeholder) return it->second.placeholder.get();
     return it->second.decoder.get();
 }

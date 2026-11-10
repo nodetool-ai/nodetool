@@ -9,7 +9,7 @@
  */
 
 import type { CapabilitySpec } from "./types.js";
-import type { JsonSchema } from "@nodetool-ai/runtime";
+import type { JsonSchema, ProviderCapability } from "@nodetool-ai/runtime";
 
 export const SUPPORTED_CAPABILITIES = [
   "text_to_image",
@@ -155,9 +155,66 @@ export const listProviderModelsSpec: CapabilitySpec = {
   category: "read"
 };
 
+/**
+ * The provider interface as tools: each provider capability an agent can call
+ * directly, mapped to the tool that performs it. `list_providers` reports this
+ * per provider, and the MCP mount offers every tool named here as a top-level
+ * tool, so a client sees the operations next to the providers that serve them.
+ */
+export const PROVIDER_CAPABILITY_TOOLS = {
+  generate_message: "generate_text",
+  text_to_image: "generate_image",
+  image_to_image: "edit_image",
+  segment_image: "segment_image",
+  text_to_video: "generate_video",
+  image_to_video: "animate_image",
+  reference_to_video: "generate_video_from_references",
+  text_to_speech: "generate_speech",
+  text_to_music: "generate_music",
+  automatic_speech_recognition: "transcribe_audio",
+  generate_embedding: "embed_text"
+} as const satisfies Partial<Record<ProviderCapability, string>>;
+
+/** The tool names in {@link PROVIDER_CAPABILITY_TOOLS}. */
+export const PROVIDER_TOOL_NAMES: ReadonlySet<string> = new Set(
+  Object.values(PROVIDER_CAPABILITY_TOOLS)
+);
+
+export const LIST_PROVIDERS_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    capability: {
+      type: "string" as const,
+      description:
+        "Only return providers that report this capability (e.g. text_to_image, text_to_speech, generate_embedding)."
+    }
+  },
+  required: []
+};
+
+export const listProvidersSpec: CapabilitySpec = {
+  name: "list_providers",
+  description:
+    "List the AI providers the user has configured and what each one can do. " +
+    "Each provider carries its `capabilities` (the provider interface " +
+    "operations it implements, such as text_to_image or text_to_speech), " +
+    "`tools` (capability → the tool that runs it, e.g. text_to_image → " +
+    "generate_image), whether it runs locally, and, when it cannot serve " +
+    "calls here, `unavailable_reason`. Call this first to learn what this " +
+    "install can generate; then list a provider's models with `list_models` " +
+    "or pick one with `find_model`.",
+  inputSchema: LIST_PROVIDERS_SCHEMA,
+  category: "read",
+  userMessage: (params) =>
+    params["capability"]
+      ? `Listing providers with ${String(params["capability"])}`
+      : "Listing configured providers"
+};
+
 /** Every spec this module declares, in declaration order. */
 export const modelsSpecs: readonly CapabilitySpec[] = [
   findModelSpec,
   listModelsSpec,
-  listProviderModelsSpec
+  listProviderModelsSpec,
+  listProvidersSpec
 ];

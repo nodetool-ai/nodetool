@@ -2,14 +2,25 @@
 layout: page
 title: "Presets"
 permalink: /presets
-description: "Named camera moves, looks and effects that compile to the wording each video model understands, stack up to three at a time, and eject to an editable workflow. Studios open them from the start page."
+description: "Presets are catalogue entries (camera moves, looks, effects) that compile to per-model prompt wording, stack up to three at a time, and eject to an editable workflow."
 ---
 
 **Navigation**: [Docs index](index.md) | [Storyboard Editor](storyboard-editor.md) | [Harnesses](harnesses.md#nodetool-presets) → **Presets**
 
-A preset is a named, reusable piece of direction for a generation: a camera move such as a dolly zoom, or an effect such as a glass shatter. You pick it by name. NodeTool turns it into the wording the chosen model responds to best, adds it to your prompt, and records which presets made the render.
+A preset is a named piece of direction, such as `camera.dolly-zoom`. `compilePresets` turns the ids into wording for the chosen model, appends it to your prompt, and records which presets made the render.
 
-Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the compiler is the `@nodetool-ai/presets` package, and every surface calls the same compiler: the shot editor, the chat composer, the Effects gallery, the Create view, agent tools and the CLI. The package README, [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md), documents the code API.
+```json
+{ "tool": "compile_presets",
+  "args": { "preset_ids": ["camera.dolly-zoom"], "model": "<model id>", "mode": "video",
+            "prompt": "A runner stops at a trail fork" } }
+```
+
+The result is `{ prompt, params, applied, warnings }`. Compiling is deterministic, makes no model call, and costs nothing. Generating with `preset_ids` on `generate_video`, `generate_image`, `edit_image`, or `animate_image` bills the chosen provider at its rates and needs that provider's key (see [Providers](providers.md)).
+
+> **Runs:** compile and eject run locally. **Needs:** no API key to list, compile, or eject. The generation that uses the compiled prompt needs the model's provider key or a local model.
+{: .callout-note}
+
+The catalogue is JSON in `packages/presets/catalog/` (`camera`, `look`, `effect`, `studio`), the compiler is `@nodetool-ai/presets`, and every surface calls it: the shot editor, chat composer, Effects gallery, Create view, agent tools, and CLI. The code API is in [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md).
 
 ---
 
@@ -56,48 +67,13 @@ The picker disables a card that would break a rule and names the preset blocking
 
 ### Family settings support
 
-The compiler conservatively drops `fps` and `negative_prompt` from shared and
-family-scoped params in every mode. No generation provider is called to discover
-support during compile.
-
-| Families | `fps` | `negative_prompt` |
-|---|---|---|
-| `kling`, `seedance`, `veo`, `wan` | Dropped | Dropped |
-| `sora`, `minimax`, `ltx`, `local-wan`, `default`, unknown | Dropped | Dropped |
-
-The generic video interfaces in
-[provider types](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/providers/types.ts) expose duration and
-frame count, but no requested fps. Negative prompts reach some endpoints through
-the FAL, KIE and Replicate adapters, but support varies within a family and by
-mode. The media preset boundary does not forward them. Family membership alone
-cannot establish endpoint support, so presets express these directions in prose
-until a narrower capability boundary exists. Ejected workflows use the same
-filtering.
-
-For supported settings, a preset can use
-`"family_params": { "seedance": { "duration_seconds": 5 } }`.
-Other families omit that setting with a warning unless shared `params` supplies
-it. An override within one preset is allowed. Different values across presets
-remain a conflict.
+The compiler drops `fps` and `negative_prompt` from shared and family-scoped params in every mode and every family, with a warning. Generic video generation has no fps input, and negative-prompt support varies by endpoint within a family, so presets express both in prose. Ejected workflows filter the same way. A preset can scope other settings, for example `"family_params": { "seedance": { "duration_seconds": 5 } }`. Other families omit that setting with a warning unless shared `params` supplies it. Two presets that set the same key to different values fail the compile.
 
 ### Looks
 
-Look presets describe camera-body rendering, film stock, color grade, lighting,
-an era's finish, or a speed ramp. They use slots `body`, `stock`, `grade`,
-`lighting`, `era` and `ramp`. Each has default, Kling, Seedance, Veo and Wan
-wording. These fragments are authored direction, not a claim of rendered
-validation on each provider.
+Look presets cover camera-body rendering, film stock, color grade, lighting, an era's finish, and speed ramps, in slots `body`, `stock`, `grade`, `lighting`, `era` and `ramp`. Each has default, Kling, Seedance, Veo and Wan wording. The fragments are authored direction, not a claim of rendered validation on each provider.
 
-Looks support video, image-to-video and reference-to-video. Still-compatible
-looks also support image generation. Speed ramps only support video modes and
-describe action timing without promising a numeric frame rate. Monochrome looks
-conflict with color-dependent treatments, and look ramps conflict with the
-camera speed-ramp preset. Looks have no previews until the preview-rendering
-ticket.
-
-Use looks through the CLI, agent preset tools or media requests with
-`preset_ids`. The existing composer picker continues to offer camera and effect
-presets. Dedicated storyboard and composer look controls follow in P15.
+Looks support video, image-to-video and reference-to-video. Still-compatible looks also support image generation. Speed ramps support video modes only and describe action timing without a numeric frame rate. Monochrome looks conflict with color-dependent treatments, and look ramps conflict with the camera speed-ramp preset. Use looks in the composer picker, the storyboard (see [Storyboard looks](#storyboard-looks)), the CLI, agent preset tools, or media requests with `preset_ids`.
 
 ### Local Wan2GP models
 
@@ -123,7 +99,7 @@ of WanGP v19.02 and the family each of its 173 video models compiles to.
 Every camera and effect preset has a `local-wan` fragment. Restyles describe
 the whole frame in the target medium. These fragments compile whatever
 `families` says, and `families` records only tested eligibility, which no
-preset has for `local-wan` yet (P24). No preset has an `ltx` or `minimax`
+preset has for `local-wan` yet. No preset has an `ltx` or `minimax`
 fragment, so those models compile with the `default` fragment and the
 fallback warning below.
 
@@ -155,9 +131,8 @@ The server compiles, not the client:
 | Surface | How |
 |---|---|
 | Shot editor | The **Movement** field takes free text or opens the camera preset picker. See [Edit a shot](storyboard-editor.md#edit-a-shot) |
-| Chat composer | In the image and video media modes, the preset chip opens the picker for the current mode. It turns to a warning when the chosen model falls back to `default` |
 | Effects gallery | Drop one picture, pick an effect and run it. Open it from **+ New**, or from an effects studio on the start page, which shows only that studio's effects until you choose **Show all effects** |
-| Create view | A workspace tab with a prompt bar built from the composer chips and a grid of generations. Open it from **+ New**, or from a Create studio on the start page with its presets on the preset chip |
+| Create tab | A workspace tab with a prompt bar and a grid of takes. In image and video modes, the preset chip opens the picker for the current mode, and turns to a warning when the chosen model falls back to `default`. Open one from **Image**, **Video** or **Read aloud** in **+ New**, or from a Create studio on the start page with its presets on the preset chip |
 | Agent | The `list_presets`, `get_preset` and `compile_presets` capabilities, and `preset_ids` on the media tools |
 | CLI | `nodetool presets` |
 
@@ -301,7 +276,7 @@ nodetool presets eject <id> --model <model id> --provider <provider> [--mode vid
 
 A preset card shows a short muted loop when the preset has a `preview`. The loops are not in git. They are rendered by NodeTool, uploaded to a public Supabase Storage bucket through the storage adapter, and each preset file stores the `url`, the `poster` and a `run` pointer to its run record.
 
-Previews render on Dreamina through the signed-in Chrome tab, so they are tuned on the `seedance` family. The other families compile from their own fragments but have no preview of their own. An `image_edit` preset renders the edited still on the image model that made the source still, and its preview is a three-second crossfade from the source to the edit. A `video_edit` restyle renders through Seedance reference-to-video with the published dolly-in preview as its reference video, because Dreamina has no video-to-video mode.
+Previews render on Dreamina through the signed-in Chrome tab, so they are tuned on the `seedance` family. Other families have no preview of their own. An `image_edit` preset renders the edited still on the image model that made the source still, and its preview is a three-second crossfade from the source to the edit. A `video_edit` restyle renders through Seedance reference-to-video with the published dolly-in preview as its reference video, because Dreamina has no video-to-video mode.
 
 | Script | Does |
 |---|---|
@@ -310,16 +285,20 @@ Previews render on Dreamina through the signed-in Chrome tab, so they are tuned 
 | `scripts/presets/publish-previews.mjs` | Encodes a muted loop of up to three seconds and a PNG poster, uploads both, writes `preview` into the preset file and regenerates the catalogue |
 | `scripts/presets/sync-effects-template.mjs` | Rewrites the `Effects Gallery.json` options from the effect presets. `--check` fails on drift |
 
-Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequential and resumes from the run records after a stall. Review every clip before publishing, and retune or drop a preset whose preview does not show its move. Each run record holds the model, seed and, when the runner reports it, the credits spent. Dreamina credits are not a list price, so do not use them as BYOK cost evidence. The commands, environment variables and the source image license are in [scripts/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/presets/README.md).
+Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequential and resumes from the run records after a stall. Review every clip before publishing. Each run record holds the model, seed and, when the runner reports it, the credits spent. Dreamina credits are not a list price, so do not use them as BYOK cost evidence. The commands, environment variables and the source image license are in [scripts/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/presets/README.md).
 
 ---
 
-## Related
+## Errors
 
-- [Storyboard Editor](storyboard-editor.md#edit-a-shot) for camera presets on a shot
-- [Harnesses](harnesses.md#nodetool-presets) for the selfchecks and CLI
-- [Agent Architecture & Tools](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#built-in-capabilities) for the capability table
-- [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md) for the package API
+| Failure | What you see |
+|---|---|
+| Stack breaks a rule | The picker disables the card and names the blocking preset. The compiler throws, for example `Presets camera.a and camera.b cannot combine`. |
+| Two presets set one param differently | The compile fails with `Parameter <key> conflicts between <preset> and <preset>`. |
+| Model family unknown or no fragment for it | The `default` fragment is used and a warning is recorded, such as `Preset camera.arc has no fragment for kling, using default`. |
+| Param not supported by the mode or family | The param is dropped and a warning names the preset, key, and family. |
+| `compile_presets` with an unknown id, conflicting stack, or unsupported mode | Returns `{ error }`. A studio id is refused. |
+| Real-person Lipsync request without consent | The server rejects it. |
 
 ## Studios
 

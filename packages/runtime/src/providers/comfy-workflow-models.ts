@@ -9,6 +9,7 @@
  */
 
 import { Comfy } from "@comfyorg/sdk";
+import { comfyCloudFetch } from "./comfy-fetch.js";
 
 import {
   LTX23_I2V_GRAPH,
@@ -369,7 +370,7 @@ export async function runComfyWorkflowModel(
   if (input.image.length === 0) {
     throw new Error("The ComfyUI workflow needs the shot's still. Generate or pick a still first.");
   }
-  const client = new Comfy({ apiKey: input.apiKey, clientInfo: "nodetool-storyboard" });
+  const client = new Comfy({ apiKey: input.apiKey, clientInfo: "nodetool-storyboard", fetch: comfyCloudFetch(input.apiKey) });
   const workflow = client.workflows.fromJson(workflowGraph(model, input));
   const ext = input.imageMime === "image/jpeg" ? "jpg" : input.imageMime === "image/webp" ? "webp" : "png";
   const [imageNode, imageInput] = model.image;

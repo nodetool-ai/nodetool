@@ -130,7 +130,8 @@ describe("providerDisplay", () => {
 
   describe("formatGenericProviderName", () => {
     it("names subscription providers by their product", () => {
-      expect(formatGenericProviderName("chatgpt")).toBe("ChatGPT");
+      expect(formatGenericProviderName("chatgpt")).toBe("ChatGPT (browser)");
+      expect(formatGenericProviderName("codex")).toBe("ChatGPT (Codex)");
       expect(formatGenericProviderName("claude_agent_sdk")).toBe("Claude");
     });
 

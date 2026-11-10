@@ -14,6 +14,7 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
 import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
+import AutoAwesomeMotionOutlinedIcon from "@mui/icons-material/AutoAwesomeMotionOutlined";
 import {
   BORDER_RADIUS,
   FlexColumn,
@@ -30,7 +31,7 @@ import {
   Chip,
   ICON_SIZE
 } from "../../ui_primitives";
-import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import type {
   Message,
   MessageContent
@@ -46,12 +47,10 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
-import {
-  useResolvedMediaUris,
-  type MediaLocator
-} from "../../../hooks/useResolvedMediaUri";
 import { isString } from "../../../utils/typePredicates";
-import { resolveInlineMediaSource } from "../../../utils/resolveMediaUri";
+import { useNotificationStore } from "../../../stores/NotificationStore";
+import { creationProjectId } from "../../../stores/WorkspaceTabsStore";
+import { createSeedFromMedia, openCreateSession } from "../../create/openCreateSession";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -293,16 +292,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
-  // The video and audio tiles hand their locator to a primitive that resolves
-  // it. `ImageView` takes an already-resolved URL, and the grid below maps over
-  // the list and cannot call a hook per item — so resolve the image refs here.
-  const imageLocators = useMemo(
-    (): MediaLocator[] =>
-      mediaContents.map((c) => (isImageContent(c) ? c.image : undefined)),
-    [mediaContents]
-  );
-  const resolvedImageSrcs = useResolvedMediaUris(imageLocators);
-
   const prompt = useMemo(() => {
     const content = message.content;
     if (isString(content)) return content;
@@ -316,6 +305,30 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   }, [message.content]);
 
   const title = titleFromPrompt(prompt) || t("i18n-next54.message.generated");
+
+  // A reply's media continues in a Create tab: pictures as sources to edit, a
+  // clip to retake, the prompt to reuse.
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const hasStoredMedia = mediaContents.some(
+    (c) =>
+      (isImageContent(c) && Boolean(c.image?.asset_id)) ||
+      (isVideoContent(c) && Boolean(c.video?.asset_id)) ||
+      (isAudioContent(c) && Boolean(c.audio?.asset_id))
+  );
+  const openInCreate = useCallback(() => {
+    openCreateSession(
+      creationProjectId(),
+      createSeedFromMedia(prompt ?? "", mediaContents, gen?.mode)
+    ).catch((error: unknown) => {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: t("create_view.openInCreateFailed", {
+          reason: error instanceof Error ? error.message : String(error)
+        })
+      });
+    });
+  }, [addNotification, gen?.mode, mediaContents, prompt, t]);
 
   const pending = useMemo(() => pendingTiles(gen), [gen]);
 
@@ -405,6 +418,15 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               label={`${gen.speed}x`}
             />
           )}
+          {!isPending && hasStoredMedia && (
+            <ToolbarIconButton
+              tooltip={t("create_view.openInCreate")}
+              size="small"
+              onClick={openInCreate}
+            >
+              <AutoAwesomeMotionOutlinedIcon fontSize="small" />
+            </ToolbarIconButton>
+          )}
           {!isPending && isCanvasAvailable && mediaContents.length > 1 && (
             <ToolbarIconButton
               className="add-all-button"
@@ -438,10 +460,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             ))
           : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
-            const src =
-              resolvedImageSrcs[i] ??
-              resolveInlineMediaSource(c.image?.data as string | undefined) ??
-              "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
               <div
@@ -449,7 +467,9 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                 draggable
                 onDragStart={(e) => handleDragStart(e, c)}
               >
-                <ImageView source={src} />
+                {/* A fixed-size tile paints the 512px thumbnail; copy,
+                    download and the viewer still use the original. */}
+                <ImageRefPreview value={c.image} preferThumbnail />
                 {isCanvasAvailable && (
                   <ToolbarIconButton
                     className="add-to-canvas-button"

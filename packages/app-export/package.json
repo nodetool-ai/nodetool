@@ -12,9 +12,11 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "embed-template": "node scripts/embed-template.mjs",
     "embed-template:check": "node scripts/embed-template.mjs --check",
+    "build-mcp-app": "node scripts/build-mcp-app.mjs",
+    "build-mcp-app:check": "node scripts/build-mcp-app.mjs --check",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:watch": "node ../../scripts/run-vitest.mjs",
-    "lint": "node ../../scripts/run-tsc.mjs --noEmit && node ../../scripts/run-tsc.mjs --noEmit -p template/tsconfig.json"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit && node ../../scripts/run-tsc.mjs --noEmit -p template/tsconfig.json && node ../../scripts/run-tsc.mjs --noEmit -p mcp-app/tsconfig.json"
   },
   "dependencies": {
     "@nodetool-ai/app-runtime": "*"
@@ -23,6 +25,9 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "esbuild": "^0.28.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
   },
@@ -32,6 +37,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./mcp-app": {
+      "nodetool-dev": "./src/mcp-app.ts",
+      "types": "./dist/mcp-app.d.ts",
+      "import": "./dist/mcp-app.js",
+      "default": "./dist/mcp-app.js"
     }
   },
   "license": "MIT",

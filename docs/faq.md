@@ -5,8 +5,6 @@ permalink: /faq
 description: "Short answers to common questions about NodeTool: cost, offline use, models, hardware, data location, licensing, updates, and ComfyUI."
 ---
 
-Each answer links to the page that covers the topic in full.
-
 ## Getting started
 
 ### Is NodeTool free?
@@ -19,7 +17,7 @@ The cost depends on the models you pick. NodeTool estimates the cost of a workfl
 You need one model source before an agent or a generation node can run. That can be a cloud provider with a key, a provider you sign in to (a Claude subscription in the desktop app, a ChatGPT account, or Hugging Face), or a local runner such as Ollama. See [Connect an AI provider](installation.md#connect-an-ai-provider).
 
 ### Which operating systems are supported?
-The desktop app ships for macOS (Apple Silicon and Intel), Windows (x64), and Linux (AppImage and Flatpak). See [Desktop App](desktop-app.md#platforms-and-downloads).
+The desktop app ships for macOS (Apple Silicon and Intel), Windows (x64), and Linux (AppImage). See [Desktop App](desktop-app.md#platforms-and-downloads).
 
 ### Where do I start?
 Install the app, connect a provider, then pick a type on the **Home** tab and describe what you want in one sentence. The [Getting Started](getting-started.md) guide walks through a first project, and the [Templates Gallery](templates-gallery.md) has examples you can copy.
@@ -36,7 +34,7 @@ Yes, with local models. The desktop app runs its server on your machine, and loc
 No. Cloud providers need no graphics card. For local models, NVIDIA cards run the HuggingFace pack, llama.cpp, and Ollama, Apple Silicon Macs also run MLX, and a CPU works but slowly. See [What different tasks need](installation.md#what-different-tasks-need) and [GPU requirements](installation.md#gpu-requirements).
 
 ### How big are local models?
-Expect 4 to 20 GB per model. Models, Python, and model runners download only when you install them. See [What downloads later](installation.md#what-downloads-later) and [Models Manager](models-manager.md).
+Several GB per model, depending on the model. Models, Python, and model runners download only when you install them. See [What downloads later](installation.md#what-downloads-later) and [Models Manager](models-manager.md).
 
 ### Can I run Ollama or llama.cpp models?
 Yes. Install Ollama from [ollama.com](https://ollama.com), pull a model with `ollama pull <model>`, and it appears in NodeTool while Ollama runs. In-process llama.cpp installs from **Package Manager → Engines & tools**. A `llama-server` you run yourself connects through `LLAMA_CPP_URL`. See [Connect an AI provider](installation.md#connect-an-ai-provider).
@@ -58,7 +56,7 @@ Keys are stored encrypted with AES-256-GCM in the local database. The encryption
 Studio is the desktop app, which can run local models and work offline. Cloud is the hosted browser version with the same canvas and nodes, and no local models. Both come from the same AGPL-3.0 source. See [Studio or Cloud](index.md#studio-or-cloud).
 
 ### Can I host NodeTool myself?
-Yes. The repository ships a `docker-compose.yml` that runs one server. It has no login by default, so keep it on a private network or enable Supabase authentication first. See [Self-Hosted Deployment](self-hosted-deployment.md).
+Yes. The repository ships a `docker-compose.yml` that runs one server. It has no login by default: keep it on a private network or enable Supabase authentication first. See [Self-Hosted Deployment](self-hosted-deployment.md).
 
 ### Can other tools drive NodeTool?
 Yes. NodeTool has a REST and WebSocket API, a CLI, and an MCP server that gives agents such as Claude Code access to workflows and generation. See [API Reference](api-reference.md), [CLI Reference](cli.md), and [MCP Server](mcp-server.md).
@@ -75,7 +73,7 @@ Yes. A mini app puts a form or interface in front of a workflow, with the workfl
 Yes. Node packs add nodes to the node menu, and you can write your own in TypeScript. See [Node Packs](node-packs.md) and the [Custom Nodes Guide](developer/custom-nodes-guide.md).
 
 ### What are the keyboard shortcuts?
-Press `Ctrl + /` or `⌘ + /` in the app. The full list for every editor is in [Keyboard Shortcuts](keyboard-shortcuts.md).
+`Ctrl + /` or `⌘ + /` opens the sheet in the app. See [Keyboard Shortcuts](keyboard-shortcuts.md).
 
 ## Licensing and updates
 

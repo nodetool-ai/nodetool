@@ -15,6 +15,7 @@ const RENAME_STRATEGIES = {
   chat: "chat",
   application: "application",
   text: "asset",
+  document: null,
   project: "project",
   audio: null,
   "workspace-file": null,

@@ -4,7 +4,10 @@ This directory contains the Next.js marketing site, generated catalogs, recipe
 guides, and public production media. Follow the repository
 [development standards](../docs/DEVELOPMENT_STANDARDS.md),
 [writing style](../docs/WRITING_STYLE.md), and
-[brand guidelines](../docs/BRAND.md).
+[brand guidelines](../docs/BRAND.md). Page copy follows
+[NARRATIVE.md](NARRATIVE.md) for the message and
+[site-editorial.spec.md](site-editorial.spec.md) for which page owns which
+argument. Read both before adding a section to a page.
 
 ## Recipe Sources
 

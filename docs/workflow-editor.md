@@ -4,27 +4,9 @@ title: "Workflow Editor"
 description: "The canvas — build, test, refine."
 ---
 
-The canvas: place nodes, connect ports, run, debug. Covers basic navigation through disabling nodes and auto layout.
+The editor builds and runs a workflow, a graph of nodes saved as one document. Place nodes, connect ports, run the whole graph or part of it, and read results on each node. New here? Start with [Getting Started](getting-started.md). Panel detail is in [Editor Panels](editor-panels.md).
 
-> New here? Start with [Getting Started](getting-started.md), then come back.
-
-> For panel-by-panel detail, see [Editor Panels](editor-panels.md).
-
----
-
-## Where this fits
-
-The workflow editor is NodeTool's automation layer. A workflow reads **assets**, calls AI models, and generates new assets.
-
-These new assets can then be:
-- Sent to the **Sketch Editor** or **Video Editor** for manual adjustments.
-- Packaged as a **Mini-App** for non-technical users.
-
-Everything connects back to the same shared asset store and AI models.
-
-See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
-
----
+![Workflow Canvas](assets/screenshots/editor-empty-state.png)
 
 ## Editor Layout
 
@@ -36,15 +18,7 @@ See [Key Concepts → How everything fits together](key-concepts.md#how-everythi
 | **Bottom panel** | Bottom | Logs, queue, workers, versions, and trace |
 | **Composer** | Floating over the canvas | Chat and media prompt, add node, auto-layout, save, run |
 
----
-
 ## Canvas Basics
-
-Your infinite workspace.
-
-![Workflow Canvas](assets/screenshots/editor-empty-state.png)
-
-**Navigate:**
 
 | Do This | How |
 |---------|-----|
@@ -57,7 +31,7 @@ Your infinite workspace.
 
 **Left-Click Drag** in Settings → General → Canvas swaps the mouse roles. With **Select nodes (box)**, left-drag draws a selection box and panning moves to right or middle-button drag. The default is **Pan canvas** on Windows and Linux and **Select nodes (box)** on macOS. **Node Selection Mode** decides whether a box must enclose nodes (**Full**) or only touch them (**Partial**, the default).
 
-**The grid** helps align nodes. Turn on **Snap to Grid** in the View menu of the
+**Snap to Grid**: turn on **Snap to Grid** in the View menu of the
 desktop app, from the command menu (`Ctrl/⌘ + K`), or in Settings → General →
 Canvas. The grid size is the **Grid Snap Precision** setting, and **Connection
 Snap Range** sets how close a dragged connection must get to a port to snap.
@@ -68,30 +42,11 @@ The **⋮** menu on the composer has a **Mini Map** toggle.
 
 ## Working with Nodes
 
-Each node does one thing.
-
 ### Add Nodes
 
-**Space bar:**
-1. Press `Space` anywhere
-2. Type what you want ("image", "text")
-3. Click to add
+Press `Space` or double-click empty canvas, type a name, and click a result. Dropping a connection on empty space offers the compatible nodes, or **Preview**, **Reroute**, or a **Save** node for that type.
 
-**Double-click:**
-1. Double-click empty space
-2. Opens node menu
-
-**Smart connect:**
-1. Drag from a node's output
-2. Drop on empty space
-3. Pick from the compatible nodes, or choose **Preview**, **Reroute**, or a **Save** node for that type
-
-### Node Structure
-
-- **Header** (top) - Name, drag to move
-- **Inputs** (left circles) - Data in
-- **Outputs** (right circles) - Data out
-- **Properties** - Settings panel
+A node has a header (name, drag to move), input circles on the left, output circles on the right, and its properties.
 
 ### Select Nodes
 
@@ -112,19 +67,7 @@ Each node does one thing.
 
 ### Disable Nodes
 
-Exclude nodes from a run without deleting them:
-
-1. Right-click the node (or select it and press `B`)
-2. Select **Disable Node**
-3. The node dims
-
-A disabled node and every connection to or from it are excluded from the
-submitted graph. Data does not pass through the node.
-
-Good for:
-- **Testing** - Run a smaller part of the graph
-- **Debugging** - Exclude a failing or costly branch
-- **Editing** - Keep unfinished nodes on the canvas without executing them
+Right-click a node (or select it and press `B`) and choose **Disable Node**. The node dims, and it and every connection to or from it are excluded from the submitted graph. Data does not pass through it. Use it to run a smaller graph or skip a failing or costly branch.
 
 Re-enable: right-click → **Enable Node**, or press `B` again. With several nodes selected, the context menu offers **Disable All** or **Enable All**.
 
@@ -132,19 +75,12 @@ Re-enable: right-click → **Enable Node**, or press `B` again. With several nod
 
 ## Connections
 
-Connections are the lines between nodes that show how data flows through your workflow. Data flows **left to right**, from output ports (right side of a node) to input ports (left side of another node).
-
-### Make Connections
-
-1. Click output circle (right side)
-2. Drag the line to an **input** circle (left side of another node)
-3. Release to connect
+Data flows left to right, from an output port to an input port. Drag from an output circle to an input circle and release.
 
 ### Connection Rules
 
-- **Types must match**: You can only connect compatible types (text to text, image to image)
-- **One input, multiple outputs**: Each input accepts one connection; outputs can connect to many
-- **Color coding**: Connection colors indicate data type
+- Only compatible types connect. Line color shows the data type.
+- Each input accepts one connection. An output can feed many inputs.
 
 ### Removing Connections
 
@@ -153,13 +89,7 @@ Connections are the lines between nodes that show how data flows through your wo
 
 ### Smart Connections
 
-When you drag a connection and release on **empty space**, a connection menu appears:
-
-- A search box over the nodes that can receive (or produce) that data type
-- Shortcuts for **Preview**, **Reroute**, and a **Save** node matching the type
-- `Esc` cancels
-
-Releasing on a node's body instead connects to a matching input on that node. On a node that supports dynamic inputs, it creates a new input named after the source node.
+Releasing on empty space opens a search over the nodes that can receive (or produce) that type, with **Preview**, **Reroute**, and a matching **Save** node as shortcuts. `Esc` cancels. Releasing on a node's body connects to a matching input. On a node with dynamic inputs, it creates a new input named after the source node.
 
 ### Lineage Links
 
@@ -193,14 +123,7 @@ own job and uses previous results as inputs.
 
 ### Watching Progress
 
-- **Streaming nodes** show output as it's generated
-- **Preview nodes** display intermediate results
-- **A moving colored ring** around a node marks it as running
-- **Completed in** and **Failed in** badges above a node show how long it took
-- **Edge animations** show data flowing between nodes
-- The main run control shows **Starting**, **Queued**, **Running**, **Stopping**,
-  or **Error** without requiring a tooltip
-
+A moving colored ring marks a running node. **Completed in** and **Failed in** badges show how long it took. Streaming nodes show output as it generates, and Preview nodes show intermediate results. The main run control shows **Starting**, **Queued**, **Running**, **Stopping**, or **Error**.
 
 ### Stopping a Run
 
@@ -223,40 +146,13 @@ Click the **Auto Layout** button in the composer bar to arrange your nodes in a 
 
 Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. Click a group's label to select the group. A click on the group's body reaches the canvas, so a selection box can start inside a group. Copy, cut, duplicate and delete act on a selected group together with the nodes inside it. To take nodes out of a group, hold `Alt` (`Option` on macOS) while you drag them. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, **Add Workflow**, and **Add App**. An App node runs a mini app's workflow: the app's inputs become the node's inputs, its outputs become the node's outputs, and an output the app streams reaches downstream nodes one value at a time.
 
-### Aligning Nodes
-
-| Shortcut | Action |
-|----------|--------|
-| `A` | Align selected nodes |
-| `Shift + A` | Align and distribute evenly |
-| `Shift + ←/→/↑/↓` | Align left, right, top, or bottom edges |
-| `Shift + H` / `Shift + E` | Align centers horizontally or vertically |
-| `Shift + D` | Distribute horizontally |
-| `V` | Stack selected nodes in one column |
-| `G` | Arrange selected nodes in a grid |
-
-### Adding Nodes from the Keyboard
-
-| Shortcut | Node added at the cursor |
-|----------|--------------------------|
-| `Shift + P` | Prompt |
-| `Shift + G` | Text to Image |
-| `Shift + V` | Text to Video |
-| `Shift + L` | Agent |
+Alignment, arrangement, and add-node-at-cursor shortcuts are in [All Editor Shortcuts](#all-editor-shortcuts).
 
 ---
 
-### Left Panel
+### Panels
 
-The left rail has **Documents**, **Chats**, **Library**, **Nodes**, and **More**. See [Editor Panels → Left Panel](editor-panels.md#left-panel) for details on each.
-
-### Right Panel (Inspector)
-
-- Properties for the selected node, on the **Params** tab
-- Input and output slots on the **I/O** tab, and node documentation on the **Help** tab
-- Validation errors for the selected node
-
-The Inspector opens automatically when you select a node. With several nodes selected it edits their shared properties. Logs, Queue, Trace, and Version History live in the [Bottom Panel](editor-panels.md#bottom-panel).
+The left rail has **Documents**, **Chats**, **Library**, **Nodes**, and **More**. See [Editor Panels](editor-panels.md#left-panel). The Inspector opens when you select a node, with **Params**, **I/O**, and **Help** tabs and validation errors for the node. With several nodes selected it edits their shared properties. Logs, Queue, Trace, and Version History are in the [Bottom Panel](editor-panels.md#bottom-panel).
 
 ---
 
@@ -280,20 +176,11 @@ Press `Space` to open, then:
 
 ![Find in workflow](assets/screenshots/editor-find-in-workflow.png)
 
-### Node Documentation
-
-Get help on any node:
-
-1. **In the Node Menu**: Hover over a node to see its description
-2. **Inspector**: Select a node and view full documentation in the right panel
-
 ---
 
 ## Context Menus
 
 ![Context Menu](assets/screenshots/editor-context-menu.png)
-
-Right-click for options anywhere:
 
 | Location | Options |
 |----------|---------|
@@ -310,33 +197,23 @@ Right-click for options anywhere:
 
 ## Built-in Editors
 
-NodeTool includes professional editing tools for creative work.
-
 ### Sketch Editor
 
 ![Sketch Editor](assets/screenshots/sketch-editor.png)
 
-Open a blank canvas (**+ New → New sketch** in the workspace tab bar) or edit an existing image to use the full layered editor:
-
-- **Layers**: Control blend modes, opacity, and visibility.
-- **Painting**: Brush, pencil, eraser, fill, gradient, blur, and clone stamp tools.
-- **Shapes & Transform**: Add shapes (rectangle, ellipse, line, arrow), crop, or freely transform layers.
-- **AI Generation**: Create a layer directly from a text prompt or connect it to a workflow.
-- **History**: Unlimited undo and redo steps.
-
-> **Full guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
+Create one with **+ New → New sketch** in the workspace tab bar, or open an existing image. See [Sketch Editor](sketch-editor.md).
 
 ### Text and Code Editor
 
 ![Text and code editor](assets/screenshots/text-code-editor.png)
 
-Long text or code properties open in a full editor featuring syntax highlighting, line numbers, and search. This is the same editor used for code nodes.
+Long text or code properties open in a full editor with syntax highlighting, line numbers, and search, the same editor the code nodes use.
 
 ### DataFrame Editor
 
 ![DataFrame editor](assets/screenshots/dataframe-editor.png)
 
-Edit tabular data just like a spreadsheet: add or remove rows and columns, edit cell values, and sort your data.
+Add or remove rows and columns, edit cells, and sort.
 
 ### Image Comparer
 
@@ -348,15 +225,7 @@ Preview nodes with before/after images show a slider. Drag it left or right to c
 
 ![Color Picker Modal](assets/screenshots/color-picker.png)
 
-The color picker appears when selecting colors in properties:
-
-- **Visual Selection**: Saturation/brightness picker with hue slider
-- **Multiple Formats**: Enter values as HEX, RGB, HSL, or CMYK
-- **Harmony Modes**: Complementary, triadic, analogous color suggestions
-- **Gradient Builder**: Create and edit color gradients
-- **Swatches**: Save and reuse favorite colors
-- **Contrast Checker**: Verify accessibility compliance
-- **Eyedropper**: Pick colors from anywhere on screen
+Opens when you pick a color property. It accepts HEX, RGB, HSL, or CMYK, and has harmony modes, a gradient builder, swatches, a contrast checker, and an eyedropper.
 
 ---
 
@@ -413,37 +282,11 @@ Alt-based keyboard navigation moves focus between nodes without the mouse: `Ctrl
 
 ---
 
-## Tips
+## Debugging tips
 
-### Design Principles
+- Add Preview nodes between steps to see what each node produces.
+- A **Failed in** badge and an error panel mark a failed node.
+- Disable downstream nodes and run smaller graphs to isolate a problem.
+- Press `i` for validation warnings on the selected node. Run errors appear on the node itself.
 
-1. **Left to right** — Arrange nodes so data flows left to right across the canvas for readability
-2. **Preview often** — Add Preview nodes after each major step to inspect intermediate results
-3. **Name clearly** — Rename nodes (double-click the header) to describe their purpose, e.g., "Resize to 512px" instead of "Resize"
-4. **Group logically** — Keep related nodes together and use Groups (`Ctrl/⌘ + G`) to visually organize complex workflows
-
-### Debugging
-
-- **Add Preview nodes** between steps to see exactly what data each node produces
-- **Check connections** — verify data types match (connection colors indicate type)
-- **Look at node badges** — a **Failed in** badge and an error panel mark a failed node, and a **Completed in** badge marks a finished one
-- **Test incrementally** — disable downstream nodes and run smaller graphs to isolate problems
-- **Use the Inspector** — press `i` to see validation warnings for the selected node. Run errors appear on the node itself
-
-### Performance
-
-- **Local models** — slower but work offline and are free to use
-- **Cloud models** — faster response times, require internet and API keys
-- **Streaming nodes** — show progress during long-running operations (look for the streaming indicator)
-- **Parallel branches** — NodeTool automatically runs independent branches in parallel for faster execution
-
-To give someone else access to a workflow, see [Sharing Workflows](workflow-sharing.md).
-
----
-
-## Next Steps
-
-- **[Cookbook](cookbook.md)** – Workflow patterns and best practices
-- **[Workflow Examples](workflows/)** – Ready-to-use workflows
-- **[Tips & Tricks](tips-and-tricks.md)** – Power user features
-- **[Node Reference](nodes/)** – All available nodes
+To give someone else access to a workflow, see [Sharing Workflows](workflow-sharing.md). Related: [Cookbook](cookbook.md), [Workflow Examples](workflows/), [Tips & Tricks](tips-and-tricks.md), [Node Reference](nodes/).

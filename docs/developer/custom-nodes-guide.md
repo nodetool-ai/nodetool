@@ -4,11 +4,10 @@ title: "Custom Nodes Guide (TypeScript)"
 description: "How to author, package, register, and distribute custom NodeTool nodes in a TypeScript pack."
 ---
 
-This is the full guide to writing **TypeScript** custom nodes for NodeTool. [Node Patterns](node-patterns.md) and [Node Reference](node-reference.md) cover the same TypeScript API in less depth; [Node Examples](node-examples.md) covers the Python nodes reached through the Python bridge.
+A custom node lives in a standalone npm package (a pack). The server finds it at startup through a `nodetool` field in `package.json` and calls its `register` export. [Node Patterns](node-patterns.md) and [Node Reference](node-reference.md) cover the same TypeScript API in less depth. [Node Examples](node-examples.md) covers Python nodes reached through the Python bridge.
 
-A custom node lives in a standalone npm package — a **pack** — that the server discovers and loads at startup. There is nothing to register by hand: drop a `nodetool` field in `package.json`, install the package, and the loader does the rest.
-
-> **Related:** [Node Packs](../node-packs.md) (user-facing intro), [Package Registry Guide](../packages.md) (first-party package conventions), [TypeScript DSL Guide](ts-dsl-guide.md) (using nodes in code-defined workflows).
+> **Runs:** in the server process, as the server user (no sandbox). **Needs:** Node 22 or newer, `@nodetool-ai/node-sdk`, TypeScript with `experimentalDecorators`. **Production:** the pack must be on the allowlist (see [§4](#4-trust-model-and-governance)).
+{: .callout-note}
 
 ## Contents
 
@@ -32,7 +31,6 @@ A custom node lives in a standalone npm package — a **pack** — that the serv
 17. [Versioning the pack API](#17-versioning-the-pack-api)
 18. [Common pitfalls](#18-common-pitfalls)
 
----
 
 ## 1. Quick start
 
@@ -80,7 +78,6 @@ export function register(registry: NodeRegistry): void {
 
 Add a `nodetool` field to `package.json` (see [§3](#3-packagejson-and-the-pack-manifest)), build with `tsc`, then `npm link` (or `npm install`) into your NodeTool workspace and restart the server. The node appears in the menu as **Reverse Text** under `mypack.text`.
 
----
 
 ## 2. Package layout
 
@@ -102,7 +99,6 @@ nodetool-mypack/
 
 Keep the public surface in `src/index.ts` minimal: re-export node classes and the `register` function. Everything else stays internal.
 
----
 
 ## 3. `package.json` and the pack manifest
 
@@ -152,7 +148,6 @@ The **`nodetool`** field is what makes the package a pack. At startup the loader
 
 **Where the loader looks.** It scans every `node_modules` directory from the working directory up to the filesystem root, plus the directories listed in `NODETOOL_OPTIONAL_NODE_MODULES` (one path) and `NODETOOL_PACK_SEARCH_PATHS` (a list separated by commas, semicolons, or the platform path separator). It then scans the root holding the sandbox packs that ship with NodeTool (`NODETOOL_SHIPPED_PACKS_DIR` overrides that root). When two directories hold a package of the same name, the first one found wins. Packs load once at server start. The `packs.reload` tRPC mutation re-runs the scan, but it cannot unload nodes that are already registered.
 
----
 
 ## 4. Trust model and governance
 
@@ -182,7 +177,6 @@ Example allowlist file:
 }
 ```
 
----
 
 ## 5. `tsconfig.json`
 
@@ -211,7 +205,6 @@ The SDK uses **legacy (experimental) decorators** without runtime metadata emiss
 
 > Keep `"emitDecoratorMetadata"` set to `false`. The SDK does not read decorator metadata. Property declarations must use `declare` (see [§6](#6-anatomy-of-a-node)), which emits no field initializer and so works whatever `useDefineForClassFields` resolves to.
 
----
 
 ## 6. Anatomy of a node
 
@@ -252,7 +245,7 @@ export class AddOffsetNode extends BaseNode {
 | `title`       | `string`  | Display name in the node menu. Falls back to `nodeType` when empty. |
 | `description` | `string`  | One-line tooltip. Falls back to an empty string. |
 
-Set all three. Only `nodeType` is enforced.
+Only `nodeType` is enforced.
 
 ### Common optional static members
 
@@ -283,9 +276,7 @@ abstract process(context?: ProcessingContext): Promise<Record<string, unknown>>
 - Throwing an `Error` fails the node and surfaces the message to the UI. Throw `Error` objects, not strings.
 - To hand the workflow supervisor the malformed value that caused the failure, throw `RecoverableNodeError(message, { candidateOutput, code? })`, exported from `@nodetool-ai/node-sdk`. `code` is a stable category such as an HTTP status, never request-specific text.
 
-> **Do not** add an `inputs` parameter — that pattern is from an older draft of this guide and does not match the runtime contract. Property assignment happens before `process()` runs.
 
----
 
 ## 7. The `@prop` decorator reference
 
@@ -319,7 +310,6 @@ declare temperature: number;
 declare mode: string;
 ```
 
----
 
 ## 8. The type system
 
@@ -396,7 +386,6 @@ These render as model pickers in the UI:
 
 The vocabulary is open: asset and node-defined types are allowed. Use NodeTool's spellings, not JSON Schema or TypeScript ones. `integer`, `string`, `boolean`, `object`, and `array` are not types here, and a dynamic slot declared with one of them is rejected because the handle would never connect to an `int` or `str` input.
 
----
 
 ## 9. Declaring outputs
 
@@ -428,7 +417,6 @@ Every key returned by `process()` must be declared in `metadataOutputTypes`. The
 
 If you do not declare `metadataOutputTypes`, the class falls back to a static `outputTypes` map, and a node with neither has no outputs.
 
----
 
 ## 10. `ProcessingContext` — the runtime surface
 
@@ -530,7 +518,7 @@ if (await context.isProviderConfigured("openai")) {
   // ProviderStreamItem values.
   const reply = await provider.generateMessage({
     messages: [{ role: "user", content: "Say hello" }],
-    model: "gpt-4o-mini",
+    model: "gpt-5-mini",
     signal: context.signal
   });
 }
@@ -548,7 +536,6 @@ context.hasVariable("counter"); // true
 
 `context.emit(msg)` posts a `ProcessingMessage` (log line, status update, tool call, …) onto the run's event stream. The UI uses these to surface progress.
 
----
 
 ## 11. Streaming nodes (`genProcess`)
 
@@ -628,7 +615,6 @@ async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
 
 If you don't override `genProcess`, the base implementation yields the single result of `process()`. So a non-streaming node needs nothing extra; only streaming nodes override `genProcess`.
 
----
 
 ## 12. Lifecycle hooks
 
@@ -642,7 +628,6 @@ async finalize(): Promise<void>    { /* once when the node finishes, even after 
 
 `initialize` runs for every node in the graph before any node executes. If one node's `initialize` throws, the run fails and the nodes already initialized are finalized. Use it for expensive one-time setup (e.g. opening a connection) and reset of per-run state, and use `finalize` to release it. `preProcess` does not run before each `process()` call, and it is rarely needed. A `finalize` error is swallowed so it cannot hide the original failure.
 
----
 
 ## 12a. Advanced node features
 
@@ -728,7 +713,6 @@ static readonly appendStaticInputs = ["value"];
 
 `static readonly requiredRuntimes = ["yt-dlp"]` declares host binaries or runtimes the node needs. It is metadata only. It does not install or check anything when the node runs. The editor shows a missing-runtime warning on the node (`web/src/components/node/NodeDependencyWarning.tsx:79`) and the SDK preflight reports it as a `runtime` requirement (`packages/websocket/src/sdk/sdk-static-preflight-service.ts:320`). `RenderTimelineNode` declares it (`packages/video-nodes/src/nodes/timeline.ts:1129`). Your `process()` still has to fail clearly when the binary is absent.
 
----
 
 ## 13. Registering nodes
 
@@ -770,7 +754,6 @@ The loader does not pass your `register` function the real registry. It passes a
 
 `register` throws if the class has no `nodeType`. Everything else on the registry is for the runtime.
 
----
 
 ## 14. Building the pack
 
@@ -790,7 +773,6 @@ Ship the `dist/` directory plus `package.json` and a `README.md`. Don't ship `sr
 "files": ["dist", "README.md", "LICENSE"]
 ```
 
----
 
 ## 15. Testing nodes
 
@@ -842,7 +824,6 @@ it("yields one event per word", async () => {
 });
 ```
 
----
 
 ## 16. Installing and running the pack
 
@@ -876,7 +857,6 @@ Failed to load node pack @acme/broken@0.2.0: entry "…/dist/index.js" has no ca
 
 The node-level skip reasons are `reserved-namespace` and `collision`. A pack-level skip reports `not on pack allowlist` or `requires pack API v2, host supports v1`. A pack that throws while loading is reported as failed and does not stop other packs. `packs.list` (tRPC) returns the same startup snapshot.
 
----
 
 ## 17. Versioning the pack API
 
@@ -885,9 +865,7 @@ The pack API is versioned with a single integer (`apiVersion`, currently `1`). F
 - If your pack declares `apiVersion: 2` and runs on a host that only knows `1`, the host skips it cleanly rather than crashing.
 - If the host knows `2` and your pack still declares `1`, everything keeps working — the host is responsible for backward compatibility.
 
-When the host bumps the version, the changelog will name exactly what changed and what (if anything) authors need to migrate.
 
----
 
 ## 18. Common pitfalls
 
@@ -908,30 +886,19 @@ import { ReverseTextNode } from "./nodes/reverse.js";   // good
 import { ReverseTextNode } from "./nodes/reverse";      // bad
 ```
 
-**`emitDecoratorMetadata`.** Leave this `false`. The SDK does not consume runtime metadata and enabling it can produce conflicting decorator output.
-
-**Returning an undeclared output key.** The editor offers only the handles in `metadataOutputTypes`. A key outside that map is unreachable downstream.
-
 **Loading from `src/` instead of `dist/`.** The loader resolves the package's `exports`/`main`, which points at `dist/`. Forgetting to build before installing means the pack loads stale code (or nothing).
 
-**Reserved-namespace `nodeType`s.** A `nodeType` of `nodetool.foo.MyNode` is rejected with a warning in the log. Use your own namespace (`mypack.foo.MyNode`, `acme.foo.MyNode`, …).
+**Dropped nodes.** A `nodeType` under a reserved namespace or one that collides with a built-in is skipped with a warning (`reserved-namespace` or `collision` in the server log). Use your own namespace, such as `mypack.foo.MyNode`.
 
-**Collision with built-ins.** If a built-in already owns the `nodeType` you picked, your node is dropped. Pick a unique name and check the server log for `skipped node … (collision)`.
-
-**Throwing strings instead of `Error`.** The runtime surfaces `.message` of the error it catches, so a thrown string has no message to show.
-
-**Long-running `process` blocking the event loop.** If your work is CPU-bound, do it in a `Worker`. The server runs on a single Node.js event loop.
+**Blocking the event loop.** Run CPU-bound work in a `Worker`. The server uses one Node.js event loop.
 
 **Reading from `process.env` for user-scoped secrets.** Use `requiredSettings` with `this._secrets`, or `context.getSecret(key)`. Both consult the user's secret store first (which may be encrypted and is not the process environment) and then fall back to the environment.
 
----
 
 ## Related documentation
 
-- [Node Packs](../node-packs.md) — user-facing intro to packs.
-- [Package Registry Guide](../packages.md) — first-party package conventions.
-- [Node Implementation Examples (Python)](node-examples.md) — annotated Python node examples.
-- [Node Patterns](node-patterns.md) — TypeScript design patterns: multi-output, streaming, stateful, media refs, secrets.
-- [Node Reference](node-reference.md) — TypeScript `@prop` / `process()` / `genProcess()` templates.
-- [TypeScript DSL Guide](ts-dsl-guide.md) — use your nodes in code-defined workflows.
-- [Suspendable Nodes](suspendable-nodes.md) — why there is no pause/resume node API.
+- [Node Packs](../node-packs.md) for installing packs.
+- [Package Registry Guide](../packages.md) for first-party package conventions.
+- [Node Patterns](node-patterns.md), [Node Reference](node-reference.md), [Node Examples](node-examples.md) (Python).
+- [TypeScript DSL Guide](ts-dsl-guide.md) for using nodes in code-defined workflows.
+- [Suspendable Nodes](suspendable-nodes.md) for why there is no pause/resume API.

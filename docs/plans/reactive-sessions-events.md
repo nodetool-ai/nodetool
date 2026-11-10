@@ -1,14 +1,18 @@
 # Reactive sessions and workflow events
 
+Cross-plan references use `RS-`, for example `RS-A2`. Local IDs stay unchanged.
+
 ## Recommendation and scope
 
 Start with a small host adapter for invoking an existing operation and observing its result. Reuse Mini App operation dispatch, invocation identity, message folding, and cleanup. Two app hosts already repeat the same admission sequence: the web `useAppRuntime` hook and the headless `debug_app` runtime. Extract that shared sequence, prove that a non-app caller can use it, and only then consider a broader reactive-session module.
 
 A reactive session names the caller's interaction lifetime. It is not a new workflow executor, job scheduler, state store, event broker, or background service. The initial delivery handles one declared operation and finite workflow results. Persistent streaming and durable triggers remain their existing execution paths, with separate adapters only when needed.
 
-App agents and running games are initial consumers. Common code must not depend on conversation models or rendering clocks. The [app agents plan](realtime-virtual-agents.md) owns agent integration and conversation behavior. The [shared variables plan](shared-variables-input-bindings.md) owns new typed bindings and revision-checked publication. The [control-flow regions plan](control-flow-regions.md) owns branching and iteration within a workflow.
+This plan owns the shared finite-operation request/result adapter. App agents and running games are initial consumers. Common code must not depend on conversation models or rendering clocks. The [app agents plan](realtime-virtual-agents.md) owns agent integration, conversation behavior, and scene commands. The [shared variables plan](shared-variables-input-bindings.md#delivery-plan) owns typed bindings and revision-checked publication, including app-variable revisions in SV-A5. The [control-flow regions plan](control-flow-regions.md) owns branching and iteration within a workflow.
 
-This review inspected the sources below and existing test cases. It did not execute them or measure realtime performance. Proposed contracts are distinguished from current implementation.
+Keep operation coordination separate from conversation coordination. This adapter handles captured inputs, request/run correlation, observation, and explicit cancellation through existing owners. Agent sessions add history, conversation policy, response interruption, and result presentation above it. Mini Apps and external agent clients share that agent module. Neither speech dependencies nor conversation policy belong in generic `app-runtime`, and an agent-free caller must remain usable without them.
+
+Source notes below came from code and test inspection, not execution or realtime measurements. Recheck claims needed for delivery under the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation).
 
 ## What already exists
 
@@ -46,14 +50,14 @@ Values, events, and media streams retain different semantics. Shared input-bindi
 
 ## Smallest first implementation
 
-The first deliverable is one finite operation invoked from an existing Mini App host and from a minimal non-React caller fixture. Use a delayed deterministic workflow, not a paid provider or a new event source. Do not build a general session API first. Finding, action, and decision IDs are local to this plan and are independent of the app agents plan's IDs.
+The first deliverable is one finite operation invoked from an existing Mini App host and from a minimal non-React caller fixture. Use a delayed deterministic workflow, not a paid provider or a new event source. Do not build a general session API first.
 
 | Step | Concrete work | Acceptance |
 | --- | --- | --- |
 | A1. Pin existing host behavior | Extend the web [app host tests](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/appbuilder/runtime/__tests__/useAppRuntime.test.tsx) and [instance tests](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/appbuilder/runtime/__tests__/useAppRuntime.instances.test.tsx) and the [headless runtime tests](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution/tests/app-debug-runtime.test.ts) with one declared finite operation, delayed result, and reset during execution. Record where the two hosts' admission sequences differ before extracting code | Both fixtures exercise input capture, `decideRun`, invocation identity, folding, and terminal status. The web fixture also covers server reservation. Existing queue/replace behavior remains covered. No provider call is needed |
-| A2. Expose one caller adapter | Neither host offers a usable entry point as is: the web `dispatch` returns `void`, and `HeadlessAppRuntime` has no abort path or streamed folding. Extract the shared admission sequence into a helper with reservation, cancellation, waiting, and execution injected. Keep its pure parts in `app-runtime` and its effects in the hosts. Add an awaitable completion handle to the helper's result | An event submits the declared operation with a captured input snapshot and consumer generation. The caller receives its existing invocation identity and a terminal result or explicit observation-ended outcome. It may await completion or receive a callback |
+| A2. Expose one caller adapter | Extract shared admission with reservation, cancellation, waiting, and execution injected. Keep pure parts in `app-runtime` and effects in the hosts. Add an awaitable completion handle. Add an abort signal to the headless `runWorkflow` callback and propagate explicit cancellation to execution (D3) | An event captures inputs and consumer generation. The caller receives invocation identity and a terminal result or observation-ended outcome. A delayed fixture observes abort and stops execution. Merely marking state cancelled fails this check |
 | A3. Prove a second consumer | Drive the helper from an agent-free fixed-tick loop built on the [game simulation session](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md), calling `createGameSession(...).step(input)` once per tick. Use A1's Mini App fixture as the other consumer and share it with app agent work | The loop keeps stepping while work runs. A result carries the original request identity. Reset or target change prevents stale application. A result does not implicitly request another run |
-| A4. Integrate without parallel ownership | Move the web host and `HeadlessAppRuntime` onto the extracted helper. Add consumer close/unsubscribe and explicit task-cancellation handling | There is one implementation of the admission sequence, one authoritative app/run state, and one counted operation. Failure, duplicate observation, reset, and late completion have defined outcomes. `debug_app` reports are unchanged for existing fixtures |
+| A4. Integrate without parallel ownership | Move the web host and `HeadlessAppRuntime` onto the extracted helper. Add consumer close/unsubscribe and explicit task-cancellation handling | There is one admission implementation, one authoritative app/run state, and one counted operation. Repeated resets cannot admit another fixture request while the first still runs, including after cancellation is requested. Failure, duplicate observation, and late completion settle correctly. Existing `debug_app` reports are unchanged |
 
 For the new non-React fixture, allow at most one outstanding request per caller and report busy explicitly for a second request. This limits the first integration, not the existing app's behavior or all agent tools globally. Do not add a queue or new replacement policy. Existing app operations keep their declared policies. A local consumer admission limit is not a replacement for server budgets or authorization.
 
@@ -61,7 +65,7 @@ The adapter needs only a declared operation reference, captured inputs, request 
 
 Keep local admission, persisted reservation, and terminal execution distinct. An observer must attach to a reused active invocation's existing completion/status path instead of treating its reservation as a finished result. Do not automatically retry an effectful request after an uncertain acceptance.
 
-Closing observation invalidates delivery, removes subscriptions, and settles any pending observer wait with an explicit observation-ended outcome. A wait timeout does the same unless the caller explicitly requests job cancellation. Neither outcome claims that execution stopped. Explicit cancellation calls the existing execution owner. Closing a caller does not request job cancellation (D2). Reset must invalidate old observers before new work is admitted. An error or late result can remain in existing run history without being applied to the new consumer.
+Closing observation invalidates delivery, removes subscriptions, and settles pending waits with an observation-ended outcome. Close, timeout, and observer reset do not cancel execution. Explicit cancellation calls the existing execution owner (D2). The app host's visitor-reset action invalidates delivery and explicitly requests cancellation of that visitor's work under the [agents reset policy](realtime-virtual-agents.md#cancellation-reconnect-and-retained-work). This caller policy adds no implicit cancellation to adapter disposal. Old observers are invalidated before new work is admitted. Late results remain isolated from the replacement consumer.
 
 Detaching or resetting does not free execution capacity for work still running. Preserve the host's in-flight accounting until settlement, including after a cancellation request. The initial caller limit must not be bypassed by repeatedly resetting its observer.
 
@@ -72,9 +76,9 @@ Use existing promises and messages for finite completion. Neither host exposes a
 | Decision | Choice | Reason |
 | --- | --- | --- |
 | D1. Where the shared code lives | Pure admission steps in `app-runtime`, effectful steps injected by each host | `app-runtime` must stay dependency-free and shared by web, mobile, and `app debug`. The hosts keep transport, persistence, and credentials |
-| D2. Whether closing a caller cancels its job | No. Close and timeout end observation only. Cancellation is a separate explicit call | Matches `HeadlessAppRuntime`, whose timeout leaves the invocation live. Implicit cancellation on close would turn a navigation or reset into a lost paid result |
-| D3. How the headless host cancels | Add an optional abort signal to its `runWorkflow` callback before claiming cancellation in A4 | Today its `cancel` only marks state, so a cancellation fixture would pass without stopping work |
-| D4. Second-consumer fixture | A fixed-tick loop over `game-runtime`, with no renderer and no live scene commands | The simulation is deterministic and already headless. A live scene command channel does not exist and belongs to the app agents plan's A10 |
+| D2. Whether closing a caller cancels its job | No. Close, timeout, and observer reset end observation only. A host policy may separately request cancellation | Navigation need not discard paid work. Visitor reset is an explicit app-host cancellation policy |
+| D3. How the headless host cancels | A2 adds and propagates an abort signal through `runWorkflow` | The fixture must stop work on abort, not pass because state alone changed |
+| D4. Second-consumer fixture | A fixed-tick loop over `game-runtime`, with no renderer and no live scene commands | The simulation is deterministic and already headless. Scene commands belong to AA-A10 in the [app agents plan](realtime-virtual-agents.md#delivery-plan-and-gates) |
 
 ## Subsequent adapters, only when needed
 
@@ -96,4 +100,4 @@ Use existing execution, app, and game harnesses. Test unknown/foreign invocation
 
 The app agents plan may proceed with existing agent and Mini App paths while this adapter is being proven. This plan's Mini App/game fixtures can likewise proceed without an app agent implementation. Share the finite-operation fixture and host integration. An app agent's message is the existing chat composer run. Its interrupt-response, transcript, and conversation state remain its own agent binding, not new verbs on the finite-operation adapter. General variables, regions, voice, and durable personal tasks are not prerequisites.
 
-For code changes, follow [repository verification requirements](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification), including dependency builds before affected tests and the harness gate. This documentation-only review requires link and text checks, not application test execution.
+Implementation follows [repository verification requirements](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).

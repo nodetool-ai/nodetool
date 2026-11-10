@@ -2574,6 +2574,15 @@ npm run dev:nodetool -- storage migrate-keys               # Move them
 npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
 ```
 
+Uploads store `Cache-Control: max-age=<signed URL lifetime>` on each object.
+`refresh-cache-control` rewrites asset objects stored before that with
+`no-cache`, which made browsers download them again on every mount.
+
+```bash
+npm run dev:nodetool -- storage refresh-cache-control --dry-run
+npm run dev:nodetool -- storage refresh-cache-control
+```
+
 ### nodetool auth
 
 Signs in to providers that use an account instead of an API key. `auth claude`

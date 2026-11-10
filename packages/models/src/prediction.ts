@@ -19,10 +19,15 @@ import {
 } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import { z } from "zod";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
 import { workflows } from "./schema/workflows.js";
+import { providerKeySource } from "./user-quota.js";
 import {
   DurablePrediction,
   GenerationAttempt,
@@ -280,6 +285,7 @@ export class Prediction extends DBModel {
   declare next_check_at: string | null;
   declare attempt_count: number;
   declare cancel_requested_at: string | null;
+  declare key_source: string | null;
 
   constructor(data: Record<string, unknown>) {
     super(data);
@@ -340,6 +346,28 @@ export class Prediction extends DBModel {
     this.next_check_at ??= null;
     this.attempt_count ??= 0;
     this.cancel_requested_at ??= null;
+    this.key_source ??= null;
+  }
+
+  /**
+   * A new row records whose key paid, so a quota can leave out spend on the
+   * user's own keys. Best-effort: a row that cannot tell is written without
+   * it, and counts as the server's.
+   */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    if (
+      event === ModelChangeEvent.CREATED &&
+      this.key_source === null &&
+      this.user_id &&
+      this.provider
+    ) {
+      try {
+        this.key_source = await providerKeySource(this.user_id, this.provider);
+      } catch {
+        this.key_source = null;
+      }
+    }
+    return super.persist(event);
   }
 
   static async acceptGeneration(

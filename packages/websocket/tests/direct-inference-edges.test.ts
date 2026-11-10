@@ -1335,6 +1335,19 @@ describe("entity reference helpers", () => {
     expect(Array.from(bytes)).toEqual(Array.from(PNG_1x1));
   });
 
+  it("retrieveSourceAssetBytes renders an SVG still to PNG for the model", async () => {
+    const svg = new TextEncoder().encode(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"><rect width="16" height="9" fill="red"/></svg>'
+    );
+    const id = await createStoredAsset("1", "image/svg+xml", svg);
+    const bytes = await retrieveSourceAssetBytes("1", id);
+    expect(Array.from(bytes.subarray(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    const out = await resolveEntityReferenceImages("1", [
+      imageRef(`asset://${id}.svg`)
+    ]);
+    expect(Array.from(out[0].subarray(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
+  });
+
   it("retrieveSourceAssetBytes names the asset in both failure modes", async () => {
     await expect(retrieveSourceAssetBytes("1", "ghost")).rejects.toThrow(
       "Source asset not found: ghost"

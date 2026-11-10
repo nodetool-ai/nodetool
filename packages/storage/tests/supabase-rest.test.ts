@@ -57,6 +57,22 @@ describe("createSupabaseStorageClient", () => {
     });
   });
 
+  it("upload sends the cache-control header Storage stores on the object", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+
+    await client()
+      .storage.from("uploads")
+      .upload("a/b.png", new Uint8Array([1]), {
+        upsert: true,
+        cacheControl: "max-age=604800"
+      });
+
+    const { init } = lastRequest();
+    expect(init.headers).toMatchObject({
+      "cache-control": "max-age=604800"
+    });
+  });
+
   it("list POSTs prefix/limit/search with name-asc sorting", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse([

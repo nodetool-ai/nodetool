@@ -19,6 +19,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 
 import { useAssetStore } from "../stores/AssetStore";
+import { useImageThumbnail } from "./useImageThumbnail";
 import { assetIdFromLocator } from "../utils/mediaRef";
 import {
   asResolvedMediaUrl,
@@ -142,12 +143,16 @@ export function useResolvedMediaUri(
  * media URL when it does not (a `data:`/`http` locator, or an asset whose
  * thumbnail was never generated). Use it wherever media is shown at card size —
  * a grid of storyboard stills pulled megabytes per card through the full URL.
+ *
+ * The server writes the thumbnail after the asset row, so `thumb_url` can name
+ * an object that does not exist yet. `useImageThumbnail` probes it and answers
+ * the full URL until it loads.
  */
 export function useResolvedThumbnailUri(
   source: MediaLocator
 ): ResolvedMediaUrl | undefined {
   const { url, thumbUrl } = useResolvedMedia(source);
-  return thumbUrl ?? url;
+  return asResolvedMediaUrl(useImageThumbnail(thumbUrl, url)) ?? undefined;
 }
 
 /**

@@ -4,7 +4,14 @@ title: "TypeScript SDK"
 description: "Use @nodetool-ai/sdk to call the NodeTool server from TypeScript with a typed tRPC client and a chat WebSocket."
 ---
 
-`@nodetool-ai/sdk` is the public TypeScript client for a NodeTool server. It has two parts: a typed tRPC client that covers the server's `AppRouter`, and `ChatSocket`, an event-emitter wrapper around the chat WebSocket. The source is in `packages/sdk/src/`.
+`@nodetool-ai/sdk` is a typed tRPC client for the server's `AppRouter` plus `ChatSocket`, an event-emitter wrapper around the chat WebSocket. The source is in `packages/sdk/src/`.
+
+```ts
+import { createNodetoolClient } from "@nodetool-ai/sdk";
+
+const nodetool = createNodetoolClient({ baseUrl: "http://localhost:7777" });
+const { workflows } = await nodetool.trpc.workflows.list.query({ limit: 20 });
+```
 
 ## Install
 

@@ -4,7 +4,7 @@ title: "Workflow Graph View"
 description: "Read-only visualization of a NodeTool workflow."
 ---
 
-The **Workflow Graph View** is a read-only rendering of a workflow. Use it for visual snapshots, screenshots for documentation, and showing a graph without handing over the editor.
+The Workflow Graph View is a read-only rendering of a workflow, for snapshots and screenshots without handing over the editor.
 
 ![Workflow Graph View](assets/screenshots/workflow-graph-view.png)
 
@@ -53,10 +53,4 @@ To screenshot a workflow JSON file, run `npx tsx scripts/screenshot-workflow.ts 
 
 `/graph/:workflowId` loads the workflow through the same authenticated `workflows.get` call the editor uses. You need at least viewer access to the workflow. On a local install, loopback requests are trusted, so any workflow on your own machine opens. Inline `?data=` payloads need no access check because nothing is fetched.
 
----
-
-## Next Steps
-
-- [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — the full editor where you author workflows
-- [Chain Editor]({{ '/chain-editor' | relative_url }}) — the linear alternative
-- [Authentication]({{ '/authentication' | relative_url }}) — how access is enforced
+Related: [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Chain Editor]({{ '/chain-editor' | relative_url }}), [Authentication]({{ '/authentication' | relative_url }}).

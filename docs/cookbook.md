@@ -4,15 +4,7 @@ title: "NodeTool Cookbook"
 description: "Recipes for what people make in NodeTool: product films, ads, short films, explainers, images, 3D sets, games, mini apps, and the workflows that repeat them."
 ---
 
-Each recipe starts from the thing you want at the end, such as a launch film,
-a set of ads, or a playable game. It names where to start, what the agent does,
-and which editor you finish in.
-
-Most recipes start the same way. You write a brief in chat or pick a guided
-flow, the agent builds the project, and you review it in an editor. You can
-change any part by hand or send the agent a note about one shot. When the same
-job comes back every week, the last section turns it into a workflow that runs
-without you.
+Each recipe starts from the result you want, such as a launch film, a set of ads, or a playable game, and names where to start, what the agent does, and which editor you finish in. When a job repeats, the last section turns it into a workflow.
 
 ## How a recipe runs
 
@@ -33,10 +25,8 @@ without you.
    3D model, game, or app that you can open and edit, not a single exported
    file.
 
-> Recipes run on your own provider keys, local models, or hosted credits.
-> Storyboards render cheap stills before they spend on video, and NodeTool
-> records what each provider call cost. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
-{: .callout-tip}
+> **Needs:** provider keys for cloud models, or local models. Storyboards render stills before video, and each provider call's cost is recorded. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
+{: .callout-note}
 
 ## Video recipes
 

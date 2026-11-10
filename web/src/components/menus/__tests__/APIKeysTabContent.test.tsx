@@ -89,6 +89,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
         connect: jest.fn(),
         disconnect: jest.fn(),
         manualPrompt: null,
+        callbackUrl: null,
         isSubmittingManual: false,
         submitManualCode: jest.fn(),
         cancelManual: jest.fn()
@@ -112,6 +113,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Codex")).not.toBeInTheDocument();
     expect(screen.queryByText("Antigravity")).not.toBeInTheDocument();
+    expect(screen.queryByText("GitHub Copilot")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /install antigravity/i })
     ).not.toBeInTheDocument();

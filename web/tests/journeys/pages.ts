@@ -509,11 +509,11 @@ export class CreatePage {
     });
   }
 
-  /** New → Create images and videos, from the workspace home. */
+  /** New → Image, from the workspace home: a new Create tab for images. */
   async open(): Promise<void> {
     await goto(this.page, "/workspace");
     await this.page.getByRole("button", { name: "Open or create a tab" }).click();
-    await this.page.getByRole("menuitem", { name: /Create images and videos/ }).click();
+    await this.page.getByRole("menuitem", { name: /^Image/ }).click();
     await this.prompt().waitFor({ state: "visible", timeout: 30_000 });
   }
 

@@ -855,6 +855,17 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(codes(bound.warnings)).not.toContain("binding_incomplete");
   });
 
+  it("refuses a clip that plays a temporary file instead of an asset", () => {
+    const bad = validateTimelineSequence(
+      doc({ clips: [clip({ mediaType: "image", currentAssetId: "file:///tmp/assets/aa88dc53.png" })] })
+    );
+    expect(codes(bad.errors)).toContain("media_source_unplayable");
+    const good = validateTimelineSequence(
+      doc({ clips: [clip({ mediaType: "image", currentAssetId: "package://nodetool-base/timelines/voltra/street.jpg" })] })
+    );
+    expect(codes(good.errors)).not.toContain("media_source_unplayable");
+  });
+
   it("flags duplicate track, clip, and marker ids", () => {
     const result = validateTimelineSequence({
       tracks: [track(), track()],

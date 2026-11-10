@@ -16,6 +16,7 @@ import useSecretsStore from "../../stores/SecretsStore";
 import type { SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { OAuthCallbackAddress } from "../oauth/OAuthCallbackAddress";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import { useProviders } from "../../hooks/useProviders";
 import type { SecretResponse } from "../../stores/ApiTypes";
@@ -41,7 +42,9 @@ import {
 import { ToolbarIconButton } from "../ui_primitives";
 import { ConfirmDialog } from "../ui_primitives";
 import AntigravityCard from "./AntigravityCard";
+import CopilotCard from "./CopilotCard";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
+import LocalComfyConnect from "../comfy/LocalComfyConnect";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 import { OnePasswordPicker, type OnePasswordPick } from "./OnePasswordPicker";
 import { useOnePasswordStatus } from "../../serverState/useOnePassword";
@@ -96,7 +99,13 @@ interface ProviderCardProps {
 }
 
 export const ProviderCard = (props: ProviderCardProps) =>
-  props.meta.providerId === "antigravity" ? <AntigravityCard /> : <ApiKeyProviderCard {...props} />;
+  props.meta.providerId === "antigravity" ? (
+    <AntigravityCard />
+  ) : props.meta.providerId === "copilot" ? (
+    <CopilotCard />
+  ) : (
+    <ApiKeyProviderCard {...props} />
+  );
 
 const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
   secret,
@@ -403,6 +412,17 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
               </EditorButton>
             ))}
 
+          {meta.oauth && oauth.isConnecting && (
+            <EditorButton
+              density="compact"
+              variant="text"
+              size="small"
+              onClick={oauth.cancelManual}
+            >
+              {t("common.cancel")}
+            </EditorButton>
+          )}
+
           {meta.oauthOnly ? null : hasKey ? (
             <>
               <EditorButton
@@ -443,6 +463,7 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
           )}
         </FlexRow>
       </FlexRow>
+      <OAuthCallbackAddress url={oauth.callbackUrl} />
       <OAuthManualCompletionDialog
         prompt={oauth.manualPrompt}
         label={oauth.label}
@@ -822,6 +843,18 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       {/* Google Workspace has no API key — access rides on the Google login.
           Renders nothing when the backend does not offer the integration. */}
       <GoogleWorkspaceCard />
+
+      {(!lowerSearch || "comfyui comfy local server checkpoints".includes(lowerSearch)) && (
+        <FlexColumn
+          sx={{
+            border: `1px solid ${theme.vars.palette.divider}`,
+            borderRadius: BORDER_RADIUS.lg,
+            overflow: "hidden"
+          }}
+        >
+          <LocalComfyConnect />
+        </FlexColumn>
+      )}
 
       {!hasContent && lowerSearch && (
         <EmptyState

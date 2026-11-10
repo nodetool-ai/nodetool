@@ -4,7 +4,8 @@ title: "Together AI: Add Models & Nodes"
 description: "How to add new Together AI models and workflow nodes to NodeTool â€” manifest entries, provider lists, codegen, and verification."
 ---
 
-> **Audience:** Contributors and coding agents adding Together AI models or nodes to this repo.
+> **Runs:** cloud. **Needs:** `TOGETHER_API_KEY`. The provider constructor throws `TOGETHER_API_KEY is required` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -13,8 +14,6 @@ description: "How to add new Together AI models and workflow nodes to NodeTool â
 3. Run `npm run build` in the package, then `npm run lint && npm run test` (`lint` is `tsc --noEmit`).
 4. For TTS and ASR models, also update the matching static array in `packages/runtime/src/providers/together-provider.ts`. Embedding models exist only there.
 5. Verify with `nodetool node run together.<module>.<ClassName>`.
-
----
 
 ## Where things live
 
@@ -31,8 +30,6 @@ description: "How to add new Together AI models and workflow nodes to NodeTool â
 | Pack registration (`registerTogetherNodes`) | `packages/base-nodes/src/builtin-packs.ts` |
 | Pack catalog entry | `packages/protocol/src/builtin-packs.ts` |
 | `PROVIDER_IDS.TOGETHER` constant | `packages/protocol/src/api-types.ts` |
-
----
 
 ## How Together models and nodes are defined
 
@@ -73,8 +70,6 @@ These are hardcoded in `packages/runtime/src/providers/together-provider.ts`:
 - `TOGETHER_EMBEDDING_MODELS` â€” 1 entry (Multilingual E5 Large, 1024 dims).
 
 TTS and ASR models are **also** in the manifest, so they get workflow nodes (`together.audio.<Model>TextToSpeech` and `together.transcription.<Model>Transcribe`). Embedding models appear only in the provider array and have no workflow node.
-
----
 
 ## Add a new model or node
 
@@ -178,8 +173,6 @@ const TOGETHER_EMBEDDING_MODELS: EmbeddingModel[] = [
 ];
 ```
 
----
-
 ## Verify
 
 **1. Build and type-check.**
@@ -230,12 +223,3 @@ npm run test:affected
 npm run lint
 npm run dev:nodetool -- harness gate --base origin/main
 ```
-
----
-
-## Contributing
-
-- Repository: <https://github.com/nodetool-ai/nodetool>
-- Discord: <https://discord.gg/WmQTWZRcYE>
-- Before opening a PR, run the Verify steps above.
-- Follow the writing style in [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.

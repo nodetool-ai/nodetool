@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import { Asset, Prediction, Project, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
+import { Asset, Prediction, Project, Thread, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
-import { GenerationAlreadyAcceptedError } from "@nodetool-ai/runtime";
+import { GenerationAlreadyAcceptedError, rasterizeSvgInput } from "@nodetool-ai/runtime";
 import {
   calculateChatCost,
   detectImageMime,
@@ -36,6 +36,7 @@ import type {
 } from "@nodetool-ai/runtime";
 
 import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
+import { admitQuota, type QuotaNeed } from "../quota-gate.js";
 import { retrieveAssetBytes } from "../lib/asset-paths.js";
 import { trimVideoWindow } from "../lib/media.js";
 import { resolveImageSize } from "../lib/media-size.js";
@@ -126,6 +127,12 @@ export interface DirectMediaGenerationRequest {
   useReferenceVideoAudio?: boolean;
   /** Project captured when the request was accepted. */
   projectId?: string | null;
+  /**
+   * The thread the take belongs to: a Create session, or a chat whose takes
+   * a Create tab shows. Recorded on the generation row so the tab can list
+   * its takes again after a reload.
+   */
+  threadId?: string;
   destination?: GenerationRequest["destination"];
 }
 
@@ -402,7 +409,7 @@ export async function resolveEntityReferenceImages(
       asset.content_type
     );
     if (!bytes || bytes.length === 0) continue;
-    out.push(bytes);
+    out.push(await generationImageBytes(bytes, asset.content_type));
   }
   return out;
 }
@@ -430,7 +437,24 @@ export async function retrieveSourceAssetBytes(
   if (!bytes) {
     throw new Error(`Source asset bytes not found: ${assetId}`);
   }
-  return bytes;
+  return generationImageBytes(bytes, asset.content_type);
+}
+
+/**
+ * An asset's bytes as a generation model reads them. Image and video models
+ * take raster frames only, so an SVG image is rendered to PNG first. Every
+ * other asset, video and audio included, passes through unchanged.
+ */
+async function generationImageBytes(
+  bytes: Uint8Array,
+  contentType: string
+): Promise<Uint8Array> {
+  return contentType.startsWith("image/") ? rasterizeSvgInput(bytes) : bytes;
+}
+
+/** The MIME type an image asset reaches a provider as, after {@link generationImageBytes}. */
+function generationImageMime(contentType: string): string {
+  return contentType === "image/svg+xml" ? "image/png" : contentType;
 }
 
 async function resolveReferenceAssets(
@@ -458,7 +482,7 @@ async function resolveReferenceAssets(
     if (!bytes || bytes.length === 0) {
       throw new Error(`Reference ${kind} asset ${assetId} is empty`);
     }
-    resolved.push(bytes);
+    resolved.push(await generationImageBytes(bytes, asset.content_type));
   }
   return resolved;
 }
@@ -599,6 +623,14 @@ export class DirectInferenceHandler {
       })
       .filter((t) => t.name.length > 0);
 
+    const quota = await admitQuota(this.session.requireUserId(), [
+      { kind: "tokens", provider: providerId }
+    ]);
+    if (!quota.allowed) {
+      await this.session.send({ type: "error", message: quota.reason });
+      return;
+    }
+
     const provider = await this.session.resolveProvider(
       providerId,
       this.session.requireUserId()
@@ -656,7 +688,9 @@ export class DirectInferenceHandler {
     const userId = this.session.requireUserId();
     const provider = await this.session.resolveProvider(req.provider, userId);
     if (req.provider !== "nodetool") {
-      // BYOK: the user's own keys, never metered.
+      // Outside the managed provider, only a self-hosted server's quota
+      // applies, and only when the server's key pays.
+      await this.requireQuota(userId, [{ kind: "tokens", provider: req.provider }]);
       return this.runDirectTextGenerationInner(req, provider);
     }
 
@@ -834,6 +868,12 @@ export class DirectInferenceHandler {
     if (req.projectId && req.projectId !== "default") {
       await Project.requireOwned(userId, req.projectId);
     }
+    if (req.threadId) {
+      const thread = await Thread.find(userId, req.threadId);
+      if (!thread) {
+        throw new Error("Thread not found");
+      }
+    }
     await assertTimelineGenerationAllowed(userId, req);
     const videoEditReferenceIds = req.mode === "video_edit"
       ? await resolveVideoEditReferenceIds(userId, req)
@@ -853,16 +893,17 @@ export class DirectInferenceHandler {
       if (!req.sourceAssetId) {
         throw new Error(`source_asset_id is required for ${req.mode}`);
       }
+      // Without a source window the whole clip is extended: the Create view
+      // extends a library clip, the timeline a trimmed span of one.
       if (
         extension &&
-        (!context ||
-          (req.extensionMode !== "start" && req.extensionMode !== "end") ||
+        ((req.extensionMode !== "start" && req.extensionMode !== "end") ||
           !Number.isFinite(req.durationSeconds) ||
           (req.durationSeconds ?? 0) <= 0 ||
           (req.variations !== undefined && req.variations !== 1))
       ) {
         throw new Error(
-          "video_extend requires source_context, start/end extension_mode, a positive duration and one variation"
+          "video_extend requires start/end extension_mode, a positive duration and one variation"
         );
       }
       if (context && context.sourceAssetId !== req.sourceAssetId) {
@@ -906,7 +947,15 @@ export class DirectInferenceHandler {
       }
     }
     if (req.provider !== "nodetool") {
-      // BYOK: the user's own keys, never metered.
+      // Outside the managed provider, only a self-hosted server's quota
+      // applies, and only when the server's key pays.
+      await this.requireQuota(userId, [
+        {
+          kind: "media",
+          provider: req.provider,
+          estimatedUsd: this.estimateMediaUsd(req)
+        }
+      ]);
       try {
         return await this.runDirectMediaGenerationInner(req, provider, presets, undefined, videoEditReferences);
       } catch (error) {
@@ -1035,7 +1084,11 @@ export class DirectInferenceHandler {
       signal: req.signal,
       modelId: req.model,
       provider,
-      origin: { surface: "rpc", request_id: req.requestId ?? null },
+      origin: {
+        surface: "rpc",
+        request_id: req.requestId ?? null,
+        ...(req.threadId && { thread_id: req.threadId })
+      },
       workflowId: null,
       projectId: req.projectId ?? null,
       assetNamePrefix: req.mode,
@@ -1210,7 +1263,7 @@ export class DirectInferenceHandler {
         person_consent: req.personConsent, duration_seconds: req.durationSeconds
       }, { mime: "video/mp4" }, () => provider.lipSync(imageBytes, {
         model: { id: req.model, name: req.model, provider: req.provider },
-        audio: audioBytes, visualMimeType: source.content_type, audioMimeType: audio.content_type
+        audio: audioBytes, visualMimeType: generationImageMime(source.content_type), audioMimeType: audio.content_type
       }));
       return { asset_ids: [seamAssetId(generated) ?? await storeAsset(generated.output, "video/mp4", "mp4")] };
     }
@@ -1509,7 +1562,7 @@ export class DirectInferenceHandler {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       if (!maskAsset)
         throw new Error(`Mask asset not found: ${req.maskAssetId}`);
-      const [sourceBytes, maskBytes] = await Promise.all([
+      const [rawSourceBytes, maskBytes] = await Promise.all([
         retrieveAssetBytes(
           adapter,
           userId,
@@ -1523,10 +1576,14 @@ export class DirectInferenceHandler {
           maskAsset.content_type
         )
       ]);
-      if (!sourceBytes)
+      if (!rawSourceBytes)
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       if (!maskBytes)
         throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
+      const sourceBytes = await generationImageBytes(
+        rawSourceBytes,
+        sourceAsset.content_type
+      );
       const params: InpaintingParams = {
         model: imageModel,
         prompt,
@@ -1565,15 +1622,19 @@ export class DirectInferenceHandler {
       if (!sourceAsset) {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       }
-      const sourceBytes = await retrieveAssetBytes(
+      const rawSourceBytes = await retrieveAssetBytes(
         getAssetAdapter(),
         userId,
         sourceAsset.id,
         sourceAsset.content_type
       );
-      if (!sourceBytes) {
+      if (!rawSourceBytes) {
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       }
+      const sourceBytes = await generationImageBytes(
+        rawSourceBytes,
+        sourceAsset.content_type
+      );
       // Style or subject references ride after the source, so a
       // multi-image edit model reads the first image as the one to change.
       const referenceBytes = await resolveReferenceAssets(
@@ -1638,6 +1699,32 @@ export class DirectInferenceHandler {
    * one shot. Timestamps are returned in milliseconds relative to the start of
    * the audio.
    */
+  /** Throw the quota refusal as the call's error, so the caller sees why. */
+  private async requireQuota(
+    userId: string,
+    needs: readonly QuotaNeed[]
+  ): Promise<void> {
+    const decision = await admitQuota(userId, needs);
+    if (!decision.allowed) throw new Error(decision.reason);
+  }
+
+  /** The catalog price of a direct media request, or 0 when it has none. */
+  private estimateMediaUsd(req: DirectMediaGenerationRequest): number {
+    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const unit = getModelUnitPrice(
+      { id: req.model, provider: req.provider },
+      extractPricingParams({
+        resolution: req.resolution,
+        duration_seconds: req.durationSeconds,
+        width: req.width,
+        height: req.height
+      })
+    );
+    return unit && !unit.declined && isFiniteNumber(unit.unit_price)
+      ? unit.unit_price * variations
+      : 0;
+  }
+
   async runDirectTranscription(req: {
     provider: string;
     model: string;
@@ -1663,6 +1750,8 @@ export class DirectInferenceHandler {
       if (!creditDecision.allowed) {
         throw new Error(creditDecision.reason);
       }
+    } else {
+      await this.requireQuota(userId, [{ kind: "media", provider: req.provider }]);
     }
     const asset = await Asset.find(userId, req.assetId);
     if (!asset) {

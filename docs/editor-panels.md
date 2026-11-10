@@ -4,7 +4,7 @@ title: "Editor Panels"
 description: "Every panel around the NodeTool Workflow Editor — left, right, bottom, and floating."
 ---
 
-The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surrounded by a left panel, an Inspector, a bottom panel, and a composer bar over the canvas. This page covers each panel in depth.
+The [Workflow Editor]({{ '/workflow-editor' | relative_url }}) has a left panel, an Inspector on the right, a bottom panel for diagnostics, and a composer bar over the canvas.
 
 ![Editor Layout](assets/screenshots/editor-empty-state.png)
 
@@ -12,13 +12,13 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer: click an icon to expand, click the same icon to collapse. The rail has five views: **Documents**, **Chats**, **Library**, **Nodes**, and **More**. The logo above them opens the app menu (see [App Menu](#app-menu-logo-dropdown)).
+Click a rail icon to open its drawer, and click it again to collapse. The rail has five views: **Documents**, **Chats**, **Library**, **Nodes**, and **More**. The logo above them opens the app menu: **Settings**, **Help**, and **Downloads**. Settings opens as a workspace tab.
 
 ![Left Panel](assets/screenshots/editor-left-panel.png)
 
 ### Documents
 
-A searchable tree of every document in the active project, grouped as **Workflows**, **Apps**, **Creative documents** (sketches, scripts, storyboards, timelines, and entities), and **Agents & code** (JS scripts). Click a row to open the document as a workspace tab. Workflows, sketches, and the other kinds also have their own list views with richer actions, such as creating a sketch or timeline.
+A searchable tree of every document in the active project, grouped as **Workflows**, **Apps**, **Creative documents** (sketches, scripts, storyboards, timelines, and entities), and **Agents & code** (JS scripts). Click a row to open the document as a workspace tab.
 
 ![Left Panel — Workflows](assets/screenshots/editor-left-panel.png)
 
@@ -26,7 +26,7 @@ For Apps, the list view has two header buttons: one scaffolds an app from a work
 
 ### Chats
 
-Saved agent conversations for the active project. Click one to open it as a tab, or start a new one. See [Chat]({{ '/global-chat' | relative_url }}).
+Saved agent conversations for the active project, opened as tabs. See [Chat]({{ '/global-chat' | relative_url }}).
 
 ### Library
 
@@ -36,13 +36,11 @@ Your assets as a grid. Drag a file onto the canvas to create the matching input 
 
 ### Nodes
 
-The node browser. Search and browse all available nodes, organized into sub-tabs: **All**, **I/O**, **Image**, **Image AI**, **Video**, **Video AI**, **Audio**, **Audio AI**, **3D**, **Agents**, and **Control**. Drag a node onto the canvas to add it.
+The node browser, with sub-tabs: **All**, **I/O**, **Image**, **Image AI**, **Video**, **Video AI**, **Audio**, **Audio AI**, **3D**, **Agents**, and **Control**. Drag a node onto the canvas to add it.
 
 ![Left Panel — Nodes](assets/screenshots/editor-left-panel-nodes.png)
 
 ### More
-
-A searchable list of additional panels, followed by the app pages.
 
 | Group | Entries |
 |-------|---------|
@@ -61,7 +59,7 @@ A searchable list of additional panels, followed by the app pages.
 
 ## Right Panel (Inspector)
 
-The right panel hosts the **Inspector** with a **Cost estimate** section under it. The panel opens by itself when you select a node, and `i` toggles it. Closing it yourself stops selection from reopening it until you open it again. (Logs, Queue, Trace, and Version History are not here. They live in the [Bottom Panel](#bottom-panel).)
+The right panel holds the **Inspector** and a **Cost estimate** section. It opens when you select a node, and `i` toggles it. Closing it yourself stops selection from reopening it until you open it again.
 
 ![Right Panel](assets/screenshots/editor-right-panel.png)
 
@@ -87,7 +85,7 @@ Under the Inspector, a collapsed **Cost estimate** section prices the open workf
 
 ## Bottom Panel
 
-The bottom panel docks runtime diagnostics and secondary workflow tools. Drag its top edge to resize. Its views are grouped:
+Drag the top edge to resize. Views:
 
 - **Run**: Logs, Queue, Workers
 - **Workflow**: Versions
@@ -99,7 +97,7 @@ Its header also carries the node and edge counts of the open workflow and a live
 
 ### Logs
 
-Log lines from your runs, newest first, for the open workflow. Toggle **Info**, **Warn**, and **Error** to filter by severity. A node's **View logs** button on its error panel opens this view filtered to that node and run, shown as a chip you can clear. A fullscreen button expands the table. `l` toggles the panel.
+Log lines from your runs, newest first, for the open workflow. Toggle **Info**, **Warn**, and **Error** to filter by severity. A node's **View logs** button on its error panel opens this view filtered to that node and run, shown as a chip you can clear. `l` toggles the panel.
 
 ![Log Panel](assets/screenshots/editor-bottom-panel-logs.png)
 
@@ -113,7 +111,7 @@ Jobs for your workflows in four columns: **Running**, **Queued**, **Completed**,
 
 The GPU workers panel. It lists provisioned worker instances with status, uptime, and estimated cost, provisions a new worker from a profile, and stops one or all of them. GPU pods bill continuously, so stop workers you no longer need.
 
-![Sandboxes Panel](assets/screenshots/editor-bottom-panel-sandboxes.png)
+![Workers Panel](assets/screenshots/editor-bottom-panel-sandboxes.png)
 
 ### Versions
 
@@ -165,23 +163,9 @@ There is no Pause, Resume, or Fit button in the dock. A run cannot be paused or 
 
 ---
 
-## Tab Bar Controls
-
-The workspace tab bar holds a **Project** selector, a **+ New** menu for creating or opening documents, and your open tabs. At the right edge, an activity indicator and the **Notifications** button show pending warnings and agent messages.
-
----
-
-## App Menu (logo dropdown)
-
-The logo at the top of the left rail opens the app menu: **Settings**, **Help**, and **Downloads**. Settings opens as a workspace tab. The other app pages are in [More](#more).
-
----
-
 ## Customizing the Layout
 
-Each panel stays on its own edge. Click a rail icon to open or collapse it, and drag its inner edge to resize. Open or collapsed state and size are remembered between sessions.
-
-Three combinations you'll land on most often:
+Click a rail icon to open or collapse a panel, and drag its inner edge to resize. State and size persist between sessions.
 
 Left panel only, canvas taking the rest:
 
@@ -195,10 +179,4 @@ Everything open, with the logs docked at the bottom for a run:
 
 ![Left panel, inspector and logs open](assets/screenshots/editor-panels-left-plus-inspector-plus-logs.png)
 
----
-
-## Next Steps
-
-- [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — building on the canvas
-- [Chat]({{ '/global-chat' | relative_url }}) — how the in-editor chat works
-- [Configuration]({{ '/configuration' | relative_url }}) — settings that affect the editor
+Related: [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Chat]({{ '/global-chat' | relative_url }}), [Configuration]({{ '/configuration' | relative_url }}).

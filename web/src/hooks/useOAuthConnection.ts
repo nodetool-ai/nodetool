@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { restFetch } from "../lib/rest-fetch";
@@ -113,6 +113,8 @@ export interface OAuthConnection {
   disconnect: () => Promise<void>;
   /** Set when the login can only be finished by pasting the redirect address. */
   manualPrompt: OAuthManualPrompt | null;
+  /** Expected callback address, without sign-in parameters. */
+  callbackUrl: string | null;
   /** True while a pasted address is being exchanged. */
   isSubmittingManual: boolean;
   /** Finish the pending login from the pasted address. */
@@ -142,10 +144,15 @@ export const useOAuthConnection = (
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore((state) => state.addNotification);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   const [manualPrompt, setManualPrompt] = useState<OAuthManualPrompt | null>(
     null
   );
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const loginAttempt = useRef(0);
+  const pendingState = useRef<string | null>(null);
+  const [loginState, setLoginState] = useState<string | null>(null);
+  const loginWindow = useRef<Window | null>(null);
   // The stored tokens when `connect` began. An expired token still counts as
   // connected, so a sign-in finishes when the tokens change, not when any
   // token exists.
@@ -211,6 +218,25 @@ export const useOAuthConnection = (
     onConnected
   ]);
 
+  const cancelCodexState = useCallback(async (state: string) => {
+    try {
+      const response = await restFetch("/api/oauth/openai/cancel", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ state })
+      });
+      if (!response.ok) {
+        throw new Error("Callback listener could not be closed");
+      }
+    } catch {
+      addNotification({
+        content: "Sign-in stopped. The local callback listener will close when it expires.",
+        type: "warning",
+        alert: true
+      });
+    }
+  }, [addNotification]);
+
   const connect = useCallback(async () => {
     if (!provider || !config) {
       return;
@@ -218,7 +244,11 @@ export const useOAuthConnection = (
     setBaseline(
       tokensFingerprint(queryClient.getQueryData<TokensResponse>(tokenQueryKey))
     );
+    setLoginState(null);
+    pendingState.current = null;
+    setCallbackUrl(null);
     setIsConnecting(true);
+    const attempt = ++loginAttempt.current;
 
     // The auth URL only exists after a round-trip to /start, but a window
     // opened after that await counts as gestureless and mobile browsers block
@@ -228,6 +258,7 @@ export const useOAuthConnection = (
     const authWindow = useNativeBrowser
       ? null
       : openPlaceholderWindow(config.label);
+    loginWindow.current = authWindow;
 
     try {
       const response = await restFetch(`/api/oauth/${provider}/start`);
@@ -240,6 +271,22 @@ export const useOAuthConnection = (
       }
 
       const authUrl = body.auth_url;
+      const state = new URL(authUrl).searchParams.get("state");
+      if (attempt !== loginAttempt.current) {
+        if (provider === "openai" && state) {
+          await cancelCodexState(state);
+        }
+        authWindow?.close();
+        return;
+      }
+      pendingState.current = state;
+      setLoginState(body.manual ? null : state);
+      if (body.redirect_uri) {
+        const callback = new URL(body.redirect_uri);
+        callback.search = "";
+        callback.hash = "";
+        setCallbackUrl(callback.toString());
+      }
       // The provider will redirect somewhere this server never sees. Ask for
       // the address the browser lands on instead of waiting for a callback
       // that cannot arrive.
@@ -261,6 +308,9 @@ export const useOAuthConnection = (
       }
     } catch (error) {
       authWindow?.close();
+      if (attempt !== loginAttempt.current) {
+        return;
+      }
       setIsConnecting(false);
       setManualPrompt(null);
       addNotification({
@@ -272,7 +322,7 @@ export const useOAuthConnection = (
         alert: true
       });
     }
-  }, [provider, config, addNotification, queryClient, tokenQueryKey]);
+  }, [provider, config, addNotification, queryClient, tokenQueryKey, cancelCodexState]);
 
   const submitManualCode = useCallback(
     async (input: string) => {
@@ -311,9 +361,67 @@ export const useOAuthConnection = (
   );
 
   const cancelManual = useCallback(() => {
+    loginAttempt.current += 1;
+    loginWindow.current?.close();
+    loginWindow.current = null;
+    const state = pendingState.current;
+    pendingState.current = null;
+    setLoginState(null);
     setManualPrompt(null);
     setIsConnecting(false);
-  }, []);
+    if (provider === "openai" && state) {
+      void cancelCodexState(state);
+    }
+  }, [provider, cancelCodexState]);
+
+  useEffect(() => {
+    if (!isConnecting) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      cancelManual();
+      addNotification({
+        content: "Sign-in timed out. Please try again.",
+        type: "error",
+        alert: true
+      });
+    }, manualPrompt ? 10 * 60 * 1000 : 5 * 60 * 1000);
+    return () => window.clearTimeout(timeout);
+  }, [isConnecting, manualPrompt, cancelManual, addNotification]);
+
+  const { data: loginStatus } = useQuery({
+    queryKey: ["oauth-login-status", provider, loginState],
+    queryFn: async () => {
+      const response = await restFetch("/api/oauth/openai/status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ state: loginState })
+      });
+      if (!response.ok) {
+        throw new Error("Could not check sign-in status");
+      }
+      return (await response.json()) as { status: string };
+    },
+    enabled: provider === "openai" && isConnecting && !!loginState,
+    refetchInterval: 2000,
+    retry: false
+  });
+
+  useEffect(() => {
+    if (!isConnecting || !loginStatus) {
+      return;
+    }
+    const messages: Record<string, string> = {
+      failed: "Sign-in failed. Please try again.",
+      cancelled: "This sign-in was cancelled. Please start again.",
+      expired: "Sign-in expired. Please start again."
+    };
+    const message = messages[loginStatus.status];
+    if (message) {
+      cancelManual();
+      addNotification({ content: message, type: "error", alert: true });
+    }
+  }, [loginStatus, isConnecting, cancelManual, addNotification]);
 
   const disconnect = useCallback(async () => {
     if (!provider || !config?.canDisconnect) {
@@ -350,6 +458,7 @@ export const useOAuthConnection = (
     connect,
     disconnect,
     manualPrompt,
+    callbackUrl: isConnecting ? callbackUrl : null,
     isSubmittingManual,
     submitManualCode,
     cancelManual

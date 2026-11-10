@@ -1243,7 +1243,7 @@ scripts/check-portable.sh         # the non-Apple code, as far as macOS can buil
 scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
 ```
 
-### Standalone unsigned releases
+### Standalone releases
 
 The [release workflow](../../.github/workflows/native-timeline-release.yml)
 creates a draft prerelease, separate from Electron. Set `PROJECT_VERSION` in
@@ -1254,11 +1254,23 @@ tag version, including its suffix, names the downloads. Manual dispatch takes
 an existing tag and builds that tagged commit.
 
 Downloads are `nodetool-timeline-<version>-macos-arm64.zip`,
+`nodetool-timeline-with-server-<version>-macos-arm64.zip`,
 `nodetool-timeline-<version>-windows-x64.zip`, and
 `nodetool-timeline-<version>-linux-x64.AppImage`, plus `SHA256SUMS.txt`.
-All builds are unsigned. macOS has only an ad-hoc signature and no
-notarization. The draft notes explain Gatekeeper, SmartScreen and Linux
-executable permissions. Review the package smoke logs and checksums before
+
+The macOS builds are signed and notarized by
+[scripts/sign-macos.sh](scripts/sign-macos.sh), with the Developer ID
+certificate and notarization login of the Electron release. The Windows and
+Linux builds are unsigned. The draft notes explain SmartScreen and Linux
+executable permissions.
+
+The "with server" build comes from
+[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh).
+It holds the bundled backend and Node runtime in `Contents/Resources/backend`.
+Opened without a file, the app starts that server on a free loopback port and
+lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
+The server stops when the app quits and logs to `server.log` in the app's
+data folder. Review the package smoke logs and checksums before
 publishing the draft manually.
 
 The workflow builds only the app, checks the extracted packages with

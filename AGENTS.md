@@ -50,7 +50,8 @@ Expand these aliases only when given as a standalone instruction:
 
 All prose follows [Writing Style](docs/WRITING_STYLE.md). Fix violations you
 pass when editing Markdown. User-facing copy also follows [Brand & Verbal
-Guidelines](docs/BRAND.md).
+Guidelines](docs/BRAND.md). Published docs pages also follow the [Docs
+Editorial Spec](docs/docs-editorial.spec.md).
 
 ## Quick Navigation
 
@@ -83,6 +84,7 @@ Guidelines](docs/BRAND.md).
 - **[Product Analytics](docs/analytics.md)** — Opt-in anonymous analytics: the typed event schema, consent per client, the ingest route, retention
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
+- **[Docs Editorial Spec](docs/docs-editorial.spec.md)** — What a published docs page must show and cut, page archetypes, and the `check:docs-prose` lint
 - **[Brand & Verbal Guidelines](docs/BRAND.md)** — Positioning, voice, messaging pillars, and product lexicon for anything user-facing
 
 
@@ -298,6 +300,9 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   dependencies first, then rerun checks before investigating further. A
   workspace added since the last install has no `node_modules/@nodetool-ai/`
   link and fails every build that imports it. Run `npm install` to link it.
+- Run `npm run media:pull` in a new checkout. Example media lives on
+  media.nodetool.ai, and tests read it from disk. See
+  [package media](packages/base-nodes/AGENTS.md#package-media-nodetoolassetsnodetool-basemediajson).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.

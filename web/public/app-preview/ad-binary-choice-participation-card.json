@@ -38,14 +38,6 @@
                 "title": "Ending"
               },
               {
-                "value": "review",
-                "title": "Review"
-              },
-              {
-                "value": "build",
-                "title": "Build"
-              },
-              {
                 "value": "result",
                 "title": "Result"
               }
@@ -161,37 +153,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: Question",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "question"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -212,25 +173,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -259,7 +202,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -380,6 +323,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Question",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "question"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -862,6 +836,24 @@
                 }
               },
               {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
                 "type": "Text",
                 "props": {
                   "id": "plan-error",
@@ -913,7 +905,7 @@
                       "type": "Button",
                       "props": {
                         "id": "plan",
-                        "label": "Plan the storyboard",
+                        "label": "Make the video",
                         "disabledWhen": {
                           "binding": "op:plan/exec#running",
                           "op": "notEmpty"
@@ -1138,7 +1130,7 @@
     "operations": [
       {
         "id": "plan",
-        "name": "Plan or refresh Storyboard",
+        "name": "Make the video",
         "workflowId": "plan",
         "workflowVersion": 1,
         "inputs": {
@@ -1643,7 +1635,8 @@
             "variableId": "step"
           }
         },
-        "policy": "queue"
+        "policy": "queue",
+        "agentTask": "Make the 10-second 9:16 ad as a motion-graphics timeline. Do not plan a storyboard.\nFinish the whole build in this turn: read the values, write and save the timeline, check it and show the result. Do not end the turn after you read the state.\nObjective: Invite a clear A/B response without pretending an MP4 is interactive.\nVisual rule: The two choices have equal visual weight and remain visible long enough to answer.\nBeats, in order:\n- 0–2 s question: Context image and one short question.. Motion: Question pops once over 220 ms.\n- 2–4 s choice_a: Left/top card appears with a simple visual.. Motion: 250 ms slide; small emphasis only.\n- 4–6 s choice_b: Right/bottom card appears in the matching treatment.. Motion: Same timing/easing as A.\n- 6–8 s compare: Both choices are shown together.. Motion: Very subtle alternating emphasis, or no motion.\n- 8–10 s cta: Explicit instruction: comment A/B, or use a configured native poll.. Motion: Static instruction.\n\nRead the values first with ui_app_run_get_state. Use them exactly:\n- contextImage (Context image, image)\n- choiceAImage (Choice A, image)\n- choiceBImage (Choice B, image)\n- logo (Logo, image)\n- question (Question, text)\n- choiceA (Choice A text, text)\n- choiceB (Choice B text, text)\n- comparePrompt (Compare prompt, text)\n- participationCta (Participation call to action, text)\n- brandColor (Brand color, color)\nCopy stays word for word. When one copy line holds both a closing line and a call to action (\"Plan and build with Linear. Sign up.\"), split it at the sentence boundary: the closing line is the headline and the last short imperative is the button label. Add no label the values do not hold: the images carry their own labels.\nCopy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `asset://` uri to s.image() as it is, without looking it up in the asset library. An image you fetch or process yourself must be saved as an asset first (nodetool.media.toImage or save_asset); a file:// path does not play. Never generate or replace an image.\n\nLoad the motion-graphics skill and read nodetool.packs.docs(\"@nodetool-ai/sandbox-timeline\") before you write scenes. Then adapt the reference builder below in one execute_code action: keep its motion language, timing and structure, swap in the user's copy, images and colors, and recreate every graphic element the images do not hold (shapes, rings, cards, buttons, glows, backdrops) as timeline layers. It must look like modern motion graphics: layered depth, continuous secondary motion, eased entrances and exits, text animators, transitions between beats and a restrained finish. Save with v.save(nodetool.timelines, {name, showcase: true}).\nLegibility and layout on a 1080×1920 frame:\n- Crop each image to its content before you place it: trim a plain background border with image.crop, then save it with nodetool.media.toImage. Text inside an image must be at least 2.5% of the frame height (48 px) once scaled. Make cards and nodes that show an image at least 400×225.\n- Keep the logo, copy and button inside the safe area: 250 px from the top and 350 px from the bottom. Put the logo above the headline or next to the button.\n- Build the button as a rect and a text label parented to one group at the same y, both centered, with the label at 52 px or more. Do not use s.pill() with a dot for the button.\n- Give scene lengths in frames at the timeline's fps and check that the total, after transitions, is exactly 10 s.\nFix every showcase warning that save returns and save again. Look at preview_timeline_frame frames at each beat. Then render a draft with render_timeline at preview_scale 0.5, and finish when the draft renders.\nWrite `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image fits the frame. Pass `s` (for example s: 0.4) to scale it. The options w, h, width, height, size and scale throw.\nWrite `timeline` as {\"type\": \"timeline\", \"id\": \"<timeline_id>\"} and `finishStatus` as one sentence, then show the `result` step. Write no other values: the storyboard values (approval, planPreview and the rest) are not used in chat.\n\nReference builder (fictional brand; replace its copy, images and colors):\n```js\n// Ad library R07, Binary-choice participation card: a 10-second vertical\n// engagement ad for the fictional Voltra motorcycle. It asks one question,\n// shows two equal choices, and asks for a comment instead of pretending the\n// video is a poll.\n//\n// `node scripts/example-timelines/ad-library.mjs build binary-choice-participation-card`\n// writes marketing/recipe-assets/ad-library/binary-choice-participation-card.timeline.json.\n//\n// The pictures are the Voltra example's stills, shipped under\n// package://nodetool-base/timelines/voltra. Every time value is seconds from\n// the start of the ad, the beat times in marketing/src/data/adLibrary.json.\n// Positions are px from the frame centre on a 1080×1920 frame.\n//\n// Motion language: the two cards share one 250 ms slide and one curve\n// (SNAP), mirrored. The question pops once; the instruction does not move.\nimport { video } from \"@nodetool-ai/sandbox-timeline\";\n\nconst W = 1080, H = 1920, FPS = 30;\n\nconst INK = \"#05070a\", TEXT = \"#f4f7f8\", DIM = \"#a8b6ba\", TEAL = \"#2ee6d6\", AMBER = \"#ffb547\";\nconst SNAP = \"cubic-bezier(0.16,1,0.3,1)\";\nconst POP = \"cubic-bezier(0.3,1.4,0.6,1)\";\nconst COVER = H / ((W * 9) / 16);\nconst SRC_W = W * COVER;\n\nconst v = video({\n  width: W, height: H, fps: FPS,\n  palette: { ink: INK, text: TEXT, dim: DIM, accent: TEAL },\n  fonts: { display: \"Inter\", body: \"Inter\" }\n});\n\nconst uri = (name) => `package://nodetool-base/timelines/voltra/${name}.jpg`;\n\nconst CARD = { w: 450, h: 640, y: 50, gap: 34, img: 420 };\n\n/**\n * One choice: a still cropped to the card's picture window, a letter badge\n * and two lines of label. Both cards are built by this one function, so they\n * carry the same visual weight.\n */\nfunction choice(s, o) {\n  const { letter, lines, still, fx, tone, side } = o;\n  const x = side * (CARD.w + CARD.gap) / 2;\n  const g = s.group({ name: `choice-${letter}`, x, y: CARD.y, at: o.at });\n  s.rect(CARD.w, CARD.h, \"rgba(8,11,15,0.82)\", { name: `choice-${letter}-plate`, parent: g.id, r: 34, stroke: \"rgba(255,255,255,0.16)\", sw: 2, effects: [{ type: \"dropShadow\", offsetX: 0, offsetY: 24, blur: 50, color: \"rgba(0,0,0,0.5)\" }] });\n  // The picture: the still's 9:16-height crop around fx, scaled to the window.\n  const iw = CARD.w - 28, ih = CARD.img;\n  const aspect = iw / ih, cw = (aspect * 9) / 16;\n  const left = Math.min(Math.max(fx - cw / 2, 0), 1 - cw);\n  s.image(uri(still), {\n    name: `choice-${letter}-picture`, parent: g.id, y: -CARD.h / 2 + 14 + ih / 2, s: iw / W,\n    crop: { left, right: 1 - left - cw, top: 0, bottom: 0 }, mask: { kind: \"rect\", x: 0, y: 0, width: 1, height: 1, radiusPx: 24 }\n  });\n  const badge = s.ellipse(92, tone, { name: `choice-${letter}-badge`, parent: g.id, x: -CARD.w / 2 + 70, y: -CARD.h / 2 + 14 + ih + 6 });\n  s.text(letter, { name: `choice-${letter}-letter`, parent: g.id, x: -CARD.w / 2 + 70, y: -CARD.h / 2 + 14 + ih + 6, mw: 0.08, size: 56, weight: 800, color: INK });\n  const label = lines.map((line, k) => s.text(line, { name: `choice-${letter}-label-${k}`, parent: g.id, anchor: \"left\", x: -CARD.w / 2 + 30, y: CARD.h / 2 - 104 + k * 58, mw: 0.36, size: 48, weight: 700, color: TEXT, tracking: -0.02 }));\n  badge.enter({ from: { scale: 0 }, at: 0.15, dur: 0.25, ease: POP });\n  return { g, label };\n}\n\nconst ask = v.scene(\"Ask\", 10, (s) => {\n  // Context: the bike on the rooftop, darkened under a scrim, pushing in slowly.\n  const ctx = s.image(uri(\"rooftop\"), { name: \"context\", s: COVER, x: -(0.42 - 0.5) * SRC_W });\n  ctx.animate({ scale: [1, 1.06, \"linear\"] }, { at: 0, dur: 10, role: \"emphasis\" });\n  s.rect(W, H, { type: \"linear\", angle: 90, stops: [{ offset: 0, color: \"rgba(5,7,10,0.92)\" }, { offset: 0.45, color: \"rgba(5,7,10,0.38)\" }, { offset: 1, color: \"rgba(5,7,10,0.85)\" }] }, { name: \"scrim\" });\n\n  // B1 question: one pop over 220 ms, then it holds for the whole ad.\n  const q1 = s.text(\"Where does your\", { name: \"question-1\", size: 92, weight: 800, color: TEXT, tracking: -0.035, style: { lineHeight: 1.04 } });\n  const q2 = s.text(\"first ride go?\", { name: \"question-2\", size: 92, weight: 800, color: TEAL, tracking: -0.035, style: { lineHeight: 1.04 } });\n  const question = s.stack([q1, q2], { name: \"question\", at: { x: 0, y: -520 }, align: \"center\", gap: 0 });\n  question.enter({ from: { scale: 0.86, opacity: 0 }, at: 0, dur: 0.22, ease: POP });\n  const mark = s.text(\"VOLTRA\", { name: \"brand\", y: -735, mw: 0.4, font: \"Bebas Neue\", size: 60, weight: 400, color: DIM, tracking: 0.3 });\n  mark.enter({ from: { opacity: 0 }, at: 0, dur: 0.22, ease: \"linear\" });\n\n  // B2 and B3: the two cards, same slide, same curve, mirrored.\n  const a = choice(s, { letter: \"A\", lines: [\"Neon streets\", \"after the rain\"], still: \"street\", fx: 0.42, tone: TEAL, side: -1, at: 2 });\n  const b = choice(s, { letter: \"B\", lines: [\"The long\", \"tunnel home\"], still: \"tunnel\", fx: 0.5, tone: AMBER, side: 1, at: 4 });\n  a.g.enter({ from: { offsetX: -0.2 * W, opacity: 0 }, at: 0, dur: 0.25, ease: SNAP });\n  b.g.enter({ from: { offsetX: 0.2 * W, opacity: 0 }, at: 0, dur: 0.25, ease: SNAP });\n  // A small emphasis on each as it lands.\n  a.g.animate({ scale: [[0, 1], [0.5, 1.03, \"out\"], [1, 1, \"inOut\"]] }, { at: 0.3, dur: 0.5, role: \"emphasis\" });\n  b.g.animate({ scale: [[0, 1], [0.5, 1.03, \"out\"], [1, 1, \"inOut\"]] }, { at: 0.3, dur: 0.5, role: \"emphasis\" });\n  // B4 compare: one gentle alternating emphasis, A then B, then both hold.\n  a.g.animate({ scale: [[0, 1], [0.5, 1.025, \"inOut\"], [1, 1, \"inOut\"]] }, { at: 4.3, dur: 0.6, role: \"emphasis\" });\n  b.g.animate({ scale: [[0, 1], [0.5, 1.025, \"inOut\"], [1, 1, \"inOut\"]] }, { at: 2.9, dur: 0.6, role: \"emphasis\" });\n\n  // The bottom slot: the compare prompt, then the instruction, which does not move.\n  const compare = s.text(\"Pick one. No wrong answers.\", { name: \"compare\", y: 500, mw: 0.86, size: 56, weight: 600, color: DIM, at: 6, dur: 2 });\n  compare.enter({ from: { opacity: 0, offsetY: 16 }, at: 0, dur: 0.25, ease: SNAP });\n  s.seq(8, 2, (q) => {\n    const line1 = q.text(\"Comment A or B.\", { name: \"instruction-1\", size: 72, weight: 800, color: TEXT, tracking: -0.03 });\n    const line2 = q.text(\"We ride the winner next week.\", { name: \"instruction-2\", size: 48, weight: 500, color: DIM });\n    q.stack([line1, line2], { name: \"instruction\", at: { x: 0, y: 500 }, align: \"center\", gap: 10 });\n  });\n\n  s.finish({ vignette: 0.16, softness: 0.75, grain: 0.04, seed: 8 });\n});\n\nv.series([ask]);\n\nconst saved = await v.save(nodetool.timelines, {\n  name: \"Binary-choice card — Voltra\",\n  showcase: true\n});\nawait output(\"timeline\", {\n  name: \"Binary-choice card — Voltra\",\n  description: \"A 10-second vertical engagement ad: one question over a darkened context shot, two matched choice cards, and a plain instruction to comment A or B.\",\n  videoUri: \"/ad-library/videos/binary-choice-participation-card.mp4\",\n  posterUri: \"/ad-library/videos/binary-choice-participation-card.webp\",\n  ...saved\n});\n```"
       },
       {
         "id": "finish",
@@ -2171,6 +2164,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Binary-choice participation card\".\nObjective: Invite a clear A/B response without pretending an MP4 is interactive.\nVisual rule: The two choices have equal visual weight and remain visible long enough to answer.\nBeats, in order:\n- 0–2 s: Context image and one short question. Shows Brand color, Context image, Question.\n- 2–4 s: Left/top card appears with a simple visual. Shows Brand color, Choice A, Choice A text.\n- 4–6 s: Right/bottom card appears in the matching treatment. Shows Brand color, Choice B, Choice B text.\n- 6–8 s: Both choices are shown together. Shows Brand color, Choice A, Choice B, Compare prompt.\n- 8–10 s: Explicit instruction: comment A/B, or use a configured native poll. Shows Brand color, Choice A, Choice B, Logo, Participation call to action.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (header logo, large <img> files, feature-page screenshots), then with an image search. A social preview card (og:image, a title on a gradient) is a last resort. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\nIf image search throws because no search backend is configured, tell the user in one sentence that a SerpAPI, DataForSEO or Brave key in Settings finds better images. Then take nodetool.web.screenshot of the product's feature pages instead.\nSave each image you consider as an asset and look at it with view_image before you offer it. Name in the option's description any image that is only a social preview card.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's accent color as #RRGGBB (buttons, links, highlights), not the page background or a theme-color that is near black or white\n- fields: question (Question: question, at most 7 words); choiceA (Choice A text: choice a, at most 7 words); choiceB (Choice B text: choice b, at most 7 words); comparePrompt (Compare prompt: compare, at most 7 words); participationCta (Participation call to action: cta, at most 8 words)\n- images: contextImage (Context image: A real photo or screenshot that matches the beats that show it. Shown in: Context image and one short question.); choiceAImage (Choice A: A real photo or screenshot that matches the beats that show it. Shown in: Left/top card appears with a simple visual. | Both choices are shown together. | Explicit instruction: comment A/B, or use a configured native poll.); choiceBImage (Choice B: A real photo or screenshot that matches the beats that show it. Shown in: Right/bottom card appears in the matching treatment. | Both choices are shown together. | Explicit instruction: comment A/B, or use a configured native poll.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Explicit instruction: comment A/B, or use a configured native poll.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",
@@ -2740,6 +2734,7 @@
         }
       }
     ],
+    "presentation": "chat",
     "recipe": {
       "schemaVersion": 1,
       "slug": "ad-binary-choice-participation-card",

@@ -5,7 +5,13 @@ permalink: /game-engine/physics
 description: "Author collision shapes, character movement, layers, materials, and forces."
 ---
 
-A visible object and its collider are separate. Add the collision surface deliberately, then verify it with movement through the actual runtime. A model's appearance or bounds do not prove that it blocks the player.
+A visible object and its collider are separate. A model's appearance or bounds do not make it block the player, so add a collider and verify it with movement in the runtime. A 2D solid platform:
+
+```json
+{ "id": "ledge", "transform2d": { "x": 6, "y": 3 },
+  "body2d": { "type": "static" },
+  "collider2d": { "width": 4, "height": 0.5, "category": 1, "mask": 4294967295 } }
+```
 
 ![AETHER player standing on a platform above a gap](/assets/game-engine/aether.png)
 

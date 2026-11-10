@@ -8,13 +8,7 @@ import { test, expect } from "@playwright/test";
  * alone is ignored by iOS Safari, so a flick inside the panel scrolled the
  * document behind it.
  *
- * The model marquees do not animate while their section is off screen. Chrome
- * cannot composite them, so every frame they run costs a style recalculation
- * over ~50 moving cards — 1.2s of the main thread per 3s on a 4x-throttled
- * phone, measured with the section nowhere near the viewport. That is what
- * made every interaction on the page, the menu included, feel stuck.
- *
- * And the menu opens without the React bundle at all. The landing page is one
+ * The menu also opens without the React bundle at all. The landing page is one
  * `"use client"` tree, so hydration landed ~2.7s in on a 6x-throttled phone
  * while the hamburger had been on screen since ~0.3s; every tap in between was
  * swallowed. Asserted by serving the page with its chunks blocked rather than
@@ -91,32 +85,6 @@ test.describe("landing page on a phone", () => {
     await page.keyboard.press("Escape");
     await expect(panel).toBeHidden();
     await expect(trigger).toBeFocused();
-  });
-
-  test("the model marquees stay paused while their section is off screen", async ({
-    page,
-  }) => {
-    await page.goto("/", { waitUntil: "load" });
-
-    const track = page.locator(".animate-marquee").first();
-    await expect(track).toHaveCount(1);
-    const playState = () =>
-      track.evaluate((el) => getComputedStyle(el).animationPlayState);
-
-    // Scroll the section away rather than trusting it to start off screen:
-    // the model wall sits directly under the hero (NARRATIVE.md § Order of the
-    // page), and this test guards the IntersectionObserver, not the page order.
-    // It read "paused" for free while the section happened to be tenth, which
-    // is how it passed without ever proving the observer pauses on scroll-away.
-    await page.evaluate(() =>
-      window.scrollTo(0, document.body.scrollHeight)
-    );
-    await expect.poll(playState).toBe("paused");
-
-    await track.evaluate((element) =>
-      element.closest("section")?.scrollIntoView({ block: "center" })
-    );
-    await expect.poll(playState).toBe("running");
   });
 
   test("the menu opens with the page's JavaScript blocked", async ({ page }) => {

@@ -154,9 +154,9 @@ describe("provider with no models", () => {
 
   it("shows when the user clicks an empty provider while the menu is open", () => {
     render(ui({ models: [llama, gpt] }));
-    fireEvent.click(screen.getByText("ChatGPT"));
-    expect(screen.getByText("ChatGPT has no models yet")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Connect ChatGPT" }));
+    fireEvent.click(screen.getByText("ChatGPT (browser)"));
+    expect(screen.getByText("ChatGPT (browser) has no models yet")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Connect ChatGPT (browser)" }));
     expect(openProviderOnboarding).toHaveBeenCalled();
   });
 });

@@ -22,6 +22,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { useImageThumbnail } from "../../hooks/useImageThumbnail";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -31,6 +32,17 @@ interface PropertyDropzoneProps {
   props: PropertyProps;
   showRecorder?: boolean;
 }
+
+/** The last path segment of a document URI, without its query. */
+const documentFileName = (uri: string | undefined): string => {
+  const path = (uri ?? "").split(/[?#]/)[0];
+  const last = path.slice(path.lastIndexOf("/") + 1);
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+};
 
 const PropertyDropzone = ({
   asset,
@@ -63,6 +75,26 @@ const PropertyDropzone = ({
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
+
+  // The dropzone is a node-sized tile, so it paints the asset's 512px
+  // thumbnail. Copy and the viewer still use the original.
+  const isImage = contentType.split("/")[0] === "image";
+  const fullImageSource = asset?.get_url || uri || "";
+  const imageSource =
+    useImageThumbnail(isImage ? asset?.thumb_url : undefined, fullImageSource) ??
+    "";
+  const showingThumbnail = imageSource !== fullImageSource;
+  // The thumbnail's own size is not the image's; read the stored size instead.
+  const storedDimensions = useMemo(() => {
+    const md = asset?.metadata as
+      | { width?: unknown; height?: unknown }
+      | null
+      | undefined;
+    return typeof md?.width === "number" && typeof md?.height === "number"
+      ? { width: md.width, height: md.height }
+      : null;
+  }, [asset?.metadata]);
+  const shownDimensions = showingThumbnail ? storedDimensions : imageDimensions;
 
   const styles = (theme: Theme) =>
     css({
@@ -252,7 +284,7 @@ const PropertyDropzone = ({
       case "video":
         return "video/*,.mp4,.avi,.mov,.wmv,.flv,.webm,.mkv";
       case "document":
-        return ".pdf,.doc,.docx,.txt,.html";
+        return ".pdf,.doc,.docx,.txt,.html,.csv,.tsv";
       default:
         return "*/*";
     }
@@ -299,7 +331,7 @@ const PropertyDropzone = ({
             ];
           case "document":
             return [
-              { name: t("propertyDropzone.documents"), extensions: ["pdf", "doc", "docx", "txt", "html"] }
+              { name: t("propertyDropzone.documents"), extensions: ["pdf", "doc", "docx", "txt", "html", "csv", "tsv"] }
             ];
           default:
             return undefined;
@@ -354,7 +386,6 @@ const PropertyDropzone = ({
   const renderViewer = useMemo(() => {
     switch (contentType.split("/")[0]) {
       case "image": {
-        const imageSource = asset?.get_url || uri || "";
         return (
           <>
             <AssetViewer
@@ -379,10 +410,10 @@ const PropertyDropzone = ({
               {imageError && (
                 <p className="centered uppercase">{t("propertyDropzone.imageLoadFailed")}</p>
               )}
-              {imageDimensions && (
+              {shownDimensions && (
                 <ImageDimensions
-                  width={imageDimensions.width}
-                  height={imageDimensions.height}
+                  width={shownDimensions.width}
+                  height={shownDimensions.height}
                 />
               )}
             </div>
@@ -477,12 +508,14 @@ const PropertyDropzone = ({
           );
         }
 
-        return <pre>{asset?.name}</pre>;
+        // A document with no asset row (a package:// sample, a URL) still
+        // names its file, so the picker never looks empty.
+        return <pre>{asset?.name || documentFileName(uri)}</pre>;
       }
       default:
         return null;
     }
-  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleImageError, imageError, handleDoubleClick, handleCloseViewer, imageDimensions, handleVolumeChange]);
+  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleImageError, imageError, handleDoubleClick, handleCloseViewer, imageSource, shownDimensions, handleVolumeChange, t]);
 
   return (
     <div css={styles(theme)}>

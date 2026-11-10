@@ -5,7 +5,10 @@ permalink: /google-workspace
 description: "Connect a Google account so agents and Code nodes can use Drive, Gmail, Docs, Sheets and Calendar, or read Gmail over IMAP with an app password."
 ---
 
-NodeTool reaches Gmail in two separate ways. The **Google Workspace** integration signs in with your Google account and gives agents 20 tools for Drive, Gmail, Docs, Sheets and Calendar. The **email tools** read a Gmail mailbox over IMAP with an app password and work on any install, including a local one.
+Two integrations reach Gmail. **Google Workspace** signs in with your Google account and gives agents 20 tools for Drive, Gmail, Docs, Sheets and Calendar. The **email tools** read a Gmail mailbox over IMAP with an app password and work on any install.
+
+> **Runs:** cloud (Google's APIs). **Needs:** a Google account and an install with a login for Workspace, a Gmail address and app password for the email tools. A server running Workspace also needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+{: .callout-note}
 
 | | Google Workspace | Email tools |
 |---|---|---|

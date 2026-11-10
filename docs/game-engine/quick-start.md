@@ -5,7 +5,7 @@ permalink: /game-engine/quick-start
 description: "Install an example, edit its draft, and verify a playable change."
 ---
 
-Start from an installed example so you have a complete game with prepared assets and working behavior. Installation creates your own editable copy.
+Install an example to get your own editable copy of a complete game with prepared assets.
 
 ![Kindle editor with the selected hero sprite, scene tree, inspector, and asset panel](/assets/game-engine/editor-sprite.png)
 
@@ -22,7 +22,7 @@ Signal Forge includes prepared collision for its authored static machinery and a
 
 ## Make a small change
 
-Move a collectible or change a light color. Use the inspector rather than editing the live session. Draft changes and runtime state are separate: moving during play does not rewrite the document, and most document changes need a fresh play session.
+Move a collectible or change a light color in the inspector. Draft changes and runtime state are separate: moving during play does not rewrite the document, and most document changes need a fresh play session.
 
 Ask the agent for a bounded edit such as:
 

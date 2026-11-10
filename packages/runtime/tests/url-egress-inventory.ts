@@ -151,6 +151,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: [],
     note: "Fixed Google manifest endpoint; downloads require the official storage.googleapis.com bucket path, reject redirects, and verify the manifest SHA-512."
   },
+  {
+    file: "packages/config/src/package-media.ts",
+    owner: "Package media downloads",
+    inputSource: "fixed",
+    schemes: ["https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "fixed-host",
+    guardedBy: [],
+    note: "Downloads example media listed in a shipped manifest. The manifest base must be on https://media.nodetool.ai, the key is the file's SHA-256, redirects are rejected, and the bytes must match the manifest hash and size."
+  },
   // ---------------------------------------------------------------- screening
   {
     file: "packages/runtime-core/src/safe-url.ts",
@@ -717,6 +729,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     policy: "private-integration",
     guardedBy: [],
     note: "The fetch is the retry wrapper handed to @comfyorg/sdk, so it sends the SDK's own requests. No caller, provider or model names the base URL: the client takes only an API key and uses the SDK's default. See comfy-sdk.ts for how the SDK scopes the key."
+  },
+  {
+    file: "packages/runtime/src/providers/comfy-fetch.ts",
+    owner: "Comfy Cloud fetch for @comfyorg/sdk clients",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "the user's COMFY_API_KEY, sent only to https://cloud.comfy.org",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The fetch the Comfy SDK clients use. It sends the SDK's own requests, and upgrades http://cloud.comfy.org job links to https so the key reaches only https://cloud.comfy.org. Other URLs pass through without the key added."
   },
   {
     file: "packages/agents/src/capabilities/web.ts",

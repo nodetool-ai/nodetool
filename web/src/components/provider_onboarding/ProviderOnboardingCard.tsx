@@ -25,6 +25,7 @@ import {
   reducedMotion
 } from "../ui_primitives";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { OAuthCallbackAddress } from "../oauth/OAuthCallbackAddress";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import useSecretsStore from "../../stores/SecretsStore";
 import type { SecretValidation } from "../../stores/SecretsStore";
@@ -374,6 +375,16 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
                     {oauth.isConnecting ? t("i18n-next33.provider.waiting") : t("i18n-next33.provider.signIn")}
                   </EditorButton>
                 )}
+                {provider.oauth && oauth.isConnecting && (
+                  <EditorButton
+                    density="compact"
+                    variant="text"
+                    size="small"
+                    onClick={oauth.cancelManual}
+                  >
+                    {t("common.cancel")}
+                  </EditorButton>
+                )}
                 {!provider.oauthOnly && (
                   <EditorButton
                     density="compact"
@@ -504,6 +515,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
           </Caption>
         )}
       </FlexColumn>
+      <OAuthCallbackAddress url={oauth.callbackUrl} />
       <OAuthManualCompletionDialog
         prompt={oauth.manualPrompt}
         label={oauth.label}

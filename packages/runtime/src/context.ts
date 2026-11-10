@@ -62,7 +62,7 @@ import {
   isRecord,
   isString
 } from "@nodetool-ai/protocol";
-import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import { getNodeBuiltinSync, readPackageMedia } from "@nodetool-ai/config";
 import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
 import type {
   AssetInfoEntry,
@@ -2278,6 +2278,21 @@ export class ProcessingContext implements RuntimeNodeContext {
               );
             }
           }
+        }
+        try {
+          const bytes = await readPackageMedia(
+            [root],
+            packageRef.packageName,
+            packageRef.path
+          );
+          if (bytes) {
+            attempts.push(`package media: ${trimmed}`);
+            return { bytes, attempts };
+          }
+        } catch (error) {
+          attempts.push(
+            `package media miss: ${trimmed} (${error instanceof Error ? error.message : String(error)})`
+          );
         }
       }
       const httpPath = packageAssetHttpPath(trimmed);

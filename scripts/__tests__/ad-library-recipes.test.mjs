@@ -138,11 +138,13 @@ describe("ad library Recipe apps", () => {
       expect(stepper.type).toBe("Stepper");
       const keys = stepper.props.steps.map(step => step.value);
       expect(keys.slice(0, 2)).toEqual(["start", keys[1]]);
-      expect(keys.slice(-4)).toEqual(["ending", "review", "build", "result"]);
+      // In chat the agent builds the cut itself, so Review and Build go.
+      const tail = app.presentation === "chat" ? ["ending", "result"] : ["ending", "review", "build", "result"];
+      expect(keys.slice(-tail.length), slug).toEqual(tail);
       expect(keys.length, slug).toBeLessThanOrEqual(8);
       expect(app.recipe.defaults.step).toBe("start");
       // One Container per input step, in stepper order.
-      const inputSteps = keys.slice(0, -3);
+      const inputSteps = keys.slice(0, keys.indexOf("ending") + 1);
       expect(rest.slice(0, inputSteps.length).map(item => item.props.visibleWhen)).toEqual(inputSteps.map(value => ({binding: "var:step", op: "eq", value})));
       const widgets = walk(app.ui.content);
       // Each Recipe input has exactly one widget, inside a content step, and
@@ -204,19 +206,18 @@ describe("ad library Recipe apps", () => {
     }
   });
 
-  it("puts the start choice and its Next button above the model pickers, so Next is in view at 1280 x 720", () => {
+  it("puts the start choice above the finishing model and ends Start with its Next button", () => {
     for (const {slug, bundle} of AD_LIBRARY_APPS) {
       const ids = bundle.app.ui.content.find(widget => widget.props.id === "step-start").props.content.map(widget => widget.props.id);
       expect(ids.indexOf("fillPath"), slug).toBeLessThan(ids.indexOf("finishModel"));
-      expect(ids.indexOf("start-nav"), slug).toBe(ids.indexOf("fillPath") + 1);
-      expect(ids.indexOf("start-nav"), slug).toBeLessThan(ids.indexOf("finishModel"));
+      expect(ids.indexOf("start-nav"), slug).toBe(ids.length - 1);
     }
   });
 
-  it("asks for an image model on Start and runs planning and building as agent jobs", () => {
+  it("asks for an image model next to the plan and runs planning and building as agent jobs", () => {
     for (const {bundle} of AD_LIBRARY_APPS) {
       const stepContent = id => bundle.app.ui.content.find(widget => widget.props.id === id).props.content;
-      expect(stepContent("step-start").find(widget => widget.props.id === "imageModel").props).toMatchObject({binding: "var:imageModel", modelKind: "image_model"});
+      expect(stepContent("step-ending").find(widget => widget.props.id === "imageModel").props).toMatchObject({binding: "var:imageModel", modelKind: "image_model"});
       expect(stepContent("step-ending").find(widget => widget.props.id === "plan-activity").props.binding).toBe("op:plan/exec#transcript");
       // A layout that needs a look warns on the review step and can still be approved.
       const panel = bundle.app.ui.content.find(widget => widget.props.id === "layout-review");

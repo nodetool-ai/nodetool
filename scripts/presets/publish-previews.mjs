@@ -15,16 +15,23 @@ export async function publishPlans(plans, { dryRun, encode, upload, regenerate, 
     const key = `presets/${plan.id}/${plan.workflow_hash}`;
     // A look or restyle shows best late in the clip. A new key skips the CDN's copy of an earlier poster.
     const latePoster = plan.preset.kind === 'look' || plan.mode === 'video_edit';
-    const posterKey = latePoster ? `${key}-late.png` : `${key}.png`;
+    const posterKey = latePoster ? `${key}-late.jpg` : `${key}.jpg`;
     const preview = { url: `${key}.mp4`, poster: posterKey, run: `runs/${plan.id}.json` };
     if (dryRun) { log(JSON.stringify({ input: record.output_path, upload: preview, write: plan.path })); continue; }
     const media = plan.mode === 'image_edit' ? await encodeEdit(source, record.output_path) : await encode(record.output_path, { latePoster });
     preview.url = await upload(`${key}.mp4`, media.video, 'video/mp4');
-    preview.poster = await upload(posterKey, media.poster, 'image/png');
+    preview.poster = await upload(posterKey, media.poster, 'image/jpeg');
     await atomicJson(plan.path, { ...plan.preset, preview });
     changed = true;
   }
   if (changed) { await regenerate(); }
+}
+/** Cards show the poster at a few hundred pixels, so a PNG frame of the clip is resized and stored as a JPEG. */
+export const POSTER_MAX_WIDTH = 960;
+export async function posterJpeg(image) {
+  const { loadSharpOrThrow } = await import('@nodetool-ai/runtime');
+  const sharp = await loadSharpOrThrow();
+  return sharp(image).resize({ width: POSTER_MAX_WIDTH, withoutEnlargement: true }).jpeg({ quality: 80, mozjpeg: true }).toBuffer();
 }
 async function encode(inputPath, { latePoster = false } = {}) {
   const { transformMedia, pngFrames, probeMedia } = await import('@nodetool-ai/runtime/media');
@@ -38,8 +45,9 @@ async function encode(inputPath, { latePoster = false } = {}) {
   let poster = null;
   for await (const frame of pngFrames({ filePath: outPath, limit: 1, ...(latePoster ? { seekSec: 2.5 } : {}) })) { poster = frame; }
   if (!poster) { throw new Error('No poster frame decoded'); }
-  await writeFile(`${inputPath}.poster.png`, poster);
-  return { video: await readFile(outPath), poster };
+  const jpeg = await posterJpeg(poster);
+  await writeFile(`${inputPath}.poster.jpg`, jpeg);
+  return { video: await readFile(outPath), poster: jpeg };
 }
 /**
  * A three-second before-and-after loop for an image edit: the source still,
@@ -75,8 +83,8 @@ export async function encodeEdit(beforePath, afterPath, { width = 1280, height =
     throw error;
   }
   cover(after, 1);
-  const poster = canvas.toBuffer('image/png');
-  await writeFile(`${afterPath}.poster.png`, poster);
+  const poster = await posterJpeg(canvas.toBuffer('image/png'));
+  await writeFile(`${afterPath}.poster.jpg`, poster);
   return { video: await readFile(outPath), poster };
 }
 export async function main(args) {

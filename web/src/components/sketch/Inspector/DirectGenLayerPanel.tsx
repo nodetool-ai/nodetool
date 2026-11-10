@@ -50,6 +50,7 @@ import {
   directGenFailure,
   useDirectGenJob
 } from "../../../hooks/sketch/useDirectGenJob";
+import { getDirectGenBlocker } from "../../../lib/sketch/directGenValidation";
 import { useLayerCostEstimate } from "../../../hooks/sketch/useLayerCostEstimate";
 import CostEstimateLine from "../../costs/CostEstimateLine";
 import { generationCostLine } from "../../costs/costLine";
@@ -160,20 +161,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
   // What pressing Generate spends, at the model and size picked above.
   const costEstimate = useLayerCostEstimate(binding);
 
-  const canGenerate =
-    !!binding.provider &&
-    !!binding.model &&
-    (binding.prompt ?? "").trim().length > 0 &&
-    (!isImageToImage || !!binding.sourceLayerId);
-  // Tells the user what still blocks Generate, in the order they fill the panel.
-  let generateBlocker: string | undefined;
-  if (!binding.provider || !binding.model) {
-    generateBlocker = t("screens4_25.sketch.directGen.pickModel");
-  } else if ((binding.prompt ?? "").trim().length === 0) {
-    generateBlocker = t("screens4_25.sketch.directGen.writePrompt");
-  } else if (isImageToImage && !binding.sourceLayerId) {
-    generateBlocker = t("screens4_25.sketch.directGen.pickSourceLayer");
-  }
+  const generateBlocker = getDirectGenBlocker(binding);
   const strengthLabel = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -287,7 +275,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
           )}
         </FlexRow>
 
-        {isImageToImage &&
+        {isImageToImage && !binding.sourceAssetId &&
           (sourceLayerOptions.length === 0 ? (
             <Caption color="secondary">
               {t("screens4_25.sketch.directGen.noSourceLayers")}
@@ -325,8 +313,8 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
             size="small"
             variant="contained"
             ref={generateRef}
-            disabled={!canGenerate}
-            disabledReason={generateBlocker}
+            disabled={generateBlocker !== null}
+            disabledReason={generateBlocker ? t(generateBlocker.labelKey) : undefined}
             onClick={() => void start(layer.id)}
             data-testid="direct-gen-generate"
           >

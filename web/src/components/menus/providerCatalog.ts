@@ -137,6 +137,17 @@ export const PROVIDER_META: ProviderMeta[] = [
     localOnly: true
   },
   {
+    key: "COPILOT_CLI",
+    providerId: PROVIDER_IDS.COPILOT,
+    name: "GitHub Copilot",
+    description: "Use your GitHub Copilot account for language models. No API key needed.",
+    section: "language",
+    docsUrl: "https://docs.github.com/copilot/concepts/agents/about-copilot-cli",
+    icon: githubIcon,
+    mono: true,
+    localOnly: true
+  },
+  {
     key: "OPENAI_API_KEY",
     providerId: PROVIDER_IDS.OPENAI,
     name: "OpenAI",

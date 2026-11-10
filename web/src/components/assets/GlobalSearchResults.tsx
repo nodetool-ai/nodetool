@@ -21,6 +21,7 @@ import {
   createAssetDragImage
 } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { useImageThumbnail } from "../../hooks/useImageThumbnail";
 
 interface GlobalSearchResultsProps {
   results: AssetWithPath[];
@@ -188,6 +189,32 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal
     }
   });
+
+/**
+ * A result row's preview. Rows are a few dozen pixels wide, so they paint the
+ * 512px thumbnail: the full image only while a fresh upload's thumbnail is
+ * still being written, and never a video file, which no browser paints as a
+ * background image.
+ */
+const SearchResultThumbnail: React.FC<{
+  asset: AssetWithPath;
+  title: string;
+}> = ({ asset, title }) => {
+  const isVideo = asset.content_type?.startsWith("video/") ?? false;
+  const imageUrl = useImageThumbnail(
+    isVideo ? null : asset.thumb_url,
+    isVideo ? null : asset.get_url
+  );
+  const url = isVideo ? asset.thumb_url : imageUrl;
+  return (
+    <div
+      className="global-search-result-thumbnail result-item-thumbnail"
+      style={url ? { backgroundImage: `url(${url})` } : undefined}
+      title={title}
+      data-testid="global-search-result-thumbnail"
+    />
+  );
+};
 
 const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   results,
@@ -463,17 +490,12 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                 data-asset-name={asset.name}
               >
                 {hasVisualContent ? (
-                  <div
-                    className="global-search-result-thumbnail result-item-thumbnail"
-                    style={{
-                      backgroundImage: `url(${asset.thumb_url || asset.get_url
-                        })`
-                    }}
+                  <SearchResultThumbnail
+                    asset={asset}
                     title={t(
                       "i18n-next43-assets-navigation.globalSearch.thumbnail",
                       { contentType: asset.content_type }
                     )}
-                    data-testid="global-search-result-thumbnail"
                   />
                 ) : (
                   <div className="global-search-result-icon result-item-icon">

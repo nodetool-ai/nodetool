@@ -5,13 +5,24 @@ permalink: /game-engine/
 description: "Build, playtest, and export 2D and 3D games in NodeTool."
 ---
 
-NodeTool games are documents containing scenes, entities, asset bindings, and behavior. You can edit them visually, ask the agent to change them, or construct them with code. A fixed-step simulation runs the document. The renderer and audio player present its result.
+A NodeTool game is a JSON document of scenes, entities, asset bindings, and behavior. A fixed-step simulation (`tickRate` 60) runs the document, and the renderer and audio player present the result. Edit it in the editor, through the agent, or from code.
+
+```json
+{
+  "schemaVersion": 4, "engineVersion": "3", "id": "my-game", "revision": "1",
+  "entrySceneId": "main", "pixelsPerUnit": 32, "tickRate": 60,
+  "inputActions": [], "assets": {},
+  "scenes": [{ "id": "main", "name": "Main", "entities": [] }]
+}
+```
+
+The required top-level fields of a 2D document. See [coverage](/game-engine/coverage) for schema versions.
 
 ![Signal Forge with its player, amber core, industrial environment, and objective HUD](/assets/game-engine/signal-forge.png)
 
 *Signal Forge rendered by the engine at tick 60. [Screenshot sources](/game-engine/screenshots).*
 
-Start with [your first game](/game-engine/quick-start), then use the [Game Editor guide](/game-editor) for panels and shortcuts. This guide covers the engine features behind those controls, including features authored through the agent or document rather than a dedicated panel.
+Start with [your first game](/game-engine/quick-start). The [Game Editor guide](/game-editor) covers panels and shortcuts. This guide covers the engine features behind them, including features authored only through the agent or the document.
 
 ## Choose a dimension
 

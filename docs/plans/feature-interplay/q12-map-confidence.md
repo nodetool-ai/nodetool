@@ -8,6 +8,6 @@
 
 **F3. Sparse mapping is not isolation.** Sparse highlighting counts mapped neighbors. An omitted edge says nothing conclusive about product support. Proposed and unverified connections must remain distinct from working paths.
 
-**Next check:** audit high-impact edges before expanding the map. For each, record producer, consumer, payload, update behavior, supported host and a reproducible check. Downgrade broad claims when evidence only covers one route. These readings inspect code and guides, but do not certify runtime behavior.
+**Next check:** audit high-impact edges before expanding the map. For each, record producer, consumer, payload, update behavior, supported host and a reproducible check. Downgrade broad claims when evidence only covers one route. Apply the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation) when a delivery depends on a finding.
 
 Evidence: [older guide](../../video-editor.md), [current binding](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/timeline.ts), [type registry](https://github.com/nodetool-ai/nodetool/blob/main/web/src/config/data_types.ts), [map interpretation rules](README.md).

@@ -7,12 +7,12 @@ export const contentDates: {
 } = {
   "routes": {
     "/agents": {
-      "date": "2026-11-02",
-      "hash": "3ea1a5d155c3df7d"
+      "date": "2026-11-09",
+      "hash": "0f616c87dc19f052"
     },
     "/marketing": {
-      "date": "2026-10-17",
-      "hash": "3096463add7ce4af"
+      "date": "2026-11-08",
+      "hash": "7eb40d35b1ef051f"
     },
     "/gamedev": {
       "date": "2026-10-30",
@@ -35,12 +35,12 @@ export const contentDates: {
       "hash": "6565a6e3cc7f6c2e"
     },
     "/developers": {
-      "date": "2026-10-30",
-      "hash": "77d284892b9ad83e"
+      "date": "2026-11-09",
+      "hash": "f6cbe1983f0825ce"
     },
     "/studio": {
-      "date": "2026-10-21",
-      "hash": "433560c11ef97883"
+      "date": "2026-11-08",
+      "hash": "3b53150d9b002c54"
     },
     "/storyboards": {
       "date": "2026-10-17",

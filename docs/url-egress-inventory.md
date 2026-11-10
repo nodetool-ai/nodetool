@@ -207,6 +207,12 @@ FAL webhook verification fetches only
 after five seconds, coalesces concurrent refreshes, and caps key-cache freshness
 at 24 hours.
 
+Package media (`packages/config/src/package-media.ts`) downloads example media
+listed in a shipped manifest. It accepts only a manifest base on
+`https://media.nodetool.ai`, names each object by its SHA-256, rejects
+redirects, sends no credentials and checks the bytes against the manifest's
+hash and size.
+
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
 - `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
@@ -234,20 +240,24 @@ at 24 hours.
   server it started on `127.0.0.1`, at a port it picked, until that server
   answers. The cloud profile excludes the `wangp` provider and the
   `lib.wan2gp` nodes that start it.
-- `packages/runtime/src/providers/comfy-gpu-models.ts` and
-  `packages/runtime/src/providers/comfy-template-models.ts` inject retry-aware
-  fetch into the Comfy SDK. The SDK selects request URLs, including output
+- `packages/runtime/src/providers/comfy-gpu-models.ts`,
+  `packages/runtime/src/providers/comfy-template-models.ts` and
+  `packages/runtime/src/providers/comfy-fetch.ts` inject retry-aware fetch
+  into the Comfy SDK. The SDK selects request URLs, including output
   downloads, using its default cloud endpoint or operator configuration. These
-  transports do not screen URLs. Deployment egress controls govern redirects
-  and resolved addresses.
+  transports do not screen URLs. `comfy-fetch.ts` upgrades
+  `http://cloud.comfy.org` job links to https and sends the API key only to
+  `https://cloud.comfy.org`. Deployment egress controls govern redirects and
+  resolved addresses.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
 - `packages/integration-nodes/src/nodes/comfy-graph-cloud.ts`,
-  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`, and
-  `GET /api/comfy/nodes` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
+  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`,
+  `packages/integration-nodes/src/nodes/comfy-server-status.ts`,
+  `GET /api/comfy/nodes`, and `GET /api/comfy/server-status` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
   setting. It is normally localhost or the LAN, the same case as
   `comfy-executor.ts`, and the setting holder picks the address.
 - `packages/integration-nodes/src/nodes/comfy-worker-transport.ts` — a NodeTool

@@ -90,6 +90,57 @@ function toWsUrl(httpBase: string, clientId: string): string {
 
 const IMAGE_FETCH_TIMEOUT_MS = 30_000;
 
+interface ComfyNodeError {
+  class_type?: unknown;
+  errors?: Array<{ type?: unknown; message?: unknown; details?: unknown }>;
+}
+
+/** One validation error in words: the long list of allowed values is dropped. */
+function describeNodeError(
+  error: { type?: unknown; message?: unknown; details?: unknown }
+): string {
+  const details = isString(error.details) ? error.details : "";
+  if (error.type === "value_not_in_list") {
+    const match = /^([^:]+): ('.*') not in \[/s.exec(details);
+    if (match) return `${match[1]} ${match[2]} is not on this ComfyUI`;
+  }
+  if (error.type === "required_input_missing" && details) {
+    return `${details} is not connected`;
+  }
+  const message = isString(error.message) ? error.message : "invalid";
+  return details ? `${message}: ${details}` : message;
+}
+
+/**
+ * The text of a rejected `POST /prompt`, in the words a ComfyUI user reads in
+ * ComfyUI itself: which node, which input, and why. A body that is not
+ * ComfyUI's error JSON is returned as it came.
+ */
+export function describeComfySubmitError(status: number, text: string): string {
+  let body: { error?: { message?: unknown; details?: unknown }; node_errors?: Record<string, ComfyNodeError> };
+  try {
+    body = JSON.parse(text) as typeof body;
+  } catch {
+    return `Submit failed (${status}): ${text}`;
+  }
+  const lines: string[] = [];
+  for (const [id, nodeError] of Object.entries(body?.node_errors ?? {})) {
+    const name = isString(nodeError.class_type) ? nodeError.class_type : "node";
+    for (const error of nodeError.errors ?? []) {
+      lines.push(`${name} (node ${id}): ${describeNodeError(error)}`);
+    }
+  }
+  if (lines.length > 0) {
+    return `ComfyUI rejected the workflow. ${lines.join(". ")}.`;
+  }
+  const message = isString(body?.error?.message) ? body.error.message : "";
+  if (message) {
+    const details = isString(body?.error?.details) && body.error.details ? ` (${body.error.details})` : "";
+    return `ComfyUI rejected the workflow: ${message}${details}`;
+  }
+  return `Submit failed (${status}): ${text}`;
+}
+
 /**
  * Execute a ComfyUI workflow against a ComfyUI server.
  * Connects to ComfyUI's WebSocket for real-time progress events.
@@ -208,7 +259,7 @@ export function executeComfy(
         }
         return {
           status: "failed",
-          error: `Submit failed (${submitRes.status}): ${text}`
+          error: describeComfySubmitError(submitRes.status, text)
         };
       }
       const submitData = (await submitRes.json()) as { prompt_id: string };

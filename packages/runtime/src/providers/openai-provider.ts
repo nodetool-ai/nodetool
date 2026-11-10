@@ -273,7 +273,7 @@ interface StreamTurnState {
 }
 
 /**
- * OpenAI language models we support: the gpt-5 family, served through the
+ * OpenAI language models we support: the GPT-5 and GPT-6 families, served through the
  * Responses API. Everything before gpt-5 (gpt-4o, gpt-4.1, the o-series, …) is
  * retired. OpenAI-compatible subclasses set their own provider id and never
  * reach this predicate, so they keep their own model support on Chat Completions.
@@ -283,7 +283,7 @@ function isOpenAIResponsesModel(model: string): boolean {
   // Audio / realtime / transcription variants stay on Chat Completions — the
   // Responses API doesn't serve the `modalities: ["text","audio"]` path.
   if (/audio|realtime|transcribe/.test(id)) return false;
-  return /^gpt-5(?:[.-]|$)/.test(id);
+  return /^gpt-[56](?:[.-]|$)/.test(id);
 }
 
 /**
@@ -691,6 +691,18 @@ export class OpenAIProvider extends BaseProvider {
     if (!this.servesOpenAICatalog()) return [];
     return [
       {
+        id: "gpt-image-2.6-flare",
+        name: "GPT Image 2.6 Flare",
+        provider: "openai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
+        id: "gpt-image-2.6-sunburst",
+        name: "GPT Image 2.6 Sunburst",
+        provider: "openai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      },
+      {
         id: "gpt-image-2.5-flare",
         name: "GPT Image 2.5 Flare",
         provider: "openai",
@@ -711,12 +723,6 @@ export class OpenAIProvider extends BaseProvider {
       {
         id: "gpt-image-1.5",
         name: "GPT Image 1.5",
-        provider: "openai",
-        supportedTasks: ["text_to_image", "image_to_image"]
-      },
-      {
-        id: "gpt-image-1",
-        name: "GPT Image 1",
         provider: "openai",
         supportedTasks: ["text_to_image", "image_to_image"]
       },

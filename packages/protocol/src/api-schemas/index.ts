@@ -1,5 +1,6 @@
 export * from "./api-error-code.js";
 export * from "./error-helpers.js";
+export * as admin from "./admin.js";
 export * as agentAccess from "./agent-access.js";
 export * as assets from "./assets.js";
 export * as codeGen from "./code-gen.js";
@@ -17,6 +18,7 @@ export * as messages from "./messages.js";
 export * as models from "./models.js";
 export * as nodes from "./nodes.js";
 export * as openverse from "./openverse.js";
+export * as people from "./people.js";
 export * as projects from "./projects.js";
 export * as scripts from "./scripts.js";
 export * as segmentation from "./segmentation.js";

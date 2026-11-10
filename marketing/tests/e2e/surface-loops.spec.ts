@@ -66,8 +66,10 @@ test("a surface loop that will not play shows its poster, not a black frame", as
     };
   });
 
-  await page.goto("/", { waitUntil: "load" });
+  await page.goto("/studio", { waitUntil: "load" });
   await page.locator("#surfaces").scrollIntoViewIfNeeded();
+  // The poster mounts once the section nears the viewport.
+  await expect(page.locator(`${PANEL} img`)).toBeAttached();
 
   // Let the storyboard loop run, so its currentTime leaves 0 and the poster
   // attribute would no longer cover the element.
@@ -95,7 +97,7 @@ test("a surface loop that will not play shows its poster, not a black frame", as
 
 for (const id of ["storyboard", "script", "timeline", "sketch", "3d"]) {
   test(`${id} reaches a playing loop`, async ({ page }) => {
-    await page.goto("/", { waitUntil: "load" });
+    await page.goto("/studio", { waitUntil: "load" });
     await page
       .getByRole("tablist", { name: "Editing surfaces" })
       .evaluate((element) => element.scrollIntoView({ block: "center" }));
@@ -108,7 +110,7 @@ for (const id of ["storyboard", "script", "timeline", "sketch", "3d"]) {
 }
 
 test("arrow keys move selection and focus together", async ({ page }) => {
-  await page.goto("/", { waitUntil: "load" });
+  await page.goto("/studio", { waitUntil: "load" });
   const storyboard = page.locator("#surface-tab-storyboard");
   const timeline = page.locator("#surface-tab-timeline");
 
@@ -126,7 +128,7 @@ test.describe("reduced motion", () => {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/", { waitUntil: "load" });
+    await page.goto("/studio", { waitUntil: "load" });
     await page.locator("#surfaces").scrollIntoViewIfNeeded();
 
     const video = page.locator(`${PANEL} video`);
@@ -143,7 +145,7 @@ test.describe("reduced motion", () => {
 test("the tabs rotate when a loop ends and stop on the first click", async ({
   page,
 }) => {
-  await page.goto("/", { waitUntil: "load" });
+  await page.goto("/studio", { waitUntil: "load" });
   await page
     .getByRole("tablist", { name: "Editing surfaces" })
     .evaluate((element) => element.scrollIntoView({ block: "center" }));

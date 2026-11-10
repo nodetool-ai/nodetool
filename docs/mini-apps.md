@@ -4,26 +4,31 @@ title: "Mini Apps"
 description: "What a Mini App is, the words you need to read the rest of the docs, and how the pieces fit together."
 ---
 
-A Mini App is a simple screen in front of a workflow. Instead of a canvas full of
-connected nodes, the person using it sees a text box, a button, and a result.
+A Mini App is a screen over one or more workflows. Widgets bind to the workflow's Input and Output nodes, so the person running it sees fields, a Run button, and a result instead of the graph.
 
-Say you built a workflow that turns a product photo into a caption. It has a
-dozen nodes: the model, the prompt, retries, formatting. You want a coworker to
-use it, but not to edit it, and not to have to understand it. So you build a Mini
-App: one field for the photo, one button that says "Write the caption", and one
-box where the caption appears. Same workflow underneath, nothing to break.
+```
+App document               (what you build in the editor)
+  ui           the layout: which widgets, where, wired to what
+  operations   which workflows the app runs, and how they're wired
+  variables    values the app remembers
+  resources    handles to an asset, timeline, storyboard, or sketch
+        │
+        │  the wiring is checked against the real graphs
+        ▼
+Instance state             (what one open copy of the app is holding)
+  inputs · outputs · variables · widget state · runs in flight
+        │
+        │  messages from the run update the state as they arrive
+        ▼
+Workflow runs              (where all the actual work happens)
+```
 
-- **[Building Mini Apps](mini-apps-guide.md)** — eleven app shapes, each built step
-  by step. Start here if you want to make one.
-- **[Mini App Reference](mini-apps-reference.md)** — every widget, setting, and
-  field, in tables.
-- **[App Builder](app-builder.md)** — the editor you build the screen in.
-- **[Mini Apps on Mobile](mini-apps-mobile.md)** — opening and running the same
-  app from a phone.
+- **[Building Mini Apps](mini-apps-guide.md)**: eleven app shapes, built step by step.
+- **[Mini App Reference](mini-apps-reference.md)**: widgets, settings, and fields in tables.
+- **[App Builder](app-builder.md)**: the editor you build the screen in.
+- **[Mini Apps on Mobile](mini-apps-mobile.md)**: running the same app from a phone.
 
 ## The words
-
-These five terms cover most of what the rest of these pages say.
 
 | Term | What it means |
 | --- | --- |
@@ -35,44 +40,29 @@ These five terms cover most of what the rest of these pages say.
 
 Two more you meet in the workflow editor, not the app:
 
-- An **Input node** is a node in the graph that marks a value coming in from
-  outside. Widgets that the user types into bind to Input nodes.
-- An **Output node** marks a value going out. Widgets that show a result bind to
-  Output nodes.
+- An **Input node** marks a value coming in from outside. Widgets the user types into bind to Input nodes.
+- An **Output node** marks a value going out. Widgets that show a result bind to Output nodes.
 
-If a value has no Input node, no widget can change it. If a result has no Output
-node, no widget can show it. Getting these into the graph is the first step of
-building any app.
+A value with no Input node cannot be changed by a widget. A result with no Output node cannot be shown by one.
 
 ## What Mini Apps are good for
-
-A node graph is the right screen for the person who built the pipeline and the
-wrong one for everyone else. It shows model choices, retry paths, and half-built
-intermediate steps that someone who just wants a caption doesn't need and
-shouldn't be able to break. A Mini App narrows it to the two or three fields that
-actually change.
 
 | The situation | What the app does about it |
 | --- | --- |
 | A coworker needs to run your workflow but not edit it | They get fields and a Run button. The graph isn't reachable from the app. |
 | The workflow has 40 nodes and 3 things worth changing | Only those 3 get widgets. The rest stays fixed in the graph. |
-| A run takes 90 seconds and looks frozen | Add a progress bar and a status line that says what the run is doing right now. |
+| A long run looks frozen | Add a progress bar and a status line that shows what the run is doing. |
 | The result arrives a word at a time | Display widgets collect what streams in. Text builds up into one block instead of flickering. |
 | One screen should drive several workflows | Give the app one operation per workflow. Each gets its own fields, results, and button. |
 | Someone must approve a draft before the next step | Step one writes a variable, a widget shows it, a second button runs step two using that variable. |
 | Dragging a slider should re-run the workflow | Bind the slider to a setting in the graph and have it re-run when you let go. |
-| The same tool is used daily with the same settings | Mark a variable as remembered, and it survives across sessions. |
+| The same settings every day | Mark a variable as remembered. It survives across sessions. |
 
-Don't build one for a workflow you'll run once, for a pipeline another program
-calls (use the [Workflow API](workflow-api.md)), or for an open-ended task with
-no fixed shape (use [Chat](global-chat.md)).
+Do not build one for a pipeline another program calls (use the [Workflow API](workflow-api.md)) or for an open-ended task (use [Chat](global-chat.md)).
 
 ## Where apps live
 
-An app is its own thing, not a setting on a workflow. It has its own name,
-version history, releases, and spending limit — none of which belong on a graph.
-Opening a workflow never creates an app, and a workflow without an app is just a
-workflow.
+An app is separate from its workflows. It has its own name, version history, releases, and spending limit. Opening a workflow never creates an app.
 
 | Where | How to get there |
 | --- | --- |
@@ -85,13 +75,9 @@ workflow.
 
 ![Mini App — Design view](assets/screenshots/mini-app-design.png)
 
-**Run** is what the person using the app sees: the fields, the button, and the
-result. Each working instance runs its pinned version. A new default instance
+**Run** is what the person using the app sees. Each working instance runs its pinned version. A new default instance
 uses the release when one exists, or the unpublished draft. **Preview draft**
-freezes a separate draft working copy when requested, so you can test edits
-without changing a released instance. **Settings** holds publishing, versions, the spend
-budget, the public link, and recent runs. See
-[Publishing and sharing](#publishing-and-sharing).
+freezes a separate draft working copy, so you can test edits without changing a released instance. **Settings** holds publishing, versions, the spend budget, the public link, and recent runs. See [Publishing and sharing](#publishing-and-sharing).
 
 ![Mini App — Run view](assets/screenshots/mini-app-run.png)
 
@@ -152,28 +138,7 @@ from an app** on the start page, or install it with
 
 ## How it works
 
-Four pieces. Only one of them computes anything.
-
-```
-App document               (what you build in the editor)
-  ui           the layout: which widgets, where, wired to what
-  operations   which workflows the app runs, and how they're wired
-  variables    values the app remembers
-  resources    handles to an asset, timeline, storyboard, or sketch
-        │
-        │  the wiring is checked against the real graphs
-        ▼
-Instance state             (what one open copy of the app is holding)
-  inputs · outputs · variables · widget state · runs in flight
-        │
-        │  messages from the run update the state as they arrive
-        ▼
-Workflow runs              (where all the actual work happens)
-```
-
-The document is configuration, not code. Nothing in it branches, loops, or calls
-a model — that's the graph's job. This is on purpose: logic in a graph can be
-tested, cached, and read by the agent. Logic hidden in an app screen can't.
+Only workflow runs compute anything. The document is configuration: nothing in it branches, loops, or calls a model. Logic in a graph can be tested, cached, and read by the agent.
 
 ### The app document
 
@@ -200,13 +165,9 @@ In the editor, the **App Data** button in the Design header opens a panel where
 you add and edit operations, variables, and resources by hand. The assistant edits
 the same lists.
 
-Operations are what make an app more than a form over one graph. A transcription
-app can run a transcriber, a summarizer, and a translator from one screen.
-
 ### Bindings
 
-A binding is a short string that says which slot a widget is wired to. You pick
-these from a menu in the editor; you rarely type them. They look like this:
+A binding is a string that names the slot a widget is wired to. The editor offers them in a menu:
 
 ```
 op:<opId>/in:<nodeId>            an input of a workflow
@@ -217,17 +178,9 @@ var:<variableId>                 a value the app remembers
 view:<componentId>#<prop>        state that belongs to one widget, never saved
 ```
 
-Two details worth knowing:
-
-- Every binding names its operation, so two operations running the same workflow
-  never read each other's values.
-- Bindings point at node **ids**, not names. Renaming an Input node in the graph
-  editor can't break an app. Older apps that used names still work — the name is
-  looked up in the live graph, and the editor rewrites it to the id form when it
-  can.
-
-A binding that points at nothing is reported as an error, not quietly ignored.
-Both the editor and `nodetool app debug` will tell you.
+- Every binding names its operation, so two operations running the same workflow never read each other's values.
+- Bindings point at node **ids**, not names, so renaming an Input node cannot break an app. Older apps that used names still work: the name is looked up in the live graph, and the editor rewrites it to the id form when it can.
+- A binding that points at nothing is reported as an error by the editor and by `nodetool app debug`.
 
 ### What one open app holds
 
@@ -242,12 +195,7 @@ so nothing collides:
 | `view` | widget + property | State belonging to one widget. Never saved. |
 | `invocations` | job id | One entry per run: status, progress, error, and what it's doing. |
 
-Keying inputs and outputs by operation *and* node is what lets one app run
-several workflows without their values landing on top of each other.
-
-The same code updates this state in the browser, in the `nodetool app debug`
-harness, and in the test suites. What the harness reports is what the browser
-does.
+The browser, the `nodetool app debug` harness, and the test suites run the same state code, so the harness reports what the browser does.
 
 ### What happens when you click Run
 
@@ -270,9 +218,7 @@ does.
 
 ### Saved working state
 
-Opening an app loads its server-owned default instance. Widget inputs, variable
-state and terminal outputs survive a reload and follow the authenticated
-account between browsers. Existing local variable caches are imported when the
+Opening an app loads its server-owned default instance. Widget inputs, variable state and terminal outputs survive a reload and follow the account between browsers. Existing local variable caches are imported when the
 default instance is first created. An existing server instance wins over a
 browser cache.
 
@@ -304,8 +250,7 @@ persistence and API contracts.
 
 ### Showing that something is happening
 
-Every operation exposes four things a widget can display, so an app over a slow
-workflow shows more than a spinner:
+Every operation exposes four values a widget can display:
 
 - `running` — true while a run is in flight.
 - `progress` — how far along it is.
@@ -313,12 +258,11 @@ workflow shows more than a spinner:
 - `activity` — a line of plain text the run writes about itself: the tool an
   agent is calling, the planning stage, the step it's on.
 
-If your app wraps an agent, put `activity` on the screen. Without it the user
-stares at a spinner for two minutes with no idea whether anything is happening.
+For an app that wraps an agent, show `activity`. Without it the screen shows only a spinner.
 
 ### The little logic an app can do
 
-Three things, and the list is short on purpose:
+Three conditions and formats:
 
 - **Show a widget only when something is true** (`visibleWhen`).
 - **Grey a widget out while something is true** (`disabledWhen`).
@@ -332,11 +276,7 @@ output.
 
 ## Checking an app
 
-`nodetool app debug` runs the whole app without a browser. It checks every
-binding against the real workflow, fills in the default values, clicks the Run
-button (or follows a script you give it), runs the workflow, and reports what
-every widget ended up showing. It runs all of the app's operations, not just the
-first.
+`nodetool app debug` runs the whole app without a browser. It checks every binding against the real workflow, fills in default values, clicks Run (or follows a script you give it), runs the workflow, and reports what every widget shows. It runs all of the app's operations.
 
 ```bash
 npm run dev:nodetool -- app debug <application_id>
@@ -351,7 +291,7 @@ per-run ceiling in milliseconds. An operation's own time limit also applies, and
 the shorter one wins. `--out` sets the report folder. The target can also be a
 workflow id or file that carries an older embedded app document.
 
-It catches the mistakes a workflow-only test can't: a widget wired to an input or
+It reports errors a workflow-only test misses: a widget wired to an input or
 output that doesn't exist, an app with no way to start a run, a display widget
 that never receives anything, a result wired to a variable that was never
 declared, a button pointing at an operation the app doesn't have, and a run that
@@ -405,8 +345,8 @@ To debug the workflow itself, `nodetool validate` is the quick check and
 
 ## Related
 
-- [Building Mini Apps](mini-apps-guide.md) — recipes, step by step
-- [Mini App Reference](mini-apps-reference.md) — widgets, bindings, schema
-- [App Builder](app-builder.md) — the editor
-- [Workflow Editor](workflow-editor.md) — building the graphs underneath
-- [Key Concepts](key-concepts.md) — how workflows, assets, and apps fit together
+- [Building Mini Apps](mini-apps-guide.md)
+- [Mini App Reference](mini-apps-reference.md)
+- [App Builder](app-builder.md)
+- [Workflow Editor](workflow-editor.md)
+- [Key Concepts](key-concepts.md)

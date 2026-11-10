@@ -89,7 +89,13 @@ const ItemPreview: React.FC<{ item: GenerationBatchItem }> = ({ item }) => {
   }
   return (
     <Box sx={{ width: THUMB_HEIGHT, height: THUMB_HEIGHT }}>
-      <ResponsiveImage locator={item.uri} alt={item.label} fit="cover" borderRadius={BORDER_RADIUS.sm} />
+      <ResponsiveImage
+        locator={item.uri}
+        preferThumbnail
+        alt={item.label}
+        fit="cover"
+        borderRadius={BORDER_RADIUS.sm}
+      />
     </Box>
   );
 };

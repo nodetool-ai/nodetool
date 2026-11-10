@@ -272,7 +272,9 @@ export {
   encodeRawRgbaToPng,
   encodeRawImageRef,
   extractImageRegion,
-  rasterizeSvg
+  rasterizeSvg,
+  rasterizeSvgInput,
+  SVG_GENERATION_SIDE
 } from "./image-codec.js";
 export type { ImageRegion } from "./image-codec.js";
 export { loadCanvas } from "./canvas-codec.js";

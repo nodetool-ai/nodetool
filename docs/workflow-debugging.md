@@ -4,7 +4,7 @@ title: "Workflow Debugging Guide"
 description: "Learn how to debug NodeTool workflows, inspect data between nodes, and troubleshoot errors."
 ---
 
-This guide teaches you how to debug NodeTool workflows when they don't work as expected. You'll learn to inspect intermediate data, read error logs, and systematically isolate problems.
+Debug a workflow by reading node status, adding Preview nodes, checking logs, and isolating the failing node. Prerequisites: a workflow open in the [editor]({{ '/workflow-editor' | relative_url }}).
 
 ---
 
@@ -40,34 +40,12 @@ When a node fails, the error text appears on the node. The panel has **View logs
 
 ## Using Preview Nodes
 
-Preview nodes are your primary debugging tool. They show exactly what data is flowing through your workflow at any point.
+Preview nodes show the value on any wire. Press **Space**, search "Preview", and connect the output to inspect. Faster: drop a connection on empty canvas, or right-click an output port, and choose **Preview**. It creates a Preview node already connected.
 
-### Adding Preview Nodes
+Put a Preview after each major step and before and after a suspect node:
 
-1. Press **Space** to open the node search
-2. Type "Preview" and select the Preview node
-3. Connect the output you want to inspect to the Preview node
-4. Run the workflow
-
-A faster route: drop a connection on empty canvas, or right-click an output port, and choose **Preview** in the menu. It creates a Preview node already connected.
-
-### Preview Node Strategies
-
-**After every major transformation:**
 ```
 Input → Process → Preview(1) → Transform → Preview(2) → LLM → Preview(3) → Output
-```
-
-**Before and after suspicious nodes:**
-```
-... → Preview(before) → SuspiciousNode → Preview(after) → ...
-```
-
-**At branch points:**
-```
-        → Preview(A) → ProcessA
-Input →
-        → Preview(B) → ProcessB
 ```
 
 ### What Preview Shows
@@ -90,14 +68,9 @@ Preview nodes render the value by type:
 
 ## Inspecting Workflow JSON
 
-Every NodeTool workflow is stored as JSON. Inspecting this JSON can help debug complex issues.
-
 ### Exporting Workflow JSON
 
-1. Open your workflow in the editor
-2. Open the **⋮** menu in the document bar and choose **Download JSON**. The command menu (`Ctrl/⌘ + K`) has **Download Workflow as JSON** and **Copy Workflow as JSON**.
-3. Save the `.json` file
-4. Open in any text editor or JSON viewer
+Open the **⋮** menu in the document bar and choose **Download JSON**. The command menu (`Ctrl/⌘ + K`) has **Download Workflow as JSON** and **Copy Workflow as JSON**.
 
 ### Workflow JSON Structure
 
@@ -141,13 +114,10 @@ Properties fed by a connection are left out of a node's `data`, because the edge
 
 ### What to Look For
 
-**Missing connections:** Check that `edges` correctly connect outputs to inputs
-
-**Incorrect values:** Look at `data` for each node to verify settings. A node with `"bypassed": true` in `ui_properties` is disabled.
-
-**Node types:** Ensure `type` matches expected node (typos happen in programmatic workflows)
-
-**Position issues:** If nodes overlap or are off-canvas, check `ui_properties.position`
+- Missing connections: check that `edges` connect outputs to inputs.
+- Incorrect values: check `data` for each node. A node with `"bypassed": true` in `ui_properties` is disabled.
+- Wrong `type`, which happens in programmatic workflows.
+- Overlapping or off-canvas nodes: check `ui_properties.position`.
 
 ---
 
@@ -216,81 +186,14 @@ The editor refuses a connection between incompatible types, so a type mismatch s
 
 ---
 
-## Debugging Specific Issues
+## Common symptoms
 
-### LLM Not Responding
-
-1. **Check model availability**
-   - Open **More → Model Manager** on the left rail
-   - Verify model is installed (local) or API key is set (cloud)
-
-2. **Test with Preview**
-   - Add Preview after the Agent/LLM node
-   - Run and check if any output appears
-
-3. **Check prompt**
-   - Is the prompt template valid?
-   - Are all template variables being filled?
-
-4. **Verify connectivity**
-   - For cloud models: check internet connection
-   - For local models: check if Ollama/llama.cpp is running
-
-### Image Generation Fails
-
-1. **Check model installation**
-   - Open **More → Model Manager**
-   - Ensure Flux/Qwen Image/etc. is downloaded
-
-2. **Verify VRAM**
-   - Check GPU memory with `nvidia-smi`
-   - Close other GPU apps if memory is low
-
-3. **Inspect parameters**
-   - Valid dimensions? (usually multiples of 8 or 64)
-   - Reasonable step count? (20-50 typical)
-   - Valid CFG scale? (5-15 typical)
-
-4. **Add Preview before generation**
-   - Confirm prompt text is correct
-   - Check that conditioning inputs are valid
-
-### RAG/Search Returns Nothing
-
-1. **Verify collection exists**
-   - Check that index workflow was run first
-   - Collection name matches between index and search
-
-2. **Check embedding model**
-   - Same embedding model for index and search?
-   - Model available and running?
-
-3. **Test query**
-   - Try a simpler query
-   - Increase `top_k` to retrieve more documents
-   - Check if documents were chunked appropriately
-
-4. **Inspect indexed content**
-   - Use Preview to see what was indexed
-   - Check chunk sizes aren't too small/large
-
-### Workflow Runs Forever
-
-1. **Check for loops**
-   - The validator rejects cycles except one closing on a Loop node's `next` or `condition` input, but a Loop with a condition that never ends still runs forever
-   - Look for conditional nodes that might never exit
-
-2. **Monitor node status**
-   - Which node still shows the moving running ring?
-   - That node is the bottleneck
-
-3. **Check network calls**
-   - API timeouts can appear as hangs
-   - Add timeout parameters where available
-
-4. **Resource constraints**
-   - Is the system running out of memory?
-   - Is disk full (for large file operations)?
+| Symptom | Check |
+|---|---|
+| LLM does not respond | **More → Model Manager**: model installed (local) or API key set (cloud). Local runtime (Ollama, llama.cpp) running. Template variables filled. A Preview after the Agent node shows whether any output arrives. |
+| Image generation fails | Model downloaded in **More → Model Manager**. GPU memory free (`nvidia-smi`). Valid dimensions, step count, and CFG scale. A Preview before the generation node confirms the prompt and conditioning inputs. |
+| RAG or search returns nothing | The index workflow ran first. Collection name and embedding model match between index and search. Try a simpler query or a larger `top_k`. Preview the indexed chunks. |
+| Run never ends | The validator rejects cycles except one closing on a Loop node's `next` or `condition` input, but a Loop whose condition never ends still runs forever. The node still showing the moving ring is the stuck one. Check for API timeouts, memory, and disk space. |
 
 ---
 
@@ -298,36 +201,19 @@ The editor refuses a connection between incompatible types, so a type mismatch s
 
 ### Binary Search Debugging
 
-When you have a complex workflow and something's wrong:
-
-1. **Disable half the workflow**
-   - Select the downstream nodes and press `B` (or right-click → **Disable All**)
-   - A disabled node and its connections are left out of the run, so only the first half executes
-
-2. **Check results**
-   - Working? Problem is in second half
-   - Broken? Problem is in first half
-
-3. **Repeat**
-   - Continue halving until you find the problem node
+Select the downstream half and press `B` (or right-click → **Disable All**). Disabled nodes and their connections are left out of the run, so only the first half executes. If it works, the problem is in the second half. Repeat until you find the node.
 
 ### Testing Nodes in Isolation
 
-Create a minimal test workflow:
-
-1. **Right-click the node → Run Node.** It runs as its own job using previous results as inputs. **Run Selected** does the same for a selection.
-2. Or make a **new workflow** with just the suspicious node, add input nodes with known good test data, add Preview/Output, and run it
-3. Or, from a terminal, `nodetool node run <node_type> --props '{...}'` runs one node with no workflow
+1. Right-click the node → **Run Node**. It runs as its own job using previous results as inputs. **Run Selected** does the same for a selection.
+2. Or make a new workflow with just the suspect node, known-good input nodes, and a Preview.
+3. Or, from a terminal, `nodetool node run <node_type> --props '{...}'` runs one node with no workflow.
 
 If the node works in isolation, the problem is with the data it receives in the full workflow.
 
 ### Comparing Working vs Broken
 
-If a workflow used to work:
-
-1. **Export both versions** (working and broken) as JSON, or compare two entries in the **Versions** panel
-2. **Diff the files** to see what changed
-3. **Focus on changed nodes/edges**
+Export both versions as JSON, or compare two entries in the **Versions** panel, then diff the changed nodes and edges.
 
 ```bash
 diff working_workflow.json broken_workflow.json
@@ -337,31 +223,13 @@ diff working_workflow.json broken_workflow.json
 
 ## Command-Line Debugging
 
-Three `nodetool` commands cover the same ground without the editor. See the [CLI reference]({{ '/cli' | relative_url }}) for all options.
+Three `nodetool` commands debug without the editor. See the [CLI reference]({{ '/cli' | relative_url }}) for all options.
 
 | Command | Use |
 |---------|-----|
 | `nodetool validate <workflow_id_or_file>` | Static check in under a second: unknown node types, missing required properties, dangling or mis-typed edges, bad model references. Run it before an expensive run. |
 | `nodetool debug <workflow_id_or_file>` | Run the workflow and write a bundle with every message, log line, node input and output, and error, plus a verdict. Add `--trace` for timing and cost, `--watch` to re-run a file on save. |
 | `nodetool node run <node_type> --props '{...}'` | Run one node in isolation. |
-
----
-
-## Debugging Tools Summary
-
-| Tool | When to Use | How to Access |
-|------|-------------|---------------|
-| **Preview nodes** | See intermediate data | Space → search "Preview" |
-| **Node error panel** | See error messages | On the failed node |
-| **Logs panel** | Run log lines by severity | `l` |
-| **Trace panel** | Per-node timing | `Ctrl/⌘ + Shift + T` |
-| **Run Node / Run Selected** | Test part of a graph | Right-click a node or selection |
-| **Disable Node** | Exclude part of a graph from a run | `B` |
-| **Versions panel** | Compare or restore earlier saves | Bottom panel → Versions |
-| **JSON export** | Inspect workflow structure | Document bar ⋮ → Download JSON |
-| **Log Viewer** | Backend log (desktop) | Tools → Log Viewer |
-| **Debug logging** | CLI debugging | `NODETOOL_LOG_LEVEL=debug nodetool serve` |
-| **`nodetool validate` / `debug`** | Headless checks | Terminal |
 
 ---
 
@@ -381,8 +249,6 @@ Three `nodetool` commands cover the same ground without the editor. See the [CLI
 
 ## Getting More Help
 
-If you're still stuck after debugging:
-
 1. **Click Report on the failed node.** The bug-report form collects the error,
    the node's settings, the workflow and the logs for you. The hosted app sends
    it to the NodeTool team. A local install saves a zip you drag into a
@@ -392,11 +258,4 @@ If you're still stuck after debugging:
    it through first. Bring the workflow JSON, a screenshot, and your OS and
    NodeTool version.
 
----
-
-## Related Documentation
-
-- [Troubleshooting Guide](troubleshooting.md) – Broader troubleshooting for common issues
-- [Key Concepts](key-concepts.md) – Understanding nodes, edges, and data flow
-- [Workflow Editor](workflow-editor.md) – Using the visual editor effectively
-- [Cookbook](cookbook.md) – Working workflow patterns to learn from
+Related: [Troubleshooting](troubleshooting.md), [Key Concepts](key-concepts.md), [Workflow Editor](workflow-editor.md), [Cookbook](cookbook.md).

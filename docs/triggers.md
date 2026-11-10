@@ -4,19 +4,22 @@ title: "Triggers"
 description: "Run a workflow on a schedule, when a file changes, when a webhook arrives, or by hand."
 ---
 
-A trigger starts a workflow run when something happens, so you do not have to press **Run**. You add a trigger node to the graph, save the workflow, and arm the trigger. From then on the NodeTool server starts one run for every event.
+A trigger node starts one workflow run per event, with no editor open. Add the node, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
 
-> **Quick Access:** Add a trigger node from the node menu, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
+| Node | Fires when | Key settings |
+|---|---|---|
+| Interval Trigger | A fixed number of seconds passes | Interval Seconds (60) |
+| File Watch Trigger | A file or folder changes on the server | Path, Patterns, Events |
+| Webhook Trigger | An HTTP request reaches `/api/webhooks/{token}` | none |
+| Manual Trigger | You click **Fire now** or call `triggers.fire` | Name |
 
 ---
 
 ## What a trigger is
 
-Each trigger node in a workflow becomes a trigger registration when you save. The registration is what the server watches. It records whether the trigger is armed, when it last fired, the last error, and how many runs it has started.
+Each trigger node becomes a trigger registration when you save. The registration records whether the trigger is armed, when it last fired, the last error, and how many runs it has started. Saving never arms a trigger. A new registration starts off, and an existing one keeps the state you last set.
 
-Saving never arms a trigger. A new registration starts off, and an existing one keeps the state you last set. Arming is always something you do on purpose.
-
-When an event arrives, the server starts a separate run of the workflow and hands the event to the trigger node, which passes it to the nodes connected to its outputs. Each event is one run. Triggered runs have no editor open, so they run headlessly in the server and appear in your run history like any other job.
+When an event arrives, the server starts a separate run and hands the event to the trigger node, which passes it to the nodes on its outputs. Triggered runs run headlessly in the server and appear in your run history like any other job.
 
 A triggered run also receives three parameters. An Input node with a matching name picks them up, and a workflow without such nodes ignores them.
 
@@ -31,8 +34,6 @@ A triggered run also receives three parameters. An Input node with a matching na
 The nodes live in the `nodetool.triggers` namespace. Interval, file watch, webhook, and manual triggers create registrations. The Wait node is not a trigger and is listed here because it sits in the same group.
 
 ### Interval Trigger
-
-Fires on a fixed interval. It is the schedule trigger.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -72,7 +73,7 @@ Outputs: `body`, `headers`, `query`, `method`, `path`, `timestamp`, `source`, `e
 
 ### Manual Trigger
 
-Fires only when you click **Fire now** in the trigger popover, or when something calls the `triggers.fire` procedure. Use it to start a workflow by hand from the popover, or as a stand-in while you build another trigger.
+Fires only when you click **Fire now** in the trigger popover, or when something calls the `triggers.fire` procedure. It works as a stand-in while you build another trigger.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -204,7 +205,7 @@ To turn trigger handling off for a process, set `NODETOOL_DISABLE_TRIGGERS=1`. T
 
 You can test a triggered workflow from the command line without arming anything. `nodetool workflows run` accepts `--trigger-event` to deliver one event to a trigger node. See [CLI](cli.md).
 
-The mobile app has a Triggers screen for monitoring. See [Mobile App](mobile-app.md).
+The mobile app has no Triggers screen. Manage triggers on desktop or web.
 
 ## Troubleshooting
 

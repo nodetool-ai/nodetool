@@ -144,6 +144,7 @@ const isRestorableType = (
     case "jsscript":
     case "audio":
     case "text":
+    case "document":
     case "model3d":
     case "application":
     case "chat":

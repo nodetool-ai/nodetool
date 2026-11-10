@@ -46,6 +46,8 @@ import {
 import { AppEvent } from "../types";
 import { PHONE_WIDTH_QUERY } from "../appThemes";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
+import { useBindingRef, useBindingValue } from "../runtime/AppRuntimeContext";
+import TemplateTextInput from "./TemplateTextInput";
 import { useResolvedMediaUri } from "../../../hooks/useResolvedMediaUri";
 import { downloadResolvedMedia } from "../../storyboard/shotMediaDownload";
 import {
@@ -1128,26 +1130,31 @@ export const TextInputWidget: React.FC<
     /** A short guide under the field. */
     hint?: string;
     multiline?: boolean;
+    placeholderFieldsBinding?: string;
+    cameraPresets?: boolean;
   }
 > = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
+  const fields = useBindingValue(
+    useBindingRef(props.placeholderFieldsBinding, "read")
+  );
+  const onChange = (next: string) => {
+    setValue(next);
+    emit("change");
+  };
+  const onCommit = React.useCallback(() => emit("change", "commit"), [emit]);
   return (
-    <TextInput
-      data-focus-id={`app-widget-${props.id}`}
-      label={props.label ?? ""}
-      placeholder={props.placeholder ?? ""}
-      helperText={props.hint || undefined}
-      slotProps={{ formHelperText: { sx: { mx: 0 } } }}
+    <TemplateTextInput
+      {...props}
+      highlightPlaceholders={Boolean(props.placeholderFieldsBinding)}
       value={str(value)}
-      multiline={Boolean(props.multiline)}
-      minRows={props.multiline ? 3 : undefined}
-      size="small"
-      fullWidth
-      onChange={(e) => {
-        setValue(e.target.value);
-        emit("change");
-      }}
-      onBlur={() => emit("change", "commit")}
+      fields={
+        Array.isArray(fields)
+          ? [...new Set(fields.filter(isString).filter(Boolean))]
+          : []
+      }
+      onChange={onChange}
+      onCommit={onCommit}
     />
   );
 };
@@ -1375,6 +1382,7 @@ export const ChoiceCardsWidget: React.FC<
                   {option.image ? (
                     <ResponsiveImage
                       locator={option.image}
+                      preferThumbnail
                       alt=""
                       borderRadius={BORDER_RADIUS.sm}
                       sx={{

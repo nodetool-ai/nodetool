@@ -406,6 +406,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_providers",
+    module: "models",
+    impl: "packages/agents/src/capabilities/models.ts",
+    contract: "2d7d37bbf55f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-models.test.ts",
+    ],
+  },
+  {
     name: "generate_text",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
@@ -2376,7 +2386,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "2c403692e0f6",
+    contract: "905d8042a3f4",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",

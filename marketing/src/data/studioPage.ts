@@ -2,9 +2,6 @@ import type { MarketingFact } from "@/components/MarketingFacts";
 
 /** Copy for /studio, shared by the page and its Markdown mirror (scripts/generate-llms-txt.mjs). */
 
-export const STUDIO_PROJECT =
-  "The agent can draft the storyboard and edit the clips into a video. The result is a NodeTool project, so you can make the next change yourself in an editor or ask the agent to make it.";
-
 export const OWNERSHIP_FACTS: MarketingFact[] = [
   {
     term: "Project files",

@@ -1,0 +1,2160 @@
+{
+  "schemaVersion": 1,
+  "name": "Catalog Motion",
+  "description": "Upload a product catalog as CSV and every product's own photo becomes a short video. One prompt template fills from each row's columns, one video model and setting renders the whole range, and you test a single product before you pay for the batch. Every clip is saved to your assets.",
+  "app": {
+    "schemaVersion": 3,
+    "ui": {
+      "root": {
+        "props": {}
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "title",
+            "text": "Catalog Motion",
+            "level": "1",
+            "subtitle": "Animate your product catalog, one clip per product."
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "app-note",
+            "text": "💸 Video is metered per second. Test one product before you render a range.",
+            "tone": "hint"
+          }
+        },
+        {
+          "type": "Stepper",
+          "props": {
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
+              {
+                "value": "load-the-catalog",
+                "title": "Load the catalog"
+              },
+              {
+                "value": "write-the-prompt",
+                "title": "Write the prompt"
+              },
+              {
+                "value": "choose-the-video-model",
+                "title": "Choose the video model"
+              },
+              {
+                "value": "test-one-product",
+                "title": "Test one product"
+              },
+              {
+                "value": "render-the-range",
+                "title": "Render the range"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-load-the-catalog",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "load-the-catalog"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-load-the-catalog",
+                  "text": "Load the catalog",
+                  "level": "2",
+                  "subtitle": "One product per row, with a header row. Each row needs a link to the product's photo."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-load-the-catalog",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "DocumentInput",
+                      "props": {
+                        "id": "in-catalog",
+                        "binding": "var:catalog",
+                        "label": "Product catalog (CSV)",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note",
+                        "text": "A Shopify, WooCommerce or spreadsheet export works as it is. Leave the column fields blank and the app finds the image and name columns."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-imagecolumn",
+                        "binding": "var:imageColumn",
+                        "label": "Image column (blank finds it)",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-namecolumn",
+                        "binding": "var:nameColumn",
+                        "label": "Name column (blank finds it)",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-preview",
+                        "label": "Read the catalog",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "preview",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:preview/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "WorkflowSteps",
+                      "props": {
+                        "id": "progress-preview",
+                        "operationId": "preview",
+                        "label": "Reading the catalog…",
+                        "steps": []
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-preview",
+                        "binding": "op:preview/exec#error",
+                        "title": "The catalog could not be read",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:preview/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-preview-summary",
+                        "text": "What the app found",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-preview-summary",
+                        "binding": "op:preview/out:summary",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-preview-products",
+                        "text": "Products",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-preview-products",
+                        "binding": "op:preview/out:products"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-load-the-catalog"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-load-the-catalog",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-load-the-catalog",
+                        "label": "Next: Write the prompt",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "write-the-prompt"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-write-the-prompt",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "write-the-prompt"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-write-the-prompt",
+                  "text": "Write the prompt",
+                  "level": "2",
+                  "subtitle": "One template for the whole catalog. Each product's own values fill it in."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-write-the-prompt",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-2",
+                        "text": "Read the catalog, then click a field below the prompt to insert its placeholder. You can also type {{column}}, for example {{title}} or {{color}}. Describe the camera move and the light once for the whole catalog."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-prompttemplate",
+                        "binding": "var:promptTemplate",
+                        "label": "Prompt template",
+                        "multiline": true,
+                        "placeholderFieldsBinding": "op:preview/out:fields",
+                        "cameraPresets": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-negativeprompt",
+                        "binding": "var:negativePrompt",
+                        "label": "Avoid in every clip",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-preview-2",
+                        "label": "Fill the prompts",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "preview",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:preview/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-preview-2",
+                        "binding": "op:preview/exec#error",
+                        "title": "The template does not fit the catalog",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:preview/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-preview-products-2",
+                        "text": "The prompt for each product",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Table",
+                      "props": {
+                        "id": "out-preview-products-2",
+                        "binding": "op:preview/out:products"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-write-the-prompt"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-write-the-prompt",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-write-the-prompt",
+                        "label": "Back: Load the catalog",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "load-the-catalog"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-write-the-prompt",
+                        "label": "Next: Choose the video model",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "choose-the-video-model"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-choose-the-video-model",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "choose-the-video-model"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-choose-the-video-model",
+                  "text": "Choose the video model",
+                  "level": "2",
+                  "subtitle": "Every product is animated from its own photo with these settings."
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "model-videomodel",
+                  "binding": "var:videoModel",
+                  "label": "Image-to-video model",
+                  "modelKind": "video_model",
+                  "task": "image_to_video",
+                  "events": []
+                }
+              },
+              {
+                "type": "Select",
+                "props": {
+                  "id": "in-aspectratio",
+                  "binding": "var:aspectRatio",
+                  "label": "Aspect ratio",
+                  "options": [
+                    {
+                      "value": "1:1"
+                    },
+                    {
+                      "value": "3:4"
+                    },
+                    {
+                      "value": "9:16"
+                    },
+                    {
+                      "value": "16:9"
+                    },
+                    {
+                      "value": "4:3"
+                    },
+                    {
+                      "value": "21:9"
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "Select",
+                "props": {
+                  "id": "in-resolution",
+                  "binding": "var:resolution",
+                  "label": "Resolution",
+                  "options": [
+                    {
+                      "value": "720p"
+                    },
+                    {
+                      "value": "1080p"
+                    },
+                    {
+                      "value": "1440p"
+                    },
+                    {
+                      "value": "4K"
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "NumberInput",
+                "props": {
+                  "id": "in-duration",
+                  "binding": "var:duration",
+                  "label": "Seconds per clip",
+                  "min": 2,
+                  "max": 15,
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-3",
+                  "text": "Not every model offers every frame, resolution and length. A model that does not support a setting uses its closest one."
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-choose-the-video-model"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-choose-the-video-model",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-choose-the-video-model",
+                        "label": "Back: Write the prompt",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "write-the-prompt"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-choose-the-video-model",
+                        "label": "Next: Test one product",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "test-one-product"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-test-one-product",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "test-one-product"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-test-one-product",
+                  "text": "Test one product",
+                  "level": "2",
+                  "subtitle": "Render one row with the exact settings the batch will use."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-test-one-product",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-testrow",
+                        "binding": "var:testRow",
+                        "label": "Catalog row to test",
+                        "min": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-test",
+                        "label": "Render the test clip",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "test",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:test/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "WorkflowSteps",
+                      "props": {
+                        "id": "progress-test",
+                        "operationId": "test",
+                        "label": "Animating the product…",
+                        "steps": [
+                          {
+                            "nodeId": "read",
+                            "title": "Read the catalog rows"
+                          },
+                          {
+                            "nodeId": "animate",
+                            "title": "Animate each product"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-test",
+                        "binding": "op:test/exec#error",
+                        "title": "The test clip failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:test/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-test-videos",
+                        "text": "Test clip",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-test-videos",
+                        "binding": "op:test/out:videos",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-test-summary",
+                        "binding": "op:test/out:summary",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-test-one-product"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-test-one-product",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-test-one-product",
+                        "label": "Back: Choose the video model",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "choose-the-video-model"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-test-one-product",
+                        "label": "Next: Render the range",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "render-the-range"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-render-the-range",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "render-the-range"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-render-the-range",
+                  "text": "Render the range",
+                  "level": "2",
+                  "subtitle": "Animate a run of rows. Clips appear as they finish and are saved to your assets."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-render-the-range",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-firstrow",
+                        "binding": "var:firstRow",
+                        "label": "First row",
+                        "min": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "NumberInput",
+                      "props": {
+                        "id": "in-lastrow",
+                        "binding": "var:lastRow",
+                        "label": "Last row (0 renders to the end)",
+                        "min": 0,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-4",
+                        "text": "💸 Each row is one clip. The summary shows how many clips and seconds the range adds up to."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-batch",
+                        "label": "Render the range",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "batch",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:batch/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "WorkflowSteps",
+                      "props": {
+                        "id": "progress-batch",
+                        "operationId": "batch",
+                        "label": "Animating the catalog…",
+                        "steps": [
+                          {
+                            "nodeId": "read",
+                            "title": "Read the catalog rows"
+                          },
+                          {
+                            "nodeId": "animate",
+                            "title": "Animate each product"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-batch",
+                        "binding": "op:batch/exec#error",
+                        "title": "The batch stopped",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:batch/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-batch-summary",
+                        "binding": "op:batch/out:summary",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-batch-videos",
+                        "text": "Product clips",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-batch-videos",
+                        "binding": "op:batch/out:videos",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-5",
+                        "text": "Every clip is saved as an asset with the prompt and settings that made it, so you can find it later or make a variant."
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-render-the-range"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-render-the-range",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-render-the-range",
+                        "label": "Back: Test one product",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "test-one-product"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    },
+    "operations": [
+      {
+        "id": "preview",
+        "name": "Read the catalog",
+        "workflowId": "read",
+        "inputs": {
+          "catalog": {
+            "from": "variable",
+            "variableId": "catalog"
+          },
+          "prompt_template": {
+            "from": "variable",
+            "variableId": "promptTemplate"
+          },
+          "image_column": {
+            "from": "variable",
+            "variableId": "imageColumn"
+          },
+          "name_column": {
+            "from": "variable",
+            "variableId": "nameColumn"
+          }
+        },
+        "outputs": {},
+        "policy": "replace"
+      },
+      {
+        "id": "test",
+        "name": "Test one product",
+        "workflowId": "animate",
+        "inputs": {
+          "catalog": {
+            "from": "variable",
+            "variableId": "catalog"
+          },
+          "prompt_template": {
+            "from": "variable",
+            "variableId": "promptTemplate"
+          },
+          "image_column": {
+            "from": "variable",
+            "variableId": "imageColumn"
+          },
+          "name_column": {
+            "from": "variable",
+            "variableId": "nameColumn"
+          },
+          "video_model": {
+            "from": "variable",
+            "variableId": "videoModel"
+          },
+          "aspect_ratio": {
+            "from": "variable",
+            "variableId": "aspectRatio"
+          },
+          "resolution": {
+            "from": "variable",
+            "variableId": "resolution"
+          },
+          "duration": {
+            "from": "variable",
+            "variableId": "duration"
+          },
+          "negative_prompt": {
+            "from": "variable",
+            "variableId": "negativePrompt"
+          },
+          "first_row": {
+            "from": "variable",
+            "variableId": "testRow"
+          },
+          "last_row": {
+            "from": "variable",
+            "variableId": "testRow"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 900000
+      },
+      {
+        "id": "batch",
+        "name": "Render the range",
+        "workflowId": "animate",
+        "inputs": {
+          "catalog": {
+            "from": "variable",
+            "variableId": "catalog"
+          },
+          "prompt_template": {
+            "from": "variable",
+            "variableId": "promptTemplate"
+          },
+          "image_column": {
+            "from": "variable",
+            "variableId": "imageColumn"
+          },
+          "name_column": {
+            "from": "variable",
+            "variableId": "nameColumn"
+          },
+          "video_model": {
+            "from": "variable",
+            "variableId": "videoModel"
+          },
+          "aspect_ratio": {
+            "from": "variable",
+            "variableId": "aspectRatio"
+          },
+          "resolution": {
+            "from": "variable",
+            "variableId": "resolution"
+          },
+          "duration": {
+            "from": "variable",
+            "variableId": "duration"
+          },
+          "negative_prompt": {
+            "from": "variable",
+            "variableId": "negativePrompt"
+          },
+          "first_row": {
+            "from": "variable",
+            "variableId": "firstRow"
+          },
+          "last_row": {
+            "from": "variable",
+            "variableId": "lastRow"
+          }
+        },
+        "outputs": {},
+        "policy": "replace",
+        "timeoutMs": 3600000
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "load-the-catalog",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "catalog",
+        "name": "Product catalog",
+        "type": {
+          "type": "document",
+          "optional": true
+        },
+        "default": {
+          "type": "document",
+          "uri": "package://nodetool-base/recipe-inputs/catalog/products.csv"
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "imageColumn",
+        "name": "Image column",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "nameColumn",
+        "name": "Name column",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "promptTemplate",
+        "name": "Prompt template",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "negativePrompt",
+        "name": "Avoid in every clip",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "text, changing logos, warped product, extra objects, hands",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "videoModel",
+        "name": "Video model",
+        "type": {
+          "type": "video_model",
+          "optional": true
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "aspectRatio",
+        "name": "Aspect ratio",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "1:1",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "resolution",
+        "name": "Resolution",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "720p",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "duration",
+        "name": "Seconds per clip",
+        "type": {
+          "type": "int",
+          "optional": true
+        },
+        "default": 5,
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "testRow",
+        "name": "Row to test",
+        "type": {
+          "type": "int",
+          "optional": true
+        },
+        "default": 1,
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "firstRow",
+        "name": "First row",
+        "type": {
+          "type": "int",
+          "optional": true
+        },
+        "default": 1,
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "lastRow",
+        "name": "Last row",
+        "type": {
+          "type": "int",
+          "optional": true
+        },
+        "default": 0,
+        "scope": "instance",
+        "persist": false
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "key": "read",
+      "name": "Read a Product Catalog",
+      "description": "Check a product catalog before you render it. Reads a CSV, finds the image and name columns, and fills the video prompt template for every row, so a wrong column or a missing image shows before any video is paid for.",
+      "sourceId": "nodetool-base/Read a Product Catalog",
+      "graph": {
+        "nodes": [
+          {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Read a Product Catalog\n\nReads a product catalog CSV and shows what each row would be animated with.\n\n**How it works:** \"Catalog CSV\" takes the file. \"Read the catalog\" detects the delimiter, finds the image and name columns when the fields are blank, and fills \"Prompt template\" for every row. Write `{{title}}` or `{{color}}` to insert that column's value. \"Products\" is the table and \"Summary\" names the columns you can use.\n\n**Try this:** Upload a Shopify product export and leave both column fields blank. It finds `Image Src` and `Title`."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 640,
+              "selectable": true,
+              "height": 300
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "catalog",
+            "type": "nodetool.input.DocumentInput",
+            "data": {
+              "name": "catalog",
+              "value": {
+                "type": "document",
+                "uri": "package://nodetool-base/recipe-inputs/catalog/products.csv",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "description": "The product catalog as a CSV file, one product per row with a header row"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Catalog CSV"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "prompt_template",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "prompt_template",
+              "value": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+              "description": "The video prompt. {{column}} inserts that product's value",
+              "line_mode": "multi_line"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  Prompt template"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "image_column",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "image_column",
+              "value": "",
+              "description": "The column with each product's image URL. Blank finds it"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 760
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Image column"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "name_column",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "name_column",
+              "value": "",
+              "description": "The column with each product's name. Blank finds it"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 900
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Name column"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "reference_roles",
+            "type": "nodetool.input.BooleanInput",
+            "data": {
+              "name": "reference_roles",
+              "value": false,
+              "description": "Keep {{product_image}}, {{background_image}} and {{decoration_image}} in the prompt and offer them as fields"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 1040
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  Reference roles"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "read",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const PREVIEW_ROWS = 500;\nconst catalog = inputs.catalog;\nconst hasCatalog = catalog && (catalog.uri || catalog.asset_id || catalog.data);\nif (!hasCatalog) throw new Error(\"Upload your product catalog as a CSV file.\");\nconst text = String(await media.text(catalog)).replace(/^﻿/, \"\");\nif (!text.trim()) throw new Error(\"The catalog file is empty.\");\n\n// Comma, semicolon or tab: whichever the header row uses most.\nconst headerLine = text.split(/\\r?\\n/, 1)[0];\nconst countOf = (ch) => headerLine.split(ch).length - 1;\nconst delimiter = [\";\", \"\\t\"].reduce((best, ch) => (countOf(ch) > countOf(best) ? ch : best), \",\");\n\n// RFC 4180: quoted fields may hold the delimiter, line breaks and \"\" quotes.\nconst records = [];\nlet record = [];\nlet field = \"\";\nlet quoted = false;\nfor (let i = 0; i < text.length; i++) {\n  const ch = text[i];\n  if (quoted) {\n    if (ch === '\"') {\n      if (text[i + 1] === '\"') {\n        field += '\"';\n        i++;\n      } else quoted = false;\n    } else field += ch;\n  } else if (ch === '\"' && field === \"\") quoted = true;\n  else if (ch === delimiter) {\n    record.push(field);\n    field = \"\";\n  } else if (ch === \"\\n\" || ch === \"\\r\") {\n    if (ch === \"\\r\" && text[i + 1] === \"\\n\") i++;\n    record.push(field);\n    records.push(record);\n    record = [];\n    field = \"\";\n  } else field += ch;\n}\nif (field !== \"\" || record.length > 0) {\n  record.push(field);\n  records.push(record);\n}\nconst lines = records.filter((r) => r.some((cell) => cell.trim() !== \"\"));\nif (lines.length < 2) throw new Error(\"The catalog needs a header row and at least one product row.\");\n\nconst headers = lines[0].map((h) => h.trim());\nconst keyOf = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\");\nconst byKey = new Map(headers.map((h) => [keyOf(h), h]));\nconst columnList = headers.map((h) => '\"' + h + '\"').join(\", \");\nconst products = lines.slice(1).map((cells) => {\n  const product = {};\n  headers.forEach((h, i) => (product[h] = String(cells[i] ?? \"\").trim()));\n  return product;\n});\n\n// A blank column field means \"find it\": the first header that looks right.\nconst findColumn = (asked, patterns) => {\n  const wanted = String(asked ?? \"\").trim();\n  if (wanted) {\n    const hit = byKey.get(keyOf(wanted));\n    if (!hit) throw new Error('The catalog has no \"' + wanted + '\" column. Its columns are ' + columnList + \".\");\n    return hit;\n  }\n  for (const pattern of patterns) {\n    const hit = headers.find((h) => pattern.test(keyOf(h)));\n    if (hit) return hit;\n  }\n  return null;\n};\nconst imageColumn = findColumn(inputs.image_column, [\n  /^(image|image_src|image_url|image_link|img|photo|packshot)$/,\n  /image|img|photo|picture|packshot/\n]);\nif (!imageColumn) {\n  throw new Error(\"No column looks like an image link. Name the column that holds each product's image URL. The columns are \" + columnList + \".\");\n}\nconst nameColumn = findColumn(inputs.name_column, [/^(title|name|product|product_name)$/, /title|name/]) ?? headers[0];\n\nconst template = String(inputs.prompt_template ?? \"\").trim();\nif (!template) throw new Error(\"Write the prompt template. Use {{column}} to insert a product's value.\");\nconst PLACEHOLDER = /\\{\\{\\s*([^{}]+?)\\s*\\}\\}/g;\n// With reference_roles on, the image role placeholders stay in the prompt for\n// the animate graph to number.\nconst ROLES = inputs.reference_roles ? [\"product_image\", \"background_image\", \"decoration_image\"] : [];\nconst isRole = (name) => ROLES.includes(keyOf(name));\nconst missing = [...new Set([...template.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((name) => !byKey.has(keyOf(name)) && !isRole(name)))];\n// Reading still succeeds, so the new catalog shows. Rendering refuses below.\nconst missingText = missing.length > 0\n  ? \"The template uses \" + missing.map((name) => \"{{\" + name + \"}}\").join(\", \") +\n    \", which the catalog has no column for. The columns are \" + columnList + \".\"\n  : \"\";\nconst fill = (product) =>\n  template.replace(PLACEHOLDER, (_, name) => (isRole(name) ? \"{{\" + keyOf(name) + \"}}\" : product[byKey.get(keyOf(name))] ?? \"\")).replace(/\\s+/g, \" \").trim();\n\n// A Shopify export writes \"//cdn.shopify.com/…\"; a bare file name is not a link.\nconst imageOf = (product) => {\n  let value = String(product[imageColumn] ?? \"\").trim();\n  if (value.startsWith(\"//\")) value = \"https:\" + value;\n  if (/^(https?|package|asset|data):/i.test(value) || value.startsWith(\"/api/storage/\")) {\n    return { type: \"image\", uri: value };\n  }\n  return null;\n};\n\nconst total = products.length;\nconst first = Math.max(1, Math.floor(Number(inputs.first_row) || 1));\nconst askedLast = Math.floor(Number(inputs.last_row) || 0);\nconst last = askedLast <= 0 ? total : Math.min(total, askedLast);\nif (first > total) throw new Error(\"Row \" + first + \" is past the end. The catalog has \" + total + \" products.\");\nif (last < first) throw new Error(\"The last row (\" + last + \") comes before the first row (\" + first + \").\");\n\nconst items = [];\nconst skipped = [];\nfor (let row = first; row <= last; row++) {\n  const product = products[row - 1];\n  const image = imageOf(product);\n  if (!image) {\n    skipped.push(row);\n    continue;\n  }\n  items.push({ row, product: product[nameColumn] || \"Row \" + row, image, prompt: fill(product) });\n}\n\nconst seconds = Math.max(0, Number(inputs.duration) || 0);\nconst placeholders = headers.map((h) => \"{{\" + keyOf(h) + \"}}\").join(\" \");\nconst summary = [\n  missingText ? \"⚠️ \" + missingText + \" Those placeholders stay blank until you change the template.\" : \"\",\n  \"**\" + total + (total === 1 ? \" product\" : \" products\") + \"** in the catalog. Images come from **\" + imageColumn + \"**, names from **\" + nameColumn + \"**.\",\n  \"Placeholders for the prompt: \" + placeholders,\n  first === 1 && last === total\n    ? \"All \" + total + (total === 1 ? \" row: \" : \" rows: \") + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\")\n    : \"Rows \" + first + \" to \" + last + \": \" + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\"),\n  skipped.length > 0\n    ? \"Skipped for a missing or unusable image link: \" + (skipped.length === 1 ? \"row \" : \"rows \") + skipped.join(\", \") + \".\"\n    : \"\"\n].filter(Boolean).join(\"\\n\\n\");\n\nconst table = products.slice(0, PREVIEW_ROWS).map((product, i) => ({\n  Row: i + 1,\n  Product: product[nameColumn],\n  Prompt: fill(product),\n  // The file name, not the whole link: the table has a narrow column for it.\n  Image: imageOf(product) ? String(product[imageColumn]).split(/[?#]/)[0].split(\"/\").pop() : \"missing\"\n}));\n\nawait output(\"summary\", summary);\nawait output(\"products\", table);\nawait output(\"fields\", [...new Set([...headers.map(keyOf).filter(Boolean), ...ROLES])]);",
+              "timeout": 60,
+              "max_response_mb": 4,
+              "allow_local_network": false,
+              "allow_host_filesystem": false,
+              "secrets": [],
+              "script": {}
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  Read the catalog"
+            },
+            "dynamic_properties": {
+              "catalog": null,
+              "prompt_template": "",
+              "image_column": "",
+              "name_column": "",
+              "first_row": 1,
+              "last_row": 0,
+              "duration": 0
+            },
+            "dynamic_outputs": {
+              "summary": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              },
+              "products": {
+                "type": "list",
+                "type_args": [
+                  {
+                    "type": "any",
+                    "type_args": [],
+                    "optional": false
+                  }
+                ],
+                "optional": false
+              },
+              "fields": {
+                "type": "list",
+                "type_args": [
+                  {
+                    "type": "str",
+                    "type_args": [],
+                    "optional": false
+                  }
+                ],
+                "optional": false
+              }
+            }
+          },
+          {
+            "id": "products",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "products",
+              "description": "Every row with its filled prompt and image link"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 800,
+                "y": 520
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "6  Products"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "summary",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "summary",
+              "description": "Columns, placeholders and rows that will be skipped"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 800,
+                "y": 700
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "7  Summary"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "fields",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fields",
+              "description": "Catalog column names available as prompt placeholders"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 800,
+                "y": 880
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "8  Prompt fields"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e-catalog",
+            "source": "catalog",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "catalog"
+          },
+          {
+            "id": "e-template",
+            "source": "prompt_template",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "prompt_template"
+          },
+          {
+            "id": "e-image-column",
+            "source": "image_column",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "image_column"
+          },
+          {
+            "id": "e-name-column",
+            "source": "name_column",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "name_column"
+          },
+          {
+            "id": "e-reference-roles",
+            "source": "reference_roles",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "reference_roles"
+          },
+          {
+            "id": "e-products",
+            "source": "read",
+            "sourceHandle": "products",
+            "target": "products",
+            "targetHandle": "value"
+          },
+          {
+            "id": "e-summary",
+            "source": "read",
+            "sourceHandle": "summary",
+            "target": "summary",
+            "targetHandle": "value"
+          },
+          {
+            "id": "e-fields",
+            "source": "read",
+            "sourceHandle": "fields",
+            "target": "fields",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    },
+    {
+      "key": "animate",
+      "name": "Animate a Product Catalog",
+      "description": "Turn a product catalog into product videos. Each row's own photo is animated with image-to-video, and the prompt is filled from that row's columns, so a whole range of products shares one camera move and light while every clip stays true to its product.",
+      "sourceId": "nodetool-base/Animate a Product Catalog",
+      "graph": {
+        "nodes": [
+          {
+            "id": "intro-comment",
+            "type": "nodetool.workflows.base_node.Comment",
+            "data": {
+              "comment": "# Animate a Product Catalog\n\nAnimates a range of rows from a product catalog CSV. Every product keeps its own photo as the first frame, and its prompt is filled from its own columns.\n\n**How it works:** \"Read the rows to animate\" parses the CSV and fills \"Prompt template\" for rows \"First row\" to \"Last row\" (0 means the last product). \"For each product\" hands each row to \"Animate\", which runs the chosen video model with one aspect ratio, resolution and length for the whole batch. Every clip is saved as an asset with its prompt, and \"Videos\" streams them in as they finish.\n\n**Try this:** Set the first and last row to the same number to test one product before you render the range."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "zIndex": 0,
+              "width": 640,
+              "selectable": true,
+              "height": 300
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "catalog",
+            "type": "nodetool.input.DocumentInput",
+            "data": {
+              "name": "catalog",
+              "value": {
+                "type": "document",
+                "uri": "package://nodetool-base/recipe-inputs/catalog/products.csv",
+                "asset_id": null,
+                "data": null,
+                "metadata": null
+              },
+              "description": "The product catalog as a CSV file, one product per row with a header row"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 360
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "1  Catalog CSV"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "prompt_template",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "prompt_template",
+              "value": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+              "description": "The video prompt. {{column}} inserts that product's value",
+              "line_mode": "multi_line"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  Prompt template"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "image_column",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "image_column",
+              "value": "",
+              "description": "The column with each product's image URL. Blank finds it"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 760
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "3  Image column"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "name_column",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "name_column",
+              "value": "",
+              "description": "The column with each product's name. Blank finds it"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 900
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "4  Name column"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "first_row",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "first_row",
+              "value": 1,
+              "min": 1,
+              "max": 100000,
+              "description": "The first catalog row to animate, counting from 1"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 1040
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "5  First row"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "last_row",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "last_row",
+              "value": 0,
+              "min": 0,
+              "max": 100000,
+              "description": "The last catalog row to animate. 0 means the end of the catalog"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 1180
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "6  Last row"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "video_model",
+            "type": "nodetool.input.VideoModelInput",
+            "data": {
+              "name": "video_model",
+              "value": {
+                "type": "video_model",
+                "provider": "",
+                "id": "",
+                "name": "",
+                "path": null,
+                "supported_tasks": []
+              },
+              "description": "The image-to-video model every product is animated with"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 1040
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "8  Video model"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "aspect_ratio",
+            "type": "nodetool.input.SelectInput",
+            "data": {
+              "name": "aspect_ratio",
+              "value": "1:1",
+              "options": [
+                "1:1",
+                "3:4",
+                "9:16",
+                "16:9",
+                "4:3",
+                "21:9"
+              ],
+              "enum_type_name": "",
+              "description": "The frame every clip is rendered in"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 1200
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "9  Aspect ratio"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "resolution",
+            "type": "nodetool.input.SelectInput",
+            "data": {
+              "name": "resolution",
+              "value": "720p",
+              "options": [
+                "720p",
+                "1080p",
+                "1440p",
+                "4K"
+              ],
+              "enum_type_name": "",
+              "description": "The resolution every clip is rendered at"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 1360
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "10  Resolution"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "duration",
+            "type": "nodetool.input.IntegerInput",
+            "data": {
+              "name": "duration",
+              "value": 5,
+              "min": 2,
+              "max": 15,
+              "description": "Seconds per clip"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 1520
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "11  Seconds per clip"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "negative_prompt",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "negative_prompt",
+              "value": "text, changing logos, warped product, extra objects, hands",
+              "description": "What every clip should avoid"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 1660
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "12  Avoid"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "read",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const PREVIEW_ROWS = 500;\nconst catalog = inputs.catalog;\nconst hasCatalog = catalog && (catalog.uri || catalog.asset_id || catalog.data);\nif (!hasCatalog) throw new Error(\"Upload your product catalog as a CSV file.\");\nconst text = String(await media.text(catalog)).replace(/^﻿/, \"\");\nif (!text.trim()) throw new Error(\"The catalog file is empty.\");\n\n// Comma, semicolon or tab: whichever the header row uses most.\nconst headerLine = text.split(/\\r?\\n/, 1)[0];\nconst countOf = (ch) => headerLine.split(ch).length - 1;\nconst delimiter = [\";\", \"\\t\"].reduce((best, ch) => (countOf(ch) > countOf(best) ? ch : best), \",\");\n\n// RFC 4180: quoted fields may hold the delimiter, line breaks and \"\" quotes.\nconst records = [];\nlet record = [];\nlet field = \"\";\nlet quoted = false;\nfor (let i = 0; i < text.length; i++) {\n  const ch = text[i];\n  if (quoted) {\n    if (ch === '\"') {\n      if (text[i + 1] === '\"') {\n        field += '\"';\n        i++;\n      } else quoted = false;\n    } else field += ch;\n  } else if (ch === '\"' && field === \"\") quoted = true;\n  else if (ch === delimiter) {\n    record.push(field);\n    field = \"\";\n  } else if (ch === \"\\n\" || ch === \"\\r\") {\n    if (ch === \"\\r\" && text[i + 1] === \"\\n\") i++;\n    record.push(field);\n    records.push(record);\n    record = [];\n    field = \"\";\n  } else field += ch;\n}\nif (field !== \"\" || record.length > 0) {\n  record.push(field);\n  records.push(record);\n}\nconst lines = records.filter((r) => r.some((cell) => cell.trim() !== \"\"));\nif (lines.length < 2) throw new Error(\"The catalog needs a header row and at least one product row.\");\n\nconst headers = lines[0].map((h) => h.trim());\nconst keyOf = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\");\nconst byKey = new Map(headers.map((h) => [keyOf(h), h]));\nconst columnList = headers.map((h) => '\"' + h + '\"').join(\", \");\nconst products = lines.slice(1).map((cells) => {\n  const product = {};\n  headers.forEach((h, i) => (product[h] = String(cells[i] ?? \"\").trim()));\n  return product;\n});\n\n// A blank column field means \"find it\": the first header that looks right.\nconst findColumn = (asked, patterns) => {\n  const wanted = String(asked ?? \"\").trim();\n  if (wanted) {\n    const hit = byKey.get(keyOf(wanted));\n    if (!hit) throw new Error('The catalog has no \"' + wanted + '\" column. Its columns are ' + columnList + \".\");\n    return hit;\n  }\n  for (const pattern of patterns) {\n    const hit = headers.find((h) => pattern.test(keyOf(h)));\n    if (hit) return hit;\n  }\n  return null;\n};\nconst imageColumn = findColumn(inputs.image_column, [\n  /^(image|image_src|image_url|image_link|img|photo|packshot)$/,\n  /image|img|photo|picture|packshot/\n]);\nif (!imageColumn) {\n  throw new Error(\"No column looks like an image link. Name the column that holds each product's image URL. The columns are \" + columnList + \".\");\n}\nconst nameColumn = findColumn(inputs.name_column, [/^(title|name|product|product_name)$/, /title|name/]) ?? headers[0];\n\nconst template = String(inputs.prompt_template ?? \"\").trim();\nif (!template) throw new Error(\"Write the prompt template. Use {{column}} to insert a product's value.\");\nconst PLACEHOLDER = /\\{\\{\\s*([^{}]+?)\\s*\\}\\}/g;\n// With reference_roles on, the image role placeholders stay in the prompt for\n// the animate graph to number.\nconst ROLES = inputs.reference_roles ? [\"product_image\", \"background_image\", \"decoration_image\"] : [];\nconst isRole = (name) => ROLES.includes(keyOf(name));\nconst missing = [...new Set([...template.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((name) => !byKey.has(keyOf(name)) && !isRole(name)))];\n// Reading still succeeds, so the new catalog shows. Rendering refuses below.\nconst missingText = missing.length > 0\n  ? \"The template uses \" + missing.map((name) => \"{{\" + name + \"}}\").join(\", \") +\n    \", which the catalog has no column for. The columns are \" + columnList + \".\"\n  : \"\";\nconst fill = (product) =>\n  template.replace(PLACEHOLDER, (_, name) => (isRole(name) ? \"{{\" + keyOf(name) + \"}}\" : product[byKey.get(keyOf(name))] ?? \"\")).replace(/\\s+/g, \" \").trim();\n\n// A Shopify export writes \"//cdn.shopify.com/…\"; a bare file name is not a link.\nconst imageOf = (product) => {\n  let value = String(product[imageColumn] ?? \"\").trim();\n  if (value.startsWith(\"//\")) value = \"https:\" + value;\n  if (/^(https?|package|asset|data):/i.test(value) || value.startsWith(\"/api/storage/\")) {\n    return { type: \"image\", uri: value };\n  }\n  return null;\n};\n\nconst total = products.length;\nconst first = Math.max(1, Math.floor(Number(inputs.first_row) || 1));\nconst askedLast = Math.floor(Number(inputs.last_row) || 0);\nconst last = askedLast <= 0 ? total : Math.min(total, askedLast);\nif (first > total) throw new Error(\"Row \" + first + \" is past the end. The catalog has \" + total + \" products.\");\nif (last < first) throw new Error(\"The last row (\" + last + \") comes before the first row (\" + first + \").\");\n\nconst items = [];\nconst skipped = [];\nfor (let row = first; row <= last; row++) {\n  const product = products[row - 1];\n  const image = imageOf(product);\n  if (!image) {\n    skipped.push(row);\n    continue;\n  }\n  items.push({ row, product: product[nameColumn] || \"Row \" + row, image, prompt: fill(product) });\n}\n\nconst seconds = Math.max(0, Number(inputs.duration) || 0);\nconst placeholders = headers.map((h) => \"{{\" + keyOf(h) + \"}}\").join(\" \");\nconst summary = [\n  missingText ? \"⚠️ \" + missingText + \" Those placeholders stay blank until you change the template.\" : \"\",\n  \"**\" + total + (total === 1 ? \" product\" : \" products\") + \"** in the catalog. Images come from **\" + imageColumn + \"**, names from **\" + nameColumn + \"**.\",\n  \"Placeholders for the prompt: \" + placeholders,\n  first === 1 && last === total\n    ? \"All \" + total + (total === 1 ? \" row: \" : \" rows: \") + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\")\n    : \"Rows \" + first + \" to \" + last + \": \" + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\"),\n  skipped.length > 0\n    ? \"Skipped for a missing or unusable image link: \" + (skipped.length === 1 ? \"row \" : \"rows \") + skipped.join(\", \") + \".\"\n    : \"\"\n].filter(Boolean).join(\"\\n\\n\");\n\nconst table = products.slice(0, PREVIEW_ROWS).map((product, i) => ({\n  Row: i + 1,\n  Product: product[nameColumn],\n  Prompt: fill(product),\n  // The file name, not the whole link: the table has a narrow column for it.\n  Image: imageOf(product) ? String(product[imageColumn]).split(/[?#]/)[0].split(\"/\").pop() : \"missing\"\n}));\n\nawait output(\"summary\", summary);\nawait output(\"products\", table);\nawait output(\"fields\", [...new Set([...headers.map(keyOf).filter(Boolean), ...ROLES])]);\nif (missingText) throw new Error(missingText);\nif (items.length === 0) throw new Error(\"None of rows \" + first + \" to \" + last + \" has an image link to animate.\");\nawait output(\"rows\", items);",
+              "timeout": 60,
+              "max_response_mb": 4,
+              "allow_local_network": false,
+              "allow_host_filesystem": false,
+              "secrets": [],
+              "script": {}
+            },
+            "ui_properties": {
+              "position": {
+                "x": 400,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "7  Read the rows to animate"
+            },
+            "dynamic_properties": {
+              "catalog": null,
+              "prompt_template": "",
+              "image_column": "",
+              "name_column": "",
+              "first_row": 1,
+              "last_row": 0,
+              "duration": 0
+            },
+            "dynamic_outputs": {
+              "summary": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              },
+              "products": {
+                "type": "list",
+                "type_args": [
+                  {
+                    "type": "any",
+                    "type_args": [],
+                    "optional": false
+                  }
+                ],
+                "optional": false
+              },
+              "fields": {
+                "type": "list",
+                "type_args": [
+                  {
+                    "type": "str",
+                    "type_args": [],
+                    "optional": false
+                  }
+                ],
+                "optional": false
+              },
+              "rows": {
+                "type": "list",
+                "type_args": [
+                  {
+                    "type": "any",
+                    "type_args": [],
+                    "optional": false
+                  }
+                ],
+                "optional": false
+              }
+            }
+          },
+          {
+            "id": "each",
+            "type": "nodetool.control.ForEach",
+            "data": {
+              "input_list": []
+            },
+            "ui_properties": {
+              "position": {
+                "x": 800,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "13  For each product"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "unpack",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const item = inputs.item ?? {};\nif (!item.image) throw new Error(\"This catalog row has no image to animate.\");\nawait output(\"image\", item.image);\nawait output(\"prompt\", String(item.prompt ?? \"\"));",
+              "timeout": 10,
+              "max_response_mb": 1,
+              "allow_local_network": false,
+              "allow_host_filesystem": false,
+              "secrets": [],
+              "script": {}
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1100,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "14  Image and prompt"
+            },
+            "dynamic_properties": {
+              "item": null
+            },
+            "dynamic_outputs": {
+              "image": {
+                "type": "image",
+                "type_args": [],
+                "optional": false
+              },
+              "prompt": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              }
+            }
+          },
+          {
+            "id": "animate",
+            "type": "nodetool.video.ImageToVideo",
+            "data": {
+              "image": [],
+              "model": {
+                "type": "video_model",
+                "provider": "",
+                "id": "",
+                "name": "",
+                "path": null,
+                "supported_tasks": []
+              },
+              "prompt": "",
+              "negative_prompt": "",
+              "entities": [],
+              "aspect_ratio": "1:1",
+              "resolution": "720p",
+              "duration": 5,
+              "timeout_seconds": 0
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1450,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "15  Animate"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "videos",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "videos",
+              "description": "One clip per product, saved as an asset"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 1850,
+                "y": 560
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "16  Videos"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "summary",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "summary",
+              "description": "How many clips the range produces and which rows were skipped"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 800,
+                "y": 900
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "17  Summary"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "e-catalog",
+            "source": "catalog",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "catalog"
+          },
+          {
+            "id": "e-template",
+            "source": "prompt_template",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "prompt_template"
+          },
+          {
+            "id": "e-image-column",
+            "source": "image_column",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "image_column"
+          },
+          {
+            "id": "e-name-column",
+            "source": "name_column",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "name_column"
+          },
+          {
+            "id": "e-first",
+            "source": "first_row",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "first_row"
+          },
+          {
+            "id": "e-last",
+            "source": "last_row",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "last_row"
+          },
+          {
+            "id": "e-duration-read",
+            "source": "duration",
+            "sourceHandle": "output",
+            "target": "read",
+            "targetHandle": "duration"
+          },
+          {
+            "id": "e-rows",
+            "source": "read",
+            "sourceHandle": "rows",
+            "target": "each",
+            "targetHandle": "input_list"
+          },
+          {
+            "id": "e-item",
+            "source": "each",
+            "sourceHandle": "output",
+            "target": "unpack",
+            "targetHandle": "item"
+          },
+          {
+            "id": "e-image",
+            "source": "unpack",
+            "sourceHandle": "image",
+            "target": "animate",
+            "targetHandle": "image"
+          },
+          {
+            "id": "e-prompt",
+            "source": "unpack",
+            "sourceHandle": "prompt",
+            "target": "animate",
+            "targetHandle": "prompt"
+          },
+          {
+            "id": "e-model",
+            "source": "video_model",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "model"
+          },
+          {
+            "id": "e-aspect",
+            "source": "aspect_ratio",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "aspect_ratio"
+          },
+          {
+            "id": "e-resolution",
+            "source": "resolution",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "resolution"
+          },
+          {
+            "id": "e-duration",
+            "source": "duration",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "duration"
+          },
+          {
+            "id": "e-negative",
+            "source": "negative_prompt",
+            "sourceHandle": "output",
+            "target": "animate",
+            "targetHandle": "negative_prompt"
+          },
+          {
+            "id": "e-videos",
+            "source": "animate",
+            "sourceHandle": "output",
+            "target": "videos",
+            "targetHandle": "value"
+          },
+          {
+            "id": "e-summary",
+            "source": "read",
+            "sourceHandle": "summary",
+            "target": "summary",
+            "targetHandle": "value"
+          }
+        ]
+      },
+      "version": null,
+      "graphHash": null
+    }
+  ]
+}

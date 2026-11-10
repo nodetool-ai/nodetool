@@ -33,7 +33,10 @@ export const documentCollaboratorItem = z.object({
   user_id: z.string(),
   role: collaboratorRoleSchema,
   invited_by: z.string(),
-  created_at: z.string().nullable().optional()
+  created_at: z.string().nullable().optional(),
+  /** From the user directory, when the collaborator has signed in through SSO. */
+  display_name: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
 });
 export type DocumentCollaboratorItem = z.infer<
   typeof documentCollaboratorItem
@@ -68,6 +71,9 @@ export const documentSharingSetRoleInput = documentRefInput.extend({
   user_id: z.string().min(1),
   role: collaboratorRoleSchema
 });
+
+/** Give a person from the user directory access by name, without a link. */
+export const documentSharingInviteInput = documentSharingSetRoleInput;
 
 export const documentSharingRemoveCollaboratorInput = documentRefInput.extend({
   user_id: z.string().min(1)

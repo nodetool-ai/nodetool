@@ -26,6 +26,7 @@ export {
   assetKeyOwner
 } from "./storage-keys.js";
 export { InMemoryStorageAdapter } from "./memory-storage-adapter.js";
+export { objectCacheControl } from "./cache-control.js";
 export {
   FileStorageAdapter,
   type ExternalPathLookup,

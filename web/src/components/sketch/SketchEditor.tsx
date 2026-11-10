@@ -59,6 +59,7 @@ import {
   InspectorSectionTitle,
   MobileBottomSheet,
   ResizableDock,
+  SPACING,
   Tooltip,
   Z_INDEX
 } from "../ui_primitives";
@@ -141,12 +142,12 @@ const ConnectedColorPanel = memo(function ConnectedColorPanel() {
   const currentHex = colorToHex6(foregroundColor);
 
   return (
-    <FlexColumn gap={1} sx={{ p: 1 }}>
+    <FlexColumn gap={SPACING.xs} sx={{ p: SPACING.xs }}>
       <ColorFieldPicker
         color={foregroundColor}
         onColorChange={handleFgColorChange}
       />
-      <FlexRow gap={0.5} sx={{ flexWrap: "wrap" }}>
+      <FlexRow gap={SPACING.micro} sx={{ flexWrap: "wrap" }}>
         {SKETCH_PRESET_SWATCHES.map((c) => (
           <ColorSwatch
             key={c}
@@ -730,8 +731,8 @@ function SketchEditor({
             onClick={togglePanelsHidden}
             sx={{
               position: "absolute",
-              top: (t) => t.spacing(1),
-              right: (t) => t.spacing(1),
+              top: (t) => t.spacing(SPACING.xs),
+              right: (t) => t.spacing(SPACING.xs),
               zIndex: Z_INDEX.raised + 2
             }}
           >
@@ -838,6 +839,7 @@ function SketchEditor({
         {simpleMode && !isMobile && (
           <SimpleSketchSidebar
             onToggleVisibility={session.layerActions.handleToggleVisibility}
+            onReorderLayers={session.layerActions.handleReorderLayers}
             onAddLayer={handleSimpleAddLayer}
             onOpenExpert={openExpertMode}
           />
@@ -880,8 +882,8 @@ function SketchEditor({
               }}
               sx={{
                 position: "absolute",
-                bottom: (t) => t.spacing(2),
-                right: (t) => t.spacing(2),
+                bottom: (t) => t.spacing(SPACING.md),
+                right: (t) => t.spacing(SPACING.md),
                 zIndex: Z_INDEX.raised + 2
               }}
             >
@@ -905,6 +907,7 @@ function SketchEditor({
                   <SimpleSketchSidebar
                     sheet
                     onToggleVisibility={session.layerActions.handleToggleVisibility}
+                    onReorderLayers={session.layerActions.handleReorderLayers}
                     onAddLayer={handleSimpleAddLayer}
                   />
                 ) : (
