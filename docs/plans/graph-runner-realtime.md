@@ -1,7 +1,8 @@
 # Realtime graphics and audio in the native graph runner
 
-Status: draft, revision 1. Nothing in this document is implemented. Sections 4
-to 17 specify proposed behavior.
+Status: draft, revision 2. Nothing in this document is implemented. Sections 4
+to 17 specify proposed behavior. Revision 2 answers a design review. Section
+3.5 lists its findings and the section that resolves each one.
 
 Cross-plan references use `RT-`, for example `RT-D4`. Local IDs stay unchanged.
 
@@ -35,11 +36,11 @@ finite kernel as it is.
 | Goal | Required behavior |
 |---|---|
 | G1 | A graph section draws one frame for each display refresh at 60 Hz and 1920×1080. No JavaScript runs on the frame path. |
-| G2 | A graph section produces a continuous stereo stream at 44.1 kHz. The audio threads make no lock, allocation, log or I/O call. |
-| G3 | Picture and sound share one clock. A value derived from the sound reaches the picture in the frame where that sound is audible. |
+| G2 | A graph section produces a continuous stereo stream at 44.1 kHz or 48 kHz. The audio threads make no lock, allocation, log or I/O call. |
+| G3 | Picture and sound share one clock. A value derived from the sound reaches the picture within one refresh period of the time when that sound is audible (D7h). |
 | G4 | Slow nodes stay asynchronous. A result enters a realtime section at a tick boundary and never delays a tick. |
-| G5 | An edit replaces the running plan without a gap in sound or picture. The state of unchanged nodes survives. |
-| G6 | The same plan renders offline with exact time, for export and for tests, and gives the same result on each run. |
+| G5 | An edit replaces the running plan without a gap or a click. The state of an unchanged node survives and advances once for each tick. |
+| G6 | The same plan renders offline with exact time, for export and for tests. One build gives the same bytes on each run from the same recorded inputs. Agreement between hosts has three stated levels (section 15.1). |
 | G7 | The plan format and the audio kernels also run in the browser later, on WebGPU and an AudioWorklet. |
 | G8 | Every part runs headless: a null audio device, a software GPU adapter, no window. |
 
@@ -190,6 +191,27 @@ Appendix A gives the method. Both kernels run on blocks of 512 stereo frames.
   WebAssembly engines. Native code with the default contraction differs in the
   sixth digit.
 
+### 3.5 Review of revision 1
+
+A design review of revision 1 found these gaps. Each row names the place that
+now resolves it.
+
+| Finding | Gap in revision 1 | Resolved in |
+|---|---|---|
+| F31 | A swap rendered one quantum from the old and the new audio plan on the same node state. A player, an oscillator or a filter then advances twice | 11.3, O7 |
+| F32 | A param change reached the picture in the next frame and the sound after the ring lead. A plan swap had the same offset | D7g, 11.1, 11.2 |
+| F33 | Damping, an envelope, an integrated oscillator and stateful noise are not functions of the time. One copy at 60 Hz and one at 344.5 Hz diverge | D15, 5.4 |
+| F34 | An epoch deadline needs a second thread that advances the epoch, and a browser has no such call. An endless loop inside a worklet call cannot be stopped | 10.6, O8 |
+| F35 | A module without imports has its own memory. Samples cannot reach it from a native buffer without a copy | 10.5, 10.6 |
+| F36 | `SeqLock` has a bounded `tryLoad` and an unbounded `load` ([`AudioClockFeed.h`][tl-feed]). A full retire queue and a value that two domains release had no rule. One ring cannot feed the device and a recorder | 10.4, 11.4 |
+| F37 | A skipped pass needs its output from an earlier frame. A pool that assigns textures by liveness inside one frame can overwrite that output | 9.4, 9.5 |
+| F38 | A thread-safe device does not bound the wait behind another submission, a pipeline compile or a queue backlog | 9.2, R2 |
+| F39 | "0 frames of error" ignored the presentation estimate, the analysis window and a late analysis value | G3, D7h, 13 |
+| F40 | Equal checksums for two kernels on one input do not show parity for other kernels | N6, 15.1 |
+| F41 | A 99th percentile leaves about 2,070 of the 206,700 quanta of a 10 minute run without a limit | 13 |
+| F42 | The IR named a texture format and no color space, alpha mode or channel layout. The sample rate and the quantum were fixed values | 6.2, 10.1 |
+| F43 | The render executor was tied to its own surface. The browser render executor was fixed without a comparison | D14, 9.2, 14.5, Q8 |
+
 ## 4. Decision
 
 ```
@@ -219,14 +241,18 @@ Appendix A gives the method. Both kernels run on blocks of 512 stereo frames.
   native window. Section 9.1 compares this with QRhi.
 - D5. The audio executor runs fixed quanta of 128 frames on a realtime thread
   that the engine owns. miniaudio stays the device layer.
-- D6. Built-in kernels are native code. Kernels that arrive as data are
-  WebAssembly. Pixel work is WGSL. JavaScript sets values and never computes a
-  sample or a frame (section 12).
+- D6. Built-in kernels are native code. Pixel work is WGSL. JavaScript sets
+  values and never computes a sample or a frame (section 12). Kernels that
+  arrive as data are WebAssembly. They come in a later phase and run off the
+  deadline threads (section 10.6).
 - D7. The audio stream is the master clock. The picture follows a visual clock
-  locked to it. Values cross between the two domains by stream time.
+  locked to it. Values cross between the two domains by stream time. A change
+  that the sound consumes reaches the picture when it is audible (D7g).
 - D8. The render plan tracks versions, so an unchanged pass does not run (F16).
-- D9. A new plan replaces the old plan at a tick boundary. Node state follows
-  the node's identity. Old plans are destroyed off the realtime threads.
+- D9. A new plan replaces the old plan at a tick boundary. One plan of a
+  domain runs in each tick, so node state advances once. State follows the
+  node's identity while its state key is equal (section 11.3). Old plans are
+  destroyed off the realtime threads.
 - D10. Slots carry the results of slow nodes into the plans.
 - D11. Offline mode drives the same executors with exact time (F21).
 - D12. All time-dependent behavior uses seconds or beats. No kernel, control
@@ -234,6 +260,11 @@ Appendix A gives the method. Both kernels run on blocks of 512 stereo frames.
 - D13. The engine is a new project, `native/realtime`, with no Qt and no
   QuickJS dependency. The audio device and clock layer moves from the timeline
   into a shared library.
+- D14. The render executor draws into a texture view and owns no surface. A
+  presenter shows the result: a surface of the session, or a target that the
+  host passes inside its own frame (section 9.2).
+- D15. A stateful control operation runs in one domain, in fixed steps of one
+  quantum of stream time (section 5.4).
 
 Rejected alternatives:
 
@@ -245,6 +276,8 @@ Rejected alternatives:
 | O4. Compile every audio kernel to WebAssembly on the desktop too | F27. It also makes Wasmtime a required dependency on every platform. |
 | O5. Use miniaudio's node graph as the audio executor, as TiXL does | The plan must be data that two hosts execute the same way, with a fixed quantum for exact offline results (G6, G7). |
 | O6. Load native plug-ins for user kernels | A fault ends the host process. The VST host already runs as a child process for that reason. |
+| O7. Crossfade the old and the new audio plan at a swap | Each node downstream of the edit needs a second state block, and both paths cost CPU in the quantum of the edit (F31). Section 11.3 removes the click with one plan. |
+| O8. Guard the audio deadline with epoch interruption | The trap needs a second thread and can arrive after the deadline. A browser has no such call (F34). |
 
 ## 5. Execution model
 
@@ -264,9 +297,9 @@ Rejected alternatives:
 
 | Kind | Value | Evaluated | Thread |
 |---|---|---|---|
-| Audio | Planar float32, 128 frames | Each quantum, 344.5 times a second at 44.1 kHz | Audio render |
+| Audio | Planar float32, one quantum of frames | Each quantum, 344.5 times a second at 44.1 kHz | Audio render |
 | Texture | A GPU texture | Each frame | Render |
-| Control | Scalar, vector, color or boolean | Once for each tick of its consumer | Render or audio render |
+| Control | Scalar, vector, color or boolean | Analytic: once for each tick of its consumer. Stateful: once for each quantum of stream time (section 5.4) | Render or audio render |
 | Event | A discrete message with a stream time | At its time | The consumer's thread |
 | Latched | Any value from a batch node | When the batch node completes | Runner worker, then a slot |
 
@@ -289,21 +322,43 @@ tap copies one frame or a span of audio and starts a normal run.
 
 ### 5.4 Control operations
 
-Control operations are pure functions of their inputs and the time: constants,
-time sources, arithmetic, comparison, remap, oscillators, value noise,
-envelopes, damping and vector packing. Stateful operations such as damping are
-written against the time step (D12).
+A control operation has one of two classes. Its descriptor declares the class.
 
-The compiler places a control operation in the domain of its consumer. An
-operation with consumers in both domains is placed in both, because a pure
-function of time gives the same value in each. A value that exists in one
-domain only crosses as follows:
+| Class | Operations | Rule |
+|---|---|---|
+| Analytic | Constants, time sources, arithmetic, comparison, remap, vector packing, an oscillator with a constant rate, noise that is a hash of the time | A pure function of its inputs and the stream time. It gives the same value in each domain |
+| Stateful | Damping, envelopes, an oscillator with a modulated rate, sample-and-hold noise, integrators, counters | It has memory. It runs in one domain only, in fixed steps (F33) |
+
+The compiler places an analytic operation in the domain of its consumer, and
+in both domains when both consume it. An analytic operation can take a
+stateful value as an input.
+
+A stateful operation advances once for each quantum of stream time (D15). The
+count of steps comes from the stream time and never from the frame count or
+the wall clock. Its domain depends on the session:
+
+- With an audio plan, the audio thread runs the step in each quantum. The
+  render thread reads the result from the signal history.
+- Without an audio plan, the render thread runs each step that ends at or
+  before the time of its frame.
+- Offline mode follows the same two rules with the exact clock.
+
+A stateful value thus has one sequence of values in all three cases. A frame
+rate of 60 Hz or 120 Hz changes which entries a frame reads and not the
+entries. The operation is written against the step length in seconds (D12),
+so a session at 48 kHz follows the same curve.
+
+After a stall, the render thread runs at most 0.25 s of missed steps. It skips
+the rest and counts the skip (R12).
+
+A value crosses between the domains as follows:
 
 - Audio to render: the audio thread writes `(streamTime, value)` pairs to a
-  signal history, once for each quantum. The render thread reads the value for
-  the audible time of its frame.
-- Render or host to audio: the value goes through the param table
-  (section 11.1) and is smoothed.
+  signal history, once for each quantum. The render thread reads the newest
+  entry at or before the audible time of its frame (D7h).
+- Host or worker to a plan: the value is a param change (section 11.1).
+
+No control value goes from the render thread to the audio thread.
 
 The executor is a register machine: a flat list of operations with register
 indexes, without allocation. The same C++ source serves both domains.
@@ -355,17 +410,26 @@ The IR is one JSON document. It is illustrative here and not final:
 ```json
 {
   "revision": 12,
-  "session": { "sampleRate": 44100, "quantum": 128, "width": 1920, "height": 1080 },
-  "params": [{ "slot": 0, "node": "a1", "field": "cutoff", "smooth": "ramp" }],
-  "slots": [{ "id": "t0", "kind": "texture", "source": "n2.output" }],
-  "control": { "registers": 24, "ops": [["time.beats", 0], ["osc.sine", 1, 0]] },
+  "session": { "sampleRate": 44100, "quantum": 128, "channels": "stereo",
+               "width": 1920, "height": 1080, "seed": 1 },
+  "params": [{ "slot": 0, "node": "a1", "field": "cutoff", "smooth": "ramp",
+               "sync": "audio" }],
+  "slots": [{ "id": "t0", "kind": "texture", "source": "n2.output",
+              "colorSpace": "encoded-sdr", "alpha": "premultiplied" }],
+  "control": { "registers": 24,
+               "ops": [["time.beats", 0], ["osc.sine", 1, 0]],
+               "stateful": [["damp", 2, 1]] },
   "render": {
     "passes": [{ "node": "n4", "module": "filters/blur@1", "inputs": { "src": "t0" },
-                 "uniforms": [1], "animated": true }],
-    "present": "n4"
+                 "uniforms": [1], "retention": "volatile",
+                 "output": { "format": "rgba8unorm", "size": "session",
+                             "colorSpace": "encoded-sdr", "alpha": "premultiplied" } }],
+    "present": { "source": "n4", "colorSpace": "srgb" }
   },
   "audio": {
-    "nodes": [{ "node": "a1", "kernel": "biquad.lowpass", "in": [0], "out": [1], "params": [0] }],
+    "buffers": [{ "id": 0, "channels": "stereo" }, { "id": 1, "channels": "stereo" }],
+    "nodes": [{ "node": "a1", "kernel": "biquad.lowpass", "stateVersion": 1,
+                "in": [0], "out": [1], "params": [0] }],
     "sinks": [{ "buffer": 1, "kind": "device" }]
   }
 }
@@ -377,6 +441,23 @@ Rules:
   That name is the identity for state and for error reports (D9).
 - Param slot numbers stay the same across revisions for an unchanged node and
   field.
+- Each texture edge carries the output contract of its module: format, size
+  rule, color space tag and alpha mode (F42). The tags are `ColorSpaceTag` and
+  `AlphaMode` of the shader package ([`types.ts`][gpu-types]). Textures
+  between passes hold premultiplied alpha, as that package requires.
+- The compiler compares each edge with the input contract of its consumer. It
+  adds the catalog's conversion pass for an alpha mismatch, as the TypeScript
+  executor does. It reports a color space mismatch as a warning, because the
+  catalog has no color conversion modules yet and the TypeScript executor
+  defers that check for the same reason.
+- `rgba16float` adds precision and no HDR meaning. Color work stays in SDR, as
+  D3 of the [color precision plan][color-plan] decides. The `present` entry
+  names the color space of the target, so a later HDR output has a place for
+  its transfer function.
+- `session.sampleRate` is 44100 or 48000, and `session.quantum` is 128. Both
+  are data. No kernel and no control operation holds either value as a
+  constant, so another rate or quantum changes the IR and no code.
+- Each audio buffer names its channel layout, mono or stereo in this version.
 - The compiler orders passes and audio nodes topologically and assigns audio
   buffers by liveness, so the executors do no graph work.
 - The compiler reports each node that stopped the walk and why. The editor can
@@ -385,7 +466,8 @@ Rules:
 ### 6.3 Validation
 
 The compiler rejects a plan with a cycle that has no delay, a kind mismatch on
-an edge, or an unknown module or kernel. The prepare step rejects a plan whose
+an edge, a channel layout mismatch on an audio edge, or an unknown module or
+kernel. The prepare step rejects a plan whose
 shader fails to compile or whose resources exceed the session budget. A
 rejected plan never becomes active, and the previous plan keeps running.
 
@@ -394,12 +476,15 @@ rejected plan never becomes active, and the previous plan keeps running.
 | Thread | Owns | Never does |
 |---|---|---|
 | Runner worker (exists) | The JavaScript engine, the kernel loop, the compiler call, batch runs | Touch a plan after it is handed over |
-| Prepare (new, one for each session) | Plan construction: pipelines, textures, kernel state, WebAssembly instances. Destruction of retired plans and slot values | Run inside a frame or a quantum |
-| Render (new) | The active render plan, the surface, frame resources, the visual clock, the control registers of its domain | Wait for the worker, compile a shader, allocate in steady state |
+| Prepare (new, one for each session) | Plan construction: pipelines, textures, kernel state. Destruction of retired plans and slot values. The device poll and its callbacks | Run inside a frame or a quantum |
+| Render (new) | The active render plan, the surface presenter, frame resources, the visual clock, the control registers of its domain | Wait for the worker, compile a shader, allocate in steady state |
 | Audio render (new) | The active audio plan, the control registers of its domain, the write side of the output ring | Lock, allocate, log, do file or network I/O |
 | Device callback (miniaudio) | The read side of the ring, the clock pair | Anything except a copy and the clock write |
 | Analysis (new, optional) | FFT state, the read side of a tap ring, the write side of a signal history | Run on the callback |
 | Host GUI | The window and the transport controls | GPU or audio calls |
+
+With a host target (D14), the host's render thread takes the role of the
+render thread for the length of each `renderFrame` call.
 
 Ownership, as [native rule 16][native-rules] requires:
 
@@ -409,7 +494,7 @@ Ownership, as [native rule 16][native-rules] requires:
 - A plan is immutable after construction and is held in a `std::unique_ptr`.
   It moves from the prepare thread to its realtime thread through a
   single-slot handoff, and back through a retire queue. Only the prepare
-  thread destroys it.
+  thread destroys it. Section 11.4 bounds that queue.
 - Node state lives in a state store that the session owns. The prepare thread
   alone adds and removes entries. A plan holds non-owning pointers, and the
   store removes an entry only after the last plan that names it is retired.
@@ -451,12 +536,35 @@ Ownership, as [native rule 16][native-rules] requires:
   in seconds for each output device.
 - D7f. The tick context gives each operation `seconds`, `beats`, `dt`, `frame`
   and the output size. An operation that integrates uses `dt`.
+- D7g. A change that the sound consumes has an effective stream time (F32).
+  The audio thread applies the change at a quantum start and sends the stream
+  frame of that quantum to the render thread. The render thread applies the
+  change in the first frame whose audible time reaches that stream frame.
+  This rule covers a synced param (section 11.1) and a revision that changes
+  both plans (section 11.2). The sound is never delayed for the picture. When
+  the picture path is the slower one, the picture is late by the difference.
+- D7h. The match between sound and picture has a tolerance and no guarantee
+  (F39):
+  - The timestamp of an analysis value is the stream time of the last frame of
+    its window. A spectrum of 1,024 frames describes the 23.2 ms before its
+    timestamp.
+  - The render thread reads the newest entry at or before the audible time of
+    its frame. It never extrapolates.
+  - An analysis value is late when it is not in the history at that read. The
+    frame then uses the entry before, and the stats count a late read.
+  - An entry older than 100 ms is stale. The consumer holds it, and the stats
+    count a stale read.
+  - The target is one refresh period between a sound and the frame that shows
+    it, 16.7 ms at 60 Hz. The error has three parts: the quantum of 2.9 ms,
+    the estimate of the display latency (D7e) and the correction of the visual
+    clock (D7c). The session cannot observe the light of the display, so P0
+    measures this value with a camera and a microphone.
 
-Reactive visuals stay in sync under any buffer size. The audio for a stream
-time is produced before it is audible, by the ring lead plus the device
-latency. Its analysis value is in the signal history when the render thread
-asks for that time. Buffering thus delays the response to a control change and
-not the match between sound and picture.
+The ring lead helps this match. The audio for a stream time is produced before
+it is audible, by the ring lead plus the device latency. Its analysis value is
+therefore in the signal history before a frame asks for that time, unless the
+analysis step takes longer than the lead (D7h). The lead also delays the
+response of the sound to a control change.
 
 ## 9. Render plan
 
@@ -482,14 +590,19 @@ so controls sit beside the picture or in a separate child window. A later
 session inside the timeline needs a texture exchange between wgpu and QRhi,
 which this design does not provide.
 
-### 9.2 Device and surface
+### 9.2 Device, presenters and the shared queue
 
-- The session uses the process-wide device of the GPU host, so a texture from a
-  batch node can become a slot value without a copy. It receives the device
-  through a typed context object, not through the `compute` callback that
-  carries a native-rules marker ([`gpu_device.h`][gr-gpu]).
-- The frame path does not take the GPU host's device lock. It encodes its own
-  commands and relies on the thread safety of wgpu.
+The render executor draws a frame into a texture view that it is given (D14).
+A presenter supplies that view:
+
+| Presenter | Target | Pacing | Use |
+|---|---|---|---|
+| Surface (first) | A surface that the session configures on a host window | `Fifo` on the first surface | The node editor (section 14.2) |
+| Host target | A texture view that the host passes for each frame | The host calls `renderFrame` inside its own frame | A host that draws its interface on the same device, such as an RmlUi or Dear ImGui editor |
+| Texture | A texture of the session | None | Offline mode and tests |
+
+Surface rules:
+
 - The host passes a surface description: a Metal layer, a window handle, or an
   X11 or Wayland surface. The pinned header has these sources and the calls
   `wgpuSurfaceConfigure`, `wgpuSurfaceGetCurrentTexture` and
@@ -498,50 +611,124 @@ which this design does not provide.
   it cannot, the open call fails with that reason.
 - The first surface paces the loop with `Fifo`. A later surface uses `Mailbox`
   and never blocks (F23).
-- A session without a surface renders to a texture. Offline mode and tests use
-  that.
+
+Device rules:
+
+- The session uses the process-wide device of the GPU host, so a texture from a
+  batch node can become a slot value without a copy. It receives the device
+  through a typed context object, not through the `compute` callback that
+  carries a native-rules marker ([`gpu_device.h`][gr-gpu]).
+- A host target is a view of a texture on that device. A host with a device of
+  its own needs a texture exchange, which this design does not provide (R4).
+
+A thread-safe device is not an isolated device (F38). A frame can wait behind
+a batch submission, behind a pipeline compile in the driver, or behind a queue
+backlog. The application has no portable deadline or preemption guarantee on a
+GPU queue. The GPU host submits and polls under its own mutex today. During a
+session these rules replace that:
+
+1. Every queue submission on the device goes through one gate that the session
+   owns. Batch code encodes its commands on its own thread and gives the
+   command buffer to the gate.
+2. The render thread submits its frame first. After the present call the gate
+   submits at most one batch command buffer. The next one waits until
+   `wgpuQueueOnSubmittedWorkDone` reports the one before. At most one batch
+   submission is thus ahead of a frame.
+3. A batch texture becomes a slot value only after its submission completed.
+   A frame never waits for the work that produces its input.
+4. The prepare thread creates pipelines with
+   `wgpuDeviceCreateRenderPipelineAsync`. A plan becomes active after each of
+   its pipelines is ready.
+5. The prepare thread alone polls the device, so no device callback runs on
+   the render thread. A batch readback waits for its callback and does not
+   poll.
+6. The prepare thread releases a retired texture or buffer. Commands that were
+   submitted before the release still complete, as WebGPU requires.
+
+These rules limit the backlog. They do not make one long batch command buffer
+short. P0 measures the frame intervals during a batch GPU workload in three
+setups: with the gate, without it, and with a second device for batch work. A
+second device separates the queues and costs a CPU copy for each texture slot
+value.
 
 ### 9.3 Frame order
 
-1. Acquire the surface texture. Under `Fifo` this call paces the loop.
-2. Read the clocks and build the tick context.
-3. Apply a pending plan, slot values and the param snapshot.
-4. Run the control plan.
-5. Encode each dirty pass, write the uniform block once, and submit one
+1. Check for work (section 9.4). Without work, wait one refresh period and
+   start again.
+2. Acquire the target. With a surface under `Fifo` this call paces the loop.
+3. Read the clocks and build the tick context.
+4. Apply a pending plan, slot values and each param change that is due (D7g).
+5. Run the control plan.
+6. Encode each dirty pass, write the uniform block once, and submit one
    command buffer.
-6. Present.
-7. Publish the frame stats and move replaced resources to the retire queue.
+7. Present.
+8. Publish the frame stats and move replaced resources to the retire queue.
 
 The time is read after the acquire, so it is as close to the presentation as
 the loop allows. TiXL evaluated its outputs before its clock update and showed
 the previous frame's time (F22).
 
-### 9.4 Dirty tracking
+### 9.4 Dirty tracking and retention
 
-Each pass has a version. A pass runs when the version of an input changed, when
-a uniform expression gave a new value, when a slot got a new value, or when
-the pass is animated. A pass is animated when it or an upstream pass reads the
-time. Other passes keep their output texture from the last run.
+Each pass has a version. A pass is dirty when one of these holds:
 
-When no pass is dirty, the thread skips the frame and presents nothing. The
-window keeps its picture, as the timeline holds its last frame. A paused
-session then uses no GPU time.
+- The version of an input changed.
+- A uniform expression gave a new value.
+- A slot got a new value.
+- Its output size changed.
+- Its output is not valid.
+
+Dirty tracking and texture lifetime follow one rule (F37): a pass is skipped
+only when it is clean and its output from an earlier frame is still valid. The
+compiler gives each pass a retention class for that:
+
+| Class | Pass | Output texture |
+|---|---|---|
+| Volatile | A pass that reads the time, a signal history, a video source or a feedback node, and each pass downstream of one | From the frame pool, assigned by liveness inside the frame. Not valid after the frame |
+| Retained | Every other pass | Owned by the pass across frames. Never in the frame pool |
+
+- A volatile pass runs in each frame while the transport runs.
+- A retained output counts against the texture budget (section 9.5). Over the
+  budget, the session evicts the retained output that was read least recently
+  and marks it not valid. The pass runs again when a consumer needs it.
+- A frame that needs the output of a volatile pass from an earlier frame runs
+  that pass again. This occurs when a param changes while the session is
+  paused. The time is the same, so the picture is the same.
+- A feedback node advances once for each frame while the transport runs, also
+  when its inputs are static. It holds its textures while the session is
+  paused. Its result depends on the frame rate, and offline mode fixes that
+  rate.
+- The present step is dirty when a pass of its chain ran, when the surface was
+  configured again, when the window was exposed, or when the render scale
+  changed. A resize also changes the output size of each pass that takes the
+  session size.
+
+Before it acquires a target, the render thread checks for work. Work exists
+when the transport runs and the plan has a volatile pass, when a plan, slot or
+param change is due, or when the surface changed. Without work the thread
+acquires nothing and presents nothing. The window keeps its picture, as the
+timeline holds its last frame. A paused session then uses no GPU time.
 
 ### 9.5 Resources
 
 - The prepare thread creates every pipeline before a plan becomes active. A
   shader compile never runs on the render thread.
-- A static pass owns its output texture. Animated passes share a pool, and the
-  compiler assigns pool entries by liveness.
-- A feedback pair is two textures that swap each frame.
+- A retained pass owns its output texture. Volatile passes share the frame
+  pool (section 9.4).
+- A feedback pair is two textures that the feedback node owns. They swap once
+  for each frame while the transport runs.
 - One uniform buffer holds all blocks of a frame.
 - Bind groups are cached for each pass and input set.
 - The session has a texture budget, 512 MiB by default as the timeline's
   surface pool has. It is separate from the 64 MiB limit of batch textures. A
   texture that moves from a batch run into a slot leaves the run's account and
   enters the session's account.
-- Targets are `rgba8unorm` by default. A pass can request `rgba16float`, which
-  feedback chains need to avoid banding.
+- Retained outputs, feedback pairs and the frame pool all count against the
+  budget. The prepare step rejects a plan whose frame pool and feedback pairs
+  alone exceed it.
+- The format, color space tag and alpha mode of a target come from the output
+  contract in the IR (section 6.2). The default format is `rgba8unorm`. A pass
+  can request `rgba16float`, which feedback chains need to avoid banding.
 - WebGPU orders queued commands, so the reuse of a target in the next frame
   needs no fence. Readbacks are the exception: export and taps use a ring of
   three staging buffers and map them without a blocking poll.
@@ -567,35 +754,48 @@ node, and the previous plan keeps running.
 
 ### 10.1 Quantum and kernels
 
-The plan runs in quanta of 128 frames, 2.9 ms at 44.1 kHz. The Web Audio
-render quantum has the same length, so a browser executor processes one plan
-quantum for each worklet call (G7). A fixed quantum also makes an offline
-render independent of the device buffer size (G6).
+The plan runs in quanta of 128 frames, 2.9 ms at 44.1 kHz and 2.7 ms at
+48 kHz. The Web Audio render quantum has the same default length, so a browser
+executor processes one plan quantum for each worklet call (G7). A fixed
+quantum also makes an offline render independent of the device buffer size
+(G6).
+
+The quantum and the sample rate are session values in the IR and not constants
+in a kernel (F42). The session rate is 44.1 kHz or 48 kHz. A kernel reads the
+frame count from its arguments and the rate from its config. The
+[Web Audio 1.1 draft][webaudio-11] lets a context ask for another render
+quantum size. The worklet adapter therefore accepts a call of any length and
+feeds whole quanta through a FIFO.
 
 A kernel is a C interface. This sketch is not final:
 
 ```c
 typedef struct nt_dsp_args {
-  const float* const* in;      /* [port * channels], 128 frames each */
+  const float* const* in;      /* [port * channels], `frames` each */
   float* const* out;
   const float* param_begin;    /* value at the first frame */
   const float* param_end;      /* value at the last frame */
   const nt_dsp_event* events;  /* sorted by frame offset */
   uint32_t event_count;
+  uint32_t frames;             /* the session quantum */
   uint64_t stream_frame;       /* position of frame 0 */
 } nt_dsp_args;
 
 typedef struct nt_dsp_kernel {
   uint32_t abi;
+  uint32_t state_version;      /* part of the state key, section 11.3 */
   uint32_t (*state_size)(const nt_dsp_config*);
   void (*init)(void* state, const nt_dsp_config*);
   void (*process)(void* state, const nt_dsp_args*);  /* realtime rules */
 } nt_dsp_kernel;
 ```
 
-The host allocates the state as one flat block. A kernel therefore never
-allocates, its state can follow the node across plans (D9), and the same
-contract maps onto WebAssembly linear memory.
+`nt_dsp_config` holds the sample rate, the quantum, the channel layout of each
+port and the structural params of the node. The host allocates the state as
+one flat block and clears it before `init`. A kernel therefore never
+allocates, and its state can follow the node across plans (D9). In a
+WebAssembly build of the executor the block lies in the module memory, and
+each pointer is an offset into that memory (section 10.5).
 
 The first kernels are an oscillator, noise, gain, mix, the biquad family, a
 delay, a sample player that reads a buffer slot, and a level meter.
@@ -613,12 +813,13 @@ thread calls it.
 
 Reasons for the buffered driver first:
 
-- The engine owns the thread, so per-thread setup of the WebAssembly runtime
-  happens at thread start and not inside a device callback.
+- The engine owns the thread and sets its priority class once, outside a
+  device callback.
 - One late quantum does not cause an underrun.
-- The same ring can feed a recorder or a stream encoder.
-- Buffering does not harm sync, because values cross by stream time
-  (section 8).
+- A recorder or a stream encoder reads a ring of its own, which the same
+  thread fills (section 10.4).
+- Buffering does not shift the picture against the sound, because values and
+  changes cross by stream time (D7g, D7h).
 
 Parameters:
 
@@ -627,8 +828,11 @@ Parameters:
 - The thread requests the platform's realtime class: a time-constraint policy
   and the device workgroup on macOS, MMCSS on Windows, `SCHED_FIFO` on Linux. A
   refused request appears in the stats, and the session continues.
-- The session opens the device at the session rate, 44.1 kHz by default.
-  miniaudio converts when the hardware runs at another rate.
+- The session opens the device at the session rate: 44.1 kHz by default, or
+  48 kHz. miniaudio converts when the hardware runs at another rate.
+- The ring adapts any device period to the quantum. The direct driver needs a
+  FIFO of up to one quantum when the device period is not a multiple of the
+  quantum.
 - All kernels obey the callback rules from the start, so the direct driver
   stays possible.
 
@@ -637,6 +841,10 @@ Parameters:
 - At the start of a quantum the executor takes one snapshot of the param
   table. A kernel receives the previous and the new value of each param and
   ramps between them. A param can also declare a one-pole filter.
+- The snapshot is a bounded read. A read that fails keeps the value of the
+  quantum before (section 11.4).
+- For each synced param that changed, the executor sends an applied notice
+  with the stream frame of the quantum to the render thread (section 11.1).
 - An event has a stream time. The executor passes it to the kernel with its
   frame offset in the quantum. An event that arrives after its time applies at
   the next quantum start, and the stats count it.
@@ -650,66 +858,194 @@ Parameters:
 
 | Sink | Path |
 |---|---|
-| Device | The output ring |
+| Device | The output ring, which the device callback reads |
 | Tap | A ring to the analysis thread, or a level computed in the plan |
 | Capture | A ring to a job that encodes a file or returns chunks to the workflow |
+
+A ring has one producer and one consumer (F13). The audio thread writes the
+ring of each sink itself, so a recorder never shares the device ring (F36). A
+full tap or capture ring loses that quantum for its consumer only. The stats
+count it, and a capture job records the position of the gap.
 
 The analysis thread computes spectra and onsets from a tap and writes them to
 a signal history with stream times (F20).
 
-### 10.5 WebAssembly kernels
+### 10.5 Built-in kernels as WebAssembly
 
-- A module exports the kernel functions and has no imports. The loader rejects
-  a module with any import, so a kernel can compute and nothing else.
-- Its memory has a fixed size. Growth is disabled through the store limiter.
-- The prepare thread compiles and instantiates the module. A compiled module
-  can be cached by its hash.
-- The port buffers and the state live in the instance memory, so a call copies
-  no samples.
-- Epoch interruption sets a deadline for each call. A kernel that passes it
-  traps. The executor then bypasses the node and reports the error on it.
-- Wasmtime 29 has the needed calls: `wasmtime_config_epoch_interruption_set`,
-  `wasmtime_context_set_epoch_deadline` and `wasmtime_func_call_unchecked`.
+In the browser, the control executor, the audio executor and the built-in
+kernels compile to one module with one linear memory (N2). The plan arena, the
+port buffers, the state blocks and the param blocks lie in that memory. A
+pointer of the kernel interface is a 32-bit offset there (F35).
 
-P0 must show that a call into a prepared instance makes no allocation and no
-blocking system call on the audio render thread (R3).
+A call from the executor to a kernel stays inside the module. No sample is
+copied and no call crosses the module boundary inside a quantum. The worklet
+copies the input and the output of each quantum between the module memory and
+its own arrays, which the worklet interface requires in any case.
+
+This code is reviewed and tested as the native build is. It runs on the
+worklet thread without a deadline guard.
+
+### 10.6 Kernels that arrive as data
+
+A kernel from a creator or a pack comes in phase P7. It needs two contracts
+first (F34, F35).
+
+Memory contract:
+
+- A module has no imports. It exports its memory, the kernel functions and one
+  layout function. The loader rejects a module with any import, so a kernel
+  can compute and nothing else.
+- The memory has equal minimum and maximum sizes. The loader rejects a module
+  that can grow its memory.
+- The layout function returns the offset and the size of five regions: input,
+  output, params, events and state. The loader checks that each region is
+  aligned to 16 bytes, lies inside the memory and overlaps no other region.
+- The host copies the input blocks in before a call and the output blocks out
+  after it, 512 bytes for each channel at 128 frames. The host writes the
+  input, param and event regions only. The kernel owns the rest.
+- The state stays in the instance and follows the node while the instance
+  lives. The host never reads it.
+
+Execution contract:
+
+- Epoch interruption is not a deadline guard (O8). A second thread must
+  advance the epoch, the trap can arrive after the deadline, and a browser has
+  no such call ([Wasmtime documentation][wt-interrupt]). An endless loop
+  inside a worklet call stops the sound and cannot be ended.
+- A kernel of this kind therefore runs in isolated mode, off the deadline
+  thread. On the desktop that is a kernel worker thread with Wasmtime. In the
+  browser it is a `Worker`. The audio thread exchanges blocks with it through
+  two rings. The node has a declared latency of one quantum or more.
+- When a block is not in the ring at its quantum, the node gives its bypass
+  output: the input for an effect, silence for a source. The stats count the
+  late block. A kernel that stays late is ended, by an epoch trap on the
+  desktop and by `terminate()` in the browser. The error goes to the node.
+- In the browser the rings need shared memory and thus cross-origin isolation.
+  Without it the blocks travel as messages, and the latency is longer.
+- A metered mode on the deadline thread stays an option (Q9). The loader would
+  count instructions at each loop and call, with Wasmtime fuel on the desktop
+  and a rewrite of the module in the browser. That bounds the instruction
+  count of a call and not its time. Wasmtime documents fuel as slower than
+  epochs, so this mode needs a measurement before a decision.
+
+Wasmtime 29 has the calls for the desktop side:
+`wasmtime_config_epoch_interruption_set`, `wasmtime_context_set_epoch_deadline`,
+`wasmtime_config_consume_fuel_set` and `wasmtime_context_set_fuel`.
 
 ## 11. Control plane protocol
 
-### 11.1 Param table
+### 11.1 Params
 
-The session owns a fixed table. Each entry is a single-writer seqlock, the
-`SeqLock` of [`AudioClockFeed.h`][tl-feed]. Writers are the host and the
+The session owns a fixed param table. Each entry is a single-writer seqlock,
+the `SeqLock` of [`AudioClockFeed.h`][tl-feed]. Writers are the host and the
 runner worker, serialized by a mutex that no realtime thread takes. A reader
 takes one snapshot for each tick. A continuous value cannot overflow a queue,
 because the table keeps the latest value only.
+
+The compiler gives each param a sync policy (D7g):
+
+| Policy | Param | Sound | Picture |
+|---|---|---|---|
+| Immediate | Read by the render plan only | Not applicable | The next frame |
+| Audio | Read by the audio plan only | The next quantum start | Not applicable |
+| Synced | Read by both plans, or marked synced on its node | The next quantum start | The first frame whose audible time reaches that quantum |
+
+For a synced param, the audio thread sends an applied notice
+`(slot, revision, value, streamFrame)` to the render thread through a bounded
+queue. The render thread keeps the notices in a fixed list and applies each
+one when its stream frame is audible. A session without a running audio device
+treats every param as immediate.
+
+A synced param makes the picture respond as late as the sound does, about
+36 ms with the default lead (section 13). A node can mark a param immediate
+when a fast response of the picture matters more than the match (R10).
 
 ### 11.2 Messages
 
 | Message | From, to | Carrier | Applied | When full or late |
 |---|---|---|---|---|
-| Plan | Prepare to render, prepare to audio | Single-slot handoff | Next tick boundary | A newer plan replaces a plan that was not taken yet |
+| Plan | Prepare to render, prepare to audio | Single-slot handoff | Next tick boundary, or its effective stream time | A newer plan replaces a plan that was not taken yet |
 | Slot value | Prepare to both | Pointer exchange | Next tick boundary | The latest value wins |
-| Param | Host or worker to both | Param table | Next tick | The latest value wins |
+| Param | Host or worker to both | Param table | By its sync policy | The latest value wins |
+| Applied notice | Audio to render | Bounded queue | When its stream frame is audible | Dropped and counted. The render thread then reads the table value in its next frame |
 | Event | Host or worker to one consumer | Bounded queue | At its stream time | The newest event is dropped and counted |
+| Retired object | Realtime threads to prepare | Bounded queue | When the prepare thread runs | Cannot be full (section 11.4) |
 | Stats | Realtime threads to host | Seqlock | Read on request | Not applicable |
 | Node error | Realtime threads to worker | Bounded queue | Sent as a `node_update` | Dropped and counted |
 
-The render plan and the audio plan swap separately. One edit can reach the
-sound up to one frame before or after it reaches the picture.
+A revision that changes both plans has one effective stream time (D7g). The
+audio thread takes its plan at a quantum start and sends the stream frame of
+that quantum to the render thread. The render thread keeps its old plan until
+that stream frame is audible. A revision that changes one plan swaps at the
+next tick of that plan. While the session is paused, each thread swaps when it
+next wakes.
 
 ### 11.3 Plan swap
 
 1. The worker compiles the graph to IR.
-2. The prepare thread builds the plan. It links each node to its existing
-   state when the kernel or module and the state layout are the same.
-3. The realtime thread takes the plan at its next tick boundary and puts the
-   old plan on the retire queue.
-4. When the path to an audio sink changed, the audio thread renders one
-   quantum from both plans and crossfades them.
-5. The prepare thread destroys the old plan and state that no plan names.
+2. The prepare thread builds the plan. It links a node to its existing state
+   when the state key is equal. Each other node gets a new block, cleared and
+   initialized.
+3. The realtime thread takes the plan at a tick boundary and puts the old plan
+   on the retire queue. From that tick it runs the new plan only.
+4. The prepare thread destroys the old plan and each state block that no plan
+   names.
 
-### 11.4 JavaScript
+One plan of a domain runs in each tick. State moves with the node, and two
+running plans never share it. A player, an oscillator or a filter therefore
+advances once for each quantum across a swap (F31).
+
+The state key of an audio node has these parts: its graph node, its kernel id,
+the `state_version` of the kernel, its structural params, the sample rate, the
+quantum and the channel layout. A structural param changes the meaning of the
+state: the maximum time of a delay, the order of a filter, the length of a
+table. An equal byte layout is not enough. A delay line of one size holds
+another span of time at another sample rate. A node whose key changed starts
+from cleared state.
+
+Continuity at an audio sink comes from an offset ramp and not from a second
+plan:
+
+1. At the swap quantum, the sink takes the difference between the last sample
+   of the old plan and the first sample of the new plan, for each channel.
+2. It adds that difference to the output and lets it decay to zero over 256
+   frames, 5.8 ms at 44.1 kHz.
+
+The ramp removes the step at the swap. It costs one addition for each sample
+for two quanta. It does not smooth a change of timbre, which the creator asked
+for with the edit (R11). A crossfade of two plans is rejected for this version
+(O7). A later version that adds it needs three rules: a second state block for
+each node downstream of the edit, one read of each source for both plans, and
+an admission test that the measured cost of both paths fits in half a quantum.
+
+The render plan follows the same rule. A retained output and a feedback pair
+follow their graph node when the module, the output contract and the size are
+equal. Each other pass starts dirty.
+
+### 11.4 Bounds and reclamation
+
+Every exchange with a realtime thread has a bound (F36):
+
+- A realtime thread reads a seqlock with `tryLoad` and a fixed attempt count.
+  The timeline's callback uses 64 attempts. A failed read keeps the last
+  coherent value and adds to a counter. The unbounded `load` stays for other
+  threads. The extracted library gives realtime code a reader type that has
+  `tryLoad` only.
+- Each queue has a fixed capacity and the full behavior of section 11.2.
+- The retire queue cannot be full. Each handover of a plan or a slot value
+  causes at most one retired object. The realtime thread answers each handover
+  with the replaced object, or with an empty entry when it replaced nothing.
+  The prepare thread hands over an object only while the count of handovers
+  without an answer is below the queue capacity. Until then it keeps the
+  newest pending object and destroys each older pending one itself.
+- A value that both plans read has two references, one for each realtime
+  thread. Each thread returns its reference through its own retire queue. The
+  prepare thread destroys the value after both returned. A domain that stops
+  returns its references before the stop call returns, so a stopped device or
+  a detached surface holds no value.
+- A ring has one consumer. Section 10.4 gives each sink a ring of its own.
+
+### 11.5 JavaScript
 
 JavaScript runs on the runner worker only. A script or a Code node is a batch
 node, and its result is a latched value. A later ticked script can publish
@@ -724,24 +1060,25 @@ Rules:
   interpreter never runs there (F28, F2).
 - N2. Code that ships with the app is native on the desktop. The same source
   compiles to WebAssembly for the browser (F26, F27).
-- N3. Code that arrives as data is WebAssembly on every host, under the limits
-  of section 10.5.
+- N3. Code that arrives as data is WebAssembly on every host. It runs off the
+  deadline threads, under the contracts of section 10.6.
 - N4. Pixel work is WGSL on the GPU on every host.
 - N5. JavaScript decides and does not compute a sample or a frame. It compiles
   plans, sets params, schedules events and reacts to results.
 - N6. Kernel builds use no fast-math option and no fused multiply-add
-  contraction. Native and WebAssembly outputs are then bit-identical, and a
-  test compares them (F30).
+  contraction. Both are needed for equal results on two hosts, and they are
+  not enough (F30, F40). Section 15.1 gives the full conditions and the
+  kernels that they cover.
 
 | Component | Desktop | Browser | Reason |
 |---|---|---|---|
 | Plan compiler | TypeScript in the QuickJS guest | TypeScript | Runs once for each edit. One implementation |
 | Session, clock, drivers | Native C++ | TypeScript and a worklet | Thread and device control |
 | Control executor | Native C++ | The same source as WebAssembly | One definition of each operation |
-| Render executor | Native C++ on wgpu-native | TypeScript on WebGPU, the existing `Executor` | The GPU does the work. Two executors exist today |
+| Render executor | Native C++ on wgpu-native | Open (Q8): the existing TypeScript `Executor`, or the C++ executor as WebAssembly | The GPU does the work. Section 14.5 compares the two |
 | Shaders | WGSL | WGSL | N4 |
-| Audio executor, built-in kernels | Native C++ | The same source as WebAssembly in an AudioWorklet | N2. Native code is 2 to 8 times faster where SIMD applies |
-| User and pack kernels | WebAssembly in Wasmtime | WebAssembly in the worklet | N3. Equal to native on recurrences, bounded by a deadline, one binary for both hosts |
+| Audio executor, built-in kernels | Native C++ | The same source as one WebAssembly module in an AudioWorklet | N2. Native code is 2 to 8 times faster where SIMD applies |
+| User and pack kernels, phase P7 | WebAssembly in Wasmtime on a kernel worker thread | WebAssembly in a `Worker` | N3. Equal to native on recurrences, isolated from the deadline thread, one binary for both hosts |
 | Analysis | Native C++ on the analysis thread | WebAssembly | N2 |
 | Media decode | libav on decode workers | WebCodecs | Exists on both hosts |
 | Models, network, scripts | The finite kernel | The existing runners | D1 |
@@ -768,10 +1105,29 @@ Audio quantum, 2.90 ms:
 | Measure | Budget |
 |---|---|
 | Mean render time | 1.45 ms, a load of 50% |
-| 99th percentile | 2.90 ms |
-| Underruns in a 10 minute run | 0 |
+| Underruns in a 10 minute run, for each load profile | 0 |
+| Minimum ring fill in that run | One device period or more |
+| Maximum render time, 99.9th percentile, count of quanta over 2.90 ms, longest run of such quanta | Reported, no budget |
 
-Capacity that follows from section 3.4, on the measured machine:
+A 10 minute run has about 206,700 quanta at 44.1 kHz. A 99th percentile leaves
+about 2,070 of them without a limit, so the criteria are worst values (F41).
+Under the buffered driver one late quantum is not audible while the ring
+holds. The audible failure is an empty ring, and the minimum ring fill shows
+the distance to it.
+
+The load profiles are:
+
+| Profile | Condition |
+|---|---|
+| Idle | No other work |
+| Busy | All cores run a compile |
+| Stall | The runner worker sleeps for 500 ms each 5 s |
+| GPU | A batch GPU workload runs on the shared device |
+| Swap | One plan swap each second |
+
+The next table is arithmetic from section 3.4 on the measured machine. It is
+not a supported graph size. A graph adds the call and the param ramps of each
+node, memory traffic and the load of other threads.
 
 | Engine | One stereo biquad for one quantum | Stereo biquads at 50% load |
 |---|---|---|
@@ -782,9 +1138,10 @@ Latency:
 
 | Path | Target |
 |---|---|
-| Param change to picture | 2 frames |
+| Immediate param to picture | 2 frames |
 | Param change to sound | Ring lead, device latency and one quantum. About 36 ms with the default lead and a device latency of 10 ms |
-| Analysis value to picture | 0 frames of error (section 8) |
+| Synced param to picture | The time of the sound, or 2 frames when that is longer |
+| Analysis value to picture | Within one refresh period (D7h). P0 measures it |
 | Edit to active plan, no new shader | 100 ms |
 
 Memory: a 1920×1080 target takes 7.9 MiB as `rgba8unorm` and 15.8 MiB as
@@ -800,8 +1157,8 @@ final:
 
 ```cpp
 struct LiveOptions {
-  SurfaceTarget surface;        // empty: render to a texture
-  int sampleRate = 44100;
+  PresentTarget target;         // surface, host target, or empty: a texture
+  int sampleRate = 44100;       // 44100 or 48000
   AudioBackend audio = AudioBackend::Null;
   FrameRate frameRate;          // display, or a fixed rate
   int width = 1920, height = 1080;
@@ -814,9 +1171,14 @@ public:
   void play(); void pause(); void reset();
   void resizeSurface(int width, int height);
   void detachSurface();
+  void renderFrame(HostFrame frame);                  // host target only
   LiveStats stats() const;
 };
 ```
+
+`HostFrame` holds the texture view of one frame and its predicted presentation
+time. A host with a host target calls `renderFrame` on its own render thread,
+once for each of its frames (D14).
 
 A session sends `ProcessingMessage` objects through the same handler as a job:
 a `job_update` with the status `running`, a `node_update` for each node error,
@@ -828,7 +1190,8 @@ The editor shows the picture in a `QWindow` inside
 `QWidget::createWindowContainer` and passes its native handle to the session.
 Play, pause and reset sit beside the picture. A graph with a live output opens
 a session when the creator runs it, and the status text names the nodes that
-run live.
+run live. The container window is the first presenter, and the executor does
+not depend on it (D14).
 
 ### 14.3 Command line
 
@@ -847,11 +1210,22 @@ CI. A `live bench` mode reports the frame and quantum statistics of section 13.
 
 ### 14.5 Browser
 
-The browser keeps its existing shader `Executor`. A render loop drives it from
-the same IR. Audio runs in an AudioWorklet that loads the control executor,
-the audio executor and the kernels as one WebAssembly module. Shared memory
-between the page and the worklet needs cross-origin isolation. Without it,
-params travel as messages and arrive one or more quanta later.
+Audio runs in an AudioWorklet that loads the control executor, the audio
+executor and the built-in kernels as one WebAssembly module (section 10.5).
+Shared memory between the page and the worklet needs cross-origin isolation.
+Without it, params travel as messages and arrive one or more quanta later.
+
+The render executor has two candidates (Q8):
+
+| Candidate | Gain | Cost |
+|---|---|---|
+| The existing TypeScript `Executor`, driven from the IR | It exists and runs the catalog in browsers today | A second implementation of the dirty, retention, swap and sync rules, with a parity test for each |
+| The C++ render executor as WebAssembly, on Emscripten's `webgpu.h` binding | One implementation of those rules for both hosts | A second header revision beside the pinned wgpu-native header, a call through JavaScript for each WebGPU call, a larger download |
+
+The choice is tested and not assumed (F43). At the end of P1 the C++ executor
+is built for `wasm32` and runs two fixtures in a browser. Three numbers decide:
+the count of lines that differ between the two header revisions, the frame
+cost of a plan with 64 passes, and the size of the module.
 
 ## 15. Offline rendering and tests
 
@@ -862,36 +1236,90 @@ staging ring of section 9.5.
 | Test | Evidence |
 |---|---|
 | IR snapshots | A fixture graph compiles to the stored IR |
-| Audio parity | The native kernels and their WebAssembly builds give the same bytes for each fixture (N6) |
+| Repeat | Two offline runs of each fixture give the same bytes (level 1) |
+| Audio parity | Each qualified kernel gives the same bytes in its native and its WebAssembly build (level 3). Each other kernel meets level 2 |
 | Frame goldens | Offline frames on the software adapter match stored frames within a tolerance |
-| Realtime rules | The allocation counter of F13 reads zero on the audio render thread across a run. ThreadSanitizer covers plan swaps under load |
-| Stall | The worker sleeps for 500 ms during a session with the null device. The run has no underrun and no missed frame |
-| Swap continuity | An edit to one node leaves the output of an unchanged filter continuous across the swap |
+| Realtime rules | The allocation counter of F13 reads zero on the audio render thread across a run. ThreadSanitizer covers plan swaps under load. A seqlock held in its writing state by `holdWriteForTest` does not block a realtime read |
+| Stall | The worker sleeps for 500 ms during a session with the null device. The run meets the audio criteria of section 13 and has no missed frame |
+| Swap state | An edit that leaves the audio path unchanged gives the same output bytes as a run without the edit. An edit on the path leaves no step above the ramp at the sink |
+| Synced change | Offline, a synced param change appears in the frame whose time matches the quantum of the change |
+| Stateful control | A damper gives the same values at equal stream times in a 60 Hz session, a 120 Hz session and offline mode |
+| Retention | A clean retained pass does not run for 100 frames and keeps its pixels while volatile passes use the frame pool. A resize presents a new frame without a graph change |
 | Check proof | Each new check fails on a deliberately invalid input, as the [harness rules][harness] require |
 
 The CLI commands of section 14.3 are the harness. They get an entry in the
 harness registry and a budget file, as the timeline keeps under
 `native/timeline/budgets/`.
 
+### 15.1 Levels of agreement
+
+Three levels replace one claim of equal results (F40):
+
+| Level | Claim | Covers | Evidence |
+|---|---|---|---|
+| 1. Repeatable | One build, one plan and one session log give the same bytes on each offline run | Every kernel. Frames on one adapter | Two runs compare equal |
+| 2. Tolerance | Two hosts agree within a stated limit | Every kernel, with a peak difference of -90 dBFS or less as a first limit. Frames, with the limit of the frame goldens | Fixtures on both hosts |
+| 3. Bit-identical | The native build and the WebAssembly build give the same bytes | The kernels on a qualified list | A byte compare for each fixture |
+
+A kernel qualifies for level 3 when all of these hold:
+
+- It uses addition, subtraction, multiplication, division, square root and
+  comparison only. IEEE 754 defines one result for each. A conversion from
+  float to integer checks its range first, because C and WebAssembly differ
+  outside that range.
+- It calls no platform math library. Sine, exponential, power and hyperbolic
+  tangent come from one source file of the project, built for both targets.
+- Its build has no fast-math option and no contraction (N6). The compiler can
+  then vectorize an operation lane by lane and cannot reorder a sum.
+- It uses no relaxed SIMD instruction. That proposal gives up determinism
+  between architectures ([Wasmtime documentation][wt-determinism]).
+- Its result does not depend on a flush-to-zero mode. WebAssembly has no such
+  mode, so the native audio threads do not set one. A kernel that can decay
+  into subnormal values clears small state values in its source (R13).
+- Its fixtures give finite output. WebAssembly does not define the bit
+  pattern of a NaN, and section 17 replaces non-finite samples at each sink.
+
+Level 1 needs fixed inputs:
+
+- A random source takes its seed from the session seed and its graph node. No
+  kernel reads a clock or an address.
+- The host clears each state block before `init`.
+- Events and param changes apply in the order of their stream frame and then
+  their revision.
+- A live session can write a session log: each param change, each event and
+  each slot value by reference, with its effective stream frame. An export
+  that replays the log repeats the session. An export without a log is a new
+  performance.
+
+The benchmark of section 3.4 shows level 3 for one biquad chain and one mix on
+one input, and nothing more.
+
 ## 16. Delivery plan
 
 | Phase | Work | Exit evidence |
 |---|---|---|
-| P0 | A spike outside the product: one shader chain on a wgpu surface in a Qt container window on macOS, one audio chain on the buffered driver, timestamped params, a deliberate worker stall | Recorded frame interval statistics, underrun counts, pipeline creation times and the Wasmtime call check of R3 |
-| P1 | `native/realtime` core, headless: IR loader, control executor, render executor, audio executor, first kernels, offline driver, CLI | Section 15 tests pass, except stall and swap |
-| P2 | `audio-io` extraction, buffered driver, surface presentation, clocks, param table | Stall test passes. `live bench` meets section 13 on the reference machine |
-| P3 | Compiler, live descriptors for the catalog nodes and the audio nodes, slots, slot-write node, editor picture and transport | The example of section 1 runs in the editor. Swap continuity passes |
-| P4 | WebAssembly kernels, custom shader node, analysis taps, feedback nodes | Audio parity passes. A kernel with an endless loop is bypassed without an underrun |
-| P5 | Browser executors | The P1 fixtures give the same audio bytes and matching frames in the browser |
-| P6 | Encoded export, capture sinks, taps into batch regions | An export of a fixture plays in sync |
+| P0 | A spike outside the product on macOS. One shader chain on a wgpu surface in a Qt container window. One audio chain on the buffered driver. A synced param and one plan swap each second, with state that follows the node. A batch GPU workload on the shared device. One built-in kernel as WebAssembly in an AudioWorklet. A deliberate worker stall | Recorded frame interval statistics. The audio measures of section 13 for each load profile. The offset between sound and picture for a synced change, from a camera and a microphone. Frame misses with the gate, without it and with a second device. Pipeline creation times. Equal bytes from the native and the browser kernel |
+| P1 | `native/realtime` core, headless: IR loader, control executor, render executor, audio executor, first kernels, offline driver, CLI. A `wasm32` build of the render executor | Section 15 tests pass, except stall, swap state and audio parity. Q8 is decided |
+| P2 | `audio-io` extraction, buffered driver, surface presenter, submit gate, clocks, params with sync policies | Stall test passes. `live bench` meets section 13 on the reference machine |
+| P3 | Compiler, live descriptors for the catalog nodes and the audio nodes, slots, slot-write node, editor picture and transport | The example of section 1 runs in the editor. The swap state test passes |
+| P4 | Custom shader node, analysis taps, feedback nodes | A tap fixture and a feedback fixture pass the frame goldens |
+| P5 | Browser executors | Audio parity passes in the browser. The P1 frame fixtures meet level 2 there |
+| P6 | Encoded export, capture sinks, taps into batch regions, session log | An export of a fixture plays in sync. An export from a session log repeats the session |
+| P7 | Kernels that arrive as data, in isolated mode | The loader tests of the memory contract pass. A kernel with an endless loop gives late blocks and no underrun, on the desktop and in a browser |
 
-P0 decides R1 and R3 before P1 starts.
+P0 decides R1 and R2 before P1 starts. It also replaces the targets of D7h and
+section 13 with measured values. The built-in kernels and the WGSL path
+deliver phases P1 to P6 without the kernel contracts of section 10.6.
 
 ## 17. Failure handling
 
 | Failure | Detection | Behavior |
 |---|---|---|
-| A kernel passes its deadline | Epoch trap | The node is bypassed, the error goes to the node, the session continues |
+| A block of a user kernel is late | Its ring is empty at the quantum | The node gives its bypass output and counts the block. A kernel that stays late is ended, and the error goes to the node |
+| An analysis value is late or stale | The read of D7h | The frame uses the entry before, and the stats count it |
+| A realtime read meets a writer in progress | `tryLoad` fails | The thread keeps the last coherent value and counts the miss |
+| A tap or capture ring is full | The write fails | That consumer loses the quantum. The stats count it, and a capture records the gap |
+| The texture budget is exceeded | The account at a frame boundary | Retained outputs are evicted, the least recently read first |
 | Non-finite samples | A scan at each sink | The sink writes silence for that quantum and counts it |
 | Audio underrun | The ring is empty in the callback | Silence, a count, and one step more ring lead up to a limit |
 | Missed frame | The frame interval | A count, and a lower render scale in adaptive mode |
@@ -906,24 +1334,37 @@ P0 decides R1 and R3 before P1 starts.
 - R1. A wgpu surface inside a Qt container window is not proven on the three
   platforms. P0 covers macOS. An occluded surface under `Fifo` can block on
   Wayland, so the acquire needs a timeout there.
-- R2. A local model on the same GPU delays frames, because a GPU queue cannot
-  be preempted. The session reports the misses. Mitigations are a remote
-  provider, a second GPU or a lower frame rate.
+- R2. A local model on the same GPU delays frames. The application has no
+  portable deadline or preemption guarantee on a GPU queue, and the gate of
+  section 9.2 covers the session's device only. The session reports the
+  misses. Mitigations are a remote provider, a second GPU or a lower frame
+  rate.
 - R3. Calls into Wasmtime on a realtime thread may allocate or use trap
-  handlers that need per-thread setup. If P0 fails this check, user kernels run
-  under the buffered driver only, with a longer lead.
+  handlers that need per-thread setup. Isolated mode keeps Wasmtime off the
+  deadline threads, so this risk applies to the metered mode of Q9 only.
 - R4. The product then has two GPU stacks: QRhi in the timeline and wgpu here.
   A live source in the timeline needs a texture exchange or a readback.
 - R5. Hardware-decoded video frames enter wgpu through a CPU upload, about
   3 MB for a 1080p NV12 frame. Several 4K streams need an import path that
   `webgpu.h` does not have.
 - R6. The browser build needs a C++ toolchain for `wasm32` in CI.
-- R7. A custom WGSL shader with a long loop can stall the GPU. The device-lost
-  path is the only defense.
+- R7. A custom WGSL shader with a long loop can stall the GPU. No call
+  interrupts a shader, so the device-lost path is the only defense.
 - R8. The operator set can grow without limit. Each addition needs a creator
   request and a fixture.
 - R9. The realtime thread class can need an entitlement or a system service
   that a packaged app lacks.
+- R10. A synced change makes the picture respond as late as the sound. With a
+  long ring lead a control can feel slow. The immediate policy for that param
+  is the mitigation.
+- R11. The offset ramp removes the step at a swap and can leave a short low
+  thump after a large change. P0 records it. A crossfade (O7) is the fallback.
+- R12. Fixed control steps in a session without audio need a catch-up after a
+  stall. Section 5.4 limits it to 0.25 s, and the values after a longer stall
+  differ from an offline run.
+- R13. Level 3 forbids a flush-to-zero mode on the native audio threads. A
+  kernel that does not clear subnormal state runs slowly on x86. A test feeds
+  each kernel silence after a signal and checks its render time.
 
 ## 19. Open questions
 
@@ -932,8 +1373,8 @@ P0 decides R1 and R3 before P1 starts.
 - Q2. Are the live outputs new node types, or do the existing
   `nodetool.audio.realtime.AudioOutput` and the `Output` node take that role
   inside a session?
-- Q3. Is the session rate always 44.1 kHz, or does it follow the device with
-  44.1 kHz for file and stream sinks only?
+- Q3. Which session rate is the default when the device runs at 48 kHz:
+  44.1 kHz with a conversion at the device, or 48 kHz?
 - Q4. Is the picture size a session setting or the size of the window?
 - Q5. Should existing image nodes get live descriptors, or should live work
   use the generated catalog nodes only?
@@ -941,6 +1382,12 @@ P0 decides R1 and R3 before P1 starts.
   when idle?
 - Q7. Does the browser render loop run on the main thread or on a worker with
   an `OffscreenCanvas`?
+- Q8. Is the browser render executor the TypeScript `Executor` or the C++
+  executor as WebAssembly? Section 14.5 gives the test and the three numbers.
+- Q9. Do user kernels need a metered mode on the deadline thread, or is
+  isolated mode with its latency enough?
+- Q10. Does the sync policy of a param need a control in the editor, or is the
+  compiler's default enough?
 
 ## 20. Related documents
 
@@ -951,12 +1398,14 @@ P0 decides R1 and R3 before P1 starts.
 - [Native rules][native-rules]: ownership and thread rules for this code
 - [Reactive sessions][rs-plan] and [shared variables][sv-plan]: the finite
   side of an interactive session
+- [Color precision plan][color-plan]: the SDR working contract of the shader
+  catalog
 - [Harness-first rules][harness]
 
 ## Appendix A. Benchmark method
 
-The benchmark is a scratch program, not checked in. P1 replaces it with
-`live bench`.
+The source and the commands are in the [kernel benchmark][kernel-bench]
+folder. P1 replaces it with `live bench`.
 
 - Biquad: eight cascaded low-pass sections (1 kHz, Q 0.7071) in transposed
   direct form II, in place on 512 interleaved stereo frames of noise. A block
@@ -974,6 +1423,13 @@ The benchmark is a scratch program, not checked in. P1 replaces it with
 - The worst biquad block at normal priority took at most 0.11 ms in native
   code and 0.44 to 0.66 ms in QuickJS. An earlier QuickJS run had one block of
   8.8 ms that two later runs did not repeat.
+- The timed region of each biquad row includes one copy of the input block,
+  4 KiB.
+- A later run of the checked-in script on the same machine gave biquad times
+  about 10% lower in the compiled engines and 5% lower in QuickJS, with the
+  same checksums. The ratios between the engines stayed within 6%.
+- Equal checksums show agreement for these two kernels on this input only
+  (F40).
 
 [tixl]: https://github.com/tixl3d/tixl/tree/5bc0c542584c5e845b5aa1186a98c2b471a8aa0c
 [tx-dirty]: https://github.com/tixl3d/tixl/blob/5bc0c542584c5e845b5aa1186a98c2b471a8aa0c/Core/Operator/Slots/DirtyFlag.cs
@@ -989,6 +1445,12 @@ The benchmark is a scratch program, not checked in. P1 replaces it with
 [gr-runner]: ../../native/graph-runner/src/kernel/runner.cpp
 [gr-gpu]: ../../native/graph-runner/src/host/gpu_device.h
 [gpu-ctx]: ../../packages/gpu/src/context.ts
+[gpu-types]: ../../packages/gpu/src/types.ts
+[color-plan]: color-precision/high-precision-media-processing.md
+[kernel-bench]: graph-runner-realtime-bench/README.md
+[wt-interrupt]: https://docs.wasmtime.dev/examples-interrupting-wasm.html
+[wt-determinism]: https://docs.wasmtime.dev/examples-deterministic-wasm-execution.html
+[webaudio-11]: https://www.w3.org/TR/webaudio-1.1/
 [img-filter]: ../../packages/image-nodes/src/nodes/lib-image-filter.ts
 [rt-audio]: ../../packages/audio-nodes/src/nodes/realtime-audio.ts
 [ne-readme]: ../../native/node-editor/README.md
