@@ -1,8 +1,8 @@
 # Realtime graphics and audio in the native graph runner
 
-Status: draft, revision 2. Nothing in this document is implemented. Sections 4
-to 17 specify proposed behavior. Revision 2 answers a design review. Section
-3.5 lists its findings and the section that resolves each one.
+Status: draft, revision 3. Nothing in this document is implemented. Sections 4
+to 17 specify proposed behavior. Revisions 2 and 3 answer two design reviews.
+Sections 3.5 and 3.6 list their findings and the section that resolves each one.
 
 Cross-plan references use `RT-`, for example `RT-D4`. Local IDs stay unchanged.
 
@@ -212,6 +212,21 @@ now resolves it.
 | F42 | The IR named a texture format and no color space, alpha mode or channel layout. The sample rate and the quantum were fixed values | 6.2, 10.1 |
 | F43 | The render executor was tied to its own surface. The browser render executor was fixed without a comparison | D14, 9.2, 14.5, Q8 |
 
+### 3.6 Review of revision 2
+
+A second review checked revision 2 against the graph runner and timeline code:
+
+| Finding | Gap in revision 2 | Resolved in |
+|---|---|---|
+| F44 | `wgpuDevicePushErrorScope` is a device-wide stack, and `wgpuQueueWriteBuffer` and `wgpuQueueWriteTexture` stage onto the next submission on the shared queue ([`gpu_device.cpp`][gr-gpu-cpp]). Concurrent calls from the prepare, render and batch threads race | 9.2, 9.6 |
+| F45 | `GraphRunner` runs one job at a time and calls `releaseRunResources` at the end of a run ([`graph_runner.cpp`][gr-cpp], [`gpu.cpp`][gr-gpu-host]). A compiler call queued behind a batch job waits for it, a texture from a batch run is destroyed at run end, and a media ref from a model node is not a GPU texture or planar PCM | 5.5, 9.5, 10.4, 14.1 |
+| F46 | A dual-plan revision that waits on the render thread for an applied notice can be overwritten in a single-slot handoff within the ring lead, or wait forever when a notice is dropped or the device re-anchors | D7g, 11.1, 11.2 |
+| F47 | A stateful control operation that feeds the render plan only was stepped on the audio thread and delayed by the ring lead. Stateful control operations had no state key for a swap or for adding or removing the audio plan | D15, 5.4, 6.2, 11.3 |
+| F48 | An offset ramp from `old[last] - new[0]` duplicates the last sample and adds a step proportional to the slope on a continuous wave. Running it on every swap also breaks byte equality when the audio path is unchanged | 6.2, 11.3 |
+| F49 | A retire queue that waits for answers from both domains stalls when a domain is inactive or when one tick replaces several slots | 11.4 |
+| F50 | The lifetime order and thread affinity between `GraphRunner` and `LiveSession` were not stated against the [native rules][native-rules] | 7, 14.1 |
+| F51 | Advancing the visual clock by `k` refresh periods after a pause or an idle frame skip counts the pause as stream time or missed frames | D7c, 9.4, 9.7 |
+
 ## 4. Decision
 
 ```
@@ -264,7 +279,9 @@ now resolves it.
   presenter shows the result: a surface of the session, or a target that the
   host passes inside its own frame (section 9.2).
 - D15. A stateful control operation runs in one domain, in fixed steps of one
-  quantum of stream time (section 5.4).
+  quantum of stream time. One that reaches the audio plan runs on the audio
+  thread when an audio plan is active. One that reaches the render plan only
+  runs on the render thread (section 5.4).
 
 Rejected alternatives:
 
@@ -335,12 +352,17 @@ stateful value as an input.
 
 A stateful operation advances once for each quantum of stream time (D15). The
 count of steps comes from the stream time and never from the frame count or
-the wall clock. Its domain depends on the session:
+the wall clock. Its domain depends on the consumers it reaches (F47):
 
-- With an audio plan, the audio thread runs the step in each quantum. The
-  render thread reads the result from the signal history.
-- Without an audio plan, the render thread runs each step that ends at or
-  before the time of its frame.
+- When it reaches the audio plan (alone or with the render plan) and an audio
+  plan is active, the audio thread runs the step in each quantum. When it also
+  reaches the render plan, the audio thread writes `(streamTime, value)` to the
+  signal history, and each param that feeds it gets the `Synced` policy
+  (section 11.1).
+- When it reaches the render plan only, or when the session has no audio plan,
+  the render thread runs each step that ends at or before the audible time of
+  its frame. An `Immediate` param that feeds a render-only stateful operation
+  then takes effect in the next frame instead of waiting for the ring lead.
 - Offline mode follows the same two rules with the exact clock.
 
 A stateful value thus has one sequence of values in all three cases. A frame
@@ -371,6 +393,27 @@ C++ as `output_node.cpp` is. The kernel runs that region as an ordinary job. Whe
 a creator edits an input of a batch node, the host runs the affected subgraph
 again, and the new result replaces the slot value. The session keeps running
 through each of these runs.
+
+`GraphRunner` runs one job at a time on its worker thread and releases the
+run's resources when the job ends ([`graph_runner.cpp`][gr-cpp], F45). Three
+rules keep live edits and slot values independent of that lifecycle:
+
+1. A session compiler call is scheduled on the worker's `Loop` between actor
+   steps rather than queued behind `GraphRunner`'s jobs. While a batch node
+   waits on a provider, CPU or I/O lane, `LiveSession::update` compiles the
+   edited graph on the next loop turn and starts any newly dirtied batch
+   subgraph.
+2. When a batch node outputs an in-process GPU texture (`image/x-gpu-texture`),
+   the slot-write node detaches that texture ID from `ContextGpu`'s per-run
+   table ([`gpu.cpp`][gr-gpu-host]) and moves it into the session's texture
+   account before `releaseRunResources` runs at the end of the job.
+3. When a batch node outputs an encoded image or audio reference (`data`,
+   `uri` or `asset_id`, such as `TextToImage` or `MusicModel`), the slot-write
+   node hands the reference to the prepare thread. The prepare thread decodes
+   the image on the CPU lane and uploads a premultiplied texture through the
+   submit gate (section 9.2), or decodes and resamples the audio to planar
+   `float32` at `session.sampleRate` (section 10.4), and then publishes the
+   immutable slot value.
 
 This agrees with the [reactive sessions plan][rs-plan], which names an
 interaction lifetime and adds no workflow executor. The live plans are the one
@@ -418,7 +461,8 @@ The IR is one JSON document. It is illustrative here and not final:
               "colorSpace": "encoded-sdr", "alpha": "premultiplied" }],
   "control": { "registers": 24,
                "ops": [["time.beats", 0], ["osc.sine", 1, 0]],
-               "stateful": [["damp", 2, 1]] },
+               "stateful": [{ "node": "c1", "op": "damp", "stateVersion": 1,
+                              "domain": "render", "out": 2, "in": [1] }] },
   "render": {
     "passes": [{ "node": "n4", "module": "filters/blur@1", "inputs": { "src": "t0" },
                  "uniforms": [1], "retention": "volatile",
@@ -430,15 +474,19 @@ The IR is one JSON document. It is illustrative here and not final:
     "buffers": [{ "id": 0, "channels": "stereo" }, { "id": 1, "channels": "stereo" }],
     "nodes": [{ "node": "a1", "kernel": "biquad.lowpass", "stateVersion": 1,
                 "in": [0], "out": [1], "params": [0] }],
-    "sinks": [{ "buffer": 1, "kind": "device" }]
+    "sinks": [{ "buffer": 1, "kind": "device", "subgraphHash": "7a3c91f0" }]
   }
 }
 ```
 
 Rules:
 
-- A pass, an audio node and a param each name the graph node they come from.
-  That name is the identity for state and for error reports (D9).
+- A pass, an audio node, a stateful control operation and a param each name the
+  graph node they come from. That name is the identity for state and for error
+  reports (D9, F47).
+- Each audio sink carries `subgraphHash`, the hash of the upstream audio nodes,
+  edges and state keys that feed it, so the executor knows when an edit leaves
+  that sink's path unchanged (F48).
 - Param slot numbers stay the same across revisions for an unchanged node and
   field.
 - Each texture edge carries the output contract of its module: format, size
@@ -486,11 +534,22 @@ rejected plan never becomes active, and the previous plan keeps running.
 With a host target (D14), the host's render thread takes the role of the
 render thread for the length of each `renderFrame` call.
 
-Ownership, as [native rule 16][native-rules] requires:
+Ownership and thread affinity, as [native rules 1, 9 and 16][native-rules]
+require (F50):
 
-- `LiveSession` is held by the host in a `std::unique_ptr`. Its destructor
-  stops the device, joins the audio render, render and prepare threads in that
-  order, and then destroys the plans.
+- `GraphRunner` must outlive every `LiveSession` it opens.
+- `LiveSession` is held by the host in a `std::unique_ptr`. It shares a
+  `std::shared_ptr<SessionToken>` with its in-flight batch runs and slot-write
+  nodes on the runner worker, because a batch run on the worker can outlive a
+  cancellation request until `Loop` drains it.
+- `~LiveSession()` marks the token closed, cancels its batch runs on
+  `GraphRunner`, stops the device, joins the audio render, render and prepare
+  threads in that order, and then destroys the plans and state store. A
+  slot-write node or callback that settles after the token closes drops its
+  result.
+- Control and surface calls (`update`, `setParam`, `play`, `pause`, `reset`,
+  `resizeSurface`, `detachSurface`) run on the host GUI thread. `renderFrame`
+  runs on the host render thread. `stats` is thread-safe over seqlocks.
 - A plan is immutable after construction and is held in a `std::unique_ptr`.
   It moves from the prepare thread to its realtime thread through a
   single-slot handoff, and back through a retire queue. Only the prepare
@@ -521,13 +580,18 @@ Ownership, as [native rule 16][native-rules] requires:
 
 - D7c. The render thread does not use the audio position directly, because its
   interpolation between callbacks jitters (F22). It keeps a visual clock:
-  1. Each frame, advance by `k` refresh periods, where `k` is the count of
-     periods since the last frame.
-  2. Compute the error against the audio position predicted for the
+  1. When playback starts (`play`), resets (`reset`), re-anchors on an audio
+     device change, or resumes after a frame that had no work (section 9.4),
+     anchor the visual clock to the audio position predicted for the
+     presentation time, or to elapsed monotonic time when no audio device runs
+     (F51).
+  2. In each consecutive active frame while playing, advance by `k` refresh
+     periods, where `k` is the count of periods since the last active frame.
+  3. Compute the error against the audio position predicted for the
      presentation time.
-  3. Remove a small part of the error each frame. That absorbs the drift
+  4. Remove a small part of the error each frame. That absorbs the drift
      between the audio device and the display.
-  4. When the error exceeds half a period, correct it in one step and count
+  5. When the error exceeds half a period, correct it in one step and count
      the correction.
 - D7d. The refresh period is measured and never assumed. The first estimate
   comes from the display mode.
@@ -536,13 +600,17 @@ Ownership, as [native rule 16][native-rules] requires:
   in seconds for each output device.
 - D7f. The tick context gives each operation `seconds`, `beats`, `dt`, `frame`
   and the output size. An operation that integrates uses `dt`.
-- D7g. A change that the sound consumes has an effective stream time (F32).
-  The audio thread applies the change at a quantum start and sends the stream
-  frame of that quantum to the render thread. The render thread applies the
-  change in the first frame whose audible time reaches that stream frame.
-  This rule covers a synced param (section 11.1) and a revision that changes
-  both plans (section 11.2). The sound is never delayed for the picture. When
-  the picture path is the slower one, the picture is late by the difference.
+- D7g. A change that the sound consumes has an effective stream time (F32, F46).
+  At the start of each quantum the audio thread applies due changes and writes
+  its applied state `(planRevision, clockGeneration, streamFrame)` and per-slot
+  applied param revisions to a seqlock. The render thread applies a synced
+  change in the first frame whose audible time reaches that stream frame for
+  the matching `clockGeneration`, or immediately when `clockGeneration`
+  changed, the audio device stopped, or the audio thread already advanced past
+  that revision. This rule covers a synced param (section 11.1) and a revision
+  that changes both plans (section 11.2). The sound is never delayed for the
+  picture. When the picture path is the slower one, the picture is late by the
+  difference.
 - D7h. The match between sound and picture has a tolerance and no guarantee
   (F39):
   - The timestamp of an analysis value is the stream time of the last frame of
@@ -627,18 +695,25 @@ backlog. The application has no portable deadline or preemption guarantee on a
 GPU queue. The GPU host submits and polls under its own mutex today. During a
 session these rules replace that:
 
-1. Every queue submission on the device goes through one gate that the session
-   owns. Batch code encodes its commands on its own thread and gives the
-   command buffer to the gate.
-2. The render thread submits its frame first. After the present call the gate
-   submits at most one batch command buffer. The next one waits until
-   `wgpuQueueOnSubmittedWorkDone` reports the one before. At most one batch
-   submission is thus ahead of a frame.
+1. Every queue write (`wgpuQueueWriteBuffer`, `wgpuQueueWriteTexture`) and
+   command buffer submission on the device goes through one gate that the
+   session owns (F44). Batch code either writes into mapped staging buffers and
+   records `CopyBufferToBuffer` or `CopyBufferToTexture` in its command buffer,
+   or passes its queue writes and command buffer to the gate as one unit, so a
+   batch upload never stages onto `WGPUQueue` ahead of a frame submit.
+2. The render thread writes its uniform block and submits its frame together
+   under the gate first. After the present call the gate submits at most one
+   batch unit. The next one waits until `wgpuQueueOnSubmittedWorkDone` reports
+   the one before. At most one batch submission is thus ahead of a frame.
 3. A batch texture becomes a slot value only after its submission completed.
    A frame never waits for the work that produces its input.
-4. The prepare thread creates pipelines with
-   `wgpuDeviceCreateRenderPipelineAsync`. A plan becomes active after each of
-   its pipelines is ready.
+4. Device-wide error scopes (`wgpuDevicePushErrorScope` and
+   `wgpuDevicePopErrorScope`) are not used concurrently across threads (F44).
+   The prepare thread checks shader compilation with
+   `wgpuShaderModuleGetCompilationInfo` and creates pipelines with
+   `wgpuDeviceCreateRenderPipelineAsync` and
+   `wgpuDeviceCreateComputePipelineAsync`, reading errors from their status
+   callbacks. A plan becomes active after each of its pipelines is ready.
 5. The prepare thread alone polls the device, so no device callback runs on
    the render thread. A batch readback waits for its callback and does not
    poll.
@@ -707,7 +782,9 @@ Before it acquires a target, the render thread checks for work. Work exists
 when the transport runs and the plan has a volatile pass, when a plan, slot or
 param change is due, or when the surface changed. Without work the thread
 acquires nothing and presents nothing. The window keeps its picture, as the
-timeline holds its last frame. A paused session then uses no GPU time.
+timeline holds its last frame. A paused session then uses no GPU time. The
+first active frame after an idle skip re-anchors the visual clock instead of
+advancing by the skipped refresh periods (D7c, F51).
 
 ### 9.5 Resources
 
@@ -720,9 +797,12 @@ timeline holds its last frame. A paused session then uses no GPU time.
 - One uniform buffer holds all blocks of a frame.
 - Bind groups are cached for each pass and input set.
 - The session has a texture budget, 512 MiB by default as the timeline's
-  surface pool has. It is separate from the 64 MiB limit of batch textures. A
-  texture that moves from a batch run into a slot leaves the run's account and
-  enters the session's account.
+  surface pool has. It is separate from the 64 MiB limit of batch textures. An
+  in-process batch texture that moves into a slot is detached from `ContextGpu`
+  before `releaseRunResources` runs (section 5.5, F45), leaves the run's
+  account and enters the session's account. An encoded image reference from a
+  batch node is decoded and uploaded on the prepare thread inside the session's
+  account.
 - Retained outputs, feedback pairs and the frame pool all count against the
   budget. The prepare step rejects a plan whose frame pool and feedback pairs
   alone exceed it.
@@ -737,15 +817,18 @@ timeline holds its last frame. A paused session then uses no GPU time.
 
 A custom shader node takes WGSL for one fragment function. The compiler adds
 the standard inputs: time, resolution and the bound textures. The prepare
-thread compiles the module inside a wgpu error scope. An error goes to the
-node, and the previous plan keeps running.
+thread compiles the module and checks `wgpuShaderModuleGetCompilationInfo` and
+the async pipeline creation status without pushing a device-wide error scope
+(section 9.2, F44). An error goes to the node, and the previous plan keeps
+running.
 
 ### 9.7 Load control
 
 - Timestamp queries give the GPU time of each pass when the adapter has the
   feature. The editor can show the cost of each node.
-- A frame that misses its refresh advances the visual clock by two periods.
-  The motion keeps its speed, and the stats count the miss.
+- A frame that misses its refresh between two consecutive active frames while
+  playing advances the visual clock by `k` periods (D7c, F51). The motion keeps
+  its speed, and the stats count the miss.
 - In adaptive quality mode, the session lowers the render scale from 1 to 0.75
   to 0.5 when misses persist, and raises it again after a period with
   headroom. The scale steps match the timeline's preview quality.
@@ -843,8 +926,9 @@ Parameters:
   ramps between them. A param can also declare a one-pole filter.
 - The snapshot is a bounded read. A read that fails keeps the value of the
   quantum before (section 11.4).
-- For each synced param that changed, the executor sends an applied notice
-  with the stream frame of the quantum to the render thread (section 11.1).
+- For each synced param that changed, the executor records the applied
+  `(revision, streamFrame)` and `clockGeneration` in the audio-applied seqlock
+  table for the render thread (section 11.1, F46).
 - An event has a stream time. The executor passes it to the kernel with its
   frame offset in the quantum. An event that arrives after its time applies at
   the next quantum start, and the stats count it.
@@ -853,7 +937,7 @@ Parameters:
 
 | Source | Data |
 |---|---|
-| Buffer slot | Decoded PCM of a generated or loaded audio file, immutable |
+| Buffer slot | Planar `float32` PCM of a generated or loaded audio asset, decoded and resampled to the session sample rate on the prepare thread (section 5.5, F45), immutable |
 | Stream slot | A ring that a batch node fills, for chunked speech or music. An empty ring gives silence and a count |
 
 | Sink | Path |
@@ -950,11 +1034,12 @@ The compiler gives each param a sync policy (D7g):
 | Audio | Read by the audio plan only | The next quantum start | Not applicable |
 | Synced | Read by both plans, or marked synced on its node | The next quantum start | The first frame whose audible time reaches that quantum |
 
-For a synced param, the audio thread sends an applied notice
-`(slot, revision, value, streamFrame)` to the render thread through a bounded
-queue. The render thread keeps the notices in a fixed list and applies each
-one when its stream frame is audible. A session without a running audio device
-treats every param as immediate.
+For a synced param, the audio thread records `(revision, value, streamFrame,
+clockGeneration)` in its audio-applied seqlock table at the quantum start
+(F46). The render thread reads that entry with `tryLoad` each frame and applies
+the value when its audible stream frame reaches `streamFrame` for the matching
+`clockGeneration`, or immediately when `clockGeneration` changed or no audio
+device runs.
 
 A synced param makes the picture respond as late as the sound does, about
 36 ms with the default lead (section 13). A node can mark a param immediate
@@ -967,18 +1052,24 @@ when a fast response of the picture matters more than the match (R10).
 | Plan | Prepare to render, prepare to audio | Single-slot handoff | Next tick boundary, or its effective stream time | A newer plan replaces a plan that was not taken yet |
 | Slot value | Prepare to both | Pointer exchange | Next tick boundary | The latest value wins |
 | Param | Host or worker to both | Param table | By its sync policy | The latest value wins |
-| Applied notice | Audio to render | Bounded queue | When its stream frame is audible | Dropped and counted. The render thread then reads the table value in its next frame |
+| Audio-applied state | Audio to render | Seqlock table | When its stream frame is audible, or immediately on generation change | The latest state for each slot and plan revision is always readable |
 | Event | Host or worker to one consumer | Bounded queue | At its stream time | The newest event is dropped and counted |
 | Retired object | Realtime threads to prepare | Bounded queue | When the prepare thread runs | Cannot be full (section 11.4) |
 | Stats | Realtime threads to host | Seqlock | Read on request | Not applicable |
 | Node error | Realtime threads to worker | Bounded queue | Sent as a `node_update` | Dropped and counted |
 
-A revision that changes both plans has one effective stream time (D7g). The
-audio thread takes its plan at a quantum start and sends the stream frame of
-that quantum to the render thread. The render thread keeps its old plan until
-that stream frame is audible. A revision that changes one plan swaps at the
-next tick of that plan. While the session is paused, each thread swaps when it
-next wakes.
+A revision that changes both plans has one effective stream time (D7g, F46).
+The audio thread takes its plan at a quantum start and writes
+`(planRevision, clockGeneration, streamFrame)` to the audio-applied seqlock.
+The render thread takes any pending plan from its handoff slot into a tiny
+local staging slot (up to two revisions) so a newer revision from the prepare
+thread within the 36 ms ring lead does not overwrite an unapplied synced plan
+in the handoff slot. It swaps to the staged plan when the audible frame reaches
+`streamFrame` for the matching `clockGeneration`, or swaps immediately to the
+newest staged plan if the audio thread has already advanced to a newer
+revision, `clockGeneration` changed, or the audio device stopped. A revision
+that changes one plan swaps at the next tick of that plan. While the session is
+paused, each thread swaps when it next wakes.
 
 ### 11.3 Plan swap
 
@@ -1003,20 +1094,32 @@ table. An equal byte layout is not enough. A delay line of one size holds
 another span of time at another sample rate. A node whose key changed starts
 from cleared state.
 
-Continuity at an audio sink comes from an offset ramp and not from a second
-plan:
+The state key of a stateful control operation has these parts: its graph node,
+its operation id, its `stateVersion` (section 6.2), the sample rate and the
+quantum (F47). When an edit adds or removes the audio plan and moves a stateful
+control operation between the render thread and the audio thread, the dual-plan
+swap rule (D7g) hands the state block over at the effective stream frame of the
+swap so only one thread steps it in any quantum.
 
-1. At the swap quantum, the sink takes the difference between the last sample
-   of the old plan and the first sample of the new plan, for each channel.
-2. It adds that difference to the output and lets it decay to zero over 256
-   frames, 5.8 ms at 44.1 kHz.
+Continuity at an audio sink comes from a slope-extrapolated offset ramp gated
+on `subgraphHash` (section 6.2, F48) and not from a second plan:
 
-The ramp removes the step at the swap. It costs one addition for each sample
-for two quanta. It does not smooth a change of timbre, which the creator asked
-for with the edit (R11). A crossfade of two plans is rejected for this version
-(O7). A later version that adds it needs three rules: a second state block for
-each node downstream of the edit, one read of each source for both plans, and
-an admission test that the measured cost of both paths fits in half a quantum.
+1. Each sink remembers the last two output samples per channel of the previous
+   quantum (`old[N - 2]` and `old[N - 1]`).
+2. When a swap leaves the sink's `subgraphHash` unchanged, no ramp runs and the
+   output bytes are identical to a run without the swap (section 15).
+3. When `subgraphHash` changed, the sink predicts the first sample of the new
+   quantum from the prior slope (`pred = 2 * old[N - 1] - old[N - 2]`), takes
+   `diff = pred - new[0]` for each channel, and adds `diff` with a linear decay
+   to zero over 256 frames, 5.8 ms at 44.1 kHz.
+
+The ramp removes the step at the swap without duplicating the last sample on a
+continuous wave. It costs one addition for each sample for two quanta. It does
+not smooth a change of timbre, which the creator asked for with the edit (R11).
+A crossfade of two plans is rejected for this version (O7). A later version
+that adds it needs three rules: a second state block for each node downstream
+of the edit, one read of each source for both plans, and an admission test that
+the measured cost of both paths fits in half a quantum.
 
 The render plan follows the same rule. A retained output and a feedback pair
 follow their graph node when the module, the output contract and the size are
@@ -1024,7 +1127,7 @@ equal. Each other pass starts dirty.
 
 ### 11.4 Bounds and reclamation
 
-Every exchange with a realtime thread has a bound (F36):
+Every exchange with a realtime thread has a bound (F36, F49):
 
 - A realtime thread reads a seqlock with `tryLoad` and a fixed attempt count.
   The timeline's callback uses 64 attempts. A failed read keeps the last
@@ -1032,17 +1135,27 @@ Every exchange with a realtime thread has a bound (F36):
   threads. The extracted library gives realtime code a reader type that has
   `tryLoad` only.
 - Each queue has a fixed capacity and the full behavior of section 11.2.
-- The retire queue cannot be full. Each handover of a plan or a slot value
-  causes at most one retired object. The realtime thread answers each handover
-  with the replaced object, or with an empty entry when it replaced nothing.
-  The prepare thread hands over an object only while the count of handovers
-  without an answer is below the queue capacity. Until then it keeps the
-  newest pending object and destroys each older pending one itself.
-- A value that both plans read has two references, one for each realtime
-  thread. Each thread returns its reference through its own retire queue. The
-  prepare thread destroys the value after both returned. A domain that stops
-  returns its references before the stop call returns, so a stopped device or
-  a detached surface holds no value.
+- Each domain has its own single-producer, single-consumer retire queue of
+  capacity `maxSlots + 2`, written by its realtime thread and drained by the
+  prepare thread.
+- The prepare thread drains both retire queues before publishing a plan or a
+  slot value. It writes a new plan or slot pointer with
+  `pending.exchange(newPtr)`. If the returned previous `pending` pointer is
+  non-null, the realtime thread never took it, and the prepare thread destroys
+  it immediately without using a retire queue.
+- When a realtime thread takes a non-null `pending` pointer with
+  `pending.exchange(nullptr)`, it pushes the replaced active object onto its
+  retire queue. Because a realtime thread retires at most one active plan and
+  at most one active value per slot between prepare drains, and the prepare
+  thread reclaims unconsumed `pending` pointers directly, the retire queue
+  cannot overflow.
+- A value that both plans read has a reference count of two, one for each
+  domain's handoff slot. Each realtime thread retires its replaced active
+  reference through its own retire queue, and the prepare thread drops the
+  reference of any unconsumed `pending` pointer it overwrites. An inactive
+  domain leaves its `pending` pointer in place, where the next update replaces
+  and drops it on the prepare thread without blocking the active domain. A
+  domain that stops returns its active references before the stop call returns.
 - A ring has one consumer. Section 10.4 gives each sink a ring of its own.
 
 ### 11.5 JavaScript
@@ -1164,14 +1277,23 @@ struct LiveOptions {
   int width = 1920, height = 1080;
 };
 
+// Owned by the host via std::unique_ptr<LiveSession>.
+// GraphRunner must outlive LiveSession (section 7, F50).
 class LiveSession {
 public:
+  ~LiveSession();
+
+  // Host GUI thread:
   void update(std::string graphJson);                 // compile and swap
   void setParam(std::string nodeId, std::string field, std::string valueJson);
   void play(); void pause(); void reset();
   void resizeSurface(int width, int height);
   void detachSurface();
-  void renderFrame(HostFrame frame);                  // host target only
+
+  // Host render thread (host target only):
+  void renderFrame(HostFrame frame);
+
+  // Any thread:
   LiveStats stats() const;
 };
 ```
@@ -1442,8 +1564,11 @@ folder. P1 replaces it with `live bench`.
 [tx-facade]: https://github.com/tixl3d/tixl/blob/5bc0c542584c5e845b5aa1186a98c2b471a8aa0c/.agentic/Plans/Plan_GraphicsFacade.md
 [gr-readme]: ../../native/graph-runner/README.md
 [gr-h]: ../../native/graph-runner/include/nodetool/graph_runner.h
+[gr-cpp]: ../../native/graph-runner/src/graph_runner.cpp
 [gr-runner]: ../../native/graph-runner/src/kernel/runner.cpp
 [gr-gpu]: ../../native/graph-runner/src/host/gpu_device.h
+[gr-gpu-cpp]: ../../native/graph-runner/src/host/gpu_device.cpp
+[gr-gpu-host]: ../../native/graph-runner/src/host/gpu.cpp
 [gpu-ctx]: ../../packages/gpu/src/context.ts
 [gpu-types]: ../../packages/gpu/src/types.ts
 [color-plan]: color-precision/high-precision-media-processing.md
