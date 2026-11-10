@@ -11,17 +11,17 @@ NodeTool's sketch editor is an open-source AI image editor with layers. Each lay
 
 ## Layers that know where they came from
 
-- **Generated layers**: Bind a layer to an image model and a prompt, text-to-image or image-to-image, or to any of your workflows with an image output. The Inspector shows an estimated cost before you generate.
-- **Regenerate one layer**: Each generation is a version on its layer. Change a prompt or an upstream layer, and the layers that depend on it are marked stale. Re-generate Stale runs only those, in dependency order, and skips locked layers.
+- **Generated layers**: Generate a layer from a prompt, a reference image or a workflow with an image output. See the estimated cost before generating.
+- **Regenerate one layer**: Each generation is a version on its layer. When you change a prompt or source layer, NodeTool marks the affected layers for regeneration. Use “Re-generate Stale” to update them in order. Locked layers are skipped.
 - **Inpaint a selection**: Select a region and regenerate only that region from a prompt, with the selection as the mask.
 - **Segment and cut out**: The Segment tool finds objects from a point or a box and turns them into mask layers or cutout layers.
-- **A real layer stack**: Blend modes, opacity, lock, visibility, groups, a mask layer, and vector layers imported from SVG. Paint with brush, pencil, eraser, fill, gradient, blur, and clone stamp.
-- **Versions of the whole image**: Snapshot the document before a big change and restore any snapshot later. A restore saves the current state first, so it can be undone.
+- **Layers, masks and drawing tools**: Blend modes, opacity, lock, visibility, groups, a mask layer, and vector layers imported from SVG. Paint with brush, pencil, eraser, fill, gradient, blur, and clone stamp.
+- **Versions of the whole image**: Save a version before making major changes. You can restore it later without losing your current work.
 
 ## The same product in every image
 
-- A prop entity holds your product with a reference image and a fixed description. The agent passes the reference image to the image model, so the product looks the same in every image.
-- Edit an existing image from a prompt and hand the model more reference images to match, such as a brand style or an earlier result.
+- A prop entity holds your product with a reference image and a fixed description. The agent passes the reference image to the image model, to help keep the product’s appearance consistent across images.
+- Describe the changes you want and add reference images to guide the edit, such as an earlier result or an example of your brand’s style.
 
 ## Agent tools
 

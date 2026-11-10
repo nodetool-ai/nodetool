@@ -462,12 +462,12 @@ const MARKDOWN_PAGES = {
   "index.md": {
     title: "NodeTool",
     description: "Open-source agent-first creative workspace.",
-    body: `NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
+    body: `NodeTool is an AI video editor with an agent that helps you create and edit. Work in the timeline, or connect nodes to build reusable workflows. Create images, audio, storyboards and 3D scenes alongside your video. Connect supported provider accounts or run supported models locally. Studio saves projects on your computer. Developers can use the API, command line or MCP to connect other tools.
 
 ## Editions
 
-- [NodeTool Studio](${BASE_URL}/studio.md) is the free desktop application for macOS, Windows, and Linux.
-- [NodeTool Cloud](${BASE_URL}/cloud.md) is the hosted browser application.
+- [NodeTool Studio](${BASE_URL}/studio.md) is the free, open-source desktop application for macOS, Windows, and Linux. Connect a supported provider account or run supported models locally. Provider charges may apply.
+- [NodeTool Cloud](${BASE_URL}/cloud.md) is the hosted browser application, currently in alpha.
 
 ## Start here
 

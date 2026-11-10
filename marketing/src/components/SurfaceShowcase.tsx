@@ -61,8 +61,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Change a shot by hand",
-    body: "Open a shot and change its description, camera, or the characters in it. Its still and clip are marked stale, and Prompts shows what the next render will send. A regenerated shot gets a new take. The current take stays selected until you choose the new one, and the other shots keep theirs.",
+    headline: "Edit a shot yourself",
+    body: "Change a shot’s description, camera or characters, then generate a new version. Preview the prompt before rendering and choose which take to use. Other shots are unchanged.",
     asset: "surface-storyboard",
   },
   {
@@ -109,8 +109,8 @@ const SURFACES: Surface[] = [
     id: "nodes",
     label: "Nodes",
     icon: Workflow,
-    headline: "The node editor underneath",
-    body: "Underneath, every project is a chain of connected steps called a node graph. Open it to rewire a step, swap a provider, or check what each step produced, from the first text prompt to the finished clip.",
+    headline: "Build repeatable workflows",
+    body: "Connect models and processing steps in the node editor. Swap a model, adjust settings and inspect each step’s output, then reuse the workflow in your projects.",
     asset: "surface-nodes",
   },
 ];

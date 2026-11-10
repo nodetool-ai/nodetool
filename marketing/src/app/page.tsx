@@ -23,7 +23,7 @@ const sectionNarrow = "mx-auto max-w-2xl px-6";
 
 /*
  * Five blocks, in this order (marketing/site-editorial.spec.md § Homepage):
- * the argument, the mechanism, the cost behaviour, the spec strip, and the
+ * the overview, the mechanism, the cost behaviour, plans and costs, and the
  * way in.
  * Detail lives on the page that owns it: the ad library on /marketing, models
  * on /models, plans and keys on /pricing, the node canvas on
@@ -110,7 +110,7 @@ export default function Home() {
         id="content"
         className="relative isolate overflow-clip-safe pt-24 sm:pt-36 md:pt-24"
       >
-        {/* 1. The argument: the slot-machine contrast and the reel */}
+        {/* 1. The overview: the product, six linked selling points, and the reel */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
           <div className={sectionContainer}>
             <NodeToolHero />
@@ -132,7 +132,7 @@ export default function Home() {
 
         {/* 4. The shared facts, one line each, linked to the page that owns
             each one */}
-        <SpecStrip className="mt-8 sm:mt-12" />
+        <SpecStrip items={["plan", "cost"]} heading="Plans and costs" className="mt-8 sm:mt-12" />
 
         {/* 5. The way in. The FAQ rows also emit the page's FAQPage schema. */}
         <FaqBlock
@@ -141,6 +141,12 @@ export default function Home() {
           linkToStandalone
           emitSchema
         />
+
+        <p className="mx-auto mt-6 max-w-3xl px-6">
+          <a href="/faq" className="rounded text-sm font-medium text-blue-300 hover:text-blue-200 focus-ring">
+            See all FAQs →
+          </a>
+        </p>
 
         <section aria-labelledby="closing-cta-title" className="relative py-16 sm:py-24">
           <div className={`scroll-fade ${sectionNarrow} text-center`}>
@@ -152,7 +158,8 @@ export default function Home() {
             </h2>
             <p className="mt-4 text-lg text-slate-300">
               Download Studio, the free desktop app for macOS, Windows, and
-              Linux. Or try Cloud in your browser with nothing to install.
+              Linux. Connect a supported provider account or run supported models
+              locally. Provider charges may apply. Or try Cloud in your browser.
               Cloud is in alpha.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

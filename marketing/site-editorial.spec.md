@@ -35,7 +35,7 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 | Route | Thesis | Proof | Leaves to other pages |
 |---|---|---|---|
-| `/` | Films, agents, and node workflows in one editable project. | The hero reel, the three focus cards, the project demo (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud |
+| `/` | Films, agents, and node workflows in one editable project. | The hero reel, six overview cards, the project demo (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud |
 | `/agents` | The agent works inside the same editors and records as you, and the harness catches its mistakes. | The failed-run-and-repair session, the build-validate-run-inspect-repair loop, what validation reports, the permission modes | MCP install, CLI, HTTP API (linked to `/developers`), film production pitch, plan and key explanations |
 | `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour (its storyboard panel shows a shot edited by hand), the films that open as timelines, local models and setup | The still-versus-clip cost example (homepage), plan and key explanations, ad and recipe catalogues |
 | `/node-based-workflows` | A graph you can check before a paid run, and run again. | The node reel, the node-by-node walkthrough | Plan explanation, Studio facts |
@@ -50,15 +50,17 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 Five blocks, in order:
 
-1. **The argument.** The `<h1>`, the hero reel, and three linked cards for
-   the homepage's focus: films, agents, and node workflows. The cards are
-   links, not sections, and carry no `h2`.
+1. **The overview.** The `<h1>`, the hero reel, and six linked cards for
+   timeline and node workflows, agents, media, models, local projects and
+   integrations. The cards carry no `h2`. A note by Download explains accounts,
+   local models and potential provider charges.
 2. **The mechanism.** One note sends one shot back, and the cut keeps every
    other shot (`ProjectSection`, the `agent-redo` reel).
 3. **The cost behaviour.** Approve the still before paying for the clip. The
    prices come from `src/data/stageCosts.ts`.
-4. **The spec strip.** One line per shared fact, each linked to its owner.
-5. **The way in.** The FAQ (it emits the page's FAQPage schema) and the
+4. **Plans and costs.** A short strip links to the pricing details.
+5. **The way in.** Five short FAQ answers cover hardware, accounts, costs, editions and
+   editing the agent's work. They emit matching FAQPage schema. Keep the
    download and Cloud actions, with GitHub, Discord, and email in one line.
 
 ## Comparison pages
