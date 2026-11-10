@@ -268,7 +268,7 @@ void wakeBeforeWaitWithoutTimer() {
     loop.setWaitObserverForTesting([&](bool woken) { wokenAtEntry.push_back(woken); });
     exit = loop.run(control);
     loop.setWaitObserverForTesting({});
-    mailbox.close();
+    CHECK(mailbox.close().empty());
   });
   CHECK(exit == RunExit::Done);
   CHECK(dispatched == 1);
@@ -307,7 +307,7 @@ void wakeDuringWaitWithoutTimer() {
     exit = loop.run(control);
     producer.join();
     loop.setWaitObserverForTesting({});
-    mailbox->close();
+    CHECK(mailbox->close().empty());
   });
   CHECK(exit == RunExit::Done);
   CHECK(dispatched == 1);

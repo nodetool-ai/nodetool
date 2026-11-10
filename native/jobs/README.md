@@ -44,7 +44,9 @@ The tests build only when this directory is the top-level project. The graph
 runner adds the package with `add_subdirectory` unless a parent project added
 it first, and the node editor gets it through the graph runner. The target
 `nodetool_jobs_test_support` exports `tests/resource_test_support.h` to the
-graph runner's resource, file and media job tests.
+graph runner's resource, file and media job tests, and `tests/test_executor.h`,
+a test-only `JobExecutor` with worker threads and a reaper that the package's
+tests run jobs on instead of the graph runner's lanes.
 
 `npm run test:affected:native` treats a change under `native/jobs` as a change
 to graph-runner and node-editor too, since their builds compile it.

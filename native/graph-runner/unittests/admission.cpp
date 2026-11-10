@@ -28,7 +28,6 @@
 #include <deque>
 #include <functional>
 #include <future>
-#include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -433,31 +432,15 @@ void deferredSnapshotsIgnoreLaterMutation() {
   CHECK(eventually([&] { return zero(ledger->usage()); }));
 }
 
-// Gate: revalidation and overflow. Checked arithmetic refuses sizes that
-// wrap. A submission whose cost overflows fails before it is charged or
-// runs. At admission, a deferred start's cost is computed again: a larger
-// snapshot is charged as such, and one that overflows fails with an Error
-// without running.
+// Gate: revalidation and overflow. A submission whose cost overflows fails
+// before it is charged or runs. At admission, a deferred start's cost is
+// computed again: a larger snapshot is charged as such, and one that
+// overflows fails with an Error without running. The checked arithmetic and
+// the reservation's own overflow checks are tested with the ledger
+// (native/jobs/tests/admission.cpp, checkedArithmeticAndSnapshotLimits).
 void revalidationAndOverflow() {
-  CHECK(contains(thrown([] { nodetool::jobs::checkedAdd(std::numeric_limits<uint64_t>::max(), 1); }), "overflows"));
-  CHECK(contains(thrown([] { nodetool::jobs::checkedMul(uint64_t{1} << 32, uint64_t{1} << 32); }), "overflows"));
-  CHECK(contains(thrown([] { (void)JobCost{std::numeric_limits<uint64_t>::max(), 1, 0}.total(); }), "overflows"));
-  CHECK(nodetool::jobs::checkedMul(uint64_t{1} << 31, uint64_t{1} << 32) == uint64_t{1} << 63);
-
   auto ledger = std::make_shared<AdmissionLedger>();
   auto runner = ledger->openRunner(runnerLimits(1));
-  auto account = runner->openRun();
-  {
-    Reservation reservation(account);
-    CHECK(contains(thrown([&] { reservation.reserveSnapshot(std::numeric_limits<uint64_t>::max()); }),
-                   "more than the run limit"));
-    reservation.reserveSnapshot(100);
-    CHECK(contains(thrown([&] { reservation.reserveSnapshot(std::numeric_limits<uint64_t>::max() - 50); }),
-                   "overflows"));
-    CHECK(account->usage().bytes == 100);
-    CHECK(ledger->usage().bytes == 100);
-  }
-  CHECK(zero(ledger->usage()));
 
   Fixture f;
   ThreadPoolExecutor lane("revalidate", 2);
@@ -1483,19 +1466,9 @@ void fallbackRunsShareOneLedger() {
 }
 
 // Gate: HostOptions and newAdmissionLedger lower the limits and cannot raise
-// them.
+// them. The limits' own clamping is tested with the ledger
+// (native/jobs/tests/admission.cpp, limitsClampToTheDefaults).
 void limitsOnlyLower() {
-  ProcessLimits raised;
-  raised.bytes = 64 * nodetool::jobs::kGiB;
-  raised.operations = 0;
-  const ProcessLimits clamped = raised.clamped();
-  CHECK(clamped.bytes == 4 * nodetool::jobs::kGiB);
-  CHECK(clamped.operations == 256);
-  RunnerLimits lowered;
-  lowered.runBytes = 10;
-  lowered.javaScriptBytes = 5 * nodetool::jobs::kGiB;
-  CHECK(lowered.clamped().runBytes == 10);
-  CHECK(lowered.clamped().javaScriptBytes == 1 * nodetool::jobs::kGiB);
   const gr::HostJobLimits defaults;
   CHECK(defaults.runBytes == 0 && defaults.runOperations == 0);
   // The embedder configures a shared ledger when it creates it.

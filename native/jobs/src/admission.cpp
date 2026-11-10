@@ -334,7 +334,10 @@ void Reservation::releaseSnapshot(uint64_t bytes) {
     if (hold_->deferred) throw std::logic_error("a deferred reservation keeps its snapshot bytes");
     const uint64_t released = std::min(bytes, hold_->snapshot);
     if (released == 0) return;
-    hold_->each([&](LedgerUsage& usage) { usage.bytes -= released; });
+    hold_->each([&](LedgerUsage& usage) {
+      usage.bytes -= released;
+      if (hold_->retained) usage.retainedBytes -= released;
+    });
     hold_->bytes -= released;
     hold_->snapshot -= released;
     waiters = ledger.waitersLocked();
@@ -360,12 +363,19 @@ void Reservation::absorb(Reservation other) {
   if (hold_->deferred || other.hold_->slot || other.hold_->deferred) {
     throw std::logic_error("only unadmitted snapshot bytes are absorbed, into a reservation that is not deferred");
   }
-  // Absorbed into a start, retained input is no longer retained.
-  if (other.hold_->retained) {
+  // Absorbed into a start, retained input is no longer retained. Absorbed
+  // into retained input, it becomes retained.
+  if (other.hold_->retained != hold_->retained) {
     const uint64_t moved = other.hold_->bytes;
-    other.hold_->each([&](LedgerUsage& usage) { usage.retainedBytes -= moved; });
-    other.hold_->retained = false;
+    hold_->each([&](LedgerUsage& usage) {
+      if (hold_->retained) {
+        usage.retainedBytes += moved;
+      } else {
+        usage.retainedBytes -= moved;
+      }
+    });
   }
+  other.hold_->retained = false;
   hold_->bytes += std::exchange(other.hold_->bytes, 0);
   hold_->snapshot += std::exchange(other.hold_->snapshot, 0);
 }
@@ -382,6 +392,9 @@ Reservation::Admission Reservation::admit(const JobCost& cost, Order order) {
   {
     std::lock_guard lock(ledger.mutex_);
     if (hold_->slot) throw std::logic_error("a reservation is admitted once");
+    // Admission changes the charge's size and makes it drain, which the
+    // retained count cannot follow. A start absorbs retained input instead.
+    if (hold_->retained) throw std::logic_error("a retained reservation is absorbed into a start, never admitted");
     const uint64_t add = total > hold_->bytes ? total - hold_->bytes : 0;
     const uint64_t give = hold_->bytes > total ? hold_->bytes - total : 0;
     const RunnerLimits& limits = runner.limits_;
@@ -469,6 +482,7 @@ void Reservation::defer(const JobCost& cost) {
   const uint64_t total = cost.total();
   std::lock_guard lock(ledger.mutex_);
   if (hold_->slot) throw std::logic_error("an admitted reservation cannot be deferred");
+  if (hold_->retained) throw std::logic_error("a retained reservation is absorbed into a start, never deferred");
   if (hold_->deferred) return;
   const uint64_t bytes = hold_->snapshot;
   const uint64_t need = total > hold_->bytes ? total - hold_->bytes : 0;
@@ -530,7 +544,10 @@ ExternalCharge Reservation::transferToJavaScript(uint64_t bytes) {
     ledger.usage_.javaScriptBytes += bytes;
     const uint64_t moved = std::min(bytes, hold_->bytes);
     if (moved > 0) {
-      hold_->each([&](LedgerUsage& usage) { usage.bytes -= moved; });
+      hold_->each([&](LedgerUsage& usage) {
+        usage.bytes -= moved;
+        if (hold_->retained) usage.retainedBytes -= moved;
+      });
       hold_->bytes -= moved;
       hold_->snapshot = std::min(hold_->snapshot, hold_->bytes);
       waiters = ledger.waitersLocked();

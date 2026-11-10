@@ -39,6 +39,8 @@ constexpr uint64_t kGiB = 1024 * kMiB;
 
 // An operation the ledger cannot admit or hold, or a size computation that
 // overflows. The guest sees its message as an Error.
+//
+// Thread affinity: none. An exception value, owned by the code that catches it.
 struct AdmissionError : std::runtime_error {
   using std::runtime_error::runtime_error;
 };
@@ -52,6 +54,9 @@ uint64_t checkedMul(uint64_t a, uint64_t b);
 // it is known to use. A job computes it from its own snapshot, never from
 // JavaScript values, so the cost the ledger sees at admission is the cost of
 // the bytes the job really holds.
+//
+// Thread affinity: none. A value with no shared state. Each copy belongs to
+// one thread at a time.
 struct JobCost {
   uint64_t snapshotBytes = 0;
   uint64_t outputBytes = 0;
@@ -61,6 +66,9 @@ struct JobCost {
 };
 
 // The process limits. Set once, when the process ledger is created.
+//
+// Thread affinity: none. A value with no shared state. Each copy belongs to
+// one thread at a time.
 struct ProcessLimits {
   uint64_t bytes = 4 * kGiB;
   size_t operations = 256;
@@ -73,6 +81,9 @@ struct ProcessLimits {
 };
 
 // The limits of one runner and of each of its runs.
+//
+// Thread affinity: none. A value with no shared state. Each copy belongs to
+// one thread at a time.
 struct RunnerLimits {
   uint64_t runBytes = 1 * kGiB;
   size_t runOperations = 64;
@@ -84,6 +95,9 @@ struct RunnerLimits {
 };
 
 // What an account holds. `bytes` includes deferred and retained bytes.
+//
+// Thread affinity: none. A value with no shared state. The ledger keeps its
+// own copies under its mutex and hands out snapshots.
 struct LedgerUsage {
   uint64_t bytes = 0;
   size_t operations = 0;
@@ -325,7 +339,9 @@ public:
   // Marks this charge as retained input that only the guest releases, such
   // as a provider upload waiting for its start. Its bytes cannot drain by
   // themselves, which admission takes into account. Before admission or
-  // deferral, and after its last reserveSnapshot.
+  // deferral, and after its last reserveSnapshot. A retained reservation is
+  // never admitted or deferred: a start takes its bytes with absorb(), or
+  // its owner destroys it.
   void retain();
   // Takes over the snapshot bytes of `other`, a reservation on the same run
   // that is neither admitted, deferred nor shared, such as the parts of a
@@ -341,13 +357,15 @@ public:
   // little room for its cost), and for a queued start blocked while nothing
   // in its run, or in the ledger, can drain: no operation runs and every
   // other charged byte is deferred or retained. Blocked charges nothing new.
+  // Throws std::logic_error for an empty, admitted or retained reservation.
   Admission admit(const JobCost& cost, Order order);
   // Counts the snapshot bytes against the deferred limits too, for a start
   // of `cost`. Throws AdmissionError when the run or the process cannot
   // defer them, and when the deferred snapshots, with this one, would leave
   // too little room for the start that needs the most beyond its snapshot.
   // Deferred snapshots drain only through admission, so this keeps every
-  // deferred start able to fit once the admitted work has drained.
+  // deferred start able to fit once the admitted work has drained. Throws
+  // std::logic_error for an empty, admitted or retained reservation.
   void defer(const JobCost& cost);
   // Moves `bytes` of this charge into the runner's JavaScript ledger: charges
   // them there, then gives back up to `bytes` of the native charge, in one

@@ -9,6 +9,7 @@
 // joins before it returns (native/AGENTS.md rule 12).
 #pragma once
 
+#include "nodetool/jobs/admission.h"
 #include "nodetool/jobs/job_core.h"
 #include "nodetool/jobs/resource_control.h"
 #include "nodetool/jobs/session_stop.h"
@@ -77,6 +78,8 @@ public:
   int checks() const { return checks_; }
 
 private:
+  // Thread affinity: thread-safe. run() is the watchdog thread's loop and
+  // the main thread sets the deadline and stops it, all under `mutex`.
   struct Watch {
     std::mutex mutex;
     std::condition_variable changed;
@@ -150,6 +153,7 @@ struct Gate {
 // created the run, which owns its loop.
 class TestRun {
 public:
+  // Thread affinity: the run's thread, which drains results into it.
   struct Result {
     nodetool::jobs::JobOutcome::Kind kind;
     std::string error;
@@ -173,9 +177,13 @@ public:
   TestRun(const TestRun&) = delete;
   TestRun& operator=(const TestRun&) = delete;
 
-  uint64_t submit(nodetool::jobs::JobExecutor& executor, std::unique_ptr<nodetool::jobs::NativeJob> job) {
+  // `reservation` travels with the job into its result, as AsyncRun passes
+  // a job's admission charge.
+  uint64_t submit(nodetool::jobs::JobExecutor& executor, std::unique_ptr<nodetool::jobs::NativeJob> job,
+                  nodetool::jobs::Reservation reservation = {}) {
     const uint64_t id = next_++;
-    executor.submit(nodetool::jobs::SubmittedJob(id, std::move(job), mailbox_, stop_.get_token(), tracker_->acquire(run_)));
+    executor.submit(nodetool::jobs::SubmittedJob(id, std::move(job), mailbox_, stop_.get_token(), tracker_->acquire(run_),
+                                                 std::move(reservation)));
     return id;
   }
   // Takes every waiting result.
@@ -212,6 +220,10 @@ public:
   }
 
   // A Value payload carrying a string.
+  //
+  // Thread affinity: one thread at a time. Written once by the job's thread
+  // before delivery, then read and destroyed by the thread that drains or
+  // disposes of the result.
   struct TextPayload final : nodetool::jobs::JobPayload {
     explicit TextPayload(std::string t) : text(std::move(t)) {}
     std::string text;
@@ -309,6 +321,9 @@ struct TestBody : nodetool::jobs::ResourceBody {
 };
 
 // A body that wraps a library session with a stop bridge.
+//
+// Thread affinity: as TestBody. The bridge is thread-safe, so a stop
+// request may reach it from any thread.
 struct SessionBody : TestBody {
   SessionBody(std::shared_ptr<Probe> p, nodetool::jobs::SessionStopBridge::Wake wake = {})
       : TestBody(std::move(p), "session"), bridge(std::move(wake)) {}
@@ -333,6 +348,41 @@ inline std::unique_ptr<nodetool::jobs::NativeJob> record(
     }
     return text(tag);
   });
+}
+
+// A body whose destructor blocks until its gate opens: library cleanup or a
+// staging directory removal that takes long.
+//
+// Thread affinity: as TestBody. Destroyed on whichever thread its control
+// destroys bodies on. The gates are thread-safe.
+struct BlockingBody : TestBody {
+  BlockingBody(std::shared_ptr<Probe> p, std::shared_ptr<Gate> g, std::shared_ptr<Gate> e)
+      : TestBody(std::move(p), "blocking"), gate(std::move(g)), entered(std::move(e)) {}
+  ~BlockingBody() override {
+    entered->release();
+    gate->wait();
+  }
+  // Shared with the test, which opens it.
+  std::shared_ptr<Gate> gate;
+  std::shared_ptr<Gate> entered;
+};
+
+// Runs `action` on a helper thread standing in for the worker, and reports
+// whether it returned within two seconds. Afterwards opens `gate` and joins,
+// so a destructor that blocked the helper cannot hang the suite.
+inline bool returnsPromptly(std::function<void()> action, const std::shared_ptr<Gate>& gate) {
+  auto returned = std::make_shared<Gate>();
+  std::thread worker([action = std::move(action), returned] {
+    action();
+    returned->release();
+  });
+  std::unique_lock lock(returned->mutex);
+  const bool prompt =
+      returned->changed.wait_for(lock, std::chrono::seconds(2), [&] { return returned->open; });
+  lock.unlock();
+  gate->release();
+  worker.join();
+  return prompt;
 }
 
 }  // namespace step5

@@ -31,15 +31,25 @@
 namespace nodetool::jobs {
 
 // A job's native result. Never holds a JavaScript value.
+//
+// Thread affinity: one thread at a time. It moves with its result from the
+// job's thread to the thread that converts or disposes of it, which
+// destroys it.
 struct JobPayload {
   virtual ~JobPayload() = default;
 };
 
 // Counts the jobs of one runner that are not disposed yet, across all of
 // its runs. Jobs share it, so it outlives the runner object.
+//
+// Thread affinity: thread-safe. `mutex_` guards the counts, and `released_`
+// signals each release to waitIdle().
 class RunnerTracker : public std::enable_shared_from_this<RunnerTracker> {
 public:
   // Held by a job from submission until its result is destroyed.
+  //
+  // Thread affinity: one thread at a time. It moves with its job, and
+  // releasing it takes the tracker's mutex.
   class Ticket {
   public:
     Ticket() = default;
@@ -82,6 +92,9 @@ private:
 };
 
 // What a job produced.
+//
+// Thread affinity: one thread at a time. Made on the job's thread and moved
+// into its result.
 struct JobOutcome {
   enum class Kind { Value, Error, Stopped };
   Kind kind = Kind::Value;
@@ -95,6 +108,8 @@ struct JobOutcome {
   static JobOutcome stopped() { return {Kind::Stopped, nullptr, {}}; }
 };
 
+// Thread affinity: one thread at a time. Built on the delivering thread and
+// handed to the worker through the mailbox, under the mailbox mutex.
 struct JobResult {
   // Declared first so it is released last, after the payload is destroyed.
   RunnerTracker::Ticket ticket;
@@ -152,6 +167,8 @@ private:
 
 // Thrown by a Converter to reject its promise with an AbortError instead of
 // an Error, such as when the run was cancelled before the result settled.
+//
+// Thread affinity: none. An exception value, owned by the code that catches it.
 struct JobAborted : std::runtime_error {
   using std::runtime_error::runtime_error;
 };
@@ -239,6 +256,7 @@ public:
 
 template <class F>
 std::unique_ptr<NativeJob> makeJob(F work) {
+  // Thread affinity: as NativeJob.
   struct Job final : NativeJob {
     explicit Job(F f) : work(std::move(f)) {}
     JobOutcome run(std::stop_token stop) override { return work(std::move(stop)); }
@@ -253,6 +271,10 @@ std::unique_ptr<NativeJob> makeJob(F work) {
 // (native/graph-runner/include/nodetool/provider_jobs.h), has no mailbox and
 // reports through its own channel: what execute() or cancel() would deliver
 // is destroyed on the calling thread instead.
+//
+// Thread affinity: one thread at a time. It moves from the submitting
+// thread through an executor's queue to the thread that executes, cancels
+// or disposes of it.
 class SubmittedJob {
 public:
   SubmittedJob(uint64_t id, std::unique_ptr<NativeJob> job, std::shared_ptr<RunMailbox> mailbox,
@@ -317,6 +339,10 @@ public:
   virtual void relay(std::stop_source stop, std::shared_ptr<void> keep) = 0;
 };
 
+// Executes submitted jobs.
+//
+// Thread affinity: thread-safe. Every member may be called from any thread.
+// Each implementation names the synchronization it uses.
 class JobExecutor {
 public:
   virtual ~JobExecutor() = default;
@@ -350,6 +376,9 @@ public:
 
 // Runs each job on the worker as it is submitted. Results still go through
 // the mailbox, so they settle at a macrotask point in submission order.
+//
+// Thread affinity: thread-safe and stateless. Each job runs on the thread
+// that submits it.
 class InlineExecutor final : public JobExecutor {
 public:
   void submit(SubmittedJob job) override { job.execute(); }
