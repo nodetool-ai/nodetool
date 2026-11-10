@@ -20,6 +20,17 @@
 #include <stdexcept>
 #include <string>
 
+// The sanitizer runtimes replace operator new and delete themselves, so a
+// sanitizer build cannot also replace them and skips the allocation gate.
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+#define GR_SANITIZED_ALLOCATOR 1
+#endif
+#endif
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+#define GR_SANITIZED_ALLOCATOR 1
+#endif
+
 namespace {
 
 // Per-thread allocation counters of the replaced operator new and delete.
@@ -58,12 +69,14 @@ void release(void* pointer) noexcept {
 
 }  // namespace
 
+#ifndef GR_SANITIZED_ALLOCATOR
 void* operator new(size_t size) { return allocate(size); }
 void* operator new[](size_t size) { return allocate(size); }
 void operator delete(void* pointer) noexcept { release(pointer); }
 void operator delete[](void* pointer) noexcept { release(pointer); }
 void operator delete(void* pointer, size_t) noexcept { release(pointer); }
 void operator delete[](void* pointer, size_t) noexcept { release(pointer); }
+#endif
 
 namespace {
 
@@ -271,7 +284,12 @@ void unknownKeysAreIgnored(Checks& t) {
 
 int main() {
   Checks t;
+#ifdef GR_SANITIZED_ALLOCATOR
+  std::fprintf(stderr, "allocationStaysWithinTheBound skipped: sanitizer build\n");
+  (void)&allocationStaysWithinTheBound;
+#else
   allocationStaysWithinTheBound(t);
+#endif
   nullAndWrongTypesReject(t);
   unknownKeysAreIgnored(t);
   std::fprintf(stderr, "%d checks, %d failures\n", t.checks, t.failures);
