@@ -146,13 +146,13 @@ describe("the MCP mount's permission gate", () => {
     const server = newServer();
     registerAgentMcpTools(server, { agentToolsScope: scope }, planGate);
 
-    // `http_request` is `external`, and plan mode blocks that before the
+    // `download_file` is `write`, and plan mode blocks that before the
     // implementation runs — so a blocked answer here, rather than a fetch
     // failure against an unroutable address, is the proof the call met the
     // gate. Ungated, this reached the network.
-    const response = await callTool(server, "http_request", {
+    const response = await callTool(server, "download_file", {
       url: "http://127.0.0.1:9/never",
-      method: "GET"
+      output_file: "never.bin"
     });
     const result = JSON.parse(response.content[0].text ?? "{}") as {
       error?: string;

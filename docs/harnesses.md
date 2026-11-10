@@ -96,7 +96,7 @@ Chat flags:
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
                          openrouter, requesty, opper, cheaperinference, api_route,
-                         runcrate, huggingface, replicate, kie,
+                         runcrate, standardcompute, huggingface, replicate, kie,
                          aki, ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
                          node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
@@ -2572,6 +2572,15 @@ backend falls back to the flat key on a miss.
 npm run dev:nodetool -- storage migrate-keys --dry-run     # Report, write nothing
 npm run dev:nodetool -- storage migrate-keys               # Move them
 npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
+```
+
+Uploads store `Cache-Control: max-age=<signed URL lifetime>` on each object.
+`refresh-cache-control` rewrites asset objects stored before that with
+`no-cache`, which made browsers download them again on every mount.
+
+```bash
+npm run dev:nodetool -- storage refresh-cache-control --dry-run
+npm run dev:nodetool -- storage refresh-cache-control
 ```
 
 ### nodetool auth

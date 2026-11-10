@@ -88,6 +88,7 @@ Before committing prose, scan for:
 ## Related
 
 - [BRAND.md](BRAND.md) — brand and verbal guidelines: positioning, voice, messaging pillars, lexicon
+- [Docs Editorial Spec](docs-editorial.spec.md) — page structure rules for docs.nodetool.ai and the banned-adjective lint
 - [DEVELOPMENT_STANDARDS §19 Documentation & Comments](DEVELOPMENT_STANDARDS.md#19-documentation--comments) — comment and README rules
 - [Root AGENTS.md](../AGENTS.md) — repo rules for agents and contributors
 - The `unslop` skill (`.claude/skills/`) — the equivalent pass for code

@@ -35,6 +35,7 @@ import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { AntigravityProvider } from "./antigravity-provider.js";
+import { CopilotProvider } from "./copilot-provider.js";
 import { DreaminaProvider } from "./dreamina-provider.js";
 import { ChatGPTProvider } from "./chatgpt-provider.js";
 import { GeminiWebProvider } from "./gemini-web-provider.js";
@@ -57,6 +58,7 @@ import { OpperProvider } from "./opper-provider.js";
 import { CheaperInferenceProvider } from "./cheaperinference-provider.js";
 import { APIRouteProvider } from "./api-route-provider.js";
 import { RuncrateProvider } from "./runcrate-provider.js";
+import { StandardComputeProvider } from "./standardcompute-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
   ALIBABA_DEFAULT_BASE_URL,
@@ -248,6 +250,7 @@ export { VgenvProvider };
 export { ToapisProvider };
 export { ClaudeAgentProvider };
 export { AntigravityProvider };
+export { CopilotProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
 export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
@@ -318,6 +321,7 @@ export { OpperProvider };
 export { CheaperInferenceProvider };
 export { APIRouteProvider };
 export { RuncrateProvider };
+export { StandardComputeProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
 export { CerebrasProvider };
@@ -612,6 +616,10 @@ registerBuiltinProvider(
 // unavailableReason and at call time. Pruned from the cloud profile
 // (NON_CLOUD_PROVIDER_IDS) since it needs a local executable and account.
 registerBuiltinProvider(PROVIDER_IDS.ANTIGRAVITY, AntigravityProvider, {});
+// Copilot: GitHub's `copilot` CLI over its Agent Client Protocol server, on the
+// machine's signed-in Copilot account (no API key). A missing CLI surfaces
+// through `unavailableReason`.
+registerBuiltinProvider(PROVIDER_IDS.COPILOT, CopilotProvider, {});
 // Dreamina: image, video and music generation through the user's logged-in Dreamina tab, driven
 // by the NodeTool Chrome extension. No credentials; it lists no models until an
 // extension is attached. Pruned from the cloud profile (NON_CLOUD_PROVIDER_IDS).
@@ -710,6 +718,9 @@ registerBuiltinProvider(PROVIDER_IDS.API_ROUTE, APIRouteProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.RUNCRATE, RuncrateProvider, {
   RUNCRATE_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.STANDARD_COMPUTE, StandardComputeProvider, {
+  STANDARDCOMPUTE_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""

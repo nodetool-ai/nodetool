@@ -5,7 +5,19 @@ permalink: /game-engine/animation
 description: "Animate sprite sheets, visual properties, model clips, and layered animation graphs."
 ---
 
-Choose animation according to what must change. Sprite clips change an atlas frame. Visual tracks change presentation properties. A 3D animation graph chooses and blends prepared model clips.
+Sprite clips change an atlas frame, visual tracks change presentation properties, and a 3D animation graph chooses and blends prepared model clips.
+
+```json
+{
+  "animator": {
+    "frames": [{ "x": 0, "y": 0, "width": 32, "height": 32 }], "ticksPerFrame": 6,
+    "clips": { "run": { "frames": [{ "x": 32, "y": 0, "width": 32, "height": 32 }], "ticksPerFrame": 4, "loop": true } }
+  },
+  "visualAnimation": {
+    "tracks": [{ "property": "opacity", "from": 1, "to": 0.4, "durationTicks": 30, "pingPong": true, "repeat": true }]
+  }
+}
+```
 
 ![AETHER editor with the explorer model and Animator 3D clip settings](/assets/game-engine/editor-animation.png)
 

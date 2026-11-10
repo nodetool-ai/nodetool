@@ -1799,6 +1799,12 @@
       "localTitle": "更喜欢本地模型？",
       "localDescription": "安装 Ollama 并下载模型，即可在你的设备上运行。",
       "getOllama": "获取 Ollama",
+      "ollamaChecking": "正在检查 Ollama 连接…",
+      "ollamaCheckFailed": "无法检查 Ollama。请重试。",
+      "ollamaConnected": "Ollama 已连接。请在模型管理器中选择或下载模型。",
+      "ollamaUnavailable": "请使用 NodeTool 桌面应用连接到电脑上的 Ollama。",
+      "ollamaUnreachable": "无法连接到 Ollama。如果已安装，请打开它；否则，请先下载。",
+      "checkOllamaAgain": "重新检查",
       "encryptedKeys": "API 密钥已加密。你可以在设置中管理或移除密钥。",
       "signInAgain": "重新登录{{provider}}",
       "waitingSignIn": "正在等待登录…",
@@ -6820,6 +6826,7 @@
       "allCategories": "全部",
       "categories": {
         "workflows": "工作流",
+        "comfy": "ComfyUI",
         "apps": "应用",
         "storyboards": "分镜",
         "timelines": "时间线",
@@ -9060,6 +9067,10 @@
         "RUNCRATE_API_KEY": {
           "button": "获取 Runcrate API 密钥",
           "tooltip": "前往 Runcrate API 密钥页面"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "获取 Standard Compute API 密钥",
+          "tooltip": "前往 Standard Compute API 密钥页面"
         },
         "HF_TOKEN": {
           "button": "获取 Hugging Face 令牌",
@@ -12182,6 +12193,31 @@
         "undo": "撤销",
         "redo": "重做",
         "agent": "智能体"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "请求运行时，Chrome 会显示“NodeTool 正在调试此浏览器”提示栏。扩展不会操作其他标签页。",
       "setup": "设置步骤",
       "step1": "允许 Chrome 启动 NodeTool 浏览器桥接程序。",
-      "windowsUnsupported": "目前尚不支持 Windows。通过扩展生成媒体需要使用 macOS 或 Linux。",
       "bridgeRegistered": "完成。NodeTool 已向你的浏览器注册桥接程序。",
       "registering": "正在向浏览器注册…",
       "registrationFailed": "浏览器桥接程序注册失败",
@@ -18911,6 +18946,12 @@
     "signIn": "要登录，请将此命令复制到这台电脑的终端中运行。完成 Google 登录后，刷新模型。",
     "refreshModels": "刷新模型",
     "statusUnavailable": "状态不可用"
+  },
+  "copilot": {
+    "description": "使用你的 GitHub Copilot 账户调用语言模型，无需 API 密钥。",
+    "install": "在这台计算机的终端中安装 GitHub Copilot CLI。",
+    "signIn": "然后登录并刷新模型。你的 Copilot 套餐未包含的模型不会显示。",
+    "refreshModels": "刷新模型"
   },
   "batch2_29": {
     "storyboardPanel": {

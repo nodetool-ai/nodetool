@@ -1827,6 +1827,12 @@
       "localTitle": "Wolisz lokalne modele?",
       "localDescription": "Zainstaluj Ollamę i pobierz model do uruchomienia na swoim komputerze.",
       "getOllama": "Zdobądź Ollamę",
+      "ollamaChecking": "Sprawdzanie połączenia z Ollama…",
+      "ollamaCheckFailed": "Nie udało się sprawdzić Ollama. Spróbuj ponownie.",
+      "ollamaConnected": "Ollama jest połączona. Wybierz lub pobierz model w menedżerze modeli.",
+      "ollamaUnavailable": "Użyj aplikacji komputerowej NodeTool, aby połączyć się z Ollama na swoim komputerze.",
+      "ollamaUnreachable": "Nie można połączyć się z Ollama. Jeśli jest zainstalowana, otwórz ją. W przeciwnym razie pobierz ją, aby rozpocząć.",
+      "checkOllamaAgain": "Sprawdź ponownie",
       "encryptedKeys": "Klucze API są szyfrowane. Możesz nimi zarządzać lub je usuwać w Ustawieniach.",
       "signInAgain": "Zaloguj się ponownie do {{provider}}",
       "waitingSignIn": "Oczekiwanie na zalogowanie…",
@@ -7018,6 +7024,7 @@
       "allCategories": "Wszystko",
       "categories": {
         "workflows": "Przepływy pracy",
+        "comfy": "ComfyUI",
         "apps": "Aplikacje",
         "storyboards": "Storyboardy",
         "timelines": "Osie czasu",
@@ -9344,6 +9351,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Zdobądź klucz API Runcrate",
           "tooltip": "Przejdź do platformy Runcrate, aby uzyskać klucz API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Zdobądź klucz API Standard Compute",
+          "tooltip": "Przejdź do platformy Standard Compute, aby uzyskać klucz API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Uzyskaj klucz trasy API",
@@ -12548,6 +12559,31 @@
         "undo": "Cofnij",
         "redo": "Powtórz",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -13143,7 +13179,6 @@
       "debuggingNotice": "Podczas wykonywania żądania Chrome wyświetla pasek „Nodetool debuguje tę przeglądarkę”. Rozszerzenie nie robi nic na innych kartach.",
       "setup": "Skonfiguruj to",
       "step1": "Pozwól Chrome uruchomić mostek przeglądarki NodeTool.",
-      "windowsUnsupported": "Nie jest to jeszcze obsługiwane w systemie Windows. Generowanie multimediów za pomocą rozszerzenia działa na systemach macOS i Linux.",
       "bridgeRegistered": "Gotowe. NodeTool zarejestrował swój most w Twoich przeglądarkach.",
       "registering": "Rejestrowanie się w przeglądarkach…",
       "registrationFailed": "Rejestracja mostu przeglądarki nie powiodła się",
@@ -19531,6 +19566,12 @@
     "signIn": "Aby się zalogować, skopiuj to polecenie do terminala na tym komputerze. Dokończ logowanie do Google, a następnie odśwież modele.",
     "refreshModels": "Odśwież modele",
     "statusUnavailable": "Stan niedostępny"
+  },
+  "copilot": {
+    "description": "Użyj konta GitHub Copilot do modeli językowych. Klucz API nie jest potrzebny.",
+    "install": "Zainstaluj GitHub Copilot CLI w terminalu na tym komputerze.",
+    "signIn": "Następnie zaloguj się i odśwież modele. Modele, których nie obejmuje Twój plan Copilot, się nie pojawią.",
+    "refreshModels": "Odśwież modele"
   },
   "batch2_29": {
     "storyboardPanel": {

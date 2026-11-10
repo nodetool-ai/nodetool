@@ -1,14 +1,60 @@
 import React from "react";
-import { Download, Code2, KeyRound, Layers } from "lucide-react";
+import { ArrowRight, Bot, Download, Film, FolderOpen, Layers, Plug, SlidersHorizontal } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
+
+/** A short overview, with each point linked to its detailed page. */
+const pillars = [
+  {
+    title: "Edit video, build workflows",
+    body: "Work in the timeline or connect nodes for more control and repeatable tasks.",
+    href: "/node-based-workflows",
+    linkLabel: "Explore node workflows",
+    icon: Film,
+  },
+  {
+    title: "Create with an agent",
+    body: "Ask the agent to build and edit your project, then adjust it yourself.",
+    href: "/agents",
+    linkLabel: "See how the agent works",
+    icon: Bot,
+  },
+  {
+    title: "Work across media",
+    body: "Create images, audio, storyboards and 3D scenes alongside your video.",
+    href: "/studio#surfaces",
+    linkLabel: "Explore the editors",
+    icon: Layers,
+  },
+  {
+    title: "Choose your models",
+    body: "Connect your provider accounts or run supported models locally.",
+    href: "/models",
+    linkLabel: "Browse supported models",
+    icon: SlidersHorizontal,
+  },
+  {
+    title: "Save projects locally",
+    body: "Save your work on your computer with the free, open-source desktop app.",
+    href: "/studio",
+    linkLabel: "About the desktop app",
+    icon: FolderOpen,
+  },
+  {
+    title: "Connect other tools",
+    body: "Run workflows through the API or command line, or connect coding agents through MCP.",
+    href: "/developers",
+    linkLabel: "For developers",
+    icon: Plug,
+  },
+];
 
 export default function NodeToolHero() {
   return (
     <div className="relative w-full text-slate-200">
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
-        {/* The category line stays visible above the contrast, and the
+        {/* The category line stays visible above the headline, and the
             metadata stays category-led (NARRATIVE.md § Positioning line). */}
         <p className="inline-flex max-w-full items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-300 sm:text-[11px] sm:tracking-[0.18em]">
           Open-source agent-first creative workspace
@@ -18,15 +64,13 @@ export default function NodeToolHero() {
           id="hero-title"
           className="mt-5 text-balance text-[2.125rem] font-bold leading-[1.05] tracking-tight text-slate-50 sm:mt-6 sm:text-6xl lg:text-7xl"
         >
-          Stop prompting slot machines.{" "}
-          <span className="text-sky-200">Direct the agent.</span>
+          Create with AI.{" "}
+          <span className="text-sky-200">Make it your own.</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-          Most AI video apps charge you to roll the dice, then hand back a flat
-          MP4 you can&apos;t edit. In NodeTool the agent writes the script,
-          boards the shots, and cuts a multi-track timeline. Every shot, voice
-          line, and node stays open for you to change by hand.
+          An AI video editor with an agent that helps you create and edit.
+          Work in the timeline, or connect nodes to build reusable workflows.
         </p>
 
         <div className="mt-7 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
@@ -50,7 +94,8 @@ export default function NodeToolHero() {
         <p className="mt-4 text-xs text-slate-400">
           Free and open source,{" "}
           <span className="whitespace-nowrap">AGPL-3.0.</span> macOS, Windows,
-          and Linux.
+          and Linux. Connect a supported provider account or run supported models
+          locally. Provider charges may apply.
         </p>
       </div>
 
@@ -74,24 +119,29 @@ export default function NodeToolHero() {
         </p>
       </div>
 
-      <ul className="mx-auto mt-8 grid sm:mt-10 max-w-5xl grid-cols-1 gap-3 text-sm font-medium text-slate-300 sm:grid-cols-3">
-        <li className="flex items-center justify-start gap-2 rounded-xl border sm:justify-center border-slate-800/80 bg-slate-900/40 px-4 py-3">
-          <Layers className="h-4 w-4 shrink-0 text-fuchsia-400" aria-hidden />
-          Editors for scripts, storyboards, drawing, video, 3D, and games
-        </li>
-        <li>
-          <a
-            href="#subscription"
-            className="flex h-full items-center justify-start gap-2 rounded-xl border sm:justify-center border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-emerald-100 transition-colors hover:border-emerald-400 focus-ring"
-          >
-            <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-            Your $20 ChatGPT, Claude, or Gemini plan, or your own API keys
-          </a>
-        </li>
-        <li className="flex items-center justify-start gap-2 rounded-xl border sm:justify-center border-slate-800/80 bg-slate-900/40 px-4 py-3">
-          <Code2 className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
-          Open source, and your projects are files you keep
-        </li>
+      <ul
+        aria-label="What you can do with NodeTool"
+        className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-3 text-sm text-slate-300 sm:mt-10 sm:grid-cols-3"
+      >
+        {pillars.map((pillar) => (
+          <li key={pillar.title}>
+            <a
+              href={pillar.href}
+              className="group flex h-full flex-col rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-4 transition-colors hover:border-slate-600 hover:bg-slate-900/70 focus-ring"
+            >
+              <span className="flex items-center gap-2 text-base font-semibold text-slate-100">
+                <pillar.icon className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
+                {pillar.title}
+                <ArrowRight
+                  className="ml-auto h-4 w-4 text-slate-500 transition-colors group-hover:text-slate-200"
+                  aria-hidden
+                />
+              </span>
+              <span className="mt-2 leading-relaxed text-slate-400">{pillar.body}</span>
+              <span className="mt-3 text-xs font-medium text-blue-300">{pillar.linkLabel}</span>
+            </a>
+          </li>
+        ))}
       </ul>
     </div>
   );

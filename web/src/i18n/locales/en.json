@@ -1797,8 +1797,14 @@
       "capabilityPrompt": "Connect a provider for {{capability}} to continue.",
       "billing": "Your API usage is billed directly to your provider account.",
       "localTitle": "Prefer local models?",
-      "localDescription": "Install Ollama and download a model to run on your machine.",
-      "getOllama": "Get Ollama",
+      "localDescription": "Run models on your computer with Ollama. Already installed? Open Ollama to get started.",
+      "getOllama": "Download Ollama",
+      "ollamaChecking": "Checking the Ollama connection…",
+      "ollamaCheckFailed": "Could not check Ollama. Try again.",
+      "ollamaConnected": "Ollama is connected. Choose or download a model in the model manager.",
+      "ollamaUnavailable": "Use the NodeTool desktop app to connect to Ollama on your computer.",
+      "ollamaUnreachable": "Cannot reach Ollama. If it’s installed, open it. Otherwise, download it to get started.",
+      "checkOllamaAgain": "Check again",
       "encryptedKeys": "API keys are encrypted. You can manage or remove them in Settings.",
       "signInAgain": "Sign in to {{provider}} again",
       "waitingSignIn": "Waiting for sign-in…",
@@ -6820,6 +6826,7 @@
       "allCategories": "All",
       "categories": {
         "workflows": "Workflows",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Timelines",
@@ -7593,10 +7600,10 @@
       "checking": "Checking…",
       "connected": "Extension connected",
       "notConnected": "Not connected",
-      "installHint": "Install and attach the extension to see it here.",
+      "installHint": "Follow the steps below to connect the extension. If it is already installed, reload it in chrome://extensions and attach it to your tab again.",
       "steps": {
         "1": "Click “Connect to Chrome” below once, so Chrome can start NodeTool’s browser bridge.",
-        "2": "Download the extension (or use the build folder below).",
+        "2": "Download and unzip the extension, or use Reveal build folder below.",
         "3": "Open chrome://extensions in the Chrome you use for the target sites.",
         "4": "Enable “Developer mode” (top-right).",
         "5": "Click “Load unpacked” and select the extension folder.",
@@ -9060,6 +9067,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Get Runcrate API key",
           "tooltip": "Go to Runcrate API keys page"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Get Standard Compute API key",
+          "tooltip": "Go to Standard Compute API keys page"
         },
         "HF_TOKEN": {
           "button": "Get Hugging Face token",
@@ -12182,6 +12193,31 @@
         "undo": "Undo",
         "redo": "Redo",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12743,9 +12779,8 @@
       "howItWorks": "How it works",
       "workflow": "When a workflow or the chat asks ChatGPT or Gemini for an image or a video, NodeTool finds your open chatgpt.com or gemini.google.com tab and submits the prompt through the site's own page. The finished file comes back to NodeTool. Your password and cookies stay in Chrome, and each request appears in your ChatGPT or Gemini history.",
       "debuggingNotice": "Chrome shows a “Nodetool is debugging this browser” bar while a request runs. The extension does nothing on other tabs.",
-      "setup": "Set it up",
+      "setup": "Set it up here or in Settings → Integrations → Browser extension",
       "step1": "Let Chrome start NodeTool's browser bridge.",
-      "windowsUnsupported": "This is not supported on Windows yet. Media generation through the extension works on macOS and Linux.",
       "bridgeRegistered": "Done. NodeTool registered its bridge with your browsers.",
       "registering": "Registering with your browsers…",
       "registrationFailed": "Browser bridge registration failed",
@@ -18911,6 +18946,12 @@
     "signIn": "To sign in, copy this command into a terminal on this computer. Complete the Google sign-in, then refresh models.",
     "refreshModels": "Refresh models",
     "statusUnavailable": "Status unavailable"
+  },
+  "copilot": {
+    "description": "Use your GitHub Copilot account for language models. No API key needed.",
+    "install": "Install the GitHub Copilot CLI in a terminal on this computer.",
+    "signIn": "Then sign in and refresh models. Models your Copilot plan does not include do not appear.",
+    "refreshModels": "Refresh models"
   },
   "batch2_29": {
     "storyboardPanel": {

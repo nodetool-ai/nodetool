@@ -48,7 +48,7 @@ const imageProperties = Object.fromEntries(brief.images.map(image => [image.id, 
 const option = {type: "object", properties: {
   title: {type: "string", description: "A name for this direction in 2 to 4 words."},
   angle: {type: "string", description: "One sentence on what this direction emphasizes."},
-  brandColor: {type: "string", description: "The brand's main color as #RRGGBB, as the site shows it."},
+  brandColor: {type: "string", description: "The brand's accent color as #RRGGBB (buttons, links, highlights), not the page background."},
   fields: {type: "object", properties: fieldProperties, required: Object.keys(fieldProperties)},
   images: {type: "object", properties: imageProperties, required: Object.keys(imageProperties)}
 }, required: ["title", "angle", "brandColor", "fields", "images"]};
@@ -135,8 +135,11 @@ await output("approval", "pending");`;
 const GUIDANCE = {
   product: "A shot of the product alone, ideally on a plain or transparent background, so it reads as a cutout.",
   logo: "The brand's own logo file, such as the site header logo or its icon.",
-  decorative: "A real photo or screenshot that matches the beats that show it."
+  decorative: "A real photo or screenshot that matches the beats that show it.",
+  mark: "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card."
 };
+// Image inputs that show small, as icons, glyphs or tiles.
+const isMark = (label) => /\b(icon|glyph|tile)\b/i.test(label);
 
 const seconds = (ms) => Number((ms / 1000).toFixed(2));
 
@@ -152,10 +155,38 @@ export const fillBrief = (manifest, concept) => {
     fields: concept.copy_slots.map((slot, index) => ({id: copy[index].id, label: copy[index].label, purpose: slot.purpose, maxWords: slot.suggested_max_words})),
     images: images.map(input => {
       const role = manifest.creativeStrategy.shots.flatMap(shot => shot.elements).find(element => element.inputId === input.id).role;
-      return {id: input.id, label: input.label, role, guidance: `${GUIDANCE[role]} Shown in: ${shownIn(input.id).join(" | ")}`};
+      return {id: input.id, label: input.label, role, guidance: `${GUIDANCE[isMark(input.label) ? "mark" : role]} Shown in: ${shownIn(input.id).join(" | ")}`};
     })
   };
 };
+
+/**
+ * The suggestion as a task for the chat app's agent, which does it with its
+ * own model and tools. The option shape is the one `APPLY_CODE` reads.
+ */
+export const suggestAgentTask = (brief) => [
+  `Read the website in \`sourceUrl\` and write three different ways to fill the ad ${JSON.stringify(brief.title)}.`,
+  `Objective: ${brief.objective}`,
+  `Visual rule: ${brief.direction}`,
+  "Beats, in order:",
+  ...brief.beats.map(beat => `- ${beat}`),
+  "",
+  "Use only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.",
+  "For images, choose real, large images of this brand and product: first from the page's own images (header logo, large <img> files, feature-page screenshots), then with an image search. A social preview card (og:image, a title on a gradient) is a last resort. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.",
+  "If image search throws because no search backend is configured, tell the user in one sentence that a SerpAPI, DataForSEO or Brave key in Settings finds better images. Then take nodetool.web.screenshot of the product's feature pages instead.",
+  "Save each image you consider as an asset and look at it with view_image before you offer it. Name in the option's description any image that is only a social preview card.",
+  "",
+  "Write `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:",
+  `- value: "1", "2" or "3"`,
+  "- title: a name for the direction in 2 to 4 words",
+  "- description: one sentence on what it emphasizes, then the first two copy lines in quotes",
+  "- image: the URL of its first image, for the option card",
+  "- brandColor: the brand's accent color as #RRGGBB (buttons, links, highlights), not the page background or a theme-color that is near black or white",
+  `- fields: ${brief.fields.map(field => `${field.id} (${field.label}: ${field.purpose}, at most ${field.maxWords} words)`).join("; ")}`,
+  `- images: ${brief.images.map(image => `${image.id} (${image.label}: ${image.guidance})`).join("; ")}`,
+  "",
+  "Then show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps."
+].join("\n");
 
 /**
  * Adds the "Fill from a website" panel: the URL, the suggest button with its
@@ -208,7 +239,7 @@ export const addAiAssist = (bundle, manifest, concept) => {
     packages: [], secrets: [], timeoutSeconds: 120, tests: []}});
   const toVariables = (names, prefix = "") => Object.fromEntries(names.map(name => [prefix + name, {to: "variable", variableId: name}]));
   app.operations.push(
-    {id: "suggest", name: "Suggest options from a website", workflowId: "suggest", policy: "replace",
+    {id: "suggest", name: "Suggest options from a website", workflowId: "suggest", policy: "replace", agentTask: suggestAgentTask(brief),
       inputs: {"in-sourceUrl": {from: "variable", variableId: "sourceUrl"}, "in-model": {from: "variable", variableId: "finishModel"}},
       outputs: toVariables(suggestOutputs, "out-")},
     {id: "apply", name: "Fill the ad from the picked option", workflowId: "", policy: "replace", target: {kind: "script", scriptId: "apply_ad_option-v1", scriptVersion: 1},
@@ -218,7 +249,7 @@ export const addAiAssist = (bundle, manifest, concept) => {
 
   const panel = {type: "Container", props: {id: "ai-fill", variant: "plain", visibleWhen: {binding: "var:fillPath", op: "eq", value: "web"}, content: [
     {type: "Columns", props: {id: "source-row", layout: "main-aside", gap: 16,
-      left: [{type: "TextInput", props: {id: "sourceUrl", binding: "var:sourceUrl", label: "Website", placeholder: "https://your-product.com", hint: "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.", events: []}}],
+      left: [{type: "TextInput", props: {id: "sourceUrl", binding: "var:sourceUrl", label: "Website", placeholder: "https://your-product.com", hint: "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.", events: []}}],
       right: [
         {type: "Text", props: {id: "source-example-label", text: "No site at hand? Try this one.", tone: "hint"}},
         {type: "Button", props: {id: "source-example", label: exampleUrl.replace(/^https:\/\/(www\.)?/, "").replace(/\/$/, ""), variant: "outlined", fullWidth: false, events: [{trigger: "click", kind: "setVariable", key: "var:sourceUrl", value: exampleUrl}]}}

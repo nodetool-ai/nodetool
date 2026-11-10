@@ -5,7 +5,18 @@ permalink: /game-engine/graphics-3d
 description: "Render prepared models and primitives with lights, shadows, skies, fog, and post-processing."
 ---
 
-3D games render through WebGL2. World coordinates use meters, +Y up, and −Z forward. Entity rotations are quaternions in `[x, y, z, w]` order.
+3D games render through WebGL2. World coordinates use meters, +Y up, and −Z forward. Entity rotations are quaternions in `[x, y, z, w]` order. A scene's `environment` holds the fog, sky, shadows, and post-processing, for example height fog:
+
+```json
+"environment": {
+  "background": "#202838",
+  "ambient": { "color": "#ffffff", "intensity": 0.5 },
+  "fog": { "kind": "height", "color": "#c4d9ed", "density": 0.02,
+           "baseHeight": 0, "heightFalloff": 0.2, "maxOpacity": 1 }
+}
+```
+
+Linear fog is `{ "color", "near", "far" }`. The two fog forms are alternatives.
 
 ![BLACKSITE first-person night view with shadowed lighting, rain particles, floor decals, and HUD](/assets/game-engine/blacksite.png)
 
@@ -31,7 +42,7 @@ Use the Sunny day, Night, Overcast, or Neon interior preset as a starting point.
 
 Linear fog fades between `near` and `far`. Choose **Height** in the scene inspector's **Fog mode** control for exponential height fog. Fog modes are alternatives. Height fog does not add a second layer over linear fog.
 
-Height fog uses `{kind: "height", color, density, baseHeight, heightFalloff, maxOpacity}`. Density controls attenuation through the fog. Base height sets its reference altitude, and height falloff reduces density above that altitude. Max opacity caps the result. Perspective and orthographic cameras are supported. Fog changes presentation without changing simulation state or replay.
+Density controls attenuation through the fog. Base height sets its reference altitude, and height falloff reduces density above that altitude. Max opacity caps the result. Perspective and orthographic cameras are supported. Fog changes presentation without changing simulation state or replay.
 
 Height fog and cascaded shadows can be enabled, changed, or removed independently. Newly created lit mesh particles use the active cascaded lighting on their first rendered frame.
 

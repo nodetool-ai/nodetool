@@ -6,7 +6,8 @@ description: "Runbook for adding new Reve image API endpoints and model versions
 
 **Navigation**: [docs/developer/index.md](../index.md) → **Reve provider guide**
 
-> **Audience**: coding agents and contributors adding new Reve image nodes or model version strings to the `@nodetool-ai/reve-nodes` package.
+> **Runs:** cloud. **Needs:** `REVE_API_KEY`. Calls throw `REVE_API_KEY is not configured` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -15,8 +16,6 @@ description: "Runbook for adding new Reve image API endpoints and model versions
 3. Call `reveGenerate` from `reve-base.ts` with the processing context and one of the three API endpoints: `"create"`, `"edit"`, or `"remix"`.
 4. `npm run build:packages` — compiles from `src/` to `dist/` (the package loads from `dist/`).
 5. `npm run typecheck && npm run lint` — must pass before committing.
-
----
 
 ## Where things live
 
@@ -32,8 +31,6 @@ description: "Runbook for adding new Reve image API endpoints and model versions
 | `PROVIDER_IDS.REVE` | `packages/protocol/src/api-types.ts` |
 | Unit tests | `packages/reve-nodes/tests/nodes.test.ts`, `reve-base.test.ts`, `wire-parity.test.ts` |
 | Registration test | `packages/reve-nodes/tests/registration.test.ts` |
-
----
 
 ## How Reve models and nodes are defined
 
@@ -57,8 +54,6 @@ There is no manifest or code-generation script. Each node is a hand-written `Bas
 
 The runtime provider (`reve-provider.ts`) is the one Reve transport. Its `callEndpoint` accepts the model ids `reve-create`, `reve-edit` and `reve-remix`, one per endpoint. It also implements `textToImage` and `imageToImage` for the generic image-generation picker in the UI. A new Reve endpoint needs a model id in `REVE_ENDPOINT_MODELS` in the provider and a node in `reve-nodes`. Nodes never read the API key.
 
----
-
 ## Add a new model version
 
 To add a new dated model version pin (e.g. `reve-create@20260101`), open the relevant node file and extend the `version` prop's `values` array:
@@ -76,8 +71,6 @@ declare version: any;
 ```
 
 That is the entire change. Rebuild and verify (see [Verify](#verify) below).
-
----
 
 ## Add a new node
 
@@ -204,8 +197,6 @@ No other files need to change. The node automatically appears in the registry be
 
 **Step 3.** Add tests in `packages/reve-nodes/tests/nodes.test.ts`. Follow the existing pattern: give a `ProcessingContext` a `ScriptedProvider` through `setProviderResolver`, construct the node with props, call `process(context)`, and assert the recorded endpoint call's `model` and `input`.
 
----
-
 ## Verify
 
 Run these commands in order after any change:
@@ -239,11 +230,4 @@ npm run dev:nodetool -- harness gate --base origin/main
 
 A `REVE_API_KEY is not configured` error from step 5 means the node registered correctly — it loaded from `dist/` and resolved the type. An `unknown node type` error means the build or export wiring is broken.
 
----
-
-## Contributing
-
-Source: <https://github.com/nodetool-ai/nodetool>  
-Discord: <https://discord.gg/WmQTWZRcYE>
-
-Before opening a PR, run the Verify steps. Add a test for every new node in `nodes.test.ts`, which scripts the provider rather than `fetch`.
+Add a test for every new node in `nodes.test.ts`, which scripts the provider rather than `fetch`.

@@ -1515,9 +1515,11 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   workspace-scoped `read_file` beside the client's own would put two tools of
   one name and two different roots in front of one model. What survives has no
   host equivalent — discovery, the server-side reach that runs behind
-  NodeTool's SSRF guard and secrets (`browser`, `http_request`,
-  `download_file`, `list_directory`), and `run_subtask`, whose child gets the
-  NodeTool belt rather than the client's. It is a `belt.filter`, so a session
+  NodeTool's SSRF guard and secrets (`download_file`, `list_directory`), and
+  `run_subtask`, whose child gets the NodeTool belt rather than the client's.
+  `browser`, `http_request` and `todo_write` are also left off the mount
+  (`MCP_SANDBOX_ONLY_TOOL_NAMES`) and stay reachable inside an action. It is a
+  `belt.filter`, so a session
   missing an injected dependency (no node registry, say) advertises no node
   tools instead of a tool that cannot run. Before this the mount registered
   only `execute_code` and `view_image`: everything was still reachable as

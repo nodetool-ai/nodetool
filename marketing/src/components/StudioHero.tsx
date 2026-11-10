@@ -43,24 +43,24 @@ export default function StudioHero({
             id={headingId}
             className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-slate-50 sm:text-6xl lg:text-7xl"
           >
-            Make media with an AI agent.{" "}
-            <span className="text-sky-200">Keep every project.</span>
+            Create with an AI agent.{" "}
+            <span className="text-sky-200">Save your projects locally.</span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300 sm:text-xl">
             Studio is the free NodeTool desktop app. An AI agent creates images,
-            video, audio, and text inside NodeTool&apos;s editors. Then you
-            change the storyboard, script, drawing, or video edit yourself, and
-            the project stays on your computer for next time.
+            video, audio, and text inside NodeTool&apos;s editors. Edit any shot,
+            rewrite a line, or adjust the workflow.
+            Your projects are saved on your computer.
           </p>
 
           <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
             {primaryAction}
             <a
-              href="#editable-project"
+              href="#surfaces"
               className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3 text-sm font-semibold text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800/60 focus-ring sm:w-auto"
             >
-              See an editable project
+              See the editors
             </a>
           </div>
 

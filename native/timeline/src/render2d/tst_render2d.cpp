@@ -156,6 +156,31 @@ class TestRender2d : public QObject {
         QVERIFY2(std::abs(actual - expected) < 0.1,
                  qPrintable(QString("bundled weight %1 advance %2 expected %3").arg(weight).arg(actual).arg(expected)));
     }
+    void textAdvanceIgnoresDpi() {
+        // QTest pins Qt's default DPI to 96. The app runs at the screen's
+        // logical DPI (72 on macOS), where advances once shrank to 0.75.
+        QCoreApplication::setAttribute(Qt::AA_Use96Dpi, false);
+        const auto restore = qScopeGuard([] { QCoreApplication::setAttribute(Qt::AA_Use96Dpi, true); });
+        nt::scene::TextStyle style;
+        style.fontFamily = "Inter";
+        style.fontWeight = 600;
+        style.fontSizePx = 78;
+        const auto directory = nt::render2d::resolveFontDirectory(QGuiApplication::applicationDirPath());
+        const QRawFont face(directory + u"/Inter-SemiBold.ttf", style.fontSizePx, QFont::PreferNoHinting);
+        QVERIFY(face.isValid());
+        const auto text = QStringLiteral("4218306");
+        double expected = 0;
+        for (const auto& advance :
+             face.advancesForGlyphIndexes(face.glyphIndexesForString(text), QRawFont::UseDesignMetrics)) {
+            expected += advance.x();
+        }
+        const auto actual = nt::render2d::textMeasurer()(text, style);
+        QVERIFY2(std::abs(actual - expected) < 0.1,
+                 qPrintable(QString("advance %1 expected %2 at DPI %3")
+                                .arg(actual)
+                                .arg(expected)
+                                .arg(QGuiApplication::primaryScreen()->logicalDotsPerInchY())));
+    }
     void cssColors_data() {
         QTest::addColumn<QString>("css");
         QTest::addColumn<QColor>("expected");

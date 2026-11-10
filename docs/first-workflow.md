@@ -5,11 +5,11 @@ permalink: /first-workflow
 description: "Build a four-node workflow from an empty canvas: a text input, an Agent that writes an image prompt, Text To Image, and a Preview."
 ---
 
-[Quick Start](getting-started.md) runs a finished template. This page builds a
-workflow yourself, one node at a time. You start with an empty canvas and end
-with a picture generated from one short idea.
+Build a four-node workflow on an empty canvas that turns one short idea into an image: String Input → Agent → Text To Image → Preview.
 
-The workflow has four nodes:
+> **Runs:** cloud. **Needs:** a language provider for the Agent and an image provider for Text To Image. The image is billed at the provider's rate.
+{: .callout-note}
+
 
 | Node | Does |
 |---|---|
@@ -18,33 +18,19 @@ The workflow has four nodes:
 | **Text To Image** | Generates the picture |
 | **Preview** | Shows the picture on the canvas |
 
-Data flows left to right: String Input → Agent → Text To Image → Preview.
-
 ## Before you begin
 
-You need a language model for the Agent and an image model for Text To Image.
-Both come from providers you connect in **Settings → Models & Providers**, as
-described in [Quick Start](getting-started.md#1-install-and-connect). Text To
-Image defaults to **FLUX.1 Schnell** on FAL, so a FAL key is the fastest way to
-get an image model. The [capability matrix](providers.md#capability-matrix)
-lists other providers.
-
-> **Note:** The image costs money at the provider's rate. The Agent call is text
-> and costs cents.
-{: .callout-note}
+Connect providers as in [Quick Start](getting-started.md#1-install-and-connect). Text To Image defaults to **FLUX.1 Schnell** on FAL, so a FAL key covers the image model. Other providers are in the [capability matrix](providers.md#capability-matrix).
 
 ## 1. Create an empty workflow
 
-Use **+ New → New workflow**. A workflow tab opens with an empty canvas. You
-can also press `Ctrl/⌘ + K` and pick **New Workflow** from the Command Menu.
+Use **+ New → New workflow**, or press `Ctrl/⌘ + K` and pick **New Workflow**.
 
 ![An empty workflow canvas](assets/screenshots/first-workflow-empty.png)
 
 ## 2. Add the String Input node
 
-1. Press `Space` on the canvas, or double-click empty space. The node menu opens.
-2. Type `string input` in **Search for nodes...**.
-3. Click **String Input**. The node appears on the canvas.
+Press `Space` on the canvas (or double-click empty space), type `string input` in **Search for nodes...**, and click **String Input**.
 
 ![The node menu searching for String Input](assets/screenshots/first-workflow-node-menu.png)
 
@@ -52,144 +38,93 @@ Type your idea into the node's **Value** field, for example:
 
 > a lighthouse on a cliff at dusk
 
-Then give the node a name. Select it and set **Name** to `idea` in the
-Inspector on the right. An input node needs a name before the workflow can run,
-and the node shows **Name required** until it has one. The name becomes the
-node's title and labels this value when the workflow runs as an app or over the
-API.
+Select the node and set **Name** to `idea` in the Inspector. An input node shows **Name required** until it has a name, and the workflow cannot run without one. The name becomes the node's title and labels the value when the workflow runs as an app or over the API.
 
 ## 3. Add the Agent node
 
-Press `Space`, search for `agent`, and click **Agent**. Drag it to the right of
-String Input.
-
-Select the node. The **Inspector** opens on the right with three tabs:
-**Params**, **I/O**, and **Help**.
+Press `Space`, search for `agent`, and click **Agent**. Place it right of String Input. Select it to open the **Inspector** (tabs **Params**, **I/O**, **Help**).
 
 ![The Agent selected, with its Params tab open in the Inspector](assets/screenshots/first-workflow-inspector.png)
 
 On the **Params** tab:
 
 1. Press **Select Model** and choose a language model.
-2. Replace **System** (it starts as "You are a friendly assistant") with
-   instructions for this job, for example: `Rewrite the user's idea as one
-   detailed image prompt. Describe subject, light, and style. Reply with the
-   prompt only.`
+2. Replace **System** (default "You are a friendly assistant") with: `Rewrite the user's idea as one detailed image prompt. Describe subject, light, and style. Reply with the prompt only.`
 
-> **Tip:** Leave **Prompt** alone. You fill it by connecting a node in the next
-> step.
-{: .callout-tip}
+Leave **Prompt** empty. The next step fills it by connection.
 
 ## 4. Connect String Input to Agent
 
 1. Drag from the output circle on the right of **String Input**.
 2. Release on the **Prompt** input circle on the left of **Agent**.
 
-A line appears. Connections only accept matching types, so text goes to text.
-Each input takes one connection. The **I/O** tab in the Inspector lists the
-node's inputs and outputs.
+A line appears. Connections accept matching types only, and each input takes one connection. The **I/O** tab lists a node's inputs and outputs.
 
 ## 5. Add the Text To Image node
 
-Press `Space`, search for `text to image`, and click **Text To Image**. Place it
-to the right of Agent.
-
-In the Inspector's **Params** tab you can set:
+Press `Space`, search for `text to image`, and click **Text To Image**. Place it right of Agent. Its **Params**:
 
 | Property | Default | Use |
 |---|---|---|
-| **Model** | FLUX.1 Schnell (FAL) | The image model |
+| **Model** | FLUX.1 Schnell (FAL) | |
 | **Prompt** | A cat holding a sign that says hello world | Replaced by the connection below |
-| **Negative Prompt** | empty | What to avoid in the image |
-| **Aspect Ratio** | 1:1 | Shape of the image |
+| **Negative Prompt** | empty | What to avoid |
+| **Aspect Ratio** | 1:1 | |
 | **Resolution** | 1K | Short edge of the image |
 
-Connect **Agent**'s **text** output to **Text To Image**'s **Prompt** input. The
-Agent's written prompt now replaces the default prompt.
+Connect **Agent**'s **text** output to **Text To Image**'s **Prompt** input.
 
 ## 6. Add a Preview node
 
-You can add Preview from the node menu, but a shortcut is faster:
-
-1. Drag from Text To Image's **output** circle and release on empty space.
-2. In the connection menu that appears, pick **Preview**.
+Drag from Text To Image's **output** circle, release on empty space, and pick **Preview** in the connection menu.
 
 ![The connection menu after a drag from Text To Image's output](assets/screenshots/first-workflow-connection-menu.png)
 
-NodeTool adds a **Preview** node already connected to the image. Preview has one
-input, **Value**, and shows whatever reaches it. Text To Image also shows its
-own result inside its node, and Preview gives you a separate, larger place to
-look at it.
-
-You can send the Agent's **text** output to a second Preview node the same way.
-Then you see the written prompt next to the picture.
+NodeTool adds a connected **Preview** node. Preview has one input, **Value**, and shows whatever reaches it. Connect the Agent's **text** output to a second Preview to see the written prompt next to the picture.
 
 ## 7. Save and run
 
 Press `Ctrl/⌘ + S` to save. Then click **Run entire workflow** in the bottom
 toolbar, or press `Ctrl/⌘ + Enter`.
 
-If a model is not selected, NodeTool stops the run and marks the unset model
-field in the Inspector. Pick a model and run again.
+If a model is not selected, NodeTool stops the run and marks the unset model field in the Inspector.
 
-While it runs:
-
-- A moving colored ring marks the node that is working.
-- The Agent writes its text as it arrives.
-- The run control reads **Starting**, **Queued**, or **Running**.
-- **Completed in** badges show how long each node took.
+While it runs, a moving colored ring marks the working node, the Agent streams its text, the run control reads **Starting**, **Queued**, or **Running**, and **Completed in** badges show per-node time.
 
 ![The Agent writing its prompt while the run control reads Running](assets/screenshots/first-workflow-running.png)
 
-When the run finishes, the picture appears in **Text To Image** and in
-**Preview**. Generated images are saved as assets automatically.
+The picture appears in **Text To Image** and **Preview**, and is saved as an asset.
 
 ![The finished run with the picture in Text To Image and Preview](assets/screenshots/first-workflow-result.png)
 
-If a node fails, it gets a red **Failed in** badge and shows the error inside
-the node. **View logs** opens that run's logs in the bottom panel, where
-**Queue** shows the jobs. See [Workflow Debugging](workflow-debugging.md) and
+A failed node gets a red **Failed in** badge and shows the error inside the node. **View logs** opens the run's logs in the bottom panel. See [Workflow Debugging](workflow-debugging.md) and
 [Troubleshooting](troubleshooting.md).
 
 ![Text To Image failed because no FAL key is set](assets/screenshots/first-workflow-error.png)
 
 ## 8. Change something and run again
 
-Edit the **Value** in String Input and press **Run entire workflow** again.
-Only the idea changed, so the Agent writes a new prompt and the image updates.
+Edit the **Value** in String Input and run again. The Agent writes a new prompt and the image updates.
 
-Other changes to try:
+Other changes:
 
-- Pick a different **Aspect Ratio** on Text To Image.
-- Fill **Negative Prompt** to exclude things from the image.
-- Change the Agent's **System** text to ask for a specific art style.
-- Select a node and press `B` to disable it. A disabled node and its
-  connections are left out of the run.
+- Pick a different **Aspect Ratio**, or fill **Negative Prompt**.
+- Change the Agent's **System** text to ask for an art style.
+- Select a node and press `B` to disable it. A disabled node and its connections are left out of the run.
 
-Under the Inspector, **Cost estimate** prices the workflow for one run.
+**Cost estimate** under the Inspector prices one run.
 
 ---
 
-## What you just did
+## Related
 
-- **Nodes.** You placed four single-purpose boxes and set their properties in
-  the Inspector. See [Key Concepts](key-concepts.md#nodes).
-- **Connections.** You wired outputs to inputs, and NodeTool accepted only
-  matching types. See [Data Types and Connections]({{ '/data-types' | relative_url }}).
-- **Agent node.** You used an Agent to rewrite a short idea into a detailed
-  prompt. See [Key Concepts](key-concepts.md#agent-nodes).
-- **Run and preview.** You ran the graph, watched each node report progress, and
-  inspected the result. See [Workflow Editor](workflow-editor.md).
-- **Assets.** The generated image was saved to your library automatically. See
-  [Asset Management](asset-management.md).
+[Nodes](key-concepts.md#nodes), [Data Types and Connections]({{ '/data-types' | relative_url }}), [Agent nodes](key-concepts.md#agent-nodes), [Workflow Editor](workflow-editor.md), [Asset Management](asset-management.md).
 
 ---
 
 ## Troubleshooting
 
-A node failed or the run will not start? See
-[Troubleshooting]({{ '/troubleshooting' | relative_url }}) or ask on
-[Discord](https://discord.gg/WmQTWZRcYE).
+See [Troubleshooting]({{ '/troubleshooting' | relative_url }}) or ask on [Discord](https://discord.gg/WmQTWZRcYE).
 
 ---
 

@@ -1,136 +1,43 @@
 "use client";
-import { useGridParallax, usePrefersReducedMotion } from "../lib/useGridParallax";
-import React, { useEffect, useState, useCallback } from "react";
+import React from "react";
+import { useGridParallax } from "../lib/useGridParallax";
 // Static imports so every section is server-rendered into the HTML (P1).
 // These components are SSR-safe (no window/document at render, no ReactFlow);
 // the hidden duplicate-H1 SEO block has been retired in favour of this.
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
-import OwnershipSection from "../components/OwnershipSection";
-import SubscriptionSection from "../components/SubscriptionSection";
-import ModelSupportSection from "../components/ModelSupportSection";
-import SurfaceShowcase from "../components/SurfaceShowcase";
-import TimelineShowcase from "../components/TimelineShowcase";
 import ProjectSection from "../components/ProjectSection";
-import CommunitySection from "../components/CommunitySection";
-import ContactSection from "../components/ContactSection";
-import ComparisonSection from "../components/ComparisonSection";
-import EditionsCompareSection from "../components/EditionsCompareSection";
-import RecipeShowcase from "../components/RecipeShowcase";
-import AdLibraryOverview from "../components/AdLibraryOverview";
-import StoryboardExamplesSection from "../components/StoryboardExamplesSection";
-import UnderneathSection from "../components/UnderneathSection";
-import WaysInSection from "../components/WaysInSection";
+import SurfaceShowcase, {
+  STORYBOARD_COST_COPY,
+} from "../components/SurfaceShowcase";
+import SpecStrip from "../components/SpecStrip";
 import FaqBlock from "../components/FaqBlock";
-import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
 import { track } from "../lib/analytics";
-import { useGithubStars } from "../lib/useGithubStars";
-
-import { Feature, features } from "./features";
 
 
-// Utility: common classes
-// Add a semantic `card` class so we can style shared card media globally
-const cardBase =
-  "card relative rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5 backdrop-blur-md shadow-soft";
-const cardHoverUnified = "lift hover:border-blue-500/50 hover:shadow-strong";
-const cardInnerGlow =
-  "pointer-events-none absolute inset-0 rounded-2xl opacity-0 motion-safe:transition-opacity motion-safe:duration-300 group-hover:opacity-100";
-const cardInnerGlowStyle = {
-  background:
-    "radial-gradient(120% 120% at 50% 0%, rgba(37,99,235,0.08), transparent 55%)",
-};
 const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 const sectionNarrow = "mx-auto max-w-2xl px-6";
-const subtleShadow = "shadow-soft";
-const strongShadow = "shadow-strong";
-const focusRing = "focus-ring";
-const focusRingStrong = "focus-ring";
-const motionSafe = "motion-safe:transition-all motion-safe:duration-300";
-const ctaBase =
-  "inline-flex items-center rounded-lg px-6 py-3 text-white bg-blue-600 hover:bg-blue-500 lift shadow-lg shadow-blue-900/40";
 
-// Accent glow variants to add visual variety across cards/sections
-const accentGlows = [
-  {
-    background:
-      "radial-gradient(120% 120% at 50% 0%, rgba(37,99,235,0.10), transparent 55%)",
-  }, // blue
-  {
-    background:
-      "radial-gradient(120% 120% at 50% 0%, rgba(168,85,247,0.10), transparent 55%)",
-  }, // purple
-  {
-    background:
-      "radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.10), transparent 55%)",
-  }, // emerald
-  {
-    background:
-      "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.10), transparent 55%)",
-  }, // rose
-  {
-    background:
-      "radial-gradient(120% 120% at 50% 0%, rgba(245,158,11,0.10), transparent 55%)",
-  }, // amber
-];
+/*
+ * Five blocks, in this order (marketing/site-editorial.spec.md § Homepage):
+ * the overview, the mechanism, the cost behaviour, plans and costs, and the
+ * way in.
+ * Detail lives on the page that owns it: the ad library on /marketing, models
+ * on /models, plans and keys on /pricing, the node canvas on
+ * /node-based-workflows, editions on /studio and /cloud. Add a section here
+ * only by removing one.
+ */
+/** Stable across renders, so SurfaceShowcase does not rebuild its panels. */
+const HOME_SURFACE_COPY = { storyboard: STORYBOARD_COST_COPY };
 
-// Color rotations for Providers section (BYOP)
-const providerCardTitleColors = [
-  "text-blue-200",
-  "text-purple-200",
-  "text-emerald-200",
-];
-
-const providerCardDotColors = [
-  "bg-blue-400",
-  "bg-purple-400",
-  "bg-emerald-400",
-];
-
-// Color rotations for provider badges
-const providerBadgeBgColors = [
-  "bg-blue-900/30",
-  "bg-purple-900/30",
-  "bg-emerald-900/30",
-  "bg-rose-900/30",
-  "bg-amber-900/30",
-];
-const providerBadgeBorderColors = [
-  "border-blue-700/40",
-  "border-purple-700/40",
-  "border-emerald-700/40",
-  "border-rose-700/40",
-  "border-amber-700/40",
-];
-
-// Prefer reduced motion hook
 export default function Home() {
-  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
-  const stars = useGithubStars();
-  const reducedMotion = usePrefersReducedMotion();
   const parallaxRef = useGridParallax();
 
-  // Close modal via ESC and manage focus
-  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Escape") setSelectedFeature(null);
-  }, []);
-
-  // Focus management for modal
-  useEffect(() => {
-    if (selectedFeature) {
-      const el = document.getElementById("feature-close");
-      el?.focus();
-    }
-  }, [selectedFeature]);
-
   return (
-    <main
-      className="relative min-h-screen overflow-clip-safe text-white"
-      onKeyDown={onKeyDown}
-    >
+    <main className="relative min-h-screen overflow-clip-safe text-white">
       {/* Background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         {/* Soft radial glows (BackgroundFX) */}
@@ -203,105 +110,31 @@ export default function Home() {
         id="content"
         className="relative isolate overflow-clip-safe pt-24 sm:pt-36 md:pt-24"
       >
-        {/* Hero */}
+        {/* 1. The overview: the product, six linked selling points, and the reel */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
-          <div className={`${sectionContainer}`}>
-            <div>
-              <NodeToolHero />
-            </div>
+          <div className={sectionContainer}>
+            <NodeToolHero />
           </div>
         </section>
 
-        {/* The plan the reader already pays for, right under the hero: the
-            cheapest way in (NARRATIVE.md § Cost, once) */}
-        <SubscriptionSection className="mt-16 sm:mt-20" />
-
-        {/* What the reader controls once the agent has built something: the
-            seven editors, each over a loop of the real thing (#surface-<id>) */}
-        <SurfaceShowcase />
-
-        <TimelineShowcase />
-
-        {/* Social ad concepts, each a rendered NodeTool timeline */}
-        <AdLibraryOverview compact />
-
-        {/* The example storyboards that ship with the app, shot by shot */}
-        <StoryboardExamplesSection />
-
-        {/* The agent builds a project from a brief: shown once the reader has
-            seen the boards and cuts it produces (NARRATIVE.md § Order of the
-            page) */}
+        {/* 2. The mechanism: one note sends one shot back, and the cut keeps
+            every other shot */}
         <ProjectSection />
 
-        {/* Model breadth on your own keys, under the agent story rather than in
-            front of it */}
-        <ModelSupportSection reducedMotion={reducedMotion} />
+        {/* 3. The cost behaviour: settle shots on stills before paying for
+            video. Prices come from the calculator catalog (stageCosts.ts). */}
+        <SurfaceShowcase
+          surfaceIds={["storyboard"]}
+          heading="Approve the still before you pay for the clip."
+          intro="The storyboard holds one still per shot. Only the shots you approve become video."
+          copy={HOME_SURFACE_COPY}
+        />
 
-        {/* Proof once the story has landed, after the apps: guided recipes with editable
-            steps and example media */}
-        <RecipeShowcase compact />
+        {/* 4. The shared facts, one line each, linked to the page that owns
+            each one */}
+        <SpecStrip items={["plan", "cost"]} heading="Plans and costs" className="mt-8 sm:mt-12" />
 
-        {/* Ownership: keys, project file, source. Local inference stays on
-            /studio; the calculator lives on /pricing. */}
-        <OwnershipSection reducedMotion={reducedMotion} />
-
-        {/* The node canvas as the power-user layer, introduced last */}
-        <UnderneathSection />
-
-        {/* Open studio against hosted platform, as categories with a real price
-            worked through — never a brand name and a column of crosses
-            (NARRATIVE.md § The argument we do not make) */}
-        <ComparisonSection reducedMotion={reducedMotion} />
-
-        {/* Which edition to run, before the FAQ asks it */}
-        <EditionsCompareSection reducedMotion={reducedMotion} />
-
-        {/* Route by intent once the core story has landed */}
-        <WaysInSection />
-
-        {/* Feature Modal (accessible) */}
-        {selectedFeature && (
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 backdrop-blur-md"
-            role="dialog"
-            aria-modal="true"
-            aria-label={selectedFeature.name}
-            onClick={() => setSelectedFeature(null)}
-          >
-            <div
-              className="relative mx-auto max-w-4xl rounded-lg border border-blue-800/50 bg-slate-900 p-4 shadow-2xl shadow-blue-900/30"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                id="feature-close"
-                className={`absolute right-4 top-4 rounded text-slate-300 transition-colors hover:text-white ${focusRingStrong}`}
-                onClick={() => setSelectedFeature(null)}
-                aria-label="Close"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-
-              {selectedFeature.gif ? (
-                // If animated GIF, keep img to preserve animation frames
-                // Otherwise you can switch to next/image for static or video for mp4/webm
-                <img
-                  src={selectedFeature.gif}
-                  alt={selectedFeature.name}
-                  width={selectedFeature.width}
-                  height={selectedFeature.height}
-                  className="h-auto w-full rounded-lg"
-                />
-              ) : (
-                <div className="p-10 text-center text-slate-300">
-                  No preview available
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Visible answers to the questions people arrive with — and the page's
-            FAQPage schema, emitted from these exact rows. */}
+        {/* 5. The way in. The FAQ rows also emit the page's FAQPage schema. */}
         <FaqBlock
           surface="landing"
           className="mt-16 sm:mt-24"
@@ -309,16 +142,12 @@ export default function Home() {
           emitSchema
         />
 
-        {/* Community / Discord */}
-        <CommunitySection stars={stars} />
+        <p className="mx-auto mt-6 max-w-3xl px-6">
+          <a href="/faq" className="rounded text-sm font-medium text-blue-300 hover:text-blue-200 focus-ring">
+            See all FAQs →
+          </a>
+        </p>
 
-        {/* Divider */}
-        <div className="mx-auto my-16 h-px max-w-6xl bg-gradient-to-r from-transparent via-blue-800/20 to-transparent" />
-
-        {/* Contact */}
-        <ContactSection />
-
-        {/* Closing CTA — end the page on the product, not the mailbox */}
         <section aria-labelledby="closing-cta-title" className="relative py-16 sm:py-24">
           <div className={`scroll-fade ${sectionNarrow} text-center`}>
             <h2
@@ -328,9 +157,10 @@ export default function Home() {
               Start making with NodeTool.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Download Studio, the free and open-source desktop app for macOS,
-              Windows, and Linux. Or try Cloud in your browser with nothing to
-              install. Cloud is in alpha.
+              Download Studio, the free desktop app for macOS, Windows, and
+              Linux. Connect a supported provider account or run supported models
+              locally. Provider charges may apply. Or try Cloud in your browser.
+              Cloud is in alpha.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
@@ -346,16 +176,37 @@ export default function Home() {
               >
                 Try Cloud in your browser (alpha)
               </a>
+            </div>
+            <p className="mt-8 text-sm leading-relaxed text-slate-400">
+              NodeTool is open source.{" "}
               <a
                 href="https://github.com/nodetool-ai/nodetool"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => track("Star GitHub")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
+                className="text-slate-200 underline decoration-slate-600 underline-offset-4 hover:text-white focus-ring"
               >
-                View on GitHub
+                Read the code on GitHub
               </a>
-            </div>
+              ,{" "}
+              <a
+                href="https://discord.gg/WmQTWZRcYE"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => track("Join Discord")}
+                className="text-slate-200 underline decoration-slate-600 underline-offset-4 hover:text-white focus-ring"
+              >
+                ask on Discord
+              </a>
+              , or write to{" "}
+              <a
+                href="mailto:hello@nodetool.ai"
+                className="text-slate-200 underline decoration-slate-600 underline-offset-4 hover:text-white focus-ring"
+              >
+                hello@nodetool.ai
+              </a>
+              .
+            </p>
           </div>
         </section>
       </div>

@@ -50,7 +50,8 @@ Expand these aliases only when given as a standalone instruction:
 
 All prose follows [Writing Style](docs/WRITING_STYLE.md). Fix violations you
 pass when editing Markdown. User-facing copy also follows [Brand & Verbal
-Guidelines](docs/BRAND.md).
+Guidelines](docs/BRAND.md). Published docs pages also follow the [Docs
+Editorial Spec](docs/docs-editorial.spec.md).
 
 ## Quick Navigation
 
@@ -82,6 +83,7 @@ Guidelines](docs/BRAND.md).
 - **[Product Analytics](docs/analytics.md)** — Opt-in anonymous analytics: the typed event schema, consent per client, the ingest route, retention
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
+- **[Docs Editorial Spec](docs/docs-editorial.spec.md)** — What a published docs page must show and cut, page archetypes, and the `check:docs-prose` lint
 - **[Brand & Verbal Guidelines](docs/BRAND.md)** — Positioning, voice, messaging pillars, and product lexicon for anything user-facing
 
 
@@ -129,6 +131,7 @@ document and nothing else in the directory reaches the product.
 | Write or repair web and workflow Playwright tests | [e2e-testing](.claude/skills/yts806379-everything-claude-code-e2e-testing/SKILL.md) |
 | Run blind first-time-user QA through the browser (typed only) | [agentic-qa](.claude/skills/agentic-qa/SKILL.md) |
 | Run a UX research study with blind agent participants and track its insights (typed only) | [ux-research](.claude/skills/ux-research/SKILL.md) |
+| Remove AI tells from prose | [humanizer](.claude/skills/humanizer/SKILL.md) |
 | Map source structure before reading selected code | [ast-grep-outline](.claude/skills/ast-grep-outline/SKILL.md) |
 | Write or modernize C++, such as `native/timeline/` | [modern-cpp](.claude/skills/modern-cpp/SKILL.md) |
 | Design module interfaces and test boundaries | [codebase-design](.claude/skills/codebase-design/SKILL.md) |

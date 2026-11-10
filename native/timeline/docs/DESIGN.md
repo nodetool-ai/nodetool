@@ -307,10 +307,13 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
   `web/src/components/timeline/render/clipDecoder.ts`). The native path has no
   second player, so it handles them in two steps:
   1. Prototype: the same four checks. A rejected source draws a placeholder and
-     the loader reports the reason per clip. The run does not fail.
-  2. Later: rotation and sample aspect fold into the layer's contain fit, alpha
-     uses a third plane, and HDR (PQ, HLG) gets a tone map. Each one lands with a
-     fixture and a golden still.
+     the loader reports the reason per clip. The run does not fail. An image
+     clip rejected only for alpha is the exception: `StillImageSource` decodes
+     it to one premultiplied RGBA texture, and the report names the decoder
+     `image`.
+  2. Later: rotation and sample aspect fold into the layer's contain fit, video
+     alpha uses a third plane, and HDR (PQ, HLG) gets a tone map. Each one lands
+     with a fixture and a golden still.
 - **D11.** Texture lifetime. There are two kinds of texture.
   1. An upload texture (software decode, synthetic source) is owned by the
      renderer. A layer keeps it across frames, keyed by `clipId:assetId` (as

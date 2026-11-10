@@ -49,6 +49,28 @@ const layer = {
 } as unknown as Layer;
 
 describe("DirectGenLayerPanel", () => {
+  it("allows an uploaded source image without a source layer", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <DirectGenLayerPanel
+          layer={layer}
+          binding={{
+            layerId: "edit",
+            kind: "image-to-image",
+            provider: "openai",
+            model: "test-image-model",
+            prompt: "Watercolour painting style",
+            sourceAssetId: "0123456789abcdef0123456789abcdef",
+            sourceLayerId: null,
+            status: "draft",
+            versions: []
+          }}
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: "Generate" })).toBeEnabled();
+  });
+
   // Round 6 F4: on a 900-pixel screen the layer's Generate button sat below
   // the inspector's fold, and the participant used the tool bar's Generate,
   // which opens a separate, empty text-to-image form.

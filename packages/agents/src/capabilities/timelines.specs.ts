@@ -646,8 +646,9 @@ export const PREVIEW_TIMELINE_FRAME_SCHEMA: JsonSchema = {
       type: "object",
       description:
         "An inline timeline document ({tracks, clips, markers}) to render " +
-        "instead of a saved sequence. Needs `width`, `height` and `fps` " +
-        "unless they are on the document."
+        "instead of a saved sequence. Its frame size and rate come from the " +
+        "document's own `width`, `height` and `fps`, else from `timeline_id` " +
+        "when both are given, else 1920×1080 at 30 fps."
     },
     times_ms: {
       type: "array",

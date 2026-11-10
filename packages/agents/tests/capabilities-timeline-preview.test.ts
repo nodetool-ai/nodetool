@@ -866,6 +866,17 @@ describe("preview_timeline_frame", () => {
     }
   });
 
+  it("keeps a vertical document's own frame instead of the 16:9 default", async () => {
+    const result = await call({
+      document: { ...document, width: 1080, height: 1920, fps: 30 },
+      times_ms: [1000],
+      width: 108
+    });
+    expect(result.error).toBeUndefined();
+    const frames = result.frames as Array<{ width: number; height: number }>;
+    expect(frames[0]).toMatchObject({ width: 108, height: 192 });
+  });
+
   it("previews an early frame when a later clip requests motion blur", async () => {
     const future = { ...shapeClip("future", "track-0", "#ffffff", { startMs: 4000, durationMs: 1000 }), motionBlur: { samplesPerFrame: 8 } };
     const result = await call({

@@ -4,16 +4,12 @@ title: "OpenAI: Add Models"
 description: "How to add new OpenAI models to NodeTool — chat models appear automatically; image models require a one-line code edit."
 ---
 
-NodeTool's OpenAI integration lives in one file:
-`packages/runtime/src/providers/openai-provider.ts`.
-The provider is registered under `PROVIDER_IDS.OPENAI = "openai"` in
-`packages/protocol/src/api-types.ts`.
+The OpenAI integration lives in `packages/runtime/src/providers/openai-provider.ts`, registered as `PROVIDER_IDS.OPENAI = "openai"` in `packages/protocol/src/api-types.ts`.
 
-> **Audience:** coding agents and contributors adding new OpenAI models.
+> **Runs:** cloud. **Needs:** `OPENAI_API_KEY`. Without it the constructor throws `OPENAI_API_KEY is required`.
+{: .callout-note}
 
----
-
-## TL;DR
+## What to do per model type
 
 | Model type | What to do |
 |---|---|
@@ -22,7 +18,6 @@ The provider is registered under `PROVIDER_IDS.OPENAI = "openai"` in
 | Video (e.g. `sora-3`) | Add one entry to `getAvailableVideoModels()` |
 | TTS / ASR / Embedding | Add one entry to the matching static getter |
 
----
 
 ## Where things live
 
@@ -35,7 +30,6 @@ The provider is registered under `PROVIDER_IDS.OPENAI = "openai"` in
 | Per-model tier mapping | `packages/runtime/src/providers/cost-calculator.ts` | `MODEL_TO_TIER` object |
 | Quality-based image cost | `packages/runtime/src/providers/cost-calculator.ts` | `gptImageQualityTier()`, `gptImage25TokenCost()`, `calculateImageCost()` |
 
----
 
 ## How OpenAI models are defined
 
@@ -77,9 +71,6 @@ When the request fails or returns nothing, the provider falls back to
 `gpt-5-mini`, `gpt-5-nano`. Add new releases there so they show up before a
 successful live fetch. A response body without a `data` array also triggers the fallback.
 
-A new gpt-5-family chat model released by OpenAI appears in NodeTool
-automatically the next time the model list is refreshed — no code change needed.
-
 **Tool support** is controlled by `hasToolSupport()`:
 
 ```typescript
@@ -115,7 +106,6 @@ static getter returns an empty list unless `servesOpenAICatalog()` is true, whic
 holds only for the `openai` provider id. Subclasses that serve media (Together,
 MiniMax, xAI, and others) override the getters with their own catalog.
 
----
 
 ## Add a new image model
 
@@ -194,7 +184,6 @@ New TTS or ASR models follow the same pattern as existing entries in
 `MODEL_TO_TIER`. Add `"openai:<model-id>": "<tierName>"` and,
 if needed, a new tier object in `PRICING_TIERS`.
 
----
 
 ## Add a new chat / LLM model
 
@@ -233,7 +222,6 @@ and turns read it back as `cached_tokens`. OpenAI-compatible subclasses send no
 key, because their endpoints may reject the field. The Responses loop also
 chains turns with `previous_response_id`.
 
----
 
 ## Verify
 
@@ -259,18 +247,4 @@ npm run lint
 npm run dev:nodetool -- harness gate --base origin/main
 ```
 
-All of these must pass before committing.
 
----
-
-## Contributing
-
-Open a PR at <https://github.com/nodetool-ai/nodetool>. Before pushing:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-```
-
-Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

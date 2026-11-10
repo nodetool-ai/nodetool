@@ -44,6 +44,7 @@ const ConnectedImagePreview = (props: PropertyProps) => {
     <div css={connectedPreviewStyles}>
       <ImageRefPreview
         value={upstreamValue}
+        preferThumbnail
         placeholder={<div css={awaitingStyles}>{t("image.awaitingUpstream")}</div>}
       />
     </div>

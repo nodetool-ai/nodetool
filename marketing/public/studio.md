@@ -9,16 +9,12 @@ product: NodeTool
 
 NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux.
 
-## A brief becomes a project you can reopen
-
-The agent can draft the storyboard and edit the clips into a video. The result is a NodeTool project, so you can make the next change yourself in an editor or ask the agent to make it.
-
-## Your files. Your models. Your keys.
+## Your projects stay on your computer
 
 Studio keeps the project on your computer. It only goes online when you use an online AI provider or service.
 
 - **Project files**: Studio stores the workspace, workflows, and media on your machine. You choose where those files live and when to move them.
-- **Supported local models**: Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Local capability depends on the model and your hardware.
+- **Supported local models**: Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Which models you can run locally depends on your computer’s hardware.
 - **Online AI providers**: Connect your own provider accounts when a hosted model fits the job. Those requests need a network connection and are handled under the provider's terms.
 - **Offline work**: Studio can work without a network when the project uses local files and supported local models. Remote providers, downloads, and online services still need a connection.
 
@@ -28,21 +24,13 @@ You do not need a powerful computer. Running AI models on your own machine is op
 
 - **Desktop platforms**: Studio is available for macOS, Windows, and Linux.
 - **Graphics hardware**: A dedicated GPU is optional when you use hosted providers. It matters when you choose to run larger models locally.
-- **Model downloads**: The desktop app does not require a local model collection. Download only the supported models you plan to run on your machine.
+- **Model downloads**: Use Studio with your provider accounts, or download supported models to run locally.
 
 ## Questions
 
-### What does "bring your own keys" mean for me?
-
-It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.
-
-### Can I use my ChatGPT, Claude, or Gemini subscription?
-
-Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.
-
 ### Studio or Cloud — which should I use?
 
-Use Studio for real projects. It is the desktop app for macOS, Windows, and Linux. It works with online AI providers without a graphics card, and it can run supported AI models on your own computer if the hardware is strong enough. Cloud runs in your web browser and is in alpha, an early test version, so use it to try NodeTool. Moving projects between Cloud and Studio may not cover everything during the alpha, so check that the move you need works before you rely on it.
+Choose **Studio** for ongoing work: it saves projects on your computer and supports online providers and local models on macOS, Windows and Linux. Choose **Cloud** to try NodeTool in your browser without installing it. Cloud is in alpha, and project transfer between editions is not yet complete. Check that the files and features you need transfer correctly.
 
 ### Is NodeTool local-first and private?
 

@@ -1,5 +1,57 @@
 # Shared variables and direct input bindings
 
+Cross-plan references use `SV-`, for example `SV-A5`. Local IDs stay unchanged.
+
+> **Status: draft, needs more design work.** This plan records the current
+> direction, not a settled design. Before A2 fixes the document contracts,
+> confirm the first release's owner labels, naming rules, and Q1/Q2/Q5.
+> Check that creators can distinguish saved values from
+> existing run variables and Input nodes. Record those decisions before A2.
+> Later owners and loopback do not need final schemas to ship local bindings.
+
+## Overview
+
+- **Bind fields to a variable.** Any node field can take its value from a
+  variable instead of a typed value or a wire. Editing one bound field, or the
+  variable in the variables panel, changes every field bound to it. Creators
+  only see the word "variable" and choose no scope when creating one.
+- **Editing never starts work.** Each run uses the values from when it started.
+  Edits made during a run apply to the next run (D9, D2).
+- **A workflow variable is document data, not a node.** It is stored in
+  `workflow.parameters`, and each binding is stored in `node.bindings`. It is
+  also a run input that callers override by name through `params`, in the same
+  name space as Input nodes (D14, Q1).
+- **One resolver, written once.** At run start, a pure function in
+  `@nodetool-ai/protocol` writes variable values into the bound node
+  properties. The server, CLI and browser runner all call it, and it replaces
+  the two existing app overlay implementations. Nodes, Python workers and the
+  cache see ordinary property values (D15).
+- **Results come back only by explicit action.** `Use as input` and `Add to
+  list` write a chosen output into a variable. `Run N times` repeats a workflow
+  and loops the output into the next step. App output mappings and project
+  publication are the other write paths. Writes either replace a value or
+  append one list item, and a retried append is ignored (Loopback section).
+- **One variable concept, several owners.** A variable is a named, typed value
+  with an owner: a run, a loop iteration, the workflow, an app or a project.
+  The owner decides how long the value lasts and who may write it, and the
+  variables panel shows it as a label such as `This run` or `This workflow`.
+  The existing Set and Get Variable nodes keep their names and work on run
+  variables. One name has one owner in a workflow (D16).
+- **Existing behavior stays.** Set and Get Variable, Prompt `{{ name }}`, Input nodes,
+  `params`, ForEach and Loop keep working unchanged. Conversions to the new
+  model are offered, never automatic (A7).
+- **Sharing comes later and is checked.** App variables keep their `instance`
+  and `user` scopes. Project variables add a revision-checked table, so two
+  workflows cannot silently overwrite each other (A5, A9, Q3).
+- **Deferred:** watching variables, automatic re-runs, latest-value reads of
+  run variables (A6), numeric counters, appends from parallel items within one
+  run, nested-field bindings and workspace-wide variables.
+- **Delivery order:** A1–A4 is the first release (contracts, resolver, editor).
+  Then apps with revisions (A5), loopback (A10), `Run N times` (A11), and
+  projects (A9). App revisions do not wait for append or repeated runs.
+- **Decision to confirm first:** Q1, a variable as a document definition rather
+  than a node, because the A2 document contracts depend on it.
+
 ## Purpose
 
 Let creators bind a node input directly to a typed variable and edit that value
@@ -23,23 +75,28 @@ The first release is A1–A4. It adds four things:
 3. Validation rules for bindings in the existing validators.
 4. The `Bind variable…` menu, bound-field label and variables panel in the editor.
 
-Loopback with replace and append (A10), `Run N times` (A11), app integration
-(A5), project sharing (A9), run-local state (A6) and reactive execution (A8)
-follow it. The contracts in A2 cover all scopes from the start
-so later deliveries do not change saved documents.
+App integration and revisions (A5) follow it, before loopback with replace and
+append (A10) and `Run N times` (A11). Project sharing (A9), latest-value run
+variable reads (A6), and reactive execution (A8) come later. A2 versions the
+first-release contract. Later deliveries extend it with compatibility rules
+instead of fixing every future owner's schema in advance.
 
 Terms: creators see one word, **variable**. In code and in this plan, a
 variable owned by a workflow is a **workflow parameter**, because it is also a
-run input that callers can override by name (D14). **Binding** means a node
+run input that callers can override by name (D14). A variable owned by one run
+is a **run variable**. Set Variable writes it and Get Variable reads it, as the
+runtime's `VariableChannel` does today (F1, F2). **Binding** means a node
 field takes its value from a variable instead of a typed value or a wire.
 
 ## Existing behavior to preserve
+
+Recheck source claims needed for delivery under the [evidence rules](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/feature-interplay/README.md#evidence-and-interpretation).
 
 | Finding | Inspected behavior | Consequence |
 |---|---|---|
 | F1. [Workflow variable nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/variable.ts) | Set Variable publishes by name. Get Variable streams published values with `iteration` correlation on its output. | Existing graphs can depend on repeated emissions without wires. |
 | F2. [VariableChannel](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/variable-channel.ts) | `first()` returns the first publication. `stream()` replays the full history and then follows new publications. The runner closes a channel when its last writer finishes. | This is not a latest-value variable. Changing it in place would change existing workflows. |
-| F3. [Prompt substitution](https://github.com/nodetool-ai/nodetool/blob/main/packages/text-nodes/src/nodes/text-extra.ts) | `{{ name }}` awaits `first()` only when the name has a registered Set Variable writer. The node's own dynamic inputs win on conflict. Unmatched names stay as literal text. | A new variable whose display name matches a legacy channel must not change what a Prompt renders. Name resolution needs a defined precedence (A7). |
+| F3. [Prompt substitution](https://github.com/nodetool-ai/nodetool/blob/main/packages/text-nodes/src/nodes/text-extra.ts) | `{{ name }}` awaits `first()` only when the name has a registered Set Variable writer. The node's own dynamic inputs win on conflict. Unmatched names stay as literal text. | A new variable must not change what an existing Prompt renders. One name has one owner in a workflow (D16), so a name cannot refer to a run variable and a workflow variable at once. |
 | F4. [Workflow Input nodes](https://github.com/nodetool-ai/nodetool/blob/main/packages/core-nodes/src/nodes/input.ts) | The `nodetool.input.*` nodes are the external run interface. The [runner](https://github.com/nodetool-ai/nodetool/blob/main/packages/execution-core/src/runner.ts) checks required inputs, then dispatches `params[name]` or the node's `value` property through each node's `process()`. | Workflows already have typed parameters. New parameter definitions must coexist with this contract, not fork it (D14). |
 | F5. [App node-property bindings](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/bindings.ts) | `op:<opId>/prop:<nodeId>#<prop>` lets a widget drive any node property. The [web host](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/appbuilder/nodeBinding.ts) and the [server](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/session/job-execution.ts) overlay those values onto the node properties of the run's frozen graph before execution. | Snapshot resolution into node properties already exists for apps. Direct bindings should reuse that path (D15), not add a second one. |
 | F6. [App variable declarations](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/document.ts) | Scope is `instance` or `user`, and only `user` variables persist. [`mergeVariables`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/operations.ts) adds every Set Variable channel name as an `instance` variable whose ID is the name. | The ownership table must map the existing `user` scope. Name-derived IDs violate the stable-ID rule and need a migration (A7). |
@@ -62,13 +119,17 @@ creates lists or iteration. A1 below requires that inventory before implementati
 ## User model and decisions
 
 The interface should explain the feature as: "Bind fields to the same variable
-to edit them together. Each run uses the values from when it started." User
-copy says `variable` everywhere, including conversion actions. It never says
-`parameter`, `snapshot`, `scope` or `revision` outside variable details and
-diagnostics.
+to edit them together. Each run uses the values from when it started." Set
+Variable's description reads: "Sets a variable for this run. Get Variable
+nodes read it." User copy says `variable` everywhere, including conversion
+actions. It never says `parameter`, `channel`, `snapshot`, `scope` or
+`revision` outside variable details and diagnostics. The owner appears as a
+label: `This run`, `This loop`, `This workflow`, `This app`, `Saved for you`
+or `Shared in project`.
 
 Decision identifiers D1–D13 retain the decisions from the design discussion.
-D14 and D15 come from the code inspection in F4 and F5.
+D14 and D15 come from the code inspection in F4 and F5. D16 unifies the new
+variables with the existing Set and Get Variable nodes (F1).
 
 | Decision | Contract |
 |---|---|
@@ -87,6 +148,7 @@ D14 and D15 come from the code inspection in F4 and F5.
 | D13. Keep sharing separate from triggering. | Project writes update controls without starting workflows. Cross-workflow automation needs explicit orchestration and bounded feedback. |
 | D14. Extend the existing input contract. | A workflow parameter has a stable ID and an external name. External names share one namespace with Input node names, and a collision fails validation. Run requests keep addressing inputs by name in `params`. Converting an Input node to a parameter keeps its external name, so API, CLI, app and agent callers keep working. |
 | D15. Resolve by materialization. | At admission, one pure resolver writes each resolved value into the bound property of the admitted graph, the same transformation F5 applies to app overlays. Nodes, Python workers, correlation analysis and the cache (F8) see an ordinary property value. Binding metadata does not reach node code. |
+| D16. One variable concept, owned at different levels. | A variable is a named, typed value with one owner: run, iteration, workflow, app instance, app user, or project. The owner sets lifetime and write access. Values, events, and streams stay separate (D1), so agent memory, streaming inputs and job progress messages are not variables. Set and Get Variable keep their names, type IDs and behavior and work on run variables. One name has one owner in a workflow, and a collision fails validation. |
 
 ## Node editor interaction
 
@@ -144,24 +206,68 @@ Follow the [design system](https://github.com/nodetool-ai/nodetool/blob/main/doc
 and [primitives strategy](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/ui_primitives/STRATEGY.md).
 Keep binding actions keyboard accessible and usable in narrow node inspectors.
 
+## Run variables
+
+A run variable holds values that nodes compute during one run. Set Variable
+writes it, and Get Variable reads the first value or streams every value
+(F1, F2). It starts empty and ends with the run. A saved variable, owned by
+the workflow, an app or a project, is fixed when a run starts and is bound to
+fields. Both are variables with different owners (D16). The runtime keeps
+today's `VariableChannel` semantics unchanged.
+
+- **Definition.** A run variable is defined by the Set Variable nodes that name
+  it, as today. It needs no entry in the workflow document, so existing graphs
+  need no migration. The variables panel lists each such name with the label
+  `This run` and its Set and Get nodes as writers and readers. Renaming it in
+  the panel renames every Set and Get node with that name in one undoable edit.
+- **Binding.** Fields bind only to saved variables, because a run variable has
+  no value when the run starts and D15 resolves bindings at that point. The
+  picker leaves run variables out and points to Get Variable for them.
+- **One name, one owner.** A workflow variable cannot take a name that a Set
+  Variable node uses, and a Set Variable node cannot take a workflow
+  variable's name. Validation reports the collision with both owners named.
+  Input node names also exclude workflow-variable names (D14). An Input node
+  and a Set Variable may retain the same name: `params` addresses the Input,
+  while Set/Get and Prompt lookup retain their existing run-variable behavior.
+  The panel labels both entries. Converting either to a workflow variable
+  requires resolving the collision first. Existing graphs remain valid.
+- **Prompt templates.** `{{ name }}` resolves the Prompt node's own inputs
+  first, then the variable of that name. A run variable is awaited as today
+  (F3). A workflow variable is applied by the resolver as an implicit read
+  binding on the Prompt node, so D15 holds and the node code is unchanged.
+  The naming rule leaves no case where both could match.
+- **Keep between runs.** A run variable whose only Set Variable node has a
+  constant value, with no wire, offers `Keep between runs`. This changes its
+  owner to the workflow: it creates the workflow variable with that value,
+  binds every field the Get Variable nodes were wired to, and removes the Set
+  and Get nodes. A Prompt using the name renders the same text. A Set Variable
+  node with a wired value offers `Replace with wire` instead. Both preview the
+  change and are undoable. Neither runs automatically.
+- **Apps.** A run variable still publishes into the app instance variable of
+  the same name (F6), so it reaches app state through its existing path. New
+  apps should use app output mappings instead. No Set or Get behavior is
+  removed.
+
 ## Ownership and document contract
 
-| Scope | Delivery | Lifetime and persistence | Execution access |
+| Owner | Delivery | Lifetime and persistence | Execution access |
 |---|---|---|---|
+| Run variable | Exists (Set and Get Variable) | Starts empty with each run and ends with it. Never persisted. | Set Variable writes during the run. Get Variable reads the first value or the stream. Closed when the last writer finishes (F2). Latest-value reads are A6. |
 | Workflow parameter | A4 | Definition and current value saved with the workflow. Editing the variable edits the workflow. | Each run receives an immutable snapshot. Runs never write it. Loopback writes happen between runs (A10). |
 | App instance | A5 (exists) | Belongs to the open app instance, as today. | An operation maps the value into workflow inputs at invocation. Output mappings may write results back under ownership checks. |
 | App user | A5 (exists) | The existing `user` scope (F6): persisted per user across instances. | Same as app instance. |
 | Project variable | A9 | Owned by a project and always persisted. | Runs read it through parameter mappings. Publications use revision checks. |
-| Run-local variable | A6 | Initialized for one run and discarded at its end unless explicitly exported. | Ordered Read and Write operations. A direct binding remains a snapshot, not a live read. |
 | Iteration state | Regions plan | Owned by one loop invocation and its parent item identity. | Updated through feedback or region state ports at the defined iteration commit. |
 
-Persistence follows from scope. Only app variables keep their existing
-`instance` or `user` choice. No other scope adds a persistence setting.
+Persistence follows from the owner. Only app variables keep their existing
+`instance` or `user` choice. No other owner adds a persistence setting.
 
 Use one logical definition and binding contract across surfaces, with adapters
 to existing app state and execution contexts. Do not create a second app store
-or place runtime subscriptions in graph JSON. Agent memory remains a separate
-domain with its existing contracts.
+or place runtime subscriptions in graph JSON. Agent memory (`context.memory`)
+remains a separate domain with its existing contracts. It is a key-value store
+the model writes freely, with its own authority rules, not a value a creator
+defines.
 
 A variable definition needs a stable resource ID, display name, type, owner,
 and a value or an explicit unset state. A binding identifies
@@ -173,9 +279,10 @@ A starting shape for A2 to confirm against the protocol graph schema:
 ```text
 workflow.parameters[]   { id, name, type, value | unset, required, description }
 node.bindings[]         { target: "property" | "dynamic", name, variable_id, access: "read" | "read_write" }
-workflow.loopbacks[]    { id, source: { node_id, output }, variable_id, write: "replace" | "append" }
-project mapping         { workflow_id, parameter_id, project_variable_id }
 ```
+
+A10 defines loopback records. A9 defines project mappings. Neither is part of
+the first-release schema.
 
 Keep `node.bindings` beside `node.properties`, not inside it, so existing
 readers of `properties` keep seeing literals. A property listed in `bindings`
@@ -273,8 +380,8 @@ visible reload/reapply choice. Undo is another checked write, not a rollback of
 unrelated changes. A same-value state write creates no change event. Repeated
 action requests remain events and are not deduplicated as state.
 
-For run-local state, Read must be ordered after the intended Write through an
-execution dependency. Unordered competing writes fail validation where statically
+Run variables keep their first-value and stream reads. A latest-value read
+(A6) must be ordered after the intended Write through an execution dependency. Unordered competing writes fail validation where statically
 detectable and fail with a conflict at runtime otherwise. No last-arrival-wins
 accumulator shared across parallel items. Use explicit collection/reduction or
 sequential region state instead.
@@ -364,9 +471,10 @@ output requires an orchestration owner, seed, stop condition, and execution
 budget. Validation must consider declared cross-workflow subscriptions as well
 as visible graph edges. Project sharing ships without those automatic triggers.
 
-The regions plan owns sequential iteration, state commits, Keep, Continue, and
-Break. This plan consumes those contracts. Preserve existing Loop behavior until
-explicit conversion, including its current handling of missing feedback.
+The regions plan owns sequential iteration, state commits, Keep, and Stop after
+iteration. Immediate Continue/Break remain [deferred there](control-flow-regions.md#deferred-work)
+and are not dependencies of bindings or loopback. Preserve existing Loop behavior
+until explicit conversion, including its current handling of missing feedback.
 
 ## Loopback: using a result as the next input
 
@@ -409,7 +517,7 @@ with the variable for `replace`, or with the list's item type for `append`.
   expected revision and has no conflict dialog. Each item records its source
   (job ID, node, output and generation), and a second append with the same
   source is ignored, so retries and duplicate delivery cannot add an item twice.
-  A list has a maximum length, set in A2, and an append beyond it fails with
+  A list has a maximum length, set in A10, and an append beyond it fails with
   `This list is full. Remove items to add more.`
 
 The app reducer already has an `append` disposition (F7), but its `appendValue`
@@ -493,7 +601,8 @@ and node help in the same change that ships each authoring surface (A7).
 
 ## Open questions and recommendations
 
-Each recommendation is the working default for A2 until a reviewer overrides it.
+Q1, Q2, and Q5 are working defaults to confirm before A2. Q4 belongs to app
+integration in A5. Q3 belongs to project sharing in A9.
 
 ### Q1. Is a parameter a node, a document definition, or both?
 
@@ -519,6 +628,9 @@ property source with no edges, so it does not belong on the canvas as a node.
   The menu item reads `Convert to variable`.
 - The variables panel lists both kinds and labels Input nodes as `Input node`,
   so creators see one list of what a run accepts.
+- Run variables stay defined by their Set Variable nodes, with no document
+  definition (see [Run variables](#run-variables)). Only owners that hold a
+  value before or between runs need `workflow.parameters` or a table.
 
 ### Q2. Does a parameter edit autosave or create a version?
 
@@ -536,8 +648,8 @@ make the edit an ordinary document edit.
   blur or Enter. This keeps undo steps and autosaves to one per deliberate edit.
 - [`workflowDocumentRevision`](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/workflow-document-revision.ts)
   hashes nodes, edges and links, with an explicit list of node `data` fields.
-  A2 must add `bindings` to that list and pass `parameters` and `loopbacks`
-  as new inputs.
+  A2 adds `bindings` to that list and passes `parameters` as a new input.
+  A10 adds `loopbacks` when they ship.
   Otherwise a variable edit leaves the revision unchanged and revision-based
   conflict checks miss it.
 
@@ -621,12 +733,12 @@ Items appear in delivery order. Their codes are stable and do not reflect order.
   `mergeVariables` (F6), the node cache callers (F8), and how concurrent
   workflow saves from two clients resolve today.
 - [ ] **A2. Shared contracts.** Add versioned definitions and source bindings to
-  protocol/document schemas. Define scopes, revisions, compatibility, import,
-  authorization, and persistence, including project ownership and external
-  parameter mappings. Save/load/export must preserve bindings or explicitly
-  report mappings that require reconnection. Include `parameters`,
-  `node.bindings` and `loopbacks` in `workflowDocumentRevision` (Q2). Define
-  the replace and append write kinds for every scope.
+  protocol/document schemas after recording the first-release decisions in the
+  status note. Define workflow ownership, naming, revisions, compatibility,
+  import, and persistence. Preserve existing Input and Set/Get behavior.
+  Save/load/export must preserve bindings. Include `parameters` and
+  `node.bindings` in `workflowDocumentRevision` (Q2). Leave append, loopback,
+  and project persistence contracts to A10 and A9.
 - [ ] **A3. Headless parameter execution.** Resolve snapshots and overrides before
   scheduling by materializing them into the admitted graph (D15). Replace the
   two app overlay implementations (F5) with calls to the same resolver, and call
@@ -636,48 +748,61 @@ Items appear in delivery order. Their codes are stable and do not reflect order.
 - [ ] **A4. First editor delivery.** Implement workflow-scoped parameters, the
   input picker, shared editing, reference inspection, unbind, undo/redo, and
   changed-since-run feedback. Infer scope at creation and avoid routine scope
-  prompts. Ship direct bindings without requiring Watch or regions.
-- [ ] **A10. Loopback and append.** Add loopback targets, `Use as input` and
-  `Add to list` on node history and output quick actions, and the replace and
-  append write kinds for workflow variables. Append pushes list items with a
-  source key for duplicate suppression and a length cap.
-- [ ] **A11. Run N times.** Add the repeat command in shared code, the Run menu
-  entry with estimate and `Step k of N` progress, and the CLI `--repeat` and
-  `--save` flags.
-  Stop on count, failure, budget or Stop, keeping completed writes.
+  prompts. The variables panel also lists run variables from Set Variable
+  nodes, labeled `This run`, with rename across their nodes. Enforce one owner
+  per name. Ship direct bindings without requiring Watch or regions.
 - [ ] **A5. App integration.** List workflow parameters as operation inputs next
   to Input nodes, so the existing `resolveOperationParams` mappings (`widget`,
   `variable`, `constant`, `resource`) feed them with no new mapping kind. Key
   them by parameter ID the way Input nodes are keyed by node ID. Reuse the
-  existing reducer and ownership model for results. Add variable revisions to
-  the reducer (F7) and revision conflict handling for edits made during
+  existing reducer and ownership model for results. This item owns app-variable
+  revisions (F7) and checked replacement writes, including edits made during
   execution. Keep the `instance` and `user` scopes and their persistence as they
-  are. Keep separate instances isolated. Route list-variable appends through
-  the A10 write kind instead of `appendValue`.
+  are. Keep separate instances isolated. Include A7's name-derived ID migration
+  (Q4) here. Prove one control binds two inputs, a run captures both once, and
+  an old result cannot overwrite a newer edit. The [agents plan](realtime-virtual-agents.md#delivery-plan-and-gates)
+  depends on these revisions for AA-A4. New list-variable append support waits
+  for A10. Existing app append behavior remains unchanged until then.
+- [ ] **A10. Loopback and append.** Define loopback records and include them in
+  document revisions. Add `Use as input` and `Add to list` on node history and
+  output quick actions, and replace/append writes for workflow variables.
+  Define and enforce the list length cap. Append uses a source key for
+  duplicate suppression. Route new app list-variable appends through this
+  write kind instead of string-concatenating `appendValue`.
+- [ ] **A11. Run N times.** Add the repeat command in shared code, the Run menu
+  entry with estimate and `Step k of N` progress, and the CLI `--repeat` and
+  `--save` flags. Stop on count, failure, budget or Stop, keeping completed writes.
 - [ ] **A9. Project sharing.** Add the project variable and mapping tables (Q3),
   checked publication, and authorized reference discovery. Implement `Share with
   project…` and picker groups without breaking existing bindings. Test concurrent
   workflow writes, cross-client edits, permissions, and project export/import.
-- [ ] **A6. Explicit mutable state.** Add ordered run-local Read/Write only after
-  scheduling dependencies and conflicts are defined. Integrate iteration state
-  through the regions plan rather than inventing a separate accumulator mechanism.
-- [ ] **A7. Compatibility and discoverability.** Preserve legacy Set/Get and
-  prompt behavior. In Prompt templates, a legacy channel with a registered
-  writer keeps precedence over a new variable of the same name (F3), and
-  validation warns about the shadowing. Migrate name-derived app variable IDs
-  (F6, Q4). Offer deliberate conversion of Input nodes and Set/Get pairs, with
-  a preview of changed semantics.
+- [ ] **A6. Latest-value reads of run variables.** Add an ordered read of a
+  run variable's latest value only after scheduling dependencies and conflicts
+  are defined. Integrate iteration state through the regions plan rather than
+  inventing a separate accumulator mechanism. No current plan needs this:
+  planned agents share state through `context.memory`, voice agents receive
+  live input through `stream_input`, and run progress travels as job messages.
+  Reopen it when workflows with several Agent nodes need to read each other's
+  latest value.
+- [ ] **A7. Compatibility and discoverability.** Update the Set and Get
+  Variable descriptions to describe run variables (D16) and regenerate their
+  node docs. Titles, type IDs and DSL function names stay. Preserve their
+  replay, first-value and Prompt behavior, and add the workflow-variable step
+  to Prompt resolution ([Run variables](#run-variables)). Migrate name-derived
+  app variable IDs with A5 (F6, Q4). Offer `Convert to variable` for Input nodes,
+  `Keep between runs` for constant run variables, and `Replace with wire` for
+  wired ones, each with a preview.
   Add examples for shared Style, whole-list references, item batches, per-item
   refinement, and an image edit chain with loopback. Update node help and agent authoring guidance alongside implementation.
 - [ ] **A8. Optional reactive execution.** Design Watch and automatic execution
   separately after finite-run behavior ships. Require explicit lifetime, triggering,
   concurrency, and cycle contracts before enabling them.
 
-Dependencies: A2 follows A1. A3 follows A2. A4 requires A3. A10 requires A4.
-A11 requires A10. A5 and A9 each require A4 and are independent of each other
-and of A10 and A11. When A5 or A9 ships, loopback targets may write app or
-project variables with the same write kinds. A9's contracts are part of A2.
-A6 depends on the applicable region contracts. A7 accompanies each delivery.
+Dependencies: A2 follows A1 and the first-release design decisions. A3 follows
+A2. A4 requires A3. A5 follows A4 and includes its A7 migration. A10 follows
+A5, then A11 follows A10. A9 follows A10 for shared write kinds and adds its
+own project contracts. A6 depends on the applicable region contracts.
+A7 accompanies each delivery, with app ID migration explicitly part of A5.
 A8 is deferred and is not an acceptance requirement for direct input bindings.
 
 ## Verification and acceptance
@@ -702,11 +827,14 @@ A8 is deferred and is not an acceptance requirement for direct input bindings.
 | `nodetool run --repeat 3` with and without `--save` | Each step starts from the previous step's loopback value. Without `--save` the saved workflow is unchanged. With it, one edit holds the final values. |
 | Edit app state before an old run finishes | The result remains inspectable but cannot overwrite the newer edit or invocation. |
 | Save, rename, copy, undo, import, and reopen | Identity and type checks survive. Conflicts and missing definitions produce actionable diagnostics. |
-| Run a legacy variable workflow | Replay, first-value reads, prompt substitution, and writer completion remain unchanged. |
+| Run a workflow saved with Set and Get Variable nodes | Replay, first-value reads, prompt substitution, writer completion and app publication remain unchanged. The panel lists the name as `This run` with its writers and readers. The document gains no new entries. |
+| Rename a run variable in the panel | Every Set and Get node with that name changes in one undoable edit, and the run behaves as before. |
+| `Keep between runs` on a constant run variable, and on a wired one | The constant becomes a workflow variable bound to the former Get Variable targets, and a Prompt using the name renders the same text. The wired one offers only `Replace with wire`. |
+| Create a workflow variable named like a Set Variable node | Validation rejects it and names both owners. A Prompt name that matches a node input uses the node input. |
+| Load a graph with an Input node and Set Variable sharing a name | The graph remains valid. `params` addresses the Input and Set/Get retain their channel behavior. Conversion to a workflow variable reports the collision before editing. |
 | Call a workflow with parameters through `params` | Input nodes and parameters resolve by external name. A name collision fails validation. Converting an Input node keeps existing API and app callers working. |
 | Inspect an admitted graph with bindings | Bound properties hold resolved values. A Python node and the node cache see the same values as a literal property. No node receives binding metadata. |
 | Run an app with a node-property overlay on a bound property | The overlay wins for that node only, other bound nodes keep the variable value, and validation warns. The server, web host and browser runner produce the same admitted graph. |
-| Add a variable named like a legacy Prompt channel | The Prompt renders the channel value as before, and validation reports the shadowing. |
 | Bind a secret-typed field | Validation rejects it. No secret appears in variable values or run provenance. |
 | Use empty lists, null, unset values, cancellation, and failed writes | Each follows its declared contract without leaked subscriptions or waiting forever. |
 
@@ -716,9 +844,7 @@ permissions, revisions, and serialized bindings. Prove new validators fail on
 invalid fixtures and inspect nonempty input. Exercise large binding graphs to
 detect quadratic reference lookup or update behavior.
 
-Implementation must run the build prerequisites and mandatory checks from
-[repository verification rules](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).
-This documentation-only plan requires link and diff checks, not runtime tests.
+Implementation follows [repository verification rules](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#mandatory-post-change-verification).
 
 ## vvvv reference and deliberate adaptation
 

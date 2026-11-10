@@ -74,17 +74,23 @@ const ResolvedImage: React.FC<
   ...props
 }) => {
   const theme = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  // Load state belongs to one URL. A thumbnail that 404s while the server is
+  // still writing it is replaced by the original; that URL gets its own load.
+  const [settled, setSettled] = useState<{
+    src: string | undefined;
+    failed: boolean;
+  } | null>(null);
+  const current = settled?.src === (src || undefined) ? settled : null;
+  const loading = current === null;
+  const error = current?.failed ?? false;
 
   const handleLoad = () => {
-    setLoading(false);
+    setSettled({ src: src || undefined, failed: false });
     onLoad?.();
   };
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    setLoading(false);
-    setError(true);
+    setSettled({ src: src || undefined, failed: true });
     onError?.(e);
   };
 

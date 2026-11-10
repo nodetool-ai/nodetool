@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const examples = ["Serein", "Kite", "Tidewater", "Cadence", "Prism", "Voltra"];
 
-for (const route of ["/", "/marketing"]) {
+for (const route of ["/studio"]) {
   test(`${route} plays the editable examples in the requested order`, async ({ page }) => {
     // Without reduced motion the film autoplays in view; this covers the
     // manual Play button that reduced-motion readers get instead.
@@ -33,9 +33,13 @@ for (const route of ["/", "/marketing"]) {
 }
 
 test("selection works by keyboard, stops the previous film, and autoplays the next", async ({ page }) => {
-  await page.goto("/marketing");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/studio");
   const showcase = page.locator("#example-timelines");
-  await showcase.getByRole("button", { name: "Play Serein", exact: true }).click();
+  // Scrolling starts autoplay and removes the manual Play button.
+  const firstFilm = showcase.locator("video");
+  await firstFilm.scrollIntoViewIfNeeded();
+  await expect.poll(() => firstFilm.evaluate((element: HTMLVideoElement) => element.currentTime)).toBeGreaterThan(0);
   const oldFilm = await showcase.locator("video").elementHandle();
   const kite = showcase.getByRole("button", { name: /^Kite/ });
   await kite.focus();
@@ -50,7 +54,7 @@ test("selection works by keyboard, stops the previous film, and autoplays the ne
 test("portrait playback fits a mobile viewport without cropping", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/marketing");
+  await page.goto("/studio");
   const showcase = page.locator("#example-timelines");
   await showcase.getByRole("button", { name: /^Tidewater/ }).click();
   await showcase.getByRole("button", { name: "Play Tidewater", exact: true }).click();
@@ -63,7 +67,7 @@ test("a failed film request can be retried", async ({ page }) => {
   // Chromium can request the film twice before the click, so every request fails until the error shows.
   const film = "**/timelines/serein/film.mp4";
   await page.route(film, (request) => request.abort());
-  await page.goto("/marketing");
+  await page.goto("/studio");
   const showcase = page.locator("#example-timelines");
   await showcase.getByRole("button", { name: "Play Serein", exact: true }).click();
   await expect(showcase.getByRole("alert")).toBeVisible();

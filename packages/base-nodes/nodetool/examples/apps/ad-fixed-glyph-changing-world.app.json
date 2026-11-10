@@ -34,14 +34,6 @@
                 "title": "Ending"
               },
               {
-                "value": "review",
-                "title": "Review"
-              },
-              {
-                "value": "build",
-                "title": "Build"
-              },
-              {
                 "value": "result",
                 "title": "Result"
               }
@@ -157,37 +149,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: Anchor",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "anchor"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -208,25 +169,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -255,7 +198,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -376,6 +319,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Anchor",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "anchor"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -958,6 +932,24 @@
                 }
               },
               {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
                 "type": "Text",
                 "props": {
                   "id": "plan-error",
@@ -1009,7 +1001,7 @@
                       "type": "Button",
                       "props": {
                         "id": "plan",
-                        "label": "Plan the storyboard",
+                        "label": "Make the video",
                         "disabledWhen": {
                           "binding": "op:plan/exec#running",
                           "op": "notEmpty"
@@ -1234,7 +1226,7 @@
     "operations": [
       {
         "id": "plan",
-        "name": "Plan or refresh Storyboard",
+        "name": "Make the video",
         "workflowId": "plan",
         "workflowVersion": 1,
         "inputs": {
@@ -2285,7 +2277,8 @@
             "variableId": "step"
           }
         },
-        "policy": "queue"
+        "policy": "queue",
+        "agentTask": "Make the 12-second 9:16 ad as a motion-graphics timeline. Do not plan a storyboard.\nFinish the whole build in this turn: read the values, write and save the timeline, check it and show the result. Do not end the turn after you read the state.\nObjective: Make a memorable product promise through a consistent visual anchor.\nVisual rule: The anchor never changes position or silhouette while the world around it changes.\nBeats, in order:\n- 0–1.5 s anchor: One large glyph/icon and a short premise.. Motion: Anchor settles in 250 ms.\n- 1.5–4.5 s worlds_1: Two worlds appear around the same anchor.. Motion: Cut every 1500 ms; supporting objects move tangentially or scale gently.\n- 4.5–7.5 s worlds_2: Two more worlds expand the range.. Motion: Repeat timing; vary palette and surrounding objects, not the anchor geometry.\n- 7.5–9.5 s promise: Worlds clear to reveal the concrete promise.. Motion: 300 ms exits; anchor stays.\n- 9.5–12 s cta: Anchor becomes part of the brand/CTA lockup.. Motion: Hold.\n\nRead the values first with ui_app_run_get_state. Use them exactly:\n- glyph (Anchor glyph, image)\n- world1 (World 1, image)\n- world2 (World 2, image)\n- world3 (World 3, image)\n- world4 (World 4, image)\n- logo (Logo, image)\n- premise (Premise, text)\n- label12 (Label for worlds 1 and 2, text)\n- label34 (Label for worlds 3 and 4, text)\n- promise (Promise, text)\n- cta (Call to action, text)\n- brandColor (Brand color, color)\nCopy stays word for word. When one copy line holds both a closing line and a call to action (\"Plan and build with Linear. Sign up.\"), split it at the sentence boundary: the closing line is the headline and the last short imperative is the button label. Add no label the values do not hold: the images carry their own labels.\nCopy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `asset://` uri to s.image() as it is, without looking it up in the asset library. An image you fetch or process yourself must be saved as an asset first (nodetool.media.toImage or save_asset); a file:// path does not play. Never generate or replace an image.\n\nLoad the motion-graphics skill and read nodetool.packs.docs(\"@nodetool-ai/sandbox-timeline\") before you write scenes. Then adapt the reference builder below in one execute_code action: keep its motion language, timing and structure, swap in the user's copy, images and colors, and recreate every graphic element the images do not hold (shapes, rings, cards, buttons, glows, backdrops) as timeline layers. It must look like modern motion graphics: layered depth, continuous secondary motion, eased entrances and exits, text animators, transitions between beats and a restrained finish. Save with v.save(nodetool.timelines, {name, showcase: true}).\nLegibility and layout on a 1080×1920 frame:\n- Crop each image to its content before you place it: trim a plain background border with image.crop, then save it with nodetool.media.toImage. Text inside an image must be at least 2.5% of the frame height (48 px) once scaled. Make cards and nodes that show an image at least 400×225.\n- Keep the logo, copy and button inside the safe area: 250 px from the top and 350 px from the bottom. Put the logo above the headline or next to the button.\n- Build the button as a rect and a text label parented to one group at the same y, both centered, with the label at 52 px or more. Do not use s.pill() with a dot for the button.\n- Give scene lengths in frames at the timeline's fps and check that the total, after transitions, is exactly 12 s.\nFix every showcase warning that save returns and save again. Look at preview_timeline_frame frames at each beat. Then render a draft with render_timeline at preview_scale 0.5, and finish when the draft renders.\nWrite `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image fits the frame. Pass `s` (for example s: 0.4) to scale it. The options w, h, width, height, size and scale throw.\nWrite `timeline` as {\"type\": \"timeline\", \"id\": \"<timeline_id>\"} and `finishStatus` as one sentence, then show the `result` step. Write no other values: the storyboard values (approval, planPreview and the rest) are not used in chat.\n\nReference builder (fictional brand; replace its copy, images and colors):\n```js\n// Ad library R12, Fixed glyph, changing world: a 12-second vertical brand ad\n// for a fictional insurer. One shield glyph holds the same place and\n// silhouette while four worlds cut in around it.\n//\n// `node scripts/example-timelines/ad-library.mjs build fixed-glyph-changing-world`\n// writes marketing/recipe-assets/ad-library/fixed-glyph-changing-world.timeline.json.\n//\n// The insurer and its promise are fictional; every world is drawn from\n// shapes. Every time value is seconds from the start of the ad, the beat\n// times in marketing/src/data/adLibrary.json. Positions are px from the frame\n// centre on a 1080×1920 frame.\n//\n// Motion language: hard cuts every 1.5 s, objects that move tangentially or\n// scale gently, 300 ms exits (inExpo) when the worlds clear, and a glyph that\n// never moves after its 250 ms settle.\nimport { video } from \"@nodetool-ai/sandbox-timeline\";\n\nconst W = 1080, H = 1920, FPS = 30;\n\nconst NAVY = \"#14213d\", WHITE = \"#ffffff\", PAPER = \"#f6f3ec\";\nconst SNAP = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SETTLE = \"cubic-bezier(0.3,1.3,0.6,1)\";\n\nconst v = video({\n  width: W, height: H, fps: FPS,\n  palette: { ink: PAPER, ink2: PAPER, text: NAVY, dim: NAVY, accent: NAVY },\n  fonts: { display: \"Inter\", body: \"Inter\" }\n});\n\n// The anchor: fixed for the whole ad.\nconst AX = 0, AY = -50, AW = 500, AH = 590;\nconst shieldPoints = () => {\n  const l = AX - AW / 2, r = AX + AW / 2, t = AY - AH / 2, b = AY + AH / 2;\n  return [[\"M\", l + 40, t], [\"L\", r - 40, t], [\"Q\", r, t, r, t + 40], [\"L\", r, AY + 40], [\"Q\", r - 20, b - 90, AX, b], [\"Q\", l + 20, b - 90, l, AY + 40], [\"L\", l, t + 40], [\"Q\", l, t, l + 40, t], [\"Z\"]];\n};\n\nconst WORLDS = [\n  { name: \"trips\", label: \"Your trips.\", bg: \"#bfe2ff\", at: 1.5 },\n  { name: \"home\", label: \"Your home.\", bg: \"#ffd8b5\", at: 3.0 },\n  { name: \"bike\", label: \"Your bike.\", bg: \"#c4efd9\", at: 4.5 },\n  { name: \"dog\", label: \"Your dog.\", bg: \"#e1d2ff\", at: 6.0 }\n];\n\n/** Clouds and a plane crossing behind the shield. */\nfunction trips(q, p) {\n  [[-330, -470, 300], [300, -300, 240], [-360, 360, 260], [340, 480, 320], [40, 640, 380], [-60, -690, 220]].forEach(([x, y, w], k) => {\n    const c = q.rect(w, w * 0.32, WHITE, { parent: p, name: `cloud-${k}`, x, y, r: w * 0.16, opacity: 0.95 });\n    c.animate({ offsetX: [0, k % 2 ? -60 : 60, \"linear\"] }, { at: 0, dur: 1.5, role: \"emphasis\" });\n  });\n  q.ellipse(150, \"#ffd25a\", { parent: p, name: \"sun\", x: 360, y: -620 });\n  const plane = q.path([[\"M\", -60, 0], [\"L\", 40, -6], [\"L\", 70, 0], [\"L\", 40, 6], [\"Z\"], [\"M\", 0, -4], [\"L\", -20, -46], [\"L\", -4, -46], [\"L\", 24, -4], [\"Z\"], [\"M\", 0, 4], [\"L\", -20, 46], [\"L\", -4, 46], [\"L\", 24, 4], [\"Z\"]], { parent: p, name: \"plane\", fill: NAVY, s: 2.4, x: -420, y: 300, rotation: -18 });\n  plane.animate({ offsetX: [0, 840, \"linear\"], offsetY: [0, -420, \"linear\"] }, { at: 0, dur: 1.5, role: \"emphasis\" });\n}\n\n/** A row of houses with lit windows, settling up gently. */\nfunction home(q, p) {\n  [[-330, 420, 260, \"#e98a5a\"], [330, 400, 300, \"#c96b4a\"], [-360, -400, 200, \"#f2a36f\"], [370, -380, 220, \"#d97b53\"]].forEach(([x, y, w, tone], k) => {\n    const g = q.group({ parent: p, name: `house-${k}`, x, y });\n    q.path([[\"M\", -w / 2, 0], [\"L\", 0, -w * 0.5], [\"L\", w / 2, 0], [\"Z\"]], { parent: p, name: `house-${k}-roof`, parent: g.id, fill: NAVY });\n    q.rect(w * 0.8, w * 0.62, tone, { parent: p, name: `house-${k}-wall`, parent: g.id, y: w * 0.31 });\n    q.rect(w * 0.18, w * 0.18, \"#fff2b0\", { parent: p, name: `house-${k}-window`, parent: g.id, x: -w * 0.18, y: w * 0.24 });\n    q.rect(w * 0.16, w * 0.3, NAVY, { parent: p, name: `house-${k}-door`, parent: g.id, x: w * 0.18, y: w * 0.47 });\n    g.animate({ scale: [0.96, 1, \"out\"] }, { at: 0, dur: 1.5, role: \"emphasis\" });\n  });\n  q.rect(26, 120, \"#7a4a2e\", { parent: p, name: \"tree-trunk\", x: 10, y: 640 });\n  q.ellipse(190, \"#5f9e5a\", { parent: p, name: \"tree-crown\", x: 10, y: 540 });\n}\n\n/** Two wheels turning on either side, road marks running past. */\nfunction bike(q, p) {\n  [[-330, 420], [330, 420]].forEach(([x, y], k) => {\n    const g = q.group({ parent: p, name: `wheel-${k}`, x, y });\n    q.ellipse(300, null, { parent: p, name: `wheel-${k}-tyre`, parent: g.id, stroke: NAVY, sw: 22 });\n    for (let i = 0; i < 6; i++) q.rect(270, 6, NAVY, { parent: p, name: `wheel-${k}-spoke-${i}`, parent: g.id, rotation: i * 30, opacity: 0.7 });\n    q.ellipse(46, NAVY, { parent: p, name: `wheel-${k}-hub`, parent: g.id });\n    g.loop({ rotation: [0, 360] }, 1.5);\n  });\n  const road = q.rect(140, 18, NAVY, { parent: p, name: \"road\", x: -620, y: 640, r: 9, opacity: 0.35, repeater: { count: 9, positionStep: { x: 200, y: 0 }, timeStepMs: 0 } });\n  road.animate({ offsetX: [0, -200, \"linear\"] }, { at: 0, dur: 1.5, role: \"emphasis\" });\n  [[-380, -420, 150], [380, -460, 120], [-200, -560, 90], [250, -620, 110]].forEach(([x, y, d], k) => q.ellipse(d, \"#7fd3a8\", { parent: p, name: `bush-${k}`, x, y }));\n}\n\n/** Paw prints walking past the shield and a ball. */\nfunction dog(q, p) {\n  const steps = [[-420, 520], [-300, 440], [-360, 300], [300, -380], [410, -470], [340, -600]];\n  steps.forEach(([x, y], k) => {\n    const g = q.group({ parent: p, name: `paw-${k}`, x, y, s: 1.3, rotation: k < 3 ? -20 : 25, at: k * 0.12 });\n    q.ellipse(70, \"#6c4fb3\", { parent: p, name: `paw-${k}-pad`, parent: g.id, y: 18 });\n    [[-36, -24], [-12, -46], [14, -46], [38, -24]].forEach(([tx, ty], j) => q.ellipse(28, \"#6c4fb3\", { parent: p, name: `paw-${k}-toe-${j}`, parent: g.id, x: tx, y: ty }));\n    g.enter({ from: { scale: 0, opacity: 0 }, at: 0, dur: 0.2, ease: SETTLE });\n  });\n  const ball = q.ellipse(150, \"#ff8a5c\", { parent: p, name: \"ball\", x: 360, y: 420 });\n  const bone = q.group({ parent: p, name: \"bone\", x: -330, y: -470, rotation: -24 });\n  q.rect(200, 44, PAPER, { parent: bone.id, name: \"bone-shaft\", r: 22 });\n  [[-100, -24], [-100, 24], [100, -24], [100, 24]].forEach(([bx, by], j) => q.ellipse(64, PAPER, { parent: bone.id, name: `bone-end-${j}`, x: bx, y: by }));\n  bone.animate({ rotation: [-24, -8, \"out\"] }, { at: 0, dur: 1.5, role: \"emphasis\" });\n  ball.animate({ offsetX: [0, -60, \"out\"], rotation: [0, -120, \"out\"] }, { at: 0, dur: 1.5, role: \"emphasis\" });\n}\n\nconst BUILD = { trips, home, bike, dog };\n\n/** The caption above the shield. */\nfunction caption(s, str, at, dur, o = {}) {\n  const t = s.text(str, { name: o.name ?? \"caption\", y: -560, mw: 0.86, size: o.size ?? 104, weight: 800, color: NAVY, tracking: -0.04, at, dur, style: { lineHeight: 1.04 } });\n  if (o.enter !== false) t.enter({ from: { offsetY: 30, opacity: 0 }, at: 0, dur: 0.25, ease: SNAP });\n  return t;\n}\n\nconst world = v.scene(\"World\", 12, (s) => {\n  s.fill(PAPER, { name: \"paper\" });\n\n  // The worlds: each cuts in on its beat and holds 1.5 s; the last clears in 300 ms.\n  WORLDS.forEach((w, i) => {\n    s.seq(w.at, i === 3 ? 1.8 : 1.5, (q) => {\n      const g = q.group({ name: `${w.name}-world`, s: 1.2 });\n      q.fill(w.bg, { name: `${w.name}-bg`, parent: g.id });\n      BUILD[w.name](q, g.id);\n      if (i === 3) {\n        g.exit({ to: { opacity: 0 }, at: 1.5, dur: 0.3, ease: \"inExpo\" });\n      }\n    });\n    caption(s, w.label, w.at, 1.5, { name: `label-${w.name}`, enter: false });\n  });\n\n  // The anchor: settles in 250 ms on frame 0 and never moves again.\n  s.rect(AW * 0.9, 60, \"rgba(20,33,61,0.25)\", { name: \"anchor-shadow\", kind: \"ellipse\", x: AX, y: AY + AH / 2 + 40, effects: [{ type: \"blur\", radius: 20 }] });\n  const anchor = s.group({ name: \"anchor\" });\n  s.path(shieldPoints(), { name: \"shield\", parent: anchor.id, fill: NAVY, effects: [{ type: \"dropShadow\", offsetX: 0, offsetY: 24, blur: 50, color: \"rgba(20,33,61,0.3)\" }] });\n  s.path([[\"M\", AX - 120, AY - 10], [\"Q\", AX - 60, AY - 70, AX, AY - 10], [\"Q\", AX + 60, AY + 50, AX + 120, AY - 10]], { name: \"shield-wave-1\", parent: anchor.id, stroke: WHITE, sw: 26 });\n  s.path([[\"M\", AX - 120, AY + 80], [\"Q\", AX - 60, AY + 20, AX, AY + 80], [\"Q\", AX + 60, AY + 140, AX + 120, AY + 80]], { name: \"shield-wave-2\", parent: anchor.id, stroke: WHITE, sw: 26, opacity: 0.55 });\n  anchor.enter({ from: { scale: 0.9 }, at: 0, dur: 0.25, ease: SETTLE });\n\n  // B1 premise, B4 promise, B5 lockup.\n  caption(s, \"Cover that goes where you go\", 0, 1.5, { name: \"premise\", size: 92 });\n  caption(s, \"One plan for all of it.\", 7.5, 4.5, { name: \"promise\", size: 96 });\n  s.seq(9.5, 2.5, (q) => {\n    const word = q.text(\"harbor\", { name: \"wordmark\", y: AY + AH / 2 + 130, size: 84, weight: 800, color: NAVY, tracking: -0.05 });\n    word.enter({ from: { opacity: 0, offsetY: 16 }, at: 0, dur: 0.25, ease: SNAP });\n    const button = q.pill(\"Get a quote\", { name: \"cta\", y: 560, size: 54, weight: 800, color: WHITE, fillColor: NAVY, stroke: \"rgba(0,0,0,0)\", padX: 76, padY: 30 });\n    button.enter({ from: { opacity: 0, offsetY: 20 }, at: 0.1, dur: 0.25, ease: SNAP });\n  });\n\n  s.finish({ vignette: 0.08, softness: 0.85, grain: 0.03, seed: 15 });\n});\n\nv.series([world]);\n\nconst saved = await v.save(nodetool.timelines, {\n  name: \"Fixed glyph, changing world — Harbor\",\n  showcase: true\n});\nawait output(\"timeline\", {\n  name: \"Fixed glyph, changing world — Harbor\",\n  description: \"A 12-second vertical brand ad: one shield glyph holds its place while four worlds cut in around it every 1.5 s, then clear for the promise and the lockup.\",\n  videoUri: \"/ad-library/videos/fixed-glyph-changing-world.mp4\",\n  posterUri: \"/ad-library/videos/fixed-glyph-changing-world.webp\",\n  ...saved\n});\n```"
       },
       {
         "id": "finish",
@@ -3359,6 +3352,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Fixed glyph, changing world\".\nObjective: Make a memorable product promise through a consistent visual anchor.\nVisual rule: The anchor never changes position or silhouette while the world around it changes.\nBeats, in order:\n- 0–1.5 s: One large glyph/icon and a short premise. Shows Brand color, Anchor glyph, Premise.\n- 1.5–4.5 s: Two worlds appear around the same anchor. Shows Brand color, World 1, Anchor glyph, Label for worlds 1 and 2.\n- 4.5–7.5 s: Two more worlds expand the range. Shows Brand color, World 2, Anchor glyph, Label for worlds 1 and 2.\n- 7.5–9.5 s: Worlds clear to reveal the concrete promise. Shows Brand color, World 3, Anchor glyph, Label for worlds 3 and 4.\n- 9.5–12 s: Anchor becomes part of the brand/CTA lockup. Shows Brand color, World 4, Anchor glyph, Label for worlds 3 and 4.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (header logo, large <img> files, feature-page screenshots), then with an image search. A social preview card (og:image, a title on a gradient) is a last resort. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\nIf image search throws because no search backend is configured, tell the user in one sentence that a SerpAPI, DataForSEO or Brave key in Settings finds better images. Then take nodetool.web.screenshot of the product's feature pages instead.\nSave each image you consider as an asset and look at it with view_image before you offer it. Name in the option's description any image that is only a social preview card.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's accent color as #RRGGBB (buttons, links, highlights), not the page background or a theme-color that is near black or white\n- fields: premise (Premise: anchor, at most 7 words); label12 (Label for worlds 1 and 2: worlds 1, at most 7 words); label34 (Label for worlds 3 and 4: worlds 2, at most 7 words); promise (Promise: promise, at most 7 words); cta (Call to action: cta, at most 4 words)\n- images: glyph (Anchor glyph: An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup.); world1 (World 1: A real photo or screenshot that matches the beats that show it. Shown in: Two worlds appear around the same anchor.); world2 (World 2: A real photo or screenshot that matches the beats that show it. Shown in: Two worlds appear around the same anchor.); world3 (World 3: A real photo or screenshot that matches the beats that show it. Shown in: Two more worlds expand the range.); world4 (World 4: A real photo or screenshot that matches the beats that show it. Shown in: Two more worlds expand the range.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Anchor becomes part of the brand/CTA lockup.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",
@@ -3445,7 +3439,7 @@
                   "id": "glyph",
                   "label": "Anchor glyph",
                   "role": "decorative",
-                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup."
+                  "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup."
                 },
                 {
                   "id": "world1",
@@ -3968,6 +3962,7 @@
         }
       }
     ],
+    "presentation": "chat",
     "recipe": {
       "schemaVersion": 1,
       "slug": "ad-fixed-glyph-changing-world",
@@ -6788,7 +6783,7 @@
             "id": "suggest",
             "type": "nodetool.code.Code",
             "data": {
-              "code": "import { run_agent } from \"@nodetool-ai/sandbox-nodetool/agents\";\nimport { browser } from \"@nodetool-ai/sandbox-nodetool/web\";\nconst brief = inputs.brief;\nconst model = inputs.model;\nif (!model?.provider?.trim() || !model?.id?.trim()) throw new Error(\"Select the finishing model on the Start step first. The agent uses it too.\");\nconst text = (value) => typeof value === \"string\" ? value.trim() : \"\";\n// A bare domain such as \"shop.example\" gets https:// in front.\nconst typed = text(inputs.sourceUrl);\nconst url = !typed || /^[a-z][a-z0-9+.-]*:/i.test(typed) ? typed : \"https://\" + typed.replace(/^\\/+/, \"\");\nif (!/^https?:\\/\\/[^\\s/]+\\.[^\\s]/.test(url)) throw new Error(\"Paste a website URL, such as your-product.com.\");\nprogress(10, \"Reading the website\");\nconst page = String(await browser({url}));\nif (page.startsWith(\"Error:\")) throw new Error(\"Could not read the website. \" + page.slice(6).trim());\n// The readable text drops images, so collect them from the page's HTML.\nconst candidates = [];\ntry {\n  const html = await (await fetch(url)).text();\n  const absolute = (src) => { try { return new URL(src.trim(), url).href; } catch { return \"\"; } };\n  const attr = (tag, name) => (tag.match(new RegExp(\"\\\\b\" + name + \"\\\\s*=\\\\s*[\\\"']([^\\\"']+)[\\\"']\", \"i\")) || [])[1] || \"\";\n  const add = (src, note) => { const href = absolute(src); if (href.startsWith(\"http\") && !candidates.some(item => item.url === href)) candidates.push({url: href, note}); };\n  for (const tag of html.match(/<meta\\b[^>]*>/gi) || []) {\n    if (/(og:image|twitter:image)/i.test(attr(tag, \"property\") + attr(tag, \"name\"))) add(attr(tag, \"content\"), \"social preview image\");\n  }\n  for (const tag of html.match(/<link\\b[^>]*>/gi) || []) {\n    if (/icon|logo/i.test(attr(tag, \"rel\"))) add(attr(tag, \"href\"), \"site icon (\" + attr(tag, \"rel\") + \")\");\n  }\n  // A srcset lists sizes, so take its widest entry over the src fallback.\n  const widest = (srcset) => srcset.split(\",\").map(entry => entry.trim().split(/\\s+/)).filter(([src]) => src).sort((a, b) => (parseFloat(b[1]) || 0) - (parseFloat(a[1]) || 0))[0]?.[0] || \"\";\n  for (const tag of html.match(/<img\\b[^>]*>/gi) || []) {\n    const src = widest(attr(tag, \"srcset\") || attr(tag, \"data-srcset\")) || attr(tag, \"data-src\") || attr(tag, \"src\");\n    const size = attr(tag, \"width\") && attr(tag, \"height\") ? \", declared \" + attr(tag, \"width\") + \"x\" + attr(tag, \"height\") : \"\";\n    if (src && !src.startsWith(\"data:\")) add(src, \"img alt=\" + JSON.stringify(attr(tag, \"alt\")) + (/logo/i.test(tag) ? \" logo\" : \"\") + size);\n  }\n} catch (error) {\n  console.log(\"Could not collect images from the page: \" + error);\n}\nconst fieldProperties = Object.fromEntries(brief.fields.map(field => [field.id, {type: \"string\", description: field.label + \": \" + field.purpose + \". At most \" + field.maxWords + \" words.\"}]));\nconst imageProperties = Object.fromEntries(brief.images.map(image => [image.id, {type: \"string\", description: \"Direct URL of an existing image for \" + image.label + \". \" + image.guidance + \" Use an empty string when no image fits.\"}]));\nconst option = {type: \"object\", properties: {\n  title: {type: \"string\", description: \"A name for this direction in 2 to 4 words.\"},\n  angle: {type: \"string\", description: \"One sentence on what this direction emphasizes.\"},\n  brandColor: {type: \"string\", description: \"The brand's main color as #RRGGBB, as the site shows it.\"},\n  fields: {type: \"object\", properties: fieldProperties, required: Object.keys(fieldProperties)},\n  images: {type: \"object\", properties: imageProperties, required: Object.keys(imageProperties)}\n}, required: [\"title\", \"angle\", \"brandColor\", \"fields\", \"images\"]};\nprogress(30, \"Writing three options\");\nconst answer = await run_agent({\n  label: \"suggest\",\n  model: {provider: model.provider, id: model.id},\n  tools: [\"browser\", \"image_search\"],\n  system: \"You are a performance-ad copywriter and art director. Use only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice. For images, choose real, large images of this brand and product: first from the page's image candidates, preferring a large declared size, then with image_search when the page has no fitting image. Give the direct URL of the image file, never a page URL, and never an image of another brand.\",\n  prompt: [\n    \"Write three different options to fill the ad concept \" + JSON.stringify(brief.title) + \" from this website.\",\n    \"Objective: \" + brief.objective,\n    \"Visual rule: \" + brief.direction,\n    \"Beats, in order:\",\n    ...brief.beats.map(beat => \"- \" + beat),\n    \"\",\n    \"Website \" + url + \":\",\n    page.slice(0, 20000),\n    ...(candidates.length ? [\"\", \"Image candidates on the website:\", ...candidates.slice(0, 60).map(item => \"- \" + item.url + \" (\" + item.note + \")\")] : [])\n  ].join(\"\\n\"),\n  output_schema: {type: \"object\", properties: {options: {type: \"array\", minItems: 3, maxItems: 3, items: option}}, required: [\"options\"]},\n  max_turns: 40\n});\n// Copy is kept verbatim, so an HTML entity the model echoes from a page would show in the ad.\nconst decode = (value) => text(value).replace(/&lt;/g, \"<\").replace(/&gt;/g, \">\").replace(/&quot;/g, \"\\\"\").replace(/&#39;/g, \"'\").replace(/&amp;/g, \"&\");\nconst options = (Array.isArray(answer.result?.options) ? answer.result.options : []).slice(0, 3).map((raw, index) => {\n  const fields = Object.fromEntries(brief.fields.map(field => [field.id, decode(raw?.fields?.[field.id])]));\n  const images = Object.fromEntries(brief.images.map(image => [image.id, /^https?:\\/\\//.test(text(raw?.images?.[image.id])) ? text(raw.images[image.id]) : \"\"]));\n  const color = text(raw?.brandColor);\n  const preview = brief.images.map(image => images[image.id]).find(Boolean);\n  return {\n    value: String(index + 1),\n    title: decode(raw?.title) || \"Option \" + (index + 1),\n    description: [decode(raw?.angle), ...brief.fields.slice(0, 2).map(field => \"“\" + fields[field.id] + \"”\")].filter(Boolean).join(\" \"),\n    ...(preview ? {image: preview} : {}),\n    brandColor: /^#[0-9a-fA-F]{6}$/.test(color) ? color.toUpperCase() : \"\",\n    fields,\n    images\n  };\n});\nif (!options.length) throw new Error(\"The agent returned no options. Try again, or try another page of the site.\");\nawait output(\"fillOptions\", options);\nawait output(\"fillChoice\", \"\");\nawait output(\"fillReport\", \"\");\nprogress(100, \"Pick one option.\");",
+              "code": "import { run_agent } from \"@nodetool-ai/sandbox-nodetool/agents\";\nimport { browser } from \"@nodetool-ai/sandbox-nodetool/web\";\nconst brief = inputs.brief;\nconst model = inputs.model;\nif (!model?.provider?.trim() || !model?.id?.trim()) throw new Error(\"Select the finishing model on the Start step first. The agent uses it too.\");\nconst text = (value) => typeof value === \"string\" ? value.trim() : \"\";\n// A bare domain such as \"shop.example\" gets https:// in front.\nconst typed = text(inputs.sourceUrl);\nconst url = !typed || /^[a-z][a-z0-9+.-]*:/i.test(typed) ? typed : \"https://\" + typed.replace(/^\\/+/, \"\");\nif (!/^https?:\\/\\/[^\\s/]+\\.[^\\s]/.test(url)) throw new Error(\"Paste a website URL, such as your-product.com.\");\nprogress(10, \"Reading the website\");\nconst page = String(await browser({url}));\nif (page.startsWith(\"Error:\")) throw new Error(\"Could not read the website. \" + page.slice(6).trim());\n// The readable text drops images, so collect them from the page's HTML.\nconst candidates = [];\ntry {\n  const html = await (await fetch(url)).text();\n  const absolute = (src) => { try { return new URL(src.trim(), url).href; } catch { return \"\"; } };\n  const attr = (tag, name) => (tag.match(new RegExp(\"\\\\b\" + name + \"\\\\s*=\\\\s*[\\\"']([^\\\"']+)[\\\"']\", \"i\")) || [])[1] || \"\";\n  const add = (src, note) => { const href = absolute(src); if (href.startsWith(\"http\") && !candidates.some(item => item.url === href)) candidates.push({url: href, note}); };\n  for (const tag of html.match(/<meta\\b[^>]*>/gi) || []) {\n    if (/(og:image|twitter:image)/i.test(attr(tag, \"property\") + attr(tag, \"name\"))) add(attr(tag, \"content\"), \"social preview image\");\n  }\n  for (const tag of html.match(/<link\\b[^>]*>/gi) || []) {\n    if (/icon|logo/i.test(attr(tag, \"rel\"))) add(attr(tag, \"href\"), \"site icon (\" + attr(tag, \"rel\") + \")\");\n  }\n  // A srcset lists sizes, so take its widest entry over the src fallback.\n  const widest = (srcset) => srcset.split(\",\").map(entry => entry.trim().split(/\\s+/)).filter(([src]) => src).sort((a, b) => (parseFloat(b[1]) || 0) - (parseFloat(a[1]) || 0))[0]?.[0] || \"\";\n  for (const tag of html.match(/<img\\b[^>]*>/gi) || []) {\n    const src = widest(attr(tag, \"srcset\") || attr(tag, \"data-srcset\")) || attr(tag, \"data-src\") || attr(tag, \"src\");\n    const size = attr(tag, \"width\") && attr(tag, \"height\") ? \", declared \" + attr(tag, \"width\") + \"x\" + attr(tag, \"height\") : \"\";\n    if (src && !src.startsWith(\"data:\")) add(src, \"img alt=\" + JSON.stringify(attr(tag, \"alt\")) + (/logo/i.test(tag) ? \" logo\" : \"\") + size);\n  }\n} catch (error) {\n  console.log(\"Could not collect images from the page: \" + error);\n}\nconst fieldProperties = Object.fromEntries(brief.fields.map(field => [field.id, {type: \"string\", description: field.label + \": \" + field.purpose + \". At most \" + field.maxWords + \" words.\"}]));\nconst imageProperties = Object.fromEntries(brief.images.map(image => [image.id, {type: \"string\", description: \"Direct URL of an existing image for \" + image.label + \". \" + image.guidance + \" Use an empty string when no image fits.\"}]));\nconst option = {type: \"object\", properties: {\n  title: {type: \"string\", description: \"A name for this direction in 2 to 4 words.\"},\n  angle: {type: \"string\", description: \"One sentence on what this direction emphasizes.\"},\n  brandColor: {type: \"string\", description: \"The brand's accent color as #RRGGBB (buttons, links, highlights), not the page background.\"},\n  fields: {type: \"object\", properties: fieldProperties, required: Object.keys(fieldProperties)},\n  images: {type: \"object\", properties: imageProperties, required: Object.keys(imageProperties)}\n}, required: [\"title\", \"angle\", \"brandColor\", \"fields\", \"images\"]};\nprogress(30, \"Writing three options\");\nconst answer = await run_agent({\n  label: \"suggest\",\n  model: {provider: model.provider, id: model.id},\n  tools: [\"browser\", \"image_search\"],\n  system: \"You are a performance-ad copywriter and art director. Use only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice. For images, choose real, large images of this brand and product: first from the page's image candidates, preferring a large declared size, then with image_search when the page has no fitting image. Give the direct URL of the image file, never a page URL, and never an image of another brand.\",\n  prompt: [\n    \"Write three different options to fill the ad concept \" + JSON.stringify(brief.title) + \" from this website.\",\n    \"Objective: \" + brief.objective,\n    \"Visual rule: \" + brief.direction,\n    \"Beats, in order:\",\n    ...brief.beats.map(beat => \"- \" + beat),\n    \"\",\n    \"Website \" + url + \":\",\n    page.slice(0, 20000),\n    ...(candidates.length ? [\"\", \"Image candidates on the website:\", ...candidates.slice(0, 60).map(item => \"- \" + item.url + \" (\" + item.note + \")\")] : [])\n  ].join(\"\\n\"),\n  output_schema: {type: \"object\", properties: {options: {type: \"array\", minItems: 3, maxItems: 3, items: option}}, required: [\"options\"]},\n  max_turns: 40\n});\n// Copy is kept verbatim, so an HTML entity the model echoes from a page would show in the ad.\nconst decode = (value) => text(value).replace(/&lt;/g, \"<\").replace(/&gt;/g, \">\").replace(/&quot;/g, \"\\\"\").replace(/&#39;/g, \"'\").replace(/&amp;/g, \"&\");\nconst options = (Array.isArray(answer.result?.options) ? answer.result.options : []).slice(0, 3).map((raw, index) => {\n  const fields = Object.fromEntries(brief.fields.map(field => [field.id, decode(raw?.fields?.[field.id])]));\n  const images = Object.fromEntries(brief.images.map(image => [image.id, /^https?:\\/\\//.test(text(raw?.images?.[image.id])) ? text(raw.images[image.id]) : \"\"]));\n  const color = text(raw?.brandColor);\n  const preview = brief.images.map(image => images[image.id]).find(Boolean);\n  return {\n    value: String(index + 1),\n    title: decode(raw?.title) || \"Option \" + (index + 1),\n    description: [decode(raw?.angle), ...brief.fields.slice(0, 2).map(field => \"“\" + fields[field.id] + \"”\")].filter(Boolean).join(\" \"),\n    ...(preview ? {image: preview} : {}),\n    brandColor: /^#[0-9a-fA-F]{6}$/.test(color) ? color.toUpperCase() : \"\",\n    fields,\n    images\n  };\n});\nif (!options.length) throw new Error(\"The agent returned no options. Try again, or try another page of the site.\");\nawait output(\"fillOptions\", options);\nawait output(\"fillChoice\", \"\");\nawait output(\"fillReport\", \"\");\nprogress(100, \"Pick one option.\");",
               "timeout": 1800
             },
             "ui_properties": {
@@ -6846,7 +6841,7 @@
                     "id": "glyph",
                     "label": "Anchor glyph",
                     "role": "decorative",
-                    "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup."
+                    "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup."
                   },
                   {
                     "id": "world1",

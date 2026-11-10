@@ -1382,6 +1382,7 @@ export const ChoiceCardsWidget: React.FC<
                   {option.image ? (
                     <ResponsiveImage
                       locator={option.image}
+                      preferThumbnail
                       alt=""
                       borderRadius={BORDER_RADIUS.sm}
                       sx={{

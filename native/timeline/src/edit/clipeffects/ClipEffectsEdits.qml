@@ -15,8 +15,8 @@ QtObject {
     readonly property string matteEffectId: timelineModel ? timelineModel.effectMatteId : ""
     function toggleMatte(id) { timelineModel.setEffectMattePreview(clip.id, matteEffectId === id ? "" : id) }
     function clearMatte() { if (timelineModel && matteEffectId) timelineModel.setEffectMattePreview("", "") }
-    onLockedChanged: if (locked) clearMatte()
-    onEffectsChanged: if (matteEffectId && !effects.some(effect => effect.id === matteEffectId && effect.enabled)) clearMatte()
+    onLockedChanged: if (locked && clip.id) clearMatte()
+    onEffectsChanged: if (clip.id && matteEffectId && !effects.some(effect => effect.id === matteEffectId && effect.enabled)) clearMatte()
     property string observedId: ""
     property bool gesturing: false
     property bool staleRelease: false

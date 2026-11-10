@@ -1,6 +1,6 @@
 ---
 title: "NodeTool AI Video Editor"
-description: "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and cuts a multi-track timeline you keep editing. Open source."
+description: "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and assembles a multi-track timeline you can edit. Open source."
 canonical: https://nodetool.ai/ai-video-editor
 markdown: https://nodetool.ai/ai-video-editor.md
 product: NodeTool
@@ -12,11 +12,11 @@ NodeTool is an open-source AI video editor where the agent's work stays editable
 ## From brief to finished cut
 
 - **Plan the shots**: A storyboard holds the scenes and shots, each with its camera, prompt, and duration. The agent can write it from a brief or a script, and you can edit any shot on the board.
-- **Keep characters consistent**: Entities hold a character, location, style, or product with a reference image and a fixed description. Cast them on the board, and every shot that uses them gets the same reference.
-- **Render stills, then clips**: Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Each render keeps its takes, so a better earlier take is one click away.
-- **Voice the script**: A script holds the lines and voices. Voice all lines, and a line you change is marked stale so only that line is voiced again.
+- **Keep characters consistent**: Save characters, locations, styles and products as entities, each with a reference image and a description. Reuse these entities across shots.
+- **Render stills, then clips**: Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Compare takes and return to an earlier version whenever you prefer.
+- **Voice the script**: Generate dialogue for the script. When you edit a line, regenerate its voice recording without redoing the others.
 - **Cut the timeline**: Create timeline turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.
-- **Deliver every format**: Adapt format makes 9:16, 1:1, and 4:5 versions of the sequence in one step. Export MP4, WebM, or a PNG sequence, or hand the cut to Premiere Pro.
+- **Resize and export**: Create 9:16, 1:1 and 4:5 versions, then export your media or save a NodeTool project. Partial Premiere Pro handoff is also available through XML and is a work in progress.
 
 ## The timeline
 
@@ -42,20 +42,21 @@ These work in the built-in agent and over the MCP server (https://nodetool.ai/mc
 
 ## Export
 
-- **Browser export**: MP4 (H.264), WebM (VP9 with optional alpha), or a PNG sequence, encoded in the browser with WebCodecs. MP4 needs a browser that can encode H.264.
-- **Server render**: MP4, WebM, MOV (ProRes), or a PNG sequence, from the editor or with render_timeline.
-- **Premiere Pro**: An FCP7 XML file with the media. Text, shapes, captions, effects, animations, transitions, and fades do not carry over.
-- **Project files**: Export the timeline as a project zip, or the whole project as one .nodetool-project file.
+- **Aspect ratios**: Adapt the sequence to 9:16, 1:1 or 4:5. Review the framing of each version before exporting.
+- **Media files — browser export**: MP4 (H.264), WebM (VP9 with optional alpha), or a PNG sequence, encoded in the browser with WebCodecs. MP4 needs a browser that can encode H.264.
+- **Media files — server render**: MP4, WebM, MOV (ProRes), or a PNG sequence, from the editor or with render_timeline.
+- **Premiere Pro project handoff — work in progress**: Export FCP7 XML with the media to continue editing in Premiere Pro. Support is partial, not a native .prproj export. Some properties transfer, while titles, effects and transitions may need rebuilding. Review the export report and check the imported edit.
+- **NodeTool project files**: Export the timeline as a project zip, or the whole project as one .nodetool-project file.
 
 ## What it does not do yet
 
-- Final Cut Pro (FCPXML) and DaVinci Resolve export are not available. Premiere Pro export drops text, effects, and transitions.
+- Final Cut Pro and DaVinci Resolve handoff are not available in the export interface. Premiere Pro XML handoff is partial and a work in progress; it does not preserve every feature.
 - The guided Video and Storyboard flows do not make on-camera speech. Lip-synced dialogue needs the agent, a character entity, a source face video, and a model that supports lip sync.
 - Smart Reframe in Adapt format needs a subject track or authored framing for every visual clip.
 - Without WebGPU the preview skips chroma key, vignette, and sharpen.
 - Generation runs on your own provider accounts, so render costs are the provider's prices. NodeTool shows estimates on render buttons.
 
-NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, export the cut to Premiere Pro or work in a dedicated editor.
+NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, use a dedicated editor. Premiere Pro XML handoff is partial, so check the imported edit before continuing.
 
 ## Questions
 
@@ -93,7 +94,7 @@ NodeTool Studio is free and open source under AGPL-3.0, and runs on macOS, Windo
 
 ### Does it replace Premiere Pro or DaVinci Resolve?
 
-No. NodeTool covers generation, assembly, and a capable multi-track edit for short pieces. For long-form editing, grading, and finishing, export the cut to Premiere Pro.
+No. NodeTool covers generation, assembly, and a capable multi-track edit for short pieces. For long-form editing, grading and finishing, use a dedicated editor. Premiere Pro XML handoff is partial and may require rebuilding unsupported elements.
 
 ## Read more
 

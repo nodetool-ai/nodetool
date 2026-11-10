@@ -29,6 +29,9 @@
 #include <utility>
 #include <vector>
 
+// Qt's DPI for a QFont with no paint device: 72 on macOS, 96 on Linux and Windows.
+Q_GUI_EXPORT int qt_defaultDpiY();
+
 namespace nt::render2d {
 QString resolveFontDirectory(const QString& applicationDir) {
     const QStringList candidates{
@@ -76,17 +79,9 @@ QFont fontFor(const scene::TextStyle& style, double spacing = 0) {
     }
     QFont font;
     font.setFamilies({family, QStringLiteral("Inter")});
-    // QFont converts points to pixels with the platform's logical DPI: 72 on
-    // macOS, 96 on most Linux setups. HarfBuzz advances come from the
-    // resulting pixel size and FreeType outlines from fontSizePx, so the
-    // conversion must use the same DPI or glyphs overlap (0.75x on macOS).
-    static const double pixelsPerPoint = [] {
-        QFont probe;
-        probe.setPointSizeF(72);
-        const double measured = QRawFont::fromFont(probe).pixelSize() / 72;
-        return measured > 0 ? measured : 96.0 / 72;
-    }();
-    font.setPointSizeF(std::max(1.0, style.fontSizePx) / pixelsPerPoint);
+    // Shaping and line metrics read the font's pixel size, which Qt derives
+    // from the point size at its default DPI. FreeType draws at fontSizePx.
+    font.setPointSizeF(std::max(1.0, style.fontSizePx) * 72 / qt_defaultDpiY());
     const bool interStatic = family.compare("Inter", Qt::CaseInsensitive) == 0 && style.fontStyle != "italic" &&
                              style.fontStyle != "oblique";
     // Skia selects Inter's static ExtraBold for 700..900 and SemiBold for

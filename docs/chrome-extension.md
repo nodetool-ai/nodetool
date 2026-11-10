@@ -4,15 +4,12 @@ title: "Chrome Extension"
 description: "Chat with NodeTool from Chrome's side panel, and drive your real, logged-in browser from NodeTool workflows."
 ---
 
-The NodeTool Chrome extension gives you two surfaces in the browser you already use.
+The Chrome extension adds a chat side panel and a CDP proxy to your browser. The panel runs NodeTool's agent beside the current tab and shares threads with the desktop and web apps. The proxy relays the Chrome DevTools Protocol, so a workflow or agent can click, type, scroll, and screenshot inside a tab you are already signed in to. Opening the panel attaches the proxy to the current tab.
 
-**The chat side panel** puts NodeTool's agent beside the page you're on, so you can ask about the tab without switching windows. It reads and writes the same conversation threads as the desktop and web apps.
+> **Runs:** in desktop Chrome 116 or newer, on the machine that runs the NodeTool server or native host (the proxy is local-only). **Needs:** the extension loaded unpacked from source (it is not in the Chrome Web Store). The chat panel needs a running NodeTool server. The proxy needs the native host (`nodetool extension install`) and no server. **Not available on nodetool.ai.**
+{: .callout-note}
 
-**The CDP proxy** relays the Chrome DevTools Protocol between your browser and your NodeTool server, so a workflow or an agent can click, type, scroll and screenshot inside a tab you're already signed in to — with your cookies, sessions and 2FA already in place, instead of a fresh anonymous headless browser.
-
-They work together: opening the chat panel attaches the proxy to your current tab, so the agent can act on the page you're looking at.
-
-> New here? Start with [Getting Started](getting-started.md). For headless (no-login-needed) browsing, see the regular [Browser node](developer/node-reference.md) instead — you only need the proxy when a site requires your logged-in session.
+For headless browsing that needs no login, use the regular [Browser node](developer/node-reference.md). Use the proxy when a site requires your signed-in session.
 
 ---
 
@@ -26,15 +23,13 @@ They work together: opening the chat panel attaches the proxy to your current ta
 | **Scope** | One conversation at a time, any thread on the server | One tab at a time, attached explicitly — never automatic |
 | **What it is not** | Not the full app: no media generation, no workflow editor | Not an automation engine — it originates no commands, it only relays them |
 
-The chat panel talks to a NodeTool server. The CDP proxy does not: the backend and the CLI reach it directly. Chrome 116 or newer is required for the side panel.
+The chat panel talks to a NodeTool server. The backend and the CLI reach the CDP proxy directly.
 
 ---
 
 ## Installing
 
-The extension is not published to the Chrome Web Store — build and load it unpacked from source.
-
-On a local install, the first launch with no API key stored opens a two-step onboarding. It signs in to ChatGPT and Claude, then sets up the extension with a live connection status. The app registers the native host itself, and the desktop app points Load unpacked at the extension folder it ships, so no terminal step is needed. **Settings → Browser Extension** has the same **Connect to Chrome** button. ChatGPT image generation and every Gemini request (chat, images, Veo video) run through the extension.
+On a local install, the first launch with no API key stored opens a two-step onboarding. It signs in to ChatGPT and Claude, then sets up the extension with a live connection status. The app registers the native host itself, and the desktop app points Load unpacked at the extension folder it ships, so no terminal step is needed. **Settings → Integrations → Browser extension** has the same **Connect to Chrome** button. ChatGPT image generation and every Gemini request (chat, images, Veo video) run through the extension.
 
 ```bash
 git clone https://github.com/nodetool-ai/nodetool.git
@@ -78,9 +73,7 @@ npm run clean       # remove dist/
 
 ## Chat in the side panel
 
-Click the toolbar icon, then **Open chat**. Chrome's side panel opens beside the page, and the extension attaches the CDP proxy to the current tab in the same gesture — so the agent can act on what you're looking at without a second step.
-
-The empty state offers three starters that reflect what the panel is for: *Summarize this page*, *Pull the key facts out of this page into a list*, *What can I do with this page?*
+Click the toolbar icon, then **Open chat**. The side panel opens and the extension attaches the CDP proxy to the current tab in the same gesture. The empty state offers three starters: *Summarize this page*, *Pull the key facts out of this page into a list*, and *What can I do with this page?*
 
 ### What's in the panel
 
@@ -133,25 +126,17 @@ The gear icon holds the panel's own server setting, separate from the proxy's re
 
 The proxy is the half that lets a workflow or an agent act inside a tab you are signed in to.
 
-### Why you'd use it
-
-Many AI product sites — Midjourney, Sora, Runway, ElevenLabs, and similar generation tools — either block headless Chrome outright or require a logged-in account with 2FA and session cookies that a fresh, server-launched browser doesn't have. Re-implementing every such site as a dedicated API integration is slow and brittle to UI changes.
-
-The Chrome Extension solves this by reusing the browser you already use every day. You attach the extension to a tab where you're already signed in, and a workflow's browser-automation node drives that tab through the same action loop (click, type, scroll, extract, screenshot) it would use against a headless browser — just over a different transport.
-
-**Typical scenario**: You're signed into Midjourney in a regular Chrome tab. You attach the extension to that tab, then run a workflow that submits a prompt, waits for the image grid to render, and downloads the results — all inside your real session, with no API key or cookie-jar wrangling.
+Sites such as Midjourney, Sora, Runway, and ElevenLabs often block headless Chrome or require a logged-in account with 2FA and session cookies. Attach the extension to a tab where you are already signed in, and a workflow's browser-automation node drives that tab through the same action loop (click, type, scroll, extract, screenshot) it uses against a headless browser, over a different transport.
 
 ### Recipe: generate an image on a logged-in site
 
 1. **Install** the extension (see [Installing](#installing) above) and pin it to your toolbar.
 2. **Sign in** to the target site (e.g. Midjourney) in a normal Chrome tab, as you would manually.
-3. **Register the native host once**: click **Connect to Chrome** in the app (onboarding or **Settings → Browser Extension**), or run `nodetool extension install`. Then reload the extension in `chrome://extensions`. Check it with `nodetool extension status`. No server needs to run.
+3. **Register the native host once**: click **Connect to Chrome** in the app (onboarding or **Settings → Integrations → Browser extension**), or run `nodetool extension install`. Then reload the extension in `chrome://extensions`. Check it with `nodetool extension status`. No server needs to run.
 4. **Open the extension popup** on the signed-in tab and click **Attach to this tab**. Chrome shows its standard "Nodetool is debugging this browser" banner while attached.
 5. **Ask the agent**, run a workflow, or call a provider such as `nodetool generate dreamina …`. The `browser_*` tools drive the attached tab — `browser_status` first to confirm the extension is connected, then `browser_restart` with `transport: "extension"` if the process is still on its headless Chrome (or set `NODETOOL_BROWSER_TRANSPORT=extension` before starting it — see [Transport selection](#transport-selection)).
 6. **Run it**. The action loop drives your attached tab: it types the prompt, submits the form, waits for the result, and captures a screenshot or the generated asset into your library.
 7. **Detach** from the popup (or just close the tab) when you're done — an attachment lasts only for the current browser session.
-
-Because the site sees your real, logged-in browser rather than a bot-like headless process, you avoid the CAPTCHAs, bot-detection blocks, and re-authentication flows that a server-launched browser would hit.
 
 ### Example: the Dreamina provider
 
@@ -164,17 +149,30 @@ nodetool generate dreamina high_aes_general_v50p_large "a red apple" --aspect-ra
 
 Images go through `textToImage` and `imageToImage`. Image-to-image uses the site's blend mode, takes up to nine source images and a `strength` from 0 to 1, and works on models that list `byte_edit`. Video goes through the provider API: `textToVideo` for every model Dreamina lists, `imageToVideo` for models that list `first_frame` (the image is the first frame, and `endImage` is the last frame on models that list `end_frame`), and `referenceToVideo` for the Seedance 2.x models (up to nine reference images, three reference videos and three reference audios, placed in the prompt with `[Image N]`, `[Video N]` and `[Audio N]` markers). A reference audio needs an image or video beside it. Multiframes, smart edit and long video are not supported. Music goes through `textToMusic`. The `instrumental` model needs no model key and returns a WAV track (44.1 kHz stereo) of the length you ask for in whole seconds, 10 seconds by default. Vocal models, with optional lyrics, appear in `getAvailableMusicModels` only when your Dreamina account lists them. The calls spend your Dreamina credits.
 
+### Windows setup
+
+Settings → Integrations → Browser extension registers the host for the current
+Windows user. It detects Chrome, Chromium, Brave and Edge profiles under
+`LOCALAPPDATA`, writes a manifest for each browser, and registers it under that
+browser's `HKCU\Software\…\NativeMessagingHosts\ai.nodetool.browser_bridge`
+key in both registry views. Administrator rights are not required.
+
+The launcher in `~/.nodetool/browser-bridge/native-host.cmd` pins the Node
+executable and host script. Run setup again if either moves. Installation status
+checks the registry entries, manifest, launcher and target files. Loading the
+extension unpacked in Chrome remains a separate step.
+
 ### The native host
 
-Chrome starts the host when the extension connects and ends it when the connection closes. It listens on a per-user unix socket (`<tmp>/nodetool-browser-bridge-<user>/<pid>.sock`, mode 0600 in a 0700 directory), so only your OS user reaches the extension. Several clients can share one extension: the host rewrites command ids per client, sends events to all, and keeps the debugger attached until the last client lets go. `nodetool extension install` writes the host manifest for Chrome, Chromium, Brave, Edge and Arc. The extension ID is fixed by the `key` in `chrome-extension/manifest.json`.
+Chrome starts the host when the extension connects and ends it when the connection closes. On macOS and Linux, it listens on a per-user unix socket (`<tmp>/nodetool-browser-bridge-<user>/<pid>.sock`, mode 0600 in a 0700 directory), so only your OS user reaches the extension. On Windows it uses a named pipe instead. Several clients can share one extension: the host rewrites command ids per client, sends events to all, and keeps the debugger attached until the last client lets go. `nodetool extension install` writes the host manifest for Chrome, Chromium, Brave, Edge and Arc. The extension ID is fixed by the `key` in `chrome-extension/manifest.json`.
 
 ### How it works
 
-The extension is deliberately "dumb" — a pure conduit with no CDP logic of its own. All browser-automation semantics (which elements to click, how to wait for a page to settle, the action loop) live in the client process; the extension just carries the bytes.
+The extension has no CDP logic. Browser-automation semantics (element selection, waiting, the action loop) live in the client process, and the extension carries the bytes.
 
 ```
 NodeTool backend / CLI / provider
-        │  CDP commands/events, NDJSON on a unix socket
+        │  CDP commands/events, NDJSON on a unix socket or Windows named pipe
         ▼
    native host  (started by Chrome)
         │  native messaging, length-prefixed JSON
@@ -255,16 +253,6 @@ self-hosted install (`NODETOOL_NODE_PROFILE=full`).
 
 Permission-wise: reading the page (`browser_status`, `browser_view`, `browser_console_view`) is classified `read`, `browser_restart` and `browser_console_exec` are `execute`, and everything that acts on the page — a click, a keystroke, an upload — is `external`, because it lands on a third-party site inside the user's own logged-in session.
 
-The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which knows nothing about agents, nodes or assets — a screenshot comes back from it as base64. The capability module imports it directly and owns the half that needs a `ProcessingContext`: persisting those bytes as an asset, and resolving an asset id back to bytes for an upload. That split is why the `lib.browser.Screenshot` node can share the same action loop without depending on the agent layer.
-
----
-
-## Server requirements
-
-- The CDP proxy needs no server. It needs the native host (`nodetool extension install`) on the same machine and OS user as the extension and the client.
-- The chat panel needs a running NodeTool server (`nodetool serve --port 7777` or your deployed URL), reached through `/trpc` and `/ws`.
-- Chrome 116 or newer — `chrome.sidePanel` is what the chat panel opens into.
-
 ---
 
 ## Limitations
@@ -284,7 +272,7 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 
 ### The chat panel shows "Cannot reach …"
 
-Check the server URL in the panel's settings (gear icon). If it names a host that is not `localhost`, `127.0.0.1` or an HTTPS address, save it again and accept Chrome's permission prompt — without that grant the browser blocks every request to it. A green connection dot with failing requests is exactly this: the WebSocket is not CORS-gated, the HTTP calls are.
+See [Pointing the panel at a server](#pointing-the-panel-at-a-server). A non-`localhost`, non-HTTPS host needs the permission grant, and without it every HTTP request is blocked while the WebSocket still connects.
 
 ### Popup shows "disconnected"
 
@@ -307,9 +295,4 @@ Check the server URL in the panel's settings (gear icon). If it names a host tha
 
 ---
 
-## Related topics
-
-- [Getting Started](getting-started.md) — Desktop setup and first workflow
-- [Developer: Node Reference](developer/node-reference.md) — Browser-automation node reference
-- [API Reference](api-reference.md) — Server API and WebSocket documentation
-- [WebSocket API](websocket-api.md) — General WebSocket protocol details
+Related: [Getting Started](getting-started.md), [Developer: Node Reference](developer/node-reference.md), [API Reference](api-reference.md), [WebSocket API](websocket-api.md).

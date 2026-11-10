@@ -1799,6 +1799,12 @@
       "localTitle": "현지 모델을 선호하시나요?",
       "localDescription": "Ollama를 설치하고 컴퓨터에서 실행할 모델을 다운로드하세요.",
       "getOllama": "올라마 받기",
+      "ollamaChecking": "Ollama 연결 확인 중…",
+      "ollamaCheckFailed": "Ollama를 확인할 수 없습니다. 다시 시도하세요.",
+      "ollamaConnected": "Ollama가 연결되었습니다. 모델 관리자에서 모델을 선택하거나 다운로드하세요.",
+      "ollamaUnavailable": "컴퓨터의 Ollama에 연결하려면 NodeTool 데스크톱 앱을 사용하세요.",
+      "ollamaUnreachable": "Ollama에 연결할 수 없습니다. 설치되어 있다면 실행하세요. 설치되지 않았다면 다운로드하세요.",
+      "checkOllamaAgain": "다시 확인",
       "encryptedKeys": "API 키는 암호화됩니다. 설정에서 관리하거나 제거할 수 있습니다.",
       "signInAgain": "{{provider}}에 다시 로그인하세요.",
       "waitingSignIn": "로그인 대기 중…",
@@ -6820,6 +6826,7 @@
       "allCategories": "모두",
       "categories": {
         "workflows": "워크플로",
+        "comfy": "ComfyUI",
         "apps": "앱",
         "storyboards": "스토리보드",
         "timelines": "타임라인",
@@ -9056,6 +9063,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate API 키 받기",
           "tooltip": "API 키를 받으려면 Runcrate 플랫폼으로 이동하세요."
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API 키 받기",
+          "tooltip": "API 키를 받으려면 Standard Compute 플랫폼으로 이동하세요."
         },
         "API_ROUTE_API_KEY": {
           "button": "API 경로 키 가져오기",
@@ -12182,6 +12193,31 @@
         "undo": "실행 취소",
         "redo": "다시 실행",
         "agent": "대리인"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "요청이 실행되는 동안 Chrome에 \"Nodetool이 이 브라우저를 디버깅 중입니다\" 표시줄이 표시됩니다. 확장 프로그램은 다른 탭에서는 아무 작업도 수행하지 않습니다.",
       "setup": "설정하세요",
       "step1": "Chrome이 NodeTool의 브라우저 브리지를 시작하도록 합니다.",
-      "windowsUnsupported": "아직 Windows에서는 지원되지 않습니다. 확장을 통한 미디어 생성은 macOS 및 Linux에서 작동합니다.",
       "bridgeRegistered": "완료. NodeTool은 브라우저에 브리지를 등록했습니다.",
       "registering": "브라우저에 등록하는 중…",
       "registrationFailed": "브라우저 브리지 등록 실패",
@@ -18911,6 +18946,12 @@
     "signIn": "로그인하려면 이 명령을 이 컴퓨터의 터미널에 복사하세요. Google 로그인을 완료한 후 모델을 새로 고치세요.",
     "refreshModels": "모델 새로 고침",
     "statusUnavailable": "상태를 알 수 없음"
+  },
+  "copilot": {
+    "description": "GitHub Copilot 계정으로 언어 모델을 사용하세요. API 키가 필요 없습니다.",
+    "install": "이 컴퓨터의 터미널에서 GitHub Copilot CLI를 설치하세요.",
+    "signIn": "그런 다음 로그인하고 모델을 새로 고치세요. Copilot 요금제에 포함되지 않은 모델은 표시되지 않습니다.",
+    "refreshModels": "모델 새로 고침"
   },
   "batch2_29": {
     "storyboardPanel": {

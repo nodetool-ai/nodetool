@@ -75,6 +75,13 @@ interface ImageViewProps {
    * viewer) is derived lazily off the display path.
    */
   bitmap?: ImageBitmap;
+  /**
+   * A smaller rendition of `source` to paint instead, such as the asset's
+   * 512px thumbnail. Copy, download and the viewer still use `source`, and the
+   * dimension label is hidden while the preview is shown because it would
+   * report the preview's size.
+   */
+  previewSource?: ResolvedMediaUrl;
   /** Called once the decoded image or bitmap dimensions are known. */
   onNaturalDimensions?: (dimensions: { width: number; height: number }) => void;
 }
@@ -82,6 +89,7 @@ interface ImageViewProps {
 const ImageView: React.FC<ImageViewProps> = ({
   source,
   bitmap,
+  previewSource,
   onNaturalDimensions
 }) => {
   const { t } = useTranslation();
@@ -108,6 +116,12 @@ const ImageView: React.FC<ImageViewProps> = ({
     isString(source) ? source : null
   );
   const effectiveSource = fileHttpUrl !== null ? fileHttpUrl : source;
+  // The full URL the actions use when a preview is painted instead.
+  const fullUrl =
+    previewSource && isString(effectiveSource) && effectiveSource
+      ? effectiveSource
+      : undefined;
+  const displaySource = fullUrl ? previewSource : effectiveSource;
 
   const nextUrl = useMemo(() => {
     // A newer source arrived before the previous preload committed — drop the
@@ -116,10 +130,10 @@ const ImageView: React.FC<ImageViewProps> = ({
       URL.revokeObjectURL(nextBlobRef.current);
       nextBlobRef.current = null;
     }
-    const result = createImageUrl(effectiveSource, null);
+    const result = createImageUrl(displaySource, null);
     nextBlobRef.current = result.blobUrl;
     return result.url || undefined;
-  }, [effectiveSource]);
+  }, [displaySource]);
 
   const promote = useCallback((url: string) => {
     if (
@@ -227,9 +241,11 @@ const ImageView: React.FC<ImageViewProps> = ({
   // Show the committed image, falling back to the freshly-computed one on the
   // first render so there's no "no image" flash before the effect runs.
   const imageUrl = bitmap ? bitmapUrl ?? undefined : displayedUrl ?? nextUrl;
+  const actionUrl = bitmap ? imageUrl : fullUrl ?? imageUrl;
+  const showsPreview = !bitmap && fullUrl !== undefined && imageUrl !== fullUrl;
 
   const handleImageLoad = useCallback(() => {
-    if (imageRef.current) {
+    if (imageRef.current && !showsPreview) {
       const dims = {
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
@@ -237,7 +253,7 @@ const ImageView: React.FC<ImageViewProps> = ({
       setImgNaturalDimensions(dims);
       onNaturalDimensions?.(dims);
     }
-  }, [onNaturalDimensions]);
+  }, [onNaturalDimensions, showsPreview]);
 
   useEffect(() => {
     if (bitmap) {
@@ -245,6 +261,7 @@ const ImageView: React.FC<ImageViewProps> = ({
       return;
     }
     if (
+      !showsPreview &&
       imageRef.current?.complete &&
       imageRef.current.naturalWidth > 0 &&
       imageRef.current.naturalHeight > 0
@@ -258,7 +275,7 @@ const ImageView: React.FC<ImageViewProps> = ({
       return;
     }
     setImgNaturalDimensions(null);
-  }, [bitmap, imageUrl, onNaturalDimensions]);
+  }, [bitmap, imageUrl, onNaturalDimensions, showsPreview]);
 
   // Bitmap dimensions are known synchronously — skip the extra render
   // cycle that useEffect+setState would cause on every bitmap update.
@@ -296,16 +313,16 @@ const ImageView: React.FC<ImageViewProps> = ({
   }, [onRequestOpenViewer]);
 
   const handleDownload = useCallback(async () => {
-    if (!imageUrl) { return; }
+    if (!actionUrl) { return; }
 
     let filename = `image-${Date.now()}.png`;
     try {
-      const urlPath = imageUrl.split('?')[0];
+      const urlPath = actionUrl.split('?')[0];
       const lastSegment = urlPath.split('/').pop();
-      if (lastSegment && lastSegment.includes('.') && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
+      if (lastSegment && lastSegment.includes('.') && !actionUrl.startsWith("blob:") && !actionUrl.startsWith("data:")) {
         filename = decodeURIComponent(lastSegment);
-      } else if (imageUrl.startsWith("data:image/")) {
-        const mime = imageUrl.substring(5, imageUrl.indexOf(";"));
+      } else if (actionUrl.startsWith("data:image/")) {
+        const mime = actionUrl.substring(5, actionUrl.indexOf(";"));
         const ext = mime.split("/")[1];
         if (ext) {
           filename = `image-${Date.now()}.${ext === 'jpeg' ? 'jpg' : ext}`;
@@ -316,11 +333,11 @@ const ImageView: React.FC<ImageViewProps> = ({
     }
 
     // Fetch through a fresh blob so cross-origin /api/* URLs still honor `download`,
-    // and so a revoked/stale blob URL in imageUrl can't produce a truncated file.
-    let downloadUrl = imageUrl;
+    // and so a revoked/stale blob URL in actionUrl can't produce a truncated file.
+    let downloadUrl = actionUrl;
     let createdUrl: string | null = null;
     try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(actionUrl);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -341,7 +358,7 @@ const ImageView: React.FC<ImageViewProps> = ({
     if (createdUrl) {
       setTimeout(() => URL.revokeObjectURL(createdUrl), 0);
     }
-  }, [imageUrl]);
+  }, [actionUrl]);
 
   if (!imageUrl && !bitmap) {
     return <Text>{t("i18n-next66.node.imageView.noImageFound")}</Text>;
@@ -352,19 +369,19 @@ const ImageView: React.FC<ImageViewProps> = ({
       css={hoverStyles}
       className="image-output"
     >
-      {!onRequestOpenViewer && imageUrl && (
+      {!onRequestOpenViewer && actionUrl && (
         <AssetViewer
           contentType="image/*"
-          url={imageUrl}
+          url={actionUrl}
           open={openViewer}
           onClose={handleCloseViewer}
         />
       )}
-      {!overlaySuppressed && imageUrl && (
+      {!overlaySuppressed && actionUrl && (
         <div className="image-view-actions">
           <CopyAssetButton
             contentType="image/png"
-            url={imageUrl}
+            url={actionUrl}
           />
           <ToolbarIconButton
             title={t("i18n-next66.node.imageView.download")}

@@ -1799,6 +1799,12 @@
       "localTitle": "Foretrekker du lokale modeller?",
       "localDescription": "Installer Ollama og last ned en modell som skal kjøres på maskinen din.",
       "getOllama": "Få Ollama",
+      "ollamaChecking": "Sjekker forbindelsen til Ollama…",
+      "ollamaCheckFailed": "Kunne ikke sjekke Ollama. Prøv igjen.",
+      "ollamaConnected": "Ollama er tilkoblet. Velg eller last ned en modell i modellbehandleren.",
+      "ollamaUnavailable": "Bruk NodeTool-skrivebordsappen for å koble til Ollama på datamaskinen din.",
+      "ollamaUnreachable": "Kan ikke nå Ollama. Åpne det hvis det er installert. Ellers kan du laste det ned for å komme i gang.",
+      "checkOllamaAgain": "Sjekk igjen",
       "encryptedKeys": "API-nøkler er kryptert. Du kan administrere eller fjerne dem i Innstillinger.",
       "signInAgain": "Logg på {{provider}} igjen",
       "waitingSignIn": "Venter på pålogging …",
@@ -6820,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Arbeidsflyter",
+        "comfy": "ComfyUI",
         "apps": "Apper",
         "storyboards": "Storyboards",
         "timelines": "Tidslinjer",
@@ -9056,6 +9063,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Få Runcrate API-nøkkel",
           "tooltip": "Gå til Runcrate-plattformen for å få API-nøkkelen din"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Få Standard Compute API-nøkkel",
+          "tooltip": "Gå til Standard Compute-plattformen for å få API-nøkkelen din"
         },
         "API_ROUTE_API_KEY": {
           "button": "Få API-rutenøkkel",
@@ -12182,6 +12193,31 @@
         "undo": "Angre",
         "redo": "Gjenta",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "Chrome viser en «Nodetool feilsøker denne nettleseren»-linje mens en forespørsel kjøres. Utvidelsen gjør ingenting på andre faner.",
       "setup": "Sett den opp",
       "step1": "La Chrome starte NodeTools nettleserbro.",
-      "windowsUnsupported": "Dette støttes ikke på Windows ennå. Mediegenerering gjennom utvidelsen fungerer på macOS og Linux.",
       "bridgeRegistered": "Ferdig. NodeTool registrerte broen sin med nettleserne dine.",
       "registering": "Registrerer med nettleserne dine …",
       "registrationFailed": "Registrering av nettleserbro mislyktes",
@@ -18911,6 +18946,12 @@
     "signIn": "For å logge på, kopier denne kommandoen til en terminal på denne datamaskinen. Fullfør Google-påloggingen, og oppdater deretter modellene.",
     "refreshModels": "Oppdater modellene",
     "statusUnavailable": "Status utilgjengelig"
+  },
+  "copilot": {
+    "description": "Bruk GitHub Copilot-kontoen din til språkmodeller. Ingen API-nøkkel er nødvendig.",
+    "install": "Installer GitHub Copilot CLI i en terminal på denne datamaskinen.",
+    "signIn": "Logg deretter inn og oppdater modellene. Modeller som Copilot-abonnementet ditt ikke inkluderer, vises ikke.",
+    "refreshModels": "Oppdater modeller"
   },
   "batch2_29": {
     "storyboardPanel": {

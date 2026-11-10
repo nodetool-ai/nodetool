@@ -1799,6 +1799,12 @@
       "localTitle": "Bevorzugst du lokale Modelle?",
       "localDescription": "Installiere Ollama und lade ein Modell herunter, das auf deinem Rechner läuft.",
       "getOllama": "Ollama herunterladen",
+      "ollamaChecking": "Verbindung zu Ollama wird geprüft…",
+      "ollamaCheckFailed": "Ollama konnte nicht überprüft werden. Versuche es erneut.",
+      "ollamaConnected": "Ollama ist verbunden. Wähle oder lade ein Modell in der Modellverwaltung herunter.",
+      "ollamaUnavailable": "Verwende die NodeTool-Desktop-App, um Ollama auf deinem Computer zu verbinden.",
+      "ollamaUnreachable": "Ollama ist nicht erreichbar. Öffne es, falls es installiert ist. Andernfalls lade es herunter.",
+      "checkOllamaAgain": "Erneut prüfen",
       "encryptedKeys": "API-Schlüssel sind verschlüsselt. Du kannst sie in den Einstellungen verwalten oder entfernen.",
       "signInAgain": "Erneut bei {{provider}} anmelden",
       "waitingSignIn": "Warte auf die Anmeldung…",
@@ -6820,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Workflows",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Timelines",
@@ -9060,6 +9067,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate-API-Schlüssel abrufen",
           "tooltip": "Zur Runcrate-API-Schlüsselseite"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute-API-Schlüssel abrufen",
+          "tooltip": "Zur Standard Compute-API-Schlüsselseite"
         },
         "HF_TOKEN": {
           "button": "Hugging-Face-Token abrufen",
@@ -12182,6 +12193,31 @@
         "undo": "Rückgängig",
         "redo": "Wiederholen",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "{{step}} angezeigt",
+        "stepLabel": "Schritt {{index}} von {{total}}: {{title}}",
+        "show": "Anzeigen",
+        "hide": "Ausblenden",
+        "pressed": "„{{control}}“ gedrückt",
+        "asksForStep": "zu {{title}}",
+        "asksToRun": "{{name}} ausführen",
+        "settled": {
+          "completed": "{{name}} ist fertig",
+          "failed": "{{name}} ist fehlgeschlagen",
+          "cancelled": "{{name}} wurde abgebrochen"
+        },
+        "stepsBar": "Schrittleiste",
+        "sendFailed": "Konnte nicht an den Agenten gesendet werden: {{error}}",
+        "starter": "Beginne mit diesem Schritt oder sag dem Agenten, was du machen willst.",
+        "newChat": "Neuer Chat",
+        "pageView": "Seitenansicht",
+        "chatView": "Chatansicht",
+        "restart": "Neu starten",
+        "restartTitle": "Diese App neu starten?",
+        "restartBody": "Dadurch werden alle eingegebenen Werte und alle Ergebnisse gelöscht. Die App beginnt wieder beim ersten Schritt.",
+        "cancel": "Abbrechen",
+        "composerPlaceholder": "Frag zu einem Schritt, einem Ergebnis oder einem Problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "Während einer Anfrage zeigt Chrome den Balken „Nodetool debuggt diesen Browser“. Die Erweiterung ist auf anderen Tabs inaktiv.",
       "setup": "Einrichten",
       "step1": "Erlaube Chrome, die Browserbrücke von NodeTool zu starten.",
-      "windowsUnsupported": "Unter Windows wird dies noch nicht unterstützt. Die Mediengenerierung über die Erweiterung funktioniert auf macOS und Linux.",
       "bridgeRegistered": "Fertig. NodeTool hat seine Browserbrücke registriert.",
       "registering": "Registrierung bei deinen Browsern läuft…",
       "registrationFailed": "Registrierung der Browserbrücke fehlgeschlagen",
@@ -18911,6 +18946,12 @@
     "signIn": "Kopiere zum Anmelden diesen Befehl in ein Terminal auf diesem Computer. Schließe die Google-Anmeldung ab und aktualisiere dann die Modelle.",
     "refreshModels": "Modelle aktualisieren",
     "statusUnavailable": "Status nicht verfügbar"
+  },
+  "copilot": {
+    "description": "Nutze dein GitHub-Copilot-Konto für Sprachmodelle. Kein API-Schlüssel nötig.",
+    "install": "Installiere die GitHub Copilot CLI in einem Terminal auf diesem Computer.",
+    "signIn": "Melde dich danach an und aktualisiere die Modelle. Modelle, die dein Copilot-Tarif nicht enthält, erscheinen nicht.",
+    "refreshModels": "Modelle aktualisieren"
   },
   "batch2_29": {
     "storyboardPanel": {

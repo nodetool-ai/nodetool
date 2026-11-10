@@ -238,8 +238,6 @@ exported by `@nodetool-ai/websocket/trpc` gives a typed client every shape.
 
 ## Headless Mode: Running Workflows via CLI/API
 
-NodeTool can run entirely without the UI—perfect for automation, CI/CD pipelines, and programmatic integrations. This section shows how to execute workflows from the command line or via HTTP requests.
-
 ### Quick Start: Run a Workflow via cURL
 
 ```bash
@@ -255,27 +253,20 @@ curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
   }'
 ```
 
-Response:
+Response shape (see [Workflow API](workflow-api.md#running-a-workflow)):
 ```json
 {
-  "job_id": "job_abc123",
-  "workflow_id": "YOUR_WORKFLOW_ID",
+  "job_id": "<uuid>",
+  "workflow_id": "<uuid>",
   "status": "completed",
-  "outputs": {
-    "image": {
-      "type": "image",
-      "uri": "http://localhost:7777/api/storage/assets/abc123.png"
-    },
-    "caption": "Generated image of a cyberpunk cityscape..."
-  },
+  "outputs": { "<output node name>": "<value>" },
   "error": null,
   "message_count": 12,
   "background": false
 }
 ```
 
-`outputs` is an object keyed by output-node name. The route does not stream — for
-real-time progress, run the workflow over the [WebSocket API](websocket-api.md).
+The route does not stream. For real-time progress, use the [WebSocket API](websocket-api.md).
 
 ### Interactive Runs: Answering a Failed Node
 
@@ -3011,8 +3002,6 @@ print(completion.choices[0].message.content)
 
 ### Finding Your Workflow ID
 
-To run a workflow via API, you need its ID. Here's how to find it:
-
 1. **From the UI:** Open a workflow in the editor — the ID appears in the browser URL bar
 2. **From the API:** Call `GET /api/workflows` to list all workflows with their IDs
 3. **From the CLI:** Run `nodetool workflows list`
@@ -3033,7 +3022,7 @@ route family:
 | Status Code | Meaning | Common Causes |
 |-------------|---------|---------------|
 | 400 | Bad Request | Invalid parameters, malformed JSON, a graph the server refuses to run |
-| 401 | Unauthorized | Missing or invalid token |
+| 401 | Unauthorized | Missing or invalid token. The body is `{"error": "Remote access requires authentication"}`, or `{"error": "Unauthorized"}` in Supabase and OIDC modes |
 | 403 | Forbidden | Production guard on local-file and workspace routes, path traversal |
 | 404 | Not Found | Resource missing, or owned by someone else |
 | 409 | Conflict | A workflow save with a stale `expected_updated_at` |

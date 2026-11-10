@@ -1799,6 +1799,12 @@
       "localTitle": "ローカルモデルがお好みですか？",
       "localDescription": "Ollama をインストールし、マシン上で実行するモデルをダウンロードします。",
       "getOllama": "オラマを入手",
+      "ollamaChecking": "Ollamaへの接続を確認中…",
+      "ollamaCheckFailed": "Ollamaを確認できませんでした。もう一度お試しください。",
+      "ollamaConnected": "Ollamaに接続しています。モデルマネージャーでモデルを選択またはダウンロードしてください。",
+      "ollamaUnavailable": "コンピューター上のOllamaに接続するには、NodeToolデスクトップアプリを使用してください。",
+      "ollamaUnreachable": "Ollamaに接続できません。インストール済みの場合は起動してください。まだの場合はダウンロードしてください。",
+      "checkOllamaAgain": "再確認",
       "encryptedKeys": "API キーは暗号化されます。設定でそれらを管理または削除できます。",
       "signInAgain": "{{provider}} に再度サインインします",
       "waitingSignIn": "サインインを待っています…",
@@ -6820,6 +6826,7 @@
       "allCategories": "すべて",
       "categories": {
         "workflows": "ワークフロー",
+        "comfy": "ComfyUI",
         "apps": "アプリ",
         "storyboards": "絵コンテ",
         "timelines": "タイムライン",
@@ -9056,6 +9063,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate API キーを取得する",
           "tooltip": "Runcrate プラットフォームに移動して API キーを取得します"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API キーを取得する",
+          "tooltip": "Standard Compute プラットフォームに移動して API キーを取得します"
         },
         "API_ROUTE_API_KEY": {
           "button": "APIルートキーの取得",
@@ -12182,6 +12193,31 @@
         "undo": "元に戻す",
         "redo": "やり直し",
         "agent": "エージェント"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "Chrome では、リクエストの実行中に「Nodetool がこのブラウザをデバッグしています」バーが表示されます。この拡張機能は他のタブでは何も行いません。",
       "setup": "設定してください",
       "step1": "Chrome で NodeTool のブラウザ ブリッジを開始させます。",
-      "windowsUnsupported": "これは Windows ではまだサポートされていません。拡張機能によるメディア生成は、macOS と Linux で動作します。",
       "bridgeRegistered": "完了しました。 NodeTool はそのブリッジをブラウザに登録しました。",
       "registering": "ブラウザに登録中…",
       "registrationFailed": "ブラウザブリッジの登録に失敗しました",
@@ -18911,6 +18946,12 @@
     "signIn": "サインインするには、このコマンドをこのコンピューターのターミナルにコピーします。 Google サインインを完了してから、モデルを更新します。",
     "refreshModels": "モデルを更新する",
     "statusUnavailable": "ステータスが利用不可"
+  },
+  "copilot": {
+    "description": "GitHub Copilot アカウントで言語モデルを利用できます。API キーは不要です。",
+    "install": "このコンピューターのターミナルで GitHub Copilot CLI をインストールしてください。",
+    "signIn": "その後サインインしてモデルを更新してください。Copilot プランに含まれないモデルは表示されません。",
+    "refreshModels": "モデルを更新"
   },
   "batch2_29": {
     "storyboardPanel": {

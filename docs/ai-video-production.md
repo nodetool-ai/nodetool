@@ -5,41 +5,45 @@ permalink: /ai-video-production
 description: "Plan a product or social video, generate up to three takes per shot, compare the results, and finish the accepted cut in NodeTool."
 ---
 
-Turn a product brief into an editable video without leaving NodeTool. Start with
-a beat plan, a storyboard, or a script. Add the references that should guide
-the images, review every shot before generation, then choose which generated
-takes enter the cut.
-
-Generated takes are previews until you set one as current, choose **Use take**, or approve a draft. You
-can compare options without changing the current edit.
+A guided flow plans beats, a storyboard, or a script, you review the plan, and each shot or beat generates one to three takes. A take is a preview. It enters the cut only when you set it as current, choose **Use take**, or approve a draft.
 
 ![A storyboard with rendered stills and clips for each shot](assets/screenshots/storyboard-shots.png)
 
-## Before you start
+> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a language model, an image model for stills, and a video model for clips, each with its provider key (see [Providers](providers.md) and [Models and providers](models-and-providers.md)). **Costs:** every take on a paid provider is billed at provider rates, and asking for three takes triples the cost of that shot. Stills are billed separately from clips.
+{: .callout-note}
 
-Connect the models needed for your route:
+Reference-based shots need a video model that accepts references. On-camera performance needs an audio-driven or lip-sync model, prepared speech audio, and source footage of the performer. Add product photos, character images, logos, and style frames to the Asset Explorer first. See [Asset Management](asset-management.md).
 
-- A language model plans beats, scenes, and shots.
-- An image model renders storyboard stills.
-- A video model generates clips. Reference-based shots need a model that
-  supports reference-to-video input.
-- An on-camera performance needs a model that supports audio-driven or lip-sync
-  video, plus prepared speech audio and source footage of the performer.
+## Trace: generate and accept a take
 
-See [Models and providers](models-and-providers.md) for setup. The
-[Quick Start](getting-started.md) explains the language, image, and video model
-roles and how provider billing works.
+The agent runs the same four steps the buttons do, through tools in `packages/agents/src/capabilities/video-production.specs.ts`.
 
-Add product photos, character images, logos, and style frames to the Asset
-Explorer before you begin. See [Asset Management](asset-management.md) for
-import and organization.
+User prompt in chat:
+
+> Generate two takes of the product close-up in the Northline bottle ad. Show me before you use one.
+
+| Step | Tool call | Effect on the document |
+|---|---|---|
+| 1 | `prepare_video_production` with `project_id`, `destination` (`document_id`, `target_type: "timeline_clip"`, `target_id`), `review` (`status: "reviewed"`, `plan_fingerprint`), `operation: "initial_generation"`, `visual_treatment: "product_close_up"`, `speech_mode: "none"`, `route: "reference_to_video"`, `provider`, `model`, `prompt`, `reference_asset_ids`, `timing`, `candidate_count: 2` | None. Returns a manifest with two frozen candidate and request ids, before any provider spend. |
+| 2 | `submit_video_production` with `prepared` (the manifest, unedited) | Generation starts. Results stay inactive and unaccepted. Existing request ids are recovered, not resubmitted. |
+| 3 | `inspect_video_production_candidates` with `candidates` and optionally `preview: { kind: "preview_take", batch_id, document_id, selection }` | None. Refreshes candidate state and builds a preview. It writes no accepted media. |
+| 4 | `accept_video_production_candidates` with `action: "use_take"`, `batch_id`, `document_id`, `project_id`, `candidates`, `selection`, `targets` | The chosen take becomes the clip's media. Only that destination changes. |
+
+`provider` and `model` come from `find_model`. `action: "use_draft"` applies one selection per destination as a single atomic manifest.
+
+Rejections the tools return, from `packages/timeline/src/production.ts`:
+
+- "Production take count must be between 1 and 3."
+- "Product close-up generation requires a resolved product reference asset."
+- "The selected generation route cannot consume the required reference assets."
+- "Speech duration Nms exceeds the Nms production slot."
+- A destination whose host has no shared adapter is rejected and no media changes.
 
 ## Choose where to start
 
 ### Video: plan beats and land on the timeline
 
-Choose **Video** when you want a short ad, explainer, or social clip organized
-as timed beats.
+**Video** organizes a short ad, explainer, or social clip as timed beats.
 
 1. Describe the video in **What's the video?**
 2. Open **Creative context (optional)**. Add the product name, audience,
@@ -57,8 +61,7 @@ The result opens in the timeline, where each beat remains a separate clip.
 
 ### Storyboard: direct each shot before animation
 
-Choose **Storyboard** when reference consistency and shot-by-shot control
-matter more than speed.
+**Storyboard** gives shot-by-shot control and reference consistency.
 
 1. Describe the story in **What's your story?** and add creative context and
    references.
@@ -79,8 +82,7 @@ and a video model that accepts references.
 
 ### Script: write and cast the words first
 
-Choose **Script** when dialogue, narration, or voice casting should drive the
-video.
+**Script** starts from dialogue, narration, and voice casting.
 
 1. Write or import the script.
 2. In **Production context**, add the product, audience, objective, tone, and
@@ -96,8 +98,7 @@ material instead of silently rewriting them.
 
 ## Review the production plan
 
-The Video and Storyboard review screens add the same production choices to
-each beat or shot:
+The Video and Storyboard review screens add these choices to each beat or shot:
 
 - **Editorial purpose** identifies the job of the section, such as Hook,
   Demonstration, Proof, or Call to action.
@@ -107,15 +108,11 @@ each beat or shot:
 - **Production direction** adds local camera or performance notes.
 - **Requested takes** asks for one, two, or three alternatives.
 
-Review these choices before continuing. If you change the brief, references,
-or production choices later, NodeTool asks you to review the plan again before
-it generates media.
+Changing the brief, references, or production choices later requires a new review before media generates.
 
 ### Narration and on-camera speech
 
-Use **Off-camera** for narration or voiceover that plays over a product shot,
-B-roll, or another scene. The speaker does not need to appear to say the line.
-This is the usual choice for a product demo assembled in the guided editors.
+**Off-camera** is narration or voiceover over a product shot, B-roll, or another scene.
 
 The guided Video and Storyboard editors do not support **On-camera**. They show
 it as unavailable and block generation with "On-camera speech is unavailable in
@@ -131,18 +128,13 @@ the following:
 - an audio-driven or lip-sync model available through a connected provider,
 - enough time in the shot for the complete speech take.
 
-NodeTool does not turn an unsupported on-camera request into narration. If the
-agent route cannot resolve the required audio, character, source video, or
-model capability, the request is rejected with the missing requirement. Use
-off-camera speech for that shot, or prepare the missing inputs first.
+An unsupported on-camera request is never turned into narration. It is rejected with the missing requirement, for example "On-camera performance requires recorded speech audio before video generation." or "The selected generation route does not support audio-driven on-camera performance." Use off-camera speech for that shot, or prepare the missing inputs.
 
-Speech must fit inside its beat or shot. Shorten the line, choose a shorter
-speech take, or lengthen the section when NodeTool reports a timing conflict.
+Speech must fit inside its beat or shot. On a timing conflict, shorten the line, choose a shorter speech take, or lengthen the section.
 
 ## Generate and compare takes
 
-Generation creates the requested one to three options for each destination.
-Options can finish in any order without changing their take numbers.
+Generation creates the requested one to three options per destination. Options can finish in any order and keep their take numbers.
 
 In Storyboard:
 
@@ -157,14 +149,9 @@ In the timeline:
 2. Choose **Preview Candidate** to audition an option in place.
 3. Choose **Use take** to make that option active for the selected clip.
 
-The agent can also collect one preview for each destination into a draft. Ask
-it to show the draft first, then tell it to **Use draft** when the selection is
-right. NodeTool checks the complete draft before applying it, so a failed or
-outdated choice leaves the timeline unchanged.
+The agent can collect one preview per destination into a draft. Ask it to show the draft, then tell it to **Use draft**. The whole draft is validated before it applies, so a failed or outdated choice leaves the timeline unchanged.
 
-Accepting a take changes only its destination. It does not replace other clips,
-rewrite the source script, or modify the character or product entity. Other
-generated options remain available until you remove them.
+Accepting a take changes only its destination. Other clips, the source script, and entities stay as they were, and other options remain until you remove them.
 
 ## Retry failed generations
 
@@ -174,10 +161,7 @@ A failed option does not discard successful takes from the same run.
 - Use **Retry N failed** above the timeline to retry failed generated clips.
 - Retry a single destination when only one take needs attention.
 
-The error appears on the affected shot or clip. Common causes include a missing
-reference, a model without the required video capability, missing performance
-audio, a missing character or source face video, and speech that is longer than
-the target slot.
+The error appears on the affected shot or clip. Causes include a missing reference, a model without the required video capability, missing performance audio, a missing character or source face video, and speech longer than the target slot.
 
 ## Example: a 15-second vertical product ad
 
@@ -203,15 +187,10 @@ This example makes a three-beat social ad for a reusable water bottle.
 7. Continue in the timeline. Trim the accepted clips, adjust audio, add
    captions, and export the vertical cut.
 
-To make the final line an on-camera performance, first generate or record its
-speech in Script and prepare a source face video for the character. Then use a
-connected audio-driven model. If those inputs or that model route are missing,
-keep the line off-camera.
+For an on-camera final line, first generate or record its speech in Script, prepare a source face video for the character, and connect an audio-driven model. Otherwise keep the line off-camera.
 
 ## Finish the cut
 
-Accepted takes are ordinary timeline media. You can trim and reorder clips,
-mix narration and music, add captions and transitions, and export without
-changing the unused candidates. See the [Video Editor](video-editor.md) for
+Accepted takes are ordinary timeline media: trim, reorder, mix, caption, and export without touching unused candidates. See the [Video Editor](video-editor.md) for
 timeline controls and [AI Timeline Editing](ai-timeline-editing.md) for
 generation history and local media edits.

@@ -1799,6 +1799,12 @@
       "localTitle": "Liever lokale modellen?",
       "localDescription": "Installeer Ollama en download een model om op uw machine te draaien.",
       "getOllama": "Neem Ollama",
+      "ollamaChecking": "Verbinding met Ollama controleren…",
+      "ollamaCheckFailed": "Ollama kon niet worden gecontroleerd. Probeer het opnieuw.",
+      "ollamaConnected": "Ollama is verbonden. Kies of download een model in de modelbeheerder.",
+      "ollamaUnavailable": "Gebruik de NodeTool-desktopapp om verbinding te maken met Ollama op je computer.",
+      "ollamaUnreachable": "Ollama is niet bereikbaar. Open het als het is geïnstalleerd. Download het anders om te beginnen.",
+      "checkOllamaAgain": "Opnieuw controleren",
       "encryptedKeys": "API-sleutels zijn gecodeerd. Je kunt ze beheren of verwijderen via Instellingen.",
       "signInAgain": "Meld u opnieuw aan bij {{provider}}",
       "waitingSignIn": "Wachten op inloggen…",
@@ -6820,6 +6826,7 @@
       "allCategories": "Allemaal",
       "categories": {
         "workflows": "Werkstromen",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Tijdlijnen",
@@ -9056,6 +9063,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Verkrijg de Runcrate API-sleutel",
           "tooltip": "Ga naar het Runcrate-platform om uw API-sleutel op te halen"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Verkrijg de Standard Compute API-sleutel",
+          "tooltip": "Ga naar het Standard Compute-platform om uw API-sleutel op te halen"
         },
         "API_ROUTE_API_KEY": {
           "button": "API-routesleutel ophalen",
@@ -12182,6 +12193,31 @@
         "undo": "Ongedaan maken",
         "redo": "Opnieuw uitvoeren",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "Chrome toont de balk 'Nodetool debugt deze browser' terwijl een verzoek wordt uitgevoerd. De extensie doet niets op andere tabbladen.",
       "setup": "Stel het in",
       "step1": "Laat Chrome de browserbrug van NodeTool starten.",
-      "windowsUnsupported": "Dit wordt nog niet ondersteund op Windows. Mediageneratie via de extensie werkt op macOS en Linux.",
       "bridgeRegistered": "Klaar. NodeTool registreerde zijn bridge bij uw browsers.",
       "registering": "Registreren met uw browser…",
       "registrationFailed": "Registratie via browserbridge is mislukt",
@@ -18911,6 +18946,12 @@
     "signIn": "Om u aan te melden, kopieert u deze opdracht naar een terminal op deze computer. Voltooi de aanmelding bij Google en vernieuw vervolgens de modellen.",
     "refreshModels": "Modellen vernieuwen",
     "statusUnavailable": "Status niet beschikbaar"
+  },
+  "copilot": {
+    "description": "Gebruik je GitHub Copilot-account voor taalmodellen. Geen API-sleutel nodig.",
+    "install": "Installeer de GitHub Copilot CLI in een terminal op deze computer.",
+    "signIn": "Meld je daarna aan en ververs de modellen. Modellen die je Copilot-abonnement niet bevat, verschijnen niet.",
+    "refreshModels": "Modellen verversen"
   },
   "batch2_29": {
     "storyboardPanel": {

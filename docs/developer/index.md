@@ -4,13 +4,7 @@ title: "Developer Guide"
 description: "Build custom nodes, extend NodeTool with TypeScript, and integrate workflows programmatically."
 ---
 
-Resources for building custom nodes, extending NodeTool, and integrating workflows programmatically.
-
----
-
-## Quick Start: Custom Nodes
-
-Creating custom nodes in TypeScript:
+A minimal TypeScript node:
 
 ```ts
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
@@ -32,21 +26,19 @@ export class UppercaseTextNode extends BaseNode {
 
 Export a `register(registry)` function and add a `nodetool` field to `package.json` (`{ "apiVersion": 1, "register": "register" }`). At startup the server scans installed packages for that field and calls the export. With `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1`, only packs on the allowlist load. `@prop` needs `experimentalDecorators` in `tsconfig.json`.
 
-**-> [Full Custom Nodes Guide (TypeScript)](custom-nodes-guide.md)** -- End-to-end walkthrough: packaging, governance, streaming, testing, distribution.
-
----
+Full walkthrough: [Custom Nodes Guide](custom-nodes-guide.md) (packaging, governance, streaming, testing, distribution).
 
 ## Guides
 
 ### Provider & Model Guides
 
 - **[Custom Providers](../custom-providers.md)** -- Connect an OpenAI-compatible endpoint without writing code.
-- **[Provider Guides](providers/index.md)** -- **Add models & nodes to any provider.** Per-provider runbooks (OpenAI, Anthropic, Gemini, xAI, FAL, Replicate, KIE, Together, AtlasCloud, Topaz, MiniMax, Reve, ElevenLabs, HuggingFace, Ollama, local inference, OpenAI-compatible) with exact files, commands, and how past PRs did it. Written for coding agents and contributors.
+- **[Provider Guides](providers/index.md)** -- Per-provider runbooks for adding models and nodes (OpenAI, Anthropic, Gemini, xAI, FAL, Replicate, KIE, Together, AtlasCloud, Topaz, MiniMax, Reve, ElevenLabs, HuggingFace, Ollama, local inference, OpenAI-compatible).
 
 ### Custom Node Development (TypeScript)
 
-- **[Custom Nodes Guide](custom-nodes-guide.md)** -- **Start here!** End-to-end guide for authoring, packaging, and distributing TypeScript node packs.
-- [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions.
+- **[Custom Nodes Guide](custom-nodes-guide.md)** -- Authoring, packaging, and distributing TypeScript node packs.
+- [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with generated factory functions.
 
 ### Custom Node Reference (TypeScript)
 
@@ -84,7 +76,6 @@ Export a `register(registry)` function and add a `nodetool` field to `package.js
 - [Workflow API](../workflow-api.md) -- Execute workflows programmatically
 - [TypeScript SDK](sdk.md) -- `@nodetool-ai/sdk`: a typed tRPC client and the chat WebSocket
 
----
 
 ## Contributing
 
@@ -93,10 +84,4 @@ Contribute to [NodeTool on GitHub](https://github.com/nodetool-ai/nodetool).
 - [Dev Environment](../dev-environment.md) -- Installing in locked-down containers and running WebGPU tests without a Vulkan driver.
 - [Harness Reference](../harnesses.md) -- `nodetool validate`, `debug`, `node run`, `harness gate` and the other checks contributors run.
 
-### Share Custom Nodes
-
-Options:
-
-1. Publish as a separate npm package
-2. Contribute to the core node library in the repository
-3. Share workflow examples on Discord
+To share a node pack, publish it as a separate npm package or contribute it to the core node library.

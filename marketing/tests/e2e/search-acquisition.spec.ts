@@ -166,9 +166,9 @@ test("template catalog clicks name the template", async ({ page }) => {
 test("copying the MCP install command is a goal with its placement", async ({ page, context }) => {
   const events = await recordEvents(page);
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/agents");
+  await page.goto("/developers");
   await page.getByRole("button", { name: "Copy the install command" }).first().click();
-  await expect.poll(() => events.find((e) => e.event === "Copy Install Command")?.props).toMatchObject({ page: "agents", placement: "terminal" });
+  await expect.poll(() => events.find((e) => e.event === "Copy Install Command")?.props).toMatchObject({ page: "developers", placement: "hero" });
 });
 
 test("pricing Cloud entry uses the Try Cloud goal", async ({ page }) => {

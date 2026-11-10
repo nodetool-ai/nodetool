@@ -33,6 +33,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPError } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { MINI_APP_TOOL_NAMES } from "../src/mcp-apps.js";
 import {
   classifyForwardFailure,
   closeAllMcpHttpSessions,
@@ -186,7 +187,8 @@ describe("MCP server surface", () => {
           "execute_code",
           "view_image",
           "upload_asset",
-          "download_asset"
+          "download_asset",
+          ...MINI_APP_TOOL_NAMES
         ].includes(name)
       )
         continue;
@@ -208,11 +210,13 @@ describe("MCP server surface", () => {
         "list_models",
         "list_providers",
         "list_directory",
-        "browser",
-        "http_request",
         "download_file"
       ])
     );
+    // Direct elsewhere, sandbox-only on this mount.
+    for (const name of ["http_request", "browser", "todo_write"]) {
+      expect(names).not.toContain(name);
+    }
   });
 
   it("offers the provider interface as top-level tools", () => {

@@ -727,6 +727,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "find_model resolves a model by capability; list_models and " +
       "list_provider_models enumerate the catalogs."
   },
+  "models.ollamaStatus": {
+    withheld: "Host connection status is shown by provider setup, not exposed to workflow scripts."
+  },
   "models.ollama": {
     withheld:
       "Model management writes to host disk and pulls gigabytes from " +

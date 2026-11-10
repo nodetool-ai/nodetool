@@ -25,6 +25,7 @@ import {
   selectableTileStyles
 } from "../../ui_primitives";
 import { trpc } from "../../../trpc/client";
+import { useImageThumbnail } from "../../../hooks/useImageThumbnail";
 import { useBoundResource, type ResourceItem } from "./useBoundResource";
 
 interface ResourceGalleryProps {
@@ -50,7 +51,13 @@ const AssetThumbnail: React.FC<{ id: string; enabled: boolean }> = ({
   enabled
 }) => {
   const { data } = trpc.assets.get.useQuery({ id }, { enabled });
-  const src = data?.thumb_url ?? data?.get_url ?? null;
+  // The thumbnail can be missing for a moment after an upload; the hook paints
+  // the full image until it loads. Only an image's `get_url` is paintable.
+  const isImage = data?.content_type?.startsWith("image/") ?? false;
+  const src = useImageThumbnail(
+    data?.thumb_url,
+    isImage ? data?.get_url : null
+  );
   if (!src) {
     return (
       <Box

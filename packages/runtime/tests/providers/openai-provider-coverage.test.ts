@@ -1267,6 +1267,9 @@ describe("OpenAIProvider – live media model listings", () => {
     data: [
       { id: "gpt-image-2" },
       { id: "gpt-image-3" },
+      { id: "gpt-image-2.6-flare" },
+      { id: "gpt-image-2.6-sunburst" },
+      { id: "gpt-image-2.6-flare-2026-11-04" },
       { id: "gpt-image-1-2025-04-15" },
       { id: "tts-1" },
       { id: "gpt-5-tts" },
@@ -1289,6 +1292,8 @@ describe("OpenAIProvider – live media model listings", () => {
 
   it("lists the image models the API serves, without dated snapshots", async () => {
     expect((await provider().getAvailableImageModels()).map((m) => m.id)).toEqual([
+      "gpt-image-2.6-flare",
+      "gpt-image-2.6-sunburst",
       "gpt-image-2",
       "gpt-image-3"
     ]);
@@ -1917,4 +1922,31 @@ describe("OpenAIProvider – generateMessages with tools", () => {
     expect(req.presence_penalty).toBe(0.1);
     expect(req.frequency_penalty).toBe(0.2);
   });
+});
+
+describe("OpenAIProvider – GPT Image 2.6", () => {
+  it.each(["gpt-image-2.6-flare", "gpt-image-2.6-sunburst"])(
+    "passes %s and flexible dimensions to generation and editing",
+    async (id) => {
+      const data = [{ b64_json: Buffer.from("image").toString("base64") }];
+      const generate = vi.fn().mockResolvedValue({ data });
+      const edit = vi.fn().mockResolvedValue({ data });
+      const provider = new OpenAIProvider(
+        { OPENAI_API_KEY: "k" },
+        { client: { images: { generate, edit } } as unknown as OpenAI }
+      );
+      const model = { id, name: id, provider: "openai" as const };
+      await provider.textToImage({ model, prompt: "a dot", width: 2048, height: 1152, quality: "high" });
+      await provider.imageToImage([new Uint8Array([1])], {
+        model, prompt: "a red dot", targetWidth: 2048, targetHeight: 1152, quality: "high"
+      });
+      const expectedRequest = expect.objectContaining({
+        model: id,
+        size: "2048x1152",
+        quality: "high"
+      });
+      expect(generate).toHaveBeenCalledWith(expectedRequest, { signal: undefined });
+      expect(edit).toHaveBeenCalledWith(expectedRequest, { signal: undefined });
+    }
+  );
 });

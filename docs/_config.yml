@@ -268,6 +268,7 @@ exclude:
   - DESIGN.md
   - DEVELOPMENT_STANDARDS.md
   - WRITING_STYLE.md
+  - docs-editorial.spec.md
   - UX_GUIDELINES.md
   - workspace-document-bar-design.md
   - THEME.md
@@ -285,6 +286,7 @@ exclude:
   - app-runs-design.md
   - workflow-loops.md
   # Internal implementation plans & specs (agentic-worker instructions).
+  - plan/video-export.md
   - app-runs-implementation-plan.md
   - timeline-preview-frame-source-design.md
   - COMPONENT_STREAMLINE_PLAN.md

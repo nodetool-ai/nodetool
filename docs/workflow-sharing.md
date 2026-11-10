@@ -5,15 +5,14 @@ permalink: /workflow-sharing
 description: "Share a workflow or document with collaborators through view, edit, or public links, and manage who has access."
 ---
 
-You share a workflow by creating a link and sending it to someone. Storyboards, scripts, timelines, sketches, apps and JS scripts share the same way. See [Other documents](#other-documents) for how they differ. The link carries a permission level. When the other person opens it, they get that level of access to your workflow. Only the owner of a workflow can create links or change who has access.
-
-Sharing depends on user accounts, so it matters which [authentication mode](authentication.md) your server runs in.
+A share link carries a permission level, and opening it gives the visitor that level of access. Only the owner can create links or change access. Storyboards, scripts, timelines, sketches, apps, and JS scripts share the same way (see [Other documents](#other-documents)). Sharing depends on user accounts, so it depends on your server's [authentication mode](authentication.md).
 
 ## Which deployments support sharing
 
 | Mode | Sharing |
 |------|---------|
 | Supabase mode (`SUPABASE_URL` and `SUPABASE_KEY` set) | Works. Each person signs in with their own account, and a link gives that account access. |
+| SSO mode (`OIDC_ISSUER` set) | Works. People sign in through your identity provider, and you can also [invite people by name](#invite-people-by-name) without a link. |
 | Local mode, one person on loopback | Not useful. Loopback connections all run as the same user (`"1"`), so you are always the owner of your own links. |
 
 Opening a share link requires being signed in to the server. The one exception is a public link, which anyone can open to view the workflow without an account. See [Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md) for setting up accounts.
@@ -46,6 +45,12 @@ The links look like this:
 | Can view, Can edit | `/share/<token>` |
 | Public view | `/view/<token>` |
 
+## Invite people by name
+
+On a server in SSO mode, the share dialog has an **Invite people** field under **People with access**. Type at least two characters of a person's name or email, pick them from the list, choose **Can view** or **Can edit**, and click **Invite**. They get access at once and see the workflow under **Shared with me**. No link is needed. Inviting someone who already has access changes their role.
+
+The list shows only active accounts on the server, and never you. Inviting needs the **Create share links** permission, which an admin can block. See [Permissions](authentication.md#permissions).
+
 ## Revoke a link
 
 Every active link appears under **Active links** with a role label, a copy button, and **Revoke**.
@@ -54,7 +59,7 @@ Revoking a link stops anyone from using it again. For a view or edit link, peopl
 
 ## People with access
 
-After someone opens a view or edit link, they appear under **People with access**. Each row shows their user ID, a role selector, and a remove button.
+After someone opens a view or edit link or is invited by name, they appear under **People with access**. Each row shows their name and email, a role selector, and a remove button. A person with no name on record is shown by email or user ID.
 
 - Change the selector between **Can view** and **Can edit** to change their role.
 - Click the remove button (tooltip **Remove access**) to take their access away.

@@ -38,14 +38,6 @@
                 "title": "Ending"
               },
               {
-                "value": "review",
-                "title": "Review"
-              },
-              {
-                "value": "build",
-                "title": "Build"
-              },
-              {
                 "value": "result",
                 "title": "Result"
               }
@@ -161,37 +153,6 @@
                 }
               },
               {
-                "type": "Columns",
-                "props": {
-                  "id": "start-nav",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "start-next",
-                        "label": "Next: The pieces",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "pieces"
-                          }
-                        ],
-                        "align": "end",
-                        "visibleWhen": {
-                          "binding": "var:fillPath",
-                          "op": "notEmpty"
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              {
                 "type": "ModelSelect",
                 "props": {
                   "id": "finishModel",
@@ -212,25 +173,7 @@
                 "type": "Text",
                 "props": {
                   "id": "finishModel-help",
-                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
-                  "tone": "hint"
-                }
-              },
-              {
-                "type": "ModelSelect",
-                "props": {
-                  "id": "imageModel",
-                  "label": "Image model",
-                  "binding": "var:imageModel",
-                  "modelKind": "image_model",
-                  "events": []
-                }
-              },
-              {
-                "type": "Text",
-                "props": {
-                  "id": "imageModel-help",
-                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "text": "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
                   "tone": "hint"
                 }
               },
@@ -259,7 +202,7 @@
                               "binding": "var:sourceUrl",
                               "label": "Website",
                               "placeholder": "https://your-product.com",
-                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "hint": "The agent reads the page and suggests three filled versions, with real images from the site. Pick one, then check each step.",
                               "events": []
                             }
                           }
@@ -380,6 +323,37 @@
                         "text": "",
                         "visibleWhen": {
                           "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The pieces",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "pieces"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
                           "op": "notEmpty"
                         }
                       }
@@ -884,6 +858,24 @@
                 }
               },
               {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
                 "type": "Text",
                 "props": {
                   "id": "plan-error",
@@ -935,7 +927,7 @@
                       "type": "Button",
                       "props": {
                         "id": "plan",
-                        "label": "Plan the storyboard",
+                        "label": "Make the video",
                         "disabledWhen": {
                           "binding": "op:plan/exec#running",
                           "op": "notEmpty"
@@ -1160,7 +1152,7 @@
     "operations": [
       {
         "id": "plan",
-        "name": "Plan or refresh Storyboard",
+        "name": "Make the video",
         "workflowId": "plan",
         "workflowVersion": 1,
         "inputs": {
@@ -1764,7 +1756,8 @@
             "variableId": "step"
           }
         },
-        "policy": "queue"
+        "policy": "queue",
+        "agentTask": "Make the 10-second 9:16 ad as a motion-graphics timeline. Do not plan a storyboard.\nFinish the whole build in this turn: read the values, write and save the timeline, check it and show the result. Do not end the turn after you read the state.\nObjective: Represent connected products or integrations as a satisfying assembly.\nVisual rule: Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.\nBeats, in order:\n- 0–1.5 s hook: Separated tiles or a partly assembled object are already visible.. Motion: Small opposing offsets create tension.\n- 1.5–4 s assembly: Tiles move toward their assigned cells.. Motion: Stagger by 100 ms; 350 ms easeOutBack with <=5% overshoot, or play rendered assembly footage.\n- 4–6.5 s resolve: The completed object rotates slightly or pulses once.. Motion: Native 2D version uses scale only; true depth uses an original 3D asset.\n- 6.5–8 s explain: Short supported benefit sits beside the coherent system.. Motion: Type fade; object holds.\n- 8–10 s cta: Final object and next step.. Motion: Hold.\n\nRead the values first with ui_app_run_get_state. Use them exactly:\n- tile1 (Tile 1, image)\n- tile2 (Tile 2, image)\n- tile3 (Tile 3, image)\n- tile4 (Tile 4, image)\n- logo (Logo, image)\n- integrationProblem (Problem, text)\n- connectionLabel (Connection line, text)\n- benefit (Benefit, text)\n- benefitDetail (Benefit detail, text)\n- cta (Call to action, text)\n- brandColor (Brand color, color)\nCopy stays word for word. When one copy line holds both a closing line and a call to action (\"Plan and build with Linear. Sign up.\"), split it at the sentence boundary: the closing line is the headline and the last short imperative is the button label. Add no label the values do not hold: the images carry their own labels.\nCopy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `asset://` uri to s.image() as it is, without looking it up in the asset library. An image you fetch or process yourself must be saved as an asset first (nodetool.media.toImage or save_asset); a file:// path does not play. Never generate or replace an image.\n\nLoad the motion-graphics skill and read nodetool.packs.docs(\"@nodetool-ai/sandbox-timeline\") before you write scenes. Then adapt the reference builder below in one execute_code action: keep its motion language, timing and structure, swap in the user's copy, images and colors, and recreate every graphic element the images do not hold (shapes, rings, cards, buttons, glows, backdrops) as timeline layers. It must look like modern motion graphics: layered depth, continuous secondary motion, eased entrances and exits, text animators, transitions between beats and a restrained finish. Save with v.save(nodetool.timelines, {name, showcase: true}).\nLegibility and layout on a 1080×1920 frame:\n- Crop each image to its content before you place it: trim a plain background border with image.crop, then save it with nodetool.media.toImage. Text inside an image must be at least 2.5% of the frame height (48 px) once scaled. Make cards and nodes that show an image at least 400×225.\n- Keep the logo, copy and button inside the safe area: 250 px from the top and 350 px from the bottom. Put the logo above the headline or next to the button.\n- Build the button as a rect and a text label parented to one group at the same y, both centered, with the label at 52 px or more. Do not use s.pill() with a dot for the button.\n- Give scene lengths in frames at the timeline's fps and check that the total, after transitions, is exactly 10 s.\nFix every showcase warning that save returns and save again. Look at preview_timeline_frame frames at each beat. Then render a draft with render_timeline at preview_scale 0.5, and finish when the draft renders.\nWrite `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image fits the frame. Pass `s` (for example s: 0.4) to scale it. The options w, h, width, height, size and scale throw.\nWrite `timeline` as {\"type\": \"timeline\", \"id\": \"<timeline_id>\"} and `finishStatus` as one sentence, then show the `result` step. Write no other values: the storyboard values (approval, planPreview and the rest) are not used in chat.\n\nReference builder (fictional brand; replace its copy, images and colors):\n```js\n// Ad library R10, Integration puzzle that snaps together: a 10-second\n// vertical ad for a fictional integration platform. Eight tool tiles snap\n// around one brand tile into a single object; the assembly is the metaphor,\n// not proof of any real integration.\n//\n// `node scripts/example-timelines/ad-library.mjs build integration-puzzle-that-snaps-together`\n// writes marketing/recipe-assets/ad-library/integration-puzzle-that-snaps-together.timeline.json.\n//\n// The platform is fictional and the tiles are generic tool types, not real\n// products or logos. This is the native 2D version, so the resolve uses\n// scale only. Every time value is seconds from the start of the ad, the beat\n// times in marketing/src/data/adLibrary.json. Positions are px from the frame\n// centre on a 1080×1920 frame.\n//\n// Motion language: tiles snap 100 ms apart in 350 ms with at most 5%\n// overshoot (SNAP_BACK), one pulse on the finished object, type that fades.\nimport { video } from \"@nodetool-ai/sandbox-timeline\";\n\nconst W = 1080, H = 1920, FPS = 30;\n\nconst STAGE = \"#101226\", STAGE2 = \"#1d1f45\", TEXT = \"#f5f6ff\", DIM = \"#a3a7cf\", LIME = \"#c6f432\", INK = \"#14152b\";\nconst SNAP = \"cubic-bezier(0.16,1,0.3,1)\";\nconst SNAP_BACK = \"cubic-bezier(0.3,1.22,0.6,1)\";\n\nconst v = video({\n  width: W, height: H, fps: FPS,\n  palette: { ink: STAGE, ink2: STAGE2, text: TEXT, dim: DIM, accent: LIME },\n  fonts: { display: \"Inter\", body: \"Inter\" }\n});\n\nconst OBJ_Y = -20, CELL = 262, TILE = 246;\n// Clockwise from the top-left; the brand tile holds the centre.\nconst TOOLS = [\n  { label: \"Mail\", glyph: \"mail\", tint: \"#c7d7ff\", c: -1, r: -1 },\n  { label: \"Calendar\", glyph: \"calendar\", tint: \"#ffd9a8\", c: 0, r: -1 },\n  { label: \"Chat\", glyph: \"chat\", tint: \"#d9c7ff\", c: 1, r: -1 },\n  { label: \"Files\", glyph: \"files\", tint: \"#bfeee0\", c: 1, r: 0 },\n  { label: \"Payments\", glyph: \"card\", tint: \"#ffc7d6\", c: 1, r: 1 },\n  { label: \"Forms\", glyph: \"forms\", tint: \"#fff1a8\", c: 0, r: 1 },\n  { label: \"CRM\", glyph: \"person\", tint: \"#c2ecff\", c: -1, r: 1 },\n  { label: \"Docs\", glyph: \"doc\", tint: \"#e0e3ec\", c: -1, r: 0 }\n];\n\n/** A tool glyph in ink, centred on the group origin, `u` px across. */\nfunction glyph(s, kind, parent, y, u) {\n  const line = { parent, stroke: INK, sw: 7 };\n  const at = (dx, dy) => ({ x: dx, y: y + dy });\n  if (kind === \"mail\") {\n    s.rect(u, u * 0.7, null, { ...line, ...at(0, 0), name: \"g-mail\", r: 8 });\n    s.path([[\"M\", -u / 2 + 6, y - u * 0.3], [\"L\", 0, y + u * 0.05], [\"L\", u / 2 - 6, y - u * 0.3]], { ...line, name: \"g-mail-flap\" });\n  } else if (kind === \"calendar\") {\n    s.rect(u, u * 0.84, null, { ...line, ...at(0, 4), name: \"g-cal\", r: 8 });\n    s.rect(u, 16, INK, { parent, ...at(0, -u * 0.3), name: \"g-cal-band\", r: 4 });\n    s.rect(20, 20, INK, { parent, ...at(u * 0.2, u * 0.16), name: \"g-cal-day\", r: 4 });\n  } else if (kind === \"chat\") {\n    s.rect(u, u * 0.66, null, { ...line, ...at(0, -6), name: \"g-chat\", r: 22 });\n    s.path([[\"M\", -u * 0.2, y + u * 0.27], [\"L\", -u * 0.3, y + u * 0.46], [\"L\", -u * 0.02, y + u * 0.27]], { ...line, name: \"g-chat-tail\" });\n  } else if (kind === \"files\") {\n    s.path([[\"M\", -u / 2, y - u * 0.3], [\"L\", -u * 0.1, y - u * 0.3], [\"L\", 0, y - u * 0.2], [\"L\", u / 2, y - u * 0.2], [\"L\", u / 2, y + u * 0.36], [\"L\", -u / 2, y + u * 0.36], [\"Z\"]], { ...line, name: \"g-folder\" });\n  } else if (kind === \"card\") {\n    s.rect(u, u * 0.66, null, { ...line, ...at(0, 0), name: \"g-card\", r: 10 });\n    s.rect(u, 14, INK, { parent, ...at(0, -u * 0.12), name: \"g-card-stripe\" });\n  } else if (kind === \"forms\") {\n    [-0.24, 0.12].forEach((dy, k) => {\n      s.rect(26, 26, null, { ...line, ...at(-u * 0.36, dy * u), name: `g-form-box-${k}`, r: 5, sw: 6 });\n      s.rect(u * 0.56, 10, INK, { parent, ...at(u * 0.16, dy * u), name: `g-form-line-${k}`, r: 5 });\n    });\n  } else if (kind === \"person\") {\n    s.ellipse(u * 0.38, null, { ...line, ...at(0, -u * 0.18), name: \"g-head\" });\n    s.path([[\"M\", -u * 0.38, y + u * 0.4], [\"Q\", -u * 0.38, y + u * 0.06, 0, y + u * 0.06], [\"Q\", u * 0.38, y + u * 0.06, u * 0.38, y + u * 0.4]], { ...line, name: \"g-body\" });\n  } else {\n    [-0.28, -0.04, 0.2].forEach((dy, k) => s.rect(u * (k === 2 ? 0.6 : 0.9), 10, INK, { parent, ...at(k === 2 ? -u * 0.15 : 0, dy * u), name: `g-doc-${k}`, r: 5 }));\n  }\n}\n\n/** One tool tile, centred on its group. */\nfunction toolTile(s, t, parent) {\n  const g = s.group({ name: `tile-${t.label.toLowerCase()}`, parent, x: t.c * CELL, y: OBJ_Y + t.r * CELL });\n  s.rect(TILE, TILE, t.tint, { name: `tile-${t.label}-plate`, parent: g.id, r: 44, effects: [{ type: \"dropShadow\", offsetX: 0, offsetY: 18, blur: 36, color: \"rgba(0,0,0,0.35)\" }] });\n  glyph(s, t.glyph, g.id, -28, 78);\n  s.text(t.label, { name: `tile-${t.label}-label`, parent: g.id, y: 68, mw: 0.2, size: 38, weight: 700, color: INK, tracking: -0.02 });\n  return g;\n}\n\nconst puzzle = v.scene(\"Puzzle\", 10, (s) => {\n  s.backdrop({ colors: [STAGE, STAGE2], opacity: 0.8, seed: 41 });\n  s.glow({ name: \"object-light\", size: 1400, alpha: 0.2, color: LIME, y: OBJ_Y });\n\n  const object = s.group({ name: \"object\" });\n  // B3 resolve: one pulse, scale only.\n  object.animate({ scale: [[0, 1], [0.45, 1.045, \"out\"], [1, 1, \"inOut\"]] }, { at: 4.15, dur: 0.6, role: \"emphasis\" });\n\n  // The links light up once the object is whole, centre outwards.\n  TOOLS.forEach((t, i) => {\n    const link = s.path([[\"M\", 0, OBJ_Y], [\"L\", t.c * CELL, OBJ_Y + t.r * CELL]], { name: `link-${i}`, parent: object.id, stroke: LIME, sw: 8, at: 3.9, effects: [{ type: \"glow\", radius: 16, intensity: 0.8 }] });\n    link.draw({ at: i * 0.03, dur: 0.3, ease: SNAP });\n  });\n\n  // B1 hook: the tiles start pushed apart and pull against each other.\n  TOOLS.forEach((t, i) => {\n    const g = toolTile(s, t, object.id);\n    // Pushed apart within the frame: less upward travel, so the top row clears the headline.\n    const dx = t.c * (90 + (i % 3) * 25), dy = t.r * (t.r < 0 ? 60 : 130 + (i % 2) * 30) + (t.r === 0 ? (i % 2 ? 40 : -40) : 0);\n    const rot = (i % 2 ? 1 : -1) * (8 + (i % 3) * 3);\n    const sway = (i % 2 ? 1 : -1) * 10;\n    // Held apart with a small opposing sway, then snapped home 100 ms apart in 350 ms.\n    const start = 1.5 + i * 0.1, end = start + 0.35;\n    const T = (sec) => sec / end;\n    g.animate({\n      offsetX: [[0, dx], [T(0.75), dx + sway], [T(start), dx - sway * 0.5, \"inOut\"], [1, 0, SNAP_BACK]],\n      offsetY: [[0, dy], [T(0.75), dy - sway], [T(start), dy + sway * 0.5, \"inOut\"], [1, 0, SNAP_BACK]],\n      rotation: [[0, rot], [T(start), rot * 0.8, \"inOut\"], [1, 0, SNAP_BACK]]\n    }, { at: 0, dur: end, role: \"in\" });\n  });\n\n  // The brand tile: the fixed piece everything snaps to.\n  const brand = s.group({ name: \"brand-tile\", parent: object.id, y: OBJ_Y });\n  s.rect(TILE, TILE, LIME, { name: \"brand-plate\", parent: brand.id, r: 44, effects: [{ type: \"glow\", radius: 30, intensity: 0.5 }] });\n  s.ellipse(92, null, { name: \"brand-ring-a\", parent: brand.id, x: -24, y: -22, stroke: INK, sw: 14 });\n  s.ellipse(92, null, { name: \"brand-ring-b\", parent: brand.id, x: 24, y: -22, stroke: INK, sw: 14 });\n  s.text(\"knot\", { name: \"brand-word\", parent: brand.id, y: 68, mw: 0.2, size: 44, weight: 800, color: INK, tracking: -0.04 });\n\n  // The copy: one headline per beat at the top, the detail under the object.\n  [[\"Your tools don't talk to each other\", 0, 1.5], [\"Eight tools, one connected workspace\", 1.5, 2.5], [\"Change it once. Updated everywhere.\", 4.0, 6.0]].forEach(([str, at, dur], i) => {\n    const t = s.text(str, { name: `headline-${i}`, y: -580, mw: 0.86, size: 82, weight: 800, color: i === 2 ? LIME : TEXT, tracking: -0.035, at, dur, style: { lineHeight: 1.06 } });\n    t.enter({ from: { offsetY: 30, opacity: 0.25 }, at: 0, dur: 0.25, ease: SNAP, by: \"word\", staggerMs: 40 });\n  });\n  const detail = s.text(\"Two-way sync. No copy and paste.\", { name: \"detail\", y: 448, mw: 0.86, size: 52, weight: 600, color: DIM, at: 6.5 });\n  detail.enter({ from: { opacity: 0 }, at: 0, dur: 0.18, ease: \"linear\" });\n\n  // B5 CTA: the object and one next step, held.\n  s.seq(8, 2, (q) => {\n    const button = q.pill(\"Connect your stack\", { name: \"cta\", y: 552, size: 54, weight: 800, color: INK, fillColor: LIME, stroke: \"rgba(0,0,0,0)\", padX: 74, padY: 30 });\n    button.enter({ from: { offsetY: 24, opacity: 0 }, at: 0, dur: 0.25, ease: SNAP });\n  });\n\n  s.finish({ vignette: 0.22, softness: 0.7, grain: 0.04, seed: 9 });\n});\n\nv.series([puzzle]);\n\nconst saved = await v.save(nodetool.timelines, {\n  name: \"Integration puzzle — Knot\",\n  showcase: true\n});\nawait output(\"timeline\", {\n  name: \"Integration puzzle — Knot\",\n  description: \"A 10-second vertical ad: eight tool tiles held apart snap around one brand tile into a single object, light up their links, pulse once, and hold under a CTA.\",\n  videoUri: \"/ad-library/videos/integration-puzzle-that-snaps-together.mp4\",\n  posterUri: \"/ad-library/videos/integration-puzzle-that-snaps-together.webp\",\n  ...saved\n});\n```"
       },
       {
         "id": "finish",
@@ -2391,6 +2384,7 @@
         "name": "Suggest options from a website",
         "workflowId": "suggest",
         "policy": "replace",
+        "agentTask": "Read the website in `sourceUrl` and write three different ways to fill the ad \"Integration puzzle that snaps together\".\nObjective: Represent connected products or integrations as a satisfying assembly.\nVisual rule: Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.\nBeats, in order:\n- 0–1.5 s: Separated tiles or a partly assembled object are already visible. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Problem.\n- 1.5–4 s: Tiles move toward their assigned cells. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Connection line.\n- 4–6.5 s: The completed object rotates slightly or pulses once. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Benefit.\n- 6.5–8 s: Short supported benefit sits beside the coherent system. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Benefit detail.\n- 8–10 s: Final object and next step. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Logo, Call to action.\n\nUse only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice.\nFor images, choose real, large images of this brand and product: first from the page's own images (header logo, large <img> files, feature-page screenshots), then with an image search. A social preview card (og:image, a title on a gradient) is a last resort. Give the direct URL of the image file, never a page URL, and never an image of another brand. Use an empty string when no image fits.\nIf image search throws because no search backend is configured, tell the user in one sentence that a SerpAPI, DataForSEO or Brave key in Settings finds better images. Then take nodetool.web.screenshot of the product's feature pages instead.\nSave each image you consider as an asset and look at it with view_image before you offer it. Name in the option's description any image that is only a social preview card.\n\nWrite `fillOptions` as a list of three objects, `fillChoice` as \"\" and `fillReport` as \"\". Each option:\n- value: \"1\", \"2\" or \"3\"\n- title: a name for the direction in 2 to 4 words\n- description: one sentence on what it emphasizes, then the first two copy lines in quotes\n- image: the URL of its first image, for the option card\n- brandColor: the brand's accent color as #RRGGBB (buttons, links, highlights), not the page background or a theme-color that is near black or white\n- fields: integrationProblem (Problem: hook, at most 7 words); connectionLabel (Connection line: assembly, at most 7 words); benefit (Benefit: resolve, at most 7 words); benefitDetail (Benefit detail: explain, at most 7 words); cta (Call to action: cta, at most 4 words)\n- images: tile1 (Tile 1: An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step.); tile2 (Tile 2: An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step.); tile3 (Tile 3: An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step.); tile4 (Tile 4: An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step.); logo (Logo: The brand's own logo file, such as the site header logo or its icon. Shown in: Final object and next step.)\n\nThen show the Start step with `only: [\"fillChoice\"]` and a one-sentence note, so the user sees just the option cards. Picking one runs `apply`, which saves the images and fills the steps.",
         "inputs": {
           "in-sourceUrl": {
             "from": "variable",
@@ -2477,25 +2471,25 @@
                   "id": "tile1",
                   "label": "Tile 1",
                   "role": "decorative",
-                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                  "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
                 },
                 {
                   "id": "tile2",
                   "label": "Tile 2",
                   "role": "decorative",
-                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                  "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
                 },
                 {
                   "id": "tile3",
                   "label": "Tile 3",
                   "role": "decorative",
-                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                  "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
                 },
                 {
                   "id": "tile4",
                   "label": "Tile 4",
                   "role": "decorative",
-                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                  "guidance": "An icon or mark on a plain or transparent background. It shows small, as a node or tile, so it must read at about 200 px wide. Not a screenshot or a social preview card. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
                 },
                 {
                   "id": "logo",
@@ -2980,6 +2974,7 @@
         }
       }
     ],
+    "presentation": "chat",
     "recipe": {
       "schemaVersion": 1,
       "slug": "ad-integration-puzzle-that-snaps-together",

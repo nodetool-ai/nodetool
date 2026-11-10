@@ -1799,6 +1799,12 @@
       "localTitle": "स्थानीय मॉडल को पसंद करते हैं?",
       "localDescription": "Ollama स्थापित करें और अपनी मशीन पर चलाने के लिए एक मॉडल डाउनलोड करें।",
       "getOllama": "ओलमा",
+      "ollamaChecking": "Ollama से कनेक्शन जाँचा जा रहा है…",
+      "ollamaCheckFailed": "Ollama की जाँच नहीं हो सकी। फिर कोशिश करें।",
+      "ollamaConnected": "Ollama कनेक्ट है। मॉडल मैनेजर में कोई मॉडल चुनें या डाउनलोड करें।",
+      "ollamaUnavailable": "अपने कंप्यूटर पर Ollama से कनेक्ट करने के लिए NodeTool डेस्कटॉप ऐप का उपयोग करें।",
+      "ollamaUnreachable": "Ollama से संपर्क नहीं हो सका। अगर यह इंस्टॉल है, तो इसे खोलें। नहीं तो शुरू करने के लिए इसे डाउनलोड करें।",
+      "checkOllamaAgain": "फिर जाँचें",
       "encryptedKeys": "एपीआई कुंजी एन्क्रिप्टेड हैं। आप उन्हें सेटिंग्स में प्रबंधित या हटा सकते हैं।",
       "signInAgain": "साइन इन करें {{provider}} फिर",
       "waitingSignIn": "साइन-इन के लिए प्रतीक्षा करें ...",
@@ -6820,6 +6826,7 @@
       "allCategories": "सभी",
       "categories": {
         "workflows": "वर्कफ़्लो",
+        "comfy": "ComfyUI",
         "apps": "ऐप्स",
         "storyboards": "स्टोरीबोर्ड",
         "timelines": "समयरेखा",
@@ -9056,6 +9063,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate API कुंजी प्राप्त करें",
           "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Runcrate प्लेटफॉर्म पर जाएं"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Standard Compute प्लेटफॉर्म पर जाएं"
         },
         "API_ROUTE_API_KEY": {
           "button": "API रूट कुंजी प्राप्त करें",
@@ -12182,6 +12193,31 @@
         "undo": "Undo",
         "redo": "रेडो",
         "agent": "एजेंट"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "क्रोम एक \"Nodetool इस ब्राउज़र को डीबगिंग है\" बार दिखाता है जबकि एक अनुरोध रन करता है। विस्तार अन्य टैब पर कुछ भी नहीं करता है।",
       "setup": "इसे सेट करें",
       "step1": "क्रोम नोडेटूल के ब्राउज़र पुल को शुरू करते हैं।",
-      "windowsUnsupported": "यह अभी तक विंडोज पर समर्थित नहीं है। मैकओएस और लिनक्स पर एक्सटेंशन कार्यों के माध्यम से मीडिया पीढ़ी।",
       "bridgeRegistered": "डोन. नोडटूल ने अपने ब्राउज़र के साथ अपने पुल को पंजीकृत किया।",
       "registering": "अपने ब्राउज़र के साथ पंजीकरण ...",
       "registrationFailed": "ब्राउज़र ब्रिज पंजीकरण विफल",
@@ -18911,6 +18946,12 @@
     "signIn": "इस आदेश को इस कंप्यूटर पर एक टर्मिनल में कॉपी करने के लिए Google साइन-इन को पूरा करें, फिर मॉडल को ताज़ा करें।",
     "refreshModels": "ताज़ा मॉडल",
     "statusUnavailable": "स्थिति अनुपलब्ध"
+  },
+  "copilot": {
+    "description": "भाषा मॉडल के लिए अपने GitHub Copilot खाते का उपयोग करें। API कुंजी की ज़रूरत नहीं है।",
+    "install": "इस कंप्यूटर के टर्मिनल में GitHub Copilot CLI इंस्टॉल करें।",
+    "signIn": "फिर साइन इन करें और मॉडल रीफ़्रेश करें। आपके Copilot प्लान में शामिल न होने वाले मॉडल दिखाई नहीं देते।",
+    "refreshModels": "मॉडल रीफ़्रेश करें"
   },
   "batch2_29": {
     "storyboardPanel": {

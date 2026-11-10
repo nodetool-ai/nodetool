@@ -203,6 +203,7 @@ describe("cloud provider + pack allowlists", () => {
       "cheaperinference",
       "api_route",
       "runcrate",
+      "standardcompute",
       "fal_ai",
       "kie",
       "replicate",

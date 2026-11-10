@@ -1799,6 +1799,12 @@
       "localTitle": "Haluatko käyttää paikallisia malleja?",
       "localDescription": "Asenna Ollama ja lataa malli suoritettavaksi omalla koneellasi.",
       "getOllama": "Hanki Ollama",
+      "ollamaChecking": "Tarkistetaan Ollama-yhteyttä…",
+      "ollamaCheckFailed": "Ollamaa ei voitu tarkistaa. Yritä uudelleen.",
+      "ollamaConnected": "Ollama on yhdistetty. Valitse tai lataa malli mallien hallinnassa.",
+      "ollamaUnavailable": "Yhdistä tietokoneesi Ollamaan NodeTool-työpöytäsovelluksella.",
+      "ollamaUnreachable": "Ollamaan ei saada yhteyttä. Jos se on asennettu, avaa se. Muussa tapauksessa lataa se aloittaaksesi.",
+      "checkOllamaAgain": "Tarkista uudelleen",
       "encryptedKeys": "API-avaimet salataan. Voit hallita tai poistaa niitä Asetuksissa.",
       "signInAgain": "Kirjaudu uudelleen palveluun {{provider}}",
       "waitingSignIn": "Odotetaan kirjautumista…",
@@ -6820,6 +6826,7 @@
       "allCategories": "Kaikki",
       "categories": {
         "workflows": "Työnkulut",
+        "comfy": "ComfyUI",
         "apps": "Sovellukset",
         "storyboards": "Kuvakäsikirjoitukset",
         "timelines": "Aikajanat",
@@ -9060,6 +9067,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Hanki Runcrate API-avain",
           "tooltip": "Siirry Runcraten API-avainsivulle"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Hanki Standard Compute API-avain",
+          "tooltip": "Siirry Standard Computen API-avainsivulle"
         },
         "HF_TOKEN": {
           "button": "Hanki Hugging Face -tunnus",
@@ -12182,6 +12193,31 @@
         "undo": "Kumoa",
         "redo": "Tee uudelleen",
         "agent": "Agentti"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12745,7 +12781,6 @@
       "debuggingNotice": "Chrome näyttää pyynnön aikana palkin ”Nodetool is debugging this browser”. Laajennus ei tee mitään muilla välilehdillä.",
       "setup": "Ota käyttöön",
       "step1": "Anna Chromen käynnistää NodeToolin selainsilta.",
-      "windowsUnsupported": "Tätä ei vielä tueta Windowsissa. Median generointi laajennuksen kautta toimii macOS:ssä ja Linuxissa.",
       "bridgeRegistered": "Valmis. NodeTool rekisteröi siltansa selaimiisi.",
       "registering": "Rekisteröidään selaimiin…",
       "registrationFailed": "Selainsillan rekisteröinti epäonnistui",
@@ -18911,6 +18946,12 @@
     "signIn": "Kirjaudu sisään kopioimalla tämä komento tämän tietokoneen päätteeseen. Suorita Google-kirjautuminen loppuun ja päivitä sitten mallit.",
     "refreshModels": "Päivitä mallit",
     "statusUnavailable": "Tila ei saatavilla"
+  },
+  "copilot": {
+    "description": "Käytä GitHub Copilot -tiliäsi kielimalleihin. API-avainta ei tarvita.",
+    "install": "Asenna GitHub Copilot CLI tämän tietokoneen päätteessä.",
+    "signIn": "Kirjaudu sen jälkeen sisään ja päivitä mallit. Mallit, joita Copilot-tilauksesi ei sisällä, eivät näy.",
+    "refreshModels": "Päivitä mallit"
   },
   "batch2_29": {
     "storyboardPanel": {

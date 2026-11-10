@@ -38,6 +38,7 @@ import {
   TYPOGRAPHY,
   FONT_SIZE_SANS,
   BORDER_RADIUS,
+  ICON_SIZE,
   SPACING,
   getSpacingPx,
   Button,
@@ -74,11 +75,10 @@ import {
   BlendMode,
   coerceBlendMode,
   buildLayersPanelRows,
-  getDescendantIds,
   findMergeDownTargetIndex
 } from "./types";
 import LayerItem from "./LayerItem";
-import type { DropPosition } from "./LayerItem";
+import { useLayerDragDrop } from "./hooks/useLayerDragDrop";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { shallow } from "zustand/shallow";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
@@ -471,23 +471,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     [layers]
   );
   const layerRows = useMemo(() => buildLayersPanelRows(layers), [layers]);
-  // Rows render in tree order, so recovering each row's index with
-  // `layers.indexOf` made a single render quadratic in the layer count.
-  const layerRealIndexById = useMemo(() => {
-    const index = new Map<string, number>();
-    layers.forEach((layer, i) => index.set(layer.id, i));
-    return index;
-  }, [layers]);
-  const [dropTarget, setDropTarget] = useState<{
-    realIdx: number;
-    position: DropPosition;
-  } | null>(null);
-  /** Latest drag-over target; state alone is cleared by row dragLeave and drops then no-op. */
-  const dropTargetRef = useRef<{
-    realIdx: number;
-    position: DropPosition;
-  } | null>(null);
-  const dragSourceIndex = useRef<number | null>(null);
+  const { dropTarget, onDragStart, onDragOver, onDrop, onDragEnd } =
+    useLayerDragDrop(layers, onReorderLayers, onMoveLayerToGroup);
 
   // ─── Per-layer generation status (for status badges) ──────────────
   // Derive only the per-layer statuses (shallow-compared) instead of
@@ -758,144 +743,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     [onToggleVisibility]
   );
 
-  // ─── Drag-and-drop layer reordering (tree-aware) ───────────────
-  const handleDragStart = useCallback(
-    (e: React.DragEvent, realIdx: number) => {
-      dragSourceIndex.current = realIdx;
-      dropTargetRef.current = null;
-      try {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", layers[realIdx]?.id ?? "");
-      } catch {
-        // Some browsers restrict setData in dragstart; reorder still works.
-      }
-    },
-    [layers]
-  );
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, realIdx: number) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const height = rect.height;
-      const targetLayer = layers[realIdx];
-      let position: DropPosition;
-
-      if (targetLayer && targetLayer.type === "group") {
-        // For groups: top 25% = before, middle 50% = into, bottom 25% = after
-        if (y < height * 0.25) {
-          position = "before";
-        } else if (y > height * 0.75) {
-          position = "after";
-        } else {
-          position = "into";
-        }
-      } else {
-        // For non-groups: top half = before, bottom half = after
-        position = y < height * 0.5 ? "before" : "after";
-      }
-
-      const payload = { realIdx, position };
-      dropTargetRef.current = payload;
-      setDropTarget(payload);
-    },
-    [layers]
-  );
-
-  // Do not clear on row dragLeave: leaving the row to enter a child (or a gap)
-  // drops React state and the drop handler used to see null — preview lied.
-
-  const handleDrop = useCallback(
-    (_realIdx: number, e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const from = dragSourceIndex.current;
-      const pending = dropTargetRef.current;
-      if (from === null || !pending) {
-        dragSourceIndex.current = null;
-        dropTargetRef.current = null;
-        setDropTarget(null);
-        return;
-      }
-
-      const targetIdx = pending.realIdx;
-      const { position } = pending;
-
-      const draggedLayer = layers[from];
-      const targetLayer = layers[targetIdx];
-      if (!draggedLayer || !targetLayer) {
-        dragSourceIndex.current = null;
-        dropTargetRef.current = null;
-        setDropTarget(null);
-        return;
-      }
-
-      if (
-        from === targetIdx ||
-        (position === "into" && draggedLayer.id === targetLayer.id)
-      ) {
-        dragSourceIndex.current = null;
-        dropTargetRef.current = null;
-        setDropTarget(null);
-        return;
-      }
-
-      // Prevent dropping a group into itself or its descendants
-      if (draggedLayer.type === "group") {
-        const descendantIds = getDescendantIds(layers, draggedLayer.id);
-        if (descendantIds.includes(targetLayer.id)) {
-          dragSourceIndex.current = null;
-          dropTargetRef.current = null;
-          setDropTarget(null);
-          return;
-        }
-      }
-
-      if (position === "into" && targetLayer.type === "group") {
-        // Drop INTO a group: reparent the dragged layer
-        onMoveLayerToGroup(draggedLayer.id, targetLayer.id);
-      } else {
-        // Drop BEFORE or AFTER: reparent to the same parent as the target, then reorder
-        const targetParentId = targetLayer.parentId ?? null;
-        if ((draggedLayer.parentId ?? null) !== targetParentId) {
-          onMoveLayerToGroup(draggedLayer.id, targetParentId);
-        }
-        // The panel renders layers in REVERSE array order (last array item = top of panel).
-        // "before" in panel (above target) → place dragged item at a HIGHER array index.
-        // "after"  in panel (below target) → place dragged item at a LOWER  array index.
-        //
-        // Derivation: when removing `from` then inserting at `toIndex`, the item
-        // ends up at `toIndex` in the final array. Accounting for the array-vs-panel
-        // reversal:
-        //   before: toIndex = from < targetIdx ? targetIdx : targetIdx + 1
-        //   after:  toIndex = from < targetIdx ? targetIdx - 1 : targetIdx
-        let toIndex: number;
-        if (position === "before") {
-          toIndex = from < targetIdx ? targetIdx : targetIdx + 1;
-        } else {
-          toIndex = from < targetIdx ? targetIdx - 1 : targetIdx;
-        }
-        if (toIndex !== from) {
-          onReorderLayers(from, toIndex);
-        }
-      }
-
-      dragSourceIndex.current = null;
-      dropTargetRef.current = null;
-      setDropTarget(null);
-    },
-    [layers, onReorderLayers, onMoveLayerToGroup]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    dragSourceIndex.current = null;
-    dropTargetRef.current = null;
-    setDropTarget(null);
-  }, []);
-
   // ─── Layer context menu ───────────────────────────────────────
   const [layerCtxMenu, setLayerCtxMenu] = useState<{
     position: { x: number; y: number };
@@ -1136,7 +983,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         }}
       >
         {layerRows.map(({ layer, depth }) => {
-          const realIdx = layerRealIndexById.get(layer.id) ?? -1;
           const isPaintTarget = layer.id === activeLayerId;
           const isRowSelected = hasMultiLayerSelection
             ? selectedLayerIdSet.has(layer.id)
@@ -1145,14 +991,13 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <LayerItem
               key={layer.id}
               layer={layer}
-              realIdx={realIdx}
               depth={depth}
               isPaintTarget={isPaintTarget}
               isRowSelected={isRowSelected}
               isMask={layer.id === maskLayerId}
               isIsolated={layer.id === isolatedLayerId}
               dropPosition={
-                dropTarget?.realIdx === realIdx ? dropTarget.position : null
+                dropTarget?.layerId === layer.id ? dropTarget.position : null
               }
               isEditing={editingLayerId === layer.id}
               editName={editingLayerId === layer.id ? editName : ""}
@@ -1170,10 +1015,10 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onFinishRename={handleFinishRename}
               onEditNameChange={handleEditNameChange}
               onCancelRename={handleCancelRename}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onDragEnd={handleDragEnd}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
               onToggleGroupCollapsed={onToggleGroupCollapsed}
               bindingStatus={layerBindingStatuses[layer.id]}
             />
@@ -1193,7 +1038,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         sx={{ rowGap: 0.5, minHeight: 30, py: 0.5 }}
       >
         <ToolbarIconButton
-          icon={<MaskIcon style={{ width: "1.125rem", height: "1.125rem" }} />}
+          icon={<MaskIcon width={ICON_SIZE.md} height={ICON_SIZE.md} />}
           tooltip={t(
             maskLayerId === activeLayerId
               ? "i18n-cont-sketch-03.layers.removeMaskDesignation"
@@ -1285,7 +1130,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
             <Text
               sx={{
                 fontSize: FONT_SIZE_SANS.label,
-                width: "40px",
+                width: getSpacingPx(SPACING.xxxl + SPACING.md),
                 flexShrink: 0,
                 fontVariantNumeric: "tabular-nums",
                 textAlign: "right"

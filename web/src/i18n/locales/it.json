@@ -1813,6 +1813,12 @@
       "localTitle": "Preferisci i modelli locali?",
       "localDescription": "Installa Ollama e scarica un modello da eseguire sul tuo computer.",
       "getOllama": "Prendi Ollama",
+      "ollamaChecking": "Verifica della connessione a Ollama…",
+      "ollamaCheckFailed": "Impossibile verificare Ollama. Riprova.",
+      "ollamaConnected": "Ollama è connesso. Scegli o scarica un modello nel gestore dei modelli.",
+      "ollamaUnavailable": "Usa l’app desktop NodeTool per connetterti a Ollama sul tuo computer.",
+      "ollamaUnreachable": "Ollama non è raggiungibile. Se è installato, aprilo. Altrimenti scaricalo per iniziare.",
+      "checkOllamaAgain": "Verifica di nuovo",
       "encryptedKeys": "Le chiavi API sono crittografate. Puoi gestirli o rimuoverli nelle Impostazioni.",
       "signInAgain": "Accedi di nuovo a {{provider}}",
       "waitingSignIn": "In attesa dell'accesso…",
@@ -6919,6 +6925,7 @@
       "allCategories": "Tutto",
       "categories": {
         "workflows": "Flussi di lavoro",
+        "comfy": "ComfyUI",
         "apps": "App",
         "storyboards": "Storyboard",
         "timelines": "Cronologia",
@@ -9200,6 +9207,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Ottieni la chiave API Runcrate",
           "tooltip": "Vai alla piattaforma Runcrate per ottenere la tua chiave API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Ottieni la chiave API Standard Compute",
+          "tooltip": "Vai alla piattaforma Standard Compute per ottenere la tua chiave API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Ottieni la chiave del percorso API",
@@ -12365,6 +12376,31 @@
         "undo": "Annulla",
         "redo": "Rifare",
         "agent": "Agente"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12944,7 +12980,6 @@
       "debuggingNotice": "Chrome mostra una barra \"Nodetool sta eseguendo il debug di questo browser\" durante l'esecuzione di una richiesta. L'estensione non fa nulla sulle altre schede.",
       "setup": "Configuralo",
       "step1": "Consenti a Chrome di avviare il bridge del browser di NodeTool.",
-      "windowsUnsupported": "Questo non è ancora supportato su Windows. La generazione multimediale tramite l'estensione funziona su macOS e Linux.",
       "bridgeRegistered": "Fatto. NodeTool ha registrato il suo bridge con i tuoi browser.",
       "registering": "Registrazione con i tuoi browser…",
       "registrationFailed": "La registrazione del bridge del browser non è riuscita",
@@ -19221,6 +19256,12 @@
     "signIn": "Per accedere, copia questo comando in un terminale su questo computer. Completa l'accesso a Google, quindi aggiorna i modelli.",
     "refreshModels": "Aggiorna modelli",
     "statusUnavailable": "Stato non disponibile"
+  },
+  "copilot": {
+    "description": "Usa il tuo account GitHub Copilot per i modelli linguistici. Non serve una chiave API.",
+    "install": "Installa la CLI di GitHub Copilot in un terminale su questo computer.",
+    "signIn": "Poi accedi e aggiorna i modelli. I modelli non inclusi nel tuo piano Copilot non compaiono.",
+    "refreshModels": "Aggiorna modelli"
   },
   "batch2_29": {
     "storyboardPanel": {

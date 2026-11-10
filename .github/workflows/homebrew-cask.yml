@@ -1,0 +1,126 @@
+name: Homebrew cask
+
+# Tests the `nodetool` Homebrew cask against the signed, notarized arm64 and
+# x64 DMGs of a stable GitHub Release: audit, style, livecheck, install,
+# launch and zap.
+#
+# Homebrew/homebrew-cask updates the cask itself. BrewTestBot opens a version
+# bump pull request when livecheck finds a new stable release, and
+# `brew bump-cask-pr` refuses autobumped casks, so this workflow publishes
+# nothing. It checks that each release still installs from the cask and that
+# livecheck still finds it.
+#
+# - Pull requests that touch the packaging test the latest stable release.
+# - A successful Release run for a stable X.Y.Z tag tests that release.
+#   Release assets are uploaded with GITHUB_TOKEN, which does not fire
+#   `release` events, so this follows the Release workflow instead.
+# - Manual dispatch tests any stable version.
+#
+# See packaging/homebrew/README.md.
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  pull_request:
+    paths:
+      - "packaging/homebrew/**"
+      - ".github/workflows/homebrew-cask.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Stable version without leading v, e.g. 0.8.11. Empty selects the latest stable release."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew-${{ github.event.pull_request.number || github.ref }}-${{ github.event.workflow_run.head_branch || '' }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Resolve version
+        id: meta
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          case "${EVENT}" in
+            workflow_run)
+              # For a tag push, head_branch is the tag name.
+              version="${RUN_BRANCH#v}"
+              ;;
+            workflow_dispatch)
+              version="${INPUT_VERSION#v}"
+              ;;
+            *)
+              version=""
+              ;;
+          esac
+          if [[ -z "${version}" ]]; then
+            version="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq '[.[] | select(.draft | not) | .tag_name | ltrimstr("v")
+                     | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))][0] // ""')"
+            [[ -n "${version}" ]] || { echo "No stable release found." >&2; exit 1; }
+          fi
+          # homebrew-cask accepts stable releases only. Release candidates,
+          # nightlies and branch runs are skipped.
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "'${version}' is not a stable X.Y.Z release; nothing to do."
+            version=""
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "version='${version}'"
+
+  test:
+    name: Test cask (${{ matrix.arch }})
+    needs: resolve
+    if: needs.resolve.outputs.version != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Render cask
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: packaging/homebrew/render.sh "${VERSION}" cask/nodetool.rb
+
+      - name: Show cask
+        run: cat cask/nodetool.rb
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: matrix.arch == 'arm64'
+        with:
+          name: homebrew-cask-nodetool-${{ needs.resolve.outputs.version }}
+          path: cask/nodetool.rb
+          if-no-files-found: error
+
+      - name: Audit, install, launch and zap
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          # brew audit --online and livecheck call the GitHub API. Without a
+          # token they share the runner IP's unauthenticated rate limit.
+          HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
+        run: packaging/homebrew/test-cask.sh cask/nodetool.rb "${VERSION}"

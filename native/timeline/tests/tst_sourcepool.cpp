@@ -5,10 +5,13 @@
 #include "preview/FfmpegSource.h"
 #include "preview/FrameCache.h"
 #include "preview/SourcePool.h"
+#include "preview/StillImageSource.h"
 #include "preview/hw/HwInterop.h"
 
 #include <QElapsedTimer>
 #include <QHostAddress>
+#include <QImage>
+#include <QTemporaryDir>
 #include <QTcpServer>
 #include <QTest>
 #include <QThread>
@@ -106,6 +109,37 @@ private slots:
         if (name.contains("ardware") && hardwareUnavailable()) QSKIP("no hardware decode in this build or on this machine");
     }
 
+    void transparentStillImageDrawsFromRgba_data() {
+        QTest::addColumn<bool>("image");
+        QTest::newRow("image clip") << true;
+        QTest::newRow("video clip") << false;
+    }
+    void transparentStillImageDrawsFromRgba() {
+        // D10a rejects alpha on the YUV path. An image clip keeps it through
+        // one RGBA texture. Video with alpha still shows the placeholder.
+        QFETCH(bool, image);
+        QTemporaryDir dir;
+        const QString path = dir.filePath("logo.png");
+        QImage png(64, 32, QImage::Format_RGBA8888);
+        png.fill(QColor(230, 120, 40, 128));
+        QVERIFY(png.save(path));
+        Timeline tl = oneClip(path.toStdString());
+        tl.clips[0].mediaType = image ? MediaType::Image : MediaType::Video;
+        SourcePool pool;
+        QTRY_VERIFY_WITH_TIMEOUT((pool.update(tl, 0.0), !reportFor(pool).clipId.empty()), 3000);
+        const MediaReport r = reportFor(pool);
+        if (image) {
+            QVERIFY2(r.ok, r.reason.c_str());
+            QCOMPARE(r.decoder, std::string("image"));
+            auto* still = dynamic_cast<StillImageSource*>(pool.sourceFor("c"));
+            QVERIFY(still);
+            QCOMPARE(still->frameSize(), QSize(64, 32));
+        } else {
+            QVERIFY(!r.ok);
+            QCOMPARE(r.reason, std::string("alpha"));
+            QVERIFY(!dynamic_cast<StillImageSource*>(pool.sourceFor("c")));
+        }
+    }
     void decoderDestructorInterruptsBlockedIo() {
         // The LGPL FFmpeg that CI builds has --disable-network: no tcp:// to block on.
         if (!avio_find_protocol_name("tcp://127.0.0.1:1")) QSKIP("FFmpeg has no tcp protocol");

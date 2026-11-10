@@ -1813,6 +1813,12 @@
       "localTitle": "Prefere modelos locais?",
       "localDescription": "Instale o Ollama e baixe um modelo para rodar em sua máquina.",
       "getOllama": "Obter Ollama",
+      "ollamaChecking": "Verificando a conexão com o Ollama…",
+      "ollamaCheckFailed": "Não foi possível verificar o Ollama. Tente novamente.",
+      "ollamaConnected": "Ollama conectado. Escolha ou baixe um modelo no gerenciador de modelos.",
+      "ollamaUnavailable": "Use o aplicativo NodeTool para desktop para se conectar ao Ollama no seu computador.",
+      "ollamaUnreachable": "Não foi possível acessar o Ollama. Se estiver instalado, abra-o. Caso contrário, baixe-o para começar.",
+      "checkOllamaAgain": "Verificar novamente",
       "encryptedKeys": "As chaves de API são criptografadas. Você pode gerenciá-los ou removê-los em Configurações.",
       "signInAgain": "Faça login em {{provider}} novamente",
       "waitingSignIn": "Aguardando login…",
@@ -6919,6 +6925,7 @@
       "allCategories": "Todos",
       "categories": {
         "workflows": "Fluxos de trabalho",
+        "comfy": "ComfyUI",
         "apps": "Aplicativos",
         "storyboards": "Storyboards",
         "timelines": "Cronogramas",
@@ -9200,6 +9207,10 @@
         "RUNCRATE_API_KEY": {
           "button": "Obtenha a chave da API Runcrate",
           "tooltip": "Acesse a plataforma Runcrate para obter sua chave API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Obtenha a chave da API Standard Compute",
+          "tooltip": "Acesse a plataforma Standard Compute para obter sua chave API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Obtenha a chave de rota da API",
@@ -12365,6 +12376,31 @@
         "undo": "Desfazer",
         "redo": "Refazer",
         "agent": "Agente"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12944,7 +12980,6 @@
       "debuggingNotice": "O Chrome mostra uma barra “Nodetool está depurando este navegador” enquanto uma solicitação é executada. A extensão não faz nada em outras guias.",
       "setup": "Configure",
       "step1": "Deixe o Chrome iniciar a ponte do navegador do NodeTool.",
-      "windowsUnsupported": "Isso ainda não é compatível com Windows. A geração de mídia por meio da extensão funciona em macOS e Linux.",
       "bridgeRegistered": "Feito. NodeTool registrou sua ponte com seus navegadores.",
       "registering": "Registrando-se em seus navegadores…",
       "registrationFailed": "Falha no registro da ponte do navegador",
@@ -19221,6 +19256,12 @@
     "signIn": "Para entrar, copie este comando em um terminal neste computador. Conclua o login do Google e atualize os modelos.",
     "refreshModels": "Atualizar modelos",
     "statusUnavailable": "Status indisponível"
+  },
+  "copilot": {
+    "description": "Use sua conta do GitHub Copilot para modelos de linguagem. Não é necessária chave de API.",
+    "install": "Instale a CLI do GitHub Copilot em um terminal neste computador.",
+    "signIn": "Depois entre na conta e atualize os modelos. Os modelos que seu plano do Copilot não inclui não aparecem.",
+    "refreshModels": "Atualizar modelos"
   },
   "batch2_29": {
     "storyboardPanel": {

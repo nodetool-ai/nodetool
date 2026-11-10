@@ -27,6 +27,7 @@ run's messages their own way and disagreed about what an app was showing.
 | `doc-ops.ts` | Immutable edits to the non-UI half of a document (operations, variables, resources) |
 | `bundle.ts` | The `ApplicationBundle`: an app plus the full graphs it binds, as one JSON artifact |
 | `script-run.ts` | The contract for an operation that runs a JS script instead of a workflow |
+| `chat-app.ts` | The chat presentation: steps read from the `Stepper`, the `[app event]` turn a card sends, the app agent's system prompt and state snapshot |
 | `recipe-compiler.ts` | Deterministic Recipe authoring into normal Application documents, using typed contracts and concrete pinned operations |
 | `chat.ts` | Reading a bound value as a conversation, for the thread and composer widgets |
 | `documents.ts` | Unwrapping sketch and timeline refs out of a bound value |

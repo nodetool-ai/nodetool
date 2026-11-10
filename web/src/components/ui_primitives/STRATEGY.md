@@ -130,7 +130,10 @@ Media shown at card size — a grid, a strip, a list row — takes
 512px JPEG for every raster asset it stores, and the full URL behind a
 generated still is 300 KB–1.2 MB; a storyboard of twelve pulled all of it to
 fill cards a few hundred pixels wide. `useResolvedThumbnailUri` is the hook
-form, and both fall back to the original when an asset has no thumbnail.
+form. Both fall back to the original when an asset has no thumbnail or while
+the server is still writing it. A node-body preview built on `ImageView` takes
+the thumbnail as `previewSource` (`ImageRefPreview preferThumbnail`), so copy,
+download and the viewer keep the original.
 
 Rendering a raw `asset://` literal into a JSX `src`/`poster`/`href` is rejected
 by `design-tokens/no-unresolved-media-src` (fixture:

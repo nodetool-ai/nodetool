@@ -368,10 +368,8 @@ export async function browserStatus(): Promise<BrowserStatusOutput> {
       "no login. Call browser_restart with transport:'extension' to drive " +
       "the user's own signed-in Chrome instead.";
   } else if (connected === false) {
-    hint =
-      "No NodeTool browser bridge is running. Ask the user to run " +
-      "`nodetool extension install`, load the NodeTool extension in Chrome and " +
-      "reload it; until then every browser action fails to attach.";
+    const { BRIDGE_UNAVAILABLE_MESSAGE } = await import("./extension/socket-channel.js");
+    hint = BRIDGE_UNAVAILABLE_MESSAGE;
   }
 
   if (!state) {

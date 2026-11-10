@@ -28,6 +28,7 @@ const connection = (overrides: Partial<OAuthConnection> = {}): OAuthConnection =
   connect: jest.fn(async () => undefined),
   disconnect: jest.fn(async () => undefined),
   manualPrompt: null,
+  callbackUrl: null,
   isSubmittingManual: false,
   submitManualCode: jest.fn(async () => undefined),
   cancelManual: jest.fn(),

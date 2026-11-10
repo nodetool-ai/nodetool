@@ -1,16 +1,12 @@
 import React from "react";
-import { Cpu, Download, Hand, KeyRound, ScrollText } from "lucide-react";
+import { Download, Hand, KeyRound, ScrollText, type LucideIcon } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import FaqBlock from "../../components/FaqBlock";
-import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
 import MarketingPageShell from "../../components/MarketingPageShell";
-import ProductImage from "../../components/ProductImage";
-import SubscriptionSection from "../../components/SubscriptionSection";
+import SpecStrip from "../../components/SpecStrip";
 import AgentRunHero from "../../components/agents/AgentRunHero";
 import AgentSurfaceGrid from "../../components/agents/AgentSurfaceGrid";
-import McpInstallCommand from "../../components/agents/McpInstallCommand";
-import TrackedLink from "../../components/TrackedLink";
 import PageUpdated from "@/components/PageUpdated";
 import {
   AGENTS_LEAD,
@@ -18,15 +14,15 @@ import {
   APPROVAL_MODES_INTRO,
   CONTROLS,
   LOOP_STAGES,
-  MCP_STEPS,
+  VALIDATION_CHECKS,
+  VALIDATION_NOTE,
 } from "@/data/agentsPage";
 
 const CONTROL_ICONS = {
-  "Your models": Cpu,
-  "Your keys": KeyRound,
-  "A full record": ScrollText,
-  "Your hands": Hand,
-} as const;
+  record: ScrollText,
+  manual: Hand,
+  keys: KeyRound,
+} satisfies Record<(typeof CONTROLS)[number]["id"], LucideIcon>;
 
 const primaryButtonClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
@@ -92,7 +88,7 @@ export default function AgentsPage() {
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <AgentsPrimaryAction />
               <a
-                href="#connect-agent"
+                href="/developers#connect-agent"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3 text-sm font-semibold text-slate-100 transition-colors hover:border-slate-500 hover:bg-slate-800/70 focus-ring"
               >
                 Connect your agent
@@ -113,8 +109,6 @@ export default function AgentsPage() {
         </div>
       </section>
 
-      <SubscriptionSection className="rhythm-section" />
-
       <section
         id="agent-loop"
         aria-labelledby="agent-loop-title"
@@ -124,19 +118,11 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-loop-title"
             eyebrow="Inside the harness"
-            title="Build. Run. Inspect. Repair."
-            body="A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step."
+            title="Build. Validate. Run. Inspect. Repair."
+            body="The agent works on a saved workflow. If a step fails, it can inspect the error and revise that step. The example above illustrates this process."
           />
-          <div className="mt-12 grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
-            <div className="lg:col-span-7">
-              <HeroDemoPlayer
-                mediaBase="/hero-flow"
-                priority={false}
-                alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
-                caption="One sentence becomes a short film. The storyboard and the cut stay open for revision."
-              />
-            </div>
-            <ol className="relative lg:col-span-5">
+          <div className="mt-12 max-w-3xl">
+            <ol className="relative">
               <span
                 className="absolute bottom-6 left-[1.1875rem] top-6 w-px bg-gradient-to-b from-blue-400/60 via-slate-700 to-blue-400/60"
                 aria-hidden
@@ -170,6 +156,54 @@ export default function AgentsPage() {
       </section>
 
       <section
+        id="agent-validation"
+        aria-labelledby="agent-validation-title"
+        className="rhythm-section"
+      >
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:gap-16 lg:px-8">
+          <div className="lg:col-span-5">
+            <SectionHeader
+              id="agent-validation-title"
+              eyebrow="Before the paid call"
+              title="The graph is checked before it runs."
+              body={VALIDATION_NOTE}
+            />
+          </div>
+          <div className="min-w-0 lg:col-span-7">
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40">
+              <div className="flex items-center gap-2 border-b border-slate-800 px-5 py-3">
+                <code className="font-jetbrains text-xs text-blue-300">
+                  validate_workflow
+                </code>
+                <span className="text-xs text-slate-400">reports</span>
+              </div>
+              <ul className="divide-y divide-slate-800">
+                {VALIDATION_CHECKS.map((check) => (
+                  <li
+                    key={check}
+                    className="px-5 py-4 text-sm leading-relaxed text-slate-200"
+                  >
+                    {check}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="mt-5 text-sm leading-relaxed text-slate-300">
+              Connecting Claude Code, Codex, or Cursor is one command. The
+              setup, the CLI, and the HTTP API are on the{" "}
+              <a
+                href="/developers#connect-agent"
+                className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
+              >
+                developers page
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section
         id="agent-surfaces"
         aria-labelledby="agent-surfaces-title"
         className="rhythm-section"
@@ -178,7 +212,7 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-surfaces-title"
             eyebrow="What the harness gives the agent"
-            title="Eight editors the agent can work in. No export step."
+            title="You and the agent use the same editors."
             body="The agent edits the same documents you open in Studio. When it stops, the work is already in the editor."
           />
           <div className="mt-12">
@@ -196,16 +230,16 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-control-title"
             eyebrow="Your limits"
-            title="The harness runs on your models and your keys."
-            body="You decide what the agent may use, and you can read everything it did."
+            title="Every step is on the record."
+            body="Read what the agent did, and take the work back at any point."
           />
-          <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 sm:grid-cols-2">
-            {CONTROLS.map(({ title, body }) => {
-              const Icon = CONTROL_ICONS[title as keyof typeof CONTROL_ICONS];
+          <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 md:grid-cols-3">
+            {CONTROLS.map(({ id, title, body }) => {
+              const Icon = CONTROL_ICONS[id];
               return (
               <li
-                key={title}
-                className="border-slate-800 p-7 [&:not(:first-child)]:border-t sm:[&:nth-child(2)]:border-t-0 sm:[&:nth-child(even)]:border-l lg:p-9"
+                key={id}
+                className="border-slate-800 p-7 [&:not(:first-child)]:border-t md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-t-0 lg:p-9"
               >
                 <Icon className="h-5 w-5 text-blue-300" aria-hidden />
                 <h3 className="mt-4 text-lg font-semibold text-white">
@@ -248,100 +282,7 @@ export default function AgentsPage() {
         </div>
       </section>
 
-      <section
-        id="connect-agent"
-        aria-labelledby="connect-agent-title"
-        className="rhythm-section scroll-mt-28"
-      >
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:gap-16 lg:px-8">
-          <header className="lg:col-span-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
-              MCP server
-            </p>
-            <h2
-              id="connect-agent-title"
-              className="mt-3 text-balance text-3xl font-semibold tracking-tight text-white md:text-5xl"
-            >
-              Put the agent you already use in the harness.
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              One command adds NodeTool to Claude Code, Codex, or OpenCode over
-              MCP, the standard way agents connect to outside tools. Your coding
-              agent can then generate images, video, and audio, wire workflows,
-              and cut timelines you open later in Studio. You do not need Studio
-              installed to start.
-            </p>
-          </header>
-          <div className="min-w-0 lg:col-span-7">
-            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40">
-              <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-700" aria-hidden />
-                <span className="ml-2 font-jetbrains text-xs text-slate-400">
-                  terminal
-                </span>
-              </div>
-              <div className="px-4 pt-4">
-                <McpInstallCommand placement="terminal" />
-              </div>
-              <ol className="grid border-t border-slate-800 sm:grid-cols-3">
-                {MCP_STEPS.map((step, index) => (
-                  <li
-                    key={step.title}
-                    className="border-slate-800 p-5 [&:not(:first-child)]:border-t sm:[&:not(:first-child)]:border-l sm:[&:not(:first-child)]:border-t-0"
-                  >
-                    <span className="font-jetbrains text-xs text-blue-300">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <h3 className="mt-2 font-semibold text-white">
-                      {step.title}
-                    </h3>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-300">
-                      {step.body}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <p className="mt-5 text-sm leading-relaxed text-slate-300">
-              For Cursor, Claude Desktop, or another MCP client, run{" "}
-              <code className="font-jetbrains text-slate-100">
-                nodetool-mcp config
-              </code>{" "}
-              and paste the block it prints.{" "}
-              <TrackedLink
-                href="https://docs.nodetool.ai/mcp-server"
-                target="_blank"
-                rel="noopener noreferrer"
-                event="Open Docs"
-                eventProps={{ placement: "mcp-setup" }}
-                className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
-              >
-                Read the MCP setup guide
-              </TrackedLink>{" "}
-              or see{" "}
-              <a
-                href="/mcp"
-                className="text-blue-300 underline decoration-blue-300/40 underline-offset-4 hover:text-blue-200 focus-ring"
-              >
-                every tool the MCP server gives your agent
-              </a>
-              .
-            </p>
-          </div>
-        </div>
-        <div className="mx-auto mt-14 max-w-7xl px-6 lg:px-8">
-          <ProductImage
-            src="/diagrams/mcp-architecture.svg"
-            alt="Architecture diagram showing MCP clients connecting to NodeTool tools and editors"
-            width={1600}
-            height={900}
-            caption="The MCP server and the in-app agent call the same tools."
-            contain
-          />
-        </div>
-      </section>
+      <SpecStrip items={["plan", "models", "cost", "source"]} className="rhythm-section" />
 
       <section className="rhythm-section" aria-label="Questions before you build">
         <FaqBlock
@@ -354,7 +295,7 @@ export default function AgentsPage() {
 
       <MarketingClosingAction
         headingId="agents-closing-title"
-        title="Run your first brief through the harness."
+        title="Ask the agent to build your first workflow."
         body="Download Studio and watch the agent build a workflow you can open, change, and run again."
         primaryAction={<AgentsPrimaryAction />}
         secondaryAction={{

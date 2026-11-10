@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { recipeEntries } from "../../src/data/recipes";
-import { storyboardExamples } from "../../src/data/storyboardExamples";
+import { SPEC_ITEMS } from "../../src/components/SpecStrip";
 
 // Static route/metadata/media coverage lives in static-seo.spec.ts and uses
 // HTTP responses. Browser work stays representative so hydration and user
@@ -83,110 +83,41 @@ test.describe("marketing smoke", () => {
     await expect(cta).toHaveAttribute("href", "/download");
   });
 
-  test("homepage projects lead with results and one link per project", async ({
+  test("homepage keeps to its five blocks and one line per shared fact", async ({
     page
   }) => {
     await page.goto("/");
-
-    const proof = page.getByRole("region", {
-      name: "Build your next campaign"
-    });
-    await expect(proof).toBeVisible();
-    await expect(proof.getByText("Still to review")).toHaveCount(0);
-
-    const expectedRoutes = [
-      "/recipes/ecommerce-sku-visual-factory",
-      "/recipes/multilingual-video-dubber",
-      "/recipes/storyboard-to-trailer"
-    ];
-    const projectLinks = proof.locator(
-      'article a[href^="/recipes/"]:not([href="/recipes"])'
-    );
-    await expect(projectLinks).toHaveCount(expectedRoutes.length);
-    expect(
-      await projectLinks.evaluateAll((links) =>
-        links.map((link) => link.getAttribute("href"))
-      )
-    ).toEqual(expectedRoutes);
-
-    for (const route of expectedRoutes) {
-      const recipe = recipeEntries.find((entry) => entry.route === route)!;
-      const project = proof.locator("article", {
-        has: page.locator(`a[href="${route}"]`)
-      });
-
-      if (!recipe.productionRun) {
-        await expect(
-          project.getByRole("heading", { name: recipe.name })
-        ).toBeVisible();
-        await expect(project.getByText(recipe.outcome)).toBeVisible();
-        await expect(
-          project.getByRole("img", { name: /directed campaign kit mini app/i })
-        ).toBeVisible();
-        continue;
-      }
-
-      const run = recipe.productionRun;
-
-      await expect(
-        project.getByRole("heading", { name: run.proofTitle })
-      ).toBeVisible();
-      await expect(project.getByText(run.summary)).toBeVisible();
-      await expect(project.getByText(run.reviewLabel)).toHaveCount(0);
-      await expect(project.getByText(run.essentialLimitation)).toHaveCount(0);
+    // site-editorial.spec.md § Homepage: hero, mechanism, cost behaviour,
+    // spec strip, way in. A new h2 here means a section was added without
+    // removing one.
+    await expect(page.locator("#content h2")).toHaveText([
+      "From an idea to a video you can edit.",
+      "Approve the still before you pay for the clip.",
+      "Plans and costs",
+      "Frequently asked questions",
+      "Start making with NodeTool."
+    ]);
+    // Six short selling points link to their detailed pages.
+    const pillars = page
+      .getByRole("list", { name: "What you can do with NodeTool" })
+      .locator("a");
+    await expect(pillars).toHaveCount(6);
+    for (const href of ["/studio", "/studio#surfaces", "/agents", "/node-based-workflows", "/models", "/developers"]) {
+      await expect(pillars.and(page.locator(`[href="${href}"]`))).toHaveCount(1);
     }
-
-    const catalogueProject = proof.locator("article", {
-      has: page.locator('a[href="/recipes/ecommerce-sku-visual-factory"]')
-    });
-    const catalogueImage = catalogueProject.getByRole("img", {
-      name: /accepted olive travel cup reference/i
-    });
-    await expect(catalogueImage).toHaveCount(1);
-
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(catalogueImage).toBeVisible();
-    expect((await catalogueImage.boundingBox())?.width ?? 0).toBeGreaterThan(
-      300
-    );
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth)
-    ).toBeLessThanOrEqual(390);
+    const specs = page.getByRole("region", { name: "Plans and costs" });
+    for (const item of [SPEC_ITEMS.plan, SPEC_ITEMS.cost]) {
+      await expect(specs.locator(`a[href="${item.href}"]`)).toHaveText(
+        item.value
+      );
+    }
+    await expect(page.getByText(/Made with working creatives/i)).toHaveCount(0);
   });
 
-  test("homepage shows the ad library and the example storyboards", async ({
+  test("recipe catalogue opens the impossible product worlds recipe", async ({
     page
   }) => {
-    await page.goto("/");
-
-    const ads = page.getByRole("region", {
-      name: "Ideas for your next social media ad."
-    });
-    await expect(ads.locator('a[href^="/ad-library/"]')).toHaveCount(4);
-    await expect(ads.locator('a[href="/ad-library"]')).toBeVisible();
-
-    const boards = page.getByRole("region", {
-      name: "Start from a finished storyboard."
-    });
-    await expect(boards.getByRole("article")).toHaveCount(
-      storyboardExamples.length
-    );
-    const stills = boards.locator("img");
-    await expect(stills).toHaveCount(
-      storyboardExamples.reduce((sum, board) => sum + board.shots.length, 0)
-    );
-    for (const still of await stills.all()) {
-      await still.scrollIntoViewIfNeeded();
-      await expect
-        .poll(() => still.evaluate((img: HTMLImageElement) => img.naturalWidth))
-        .toBeGreaterThan(0);
-    }
-  });
-
-  test("advertising showcase opens the impossible product worlds recipe", async ({
-    page
-  }) => {
-    await page.goto("/marketing");
+    await page.goto("/recipes");
     await page
       .getByRole("link", {
         name: "Explore the Impossible product worlds project"
