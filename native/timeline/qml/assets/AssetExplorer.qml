@@ -160,6 +160,8 @@ Ui.Surface {
         anchors.margins: Ui.Metrics.md
         contentWidth: width
         contentHeight: libraryColumn.height
+        // The panel sets the size. An implicit size from the content makes a height binding loop.
+        implicitHeight: 0
         ScrollBar.vertical: Ui.ScrollBar {}
         clip: true
         ColumnLayout {
