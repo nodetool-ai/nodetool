@@ -47,9 +47,17 @@ built without GPU support". Platforms without a pinned wgpu-native build
 (anything but Linux x86_64/aarch64, macOS and Windows x86_64 MSVC) get the
 same build.
 
-`guest.bin` is QuickJS bytecode. It is valid only for the QuickJS build that
-wrote it, so recompile it after changing the engine pin, and after this
-change from a script bundle to a module bundle.
+`cmake --build` does not rebuild `build/guest.js` or `build/guest.bin`. After
+a change to the guest or to a node package, run `node guest/build.mjs` and then
+the `compile` command above.
+
+`guest.bin` is QuickJS bytecode. It starts with a 40-byte header: the magic
+`NTGRBC1`, the QuickJS version string (24 bytes, NUL padded) and an FNV-1a 64
+hash of the bytecode that follows. A load fails with a message that says to
+rebuild `guest.bin` when the version differs, the hash differs or the header is
+cut short. Recompile after changing the engine pin, and after this change from
+a script bundle to a module bundle. The compile step strips source text, so
+`fn.toString()` on a bundled function returns a placeholder.
 
 `guest/build.mjs` also writes `build/guest.assets/`. It holds the resources
 the bundle reads on first use: the timeline fonts, the tiktoken ranks, the
@@ -444,6 +452,30 @@ Provider jobs reserve their request and `ProviderJobs::Limits::maxResultBytes`,
 that does not fit that cap is dropped, and a start the ledger cannot admit
 fails and keeps its upload. The design is section 4.7 of
 [`docs/plans/graph-runner-async-host.md`](../../docs/plans/graph-runner-async-host.md).
+
+### Stacks, heap, messages and timers
+
+- The worker thread and each host lane start with an explicit 32 MiB stack
+  (`js::kWorkerStackBytes`). The main engine limits JavaScript to 24 MiB
+  (`js::kJsStackBytes`), which leaves room for C++, libav and Cairo frames.
+  Deep recursion, `JSON.parse` or `structuredClone` ends in a `RangeError`
+  instead of a crash. A nested Code-node runtime takes the smaller of its
+  request and the stack that remains, and refreshes its stack top on each
+  entry. The wasm stack comes from the same budget.
+- The engine heap limit defaults to 4 GiB. `HostOptions::javaScriptHeapBytes`
+  sets it, and 0 keeps the default. A guest allocation past it raises an
+  out-of-memory error. Before the JavaScript ledger refuses a charge, the
+  runner collects garbage once and retries.
+- `postMessage` has its own host function. Messages do not count toward
+  `maxCalls` or `maxPayloadBytes`. Each message text may hold up to
+  `maxMessageBytes` (64 MiB by default, in `context_options.h`), and the guest
+  keeps no list of posted messages.
+- A run may hold 10000 pending timers. `setTimeout` and `setInterval` throw
+  "too many pending timers" past that count.
+- `HostOptions::spareContext` (default on) keeps a second loaded context while
+  the runner is idle. A run after a discarded context then starts in about
+  135 ms, where a full load took 519 ms. It costs one idle JavaScript heap, so
+  a memory-bound embedder sets it to false. The CLI sets it to false.
 
 ## Guest environment
 
@@ -970,8 +1002,18 @@ through the public runner, including persisted reopen and asynchronous decisions
 
 ## Load time
 
-The runner logs source or bytecode load time at startup. Measure the current
-bundle with the target build and machine before choosing a preload strategy.
+The runner logs source or bytecode load time at startup. `--bench-load` loads
+the bundle, prints the resident and peak resident bytes as JSON and exits.
+`parity/bench-load.mjs` runs it `--runs` times and reports the logged phase
+times (`read_ms`, `guest_ms`, `catalog_ms`), the resident sizes and the bundle
+size:
+
+```bash
+node parity/bench-load.mjs --runner build/nodetool-graph-runner \
+  --bundle build/guest.bin --runs 2
+```
+
+Measure with the target build and machine before choosing a preload strategy.
 
 A host that keeps the loaded guest pays that cost once. `--repeat <n>` runs the
 graph `n` times in one context and prints only the last run's messages. Later
