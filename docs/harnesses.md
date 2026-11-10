@@ -2685,7 +2685,7 @@ uses real CMake/CTest fixtures, including deliberate build and test failures.
 
 Prerequisites are CMake 3.24 or newer, Ninja, a C++20 compiler, and Qt 6.12
 or newer with the modules listed in
-[`CMakeLists.txt`](../native/node-editor/CMakeLists.txt).
+[`CMakeLists.txt`](https://github.com/nodetool-ai/nodetool/blob/main/native/node-editor/CMakeLists.txt).
 Set `CMAKE_PREFIX_PATH` to the Qt kit, or install a Qt 6.12 kit under `~/qt`.
 Set `NODETOOL_NODE_EDITOR_BUILD_DIR` to choose a separate build directory.
 First configure needs Git and access to the pinned QtNodes repository unless
@@ -2696,7 +2696,7 @@ Changes under `native/node-editor/` select `native-node-editor` in the harness
 registry. The root gate reports it as manual work requiring these native
 prerequisites. Run the check explicitly to establish native test results.
 Offscreen tests do not establish platform input, accessibility, or installed-app
-rendering acceptance. See the [editor plan](plans/native-node-editor.md).
+rendering acceptance. See the [editor plan](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-node-editor.md).
 
 ## Native Qt presentation checks
 
@@ -2970,8 +2970,10 @@ state and does not replace working variables or invoke an operation.
 node scripts/check-native-graph-runner.mjs
 ```
 
-The default gate selects this check for `native/graph-runner/` and the native
-editor's local execution bridge. It parses the guest and harness JavaScript
+The default gate lists this check as manual work for `native/graph-runner/`
+and the native editor's local execution bridge, because it needs native
+libraries that the gate's runner does not install. The
+`native-graph-runner.yml` workflow builds and tests the runner in CI. The check parses the guest and harness JavaScript
 modules, rebuilds the guest and shader catalog, configures and builds the
 C++ runner, runs CTest with empty test registries rejected, and compares
 fixture message streams against the TypeScript reference. This is focused

@@ -408,10 +408,11 @@ describe("harness gate", () => {
     "native/graph-runner/parity/run.mjs",
     "scripts/check-native-graph-runner.mjs",
     "native/node-editor/src/server/WorkflowSession.cpp"
-  ])("runs the native graph runner check for %s", (file) => {
+  ])("lists the native graph runner check as manual work for %s", (file) => {
     const plan = planGate([file]);
     expect(plan.unmappedFiles).toEqual([]);
-    expect(plan.checks.find((entry) => entry.harnessId === "native-graph-runner")?.command)
+    expect(plan.checks.map((entry) => entry.harnessId)).not.toContain("native-graph-runner");
+    expect(plan.manual.find((entry) => entry.harnessId === "native-graph-runner")?.command)
       .toBe("node scripts/check-native-graph-runner.mjs");
   });
 

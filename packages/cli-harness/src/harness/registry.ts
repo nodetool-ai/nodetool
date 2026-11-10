@@ -1364,8 +1364,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "node scripts/check-native-graph-runner.mjs",
     kind: "execution",
     capabilities: [],
-    docs: "docs/harnesses.md § Native graph runner",
-    selfcheck: { command: "node scripts/check-native-graph-runner.mjs", cost: "cheap" }
+    docs: "docs/harnesses.md § Native graph runner"
   },
   {
     id: "native-node-editor",
@@ -2575,7 +2574,11 @@ export const SURFACES: SurfaceEntry[] = [
       "native/node-editor/src/server/WorkflowSession.cpp",
       "native/node-editor/src/server/WorkflowSession.h",
       "native/node-editor/tests/server/LocalRunTests.cpp"
-    ]
+    ],
+    gap:
+      "The check needs CMake, clang and libvips 8.18.7, libwebp 1.6.0 and Tesseract 5.5.3 built from " +
+      "pinned sources. The dedicated native-graph-runner workflow provides them, while the root gate " +
+      "lists the check as manual work."
   },
   {
     id: "native-node-editor",

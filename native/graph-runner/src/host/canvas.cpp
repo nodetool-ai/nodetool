@@ -13,8 +13,8 @@
 #include <sys/mman.h>
 #else
 #include <cstdlib>
-#include <filesystem>
 #endif
+#include <filesystem>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
