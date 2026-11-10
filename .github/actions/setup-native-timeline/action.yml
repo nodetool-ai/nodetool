@@ -2,7 +2,7 @@ name: Set up native timeline
 description: Install the shared Qt, codec and compiler dependencies
 runs:
   using: composite
-  # The github-env ignores below: native-timeline.yml (pull_request, push) and
+  # The github-env ignores below: native-timeline.yml (pull_request, push, schedule) and
   # native-timeline-release.yml (tag pushes) call this action, never an untrusted
   # trigger such as pull_request_target, and every value written is a runner or
   # tool path, not input from a pull request.

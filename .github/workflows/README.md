@@ -47,6 +47,16 @@ that changes those suites or the flows they drive. The same workflow's **`reliab
 job runs on every push to `main` and remains the merge-to-main gate described
 below.
 
+The native workflows (`native-timeline.yml`, `native-ui-primitives.yml`,
+`vst-host.yml`) run on a pull request only when it changes files under
+`native/`, their own workflow, or their build scripts. The native timeline's
+oracle and golden tests also compare against `packages/timeline`,
+`packages/gpu`, and `packages/cli-timeline`. A change to those packages alone
+does not start a native run on its pull request. The nightly
+`native-timeline.yml` run tests `main` when a commit in the last day touched
+them, and skips its build jobs otherwise. Dispatch the workflow on a branch to
+test a reference change before it merges.
+
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A new push to a PR cancels that PR's running run. A push to `main` waits for the running `main` run instead of cancelling it, and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
