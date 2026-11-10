@@ -144,6 +144,19 @@ private slots:
     drag(*cycle.view,cycle.port("origin",PortType::Out),cycle.body("target"));
     QApplication::processEvents(); QCOMPARE(cycle.window.document()->snapshot(),baseline); QCOMPARE(cycle.window.document()->undoStack()->count(),0);
   }
+  void draggedWireDrawsAboveEveryCard() {
+    Host h(workflow("Sink",QJsonArray{}));
+    QVERIFY(h.window.selectNode("target"));
+    QTest::mousePress(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.port("origin",PortType::Out));
+    auto draft=qgraphicsitem_cast<ConnectionGraphicsObject *>(h.window.scene()->mouseGrabberItem()); QVERIFY(draft);
+    const auto move=h.view->viewport()->rect().center();
+    QMouseEvent event(QEvent::MouseMove,QPointF(move),QPointF(h.view->viewport()->mapToGlobal(move)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
+    QApplication::sendEvent(h.view->viewport(),&event);
+    for (const auto id:h.model->allNodeIds()) {
+      QVERIFY(draft->zValue()>h.window.scene()->nodeGraphicsObject(id)->zValue());
+    }
+    QTest::mouseRelease(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,move); QApplication::processEvents();
+  }
   void midDragAccountAndSameIdWorkflowReplacementCancel() {
     const QJsonObject prior{{"id","old"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"}};
     Host h(workflow("Sink",QJsonArray{prior}));

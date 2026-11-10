@@ -6,21 +6,42 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     required property var picker
-    required property int activationToken
+    property int activationToken: -1
+    // One cursor runs over the fixed rows, then the ranked results.
+    readonly property var fixedRows: picker.fixedRows
+    property int cursor: 0
+    readonly property int total: fixedRows.length + list.count
+    function resetCursor() {
+        cursor = 0
+        list.positionViewAtBeginning()
+    }
+    Connections {
+        target: root.picker
+        function onChanged() { root.resetCursor() }
+    }
     color: Ui.Theme.surfaceOverlay
     radius: Ui.Metrics.radiusOverlay
     border.width: Ui.Metrics.border
     border.color: Ui.Theme.borderControl
-    function activate() { search.forceActiveFocus(Qt.PopupFocusReason) }
+    function activate() {
+        resetCursor()
+        search.forceActiveFocus(Qt.PopupFocusReason)
+    }
     function cancel() { picker.dismiss(activationToken) }
     function chooseCurrent() {
+        if (cursor >= 0 && cursor < fixedRows.length) {
+            picker.choose(fixedRows[cursor].key, activationToken)
+            return
+        }
         const options = picker.rows
-        if (list.currentIndex >= 0 && list.currentIndex < options.length)
-            picker.choose(options[list.currentIndex].key, activationToken)
+        const index = cursor - fixedRows.length
+        if (index >= 0 && index < options.length)
+            picker.choose(options[index].key, activationToken)
     }
     function move(delta) {
-        list.currentIndex = Math.max(0, Math.min(list.count - 1, list.currentIndex + delta))
-        list.positionViewAtIndex(list.currentIndex, ListView.Contain)
+        cursor = Math.max(0, Math.min(total - 1, cursor + delta))
+        if (list.currentIndex >= 0)
+            list.positionViewAtIndex(list.currentIndex, ListView.Contain)
     }
     Keys.priority: Keys.BeforeItem
     Keys.onPressed: event => {
@@ -46,15 +67,6 @@ Rectangle {
                 onClicked: root.cancel()
             }
         }
-        Ui.EditorButton {
-            objectName: "compatible-delete-output"
-            Layout.fillWidth: true
-            visible: root.picker.canDeleteOutput && root.picker.query === ""
-            text: "Delete output"
-            variant: Ui.EditorButton.Flat
-            density: Ui.EditorButton.Compact
-            onClicked: root.picker.deleteOutput(root.activationToken)
-        }
         Ui.TextField {
             id: search
             objectName: "compatible-search"
@@ -72,6 +84,32 @@ Rectangle {
                 else if (event.key === Qt.Key_Escape) { root.cancel(); event.accepted = true }
             }
         }
+        Column {
+            objectName: "compatible-fixed"
+            Layout.fillWidth: true
+            visible: root.fixedRows.length > 0
+            spacing: Ui.Metrics.micro
+            Repeater {
+                model: root.fixedRows
+                delegate: Ui.EditorButton {
+                    required property var modelData
+                    required property int index
+                    objectName: modelData.key === "fixed\ndelete-output" ? "compatible-delete-output" : "compatible-fixed-" + index
+                    width: parent.width
+                    text: modelData.label
+                    contentAlignment: Qt.AlignLeft
+                    variant: modelData.destructive ? Ui.EditorButton.Destructive : Ui.EditorButton.Flat
+                    density: Ui.EditorButton.Compact
+                    active: root.cursor === index
+                    onHoveredChanged: if (hovered) root.cursor = index
+                    onClicked: root.picker.choose(modelData.key, root.activationToken)
+                }
+            }
+        }
+        Ui.Separator {
+            Layout.fillWidth: true
+            visible: root.fixedRows.length > 0
+        }
         ListView {
             id: list
             objectName: "compatible-results"
@@ -80,7 +118,7 @@ Rectangle {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             model: root.picker.rows
-            currentIndex: count > 0 ? 0 : -1
+            currentIndex: Math.max(-1, root.cursor - root.fixedRows.length)
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
             delegate: Ui.EditorButton {
                 id: row
@@ -92,7 +130,7 @@ Rectangle {
                 variant: Ui.EditorButton.Flat
                 active: list.currentIndex === index
                 accessibleName: modelData.label + ", " + modelData.portLabel + ", " + modelData.typeLabel
-                onHoveredChanged: if (hovered) list.currentIndex = index
+                onHoveredChanged: if (hovered) root.cursor = root.fixedRows.length + index
                 onClicked: root.picker.choose(modelData.key, root.activationToken)
                 contentItem: Column {
                     spacing: Ui.Metrics.micro
@@ -103,7 +141,7 @@ Rectangle {
         }
         Ui.Text {
             Layout.fillWidth: true
-            visible: list.count === 0
+            visible: list.count === 0 && root.fixedRows.length === 0
             text: "No compatible nodes match this search."
             role: Ui.Typography.SansCaption
             tone: Ui.Text.Secondary

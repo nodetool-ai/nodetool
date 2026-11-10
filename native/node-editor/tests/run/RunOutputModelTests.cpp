@@ -108,6 +108,25 @@ private slots:
    QCOMPARE(model.entries().last().toMap()["renderer"].toString(), QString("tool_call"));
  }
 
+ void typedScalarText() {
+   RunOutputModel model; model.beginRun("typed");
+   auto show = [&](const QJsonValue &value) {
+     model.ingest("typed", {{"job_id", "typed"}, {"type", "output_update"}, {"node_id", "node"}, {"output_name", "output"}, {"value", value}});
+     return model.entries().last().toMap();
+   };
+   QCOMPARE(show(true)["text"].toString(), QString("TRUE"));
+   QCOMPARE(show(QJsonObject{{"type", "boolean"}, {"value", false}})["text"].toString(), QString("FALSE"));
+   const auto date = show(QJsonObject{{"type", "datetime"}, {"year", 2026}, {"month", 3}, {"day", 4}, {"hour", 5}, {"minute", 6}, {"second", 7}});
+   QCOMPARE(date["renderer"].toString(), QString("text"));
+   QCOMPARE(date["text"].toString(), QString("2026-03-04 05:06:07"));
+   const auto json = show(QJsonObject{{"type", "json"}, {"data", "{\"a\":1}"}});
+   QCOMPARE(json["renderer"].toString(), QString("json"));
+   QCOMPARE(json["text"].toString().trimmed(), QString("{\n    \"a\": 1\n}"));
+   const auto mail = show(QJsonObject{{"type", "email"}, {"sender", "a@x"}, {"to", "b@x"}, {"subject", "Hi"}, {"body", "Body"}});
+   QCOMPARE(mail["renderer"].toString(), QString("text"));
+   QCOMPARE(mail["text"].toString(), QString("From: a@x\nTo: b@x\nSubject: Hi\n\nBody"));
+ }
+
  void dataframePreviewLimits() {
    RunOutputModel model; model.beginRun("table");
    QJsonArray rows;

@@ -80,7 +80,8 @@ Rectangle {
             objectName: "rail-library"
             label: "Library"
             glyph: "collectionsOutlined"
-            unavailable: qsTr("The asset library has no native panel yet.")
+            active: editor && editor.libraryVisible
+            onActivated: editor.action("Library")
         }
         RailEntry {
             objectName: "rail-entities"

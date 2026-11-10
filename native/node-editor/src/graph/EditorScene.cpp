@@ -229,13 +229,17 @@ QColor mixColors(const QColor &first, const QColor &second, double firstShare) {
   return mixed;
 }
 
+// Above every card, selected cards (z 1) included.
+constexpr double kDraftWireZ = 1e6;
+
 // A collect handle (list[T] with a concrete T) is a ring: PropertyField.tsx isCollectType.
 bool collectPort(const QJsonValue &port) {
-  const auto type = port.toObject()["type"];
+  // value() copies. operator[] on the temporary object would return a dangling reference.
+  const auto type = port.toObject().value("type");
   if (!type.isObject()) { return false; }
   const auto declared = type.toObject();
-  const auto args = declared["type_args"].toArray();
-  return declared["type"] == "list" && args.size() == 1 && args[0].toObject()["type"] != "any";
+  const auto args = declared.value("type_args").toArray();
+  return declared.value("type") == "list" && args.size() == 1 && args[0].toObject().value("type") != "any";
 }
 
 QColor withOpacity(QColor color, double opacity);
@@ -491,7 +495,8 @@ public:
     // A collapsed strip keeps its status ring and drops the result body.
     if (layout.collapsed && !runtime.isEmpty()) { runtime = QJsonObject{{"status", runtime["status"]}}; }
     if (!runtime.isEmpty()) {
-      const auto output = model.canvasResultRect(item.nodeId());
+      // A constant or a content card shows its own value, not the run result.
+      const auto output = model.hasRuntimeOutput(item.nodeId()) ? model.canvasResultRect(item.nodeId()) : QRectF();
       const auto image = model.runtimePreview(item.nodeId());
       if (!output.isEmpty() && !image.isNull()) {
         auto target = QRectF(QPointF(), image.size().scaled(output.size().toSize(), Qt::KeepAspectRatio));
@@ -1345,6 +1350,7 @@ bool EditorScene::beginReconnect(ConnectionId connection, PortType side) {
   auto item = nodeGraphicsObject(node);
   const auto point = item->mapToScene(nodeGeometry().portPosition(node, side, port));
   const auto &draft = makeDraftConnection(makeIncompleteConnectionId(connection, side));
+  draft->setZValue(kDraftWireZ);
   draft->setEndPoint(side, draft->mapFromScene(point));
   return true;
 }
@@ -1674,6 +1680,10 @@ void EditorScene::finishSlider(bool commit) {
 void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     // The connectable styling covers every card, so a drag start repaints them.
     const bool drafting = draftEnd().node != InvalidNodeId;
+    // A dragged wire draws above every card (QtNodes gives a connection z -1).
+    if (drafting) {
+        if (auto draft = qgraphicsitem_cast<ConnectionGraphicsObject *>(mouseGrabberItem())) { draft->setZValue(kDraftWireZ); }
+    }
     // The base class' hover handling resets a card's cursor, so the handle cursor is set last.
     const auto cursorGuard = qScopeGuard([this, drafting] { refreshHandleCursor(drafting); });
     if (drafting != draftFeedback_) {

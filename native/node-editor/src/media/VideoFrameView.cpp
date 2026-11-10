@@ -37,6 +37,12 @@ public:
     clipboard->setImage(image);
     return true;
   }
+  Q_INVOKABLE bool copyText(const QString &text) const {
+    auto *clipboard = QGuiApplication::clipboard();
+    if (text.isEmpty() || !clipboard) { return false; }
+    clipboard->setText(text);
+    return true;
+  }
 };
 VideoFrameView::VideoFrameView(QQuickItem *parent) : QQuickPaintedItem(parent) {
   connect(&sink_, &QVideoSink::videoFrameChanged, this, [this] {

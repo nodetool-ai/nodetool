@@ -11,3 +11,8 @@ target_sources(node_editor_run_tests PRIVATE ../../src/media/PcmStream.cpp ../..
 target_include_directories(node_editor_run_tests PRIVATE ../../src)
 target_link_libraries(node_editor_run_tests PRIVATE Qt6::Core Qt6::Test Qt6::Multimedia)
 add_test(NAME node_editor_run_tests COMMAND node_editor_run_tests)
+find_package(Qt6 REQUIRED COMPONENTS Network)
+add_executable(node_editor_preview_source_assets_tests PreviewSourceAssetsTests.cpp ../../src/run/PreviewSourceAssets.cpp ../../src/run/PreviewSourceAssets.h)
+target_include_directories(node_editor_preview_source_assets_tests PRIVATE ../../src)
+target_link_libraries(node_editor_preview_source_assets_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+add_test(NAME node_editor_preview_source_assets_tests COMMAND node_editor_preview_source_assets_tests)

@@ -67,7 +67,7 @@ private slots:
     QVERIFY(picker->active()); QCOMPARE(view->transform(),transform); QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.selection(),selection);
     popup->setFocus();
     auto search=popup->rootObject()->findChild<QQuickItem *>("compatible-search"); search->forceActiveFocus();
-    QTest::keyClicks(popup,"Receiver prompt"); QTRY_COMPARE(picker->rows().size(),1);
+    QTest::keyClicks(popup,"Receiver prompt"); QTRY_COMPARE(picker->rows().size(),2);
     QTest::qWait(30);
     QQuickItem *row=nullptr;
     QTRY_VERIFY((row=findItem(popup->rootObject(),"compatible-result-0")));
@@ -148,7 +148,7 @@ private slots:
         QVERIFY(window.grab().save(capture+"-light.png"));
       }
       QTest::keyClicks(popup,direction==PortType::Out ? "Receiver prompt":"Producer");
-      QTRY_COMPARE(picker->rows().size(),1);
+      QTRY_COMPARE(picker->rows().size(),direction==PortType::Out ? 2:1);
       QTest::keyClick(popup,Qt::Key_Return);
       QTRY_COMPARE(window.document()->nodes().size(),2);
       QCOMPARE(window.document()->edges().size(),1);
@@ -292,7 +292,8 @@ private slots:
     QVERIFY(popup);
     QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
     QVERIFY(!picker->rows().isEmpty());
-    QVERIFY(!findItem(popup->rootObject(),"compatible-delete-output")->isVisible());
+    const auto absent=findItem(popup->rootObject(),"compatible-delete-output");
+    QVERIFY(!absent || !absent->isVisible());
     QTest::keyClick(popup,Qt::Key_Escape);
     QTRY_VERIFY(!picker->active());
     QCOMPARE(window.document()->snapshot(),baseline);
@@ -318,11 +319,14 @@ private slots:
     popup->setFocus();
     popup->rootObject()->findChild<QQuickItem *>("compatible-search")->forceActiveFocus();
     QTest::keyClicks(popup,"Rec");
-    QTRY_VERIFY(!remove->isVisible());
+    // The fixed rows leave the menu while the search has text.
+    QTRY_VERIFY(picker->fixedRows().isEmpty());
+    QTRY_VERIFY(!findItem(popup->rootObject(),"compatible-delete-output"));
     QTest::keyClick(popup,Qt::Key_Backspace);
     QTest::keyClick(popup,Qt::Key_Backspace);
     QTest::keyClick(popup,Qt::Key_Backspace);
-    QTRY_VERIFY(remove->isVisible());
+    QTRY_VERIFY((remove=findItem(popup->rootObject(),"compatible-delete-output")) && remove->isVisible());
+    QTest::qWait(30);
     const auto global=popup->mapToGlobal(remove->mapToScene(QPointF(remove->width()/2,remove->height()/2)).toPoint());
     QTest::mouseClick(window.windowHandle(),Qt::LeftButton,Qt::NoModifier,window.windowHandle()->mapFromGlobal(global));
     QTRY_VERIFY(!window.document()->node("dynamic")["dynamic_outputs"].toObject().contains("extra"));

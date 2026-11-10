@@ -1,3 +1,5 @@
+#include "graph/WorkflowGraphModel.h"
+#include <QClipboard>
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "media/VideoFrameView.h"
@@ -86,6 +88,69 @@ void click(EditorWindow &window, const QString &id, const QString &name) {
 class CanvasMediaHostTest final : public QObject {
   Q_OBJECT
 private slots:
+  void previewShowsWiredConstantWithoutRun() {
+    const QString constant = "44444444444444444444444444444444", preview = "55555555555555555555555555555555";
+    const QJsonArray types{
+      QJsonObject{{"node_type", "nodetool.constant.String"}, {"title", "String"},
+        {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "str"}}}}}},
+        {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "str"}}}}}}},
+      QJsonObject{{"node_type", "nodetool.workflows.base_node.Preview"}, {"title", "Preview"},
+        {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", QJsonObject{{"type", "any"}}}}}},
+        {"outputs", QJsonArray{QJsonObject{{"name", "output"}, {"type", QJsonObject{{"type", "any"}}}}}}}};
+    const auto at = [](int x) { return QJsonObject{{"position", QJsonObject{{"x", x}, {"y", 0}}}, {"width", 400}, {"height", 300}}; };
+    QJsonObject constantNode{{"id", constant}, {"type", "nodetool.constant.String"}, {"ui_properties", at(0)}};
+    constantNode["data"] = QJsonObject{{"value", "Hello before run"}};
+    const QJsonObject previewNode{{"id", preview}, {"type", "nodetool.workflows.base_node.Preview"}, {"ui_properties", at(500)}};
+    const QJsonObject edge{{"id", "edge"}, {"source", constant}, {"sourceHandle", "output"}, {"target", preview}, {"targetHandle", "value"}};
+    QJsonObject graph;
+    graph["nodes"] = QJsonArray{constantNode, previewNode};
+    graph["edges"] = QJsonArray{edge};
+    const QJsonObject fixture{{"name", "Preview source fixture"}, {"graph", graph}};
+    EditorWindow window;
+    window.resize(1400, 900); window.setCatalog(types);
+    QVERIFY(window.document()->load(fixture));
+    window.show(); window.fit();
+    QTRY_VERIFY(overlay(window, preview));
+    const auto rich = overlay(window, preview)->rootObject()->property("richEntry").toMap();
+    QCOMPARE(rich["renderer"].toString(), "text");
+    QVERIFY(rich["text"].toString().contains("Hello before run"));
+    QVERIFY(!overlay(window, constant));
+    auto *previewRoot = overlay(window, preview)->rootObject();
+    QVERIFY(previewRoot->property("previewActions").toBool());
+    auto *copy = previewRoot->findChild<QObject *>("preview-copy");
+    QVERIFY(copy);
+    QVERIFY(QMetaObject::invokeMethod(copy, "clicked"));
+    QCOMPARE(QGuiApplication::clipboard()->text(), QString("Hello before run"));
+    QCOMPARE(previewRoot->property("actionStatus").toString(), QString("Copied!"));
+    window.runOutput()->beginRun("preview-run");
+    window.runOutput()->ingest("preview-run", {{"type", "output_update"}, {"job_id", "preview-run"}, {"node_id", preview},
+      {"output_name", "output"}, {"value", "Run result"}});
+    QTRY_VERIFY(overlay(window, preview)->rootObject()->property("richEntry").toMap()["text"].toString().contains("Run result"));
+    // The constant's card already shows its value, so its own run result adds no card.
+    window.runOutput()->ingest("preview-run", {{"type", "output_update"}, {"job_id", "preview-run"}, {"node_id", constant},
+      {"output_name", "output"}, {"value", "Constant result"}});
+    QTest::qWait(150);
+    QVERIFY(!overlay(window, constant));
+    // A run result leaves the constant card at its size.
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QtNodes::NodeId constantId = QtNodes::InvalidNodeId;
+    for (const auto id : model.allNodeIds()) if (model.resourceId(id) == constant) constantId = id;
+    const auto before = model.layout(constantId).size;
+    emit window.session()->runSubmitted("constant-run");
+    emit window.session()->runEvent("constant-run", {{"type", "node_update"}, {"job_id", "constant-run"}, {"node_id", constant},
+      {"status", "completed"}, {"result", QJsonObject{{"output", "Constant result"}}}});
+    QTest::qWait(150);
+    QVERIFY(!model.hasRuntimeOutput(constantId));
+    QCOMPARE(model.layout(constantId).size, before);
+    window.runOutput()->beginRun("mixed-run");
+    window.runOutput()->ingest("mixed-run", {{"type", "output_update"}, {"job_id", "mixed-run"}, {"node_id", preview},
+      {"output_name", "output"}, {"value", QJsonArray{QJsonObject{{"type", "image"}, {"uri", "asset://mixed-image"}}, "Caption",
+        QJsonObject{{"type", "audio"}, {"uri", "asset://mixed-audio"}}}}});
+    QTRY_COMPARE(overlay(window, preview)->rootObject()->property("items").toList().size(), 3);
+    QStringList kinds;
+    for (const auto &item : overlay(window, preview)->rootObject()->property("items").toList()) { kinds.append(item.toMap()["kind"].toString()); }
+    QCOMPARE(kinds, QStringList({"image", "text", "audio"}));
+  }
   void richOutputsOnCards() {
     const QString objectNode = "33333333333333333333333333333333";
     auto types = catalog();
@@ -124,6 +189,7 @@ private slots:
     QTRY_VERIFY(overlay(window, AudioNode));
     QTRY_VERIFY(overlay(window, objectNode));
     auto textWidget = overlay(window, VideoNode);
+    QVERIFY(!textWidget->rootObject()->property("previewActions").toBool());
     auto tableWidget = overlay(window, AudioNode);
     auto objectWidget = overlay(window, objectNode);
     QCOMPARE(textWidget->rootObject()->property("richEntry").toMap()["renderer"].toString(), "text");
@@ -138,6 +204,18 @@ private slots:
     auto table = visibleItem(tableWidget->rootObject(), "output-dataframe");
     QVERIFY(table && table->isVisible());
     QTRY_VERIFY(table->width() > 0 && table->height() > 0);
+    // The rich output leaves the wheel to the canvas until a click engages it.
+    auto scroll = textWidget->rootObject()->findChild<QQuickItem *>("canvas-rich-scroll");
+    QVERIFY(scroll);
+    QVERIFY(!scroll->property("interactive").toBool());
+    const auto scrollPoint = scroll->mapToScene(QPointF(scroll->width() / 2, scroll->height() / 2)).toPoint();
+    const auto unengagedZoom = textWidget->rootObject()->property("zoom").toReal();
+    QWheelEvent canvasWheel(scrollPoint, textWidget->mapToGlobal(scrollPoint), {}, QPoint(0, 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent(textWidget, &canvasWheel);
+    QTRY_VERIFY(textWidget->rootObject()->property("zoom").toReal() > unengagedZoom);
+    QTest::mouseMove(textWidget, scrollPoint);
+    QTest::mouseClick(textWidget, Qt::LeftButton, {}, scrollPoint);
+    QTRY_VERIFY(scroll->property("interactive").toBool());
     auto view = window.findChild<QGraphicsView *>();
     QVERIFY(view);
     const auto zoomBefore = tableWidget->rootObject()->property("zoom").toReal();

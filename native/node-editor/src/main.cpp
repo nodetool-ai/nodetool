@@ -1,3 +1,4 @@
+#include "server/BundledServer.h"
 #include "ui/EditorWindow.h"
 #include <QApplication>
 #include <QCommandLineParser>
@@ -60,8 +61,16 @@ int runEditor(QApplication &app, const QCommandLineParser &parser) {
   // An interactive start connects to the local server, as the web app does.
   // Headless export and replay runs stay offline unless --server is given.
   const bool headless = parser.isSet("screenshot") || parser.isSet("dump") || parser.isSet("save") || parser.isSet("replay");
-  const auto server = parser.isSet("server") ? QUrl(parser.value("server"))
-      : (!headless && !parser.isSet("offline") && window.session()->serverUrl().isEmpty()) ? QUrl("http://localhost:7777") : QUrl();
+  // A package with a bundled backend starts that server instead.
+  const nodetool::node_editor::ServerStartOptions start{
+      parser.isSet("server") ? QUrl(parser.value("server")) : QUrl(), parser.isSet("offline"), headless,
+      !window.session()->serverUrl().isEmpty()};
+  const auto server = nodetool::node_editor::chooseServer(start, [] {
+    QString error;
+    QUrl url = nodetool::node_editor::startBundledServer(&error);
+    if (!error.isEmpty()) std::fprintf(stderr, "nodetool-node-editor: %s\n", qPrintable(error));
+    return url;
+  });
   if (!server.isEmpty()) {
     window.session()->connectToServer(server, qEnvironmentVariable("NODETOOL_TOKEN"));
     window.session()->loadCatalog();

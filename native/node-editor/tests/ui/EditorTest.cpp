@@ -474,6 +474,9 @@ private slots:
     const auto baseline = w.document()->snapshot();
     const auto count = w.document()->undoStack()->count();
     emit w.session()->runSubmitted("first");
+    // A run does not open the output panel. Logs opens it.
+    QVERIFY(!w.outputVisible());
+    w.action("Output");
     QVERIFY(w.outputVisible());
     emit w.session()->runEvent("first", {{"type", "output_update"}, {"job_id", "first"}, {"node_id", "n"},
         {"output_name", "value"}, {"value", "asset://preserved"}});
@@ -654,9 +657,9 @@ private slots:
     w.show();
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
-    // Rail, tabs, document header, status, catalog, browser, inspector, output, both toolbars,
-    // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay.
-    QCOMPARE(panels.size(), 16);
+    // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
+    // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library.
+    QCOMPARE(panels.size(), 18);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }

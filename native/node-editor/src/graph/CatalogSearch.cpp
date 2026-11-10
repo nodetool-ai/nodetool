@@ -6,6 +6,7 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
+#include <optional>
 #include <array>
 #include <bit>
 #include <cmath>
@@ -209,26 +210,40 @@ struct Bm25Index {
     std::array<double, kBm25Fields> avgLen{};
 };
 
-Bm25Index buildBm25(const QList<std::array<QString, kBm25Fields>> &docs) {
+// One BM25 field of one document: its token count and each distinct token with its count, in first-seen order.
+struct FieldTerms {
+    int length = 0;
+    QList<std::pair<QString, int>> counts;
+};
+
+FieldTerms fieldTerms(const QString &text) {
+    const auto tokens = tokenize(text);
+    FieldTerms out{int(tokens.size()), {}};
+    QHash<QString, int> at;
+    for (const auto &token : tokens) {
+        const auto found = at.constFind(token);
+        if (found == at.constEnd()) {
+            at.insert(token, int(out.counts.size()));
+            out.counts.append({token, 1});
+        } else {
+            out.counts[found.value()].second += 1;
+        }
+    }
+    return out;
+}
+
+Bm25Index buildBm25(const QList<const std::array<FieldTerms, kBm25Fields> *> &docs) {
     Bm25Index index;
     index.docCount = int(docs.size());
     std::array<double, kBm25Fields> sums{};
     for (int doc = 0; doc < docs.size(); ++doc) {
         QSet<QString> docTerms;
         for (int field = 0; field < kBm25Fields; ++field) {
-            const auto tokens = tokenize(docs[doc][field]);
-            index.docLens[field].append(int(tokens.size()));
-            sums[field] += double(tokens.size());
-            QHash<QString, int> tf;
-            QStringList order;
-            for (const auto &token : tokens) {
-                if (!tf.contains(token)) {
-                    order << token;
-                }
-                tf[token] += 1;
-            }
-            for (const auto &token : order) {
-                index.postings[token][field].append({doc, tf[token]});
+            const auto &terms = (*docs[doc])[field];
+            index.docLens[field].append(terms.length);
+            sums[field] += double(terms.length);
+            for (const auto &[token, tf] : terms.counts) {
+                index.postings[token][field].append({doc, tf});
                 docTerms.insert(token);
             }
         }
@@ -294,6 +309,48 @@ QList<Bm25Result> searchBm25(const Bm25Index &index, const QString &query, int l
 // ---------------------------------------------------------------------------
 // Indexes shared by the three boost passes. The web caches them per node set.
 
+bool isSeparator(QChar c);
+
+// One field of a node, lowercased, with its words split once (web utils/ranking.ts fieldScore).
+struct RankField {
+    QString lower;
+    QSet<QString> tokens;
+};
+
+RankField rankField(const QString &field) {
+    RankField out{field.toLower(), {}};
+    qsizetype start = -1;
+    for (qsizetype i = 0; i <= out.lower.size(); ++i) {
+        if (i < out.lower.size() && !isSeparator(out.lower[i])) {
+            if (start < 0) {
+                start = i;
+            }
+            continue;
+        }
+        if (start >= 0) {
+            out.tokens.insert(out.lower.mid(start, i - start));
+        }
+        start = -1;
+    }
+    return out;
+}
+
+const QCollator &typeCollator() {
+    static const QCollator collator{QLocale{QLocale::English}};
+    return collator;
+}
+
+// The cached work for one node: the rank fields, the collation key of its type
+// and its parts of the boost index.
+struct RankEntry {
+    CatalogSearchNode node;
+    std::array<RankField, 4> fields;
+    QCollatorSortKey typeKey;
+    QStringList titleWords, namespaceWords, descriptionWords;
+    std::array<QString, 6> fuzzyFields;
+    std::array<FieldTerms, kBm25Fields> bm25;
+};
+
 struct SearchIndex {
     QList<CatalogSearchNode> nodes;
     // Prefix tree words per field, lowercased and trimmed (utils/PrefixTreeSearch.ts getFieldValues).
@@ -324,44 +381,48 @@ QStringList normalizedWords(const QStringList &values) {
     return out;
 }
 
-SearchIndex buildIndex(const QList<CatalogSearchNode> &nodes) {
+RankEntry rankEntry(const CatalogSearchNode &node) {
     static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+    RankEntry entry{node,
+                    {rankField(node.title), rankField(node.type), rankField(node.nameSpace), rankField(node.description)},
+                    typeCollator().sortKey(node.type), {}, {}, {}, {}, {}};
+    QStringList title{node.title, QString(node.title).remove(whitespace)};
+    for (const auto &word : node.title.split(whitespace, Qt::SkipEmptyParts)) {
+        if (!stopWords().contains(word.toLower())) {
+            title << word;
+        }
+    }
+    entry.titleWords = normalizedWords(title);
+    entry.namespaceWords = normalizedWords(QStringList{node.nameSpace} + node.nameSpace.split(QLatin1Char('.')));
+    QStringList description;
+    for (const auto &word : node.description.toLower().split(whitespace, Qt::SkipEmptyParts)) {
+        if (word.size() > 2 && !stopWords().contains(word)) {
+            description << word;
+        }
+    }
+    entry.descriptionWords = normalizedWords(description);
+    const auto doc = formatDocumentation(node.description);
+    entry.fuzzyFields = {node.title, node.type, node.nameSpace, doc.tags, doc.description, doc.useCases};
+    for (int field = 0; field < kBm25Fields; ++field) {
+        entry.bm25[field] = fieldTerms(entry.fuzzyFields[field]);
+    }
+    return entry;
+}
+
+SearchIndex buildIndex(const QList<CatalogSearchNode> &nodes, const QList<const RankEntry *> &entries) {
     SearchIndex index;
     index.nodes = nodes;
-    QList<std::array<QString, kBm25Fields>> docs;
-    for (const auto &node : nodes) {
-        QStringList title{node.title, QString(node.title).remove(whitespace)};
-        for (const auto &word : node.title.split(whitespace, Qt::SkipEmptyParts)) {
-            if (!stopWords().contains(word.toLower())) {
-                title << word;
-            }
-        }
-        index.titleWords.append(normalizedWords(title));
-        index.namespaceWords.append(normalizedWords(QStringList{node.nameSpace} + node.nameSpace.split(QLatin1Char('.'))));
-        QStringList description;
-        for (const auto &word : node.description.toLower().split(whitespace, Qt::SkipEmptyParts)) {
-            if (word.size() > 2 && !stopWords().contains(word)) {
-                description << word;
-            }
-        }
-        index.descriptionWords.append(normalizedWords(description));
-        const auto doc = formatDocumentation(node.description);
-        docs.append({node.title, node.type, node.nameSpace, doc.tags, doc.description, doc.useCases});
-        index.fuzzyFields.append({node.title, node.type, node.nameSpace, doc.tags, doc.description, doc.useCases});
+    QList<const std::array<FieldTerms, kBm25Fields> *> docs;
+    docs.reserve(entries.size());
+    for (const auto *entry : entries) {
+        index.titleWords.append(entry->titleWords);
+        index.namespaceWords.append(entry->namespaceWords);
+        index.descriptionWords.append(entry->descriptionWords);
+        index.fuzzyFields.append(entry->fuzzyFields);
+        docs.append(&entry->bm25);
     }
     index.bm25 = buildBm25(docs);
     return index;
-}
-
-const SearchIndex &indexFor(const QList<CatalogSearchNode> &nodes) {
-    // native-rules #14: function-static mutable cache (cached, built), not thread-safe
-    static SearchIndex cached;
-    static bool built = false;
-    if (!built || cached.nodes != nodes) {
-        cached = buildIndex(nodes);
-        built = true;
-    }
-    return cached;
 }
 
 void raiseBoost(QList<double> &boosts, int node, double boost) {
@@ -510,36 +571,17 @@ bool isSeparator(QChar c) {
     return c.isSpace() || c == QLatin1Char('.') || c == QLatin1Char('_') || c == QLatin1Char('-') || c == QLatin1Char('/');
 }
 
-double fieldScore(const QString &field, const QStringList &lowerTerms, double weight) {
-    if (field.isEmpty()) {
+double fieldScore(const RankField &field, const QStringList &lowerTerms, double weight) {
+    if (field.lower.isEmpty()) {
         return 0;
     }
-    const auto lower = field.toLower();
     double score = 0;
-    bool tokenized = false;
-    QStringList tokens;
     for (const auto &term : lowerTerms) {
-        if (!lower.contains(term)) {
+        if (!field.lower.contains(term)) {
             continue;
         }
         score += weight;
-        if (!tokenized) {
-            tokenized = true;
-            qsizetype start = -1;
-            for (qsizetype i = 0; i <= lower.size(); ++i) {
-                if (i < lower.size() && !isSeparator(lower[i])) {
-                    if (start < 0) {
-                        start = i;
-                    }
-                    continue;
-                }
-                if (start >= 0) {
-                    tokens << lower.mid(start, i - start);
-                }
-                start = -1;
-            }
-        }
-        if (tokens.contains(term)) {
+        if (field.tokens.contains(term)) {
             score += weight * 2;
         }
     }
@@ -555,7 +597,8 @@ struct Scored {
     double score;
 };
 
-QList<Scored> rankPass(const QList<CatalogSearchNode> &nodes, const QStringList &terms, const QList<double> &boosts,
+QList<Scored> rankPass(const QList<CatalogSearchNode> &nodes, const QList<const RankEntry *> &entries,
+                       const QStringList &terms, const QList<double> &boosts,
                        const QStringList &recent, const QStringList &boosted) {
     constexpr double kRecentBonus = 10;
     constexpr double kBoostedBonus = 6;
@@ -578,8 +621,9 @@ QList<Scored> rankPass(const QList<CatalogSearchNode> &nodes, const QStringList 
         const double candidate = boosts.isEmpty() ? 0 : boosts[i];
         double base = 0;
         if (hasTerms && !lowerTerms.isEmpty()) {
-            const double raw = fieldScore(node.title, lowerTerms, 6) + fieldScore(node.type, lowerTerms, 4) +
-                               fieldScore(node.nameSpace, lowerTerms, 2) + fieldScore(node.description, lowerTerms, 1);
+            const auto &fields = entries[i]->fields;
+            const double raw = fieldScore(fields[0], lowerTerms, 6) + fieldScore(fields[1], lowerTerms, 4) +
+                               fieldScore(fields[2], lowerTerms, 2) + fieldScore(fields[3], lowerTerms, 1);
             if (raw != 0) {
                 double multiplier = isCore(node.nameSpace) ? 1.5 : 1;
                 if (node.deprecated) {
@@ -597,12 +641,12 @@ QList<Scored> rankPass(const QList<CatalogSearchNode> &nodes, const QStringList 
         scored.append({i, base + candidate + recency + curated});
     }
     // Ties order by node type with the locale collation JavaScript's localeCompare uses.
-    static const QCollator collator(QLocale(QLocale::English));
+    // Each entry keeps its collation key, so the sort does not collate strings again.
     std::stable_sort(scored.begin(), scored.end(), [&](const Scored &a, const Scored &b) {
         if (a.score != b.score) {
             return a.score > b.score;
         }
-        return collator.compare(nodes[a.node].type, nodes[b.node].type) < 0;
+        return entries[a.node]->typeKey.compare(entries[b.node]->typeKey) < 0;
     });
     return scored;
 }
@@ -671,14 +715,39 @@ double catalogFuzzyScore(const QString &query, const QString &text) {
     return 0.5 * (0.55 * density + 0.25 * consecutiveRatio + 0.15 * boundaryRatio + 0.05 * affinity);
 }
 
-QList<int> rankCatalogNodes(const QList<CatalogSearchNode> &nodes, const QString &query, const QStringList &recent,
-                            const QStringList &boosted) {
+struct CatalogRanker::State {
+    // The boost index for the last node set. A new node set builds it again.
+    std::optional<SearchIndex> index;
+    // The rank fields of each node type. An entry stays while the node is unchanged.
+    QHash<QString, RankEntry> entries;
+};
+
+CatalogRanker::CatalogRanker() : state_(std::make_unique<State>()) {}
+CatalogRanker::~CatalogRanker() = default;
+
+QList<int> CatalogRanker::rank(const QList<CatalogSearchNode> &nodes, const QString &query, const QStringList &recent,
+                               const QStringList &boosted) {
+    for (const auto &node : nodes) {
+        const auto found = state_->entries.constFind(node.type);
+        if (found == state_->entries.constEnd() || !(found->node == node)) {
+            state_->entries.insert(node.type, rankEntry(node));
+        }
+    }
+    // An insert can move the values, so take the pointers after the last insert.
+    QList<const RankEntry *> entries;
+    entries.reserve(nodes.size());
+    for (const auto &node : nodes) {
+        entries.append(&*state_->entries.constFind(node.type));
+    }
     const auto terms = expandedTerms(query);
     QList<double> boosts;
     const bool hasQuery = !query.trimmed().isEmpty();
     const SearchIndex *index = nullptr;
     if (hasQuery && !nodes.isEmpty()) {
-        index = &indexFor(nodes);
+        if (!state_->index || state_->index->nodes != nodes) {
+            state_->index = buildIndex(nodes, entries);
+        }
+        index = &*state_->index;
         boosts = QList<double>(nodes.size(), 0.0);
         for (const auto &term : terms) {
             if (!term.trimmed().isEmpty()) {
@@ -687,11 +756,11 @@ QList<int> rankCatalogNodes(const QList<CatalogSearchNode> &nodes, const QString
         }
         addBm25Boosts(*index, terms, boosts);
     }
-    auto ranked = rankPass(nodes, terms, boosts, recent, boosted);
+    auto ranked = rankPass(nodes, entries, terms, boosts, recent, boosted);
     // The fuzzy pass runs only when the other signals left fewer than 100 results.
     if (index && query.trimmed().size() >= 3 && ranked.size() < 100) {
         addFuzzyBoosts(*index, terms, boosts);
-        ranked = rankPass(nodes, terms, boosts, recent, boosted);
+        ranked = rankPass(nodes, entries, terms, boosts, recent, boosted);
     }
     QList<int> order;
     order.reserve(ranked.size());
@@ -699,5 +768,10 @@ QList<int> rankCatalogNodes(const QList<CatalogSearchNode> &nodes, const QString
         order.append(entry.node);
     }
     return order;
+}
+
+QList<int> rankCatalogNodes(const QList<CatalogSearchNode> &nodes, const QString &query, const QStringList &recent,
+                            const QStringList &boosted) {
+    return CatalogRanker().rank(nodes, query, recent, boosted);
 }
 } // namespace nodetool

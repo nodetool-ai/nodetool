@@ -363,6 +363,12 @@ void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &
 }
 QImage WorkflowGraphModel::runtimePreview(NodeId id) const { return previews_.value(resourceId(id)); }
 bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
+    // A constant or a content card already shows its value. A run leaves the card as it is.
+    const auto type = nodes_.value(id)["type"].toString();
+    const auto body = cardBodyFor(type, metadata(id));
+    if (type.startsWith(QStringLiteral("nodetool.constant.")) || body == CardBody::Content || body == CardBody::ConstantString) {
+        return false;
+    }
     const auto state = runtimeState(id);
     for (const auto *key : {"error", "text"}) {
         if (!state[key].toString().isEmpty()) {

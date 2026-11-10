@@ -1,6 +1,7 @@
 #include "document/ChildPorts.h"
 #include "properties/CodeHighlighter.h"
 #include "EditorWindow.h"
+#include "graph/CardBodies.h"
 #include "document/GroupIntoSubgraph.h"
 #include "MiniMap.h"
 #include "InspectorClearance.h"
@@ -123,11 +124,21 @@ QHash<QString, QJsonObject> loadCodeSnippets() {
 // Snippets appear only when the catalog has the Code node they create.
 QJsonArray withCodeSnippets(const QJsonArray &metadata, const QHash<QString, QJsonObject> &snippets) {
   QSet<QString> types;
-  for (const auto &entry : metadata) { types.insert(entry.toObject()["node_type"].toString()); }
-  if (!types.contains("nodetool.code.Code")) { return metadata; }
+  QJsonObject codeNode;
+  for (const auto &entry : metadata) {
+    const auto node = entry.toObject();
+    types.insert(node["node_type"].toString());
+    if (node["node_type"] == "nodetool.code.Code") { codeNode = node; }
+  }
+  if (codeNode.isEmpty()) { return metadata; }
   auto result = metadata;
   for (auto it = snippets.cbegin(); it != snippets.cend(); ++it) {
-    if (!types.contains(it.key())) { result.append(it.value()["metadata"]); }
+    if (types.contains(it.key())) { continue; }
+    // Every create path reads this entry, so each one makes a Code node (createNativeNode).
+    auto entry = it.value()["metadata"].toObject();
+    entry["code_snippet"] = QJsonObject{{"code", it.value()["code"]}, {"title", it.value()["title"]},
+                                        {"data", it.value()["data"]}, {"code_node", codeNode}};
+    result.append(entry);
   }
   return result;
 }
@@ -211,6 +222,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
+  engine_->rootContext()->setContextProperty("libraryBrowser", &library_);
   engine_->rootContext()->setContextProperty("runOutput", &runOutput_);
   engine_->rootContext()->setContextProperty("workflowSession", &session_);
   engine_->rootContext()->setContextProperty("mediaResolver", &mediaResolver_);
@@ -249,9 +261,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     ++browserEpoch_;
     browserLoadingProjects_ = false;
     browser_.configure(origin, token, userId);
+    previewAssets_.configure(origin, token, userId);
+    library_.configure(origin, token, userId);
     if (browserVisible() && !origin.isEmpty()) { loadBrowser(); }
+    if (libraryVisible()) { library_.refresh(); }
     if (scene_) { refresh(); }
   });
+  connect(&previewAssets_, &node_editor::PreviewSourceAssets::changed, this, [this] { syncRuntimePreviews(); });
   connect(&browser_, &node_editor::WorkflowBrowser::changed, this, [this] {
     schedulePanelChanged();
     if (browserLoadingProjects_ && !browser_.projectsLoading()) {
@@ -259,6 +275,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       if (browser_.error().isEmpty()) { browser_.refresh(); }
     }
   });
+  connect(&library_, &node_editor::LibraryBrowser::changed, this, &EditorWindow::schedulePanelChanged);
   connect(&browser_, &node_editor::WorkflowBrowser::created, this, &EditorWindow::openWorkflow);
   connect(&browser_, &node_editor::WorkflowBrowser::renamed, this, [this](const QString &id) {
     if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
@@ -438,6 +455,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, canvasMedia_, &CanvasMediaPresenter::clear);
   compatiblePicker_ = new CompatibleNodePicker(model_, *scene_, *view_, engine_, this);
   compatiblePicker_->applyCommand = [this](const QJsonObject &command) { return apply(command); };
+  compatiblePicker_->recentTypes = [this] { return catalogRecent(); };
   connect(compatiblePicker_, &CompatibleNodePicker::nodeCreated, this, [this](const QString &id) {
     const auto documentEpoch = documentEpoch_, credentialsEpoch = credentialsEpoch_;
     QTimer::singleShot(0, this, [this, id, documentEpoch, credentialsEpoch] {
@@ -545,9 +563,20 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   catalogPanel_->setObjectName("catalog-panel");
   catalogPanel_->setFocusPolicy(Qt::StrongFocus);
   catalogPanel_->installEventFilter(this);
+  nodeMenu_ = panel("NodeMenu");
+  nodeMenu_->setParent(dockHost_);
+  nodeMenu_->setObjectName("node-menu");
+  nodeMenu_->setFocusPolicy(Qt::StrongFocus);
+  nodeMenu_->setAttribute(Qt::WA_AlwaysStackOnTop);
+  nodeMenu_->setClearColor(Qt::transparent);
+  nodeMenu_->installEventFilter(this);
+  nodeMenu_->hide();
   browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
+  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea);
+  libraryDock_->setObjectName("library-dock");
+  libraryDock_->hide();
   inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea);
   outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea);
   {
@@ -779,7 +808,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             schedulePanelChanged();
             runtime_.beginRun(id);
             runOutput_.beginRun(id);
-            outputDock_->show();
           });
   connect(&session_, &node_editor::WorkflowSession::runEvent, this,
           [this](const QString &id, const QJsonObject &event) {
@@ -1088,6 +1116,40 @@ void EditorWindow::saveLocalCopyAs() {
   message_ = tr("Saved a local copy. Server changes remain unresolved.");
   schedulePanelChanged();
 }
+void EditorWindow::syncSourcePreviews() {
+  QHash<QString, QJsonObject> byId;
+  for (const auto &value : document_.nodes()) { const auto node = value.toObject(); byId.insert(node["id"].toString(), node); }
+  QJsonArray values;
+  QHash<QString, node_editor::PreviewSourceAssets::Wire> wires;
+  for (const auto &value : document_.edges()) {
+    const auto edge = value.toObject();
+    const auto target = byId.value(edge["target"].toString());
+    const auto source = byId.value(edge["source"].toString());
+    const auto sourceType = source["type"].toString();
+    if (target["type"] != "nodetool.workflows.base_node.Preview" || edge["targetHandle"] != "value") { continue; }
+    const auto data = source["data"].toObject();
+    if ((sourceType.startsWith("nodetool.input.") || sourceType.startsWith("nodetool.constant."))
+        && data.contains("value") && !data["value"].isNull()) {
+      values.append(QJsonObject{{"node", target["id"]}, {"value", data["value"]}});
+    } else {
+      wires.insert(target["id"].toString(), {source["id"].toString(), edge["sourceHandle"].toString()});
+    }
+  }
+  previewAssets_.request(session_.serverBound() ? session_.workflow()["id"].toString() : QString{}, wires);
+  const auto saved = previewAssets_.values();
+  for (auto it = saved.cbegin(); it != saved.cend(); ++it) { values.append(QJsonObject{{"node", it.key()}, {"value", it.value()}}); }
+  if (values == sourcePreviewValues_) { return; }
+  sourcePreviewValues_ = values;
+  const QString job = "graph-values";
+  sourcePreviews_.reset();
+  if (values.isEmpty()) { return; }
+  sourcePreviews_.beginRun(job);
+  for (const auto &value : values) {
+    const auto item = value.toObject();
+    sourcePreviews_.ingest(job, {{"type", "output_update"}, {"job_id", job}, {"node_id", item["node"]},
+                                 {"output_name", "output"}, {"value", item["value"]}, {"done", true}});
+  }
+}
 void EditorWindow::syncRuntimePreviews() {
   QVariantList mediaEntries;
   for (const auto &value : runOutput_.entries()) {
@@ -1102,8 +1164,11 @@ void EditorWindow::syncRuntimePreviews() {
   }
   if (outputMedia_ != mediaEntries) { outputMedia_ = mediaEntries; emit mediaChanged(); }
   QHash<QString, QString> primaryOutputs;
+  QSet<QString> contentCards;
   for (const auto id : model_.allNodeIds()) {
     const auto metadata = model_.metadata(id);
+    const auto body = cardBodyFor(metadata["node_type"].toString(metadata["type"].toString()), metadata);
+    if (body == CardBody::Content || body == CardBody::ConstantString) { contentCards.insert(model_.resourceId(id)); }
     const auto outputs = metadata["outputs"].toArray();
     if (outputs.isEmpty()) { continue; }
     auto primary = outputs.first().toObject()["name"].toString();
@@ -1114,12 +1179,28 @@ void EditorWindow::syncRuntimePreviews() {
     primaryOutputs.insert(model_.resourceId(id), primary);
   }
   QVariantList canvasCollections;
+  QSet<QString> previews;
+  // A node whose card already shows its content (a content card or a constant)
+  // shows no run result below it.
+  QSet<QString> ownContent = contentCards;
+  for (const auto &value : document_.nodes()) {
+    const auto node = value.toObject();
+    const auto type = node["type"].toString();
+    if (type == "nodetool.workflows.base_node.Preview") { previews.insert(node["id"].toString()); }
+    if (type.startsWith("nodetool.constant.")) { ownContent.insert(node["id"].toString()); }
+  }
   for (const auto &value : runOutput_.entries()) {
     const auto entry = value.toMap();
     const auto primary = primaryOutputs.constFind(entry["nodeId"].toString());
     const auto items = entry["items"].toList();
+    if (ownContent.contains(entry["nodeId"].toString())) { continue; }
     if (entry["kind"] != "output" || primary == primaryOutputs.cend() || *primary != entry["outputName"].toString()) { continue; }
-    canvasCollections.append(QVariantMap{{"nodeId", entry["nodeId"]}, {"runId", runOutput_.selectedRunId()}, {"outputName", entry["outputName"]}, {"items", items}, {"notice", entry["previewNotice"]}, {"richEntry", entry}});
+    canvasCollections.append(QVariantMap{{"nodeId", entry["nodeId"]}, {"runId", runOutput_.selectedRunId()}, {"outputName", entry["outputName"]}, {"items", items}, {"notice", entry["previewNotice"]}, {"richEntry", entry}, {"previewActions", previews.contains(entry["nodeId"].toString())}});
+  }
+  syncSourcePreviews();
+  for (const auto &value : sourcePreviews_.entries()) {
+    const auto entry = value.toMap();
+    canvasCollections.append(QVariantMap{{"nodeId", entry["nodeId"]}, {"runId", QString()}, {"outputName", entry["outputName"]}, {"items", entry["items"]}, {"notice", entry["previewNotice"]}, {"richEntry", entry}, {"previewActions", previews.contains(entry["nodeId"].toString())}});
   }
   if (canvasMedia_) { canvasMedia_->setCollections(canvasCollections); }
 
@@ -1136,7 +1217,7 @@ void EditorWindow::syncRuntimePreviews() {
   for (const auto &value : runOutput_.entries()) {
     const auto entry = value.toMap();
     const auto id = entry["nodeId"].toString();
-    if (id.isEmpty()) { continue; }
+    if (id.isEmpty() || ownContent.contains(id)) { continue; }
     for (const auto &mediaValue : entry["media"].toList()) {
       const auto media = mediaValue.toMap();
       if (media["kind"] != "image") { continue; }
@@ -1161,6 +1242,8 @@ void EditorWindow::syncRuntimePreviews() {
 }
 bool EditorWindow::browserVisible() const {
   if (!tabOwner_) { return activeEditor_->browserVisible(); } return browserDock_ && !browserDock_->isHidden(); }
+bool EditorWindow::libraryVisible() const {
+  if (!tabOwner_) { return activeEditor_->libraryVisible(); } return libraryDock_ && !libraryDock_->isHidden(); }
 void EditorWindow::loadBrowser() {
   if (session_.serverUrl().isEmpty()) { return; }
   browserLoadingProjects_ = true;
@@ -1171,6 +1254,7 @@ void EditorWindow::showBrowser(bool visible) {
   if (visible) {
     browserRestoreCatalog_ = catalogVisible();
     catalogPanel_->hide();
+    if (libraryDock_) { libraryDock_->hide(); }
     inspectorDock_->hide();
     browserDock_->show();
     loadBrowser();
@@ -2039,22 +2123,13 @@ bool EditorWindow::knownNodeType(const QString &type) const {
 }
 bool EditorWindow::addNodeAt(const QString &type, const QPointF &position, bool clearOverlap) {
   if (!knownNodeType(type) || !std::isfinite(position.x()) || !std::isfinite(position.y())) { return false; }
-  const auto snippet = codeSnippets_.constFind(type);
-  const auto created = snippet == codeSnippets_.cend() ? type : QStringLiteral("nodetool.code.Code");
   for (const auto &entry : metadata_) {
-    const auto metadata = entry.toObject();
-    if (metadata["node_type"].toString(metadata["type"].toString()) != created) continue;
+    auto metadata = entry.toObject();
+    if (metadata["node_type"].toString(metadata["type"].toString()) != type) continue;
     NodeCreationOptions options; options.paletteStarters = true;
     auto node = createNativeNode(metadata, position, document_.nodes(), {}, options);
-    if (snippet != codeSnippets_.cend()) {
-      // instantiatePaletteNode.ts: the snippet's code, title and dynamic IO.
-      auto data = node["data"].toObject(); data["code"] = snippet->value("code"); node["data"] = data;
-      auto ui = node["ui_properties"].toObject(); ui["title"] = snippet->value("title"); node["ui_properties"] = ui;
-      const auto io = snippet->value("data").toObject();
-      for (const auto key : {"dynamic_properties", "dynamic_inputs", "dynamic_outputs"}) {
-        if (io.contains(key)) { node[key] = io[key]; }
-      }
-    }
+    // A snippet entry lays out as the Code node it creates.
+    if (metadata.contains("code_snippet")) { metadata = metadata["code_snippet"].toObject()["code_node"].toObject(); }
     if (clearOverlap) {
       // The card's real size is known before it is added, so one pass replaces
       // the web's estimate and its post-measure correction.
@@ -2095,7 +2170,7 @@ QVariantList EditorWindow::rankCatalog(const QVariantList &nodes, const QString 
                             node["description"].toString(), node["deprecated"].toBool()});
     }
     QVariantList order;
-    for (const int index : rankCatalogNodes(searchNodes, query, catalogRecent())) {
+    for (const int index : catalogRanker_.rank(searchNodes, query, catalogRecent())) {
         order.append(index);
     }
     return order;
@@ -2149,11 +2224,63 @@ void EditorWindow::addNode(const QString &type) {
   // An armed pointer point places one node there, as the web menu's clickPosition
   // does (hooks/useCreateNode.ts). Otherwise the node lands in the visible center.
   const auto point = catalogPoint_;
-  if (point && knownNodeType(type)) { cancelCatalogPlacement(); }
+  const bool fromMenu = nodeMenuVisible();
+  if ((point || fromMenu) && knownNodeType(type)) { cancelCatalogPlacement(); }
   if (knownNodeType(type)) { addNodeAt(type, point ? *point : view_->mapToScene(unobstructedViewport().center().toPoint()), true); }
   else { model_.addNode(type); }
   // The web menu closes after an add, which returns the keyboard to the canvas.
-  if (point) { focusCanvas(); }
+  if (point || fromMenu) { focusCanvas(); }
+}
+bool EditorWindow::nodeMenuVisible() const {
+    if (!tabOwner_) { return activeEditor_ && activeEditor_->nodeMenuVisible(); }
+    return nodeMenu_ && !nodeMenu_->isHidden();
+}
+void EditorWindow::openNodeMenu() {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->openNodeMenu(); }
+        return;
+    }
+    if (!nodeMenu_ || !nodeMenu_->rootObject() || !dockHost_ || !dockHost_->centralWidget()) { return; }
+    const auto area = dockHost_->centralWidget()->geometry();
+    // NodeMenu.tsx: 980 px wide and at most 90% of the window high.
+    constexpr int margin = 10;
+    nodeMenu_->resize(std::min(980, area.width() - 2 * margin), std::min(620, int(area.height() * 0.9)));
+    QMetaObject::invokeMethod(nodeMenu_->rootObject(), "reset");
+    // The menu opens at the pointer point (NodeMenuStore.openNodeMenu x, y), or centered.
+    QPoint topLeft = area.center() - QPoint(nodeMenu_->width() / 2, nodeMenu_->height() / 2);
+    if (catalogPoint_) {
+        topLeft = view_->viewport()->mapTo(dockHost_, view_->mapFromScene(*catalogPoint_));
+    }
+    placeNodeMenu(topLeft);
+    nodeMenu_->show();
+    nodeMenu_->raise();
+    nodeMenu_->setFocus(Qt::OtherFocusReason);
+    QMetaObject::invokeMethod(nodeMenu_->rootObject(), "focusSearch");
+}
+void EditorWindow::closeNodeMenu() {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->closeNodeMenu(); }
+        return;
+    }
+    const bool open = nodeMenuVisible();
+    if (nodeMenu_) { nodeMenu_->hide(); }
+    cancelCatalogPlacement();
+    if (open) { focusCanvas(); }
+}
+void EditorWindow::moveNodeMenu(qreal dx, qreal dy) {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->moveNodeMenu(dx, dy); }
+        return;
+    }
+    if (!nodeMenuVisible()) { return; }
+    placeNodeMenu(nodeMenu_->pos() + QPoint(qRound(dx), qRound(dy)));
+}
+void EditorWindow::placeNodeMenu(QPoint topLeft) {
+    if (!nodeMenu_ || !dockHost_ || !dockHost_->centralWidget()) { return; }
+    const auto area = dockHost_->centralWidget()->geometry().adjusted(10, 10, -10, -10);
+    topLeft.setX(std::clamp(topLeft.x(), area.left(), std::max(area.left(), area.right() - nodeMenu_->width())));
+    topLeft.setY(std::clamp(topLeft.y(), area.top(), std::max(area.top(), area.bottom() - nodeMenu_->height())));
+    nodeMenu_->move(topLeft);
 }
 void EditorWindow::focusCanvas() {
     if (!tabOwner_) {
@@ -2172,6 +2299,8 @@ void EditorWindow::cancelCatalogPlacement() {
         if (activeEditor_) { activeEditor_->cancelCatalogPlacement(); }
         return;
     }
+    // A pane press, a document change or an add without a menu closes the menu too.
+    if (nodeMenu_ && !nodeMenu_->isHidden()) { nodeMenu_->hide(); }
     if (!catalogPoint_) { return; }
     catalogPoint_.reset();
     emit catalogPlacementChanged();
@@ -2834,11 +2963,7 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Add node") {
-    catalogPanel_->show();
-    catalogPanel_->setFocus();
-    if (auto field = catalogPanel_->rootObject()->findChild<QQuickItem *>("nodeSearch")) {
-      field->forceActiveFocus();
-    }
+    openNodeMenu();
     return;
   }
   if (name == "Connect" || (name == "Reconnect" && session_.serverUrl().isEmpty())) {
@@ -2861,6 +2986,15 @@ void EditorWindow::action(const QString &name) {
     message_ = tr("Connecting to server");
     session_.connectToServer(QUrl(address.trimmed()), token);
     schedulePanelChanged();
+    return;
+  }
+  if (name == "Library") {
+    // The library and the workflow browser share the left side, as in the web left panel.
+    const bool show = libraryDock_ && libraryDock_->isHidden();
+    if (show) { showBrowser(false); catalogPanel_->hide(); libraryDock_->show(); library_.refresh(); }
+    else if (libraryDock_) { libraryDock_->hide(); }
+    schedulePanelChanged();
+    scheduleViewportSettle();
     return;
   }
   if (name == "Server Open" || name == "Open" || name == "Workflows") {
@@ -3011,8 +3145,18 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     schedulePanelChanged();
     return false;
   }
+  if (nodeMenu_ && object == nodeMenu_) {
+    // A hidden menu returns the keyboard to the canvas.
+    if (event->type() == QEvent::Hide && (nodeMenu_->hasFocus() || nodeMenu_->isAncestorOf(QApplication::focusWidget()))) {
+      view_->setFocus(Qt::OtherFocusReason);
+    }
+    return false;
+  }
   if (dockHost_ && object == dockHost_->centralWidget()) {
-    if (event->type() == QEvent::Resize || event->type() == QEvent::Move) { layoutCatalog(); }
+    if (event->type() == QEvent::Resize || event->type() == QEvent::Move) {
+      layoutCatalog();
+      if (nodeMenuVisible()) { placeNodeMenu(nodeMenu_->pos()); }
+    }
     return false;
   }
   if (object == view_->viewport() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop) && static_cast<QDropEvent *>(event)->mimeData()->hasFormat("application/x-nodetool-node-type")) {

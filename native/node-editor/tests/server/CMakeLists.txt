@@ -58,3 +58,8 @@ target_include_directories(node_editor_reroute_live_tests PRIVATE ../../src)
 target_link_libraries(node_editor_reroute_live_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Gui Qt6::Network Qt6::WebSockets Qt6::Test)
 nodetool_stage_graph_runner_runtime(node_editor_reroute_live_tests)
 add_test(NAME node_editor_reroute_live COMMAND node_editor_reroute_live_tests)
+add_executable(node_editor_bundled_server_tests BundledServerTests.cpp
+ ../../src/server/BundledServer.cpp ../../src/server/BundledServer.h)
+target_include_directories(node_editor_bundled_server_tests PRIVATE ../../src)
+target_link_libraries(node_editor_bundled_server_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+add_test(NAME node_editor_bundled_server_tests COMMAND node_editor_bundled_server_tests)

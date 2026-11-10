@@ -339,6 +339,25 @@ QString validatePastedEdges(const QJsonObject& workflow, const QJsonObject& frag
     }
     return {};
 }
+// NodeStore.addEdge: a wire into a property that the card does not show adds it to
+// `exposed_inputs`, so its handle stays after a disconnect. Metadata handles,
+// dynamic slots and the control handle have their own surfaces.
+bool exposeConnectedInput(QJsonObject& node, const QString& handle, const QHash<QString, QJsonObject>& metadata) {
+    const auto definition = metadata.value(node.value("type").toString());
+    if (definition.isEmpty() || handle.isEmpty() || handle == "__control__") { return false; }
+    if (definition.value("inline_fields").toArray().contains(handle) || definition.value("input_fields").toArray().contains(handle)) { return false; }
+    if (node.value("dynamic_properties").toObject().contains(handle) || node.value("dynamic_inputs").toObject().contains(handle)) { return false; }
+    bool declared = false;
+    for (const auto& value : definition.value("properties").toArray()) { declared = declared || value.toObject().value("name").toString() == handle; }
+    if (!declared) { return false; }
+    auto ui = node.value("ui_properties").toObject();
+    auto exposed = ui.value("exposed_inputs").toArray();
+    if (exposed.contains(handle)) { return false; }
+    exposed.append(handle);
+    ui.insert("exposed_inputs", exposed);
+    node.insert("ui_properties", ui);
+    return true;
+}
 EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<QString, QJsonObject>& metadata, int depth = 0) {
     if (depth > 64) { return failure("Command nesting limit exceeded"); }
     const auto op = command.value("op").toString();
@@ -662,6 +681,12 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         if (edge.value("source") == edge.value("target")) { return failure("Self connections are unsupported"); }
         if (const auto error = validateNewEdge(nodes, edges, edge, metadata); !error.isEmpty()) { return failure(error); }
         edges.append(edge);
+        for (qsizetype i = 0; i < nodes.size(); ++i) {
+            auto target = nodes[i].toObject();
+            if (target.value("id") != edge.value("target")) { continue; }
+            if (exposeConnectedInput(target, edge.value("targetHandle").toString(), metadata)) { nodes[i] = target; }
+            break;
+        }
     } else if (op == "removeEdge") {
         const auto index = indexOf(edges, id);
         if (id.isEmpty() || index < 0) { return failure("Unknown edge ID"); }
@@ -1287,6 +1312,10 @@ EditResult WorkflowDocument::applyCommand(const QJsonObject& command, const QStr
         const auto target = edge.value("target").toString();
         if (!nodeIndices_.contains(source) || !nodeIndices_.contains(target)) {
             return failure("Unknown connection endpoint");
+        }
+        // A wire that exposes a hidden input also changes the node, so it takes the batch path.
+        if (auto exposed = node(target); exposeConnectedInput(exposed, edge.value("targetHandle").toString(), metadata_)) {
+            return applyCommand(QJsonObject{{"op", "batch"}, {"commands", QJsonArray{command}}}, title);
         }
         for (const auto& id : outgoing_.value(source)) {
             const auto& existing = edgeValues_[edgeIndices_.value(id)];

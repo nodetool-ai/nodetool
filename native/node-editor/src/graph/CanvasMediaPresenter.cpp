@@ -34,7 +34,17 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override { QQuickWidget::mouseMoveEvent(event); event->accept(); }
   void mouseReleaseEvent(QMouseEvent *event) override { QQuickWidget::mouseReleaseEvent(event); event->accept(); }
   void mouseDoubleClickEvent(QMouseEvent *event) override { QQuickWidget::mouseDoubleClickEvent(event); event->accept(); }
-  void wheelEvent(QWheelEvent *event) override { QQuickWidget::wheelEvent(event); event->accept(); }
+  // A wheel that no output scrolls goes on to the viewport, which zooms or pans the canvas.
+  void wheelEvent(QWheelEvent *event) override {
+    event->ignore();
+    QQuickWidget::wheelEvent(event);
+    if (event->isAccepted() || !parentWidget()) { event->accept(); return; }
+    // Qt propagates only spontaneous wheel events, so hand this one to the viewport explicitly.
+    QWheelEvent forwarded(mapToParent(event->position()), event->globalPosition(), event->pixelDelta(), event->angleDelta(),
+      event->buttons(), event->modifiers(), event->phase(), event->inverted(), event->source());
+    QCoreApplication::sendEvent(parentWidget(), &forwarded);
+    event->accept();
+  }
   void keyPressEvent(QKeyEvent *event) override { QQuickWidget::keyPressEvent(event); event->accept(); }
   void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
 };
@@ -128,6 +138,7 @@ void CanvasMediaPresenter::setCollections(const QVariantList &collections) {
       if (kind != "image" && kind != "video" && kind != "audio") { continue; }
       source["nodeId"] = id; source["runId"] = collection.value("runId");
       source["outputName"] = collection.value("outputName"); source["items"] = items; source["notice"] = collection.value("notice").toString();
+      source["previewActions"] = collection.value("previewActions");
       next.insert(id, source); break;
     }
   }
@@ -310,7 +321,7 @@ void CanvasMediaPresenter::refresh() {
           widget->setAttribute(Qt::WA_AlwaysStackOnTop);
           widget->setFocusPolicy(Qt::StrongFocus);
           widget->setInitialProperties({{"richEntry", source->value("richEntry", QVariantMap{})}, {"mediaKind", source->value("kind")}, {"locator", source->value("locator")},
-            {"filename", source->value("filename").toString()}, {"notice", source->value("notice").toString()}, {"items", source->value("items")}, {"requestKey", "canvas-media:" + id + ':' + QString::number(++serial_)}});
+            {"filename", source->value("filename").toString()}, {"notice", source->value("notice").toString()}, {"items", source->value("items")}, {"previewActions", source->value("previewActions").toBool()}, {"requestKey", "canvas-media:" + id + ':' + QString::number(++serial_)}});
           widget->setSource(QUrl("qrc:/editor/CanvasMedia.qml"));
           if (widget->status() == QQuickWidget::Error) { widget->deleteLater(); continue; }
           active_.insert(id, {widget, *source});
@@ -325,6 +336,7 @@ void CanvasMediaPresenter::refresh() {
           root->setProperty("items", source->value("items"));
           root->setProperty("notice", source->value("notice").toString());
           root->setProperty("mediaKind", source->value("kind"));
+          root->setProperty("previewActions", source->value("previewActions").toBool());
           active_[id].source = *source;
         }
         root->setProperty("logicalWidth", local.width());

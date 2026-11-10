@@ -18,7 +18,7 @@ ColumnLayout {
         resetScope()
         refresh()
     }
-    readonly property string kind: descriptor.kind
+    readonly property string kind: descriptor.kind || ""
     readonly property bool entity: kind === "entity" || kind === "entity_list"
     readonly property bool multiple: kind === "entity_list"
     readonly property string identity: kind === "font" ? "name" : kind === "folder" ? "asset_id" : "id"

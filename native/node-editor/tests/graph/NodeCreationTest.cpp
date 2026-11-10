@@ -54,6 +54,18 @@ private slots:
     QTest::newRow("oscillator")<<"nodetool.audio.synth.Oscillator"<<"audio"<<""<<280<<290;
     QTest::newRow("compress")<<"lib.audio.Compress"<<"audio"<<""<<280<<292;
   }
+  // A snippet is a virtual type. Every create path must make a Code node, or no runner knows the type.
+  void codeSnippetCreatesCodeNode() {
+    auto snippet=metadata("nodetool.math.math_add",{prop("a",0,"float"),prop("b",0,"float")},"float");
+    snippet["code_snippet"]=QJsonObject{{"code","return { output: inputs.a + inputs.b };"},{"title","Add"},
+      {"data",QJsonObject{{"dynamic_properties",QJsonObject{{"a",""},{"b",""}}}}},
+      {"code_node",metadata("nodetool.code.Code",{prop("code","")})}};
+    const auto node=createNativeNode(snippet,{},{});
+    QCOMPARE(node["type"].toString(),QString("nodetool.code.Code"));
+    QCOMPARE(node["data"].toObject()["code"].toString(),QString("return { output: inputs.a + inputs.b };"));
+    QCOMPARE(node["ui_properties"].toObject()["title"].toString(),QString("Add"));
+    QCOMPARE(node["dynamic_properties"].toObject().keys(),(QStringList{"a","b"}));
+  }
   void geometry() {
     QFETCH(QString,type);QFETCH(QString,output);QFETCH(QString,body);QFETCH(int,width);QFETCH(int,height);
     auto meta=metadata(type,{},output);meta["body"]=body;

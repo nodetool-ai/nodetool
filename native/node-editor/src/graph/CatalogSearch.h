@@ -2,6 +2,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <memory>
 
 namespace nodetool {
 // The fields of a node that the web catalog search reads.
@@ -28,6 +29,22 @@ const QStringList &catalogQuickActionTypes();
 // utils/nodeRanking.ts and utils/ranking.ts.
 QList<int> rankCatalogNodes(const QList<CatalogSearchNode> &nodes, const QString &query, const QStringList &recent,
                             const QStringList &boosted = catalogQuickActionTypes());
+
+// rankCatalogNodes with caches that persist between calls: the boost index of
+// the last node set and the lowercased fields of each node type. UI thread only.
+class CatalogRanker {
+public:
+    CatalogRanker();
+    ~CatalogRanker();
+    CatalogRanker(const CatalogRanker &) = delete;
+    CatalogRanker &operator=(const CatalogRanker &) = delete;
+    QList<int> rank(const QList<CatalogSearchNode> &nodes, const QString &query, const QStringList &recent,
+                    const QStringList &boosted = catalogQuickActionTypes());
+
+private:
+    struct State;
+    std::unique_ptr<State> state_;
+};
 
 // The fuzzy scorer of web/src/utils/fuzzyMatch.ts, in [0, 1].
 double catalogFuzzyScore(const QString &query, const QString &text);

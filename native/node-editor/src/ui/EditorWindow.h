@@ -3,6 +3,7 @@
 #include <QHash>
 #include <QTimer>
 #include <optional>
+#include "graph/CatalogSearch.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -18,10 +19,12 @@
 #include "properties/ResourcePickerController.h"
 #include "properties/DocumentPickerController.h"
 #include "server/WorkflowBrowser.h"
+#include "library/LibraryBrowser.h"
 #include "server/WorkflowVersions.h"
 #include "runtime/ChatSession.h"
 #include <QDateTime>
 #include <QJsonArray>
+#include "run/PreviewSourceAssets.h"
 #include <QMainWindow>
 #include <QPointer>
 class QTimer;
@@ -76,6 +79,7 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(QString pinnedGeneration READ pinnedGeneration NOTIFY panelChanged)
   Q_PROPERTY(QStringList replayGenerations READ replayGenerations NOTIFY panelChanged)
   Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelChanged)
+  Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
   Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelChanged)
@@ -182,6 +186,7 @@ public:
   node_editor::DynamicPortsController *dynamicPorts() { return activeEditor() == this ? &dynamicPorts_ : activeEditor()->dynamicPorts(); }
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
+  bool libraryVisible() const;
   Q_INVOKABLE void openWorkflow(const QString &id);
   Q_INVOKABLE void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
@@ -291,6 +296,13 @@ public:
   bool catalogAtPointer() const { return activeEditor() == this ? catalogPoint_.has_value() : activeEditor()->catalogAtPointer(); }
   Q_INVOKABLE void cancelCatalogPlacement();
   Q_INVOKABLE void focusCanvas();
+  // The floating node menu (web components/node_menu/NodeMenu.tsx). It opens at
+  // the armed pointer point, or in the canvas center without one.
+  void openNodeMenu();
+  Q_INVOKABLE void closeNodeMenu();
+  // The menu header drag moves the menu inside the canvas area.
+  Q_INVOKABLE void moveNodeMenu(qreal dx, qreal dy);
+  bool nodeMenuVisible() const;
   QStringList catalogRecent() const;
   QStringList catalogFavorites() const;
   Q_INVOKABLE void toggleCatalogFavorite(const QString &type);
@@ -341,6 +353,8 @@ protected:
 private slots:
   void saveLocalCopyAs();
 private:
+  // The node menu ranking caches. rankCatalog is const for QML, so the cache is mutable.
+  mutable CatalogRanker catalogRanker_;
   // Reruns an edited node and every node downstream of it (Instant Update).
   void instantRerun(const QString &nodeId);
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
@@ -414,6 +428,7 @@ private:
   void showBrowser(bool visible);
   void loadBrowser();
   void syncRuntimePreviews();
+  void syncSourcePreviews();
   QStringList selectedIds() const;
   QList<bool> selectedRunnableStates() const;
   bool singleRunnableCardSelected() const;
@@ -510,7 +525,11 @@ private:
   QMainWindow *dockHost_ = nullptr;
   // The node library overlays the canvas column, as the fixed web left panel does.
   QPointer<QQuickWidget> catalogPanel_;
+  // A child of dockHost_ over the canvas. Qt parent ownership deletes it.
+  QPointer<QQuickWidget> nodeMenu_;
   void layoutCatalog();
+  // Keeps the node menu inside the canvas area at `topLeft`, in dockHost_ coordinates.
+  void placeNodeMenu(QPoint topLeft);
   // The status bar is the bottom panel's tab strip while the Output panel is open (PanelBottom.tsx).
   QQuickWidget *statusBar_ = nullptr;
   QBoxLayout *statusColumn_ = nullptr;
@@ -569,13 +588,19 @@ private:
   node_editor::WorkflowDocument document_;
   node_editor::DynamicPortsController dynamicPorts_;
   node_editor::WorkflowBrowser browser_;
+  node_editor::LibraryBrowser library_;
   QDockWidget *browserDock_ = nullptr;
+  QDockWidget *libraryDock_ = nullptr;
   bool browserRestoreCatalog_ = false;
   bool browserLoadingProjects_ = false;
   quint64 browserEpoch_ = 0;
   node_editor::WorkflowSession session_;
   node_editor::WorkflowVersions versions_{&session_, &document_};
   node_editor::RunOutputModel runOutput_;
+  // Values that Preview nodes show without a run: the `value` of a wired input or constant node.
+  node_editor::RunOutputModel sourcePreviews_;
+  node_editor::PreviewSourceAssets previewAssets_;
+  QJsonArray sourcePreviewValues_;
   node_editor::RunTraceController runTrace_;
   node_editor::NodeRuntimeModel runtime_;
   node_editor::MediaResolver mediaResolver_;

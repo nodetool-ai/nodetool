@@ -60,7 +60,8 @@ through the same session handling as server messages, including the job summary
 that puts the run's outputs on the Output panel's job row. Stop cancels a local
 run, and the run status text ends with "(local)". The bundle comes from `--guest-bundle <path>`, then
 `NODETOOL_GUEST_BUNDLE`, then a `guest.bin` or `guest.js` next to the
-executable. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
+executable. Ship the `guest.assets/` directory next to the bundle: fonts,
+tokenizer ranks, encoding tables and the node type snapshot load from it. `NODETOOL_LOCAL_RUNNER=0` turns local runs off.
 
 Local runs use the local user's workspace, the folder the server keeps:
 `$NODETOOL_WORKSPACES_DIR/1`, otherwise `nodetool/workspaces/1` in

@@ -14,6 +14,29 @@ QJsonObject fixture() {
 class WorkflowDocumentTest final : public QObject {
     Q_OBJECT
 private slots:
+    void connectingHiddenInputExposesItAsOneUndoStep() {
+        WorkflowDocument document;
+        const QJsonObject type{{"type","str"}};
+        document.setNodeMetadata({QJsonObject{{"node_type","Node"},{"inline_fields",QJsonArray{"shown"}},{"input_fields",QJsonArray{"handle"}},
+            {"outputs",QJsonArray{QJsonObject{{"name","out"},{"type",type}}}},
+            {"properties",QJsonArray{QJsonObject{{"name","shown"},{"type",type}},QJsonObject{{"name","handle"},{"type",type}},QJsonObject{{"name","hidden"},{"type",type}}}}}});
+        QVERIFY(document.load(QJsonDocument::fromJson(R"({"graph":{"nodes":[{"id":"a","type":"Node"},{"id":"b","type":"Node"},{"id":"c","type":"Node"}],"edges":[]}})").object()));
+        const auto baseline=document.snapshot();
+        const auto connect=[&](const QString& target,const QString& handle) {
+            return document.applyCommand({{"op","addEdge"},{"edge",QJsonObject{{"source","a"},{"sourceHandle","out"},{"target",target},{"targetHandle",handle}}}});
+        };
+        QVERIFY(connect("b","hidden"));
+        QCOMPARE(document.node("b")["ui_properties"].toObject()["exposed_inputs"].toArray(),QJsonArray{"hidden"});
+        QCOMPARE(document.undoStack()->count(),1);
+        document.undo(); QCOMPARE(document.snapshot(),baseline);
+        // Metadata handles and inline fields draw their own handle, so they stay out of the list.
+        QVERIFY(connect("b","shown")); QVERIFY(connect("c","handle"));
+        QVERIFY(!document.node("b")["ui_properties"].toObject().contains("exposed_inputs"));
+        QVERIFY(!document.node("c")["ui_properties"].toObject().contains("exposed_inputs"));
+        // The batch path exposes the input too.
+        QVERIFY(document.applyCommand({{"op","batch"},{"commands",QJsonArray{QJsonObject{{"op","addEdge"},{"edge",QJsonObject{{"source","a"},{"sourceHandle","out"},{"target","c"},{"targetHandle","hidden"}}}}}}}));
+        QCOMPARE(document.node("c")["ui_properties"].toObject()["exposed_inputs"].toArray(),QJsonArray{"hidden"});
+    }
     void groupCommandsPreserveWebFieldsAndHistory() {
         WorkflowDocument d;
         // Protocol shape used by graphNodeToReactFlowNode and GroupNode:

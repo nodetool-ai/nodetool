@@ -16,7 +16,7 @@ QString uniqueInputName(const QString &type,const QJsonArray &nodes) {
     : fallback.hasMatch() ? fallback.captured(1).toLower() : QStringLiteral("input");
   QSet<QString> used;
   for (const auto &value:nodes) {
-    const auto name=value.toObject()["data"].toObject()["name"];
+    const QJsonValue name=value.toObject().value("data").toObject().value("name");
     if (name.isString()) { used.insert(name.toString()); }
   }
   int suffix=1;
@@ -95,6 +95,18 @@ void applyModels(QJsonObject &data,const QJsonArray &properties,const QString &n
 }
 QJsonObject createNativeNode(const QJsonObject &metadata,QPointF position,const QJsonArray &existingNodes,
                             const QJsonObject &overrides,const NodeCreationOptions &options) {
+  // A code snippet is a virtual menu type. It creates a Code node with the
+  // snippet's code, title and dynamic IO (instantiatePaletteNode.ts).
+  if (const auto snippet=metadata["code_snippet"].toObject();!snippet.isEmpty()) {
+    auto node=createNativeNode(snippet["code_node"].toObject(),position,existingNodes,{},options);
+    auto data=node["data"].toObject(); data["code"]=snippet["code"]; node["data"]=data;
+    auto ui=node["ui_properties"].toObject(); ui["title"]=snippet["title"]; node["ui_properties"]=ui;
+    const auto io=snippet["data"].toObject();
+    for (const auto *key:{"dynamic_properties","dynamic_inputs","dynamic_outputs"}) {
+      if (io.contains(QLatin1String(key))) { node[QLatin1String(key)]=io[QLatin1String(key)]; }
+    }
+    return node;
+  }
   const auto type=metadata["node_type"].toString(metadata["type"].toString());
   QJsonObject data;
   bool declaresName=false;

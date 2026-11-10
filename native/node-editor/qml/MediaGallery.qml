@@ -9,6 +9,8 @@ ColumnLayout {
     id: root
     property var items: []
     property bool compact: false
+    // A Preview card offers Save to assets for every media kind, as the web PreviewActions do.
+    property bool previewCard: false
     property bool active: true
     property real retainedHeight: Ui.Metrics.comfortable * 6
     readonly property real preferredHeight: active ? implicitHeight : retainedHeight
@@ -76,6 +78,7 @@ ColumnLayout {
             compact: root.compact
             onImageActivated: root.activate(gallery.currentIndex)
             showDownload: mediaKind !== "image" || gallery.count <= 1
+            showSaveToAssets: mediaKind === "video" || root.previewCard
             compactPreviewHeight: root.compact && gallery.count > 1 ? Ui.Metrics.comfortable : mediaKind === "audio" ? Ui.Metrics.xxxl * 2 + Ui.Metrics.lg : Ui.Metrics.comfortable * 2
         }
     }

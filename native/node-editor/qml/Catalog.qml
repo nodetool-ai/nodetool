@@ -14,57 +14,7 @@ Rectangle {
     // A category id from editor.catalogCategories. "all" lists every node.
     property string category: "all"
     property var hovered: null
-    // The node menu is the library armed for pointer placement (Space, a pane
-    // double-click). It adds the type chips and the home tiles of the web menu
-    // (components/node_menu/TypeFilterChips.tsx, NamespaceList.tsx). The docked
-    // library keeps the web library layout, so its list ignores these filters.
-    readonly property bool menuMode: !!editor && editor.catalogAtPointer
-    property string inputType: ""
-    property string outputType: ""
-    // "all", "local" or "api", from the Local and API chips.
-    property string providerKind: "all"
-    readonly property string activeInputType: menuMode ? inputType : ""
-    readonly property string activeOutputType: menuMode ? outputType : ""
-    readonly property string activeKind: menuMode ? providerKind : "all"
-    // The types that nodes declare, as the filter menus list them (TypeFilterChips.tsx allTypeOptions).
-    readonly property var typeOptions: {
-        const seen = new Set()
-        for (const node of nodes) {
-            node.inputTypes.forEach(type => seen.add(type))
-            node.outputTypes.forEach(type => seen.add(type))
-        }
-        return Array.from(seen).sort((a, b) => a.localeCompare(b))
-    }
-    function typeLabel(type) {
-        return type === "float" ? qsTr("Number") : type
-    }
-    readonly property var quickActions: editor ? editor.catalogQuickActions() : []
     readonly property var favoriteTypes: editor ? editor.catalogFavorites : []
-    readonly property var quickActionTypeList: {
-        const types = []
-        for (const section of quickActions) {
-            for (const tile of section.tiles) {
-                types.push(tile.type)
-            }
-        }
-        return types
-    }
-    readonly property var nodeIndex: {
-        const index = {}
-        for (const node of nodes) {
-            index[node.type] = node
-        }
-        return index
-    }
-    // Recent nodes that are not quick actions (RecentNodesTiles.tsx filteredRecentNodes).
-    readonly property var recentTiles: recentTypes.filter(type => !quickActionTypeList.includes(type))
-    // Nothing typed, picked or filtered: the menu shows tiles instead of the list (NamespaceList.tsx isHomeLayout).
-    readonly property bool homeLayout: menuMode && nodes.length > 0 && query.trim() === "" && category === "all"
-        && activeProvider === "" && activeKind === "all" && activeInputType === "" && activeOutputType === ""
-    function tileLabel(type) {
-        const node = nodeIndex[type]
-        return node ? node.label : type.split(".").pop()
-    }
     readonly property var nodes: editor ? editor.catalog : []
     // Nodes whose provider key is missing stay out of the lists unless the user
     // shows them (web hooks/useNodeProviderFilter.ts, MissingKeyNodesNotice.tsx).
@@ -104,9 +54,6 @@ Rectangle {
     property int highlighted: -1
     onQueryChanged: highlighted = -1
     onCategoryChanged: highlighted = -1
-    onActiveInputTypeChanged: highlighted = -1
-    onActiveOutputTypeChanged: highlighted = -1
-    onActiveKindChanged: highlighted = -1
     // The web search order: prefix, BM25 and fuzzy boosts over the field scores,
     // with recent and quick-action nodes first (utils/nodeSearch.ts rankSearchNodes).
     // The ranking runs in src/graph/CatalogSearch.cpp.
@@ -144,13 +91,11 @@ Rectangle {
         const listed = listedNodes.filter(node => (searching || editor.packSetup.namespaceVisible(node.namespace))
             && (category === "all" || node.categories.includes(category))
             && (activeProvider === "" || node.provider === activeProvider)
-            && (activeKind === "all" || (node.provider === "local") === (activeKind === "local"))
-            && (activeInputType === "" || node.inputTypes.includes(activeInputType))
-            && (activeOutputType === "" || node.outputTypes.includes(activeOutputType)))
+)
         return rankNodes(listed, query)
     }
     function moveHighlight(delta) {
-        const count = homeLayout ? 0 : visibleNodes.length
+        const count = visibleNodes.length
         if (count === 0) {
             highlighted = -1
             return
@@ -172,109 +117,6 @@ Rectangle {
     function clearSearch() {
         search.text = ""
         query = ""
-    }
-    // A tile of the node menu home: the node's type icon and its label (QuickActionTiles.tsx,
-    // FavoritesTiles.tsx, RecentNodesTiles.tsx). A node that the catalog lacks stays but cannot add.
-    component Tile: PanelRow {
-        id: tile
-        required property string tileType
-        required property string tileLabel
-        property bool removable: false
-        readonly property var node: root.nodeIndex[tileType]
-        signal removed()
-        implicitHeight: Ui.Metrics.compact
-        height: Ui.Metrics.compact
-        text: tileLabel
-        enabled: !!node && !!editor && !editor.readOnly
-        onClicked: editor.addNode(tileType)
-        DragHandler {
-            target: null
-            onActiveChanged: if (active && editor && tile.node) editor.dragNode(tile.tileType)
-        }
-        onHoveredChanged: if (node) root.hovered = hovered ? node : null
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: Ui.Metrics.sm
-            anchors.rightMargin: Ui.Metrics.xs
-            spacing: Ui.Metrics.sm
-            TypeIcon {
-                name: tile.node ? tile.node.icon : "notype"
-                size: Ui.Metrics.iconSm
-                ink: tile.node ? tile.node.color : Ui.Theme.textDisabled
-            }
-            Ui.Text {
-                Layout.fillWidth: true
-                text: tile.tileLabel
-                role: Ui.Typography.SansLabel
-                font.weight: Font.Normal
-                tone: tile.enabled ? Ui.Text.Primary : Ui.Text.Disabled
-                elide: Text.ElideRight
-                lineHeight: 1
-            }
-            Ui.ToolbarIconButton {
-                visible: tile.removable
-                objectName: "catalog-favorite-remove-" + tile.tileType
-                iconName: "close"
-                iconSize: Ui.Metrics.iconXs
-                implicitWidth: Ui.Metrics.small
-                implicitHeight: Ui.Metrics.small
-                accessibleName: qsTr("Remove %1 from favorites").arg(tile.tileLabel)
-                onClicked: tile.removed()
-            }
-        }
-    }
-    // A titled grid of tiles, with an optional clear button.
-    component TileSection: ColumnLayout {
-        id: section
-        property string title: ""
-        property var tiles: []
-        property string tilePrefix: "catalog-tile-"
-        property string clearName: ""
-        property string clearLabel: ""
-        property bool removable: false
-        signal cleared()
-        signal removed(string type)
-        spacing: Ui.Metrics.xs
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.leftMargin: Ui.Metrics.md
-            Ui.Text {
-                Layout.fillWidth: true
-                text: section.title
-                role: Ui.Typography.SansLabel
-                font.weight: Font.DemiBold
-                lineHeight: 1
-            }
-            Ui.ToolbarIconButton {
-                visible: section.clearName !== ""
-                objectName: section.clearName
-                iconName: "close"
-                iconSize: Ui.Metrics.iconXs
-                implicitWidth: Ui.Metrics.small
-                implicitHeight: Ui.Metrics.small
-                accessibleName: section.clearLabel
-                onClicked: section.cleared()
-            }
-        }
-        Flow {
-            id: flow
-            Layout.fillWidth: true
-            Layout.preferredHeight: implicitHeight
-            spacing: Ui.Metrics.xs
-            readonly property int columns: Math.max(1, Math.floor(width / 112))
-            Repeater {
-                model: section.tiles
-                delegate: Tile {
-                    required property var modelData
-                    objectName: section.tilePrefix + modelData.type
-                    tileType: modelData.type
-                    tileLabel: modelData.label
-                    removable: section.removable
-                    width: Math.floor((flow.width - (flow.columns - 1) * flow.spacing) / flow.columns)
-                    onRemoved: section.removed(modelData.type)
-                }
-            }
-        }
     }
     ColumnLayout {
         anchors.fill: parent
@@ -333,8 +175,8 @@ Rectangle {
             onValuePreviewed: value => root.query = value
             onValueCommitted: value => root.query = value
             onEditCanceled: root.query = value
-            // Arrows pick a row, Enter adds it, Ctrl+Backspace clears, and Escape
-            // closes the pointer menu (web components/search/SearchInput.tsx).
+            // Arrows pick a row, Enter adds it, Ctrl+Backspace and Escape clear
+            // (web components/search/SearchInput.tsx).
             Keys.priority: Keys.BeforeItem
             Keys.onPressed: event => {
                 if (event.key === Qt.Key_Down) {
@@ -349,17 +191,8 @@ Rectangle {
                 } else if ((event.key === Qt.Key_Backspace || event.key === Qt.Key_Delete) && (event.modifiers & Qt.ControlModifier)) {
                     root.clearSearch()
                     event.accepted = true
-                } else if (event.key === Qt.Key_Space && search.text === "" && editor && editor.catalogAtPointer) {
-                    // Space in an empty search closes the pointer menu (SearchInput.tsx:159-166).
-                    editor.cancelCatalogPlacement()
-                    editor.focusCanvas()
-                    event.accepted = true
                 } else if (event.key === Qt.Key_Escape) {
                     root.clearSearch()
-                    if (editor && editor.catalogAtPointer) {
-                        editor.cancelCatalogPlacement()
-                        editor.focusCanvas()
-                    }
                     event.accepted = true
                 }
             }
@@ -380,82 +213,6 @@ Rectangle {
                 options: root.providerOptions
                 value: root.activeProvider
                 onValueCommitted: value => root.provider = value
-            }
-        }
-        // Local and API providers, output types and the two type menus of the node menu.
-        Flow {
-            id: typeChips
-            objectName: "catalog-type-chips"
-            visible: root.menuMode
-            Layout.fillWidth: true
-            Layout.preferredHeight: visible ? implicitHeight : 0
-            Layout.leftMargin: Ui.Metrics.lg
-            Layout.rightMargin: Ui.Metrics.lg
-            Layout.bottomMargin: Ui.Metrics.sm
-            spacing: Ui.Metrics.xs
-            Repeater {
-                model: [{ id: "local", label: qsTr("Local") }, { id: "api", label: qsTr("API") }]
-                delegate: Ui.EditorButton {
-                    required property var modelData
-                    objectName: "catalog-chip-" + modelData.id
-                    density: Ui.EditorButton.Compact
-                    variant: Ui.EditorButton.Flat
-                    circular: true
-                    text: modelData.label
-                    active: root.providerKind === modelData.id
-                    onClicked: root.providerKind = active ? "all" : modelData.id
-                }
-            }
-            Ui.Text {
-                height: Ui.Metrics.compact
-                verticalAlignment: Text.AlignVCenter
-                leftPadding: Ui.Metrics.xs
-                text: qsTr("Output")
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
-            }
-            Repeater {
-                model: [{ id: "image", type: "image", label: qsTr("Image") }, { id: "text", type: "text", label: qsTr("Text") },
-                        { id: "audio", type: "audio", label: qsTr("Audio") }, { id: "video", type: "video", label: qsTr("Video") },
-                        { id: "number", type: "float", label: qsTr("Number") }]
-                delegate: Ui.EditorButton {
-                    required property var modelData
-                    objectName: "catalog-chip-" + modelData.id
-                    density: Ui.EditorButton.Compact
-                    variant: Ui.EditorButton.Flat
-                    circular: true
-                    text: modelData.label
-                    accessibleName: qsTr("Filter by %1").arg(modelData.label)
-                    active: root.inputType === modelData.type || root.outputType === modelData.type
-                    onClicked: root.outputType = root.outputType === modelData.type ? "" : modelData.type
-                }
-            }
-            Ui.ChipMenu {
-                objectName: "catalog-input-type"
-                density: Ui.EditorButton.Compact
-                trailingIconName: "arrowDropDown"
-                accessibleName: qsTr("Input type: %1").arg(text)
-                options: [{ value: "", label: qsTr("All input types") }].concat(root.typeOptions.map(type => ({ value: type, label: root.typeLabel(type) })))
-                value: root.inputType
-                onValueCommitted: value => root.inputType = value
-            }
-            Ui.ChipMenu {
-                objectName: "catalog-output-type"
-                density: Ui.EditorButton.Compact
-                trailingIconName: "arrowDropDown"
-                accessibleName: qsTr("Output type: %1").arg(text)
-                options: [{ value: "", label: qsTr("All output types") }].concat(root.typeOptions.map(type => ({ value: type, label: root.typeLabel(type) })))
-                value: root.outputType
-                onValueCommitted: value => root.outputType = value
-            }
-            Ui.Text {
-                objectName: "catalog-type-count"
-                height: Ui.Metrics.compact
-                verticalAlignment: Text.AlignVCenter
-                leftPadding: Ui.Metrics.xs
-                text: root.listedNodes.length === 1 ? qsTr("1 node") : qsTr("%1 nodes").arg(root.listedNodes.length)
-                role: Ui.Typography.SansCaption
-                tone: Ui.Text.Secondary
             }
         }
         RowLayout {
@@ -556,63 +313,9 @@ Rectangle {
                     }
                 }
             }
-            Flickable {
-                id: home
-                objectName: "catalog-home"
-                visible: root.homeLayout
-                Layout.row: 0
-                Layout.column: 1
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.topMargin: Ui.Metrics.xs
-                clip: true
-                contentWidth: width
-                contentHeight: homeColumn.implicitHeight
-                boundsBehavior: Flickable.StopAtBounds
-                Basic.ScrollBar.vertical: Ui.ScrollBar {}
-                ColumnLayout {
-                    id: homeColumn
-                    width: home.width - Ui.Metrics.xs
-                    spacing: Ui.Metrics.lg
-                    TileSection {
-                        objectName: "catalog-favorites"
-                        Layout.fillWidth: true
-                        visible: root.favoriteTypes.length > 0
-                        title: qsTr("Favorites")
-                        tilePrefix: "catalog-favorite-tile-"
-                        tiles: root.favoriteTypes.map(type => ({ type: type, label: root.tileLabel(type) }))
-                        removable: true
-                        clearName: "catalog-favorites-clear"
-                        clearLabel: qsTr("Clear all favorites")
-                        onCleared: editor.clearCatalogFavorites()
-                        onRemoved: type => editor.toggleCatalogFavorite(type)
-                    }
-                    TileSection {
-                        objectName: "catalog-recent"
-                        Layout.fillWidth: true
-                        visible: root.recentTiles.length > 0
-                        title: qsTr("Recent nodes")
-                        tilePrefix: "catalog-recent-tile-"
-                        tiles: root.recentTiles.map(type => ({ type: type, label: root.tileLabel(type) }))
-                        clearName: "catalog-recent-clear"
-                        clearLabel: qsTr("Clear recent nodes")
-                        onCleared: editor.clearCatalogRecent()
-                    }
-                    Repeater {
-                        model: root.quickActions
-                        delegate: TileSection {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            title: qsTr(modelData.title)
-                            tiles: modelData.tiles
-                        }
-                    }
-                }
-            }
             ListView {
                 id: rows
                 objectName: "catalog-rows"
-                visible: !root.homeLayout
                 Layout.row: lists.empty ? 1 : 0
                 Layout.column: lists.empty ? 0 : 1
                 Layout.fillWidth: true
@@ -718,7 +421,7 @@ Rectangle {
             Layout.leftMargin: Ui.Metrics.lg
             Layout.rightMargin: Ui.Metrics.lg
             Ui.Text { objectName: "catalog-footer-category"; Layout.fillWidth: true; text: root.categoryLabel; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
-            Ui.Text { objectName: "catalog-footer-hint"; text: editor && editor.catalogAtPointer ? "adds at the pointer" : "drag to add"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
+            Ui.Text { objectName: "catalog-footer-hint"; text: "drag to add"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
         }
     }
 }

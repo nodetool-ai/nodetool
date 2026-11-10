@@ -25,6 +25,38 @@ inline QJsonArray catalog() {
       {"properties",QJsonArray{slot("items",QJsonObject{{"type","list"},{"type_args",QJsonArray{text}}})}},{"outputs",QJsonArray{}}}
   };
 }
+// catalog() plus the nodes that the fixed rows create, and a node with typed numeric and enum inputs.
+inline QJsonArray staticCatalog() {
+  auto result=catalog();
+  const auto any=type("any"),text=type("str"),integer=type("int");
+  const auto node=[](const QString &type,const QJsonArray &properties,const QJsonArray &outputs) {
+    return QJsonObject{{"node_type",type},{"title",type.section('.',-1)},{"properties",properties},{"outputs",outputs}};
+  };
+  auto name=slot("name",text); name["default"]="";
+  result.append(node("nodetool.workflows.base_node.Preview",{slot("value",any),name},{}));
+  result.append(node("nodetool.output.Output",{slot("value",any),name},{}));
+  result.append(node("nodetool.control.Reroute",{slot("input_value",any)},{slot("output",any)}));
+  result.append(node("nodetool.string.SaveString",{slot("folder",integer),slot("text",text)},{}));
+  auto value=slot("value",text); value["default"]="";
+  result.append(node("nodetool.constant.String",{value},{slot("output",text)}));
+  result.append(node("nodetool.input.StringInput",{value,name},{slot("output",text)}));
+  result.append(node("nodetool.text.Prompt",{value},{slot("output",text)}));
+  auto number=slot("value",integer); number["default"]=0;
+  auto minimum=slot("min",integer); minimum["default"]=0;
+  auto maximum=slot("max",integer); maximum["default"]=100;
+  result.append(node("nodetool.input.IntegerInput",{number,minimum,maximum,name},{slot("output",integer)}));
+  result.append(node("nodetool.constant.Integer",{number},{slot("output",integer)}));
+  auto options=slot("options",type("list")); options["default"]=QJsonArray{};
+  auto choice=slot("value",text); choice["default"]="";
+  auto enumName=slot("enum_type_name",text); enumName["default"]="";
+  const QJsonObject mode{{"type","enum"},{"type_name","Mode"},{"values",QJsonArray{"fast","slow"}}};
+  result.append(node("nodetool.constant.Select",{choice,options,enumName},{slot("output",mode)}));
+  auto count=slot("count",integer); count["min"]=1; count["max"]=9; count["default"]=3;
+  auto tuner=node("Tuner",{count,slot("mode",mode)},{});
+  tuner["input_fields"]=QJsonArray{"count","mode"};
+  result.append(tuner);
+  return result;
+}
 inline QJsonObject workflow() {
   const QJsonObject node{{"id","origin"},{"type","Fixed"},{"data",QJsonObject{{"in","existing"}}},
     {"ui_properties",QJsonObject{{"position",QJsonObject{{"x",100},{"y",100}}}}}};

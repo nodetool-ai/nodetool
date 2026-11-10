@@ -9,6 +9,7 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QtTest>
 
@@ -51,7 +52,13 @@ QQuickItem *find(QQuickItem *root, const QString &name) {
     return nullptr;
 }
 
+// The open floating node menu, or else the docked node library.
 QQuickWidget *catalogPanel(EditorWindow &window) {
+    for (auto panel : window.findChildren<QQuickWidget *>()) {
+        if (panel->source().fileName() == "NodeMenu.qml" && panel->isVisible()) {
+            return panel;
+        }
+    }
     for (auto panel : window.findChildren<QQuickWidget *>()) {
         if (panel->source().fileName() == "Catalog.qml") {
             return panel;
@@ -68,34 +75,7 @@ QStringList visibleTypes(QQuickWidget *catalog) {
     return types;
 }
 
-// A node with typed properties and outputs, for the node menu's type filters.
-QJsonObject typedEntry(const QString &type, const QString &title, const QStringList &inputs, const QStringList &outputs) {
-    auto node = entry(type, title, QString());
-    QJsonArray properties;
-    for (int i = 0; i < inputs.size(); ++i) {
-        properties.append(QJsonObject{{"name", QString("in%1").arg(i)}, {"type", QJsonObject{{"type", inputs[i]}}}});
-    }
-    QJsonArray results;
-    for (int i = 0; i < outputs.size(); ++i) {
-        results.append(QJsonObject{{"name", QString("out%1").arg(i)}, {"type", QJsonObject{{"type", outputs[i]}}}});
-    }
-    node["properties"] = properties;
-    node["outputs"] = results;
-    return node;
-}
-
-QJsonArray typedFixture() {
-    return QJsonArray{
-        typedEntry("nodetool.image.Resize", "Resize", {"image", "int"}, {"image"}),
-        typedEntry("nodetool.text.Summarize", "Summarize", {"text"}, {"text"}),
-        typedEntry("fal.image.FluxPro", "Flux Pro", {"str"}, {"image"}),
-        typedEntry("nodetool.audio.Mix", "Mix", {"audio"}, {"audio"}),
-        typedEntry("nodetool.math.Add", "Add", {"float"}, {"float"}),
-        typedEntry("nodetool.control.Sink", "Sink", {"any"}, {}),
-    };
-}
-
-// The node menu opens where the pane is double-clicked. Its type chips and home tiles appear then.
+// The node menu opens where the pane is double-clicked.
 QQuickWidget *openNodeMenu(EditorWindow &window, const QPoint &offset = QPoint(37, -41)) {
     window.show();
     QTest::qWait(100);
@@ -161,7 +141,7 @@ private slots:
         EditorWindow window;
         window.setCatalog(catalog);
         window.show();
-        window.action("Add node");
+        window.action("Toggle nodes");
         QTest::qWait(100);
         auto catalogWidget = catalogPanel(window);
         QVERIFY(catalogWidget);
@@ -175,73 +155,62 @@ private slots:
         QCOMPARE(visibleTypes(catalogWidget).at(1), QString("nodetool.constant.String"));
     }
 
-    // The node menu has type chips: Local and API providers, five output types
-    // and input and output type menus. They filter by the types a node declares
-    // (components/node_menu/TypeFilterChips.tsx, typeFilterUtils.ts filterDataByExactType).
-    // The docked library has none, so its list ignores them.
-    void typeChipsFilterByDeclaredTypes() {
+    // The node menu lists namespaces as a tree. A level below the top shows while
+    // its parent is selected, a second click clears the pick, and a search
+    // marks the namespaces that hold a match (RenderNamespaces.tsx, NamespaceItem.tsx).
+    // The header drags the menu (NodeMenu.tsx .draggable-header).
+    void menuNamespaceTreeSelectsAndNests() {
         EditorWindow window;
-        window.setCatalog(typedFixture());
+        window.setCatalog(catalogFixture());
         window.show();
         window.action("Add node");
         QTest::qWait(100);
-        auto docked = catalogPanel(window);
-        QVERIFY(docked);
-        QVERIFY(!find(docked->rootObject(), "catalog-type-chips")->isVisible());
-        auto panel = openNodeMenu(window);
+        auto panel = catalogPanel(window);
         QVERIFY(panel);
+        QCOMPARE(panel->source().fileName(), QString("NodeMenu.qml"));
         auto root = panel->rootObject();
-        auto chips = find(root, "catalog-type-chips");
-        QVERIFY(chips);
-        QTRY_VERIFY(chips->isVisible());
-        QCOMPARE(find(root, "catalog-type-count")->property("text").toString(), QString("6 nodes"));
-        QCOMPARE(visibleTypes(panel).size(), 6);
-
-        auto chip = [&](const QString &name) {
-            auto item = find(root, "catalog-chip-" + name);
-            return item;
-        };
-        for (const auto &name : QStringList{"local", "api", "image", "text", "audio", "video", "number"}) {
-            QVERIFY2(chip(name), qPrintable(name));
-        }
-        click(panel, chip("image"));
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"fal.image.FluxPro", "nodetool.image.Resize"}));
-        QVERIFY(chip("image")->property("active").toBool());
-        QCOMPARE(find(root, "catalog-type-count")->property("text").toString(), QString("6 nodes"));
-        click(panel, chip("local"));
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.image.Resize"}));
-        click(panel, chip("local"));
-        click(panel, chip("api"));
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"fal.image.FluxPro"}));
-        click(panel, chip("api"));
-        click(panel, chip("image"));
-        QTRY_COMPARE(visibleTypes(panel).size(), 6);
-        click(panel, chip("number"));
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.math.Add"}));
-        click(panel, chip("number"));
-        QTRY_COMPARE(visibleTypes(panel).size(), 6);
-
-        // The input type menu lists the declared types and filters on properties.
-        QCOMPARE(toStrings(root->property("typeOptions")), QStringList({"any", "audio", "float", "image", "int", "str", "text"}));
-        root->setProperty("inputType", "text");
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.text.Summarize"}));
-        root->setProperty("inputType", "any");
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.control.Sink"}));
-        root->setProperty("outputType", "image");
-        QTRY_VERIFY(visibleTypes(panel).isEmpty());
-        root->setProperty("inputType", "");
-        root->setProperty("outputType", "");
-        // A filter applies to a search too.
-        root->setProperty("outputType", "audio");
-        root->setProperty("query", "mix");
-        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.audio.Mix"}));
+        QTRY_VERIFY(find(root, "catalog-home")->isVisible());
+        QVERIFY(find(root, "node-menu-namespace-nodetool"));
+        QVERIFY(!find(root, "node-menu-namespace-nodetool.tools"));
+        click(panel, find(root, "node-menu-namespace-nodetool"));
+        QTRY_VERIFY(find(root, "node-menu-namespace-nodetool.tools"));
+        QTRY_COMPARE(visibleTypes(panel).size(), 4);
+        click(panel, find(root, "node-menu-namespace-nodetool.tools"));
+        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.tools.Blur", "nodetool.tools.Sharpen"}));
+        QCOMPARE(find(root, "node-menu-info-box")->property("text").toString(), QString("2 nodes in nodetool.tools"));
+        // A search inside the namespace keeps it, and the info line counts both.
         root->setProperty("query", "resize");
-        QTRY_VERIFY(visibleTypes(panel).isEmpty());
+        QTRY_COMPARE(visibleTypes(panel), QStringList({"nodetool.tools.Blur"}));
+        QVERIFY(find(root, "node-menu-info-box")->property("text").toString().contains("total match"));
+        // The match shows highlighted in the description, and the title has none (HighlightText.tsx).
+        auto blur = find(root, "catalog-node-nodetool.tools.Blur");
+        QVERIFY(blur);
+        const auto description = find(blur, "node-menu-row-description")->property("text").toString();
+        QVERIFY2(description.contains(QRegularExpression("<font color=\"#[0-9a-f]{6}\"><b>Resize</b></font>")), qPrintable(description));
+        QCOMPARE(find(blur, "nativeButtonLabel")->property("text").toString(), QString("Blur"));
+        root->setProperty("query", "bl");
+        QTRY_VERIFY(find(find(root, "catalog-node-nodetool.tools.Blur"), "nativeButtonLabel")->property("text").toString().contains(">Bl</b></font>ur"));
         root->setProperty("query", "");
-        // The docked library ignores a filter left behind.
-        window.cancelCatalogPlacement();
-        QTRY_COMPARE(visibleTypes(panel).size(), 6);
-        QTRY_VERIFY(!chips->isVisible());
+        // A second click on the selected namespace returns to its parent.
+        click(panel, find(root, "node-menu-namespace-nodetool.tools"));
+        QTRY_COMPARE(root->property("selectedPathString").toString(), QString("nodetool"));
+        click(panel, find(root, "node-menu-namespace-nodetool"));
+        QTRY_VERIFY(find(root, "catalog-home")->isVisible());
+        // The header drag moves the menu.
+        const auto before = panel->pos();
+        auto header = find(root, "node-menu-header");
+        QVERIFY(header);
+        const auto start = header->mapToScene(QPointF(header->width() / 2, header->height() / 2)).toPoint();
+        QTest::mousePress(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier, start);
+        for (int step = 1; step <= 6; ++step) {
+            QTest::mouseMove(panel->quickWindow(), start + QPoint(-10 * step, 5 * step));
+        }
+        QTest::mouseRelease(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier, start + QPoint(-60, 30));
+        QTRY_VERIFY(panel->pos() != before);
+        // Escape closes it.
+        find(root, "nodeSearch")->forceActiveFocus();
+        QTest::keyClick(panel, Qt::Key_Escape);
+        QTRY_VERIFY(!window.nodeMenuVisible());
     }
 
     // With nothing typed and no filter, the node menu shows Favorites, Recent
@@ -384,7 +353,7 @@ private slots:
             window.packSetup()->setAllCategories(true);
             window.setCatalog(catalog);
             window.show();
-            window.action("Add node");
+            window.action("Toggle nodes");
             QTest::qWait(100);
             auto panel = catalogPanel(window);
             QVERIFY(panel);
@@ -438,7 +407,7 @@ private slots:
         EditorWindow window;
         window.setCatalog(catalog);
         window.show();
-        window.action("Add node");
+        window.action("Toggle nodes");
         QTest::qWait(100);
         auto panel = catalogPanel(window);
         QVERIFY(panel);
@@ -578,7 +547,13 @@ private slots:
         QTRY_COMPARE(window.document()->nodes().size(), 1);
         QCOMPARE(window.document()->nodes().first().toObject()["type"].toString(), QString("nodetool.image.Resize"));
         QCOMPARE(window.document()->undoStack()->count(), 1);
+        // The menu closes after an add (NodeMenuStore.closeNodeMenu).
+        QTRY_VERIFY(!window.nodeMenuVisible());
         // A new search clears the pick, so Enter again adds nothing.
+        window.action("Add node");
+        QTRY_VERIFY(find(root, "nodeSearch")->hasActiveFocus());
+        QTest::keyClicks(catalog, "resize");
+        QTest::keyClick(catalog, Qt::Key_Down);
         QTest::keyClicks(catalog, "x");
         QCOMPARE(root->property("highlighted").toInt(), -1);
         QTest::keyClick(catalog, Qt::Key_Return);
@@ -609,7 +584,6 @@ private slots:
         QVERIFY(catalog);
         auto root = catalog->rootObject();
         QTRY_VERIFY(find(root, "nodeSearch")->hasActiveFocus());
-        QTRY_COMPARE(find(root, "catalog-footer-hint")->property("text").toString(), QString("adds at the pointer"));
         capture(window, "catalog-pointer");
         QTest::keyClicks(catalog, "concat");
         QTest::keyClick(catalog, Qt::Key_Down);
@@ -646,7 +620,7 @@ private slots:
         EditorWindow window;
         window.setCatalog(catalogFixture());
         window.show();
-        window.action("Add node");
+        window.action("Toggle nodes");
         QTest::qWait(100);
         auto catalog = catalogPanel(window);
         QVERIFY(catalog);
@@ -676,8 +650,8 @@ private slots:
         QCOMPARE(window.document()->undoStack()->count(), 3);
     }
 
-    // A double-click on the empty pane arms the pointer point. A pane press
-    // closes it, and a later catalog click adds in the visible center
+    // A double-click on the empty pane opens the node menu at the pointer. A pane
+    // press closes it, and a later library click adds in the visible center
     // (usePaneEvents.ts:47-64, :95-98, NodeCreateBridge.tsx:23-28).
     void paneDoubleClickAddsAtThePointer() {
         EditorWindow window;
@@ -713,6 +687,11 @@ private slots:
         QVERIFY(window.catalogAtPointer());
         QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, other);
         QVERIFY(!window.catalogAtPointer());
+        QVERIFY(!window.nodeMenuVisible());
+        // The docked node library then adds in the visible center.
+        window.action("Toggle nodes");
+        catalog = catalogPanel(window);
+        QVERIFY(catalog);
         QTest::qWait(30);
         row = find(catalog->rootObject(), "catalog-node-nodetool.tools.Sharpen");
         QVERIFY(row);

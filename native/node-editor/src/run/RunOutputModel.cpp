@@ -2,6 +2,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QSet>
 #include <algorithm>
 #include <cmath>
@@ -428,6 +429,31 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
     else if (tag == "image_comparison") { renderer = "image_comparison"; entry["comparison"] = object.toVariantMap(); }
     else if (tag == "plotly_config") { renderer = "plotly"; }
     else if (value.isObject() && tag.isEmpty()) { renderer = "object"; }
+    if (value.isBool() || (tag == "boolean" && object["value"].isBool())) {
+      renderer = "text";
+      entry["text"] = (value.isBool() ? value : object["value"]).toBool() ? QString("TRUE") : QString("FALSE");
+    }
+    else if (tag == "datetime") {
+      renderer = "text";
+      const QDateTime when(QDate(object["year"].toInt(), object["month"].toInt(), object["day"].toInt()),
+        QTime(object["hour"].toInt(), object["minute"].toInt(), object["second"].toInt()));
+      entry["text"] = when.isValid() ? when.toString("yyyy-MM-dd HH:mm:ss") : display(value);
+    }
+    else if (tag == "json") {
+      renderer = "json";
+      const auto data = object["data"];
+      const auto parsed = data.isString() ? QJsonDocument::fromJson(data.toString().toUtf8()) : QJsonDocument{};
+      const auto body = data.isObject() ? QJsonDocument(data.toObject()) : data.isArray() ? QJsonDocument(data.toArray()) : parsed;
+      entry["text"] = body.isNull() ? (data.isString() ? data.toString() : display(data))
+                                    : QString::fromUtf8(body.toJson(QJsonDocument::Indented)).left(MaxText);
+    }
+    else if (tag == "email") {
+      renderer = "text";
+      QStringList header{"From: " + object["sender"].toString(), "To: " + object["to"].toString()};
+      if (!object["cc"].toString().isEmpty()) { header.append("Cc: " + object["cc"].toString()); }
+      header.append("Subject: " + object["subject"].toString());
+      entry["text"] = (header.join('\n') + "\n\n" + object["body"].toString()).left(MaxText);
+    }
     if (value.isArray() && !value.toArray().isEmpty()) {
       const auto chunks = value.toArray();
       const bool textChunks = std::all_of(chunks.begin(), chunks.end(), [](const QJsonValue &part) {

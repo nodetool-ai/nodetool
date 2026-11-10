@@ -111,6 +111,10 @@ Item {
         id: numberEditor
         Ui.NumberField {
             objectName: "inline-number"
+            // The card row is shorter than the standard field, so the text sits in the middle without padding.
+            topPadding: 0
+            bottomPadding: 0
+            verticalAlignment: TextInput.AlignVCenter
             value: typeof root.value === "number" ? root.value : 0
             displayValue: typeof root.value === "number" ? String(root.value) : ""
             from: typeof root.descriptor.min === "number" ? root.descriptor.min : -Infinity

@@ -14,6 +14,7 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
+#include <QJsonDocument>
 #include <QSet>
 #include <QTimer>
 #include <QUuid>
@@ -26,6 +27,61 @@ QJsonObject typeOf(const QJsonObject &port) {
   return value.isObject() ? value.toObject() : value.isString() ? QJsonObject{{"type",value}} : QJsonObject{};
 }
 QString nodeType(const QJsonObject &metadata) { return metadata["node_type"].toString(metadata["type"].toString()); }
+// web config/data_types.ts labelForType over NODETOOL_DATA_TYPES.
+QString labelForType(const QString &type) {
+  static const QHash<QString,QString> labels{
+    {"any","Any"},{"notype","No Type"},{"asset","Asset"},{"audio","Audio"},{"video","Video"},{"sketch","Sketch"},
+    {"timeline","Timeline"},{"script","Script"},{"storyboard","Storyboard"},{"entity","Entity"},{"keyframe","Keyframe"},
+    {"video_element","Video Element"},{"shot","Shot"},{"game_slot","Game Slot"},{"slot_fill","Slot Fill"},{"bool","Boolean"},
+    {"chunk","Chunk"},{"cv","CV"},{"dataframe","Dataframe"},{"document","Document"},{"dict","Dictionary"},{"enum","Enumeration"},
+    {"file","File"},{"float","Float"},{"folder","Folder"},{"image","Image"},{"int","Integer"},{"list","List"},{"str","String"},
+    {"tensor","Tensor"},{"text","Text"},{"union","Union"},{"language_model","Language Model"},{"embedding_model","Embedding Model"},
+    {"asr_model","ASR Model"},{"rerank_model","Rerank Model"},{"bytes","Bytes"},{"collection","Collection"},{"font","Font"},
+    {"image_size","Image size"},{"llama_cpp_model","Llama.cpp model"},{"llama_model","Llama model (HF)"},{"message","Message"},
+    {"mistral_model","Mistral model"},{"model_3d_model","3D pipeline model"},{"none","None"},{"task","Task"},{"thread","Thread"},
+    {"model_ref","Model Reference"},{"image_model","Image Model"},{"tjs.cached","Transformers.js model (tjs.*)"},
+    {"torch_tensor","Torch tensor"},{"tts_model","TTS model"},{"music_model","Music model"},
+    {"audio_to_audio_model","Audio to audio model"},{"video_model","Video model"},{"workflow","Workflow"},{"datetime","DateTime"},
+    {"date","Date"},{"object","Object"},{"json","JSON"},{"model_3d","Model 3D"},{"np_array","NumPy Array"}};
+  auto name=type; if (name.startsWith("nodetool.")) { name=name.mid(9); }
+  if (name=="model3d") { name="model_3d"; }
+  if (const auto found=labels.constFind(name);found!=labels.constEnd()) { return found.value(); }
+  if (name.startsWith("tjs.")) { return labels.value("tjs.cached"); }
+  return {};
+}
+// web InputContextMenu.tsx NODE_PATHS_BY_TYPE and LIST_CONSTANT_PATHS.
+struct NodePaths { QString input, constant, sourceHandle, label; };
+const NodePaths *nodePathsFor(const QString &type) {
+  static const QHash<QString,NodePaths> paths{
+    {"str",{"nodetool.input.StringInput","nodetool.constant.String"}},
+    {"int",{"nodetool.input.IntegerInput","nodetool.constant.Integer"}},
+    {"float",{"nodetool.input.FloatInput","nodetool.constant.Float"}},
+    {"bool",{"nodetool.input.BooleanInput","nodetool.constant.Bool"}},
+    {"boolean",{"nodetool.input.BooleanInput","nodetool.constant.Bool"}},
+    {"image",{"nodetool.input.ImageInput","nodetool.constant.Image"}},
+    {"audio",{"nodetool.input.AudioInput","nodetool.constant.Audio"}},
+    {"video",{"nodetool.input.VideoInput","nodetool.constant.Video"}},
+    {"document",{"nodetool.input.DocumentInput","nodetool.constant.Document"}},
+    {"dataframe",{"nodetool.input.DataframeInput","nodetool.constant.DataFrame"}},
+    {"enum",{"nodetool.input.SelectInput","nodetool.constant.Select"}},
+    {"language_model",{"nodetool.input.LanguageModelInput","nodetool.constant.LanguageModelConstant"}},
+    {"image_model",{"nodetool.input.ImageModelInput","nodetool.constant.ImageModelConstant"}},
+    {"video_model",{"nodetool.input.VideoModelInput","nodetool.constant.VideoModelConstant"}},
+    {"tts_model",{"nodetool.input.TTSModelInput","nodetool.constant.TTSModelConstant"}},
+    {"asr_model",{"nodetool.input.ASRModelInput","nodetool.constant.ASRModelConstant"}},
+    {"embedding_model",{"nodetool.input.EmbeddingModelInput","nodetool.constant.EmbeddingModelConstant"}},
+    {"image_size",{"nodetool.input.ImageSizeInput","nodetool.constant.ImageSize","image_size"}}};
+  const auto found=paths.constFind(type); return found==paths.constEnd() ? nullptr : &found.value();
+}
+const NodePaths *listPathsFor(const QString &element) {
+  static const QHash<QString,NodePaths> paths{
+    {"image",{"nodetool.input.ImageListInput","nodetool.constant.ImageList",{},"Image List"}},
+    {"video",{"nodetool.input.VideoListInput","nodetool.constant.VideoList",{},"Video List"}},
+    {"audio",{"nodetool.input.AudioListInput","nodetool.constant.AudioList",{},"Audio List"}},
+    {"text",{"nodetool.input.TextListInput","nodetool.constant.TextList",{},"Text List"}},
+    {"str",{"nodetool.input.StringListInput","nodetool.constant.TextList",{},"Text List"}}};
+  const auto found=paths.constFind(element); return found==paths.constEnd() ? nullptr : &found.value();
+}
 class PickerWidget final : public QQuickWidget {
 public:
   PickerWidget(QQmlEngine *engine,QWidget *parent) : QQuickWidget(engine,parent) {}
@@ -53,11 +109,9 @@ CompatibleNodePicker::~CompatibleNodePicker() {
   active_=false; ++generation_;
   // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   auto widget=widget_.data(); widget_.clear(); delete widget;
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &retired:retired_) { delete retired.data(); }
 }
 QQuickWidget *CompatibleNodePicker::widget() const { return widget_; }
-void CompatibleNodePicker::setCatalog(const QJsonArray &catalog) { cancel(); catalog_=catalog; }
+void CompatibleNodePicker::setCatalog(const QJsonArray &catalog) { cancel(); catalog_=catalog; compatibleCache_.clear(); }
 QString CompatibleNodePicker::title() const {
   if (body_!=QtNodes::InvalidNodeId) { return port_==QtNodes::PortType::Out ? tr("Choose an input port"):tr("Choose an output port"); }
   return port_==QtNodes::PortType::Out ? tr("Connect to a new node") : tr("Connect from a new node");
@@ -84,28 +138,32 @@ bool CompatibleNodePicker::initialize(QtNodes::NodeId node,QtNodes::PortType por
   if (handle_.isEmpty()) { return false; }
   return true;
 }
-void CompatibleNodePicker::open(QtNodes::NodeId node,QtNodes::PortType port,
-    QtNodes::PortIndex index,const QPointF &position) {
-  cancel();
-  if (!initialize(node,port,index,position)) { return; }
+void CompatibleNodePicker::addCandidate(QVector<Candidate> &into,QVariantMap row) {
+  const auto label=row["label"].toString();
+  const auto text=(label+" "+row["type"].toString()+" "+row["port"].toString()).toCaseFolded();
+  into.append(Candidate{std::move(row),text,label.toCaseFolded()});
+}
+QVector<CompatibleNodePicker::Candidate> CompatibleNodePicker::catalogCandidates() const {
+  QVector<Candidate> result;
   QSet<QString> seen;
+  const bool forward=port_==QtNodes::PortType::Out;
   for (const auto &value:catalog_) {
     const auto metadata=value.toObject();
     const auto type=nodeType(metadata);
     if (type.isEmpty() || metadata["hidden"].toBool()) { continue; }
     QVector<QJsonObject> matches;
-    for (const auto &value:metadata[port==QtNodes::PortType::Out ? "properties":"outputs"].toArray()) {
+    for (const auto &value:metadata[forward ? "properties":"outputs"].toArray()) {
       const auto candidate=value.toObject();
       if (candidate["name"].toString().isEmpty()) { continue; }
       const auto other=typeOf(candidate);
-      const bool compatible=port==QtNodes::PortType::Out
+      const bool compatible=forward
           ? node_editor::connectionTypesCompatible(type_,other)
           : node_editor::connectionTypesCompatible(other,type_);
       if (compatible) { matches.append(candidate); }
     }
     const bool typed=std::any_of(matches.begin(),matches.end(),[](const auto &p) { return typeOf(p)["type"]!="any"; });
     if (typed) { matches.removeIf([](const auto &p) { return typeOf(p)["type"]=="any"; }); }
-    if (port==QtNodes::PortType::Out) {
+    if (forward) {
       const auto declared=metadata["input_fields"].toArray();
       const bool hasDeclared=std::any_of(matches.begin(),matches.end(),[&](const auto &p) { return declared.contains(p["name"]); });
       if (hasDeclared) { matches.removeIf([&](const auto &p) { return !declared.contains(p["name"]); }); }
@@ -119,29 +177,49 @@ void CompatibleNodePicker::open(QtNodes::NodeId node,QtNodes::PortType port,
       const auto key=type+"\n"+name;
       if (seen.contains(key)) { continue; }
       seen.insert(key);
-      candidates_.append(QVariantMap{{"key",key},{"type",type},{"port",name},
+      addCandidate(result,QVariantMap{{"key",key},{"type",type},{"port",name},
         {"label",metadata["title"].toString(type.section('.',-1))},
         {"namespace",metadata["namespace"].toString(type.section('.',0,-2))},
         {"portLabel",match["title"].toString(name)},
         {"typeLabel",typeOf(match)["type"].toString()}});
+      result.last().node={type,metadata["title"].toString(),metadata["namespace"].toString(),
+        metadata["description"].toString(),metadata["deprecated"].toBool()};
     }
   }
+  return result;
+}
+void CompatibleNodePicker::open(QtNodes::NodeId node,QtNodes::PortType port,
+    QtNodes::PortIndex index,const QPointF &position) {
+  cancel();
+  if (!initialize(node,port,index,position)) { return; }
+  // The rows depend only on the catalog, the direction and the port type.
+  const auto cacheKey=QString::number(int(port))+QJsonDocument(type_).toJson(QJsonDocument::Compact);
+  auto cached=compatibleCache_.find(cacheKey);
+  if (cached==compatibleCache_.end()) { cached=compatibleCache_.insert(cacheKey,catalogCandidates()); }
+  candidates_=*cached; rowsValid_=false;
+  buildFixed();
   showWidget();
 }
 void CompatibleNodePicker::showWidget() {
   active_=true;
-  auto widget=new PickerWidget(engine_,&view_); widget_=widget;
-  widget->setObjectName("compatible-node-picker");
-  widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-  widget->setClearColor(Qt::transparent);
-  widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  widget->setInitialProperties({{"picker",QVariant::fromValue(this)},{"activationToken",generation_}});
-  widget->setSource(QUrl("qrc:/editor/CompatibleNodePicker.qml"));
-  if (widget->status()==QQuickWidget::Error) { cancel(); return; }
+  // One widget for the picker's lifetime, so the QML compiles once.
+  if (!widget_) {
+    auto widget=new PickerWidget(engine_,&view_); widget_=widget;
+    widget->setObjectName("compatible-node-picker");
+    widget->setAttribute(Qt::WA_AlwaysStackOnTop);
+    widget->setClearColor(Qt::transparent);
+    widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    widget->setInitialProperties({{"picker",QVariant::fromValue(this)}});
+    widget->setSource(QUrl("qrc:/editor/CompatibleNodePicker.qml"));
+    if (widget->status()==QQuickWidget::Error) { widget_.clear(); widget->deleteLater(); cancel(); return; }
+  }
+  const auto widget=widget_;
+  widget->rootObject()->setProperty("activationToken",generation_);
+  widget->setEnabled(true);
   positionWidget(); widget->show(); widget->raise(); widget->setFocus(Qt::MouseFocusReason);
   emit changed();
-  QTimer::singleShot(0,this,[this,widget=QPointer<QQuickWidget>(widget)] {
-    if (current() && widget_==widget && widget) { QMetaObject::invokeMethod(widget->rootObject(),"activate"); }
+  QTimer::singleShot(0,this,[this,widget,token=generation_] {
+    if (current() && token==generation_ && widget) { QMetaObject::invokeMethod(widget->rootObject(),"activate"); }
   });
 }
 void CompatibleNodePicker::applyBody(const QString &port,const QJsonArray &prefix,
@@ -186,35 +264,160 @@ void CompatibleNodePicker::openBody(QtNodes::NodeId node,QtNodes::PortType port,
     const bool compatible=forward ? node_editor::connectionTypesCompatible(type_,candidate.type)
         : node_editor::connectionTypesCompatible(candidate.type,type_);
     if (!compatible) { continue; }
-    candidates_.append(QVariantMap{{"key",candidate.name},{"port",candidate.name},
+    addCandidate(candidates_,QVariantMap{{"key",candidate.name},{"port",candidate.name},
       {"type",type},{"label",candidate.name},{"portLabel",candidate.name},{"typeLabel",candidate.type["type"].toString()}});
   }
-  if (candidates_.size()==1) { applyBody(candidates_.first().toMap()["port"].toString()); return; }
+  rowsValid_=false;
+  if (candidates_.size()==1) { applyBody(candidates_.first().row["port"].toString()); return; }
   if (candidates_.size()>1) { showWidget(); return; }
   if (forward && metadata["supports_dynamic_inputs"].toBool() && !schemaOnlyInputs(type)) { dynamic(false); return; }
   cancel();
 }
 QVariantList CompatibleNodePicker::rows() const {
-  QVariantList result;
-  const auto terms=query_.simplified().toCaseFolded().split(' ',Qt::SkipEmptyParts);
-  for (const auto &value:candidates_) {
-    const auto row=value.toMap();
-    const auto text=(row["label"].toString()+" "+row["type"].toString()+" "+row["port"].toString()).toCaseFolded();
-    if (std::all_of(terms.begin(),terms.end(),[&](const auto &term) { return text.contains(term); })) { result.append(row); }
+  if (rowsValid_) { return rowsCache_; }
+  rowsCache_.clear();
+  if (body_==QtNodes::InvalidNodeId) {
+    // ConnectableNodes.tsx: rankSearchNodes over the compatible nodes, with the
+    // recent and quick-action boosts. A node keeps its compatible ports together.
+    QList<CatalogSearchNode> nodes;
+    QVector<QVector<int>> ports;
+    QHash<QString,int> at;
+    for (int i=0;i<candidates_.size();++i) {
+      const auto &node=candidates_[i].node;
+      auto found=at.constFind(node.type);
+      if (found==at.constEnd()) { found=at.insert(node.type,int(nodes.size())); nodes.append(node); ports.append(QVector<int>{}); }
+      ports[found.value()].append(i);
+    }
+    const auto recent=recentTypes ? recentTypes() : QStringList{};
+    for (const int node:ranker_.rank(nodes,query_,recent)) {
+      for (const int i:ports[node]) { rowsCache_.append(candidates_[i].row); }
+    }
+    rowsValid_=true;
+    return rowsCache_;
   }
-  const auto prefix=query_.trimmed().toCaseFolded();
-  std::stable_sort(result.begin(),result.end(),[&](const auto &a,const auto &b) {
-    const auto aa=a.toMap()["label"].toString(),bb=b.toMap()["label"].toString();
-    const bool ap=aa.toCaseFolded().startsWith(prefix),bp=bb.toCaseFolded().startsWith(prefix);
-    if (ap!=bp) { return ap; }
-    return QString::compare(aa,bb,Qt::CaseInsensitive)<0;
-  });
+  // A body drop lists one node's ports, which the query matches by name.
+  const auto terms=query_.simplified().toCaseFolded().split(' ',Qt::SkipEmptyParts);
+  for (const auto &candidate:candidates_) {
+    if (std::all_of(terms.begin(),terms.end(),[&](const auto &term) { return candidate.text.contains(term); })) { rowsCache_.append(candidate.row); }
+  }
+  rowsValid_=true;
+  return rowsCache_;
+}
+QJsonObject CompatibleNodePicker::metadataFor(const QString &type) const {
+  for (const auto &value:catalog_) { if (nodeType(value.toObject())==type) { return value.toObject(); } }
+  return {};
+}
+void CompatibleNodePicker::buildFixed() {
+  fixed_.clear();
+  // A const view, so a lookup never inserts a key into type_, which current() compares.
+  const auto &source=std::as_const(type_);
+  const auto type=source["type"].toString();
+  const auto add=[this](const QString &key,const QString &label,const QString &nodeType,const QString &port,
+                        const QString &receivingName={},const QJsonObject &overrides={},bool replace=false) {
+    if (metadataFor(nodeType).isEmpty()) { return; }
+    fixed_.append(FixedAction{"fixed\n"+key,label,nodeType,port,receivingName,overrides,replace});
+  };
+  if (port_==QtNodes::PortType::Out) {
+    // OutputContextMenu.tsx: Preview, Output, Reroute, Save <Type>, the quick actions, Delete output.
+    add("preview",tr("Preview"),"nodetool.workflows.base_node.Preview","value");
+    add("output",tr("Output"),"nodetool.output.Output","value");
+    add("reroute",tr("Reroute"),"nodetool.control.Reroute","input_value");
+    if (!type.isEmpty()) {
+      const auto label=labelForType(type).remove(' ');
+      const auto save=metadataFor("nodetool."+label.toLower()+".Save"+label);
+      if (!save.isEmpty()) {
+        QString port="value";
+        for (const auto &value:save["properties"].toArray()) {
+          const auto property=value.toObject();
+          if (node_editor::connectionTypesCompatible(source,typeOf(property))) { port=property["name"].toString(); break; }
+        }
+        const auto typeName=source["type_name"].toString();
+        const auto text=type=="string" ? tr("Save text")
+            : !typeName.isEmpty() ? tr("Save %1").arg(typeName.left(1).toUpper()+typeName.mid(1)) : tr("Save");
+        add("save",text,nodeType(save),port);
+      }
+    }
+    // web config/outputQuickActions.ts outputQuickActionsFor.
+    if (type=="image") {
+      add("upscale",tr("Upscale"),"nodetool.image.Upscale","image");
+      add("remove-background",tr("Remove background"),"nodetool.image.RemoveBackground","image");
+      add("edit",tr("Edit with prompt"),"nodetool.image.ImageToImage","image");
+    }
+    if (model_.metadata(node_)["supports_dynamic_outputs"].toBool()
+        && model_.nodeSnapshot(node_)["dynamic_outputs"].toObject().contains(handle_)) {
+      fixed_.append(FixedAction{"fixed\ndelete-output",tr("Delete output"),{},{},{},{},false,true});
+    }
+    return;
+  }
+  // InputContextMenu.tsx: the collect element rows, Constant, Input, Prompt.
+  const auto args=source["type_args"].toArray();
+  const bool collect=type=="list" && args.size()==1 && typeOf(QJsonObject{{"type",args[0]}})["type"].toString()!="any"
+      && !typeOf(QJsonObject{{"type",args[0]}})["type"].toString().isEmpty();
+  const auto element=collect ? typeOf(QJsonObject{{"type",args[0]}}) : QJsonObject{};
+  const auto elementType=element["type"].toString();
+  const auto *special=collect ? listPathsFor(elementType) : nullptr;
+  const auto *paths=nodePathsFor(type);
+  const auto label=labelForType(type).remove(' ');
+  const auto inputPath=special ? special->input : paths ? paths->input : "nodetool.input."+label+"Input";
+  const auto constantPath=special ? special->constant : paths ? paths->constant : "nodetool.constant."+label;
+  QJsonObject enumPresets;
+  if (type=="enum") {
+    if (!source["type_name"].toString().isEmpty()) { enumPresets["enum_type_name"]=source["type_name"]; }
+    const auto values=source["values"].toArray();
+    if (!values.isEmpty()) { enumPresets["options"]=values; enumPresets["value"]=values.first(); }
+  }
+  if (collect) {
+    const auto elementLabel=labelForType(elementType).remove(' ');
+    const auto *elementPaths=nodePathsFor(elementType);
+    const auto shown=labelForType(elementType);
+    if (!elementLabel.isEmpty()) {
+      add("collect-constant",tr("Create %1 constant").arg(shown),"nodetool.constant."+elementLabel,"output");
+    }
+    const auto elementInput=elementPaths ? elementPaths->input : elementLabel.isEmpty() ? QString() : "nodetool.input."+elementLabel+"Input";
+    if (!elementInput.isEmpty()) { add("collect-input",tr("Create %1 input").arg(shown),elementInput,"output",handle_); }
+  }
+  add("constant",special ? tr("Create %1 constant").arg(special->label) : tr("Constant"),constantPath,
+      paths && !paths->sourceHandle.isEmpty() ? paths->sourceHandle : QString("output"),{},enumPresets,!collect);
+  auto inputPresets=enumPresets;
+  if (inputPath=="nodetool.input.IntegerInput" || inputPath=="nodetool.input.FloatInput") {
+    // useConnectionHandlers.ts: min, max and default of the target property.
+    for (const auto &value:model_.metadata(node_)["properties"].toArray()) {
+      const auto property=value.toObject();
+      if (property["name"].toString()!=handle_) { continue; }
+      if (!property["min"].isNull() && !property["min"].isUndefined()) { inputPresets["min"]=property["min"]; }
+      if (!property["max"].isNull() && !property["max"].isUndefined()) { inputPresets["max"]=property["max"]; }
+      if (property["default"].isDouble()) { inputPresets["value"]=property["default"]; }
+      break;
+    }
+  }
+  add("input",special ? tr("Create %1 input").arg(special->label) : tr("Input"),inputPath,"output",handle_,inputPresets,!collect);
+  if (type=="str") { add("prompt",tr("Prompt"),"nodetool.text.Prompt","output",{},{},!collect); }
+}
+QVariantList CompatibleNodePicker::fixedRows() const {
+  QVariantList result;
+  if (body_!=QtNodes::InvalidNodeId || !query_.trimmed().isEmpty()) { return result; }
+  for (const auto &action:fixed_) {
+    result.append(QVariantMap{{"key",action.key},{"label",action.label},{"destructive",action.destructive}});
+  }
   return result;
 }
-void CompatibleNodePicker::setQuery(const QString &query) { if (query_!=query) { query_=query; emit changed(); } }
+void CompatibleNodePicker::setQuery(const QString &query) { if (query_!=query) { query_=query; rowsValid_=false; emit changed(); } }
 void CompatibleNodePicker::choose(const QString &key, int generation) {
   if (generation!=generation_) { return; }
   if (!current()) { cancel(); return; }
+  if (key.startsWith("fixed\n")) {
+    if (!query_.trimmed().isEmpty()) { return; }
+    const auto action=std::find_if(fixed_.cbegin(),fixed_.cend(),[&](const auto &a) { return a.key==key; });
+    if (action==fixed_.cend()) { return; }
+    if (action->destructive) { deleteOutput(generation); return; }
+    const auto metadata=metadataFor(action->type);
+    QString id;
+    const auto command=connectCommand(metadata,port_==QtNodes::PortType::Out,resource_,handle_,action->port,position_,id,
+        action->overrides,action->receivingName,action->replaceTarget);
+    cancel();
+    if (applyCommand && applyCommand(command)) { emit nodeCreated(id); }
+    return;
+  }
   QVariantMap row;
   for (const auto &value:rows()) { if (value.toMap()["key"].toString()==key) { row=value.toMap(); break; } }
   if (row.isEmpty()) { return; }
@@ -231,19 +434,23 @@ void CompatibleNodePicker::choose(const QString &key, int generation) {
 // One canonical add-node/add-edge batch. `forward` wires `resource`'s output `handle` into the new
 // node's `port`; otherwise the new node's output `port` feeds `resource`'s input `handle`.
 QJsonObject CompatibleNodePicker::connectCommand(const QJsonObject &metadata,bool forward,const QString &resource,
-    const QString &handle,const QString &port,const QPointF &position,QString &id) const {
+    const QString &handle,const QString &port,const QPointF &position,QString &id,
+    const QJsonObject &overrides,const QString &receivingName,bool replaceTarget) const {
   QJsonArray existing;
   for (const auto nodeId:model_.allNodeIds()) { existing.append(model_.nodeSnapshot(nodeId)); }
   NodeCreationOptions options;
   if (forward) { options.receivingName=handle; options.useMetadataStyle=true; }
-  auto node=createNativeNode(metadata,position,existing,{},options);
+  else { options.receivingName=receivingName; }
+  auto node=createNativeNode(metadata,position,existing,overrides,options);
   id=node["id"].toString();
   const QJsonObject edge{{"id",QUuid::createUuid().toString(QUuid::Id128)},
     {"source",forward ? resource:id},{"target",forward ? id:resource},
     {"sourceHandle",forward ? handle:port},
     {"targetHandle",forward ? port:handle}};
   WorkflowGraphModel preview;
-  preview.project(QJsonObject{{"nodes",QJsonArray{node}},{"edges",QJsonArray{edge}}},QJsonArray{metadata});
+  // A snippet entry lays out as the Code node it creates.
+  const auto created=metadata.contains("code_snippet") ? metadata["code_snippet"]["code_node"].toObject() : metadata;
+  preview.project(QJsonObject{{"nodes",QJsonArray{node}},{"edges",QJsonArray{edge}}},QJsonArray{created});
   const auto previewId=*preview.allNodeIds().begin();
   const auto &layout=preview.layout(previewId);
   auto placed=position;
@@ -265,8 +472,18 @@ QJsonObject CompatibleNodePicker::connectCommand(const QJsonObject &metadata,boo
   auto ui=node["ui_properties"].toObject();
   ui["position"]=QJsonObject{{"x",placed.x()},{"y",placed.y()}};
   node["ui_properties"]=ui;
-  return QJsonObject{{"op","batch"},{"commands",QJsonArray{
-    QJsonObject{{"op","addNode"},{"node",node}},QJsonObject{{"op","addEdge"},{"edge",edge}}}}};
+  QJsonArray commands;
+  if (replaceTarget && !forward) {
+    for (const auto &value:model_.edgeSnapshot()) {
+      const auto existing=value.toObject();
+      if (existing["target"].toString()==resource && existing["targetHandle"].toString()==handle) {
+        commands.append(QJsonObject{{"op","removeEdge"},{"id",existing["id"]}});
+      }
+    }
+  }
+  commands.append(QJsonObject{{"op","addNode"},{"node",node}});
+  commands.append(QJsonObject{{"op","addEdge"},{"edge",edge}});
+  return QJsonObject{{"op","batch"},{"commands",commands}};
 }
 // Web useAddConnectedNode: a node of `type` beside an output, wired to `targetPort`, in one step.
 // The output handle's scene position is the anchor the loose-wire picker would have used.
@@ -305,11 +522,8 @@ void CompatibleNodePicker::deleteOutput(int generation) {
 void CompatibleNodePicker::cancel() {
   scene_.resetDraftConnection();
   ++generation_;
-  active_=false; candidates_.clear(); query_.clear(); body_=QtNodes::InvalidNodeId; bodyResource_.clear();
-  if (widget_) {
-    auto old=widget_; widget_.clear(); old->hide(); old->setEnabled(false);
-    retired_.removeIf([](const auto &p) { return p.isNull(); }); retired_.append(old); old->deleteLater();
-  }
+  active_=false; candidates_.clear(); fixed_.clear(); rowsValid_=false; query_.clear(); body_=QtNodes::InvalidNodeId; bodyResource_.clear();
+  if (widget_) { widget_->hide(); widget_->setEnabled(false); }
   emit changed();
 }
 bool CompatibleNodePicker::owns(QObject *object) const {

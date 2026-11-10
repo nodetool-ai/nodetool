@@ -6,9 +6,12 @@
 #include <QVariant>
 #include <QUrl>
 #include <functional>
+#include <memory>
 #include <QSet>
 #include <QQueue>
 class QNetworkReply;
+class QHttpMultiPart;
+class QIODevice;
 namespace nodetool::node_editor {
 class MediaResolver final : public QObject {
   Q_OBJECT
@@ -25,6 +28,9 @@ public:
   Q_INVOKABLE bool saveResolved(const QString &key, const QUrl &destination);
   // Web "Save to assets": uploads the leased bytes through POST /api/assets as the account.
   Q_INVOKABLE bool saveToAssets(const QString &key, const QString &requested, const QString &kind);
+  // Web Preview Download and Add to assets for a value without media: the value as a text file.
+  Q_INVOKABLE bool saveText(const QString &key, const QString &text, const QUrl &destination);
+  Q_INVOKABLE bool saveTextToAssets(const QString &key, const QString &text, const QString &name, const QString &contentType);
   // The leased bytes, for clipboard copy. Empty once the key is released or unresolved.
   Q_INVOKABLE QByteArray resolvedBytes(const QString &key) const;
 signals:
@@ -47,6 +53,10 @@ private:
   // written for speed instead. Empty for any other identity.
   QByteArray savedLocalImage(const QString &identity) const;
   bool makeRoom(qint64 bytes);
+  // Posts one file to /api/assets. The reply owns the multipart, which owns the file device.
+  // live() is checked when the reply finishes, so a released key emits nothing.
+  bool postAsset(const QString &key, std::unique_ptr<QHttpMultiPart> multipart, QIODevice *file, const QString &name,
+    const QString &mime, std::function<bool()> live);
   struct CacheEntry { QUrl url; qint64 bytes; quint64 used; QString contentType; };
   QHash<QString, CacheEntry> entries_;
   QHash<QString, QString> identities_;

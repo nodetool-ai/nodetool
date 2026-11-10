@@ -377,13 +377,39 @@ bool MediaResolver::saveToAssets(const QString &key, const QString &requested, c
     file = new QFile(entry->url.toLocalFile(), multipart.get());
   }
   if (!file->open(QIODevice::ReadOnly) || file->size() == 0) { emit assetSaveFailed(key, "Could not read the cached media"); return false; }
+  const auto serial = serials_.value(key);
+  return postAsset(key, std::move(multipart), file, suggestedFilename(key, requested, kind), mime,
+    [this, key, serial] { return current(key, serial); });
+}
+bool MediaResolver::saveText(const QString &key, const QString &text, const QUrl &destination) {
+  QSaveFile output(destination.toLocalFile());
+  const auto bytes = text.toUtf8();
+  if (!destination.isLocalFile() || !output.open(QIODevice::WriteOnly) || output.write(bytes) != bytes.size() || !output.commit()) {
+    emit saveFailed(key, "Could not save the output to the selected file"); return false;
+  }
+  emit saved(key, destination);
+  return true;
+}
+bool MediaResolver::saveTextToAssets(const QString &key, const QString &text, const QString &name, const QString &contentType) {
+  if (server_.isEmpty()) { emit assetSaveFailed(key, "Connect to a server to save assets"); return false; }
+  if (uploads_.contains(key) && uploads_.value(key)) { emit assetSaveFailed(key, "This output is already being saved"); return false; }
+  if (text.isEmpty()) { emit assetSaveFailed(key, "The output is empty"); return false; }
+  auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
+  // Parent: the multipart, which the upload reply owns.
+  auto *buffer = new QBuffer(multipart.get());
+  buffer->setData(text.toUtf8());
+  buffer->open(QIODevice::ReadOnly);
+  return postAsset(key, std::move(multipart), buffer, name, contentType, [] { return true; });
+}
+bool MediaResolver::postAsset(const QString &key, std::unique_ptr<QHttpMultiPart> multipart, QIODevice *file, const QString &name,
+    const QString &mime, std::function<bool()> live) {
+  const auto type = mime.isEmpty() ? QStringLiteral("application/octet-stream") : mime;
   QHttpPart metadata;
   metadata.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"json\"");
-  metadata.setBody(QJsonDocument(QJsonObject{{"name", suggestedFilename(key, requested, kind)},
-      {"content_type", mime.isEmpty() ? QStringLiteral("application/octet-stream") : mime}}).toJson(QJsonDocument::Compact));
+  metadata.setBody(QJsonDocument(QJsonObject{{"name", name}, {"content_type", type}}).toJson(QJsonDocument::Compact));
   multipart->append(metadata);
   QHttpPart data;
-  data.setHeader(QNetworkRequest::ContentTypeHeader, mime.isEmpty() ? QStringLiteral("application/octet-stream") : mime);
+  data.setHeader(QNetworkRequest::ContentTypeHeader, type);
   // The user-visible name is metadata. A fixed multipart filename avoids header injection.
   data.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"file\"; filename=\"upload\"");
   data.setBodyDevice(file);
@@ -394,15 +420,14 @@ bool MediaResolver::saveToAssets(const QString &key, const QString &requested, c
   request.setAttribute(QNetworkRequest::CookieSaveControlAttribute, QNetworkRequest::Manual);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
   if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
-  const auto serial = serials_.value(key);
   auto *reply = network_.post(request, multipart.get());
   multipart.release()->setParent(reply);
   uploads_[key] = reply;
   connect(reply, &QNetworkReply::readyRead, reply, [reply] { if (reply->bytesAvailable() > 1024 * 1024) { reply->abort(); } });
-  connect(reply, &QNetworkReply::finished, this, [this, reply, key, serial] {
+  connect(reply, &QNetworkReply::finished, this, [this, reply, key, live = std::move(live)] {
     reply->deleteLater();
     if (uploads_.value(key) == reply) { uploads_.remove(key); }
-    if (!current(key, serial)) { return; }
+    if (!live()) { return; }
     const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
     const auto id = QJsonDocument::fromJson(reply->readAll()).object().value("id").toString();
     if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300 || id.isEmpty()) {
