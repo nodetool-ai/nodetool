@@ -15,6 +15,12 @@
 #include <string>
 #include <vector>
 
+namespace nodetool::jobs {
+// The counters that bound host jobs across runners
+// (native/jobs/include/nodetool/jobs/admission.h). Opaque to embedders.
+class AdmissionLedger;
+}  // namespace nodetool::jobs
+
 namespace gr {
 
 // The GPU the WebGPU image nodes run their shader modules on
@@ -71,13 +77,9 @@ struct AdmissionLimits {
   uint64_t javaScriptBytes = 0;
 };
 
-// The counters that bound host jobs across runners (src/kernel/admission.h).
-// Opaque to embedders.
-class AdmissionLedger;
-
 // A new admission ledger with `limits`. Give it to every runner that should
 // share them through HostOptions::admissionLedger.
-std::shared_ptr<AdmissionLedger> newAdmissionLedger(AdmissionLimits limits = {});
+std::shared_ptr<nodetool::jobs::AdmissionLedger> newAdmissionLedger(AdmissionLimits limits = {});
 
 // What the embedder lets node code reach: storage, files, secrets and
 // devices. Each host capability (src/host/) reads its own fields. The
@@ -162,7 +164,7 @@ struct HostOptions {
   // ledger with the default limits. Shared: every runner given it, and every
   // reservation and JavaScript buffer charged to it, which can outlive the
   // runner, keep it alive.
-  std::shared_ptr<AdmissionLedger> admissionLedger;
+  std::shared_ptr<nodetool::jobs::AdmissionLedger> admissionLedger;
 };
 
 class GraphRunner {

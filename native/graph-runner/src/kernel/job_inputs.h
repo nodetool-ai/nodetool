@@ -8,7 +8,7 @@
 #pragma once
 
 #include "js/engine.h"
-#include "kernel/admission.h"
+#include "nodetool/jobs/admission.h"
 
 #include <cstdint>
 #include <string>
@@ -38,9 +38,9 @@ std::string snapshotOptions(js::Engine& engine, const js::Value& value, std::str
 // bytes per UTF-16 unit, the most its UTF-8 text can need, and gives back
 // what the text did not use.
 std::vector<uint8_t> snapshotBytes(js::Engine& engine, const js::Value& value, std::string_view name,
-                                   Reservation& reservation);
+                                   nodetool::jobs::Reservation& reservation);
 std::string snapshotString(js::Engine& engine, const js::Value& value, std::string_view name,
-                           Reservation& reservation);
+                           nodetool::jobs::Reservation& reservation);
 // The most bytes the UTF-8 text of string `value` can need. Throws
 // std::invalid_argument, naming the argument `name`, for another type.
 uint64_t stringBytesBound(js::Engine& engine, const js::Value& value, std::string_view name);

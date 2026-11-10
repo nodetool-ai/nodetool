@@ -1,8 +1,8 @@
 #include "nodetool/provider_jobs.h"
 #include "host/provider_job_grants.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/host_lanes.h"
+#include "nodetool/jobs/admission.h"
 #include <algorithm>
 #include <atomic>
 #include <deque>
@@ -118,7 +118,7 @@ struct Job {
   size_t eventBytes = 0;
   // A reference to the job's admission charge, shared with the lane job
   // running the worker. Dropped, outside `mutex`, when the job's data is.
-  gr::Reservation reservation;
+  nodetool::jobs::Reservation reservation;
 
   // Caller holds `mutex`. Drops the oldest events until `incoming` more
   // bytes fit the output cap with the result.
@@ -237,7 +237,7 @@ struct Job {
   void cancel(bool closing) {
     Completion stopped;
     // Released after the mutex, with the data it charged.
-    gr::Reservation released;
+    nodetool::jobs::Reservation released;
     {
       std::lock_guard lock(mutex);
       const bool terminal = state == JobState::Stopped || state == JobState::Closed;
@@ -290,12 +290,14 @@ private:
 // destroys it (that lane thread or the lane's reaper). A refused job is told
 // on the refusing thread, then destroyed on the process disposer, after the
 // disposer's queue handed it over. One thread at a time.
-class ProviderCall final : public gr::NativeJob {
+class ProviderCall final : public nodetool::jobs::NativeJob {
 public:
-  ProviderCall(std::shared_ptr<Job> job, std::shared_ptr<Shared> shared, ExecutionTicket ticket,
-               std::string method, std::string args, gr::Reservation reservation)
-      : job_(std::move(job)), shared_(std::move(shared)), ticket_(std::move(ticket)),
-        reservation_(std::move(reservation)), method_(std::move(method)), args_(std::move(args)) {}
+  ProviderCall(std::shared_ptr<Job> job, std::shared_ptr<Shared> shared,
+               ExecutionTicket ticket, std::string method, std::string args,
+               nodetool::jobs::Reservation reservation)
+      : job_(std::move(job)), shared_(std::move(shared)),
+        ticket_(std::move(ticket)), reservation_(std::move(reservation)),
+        method_(std::move(method)), args_(std::move(args)) {}
   ProviderCall(const ProviderCall &) = delete;
   ProviderCall &operator=(const ProviderCall &) = delete;
   // A job destroyed unrun fails, so a waiter still hears from it, unless
@@ -308,12 +310,12 @@ public:
 
   // The lane refused the job: fail it now, waking its waiter, instead of
   // when the disposer gets to destroying it.
-  void refused(const gr::JobOutcome &outcome) override {
+  void refused(const nodetool::jobs::JobOutcome &outcome) override {
     reported_ = true;
     job_->finish(false, outcome.error.empty() ? std::string(kNotRun) : outcome.error);
   }
 
-  gr::JobOutcome run(std::stop_token stop) override {
+  nodetool::jobs::JobOutcome run(std::stop_token stop) override {
     ran_ = true;
     ProviderJobs::Call call;
     call.provider = job_->provider;
@@ -350,7 +352,7 @@ public:
     ticket_.release();
     // Nothing reads it: the job is detached from every run mailbox, and the
     // waiter heard from finish().
-    return gr::JobOutcome::value(nullptr);
+    return nodetool::jobs::JobOutcome::value(nullptr);
   }
 
 private:
@@ -360,7 +362,7 @@ private:
   // The job's admission charge while the worker may still use its request
   // and produce output. Declared before the request, so it is released
   // after it.
-  gr::Reservation reservation_;
+  nodetool::jobs::Reservation reservation_;
   std::string method_;
   std::string args_;
   bool ran_ = false;
@@ -408,7 +410,7 @@ struct ProviderJobs::State {
   bool shutdown = false;
   // Where workers run, borrowed and attached to. Null until the first
   // start() on the process lanes, whose owner `processLanes` keeps them.
-  gr::JobExecutor *lane = nullptr;
+  nodetool::jobs::JobExecutor *lane = nullptr;
   std::shared_ptr<gr::HostLanes> processLanes;
   // Live jobs and the tombstones of stopped and closed ones, until their run
   // is retired.
@@ -418,15 +420,16 @@ struct ProviderJobs::State {
     RunIdentity run;
     std::string data;
     // The charge of each appended part, taken before it was appended.
-    std::vector<gr::Reservation> reserved;
+    std::vector<nodetool::jobs::Reservation> reserved;
   };
   std::map<std::string, Upload> uploads;
   uint64_t nextId = 0;
   // For runs whose identity carries no admission account: a runner account
   // on a private ledger with the default limits, created on first use, and
   // one run account per run until it is retired.
-  std::shared_ptr<gr::RunnerAccount> fallbackRunner;
-  std::map<RunIdentity, std::shared_ptr<gr::RunAccount>> fallbackRuns;
+  std::shared_ptr<nodetool::jobs::RunnerAccount> fallbackRunner;
+  std::map<RunIdentity, std::shared_ptr<nodetool::jobs::RunAccount>>
+      fallbackRuns;
 
   ~State() {
     stopAll();
@@ -439,7 +442,7 @@ struct ProviderJobs::State {
     std::vector<std::shared_ptr<Job>> all;
     // Released after the mutex, with their charges.
     std::map<std::string, Upload> dropped;
-    std::map<RunIdentity, std::shared_ptr<gr::RunAccount>> accounts;
+    std::map<RunIdentity, std::shared_ptr<nodetool::jobs::RunAccount>> accounts;
     {
       std::lock_guard lock(mutex);
       shutdown = true;
@@ -454,7 +457,7 @@ struct ProviderJobs::State {
 
   // The lane workers run on. Caller holds `mutex`, which nests the process
   // lanes' own mutex and the lane's mutex (leaves) on the first call.
-  gr::JobExecutor &laneLocked() {
+  nodetool::jobs::JobExecutor &laneLocked() {
     if (!lane) {
       processLanes = gr::processHostLanes({});
       lane = &processLanes->network();
@@ -476,10 +479,11 @@ struct ProviderJobs::State {
   }
 
   // The admission account of `run`. Accounts are opened outside `mutex`.
-  std::shared_ptr<gr::RunAccount> accountFor(const RunIdentity &run) {
+  std::shared_ptr<nodetool::jobs::RunAccount>
+  accountFor(const RunIdentity &run) {
     if (run && run->account)
       return run->account;
-    std::shared_ptr<gr::RunnerAccount> runner;
+    std::shared_ptr<nodetool::jobs::RunnerAccount> runner;
     {
       std::lock_guard lock(mutex);
       if (auto found = fallbackRuns.find(run); found != fallbackRuns.end())
@@ -490,7 +494,8 @@ struct ProviderJobs::State {
       // The first published runner wins, before any run account is opened
       // on it, so every fallback run shares one private ledger. A losing
       // runner is released after the mutex.
-      auto created = std::make_shared<gr::AdmissionLedger>()->openRunner();
+      auto created =
+          std::make_shared<nodetool::jobs::AdmissionLedger>()->openRunner();
       std::lock_guard lock(mutex);
       if (!fallbackRunner)
         fallbackRunner = std::move(created);
@@ -510,7 +515,7 @@ struct ProviderJobs::State {
     const auto data = request.at("data").get<std::string>();
     // Charged before it is appended, and released, outside the mutex, if
     // the append fails.
-    gr::Reservation part(accountFor(run));
+    nodetool::jobs::Reservation part(accountFor(run));
     part.reserveSnapshot(data.size());
     // Only a start or the run's retirement releases it.
     part.retain();
@@ -548,7 +553,7 @@ struct ProviderJobs::State {
     auto job = std::make_shared<Job>(shared, provider, run);
     const auto account = accountFor(run);
     std::unique_ptr<ProviderCall> call;
-    gr::JobExecutor *target = nullptr;
+    nodetool::jobs::JobExecutor *target = nullptr;
     std::string id;
     std::string args;
     // An upload stays registered until every check passed, so a start that
@@ -576,19 +581,20 @@ struct ProviderJobs::State {
     // one operation slot, with inline arguments their bytes too, now or
     // never, since a start cannot wait. An upload's bytes are charged
     // already, in its parts.
-    gr::Reservation reservation(account);
+    nodetool::jobs::Reservation reservation(account);
     if (!upload) {
       args = request.value("args", Json::object()).dump();
       reservation.reserveSnapshot(args.size());
     }
-    if (reservation.admit({args.size(), limits.maxResultBytes, 0}, gr::Reservation::Order::Immediate) ==
-        gr::Reservation::Admission::Blocked)
+    if (reservation.admit({args.size(), limits.maxResultBytes, 0},
+                          nodetool::jobs::Reservation::Order::Immediate) ==
+        nodetool::jobs::Reservation::Admission::Blocked)
       throw std::runtime_error("Provider job cannot start: the host job budget is exhausted");
     job->reservation = reservation.share();
     // Takes over the upload's parts after the mutex, so no ledger lock nests
     // under it.
-    gr::Reservation charge = reservation.share();
-    std::vector<gr::Reservation> parts;
+    nodetool::jobs::Reservation charge = reservation.share();
+    std::vector<nodetool::jobs::Reservation> parts;
     {
       std::lock_guard lock(mutex);
       if (shutdown)
@@ -617,7 +623,8 @@ struct ProviderJobs::State {
     // Outside the mutex: an executor may run the job here or refuse it, and
     // either runs worker or job code. stopAll() racing this sees the job in
     // `jobs` and stops it, and the lane then destroys it unrun.
-    target->submit(gr::SubmittedJob(0, std::move(call), nullptr, job->stopSource.get_token(), {}));
+    target->submit(nodetool::jobs::SubmittedJob(
+        0, std::move(call), nullptr, job->stopSource.get_token(), {}));
     return Json{{"job", id}}.dump();
   }
 
@@ -658,7 +665,7 @@ struct ProviderJobs::State {
     std::vector<std::shared_ptr<Job>> retired;
     // Released after the mutex, with their charges.
     std::vector<Upload> dropped;
-    std::shared_ptr<gr::RunAccount> account;
+    std::shared_ptr<nodetool::jobs::RunAccount> account;
     {
       std::lock_guard lock(mutex);
       if (auto found = fallbackRuns.find(run); found != fallbackRuns.end()) {
@@ -689,7 +696,7 @@ struct ProviderJobs::State {
 
   ProviderJobs::Stats stats() {
     ProviderJobs::Stats counts;
-    std::shared_ptr<gr::RunnerAccount> fallback;
+    std::shared_ptr<nodetool::jobs::RunnerAccount> fallback;
     {
       std::lock_guard lock(mutex);
       counts.registered = jobs.size();
@@ -736,7 +743,8 @@ ProviderJobs::ProviderJobs(Worker worker, Limits limits)
   state_->shared->limits = limits;
 }
 
-ProviderJobs::ProviderJobs(Worker worker, Limits limits, gr::JobExecutor &lane)
+ProviderJobs::ProviderJobs(Worker worker, Limits limits,
+                           nodetool::jobs::JobExecutor &lane)
     : ProviderJobs(std::move(worker), limits) {
   state_->lane = &lane;
   lane.attach();

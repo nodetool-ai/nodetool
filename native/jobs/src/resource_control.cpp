@@ -1,10 +1,10 @@
-#include "kernel/resource_control.h"
+#include "nodetool/jobs/resource_control.h"
 
 #include <cassert>
 #include <exception>
 #include <utility>
 
-namespace gr {
+namespace nodetool::jobs {
 
 // --- ResourceLease -------------------------------------------------------------
 
@@ -392,4 +392,4 @@ void ResourceControl::destroy(Remains remains) {
   destroyOn_.dispose(std::move(results));
 }
 
-}  // namespace gr
+}  // namespace nodetool::jobs

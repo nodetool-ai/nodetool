@@ -6,6 +6,10 @@
 #include <string_view>
 #include <utility>
 
+using nodetool::jobs::JobDelivery;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::StopRelay;
+
 namespace gr::host {
 namespace {
 
@@ -64,8 +68,8 @@ void ContextCompletion::operator()(ContextResult result) {
 ContextCompletionState::ContextCompletionState(std::string operation,
                                                std::shared_ptr<const ContextOptions::AsyncCallback> owner,
                                                std::shared_ptr<StopRelay> relay, JobDelivery delivery,
-                                               RunnerTracker::Ticket retention, RunIdentity run,
-                                               uint64_t responseCap, Reservation reservation)
+                                               nodetool::jobs::RunnerTracker::Ticket retention, RunIdentity run,
+                                               uint64_t responseCap, nodetool::jobs::Reservation reservation)
     : retention_(std::move(retention)), reservation_(std::move(reservation)), operation_(std::move(operation)),
       responseCap_(responseCap), owner_(std::move(owner)), relay_(std::move(relay)), run_(std::move(run)) {
   delivery_.emplace(std::move(delivery));
@@ -176,7 +180,7 @@ namespace {
 //
 // Thread affinity: the executor thread that runs it (the I/O lane, or the
 // worker in inline mode).
-class ContextJob final : public NativeJob {
+class ContextJob final : public nodetool::jobs::NativeJob {
 public:
   ContextJob(std::string operation, std::string request, std::shared_ptr<const ContextOptions::AsyncCallback> callback,
              std::shared_ptr<StopRelay> relay, RunIdentity run, uint64_t responseCap)
@@ -184,14 +188,14 @@ public:
         relay_(std::move(relay)), run_(std::move(run)), responseCap_(responseCap) {}
 
   // The request it holds and the most response bytes it may retain.
-  JobCost cost() const override { return {request_.size(), responseCap_, 0}; }
+  nodetool::jobs::JobCost cost() const override { return {request_.size(), responseCap_, 0}; }
 
   // Never called: start() takes the delivery.
   JobOutcome run(std::stop_token) override { return JobOutcome::failure("context jobs deliver through start()"); }
 
   std::optional<JobOutcome> start(std::stop_token laneStop, JobDelivery& delivery) override {
-    RunnerTracker::Ticket retention = delivery.retain();
-    Reservation reservation = delivery.retainReservation();
+    nodetool::jobs::RunnerTracker::Ticket retention = delivery.retain();
+    nodetool::jobs::Reservation reservation = delivery.retainReservation();
     // Shared with the completion the callback receives. See the class
     // comment of ContextCompletionState. The state is the only owner of the
     // callback from here on, so the callback and its captures go no later
@@ -231,10 +235,10 @@ private:
 
 }  // namespace
 
-std::unique_ptr<NativeJob> makeContextJob(std::string operation, std::string request,
-                                          std::shared_ptr<const ContextOptions::AsyncCallback> callback,
-                                          std::shared_ptr<StopRelay> relay, RunIdentity run,
-                                          uint64_t responseCap) {
+std::unique_ptr<nodetool::jobs::NativeJob> makeContextJob(std::string operation, std::string request,
+                                                          std::shared_ptr<const ContextOptions::AsyncCallback> callback,
+                                                          std::shared_ptr<StopRelay> relay, RunIdentity run,
+                                                          uint64_t responseCap) {
   return std::make_unique<ContextJob>(std::move(operation), std::move(request), std::move(callback),
                                       std::move(relay), std::move(run), responseCap);
 }

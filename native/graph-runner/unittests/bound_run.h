@@ -5,12 +5,12 @@
 #pragma once
 
 #include "js/engine.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
 #include "kernel/run_control.h"
 #include "kernel/task.h"
 #include "nodetool/context_options.h"
+#include "nodetool/jobs/admission.h"
 
 #include <chrono>
 #include <functional>
@@ -24,9 +24,9 @@ namespace grtest {
 // the loop. The lanes it binds must outlive it.
 class BoundRun {
 public:
-  BoundRun(gr::js::Engine& engine, gr::JobExecutor& io, gr::JobExecutor* network = nullptr,
-           std::shared_ptr<gr::RunAccount> account = {},
-           std::shared_ptr<gr::RunnerTracker> tracker = std::make_shared<gr::RunnerTracker>())
+  BoundRun(gr::js::Engine& engine, nodetool::jobs::JobExecutor& io, nodetool::jobs::JobExecutor* network = nullptr,
+           std::shared_ptr<nodetool::jobs::RunAccount> account = {},
+           std::shared_ptr<nodetool::jobs::RunnerTracker> tracker = std::make_shared<nodetool::jobs::RunnerTracker>())
       : engine_(engine), tracker_(std::move(tracker)) {
     generation_ = cancel_.beginRun();
     async_.emplace(engine_, loop_, tracker_, generation_, io, gr::host::newRunIdentity("test", std::move(account)));
@@ -65,14 +65,14 @@ public:
   }
 
   gr::AsyncRun& async() { return *async_; }
-  gr::RunnerTracker& tracker() { return *tracker_; }
+  nodetool::jobs::RunnerTracker& tracker() { return *tracker_; }
 
 private:
   gr::js::Engine& engine_;
   gr::Loop& loop_ = gr::Loop::current();
   gr::CancelState cancel_;
   uint64_t generation_ = 0;
-  std::shared_ptr<gr::RunnerTracker> tracker_;
+  std::shared_ptr<nodetool::jobs::RunnerTracker> tracker_;
   std::optional<gr::AsyncRun> async_;
   std::optional<gr::RunBinding::Scope> bound_;
 };

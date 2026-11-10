@@ -43,6 +43,9 @@
 #include <curl/curl.h>
 #endif
 
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::NativeJob;
+
 namespace gr::host {
 namespace {
 
@@ -270,7 +273,7 @@ class HttpGetJob final : public NativeJob {
 public:
   HttpGetJob(std::string url, HttpFetchPolicy policy) : url_(std::move(url)), policy_(policy) {}
 
-  JobCost cost() const override { return {url_.size(), kMaxHttpBodyBytes + kResponseMetadataBytes, 0}; }
+  nodetool::jobs::JobCost cost() const override { return {url_.size(), kMaxHttpBodyBytes + kResponseMetadataBytes, 0}; }
 
   JobOutcome run(std::stop_token stop) override {
     if (stop.stop_requested()) return JobOutcome::stopped();
@@ -340,10 +343,10 @@ void installHttp(js::Engine& e, const js::Value& object, const HostOptions& opti
   e.set(object, "getAsync", e.function("getAsync", 1, [refuseOff, binding](js::Engine& en, const std::vector<js::Value>& a) {
     refuseOff();
     AsyncRun* run = binding->run();
-    JobExecutor* network = binding->network();
+    nodetool::jobs::JobExecutor* network = binding->network();
     if (!run) throw std::runtime_error("asynchronous fetches need a running graph");
     if (!network) throw std::runtime_error("asynchronous fetches need a network lane, and the run bound none");
-    Reservation reservation = run->reserve();
+    nodetool::jobs::Reservation reservation = run->reserve();
     if (a.empty() || !en.isString(a[0])) throw std::invalid_argument("url must be a string");
     std::string url = snapshotString(en, a[0], "url", reservation);
     if (!isSafePublicHttpsUrl(url)) refuse(url);
@@ -363,7 +366,7 @@ void installHttp(js::Engine& e, const js::Value& object, const HostOptions& opti
 bool isSafePublicHttpsUrl(const std::string&) { return false; }
 
 std::unique_ptr<NativeJob> makeHttpGetJob(std::string, HttpFetchPolicy) {
-  return makeJob([](std::stop_token) {
+  return nodetool::jobs::makeJob([](std::stop_token) {
     return JobOutcome::failure("fetching URLs is unavailable: the native runner was built without libcurl");
   });
 }

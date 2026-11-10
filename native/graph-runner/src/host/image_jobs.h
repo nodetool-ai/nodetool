@@ -27,27 +27,27 @@ namespace gr::host {
 // What encoding a width x height PNG holds at most: the RGBA snapshot, the
 // PNG, and stb_image_write's buffers (section 4.7). Throws AdmissionError on
 // overflow.
-JobCost pngJobCost(uint32_t width, uint32_t height);
+nodetool::jobs::JobCost pngJobCost(uint32_t width, uint32_t height);
 
 // Encodes `rgba`, width * height * 4 straight-alpha bytes, as a PNG.
-std::unique_ptr<NativeJob> makePngJob(std::vector<uint8_t> rgba, uint32_t width, uint32_t height);
+std::unique_ptr<nodetool::jobs::NativeJob> makePngJob(std::vector<uint8_t> rgba, uint32_t width, uint32_t height);
 // Resolves with a Uint8Array of the PNG.
 ResultConverter pngConverter();
 
 // Reads the size and format of the image `spec` describes in `bytes`.
-std::unique_ptr<NativeJob> makeMetadataJob(std::vector<uint8_t> bytes, ImageSpec spec);
+std::unique_ptr<nodetool::jobs::NativeJob> makeMetadataJob(std::vector<uint8_t> bytes, ImageSpec spec);
 // Resolves with {width, height, channels, format, hasAlpha}.
 ResultConverter metadataConverter();
 
 // Applies `spec` to `bytes` with `overlays` composited over it.
-std::unique_ptr<NativeJob> makeTransformJob(std::vector<uint8_t> bytes, ImageSpec spec,
-                                            std::vector<std::vector<uint8_t>> overlays);
+std::unique_ptr<nodetool::jobs::NativeJob> makeTransformJob(std::vector<uint8_t> bytes, ImageSpec spec,
+                                                            std::vector<std::vector<uint8_t>> overlays);
 // Resolves with {data: Uint8Array, info}.
 ResultConverter transformConverter();
 
 // Worker. Submits a PNG job for `rgba` to `run`'s CPU lane, cancellable.
 // `reservation` already holds the snapshot's bytes. Returns its promise.
 js::Value submitPngJob(AsyncRun& run, std::vector<uint8_t> rgba, uint32_t width, uint32_t height,
-                       Reservation reservation);
+                       nodetool::jobs::Reservation reservation);
 
 }  // namespace gr::host

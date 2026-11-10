@@ -10,6 +10,14 @@
 #include <string>
 #include <utility>
 
+using nodetool::jobs::JobCost;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::JobPayload;
+using nodetool::jobs::NativeJob;
+using nodetool::jobs::Reservation;
+using nodetool::jobs::checkedAdd;
+using nodetool::jobs::checkedMul;
+
 namespace gr::host {
 namespace {
 
@@ -27,7 +35,7 @@ constexpr uint64_t kStbHashBytes = 16384 * 8 + 16384 * (23 * 8 + 8);
 // The most a metadata result holds, its format name included.
 constexpr uint64_t kInfoBytes = 64;
 // Room for encoder framing in a libvips PNG or WebP beyond its pixel bound.
-constexpr uint64_t kVipsFraming = 64 * kKiB;
+constexpr uint64_t kVipsFraming = 64 * nodetool::jobs::kKiB;
 // The bytes per pixel libvips holds for a decoded input: four 16-bit bands.
 constexpr uint64_t kDecodedPixelBytes = 8;
 

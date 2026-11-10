@@ -12,13 +12,13 @@
 #include "host/capabilities.h"
 #include "host/image_vips.h"
 #include "js/engine.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
 #include "kernel/host_lanes.h"
 #include "kernel/run_control.h"
 #include "kernel/task.h"
 #include "nodetool/graph_runner.h"
+#include "nodetool/jobs/admission.h"
 
 #include <vips/vips.h>
 
@@ -106,11 +106,11 @@ void failureIsRecordedOnce(Checks& t) {
 
   // Inside a run, the rejection comes before any reservation.
   {
-    auto ledger = std::make_shared<gr::AdmissionLedger>();
+    auto ledger = std::make_shared<nodetool::jobs::AdmissionLedger>();
     auto identity = gr::host::newRunIdentity("job", ledger->openRunner()->openRun());
     gr::CancelState cancel;
     const uint64_t generation = cancel.beginRun();
-    auto tracker = std::make_shared<gr::RunnerTracker>();
+    auto tracker = std::make_shared<nodetool::jobs::RunnerTracker>();
     gr::Loop& loop = gr::Loop::current();
     gr::AsyncRun run(*engine, loop, tracker, generation, cpu, identity);
     {

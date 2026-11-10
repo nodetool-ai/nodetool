@@ -26,7 +26,7 @@
 // cleanup and staging directory removal therefore never run on the thread
 // that finished the last operation, dropped the last lease or aborted,
 // which may be the worker. The reaper is part of its lane's timed shutdown
-// (src/kernel/host_lanes.h). A lane whose reaper never started or already
+// (native/graph-runner/src/kernel/host_lanes.h). A lane whose reaper never started or already
 // left hands the work to the process JobDisposer instead. In inline mode
 // the lane is the worker's InlineExecutor, which destroys on the calling
 // thread: the documented inline exception.
@@ -46,8 +46,8 @@
 // are released after unlocking.
 #pragma once
 
-#include "kernel/async_jobs.h"
-#include "kernel/session_stop.h"
+#include "nodetool/jobs/job_core.h"
+#include "nodetool/jobs/session_stop.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -60,7 +60,7 @@
 #include <string>
 #include <vector>
 
-namespace gr {
+namespace nodetool::jobs {
 
 class ResourceControl;
 
@@ -172,6 +172,9 @@ private:
 
 // Test seams of a ResourceControl. Production leaves them empty. Plain
 // data, moved into the control by create().
+//
+// Thread affinity: one thread at a time until create(), then immutable.
+// abort() calls abortUnlocked on the aborting thread, outside the mutex.
 struct ResourceTestHooks {
   // Called by abort() after it released the mutex and before it requests
   // the active operation's stop.
@@ -180,6 +183,9 @@ struct ResourceTestHooks {
 
 // How a ResourceControl destroys its body. Plain data, moved into the
 // control by create().
+//
+// Thread affinity: one thread at a time until create(), then owned by the
+// control under its mutex.
 struct ResourceOptions {
   // The lane whose reaper destroys the body: an owner lane for a resource
   // that must not be destroyed on an arbitrary thread. Null means the
@@ -208,6 +214,8 @@ struct ResourceOptions {
 class ResourceControl final : public std::enable_shared_from_this<ResourceControl> {
   // Restricts construction to create(), which std::make_shared needs to
   // reach a public constructor.
+  //
+  // Thread affinity: none. An empty tag.
   struct Key {
     explicit Key() = default;
   };
@@ -242,6 +250,7 @@ public:
   // given to create(). `fn` runs on the lane and is destroyed with the job.
   template <class Body, class F>
   std::unique_ptr<NativeJob> operation(F fn) {
+    // Thread affinity: as ResourceOperation.
     struct Op final : ResourceOperation {
       Op(std::shared_ptr<ResourceControl> c, F f) : ResourceOperation(std::move(c)), fn(std::move(f)) {}
       JobOutcome apply(ResourceBody& body, ResourceOperationContext& context) override {
@@ -306,21 +315,29 @@ private:
   // The structs below are plain data. Entry lives in `queue_` under
   // `mutex_`. Dispatch, Remains and After move out from under the mutex to
   // the thread that does the work after unlocking, and are owned by value.
+  //
+  // Thread affinity: guarded by `mutex_` while in `queue_`.
   struct Entry {
     SubmittedJob job;
     bool terminal = false;
   };
   // An operation leaving the queue for the lane.
+  //
+  // Thread affinity: one thread at a time, moved out from under `mutex_`.
   struct Dispatch {
     SubmittedJob job;
     std::stop_source stop;
   };
   // What retirement destroys outside the mutex.
+  //
+  // Thread affinity: one thread at a time, moved out from under `mutex_`.
   struct Remains {
     std::unique_ptr<ResourceBody> body;
     std::vector<ResourceLease> dependencies;
   };
   // Work the caller does after unlocking, in this order.
+  //
+  // Thread affinity: one thread at a time, moved out from under `mutex_`.
   struct After {
     std::vector<SubmittedJob> rejected;  // refused with `outcome`, then disposed
     JobOutcome outcome;
@@ -391,4 +408,4 @@ private:
   std::vector<ResourceLease> dependencies_;
 };
 
-}  // namespace gr
+}  // namespace nodetool::jobs

@@ -10,6 +10,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 find_package(Threads REQUIRED)
 
+# The native job core (native/jobs): jobs, executors, run mailboxes, the
+# admission ledger and resource control. A parent project, such as the node
+# editor, may have added it already.
+if(NOT TARGET nodetool_jobs)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../jobs ${CMAKE_CURRENT_BINARY_DIR}/jobs)
+endif()
+
 include(FetchContent)
 
 # QuickJS-ng v0.18.0, pinned by commit. Always a static library, so a host
@@ -105,12 +112,9 @@ add_library(gr_kernel STATIC
   src/kernel/durable_delivery.cpp
   src/kernel/task.cpp
   src/kernel/cancel_state.cpp
-  src/kernel/admission.cpp
   src/kernel/async_jobs.cpp
   src/kernel/host_lanes.cpp
   src/kernel/job_inputs.cpp
-  src/kernel/session_stop.cpp
-  src/kernel/resource_control.cpp
   src/kernel/destination_queue.cpp
   src/kernel/inbox.cpp
   src/kernel/graph.cpp
@@ -143,7 +147,7 @@ add_library(gr_kernel STATIC
 target_include_directories(gr_kernel PUBLIC src include)
 include(cmake/host-media.cmake)
 include(cmake/host-code-media.cmake)
-target_link_libraries(gr_kernel PUBLIC nlohmann_json::nlohmann_json Threads::Threads)
+target_link_libraries(gr_kernel PUBLIC nodetool_jobs nlohmann_json::nlohmann_json Threads::Threads)
 include(src/host/canvas.cmake)
 find_package(ICU REQUIRED COMPONENTS i18n uc)
 target_link_libraries(gr_kernel PRIVATE ICU::i18n ICU::uc)
@@ -197,17 +201,18 @@ if(PROJECT_IS_TOP_LEVEL)
   # Resource control blocks, serial queues and session stop bridges
   # (rollout step 5 infrastructure).
   add_executable(gr_resource_tests unittests/resource_control.cpp)
-  target_link_libraries(gr_resource_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  target_link_libraries(gr_resource_tests PRIVATE gr_kernel gr_js nodetool_jobs_test_support Threads::Threads)
   add_test(NAME gr_resource_tests COMMAND gr_resource_tests)
   # The asset destination queue: ordered commits, cancellation and
   # confinement at commit (rollout step 5 infrastructure).
   add_executable(gr_asset_destination_tests unittests/asset_destinations.cpp)
-  target_link_libraries(gr_asset_destination_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  target_link_libraries(gr_asset_destination_tests PRIVATE gr_kernel gr_js nodetool_jobs_test_support
+                        Threads::Threads)
   add_test(NAME gr_asset_destination_tests COMMAND gr_asset_destination_tests)
   # fs/promises, file handles, asset writes and fetches as native jobs
   # (rollout step 5). Fetches reach only a loopback server of the test.
   add_executable(gr_files_async_tests unittests/files_async.cpp)
-  target_link_libraries(gr_files_async_tests PRIVATE gr_kernel gr_js Threads::Threads)
+  target_link_libraries(gr_files_async_tests PRIVATE gr_kernel gr_js nodetool_jobs_test_support Threads::Threads)
   if(CURL_FOUND)
     target_compile_definitions(gr_files_async_tests PRIVATE GR_HAVE_CURL)
   endif()
@@ -228,10 +233,10 @@ if(PROJECT_IS_TOP_LEVEL)
   # Worker thread ownership checks (invariant I5), compiled into this test
   # only, so a release build can exercise them.
   add_executable(gr_thread_check_tests unittests/thread_checks.cpp
-    src/kernel/task.cpp src/kernel/async_jobs.cpp src/kernel/admission.cpp src/js/quickjs_engine.cpp)
+    src/kernel/task.cpp src/kernel/async_jobs.cpp src/js/quickjs_engine.cpp)
   target_include_directories(gr_thread_check_tests PRIVATE src include)
   target_compile_definitions(gr_thread_check_tests PRIVATE GR_THREAD_CHECKS=1)
-  target_link_libraries(gr_thread_check_tests PRIVATE qjs Threads::Threads)
+  target_link_libraries(gr_thread_check_tests PRIVATE nodetool_jobs qjs Threads::Threads)
   add_test(NAME gr_thread_check_tests COMMAND gr_thread_check_tests)
 
   # The host capabilities (src/host/), called from JavaScript.
@@ -396,7 +401,8 @@ if(PROJECT_IS_TOP_LEVEL)
   include(cmake/context-av-tests.cmake)
   # The asynchronous media and track staging hosts (rollout step 5).
   add_executable(gr_media_async_tests unittests/media_async.cpp)
-  target_link_libraries(gr_media_async_tests PRIVATE gr_kernel gr_js PkgConfig::GR_MEDIA Threads::Threads)
+  target_link_libraries(gr_media_async_tests PRIVATE gr_kernel gr_js nodetool_jobs_test_support PkgConfig::GR_MEDIA
+                        Threads::Threads)
   add_test(NAME gr_media_async_tests COMMAND gr_media_async_tests)
   set_tests_properties(gr_media_async_tests PROPERTIES TIMEOUT 600)
   add_executable(gr_media_native_tests unittests/media-native.cpp)

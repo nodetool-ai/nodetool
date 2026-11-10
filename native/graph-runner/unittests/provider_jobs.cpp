@@ -167,7 +167,9 @@ int main(int argc, char **argv) {
     gr::Loop &loop = gr::Loop::current();
     const uint64_t generation = cancel->beginRun();
     std::optional<gr::AsyncRun> async;
-    async.emplace(*engine, loop, std::make_shared<gr::RunnerTracker>(), generation, io, run);
+    async.emplace(*engine, loop,
+                  std::make_shared<nodetool::jobs::RunnerTracker>(), generation,
+                  io, run);
     std::optional<gr::RunBinding::Scope> bound;
     bound.emplace(*engine, *async, io);
     auto runUntil = [&](const std::string &condition) {
@@ -227,7 +229,9 @@ int main(int argc, char **argv) {
     // provider job ("fail") and through contextCall ("context-fail").
     for (const std::string model : {"held", "slow", "fail", "context-fail"}) {
       const uint64_t caseRun = cancel->beginRun();
-      async.emplace(*engine, loop, std::make_shared<gr::RunnerTracker>(), caseRun, io, run);
+      async.emplace(*engine, loop,
+                    std::make_shared<nodetool::jobs::RunnerTracker>(), caseRun,
+                    io, run);
       bound.emplace(*engine, *async, io);
       const std::string call =
           model == "context-fail" ? "__contextCallCase()" : "__cancelCase('" + model + "')";

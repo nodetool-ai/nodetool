@@ -16,7 +16,7 @@
 #include <optional>
 #include <stop_token>
 
-namespace gr {
+namespace nodetool::jobs {
 
 // Two stop flags with one reader: sessionStopped, set once by retirement and
 // never cleared, and operationStopped, set by the active operation's stop
@@ -45,6 +45,8 @@ public:
 private:
   // The flags and the wake. Thread-safe: atomics, and a wake that is set
   // before any binding exists and never changed.
+  //
+  // Thread affinity: thread-safe, as described above.
   struct Flags {
     explicit Flags(Wake w) : wake(std::move(w)) {}
     std::atomic<bool> session{false};
@@ -82,6 +84,10 @@ public:
   private:
     // The stop callback. Holds the flags it sets through a shared pointer,
     // never the bridge.
+    //
+    // Thread affinity: runs on the thread that requests the stop, or on the
+    // thread constructing the binding when the token is already stopped. It
+    // only sets atomic flags and calls the non-blocking wake.
     struct SetFlag {
       std::shared_ptr<Flags> flags;
       void operator()() const;
@@ -114,4 +120,4 @@ private:
   std::shared_ptr<Flags> flags_;
 };
 
-}  // namespace gr
+}  // namespace nodetool::jobs

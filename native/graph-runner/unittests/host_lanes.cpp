@@ -55,15 +55,15 @@ using gr::AsyncRun;
 using gr::CancelState;
 using gr::HostLanes;
 using gr::HostShutdownStatus;
-using gr::JobExecutor;
-using gr::JobOutcome;
-using gr::JobPayload;
 using gr::LaneSizes;
 using gr::Loop;
 using gr::RunExit;
-using gr::RunnerTracker;
 using gr::Task;
 using gr::ThreadPoolExecutor;
+using nodetool::jobs::JobExecutor;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::JobPayload;
+using nodetool::jobs::RunnerTracker;
 namespace js = gr::js;
 using Clock = std::chrono::steady_clock;
 using std::chrono::milliseconds;
@@ -164,9 +164,8 @@ struct Fixture {
 
   // Submits `work`, which returns its text, as a job holding an Alive.
   js::Value submit(Work work) {
-    auto job = gr::makeJob([work = std::move(work), alive = Alive(liveJobs)](std::stop_token stop) {
-      return work(std::move(stop));
-    });
+    auto job = nodetool::jobs::makeJob(
+        [work = std::move(work), alive = Alive(liveJobs)](std::stop_token stop) { return work(std::move(stop)); });
     // native-rules #12: lambda captures raw this and runs on the worker later
     gr::Converter convert = [this](js::Engine& e, JobPayload* payload) {
       converters.insert(std::this_thread::get_id());
@@ -216,8 +215,8 @@ struct Fixture {
 
 // Keeps submitted jobs so a test can run them later.
 struct HeldExecutor final : JobExecutor {
-  std::vector<gr::SubmittedJob> jobs;
-  void submit(gr::SubmittedJob job) override { jobs.push_back(std::move(job)); }
+  std::vector<nodetool::jobs::SubmittedJob> jobs;
+  void submit(nodetool::jobs::SubmittedJob job) override { jobs.push_back(std::move(job)); }
 };
 
 // --- lane sizing ----------------------------------------------------------------
@@ -245,9 +244,9 @@ void laneSizesAndHostOptions() {
 
   auto inlined = HostLanes::inlined();
   CHECK(inlined->isInline());
-  CHECK(dynamic_cast<gr::InlineExecutor*>(&inlined->cpu()) != nullptr);
-  CHECK(dynamic_cast<gr::InlineExecutor*>(&inlined->io()) != nullptr);
-  CHECK(dynamic_cast<gr::InlineExecutor*>(&inlined->network()) != nullptr);
+  CHECK(dynamic_cast<nodetool::jobs::InlineExecutor*>(&inlined->cpu()) != nullptr);
+  CHECK(dynamic_cast<nodetool::jobs::InlineExecutor*>(&inlined->io()) != nullptr);
+  CHECK(dynamic_cast<nodetool::jobs::InlineExecutor*>(&inlined->network()) != nullptr);
   CHECK(inlined->shutdown(Clock::now()) == HostShutdownStatus::Complete);
 
   auto threaded = HostLanes::threaded({3, 5, 7});
@@ -700,7 +699,7 @@ void shutdownTimesOutWithoutJoiningLiveThreads() {
 //
 // Thread affinity: refused() runs on the refusing thread or the disposer.
 // The shared state is atomics and a gate.
-struct BlockingRefusal final : gr::NativeJob {
+struct BlockingRefusal final : nodetool::jobs::NativeJob {
   struct Seen {
     Gate gate;
     Gate entered;
@@ -726,7 +725,8 @@ void detachedRefusalLeavesTheSubmitter() {
   auto seen = std::make_shared<BlockingRefusal::Seen>();
   auto returned = std::make_shared<Gate>();
   std::thread worker([&pool, seen, returned] {
-    pool.submit(gr::SubmittedJob(0, std::make_unique<BlockingRefusal>(seen), nullptr, {}, RunnerTracker::Ticket{}));
+    pool.submit(
+        nodetool::jobs::SubmittedJob(0, std::make_unique<BlockingRefusal>(seen), nullptr, {}, RunnerTracker::Ticket{}));
     returned->release();
   });
   const auto workerId = worker.get_id();
@@ -798,8 +798,8 @@ void processLanesSupervisor() {
 
 // A job that registers a stop callback which blocks until `release` opens,
 // then waits for stop.
-std::unique_ptr<gr::NativeJob> blockingCallbackJob(Gate& release, std::atomic<bool>& entered) {
-  return gr::makeJob([&release, &entered](std::stop_token stop) {
+std::unique_ptr<nodetool::jobs::NativeJob> blockingCallbackJob(Gate& release, std::atomic<bool>& entered) {
+  return nodetool::jobs::makeJob([&release, &entered](std::stop_token stop) {
     std::stop_callback blocker(stop, [&] {
       entered = true;
       release.wait();
@@ -887,14 +887,13 @@ void blockingInputDestructor() {
     std::atomic<bool> entered{false};
     {
       AsyncRun async(*f.engine, loop, tracker, gen, pool);
-      async.submit(gr::makeJob([&hold](std::stop_token) {
+      async.submit(nodetool::jobs::makeJob([&hold](std::stop_token) {
                      hold.wait();
                      return JobOutcome::stopped();
                    }),
                    {});
-      async.submit(gr::makeJob([input = BlockingInput(release, entered)](std::stop_token) {
-                     return JobOutcome::stopped();
-                   }),
+      async.submit(nodetool::jobs::makeJob(
+                       [input = BlockingInput(release, entered)](std::stop_token) { return JobOutcome::stopped(); }),
                    {});
       CHECK(eventually([&] { return pool.running() == 1; }));
       CHECK(pool.queued() == 1);
@@ -949,7 +948,7 @@ void blockingResultPayload() {
   BlockingPayload::teardownThread = std::this_thread::get_id();
   {
     AsyncRun async(*f.engine, loop, tracker, gen, pool);
-    async.submit(gr::makeJob([&](std::stop_token) {
+    async.submit(nodetool::jobs::makeJob([&](std::stop_token) {
                    return JobOutcome::value(std::make_unique<BlockingPayload>(release, entered, onWorker));
                  }),
                  {});
@@ -1169,7 +1168,7 @@ void stressManyJobsWithCancellation() {
           const int index = static_cast<int>(f.engine->toNumber(a.at(0)));
           JobRecord& record = records[static_cast<size_t>(base + index)];
           const int spin = index % 7 == 0 ? 300 : 20;
-          auto job = gr::makeJob([&record, alive = Alive(liveJobs), spin](std::stop_token stop) {
+          auto job = nodetool::jobs::makeJob([&record, alive = Alive(liveJobs), spin](std::stop_token stop) {
             ++record.ran;
             for (int i = 0; i < spin; ++i) {
               if (stop.stop_requested()) {

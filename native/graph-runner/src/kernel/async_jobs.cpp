@@ -5,105 +5,13 @@
 #include <exception>
 #include <stdexcept>
 
+using nodetool::jobs::ExternalCharge;
+using nodetool::jobs::JobExecutor;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::JobResult;
+using nodetool::jobs::Reservation;
+
 namespace gr {
-
-// --- RunnerTracker ------------------------------------------------------------
-
-RunnerTracker::Ticket& RunnerTracker::Ticket::operator=(Ticket&& other) noexcept {
-  if (this != &other) {
-    release();
-    tracker_ = std::move(other.tracker_);
-    run_ = other.run_;
-  }
-  return *this;
-}
-
-void RunnerTracker::Ticket::release() {
-  if (auto tracker = std::exchange(tracker_, nullptr)) tracker->release(run_);
-}
-
-RunnerTracker::Ticket RunnerTracker::acquire(uint64_t run) {
-  {
-    std::lock_guard lock(mutex_);
-    ++perRun_[run];
-    ++total_;
-  }
-  return Ticket(shared_from_this(), run);
-}
-
-void RunnerTracker::release(uint64_t run) {
-  {
-    std::lock_guard lock(mutex_);
-    auto it = perRun_.find(run);
-    if (--it->second == 0) perRun_.erase(it);
-    --total_;
-  }
-  released_.notify_all();
-}
-
-size_t RunnerTracker::outstanding() const {
-  std::lock_guard lock(mutex_);
-  return total_;
-}
-
-size_t RunnerTracker::outstanding(uint64_t run) const {
-  std::lock_guard lock(mutex_);
-  auto it = perRun_.find(run);
-  return it == perRun_.end() ? 0 : it->second;
-}
-
-bool RunnerTracker::waitIdle(std::chrono::steady_clock::time_point deadline) const {
-  std::unique_lock lock(mutex_);
-  return released_.wait_until(lock, deadline, [this] { return total_ == 0; });
-}
-
-// --- RunMailbox ---------------------------------------------------------------
-
-bool RunMailbox::deliver(JobResult result) {
-  std::optional<JobResult> rejected;
-  {
-    std::lock_guard lock(mutex_);
-    if (wake_) {
-      results_.push_back(std::move(result));
-      wake_->wake();
-      return true;
-    }
-    rejected.emplace(std::move(result));
-  }
-  rejected.reset();
-  return false;
-}
-
-void RunMailbox::wake() {
-  std::lock_guard lock(mutex_);
-  if (wake_) wake_->wake();
-}
-
-std::deque<JobResult> RunMailbox::close() {
-  std::deque<JobResult> waiting;
-  std::lock_guard lock(mutex_);
-  wake_ = nullptr;
-  waiting.swap(results_);
-  return waiting;
-}
-
-std::optional<JobResult> RunMailbox::take() {
-  std::lock_guard lock(mutex_);
-  if (results_.empty()) return std::nullopt;
-  std::optional<JobResult> result(std::move(results_.front()));
-  results_.pop_front();
-  return result;
-}
-
-bool RunMailbox::pending() const {
-  std::lock_guard lock(mutex_);
-  return !results_.empty();
-}
-
-bool RunMailbox::closed() const {
-  std::lock_guard lock(mutex_);
-  return wake_ == nullptr;
-}
 
 // --- SettlerRegistry ----------------------------------------------------------
 
@@ -147,7 +55,7 @@ private:
 
 }  // namespace
 
-RunnerAccount& ResultConversion::runner() const {
+nodetool::jobs::RunnerAccount& ResultConversion::runner() const {
   if (!runner_) throw std::logic_error("no runner account takes converted bytes");
   return *runner_;
 }
@@ -207,7 +115,7 @@ bool SettlerRegistry::settle(JobResult result) {
         js::Value value;
         std::optional<std::pair<std::string, const char*>> failure;
         {
-          std::shared_ptr<RunnerAccount> runner;
+          std::shared_ptr<nodetool::jobs::RunnerAccount> runner;
           if (auto account = result.reservation.account()) {
             runner = account->runner();
           } else if (account_) {
@@ -216,7 +124,7 @@ bool SettlerRegistry::settle(JobResult result) {
           ResultConversion conversion(engine_, result.outcome.payload.get(), result.reservation, std::move(runner));
           try {
             value = settler.convert ? settler.convert(conversion) : engine_.undefined();
-          } catch (const JobAborted& e) {
+          } catch (const nodetool::jobs::JobAborted& e) {
             failure.emplace(e.what(), "AbortError");
           } catch (const std::exception& e) {
             failure.emplace(e.what(), nullptr);
@@ -259,101 +167,15 @@ size_t SettlerRegistry::size() const {
   return settlers_.size();
 }
 
-// --- SubmittedJob -------------------------------------------------------------
-
-bool SubmittedJob::execute(std::stop_token stop) {
-  JobDelivery delivery(id_, std::move(mailbox_), std::move(ticket_), stop_, std::move(reservation_));
-  std::optional<JobOutcome> outcome;
-  try {
-    outcome = job_->start(std::move(stop), delivery);
-  } catch (const std::exception& e) {
-    outcome = JobOutcome::failure(e.what());
-  } catch (...) {
-    outcome = JobOutcome::failure("native job failed");
-  }
-  // The job's inputs go before the result travels.
-  job_.reset();
-  // The job took its delivery and delivers later.
-  if (!delivery) return true;
-  if (!outcome) outcome = JobOutcome::failure("the native job delivered no result");
-  return delivery.deliver(std::move(*outcome));
-}
-
-bool SubmittedJob::refuse(JobOutcome outcome) {
-  if (!mailbox_) {
-    // Detached: the job reports through its own channel. If that fails, its
-    // destructor still reports later.
-    try {
-      if (job_) job_->refused(outcome);
-    } catch (...) {
-    }
-    return false;
-  }
-  JobResult result;
-  result.id = id_;
-  result.outcome = std::move(outcome);
-  const bool accepted = mailbox_->deliver(std::move(result));
-  mailbox_.reset();
-  return accepted;
-}
-
-bool SubmittedJob::cancel(JobOutcome outcome) {
-  job_.reset();
-  if (!mailbox_) return false;
-  JobResult result;
-  result.id = id_;
-  result.outcome = std::move(outcome);
-  result.ticket = std::move(ticket_);
-  result.reservation = std::move(reservation_);
-  const bool accepted = mailbox_->deliver(std::move(result));
-  mailbox_.reset();
-  return accepted;
-}
-
-// --- JobExecutor --------------------------------------------------------------
-
-namespace {
-
-// Requests stop on the calling thread.
-//
-// Thread affinity: thread-safe, stateless.
-class InlineStopRelay final : public StopRelay {
-public:
-  void relay(std::stop_source stop, std::shared_ptr<void> keep) override {
-    stop.request_stop();
-    keep.reset();
-  }
-};
-
-}  // namespace
-
-std::shared_ptr<StopRelay> JobExecutor::stopRelay() { return std::make_shared<InlineStopRelay>(); }
-
-// --- JobDelivery --------------------------------------------------------------
-
-JobDelivery::~JobDelivery() {
-  if (mailbox_) deliver(JobOutcome::failure("the native job delivered no result"));
-}
-
-bool JobDelivery::deliver(JobOutcome outcome) {
-  JobResult result;
-  result.id = id_;
-  result.outcome = std::move(outcome);
-  result.ticket = std::move(ticket_);
-  result.reservation = std::move(reservation_);
-  auto mailbox = std::move(mailbox_);
-  return mailbox->deliver(std::move(result));
-}
-
 // --- AsyncRun -----------------------------------------------------------------
 
 namespace {
 
 // The identity's account, or a run of a runner on a private ledger with the
 // default limits, which the run's reservations keep alive.
-std::shared_ptr<RunAccount> accountFor(const host::RunIdentity& identity) {
+std::shared_ptr<nodetool::jobs::RunAccount> accountFor(const host::RunIdentity& identity) {
   if (identity && identity->account) return identity->account;
-  return std::make_shared<AdmissionLedger>()->openRunner()->openRun();
+  return std::make_shared<nodetool::jobs::AdmissionLedger>()->openRunner()->openRun();
 }
 
 }  // namespace
@@ -365,31 +187,26 @@ void AsyncRun::Waiter::admissionChanged() noexcept {
   if (auto mailbox = mailbox_.lock()) mailbox->wake();
 }
 
-AsyncRun::AsyncRun(js::Engine& engine, Loop& loop, std::shared_ptr<RunnerTracker> tracker, uint64_t run,
+AsyncRun::AsyncRun(js::Engine& engine, Loop& loop, std::shared_ptr<nodetool::jobs::RunnerTracker> tracker, uint64_t run,
                    JobExecutor& executor, host::RunIdentity identity)
-    : engine_(engine),
-      executor_(executor),
-      tracker_(std::move(tracker)),
-      run_(run),
-      identity_(std::move(identity)),
-      account_(accountFor(identity_)),
-      mailbox_(std::make_shared<RunMailbox>(loop)),
-      waiter_(std::make_shared<Waiter>(mailbox_)),
-      settlers_(engine, account_) {
+    : engine_(engine), executor_(executor), tracker_(std::move(tracker)), run_(run), identity_(std::move(identity)),
+      account_(accountFor(identity_)), mailbox_(std::make_shared<nodetool::jobs::RunMailbox>(loop)),
+      waiter_(std::make_shared<Waiter>(mailbox_)), settlers_(engine, account_) {
   account_->setWaiter(waiter_);
 }
 
-void AsyncRun::refuse(JobExecutor& executor, std::unique_ptr<NativeJob> job, Reservation reservation,
+void AsyncRun::refuse(JobExecutor& executor, std::unique_ptr<nodetool::jobs::NativeJob> job, Reservation reservation,
                       const std::string& error) {
   // The job's inputs never go on this thread. The ticket keeps the job
   // counted, and the reservation keeps its snapshot charged, until they are
   // gone.
-  executor.disposeUnrun(SubmittedJob(0, std::move(job), nullptr, {}, tracker_->acquire(run_), std::move(reservation)));
+  executor.disposeUnrun(
+      nodetool::jobs::SubmittedJob(0, std::move(job), nullptr, {}, tracker_->acquire(run_), std::move(reservation)));
   throw std::runtime_error(error);
 }
 
-js::Value AsyncRun::submit(JobExecutor& executor, std::unique_ptr<NativeJob> job, ResultConverter convert,
-                           bool cancellable, Reservation reservation) {
+js::Value AsyncRun::submit(JobExecutor& executor, std::unique_ptr<nodetool::jobs::NativeJob> job,
+                           ResultConverter convert, bool cancellable, Reservation reservation) {
   const bool ended = mailbox_->closed();
   if (ended || (cancellable && cancel_.stop_requested())) {
     refuse(executor, std::move(job), std::move(reservation), ended ? "the run has ended" : "Run cancelled");
@@ -404,7 +221,7 @@ js::Value AsyncRun::submit(JobExecutor& executor, std::unique_ptr<NativeJob> job
   bool admitted = false;
   std::optional<std::string> refusal;
   try {
-    const JobCost cost = job->cost();
+    const nodetool::jobs::JobCost cost = job->cost();
     account_->checkSize(cost);
     admitted = deferred_.empty() && reservation.admit(cost, Reservation::Order::Queue) ==
                                         Reservation::Admission::Admitted;
@@ -426,8 +243,8 @@ js::Value AsyncRun::submit(JobExecutor& executor, std::unique_ptr<NativeJob> job
   js::Value promise = capability.promise;
   // Registered first, since an inline job delivers before submit returns.
   settlers_.add(id, std::move(capability), std::move(convert), cancellable);
-  SubmittedJob submitted(id, std::move(job), mailbox_, (cancellable ? cancel_ : stop_).get_token(),
-                         tracker_->acquire(run_), std::move(reservation));
+  nodetool::jobs::SubmittedJob submitted(id, std::move(job), mailbox_, (cancellable ? cancel_ : stop_).get_token(),
+                                         tracker_->acquire(run_), std::move(reservation));
   if (admitted) {
     executor.submit(std::move(submitted));
   } else {
@@ -446,7 +263,7 @@ void AsyncRun::pollAdmission() {
     std::optional<std::string> failure;
     try {
       // Revalidated from the job's own snapshot, with checked arithmetic.
-      const JobCost cost = deferred_.front().job.cost();
+      const nodetool::jobs::JobCost cost = deferred_.front().job.cost();
       if (deferred_.front().job.reservation().admit(cost, Reservation::Order::Queue) ==
           Reservation::Admission::Blocked) {
         break;

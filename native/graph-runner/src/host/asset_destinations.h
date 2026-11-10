@@ -63,7 +63,7 @@ std::string assetDestination(const std::vector<Root>& roots, const std::string& 
 //
 // Thread affinity: none. Created on the committing thread, it travels to the
 // worker in its JobResult.
-struct AssetRemoved final : JobPayload {
+struct AssetRemoved final : nodetool::jobs::JobPayload {
   explicit AssetRemoved(bool r) : removed(r) {}
   bool removed;
 };
@@ -85,13 +85,17 @@ struct AssetJobHooks {
 // state, so `queue` itself need not outlive the job. Throws, before taking a
 // ticket, for a key assetDestination() refuses. The job's Value has no
 // payload.
-std::unique_ptr<NativeJob> makeAssetWriteJob(DestinationQueue& queue, JobExecutor& commits, std::vector<Root> roots,
-                                             std::string key, std::vector<uint8_t> bytes, AssetJobHooks hooks = {});
+std::unique_ptr<nodetool::jobs::NativeJob> makeAssetWriteJob(DestinationQueue& queue,
+                                                             nodetool::jobs::JobExecutor& commits,
+                                                             std::vector<Root> roots, std::string key,
+                                                             std::vector<uint8_t> bytes, AssetJobHooks hooks = {});
 
 // A removal of asset `key`, ordered like a write. Its Value is an
 // AssetRemoved.
-std::unique_ptr<NativeJob> makeAssetRemoveJob(DestinationQueue& queue, JobExecutor& commits, std::vector<Root> roots,
-                                              std::string key, AssetJobHooks hooks = {});
+std::unique_ptr<nodetool::jobs::NativeJob> makeAssetRemoveJob(DestinationQueue& queue,
+                                                              nodetool::jobs::JobExecutor& commits,
+                                                              std::vector<Root> roots, std::string key,
+                                                              AssetJobHooks hooks = {});
 
 // The synchronous forms, for the asset store's functions outside a run.
 // Each takes the destination's place only when no other operation on it is

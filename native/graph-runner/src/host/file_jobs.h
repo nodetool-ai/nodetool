@@ -40,7 +40,7 @@ constexpr uint64_t kMaxListingBytes = uint64_t(16) << 20;
 //
 // Thread affinity: none. Created on the job's thread, it travels in its
 // JobResult to the worker.
-struct TextResult final : JobPayload {
+struct TextResult final : nodetool::jobs::JobPayload {
   explicit TextResult(std::string t) : text(std::move(t)) {}
   std::string text;
 };
@@ -48,7 +48,7 @@ struct TextResult final : JobPayload {
 // A Value payload holding bytes, converted to a Uint8Array without a copy.
 //
 // Thread affinity: as TextResult.
-struct FileBytes final : JobPayload {
+struct FileBytes final : nodetool::jobs::JobPayload {
   explicit FileBytes(std::vector<uint8_t> b) : bytes(std::move(b)) {}
   std::vector<uint8_t> bytes;
 };
@@ -60,7 +60,7 @@ struct FileBytes final : JobPayload {
 // one delivered after its run ended, closes it on the destroying thread.
 //
 // Thread affinity: one thread at a time, moving with its job or result.
-struct OpenedFile final : JobPayload {
+struct OpenedFile final : nodetool::jobs::JobPayload {
   UniqueFd fd;
   uint64_t size = 0;
   // The path or key as the guest named it, for error messages.
@@ -74,16 +74,16 @@ struct OpenedFile final : JobPayload {
 // fails it with the exception's message. `work` owns its inputs and is
 // destroyed with the job, on the executor that ran or dropped it.
 template <class F>
-std::unique_ptr<NativeJob> makeCostedJob(JobCost cost, F work) {
+std::unique_ptr<nodetool::jobs::NativeJob> makeCostedJob(nodetool::jobs::JobCost cost, F work) {
   // Thread affinity: the executor thread that runs it, one call at a time.
-  struct Job final : NativeJob {
-    Job(JobCost c, F f) : cost_(c), work_(std::move(f)) {}
-    JobCost cost() const override { return cost_; }
-    JobOutcome run(std::stop_token stop) override {
-      if (stop.stop_requested()) return JobOutcome::stopped();
+  struct Job final : nodetool::jobs::NativeJob {
+    Job(nodetool::jobs::JobCost c, F f) : cost_(c), work_(std::move(f)) {}
+    nodetool::jobs::JobCost cost() const override { return cost_; }
+    nodetool::jobs::JobOutcome run(std::stop_token stop) override {
+      if (stop.stop_requested()) return nodetool::jobs::JobOutcome::stopped();
       return work_(stop);
     }
-    JobCost cost_;
+    nodetool::jobs::JobCost cost_;
     F work_;
   };
   return std::make_unique<Job>(cost, std::move(work));
@@ -93,7 +93,7 @@ std::unique_ptr<NativeJob> makeCostedJob(JobCost cost, F work) {
 // file.size bytes, and checks for more. Its Value is a FileBytes, or, when
 // the file grew past file.size, an OpenedFile holding the descriptor and the
 // size found. Its cost reserves file.size output bytes.
-std::unique_ptr<NativeJob> makeReadAllJob(OpenedFile file);
+std::unique_ptr<nodetool::jobs::NativeJob> makeReadAllJob(OpenedFile file);
 
 // The converter of both steps. Worker only. A FileBytes resolves with a
 // Uint8Array. An OpenedFile submits the next read to the binding's I/O lane,

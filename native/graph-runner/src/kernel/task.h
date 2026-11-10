@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "js/thread_owner.h"
+#include "nodetool/jobs/wake_target.h"
 
 namespace gr {
 
@@ -70,8 +71,14 @@ public:
   virtual void onCancellation(const CancelSnapshot&) {}
 };
 
-// native-rules #9: worker-owned but woken from other threads, no affinity comment
-class Loop {
+// The run loop of one thread, and the wake target of the mailboxes of the
+// runs it schedules.
+//
+// Thread affinity: the thread that created it, checked by ThreadOwner in
+// debug builds, except wake(), which is thread-safe: `wakeMutex_` guards
+// `woken_`. A RunMailbox calls wake() under its own mutex, so the lock order
+// is the mailbox mutex, then `wakeMutex_` (nodetool/jobs/wake_target.h).
+class Loop final : public nodetool::jobs::WakeTarget {
 public:
   using Clock = std::chrono::steady_clock;
   // Cancellation mode runs at most this many ready steps per round, and at
@@ -148,7 +155,7 @@ public:
   // Thread-safe. Makes a run() that is sleeping, for its next timer or for
   // external work, return from the wait at once. A wake before the wait
   // starts is kept, so the next wait returns at once.
-  void wake();
+  void wake() override;
 
   // Every Task coroutine frame links itself here while it is alive.
   struct Frame {

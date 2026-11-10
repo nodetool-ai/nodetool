@@ -3,12 +3,12 @@
 #include "host/media_job.h"
 #include "host/paths.h"
 #include "host/sandbox_av_tracks.h"
-#include "kernel/admission.h"
 #include "kernel/async_jobs.h"
 #include "kernel/job_inputs.h"
 #include "kernel/json.h"
-#include "kernel/resource_control.h"
-#include "kernel/session_stop.h"
+#include "nodetool/jobs/admission.h"
+#include "nodetool/jobs/resource_control.h"
+#include "nodetool/jobs/session_stop.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -25,6 +25,17 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 #include <libswscale/swscale.h>
 }
+
+using nodetool::jobs::JobCost;
+using nodetool::jobs::JobOutcome;
+using nodetool::jobs::JobPayload;
+using nodetool::jobs::Reservation;
+using nodetool::jobs::ResourceControl;
+using nodetool::jobs::ResourceLease;
+using nodetool::jobs::ResourceOperationContext;
+using nodetool::jobs::SessionStopBridge;
+using nodetool::jobs::checkedMul;
+
 namespace gr::host {
 namespace {
 void check(int code) {
@@ -791,7 +802,7 @@ Json probe(Input &i) {
 // CPU lane's reaper to be destroyed: the libav contexts are freed on that
 // one owner lane, whose lifetime the lane's timed shutdown covers. The
 // reader's staging leases are released after that.
-struct ReaderBody final : ResourceBody {
+struct ReaderBody final : nodetool::jobs::ResourceBody {
   explicit ReaderBody(std::shared_ptr<const Limits> l) : limits(std::move(l)) {}
   // Declared before the filter, which points at both.
   const std::shared_ptr<const Limits> limits;
@@ -801,7 +812,7 @@ struct ReaderBody final : ResourceBody {
   MediaStop stop() const { return {bridge, limits->hooks}; }
 };
 // An encoder session. Thread affinity and ownership: as ReaderBody.
-struct EncoderBody final : ResourceBody {
+struct EncoderBody final : nodetool::jobs::ResourceBody {
   EncoderBody(std::shared_ptr<const Limits> l, Reservation o)
       : limits(std::move(l)), options(std::move(o)) {}
   const std::shared_ptr<const Limits> limits;
@@ -1274,7 +1285,7 @@ void installMedia(js::Engine &e, const js::Value &object,
     Reservation reservation = run.reserve();
     uint64_t bytes = 0;
     Json opts = optionsArgument(en, a.at(0), reservation, bytes);
-    ResourceOptions resource;
+    nodetool::jobs::ResourceOptions resource;
     FilterSpec spec = s->filter(opts, resource.dependencies);
     const int id = ++s->id;
     auto control = ResourceControl::create(
@@ -1382,7 +1393,7 @@ void installMedia(js::Engine &e, const js::Value &object,
     if (!en.isObject(object) || en.isFunction(object))
       throw std::invalid_argument("Media encoder options must be an object");
     Reservation reservation = run.reserve();
-    ResourceOptions resource;
+    nodetool::jobs::ResourceOptions resource;
     const auto path =
         s->path(stringField(en, object, "outPath", reservation), true);
     EncoderSpec spec = encoderSpec(en, object, reservation);
@@ -1394,7 +1405,7 @@ void installMedia(js::Engine &e, const js::Value &object,
     // It can be more than was reserved for the copies: a default value, a
     // diagnostic, or a resolved path longer than the guest's. The growth is
     // charged, or refused, before the session exists.
-    const uint64_t kept = checkedAdd(spec.bytes(), path.size());
+    const uint64_t kept = nodetool::jobs::checkedAdd(spec.bytes(), path.size());
     if (kept > reservation.bytes())
       reservation.reserveSnapshot(kept - reservation.bytes());
     else

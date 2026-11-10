@@ -242,6 +242,7 @@ describe("buildPlan", () => {
     "native/graph-runner/src/kernel/task.cpp",
     "native/graph-runner/CMakeLists.txt",
     "native/graph-runner/guest/host/provider-jobs.mjs",
+    "native/jobs/src/job_core.cpp",
     "native/node-editor/src/main.cpp",
     "native/model-picker/CMakeLists.txt",
     "native/timeline/src/main.cpp"
