@@ -518,7 +518,7 @@ Rectangle {
                             text: modelData
                             iconName: modelData === "Append" ? "playlistAdd" : modelData === "Insert" ? "keyboardTab" : "flipToFront"
                             enabled: !!root.mediaType
-                            shortcutText: SourceViewerState.shortcut(modelData.toLowerCase(), root.gestures ? root.gestures.keyboardPreset : "nodetool")
+                            shortcutText: SourceViewerState.shortcut(modelData.toLowerCase(), root.gestures ? root.gestures.keyboardPreset : "premiere")
                             onClicked: SourceViewerState.perform(modelData.toLowerCase(), root.gestures)
                         }
                     }

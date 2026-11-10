@@ -28,6 +28,8 @@ import {
   captionStyle,
   secondaryCurvePoints,
   clipDeflickerAnalysis,
+  effectMask,
+  type EffectMaskSchema,
   clipStabilizeAnalysis,
   clipModel3DAnimation,
   clipModel3DCamera,
@@ -1199,10 +1201,11 @@ const EFFECT_PARAMETER_FIELDS: Record<
   stabilize: ["strength", "windowMs", "maxZoom", "analysis"],
   deflicker: ["strength", "windowMs", "maxCorrection", "analysis"],
   deband: ["strength", "range", "threshold", "dither"],
-  secondaryColor: ["hueCenter", "hueWidth", "hueSoftness", "rangeSoftness", "saturationMin", "saturationMax", "lightnessMin", "lightnessMax", "hueShift", "saturation", "lightness", "hueCurve", "saturationCurve"],
-  exposure: ["exposure", "rolloff", "whites"],
-  color: ["brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
-  blur: ["radius"],
+  secondaryColor: ["masks", "hueCenter", "hueWidth", "hueSoftness", "rangeSoftness", "saturationMin", "saturationMax", "lightnessMin", "lightnessMax", "hueShift", "saturation", "lightness", "hueCurve", "saturationCurve"],
+  exposure: ["masks", "exposure", "rolloff", "whites", "blacks"],
+  hueSatCurves: ["masks", "hueVsSat", "hueVsHue", "hueVsLuma", "lumaVsSat", "satVsSat"],
+  color: ["masks", "brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"],
+  blur: ["masks", "radius"],
   pixelate: ["cellSize"],
   posterize: ["levels"],
   directionalBlur: ["radius", "angle"],
@@ -1212,13 +1215,13 @@ const EFFECT_PARAMETER_FIELDS: Record<
   lut: ["cube", "intensity"],
   glow: ["radius", "intensity", "color"],
   dropShadow: ["offsetX", "offsetY", "blur", "radius", "color", "opacity"],
-  vignette: ["amount", "softness", "radius", "centerX", "centerY", "roundness"],
-  sharpen: ["amount", "radius"],
+  vignette: ["masks", "amount", "softness", "radius", "centerX", "centerY", "roundness"],
+  sharpen: ["masks", "amount", "radius"],
   chromaKey: ["color", "tolerance", "softness", "spill"],
   grain: ["amount", "size", "colorAmount", "roughness", "softness", "seed", "animate"],
-  curves: ["master", "r", "g", "b"],
+  curves: ["masks", "master", "r", "g", "b"],
   levels: ["inBlack", "inWhite", "gamma", "outBlack", "outWhite"],
-  liftGammaGain: ["lift", "gammaRgb", "gain"]
+  liftGammaGain: ["masks", "lift", "gammaRgb", "gain"]
 };
 
 /**
@@ -1231,6 +1234,10 @@ const EFFECT_PARAMETER_FIELDS: Record<
  * one it cannot get wrong.
  */
 export const effectParams = z.object({
+  masks: z.array(effectMask.extend({ id: z.string().optional() })).optional().describe(
+    "Grade effects (color, exposure, liftGammaGain, curves, hueSatCurves, secondaryColor, vignette, sharpen, blur): masks that limit where the effect lands. " +
+    "Each mask is a closed path of clip-normalized vertices {x,y,inX?,inY?,outX?,outY?} (tangents relative to the vertex; an ellipse is 4 smooth vertices), " +
+    "shape 'ellipse'|'polygon'|'bezier', feather and expansion as fractions of the clip's shorter side, opacity 0..1, inverted, mode add|subtract|intersect."),
   lumaStrength: z.number().min(0).max(1).optional().describe("denoise: luminance noise reduction, 0..1, default 0."),
   chromaStrength: z.number().min(0).max(1).optional().describe("denoise: chroma noise reduction, 0..1, default 0."),
   temporalStrength: z.number().min(0).max(1).optional().describe("denoise: motion-compensated neighboring-frame strength, 0..1, default 0. Video only."),
@@ -1258,6 +1265,12 @@ export const effectParams = z.object({
   exposure: z.number().min(-5).max(5).optional().describe("exposure: linear-light stops, -5..5."),
   rolloff: z.number().min(0).max(1).optional().describe("exposure: highlight shoulder strength, 0..1."),
   whites: z.number().min(-2).max(2).optional().describe("exposure: highlight-weighted stops, -2..2."),
+  blacks: z.number().min(-1).max(1).optional().describe("exposure: shadow-weighted lift (positive) or crush (negative), -1..1, default 0."),
+  hueVsSat: secondaryCurvePoints.optional().describe("hueSatCurves: periodic hue-input saturation multiplier curve, neutral output 0.5 (0x..2x)."),
+  hueVsHue: secondaryCurvePoints.optional().describe("hueSatCurves: periodic hue-input hue shift curve, neutral output 0.5 (-180..180 degrees)."),
+  hueVsLuma: secondaryCurvePoints.optional().describe("hueSatCurves: periodic hue-input lightness offset curve, neutral output 0.5 (-0.5..0.5, weighted by saturation)."),
+  lumaVsSat: secondaryCurvePoints.optional().describe("hueSatCurves: lightness-input saturation multiplier curve, neutral output 0.5 (0x..2x)."),
+  satVsSat: secondaryCurvePoints.optional().describe("hueSatCurves: saturation-input saturation multiplier curve, neutral output 0.5 (0x..2x)."),
   type: z.enum(KNOWN_CLIP_EFFECT_TYPE_LIST),
   brightness: z.number().optional().describe("color: -1..1, 0 is unchanged."),
   contrast: z.number().optional().describe("color: 0..4, 1 is unchanged."),
@@ -1273,7 +1286,7 @@ export const effectParams = z.object({
     .describe("blur, glow and sharpen: radius in source pixels. vignette: normalized outer radius, 0.1..1.5."),
   centerX: z.number().min(0).max(1).optional().describe("vignette: horizontal center, 0..1, default 0.5."),
   centerY: z.number().min(0).max(1).optional().describe("vignette: vertical center, 0..1, default 0.5."),
-  roundness: z.number().min(0).max(1).optional().describe("vignette: 0 is a frame-shaped oval, 1 a circle."),
+  roundness: z.number().min(-1).max(1).optional().describe("vignette: 0 is a frame-shaped oval, 1 a circle, -1 a rounded rectangle."),
   cellSize: z.number().optional().describe("pixelate: square cell width in source pixels."),
   levels: z.number().optional().describe("posterize: number of channel levels."),
   angle: z.number().optional().describe("directionalBlur and visual effects: angle in degrees."),
@@ -1393,6 +1406,19 @@ export function buildEffect(
   input: EffectParams,
   index: number
 ): KnownClipEffect {
+  const effect = buildEffectFields(input, index);
+  if (input.masks && input.masks.length > 0 && MASKABLE_TYPES.has(effect.type)) {
+    (effect as { masks?: EffectMaskSchema[] }).masks = input.masks.map((mask, maskIndex) => ({ ...mask, id: mask.id ?? `mask-${maskIndex + 1}` }));
+  }
+  return effect;
+}
+
+const MASKABLE_TYPES = new Set(["color", "exposure", "liftGammaGain", "curves", "hueSatCurves", "secondaryColor", "vignette", "sharpen", "blur"]);
+
+function buildEffectFields(
+  input: EffectParams,
+  index: number
+): KnownClipEffect {
   effectParams.parse(input);
   const base = { id: `fx-${index + 1}`, enabled: true };
   switch (input.type) {
@@ -1431,7 +1457,9 @@ export function buildEffect(
         saturationCurve: input.saturationCurve,
       };
     case "exposure":
-      return { ...base, type: "exposure", exposure: input.exposure ?? 0, rolloff: input.rolloff ?? 0, whites: input.whites ?? 0 };
+      return { ...base, type: "exposure", exposure: input.exposure ?? 0, rolloff: input.rolloff ?? 0, whites: input.whites ?? 0, blacks: input.blacks ?? 0 };
+    case "hueSatCurves":
+      return { ...base, type: "hueSatCurves", hueVsSat: input.hueVsSat, hueVsHue: input.hueVsHue, hueVsLuma: input.hueVsLuma, lumaVsSat: input.lumaVsSat, satVsSat: input.satVsSat };
     case "color":
       return {
         ...base,

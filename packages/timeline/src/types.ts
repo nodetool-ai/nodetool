@@ -841,7 +841,10 @@ export interface TrackVignetteEffect {
   /** Center in normalized image coordinates, default (0.5, 0.5). */
   centerX?: number;
   centerY?: number;
-  /** 0 keeps the frame-shaped oval. 1 is a circle measured against the shorter axis. */
+  /**
+   * -1..1. 0 keeps the frame-shaped oval, 1 is a circle measured against the
+   * shorter axis, and -1 a rounded rectangle (a superellipse of exponent 8).
+   */
   roundness?: number;
 }
 
@@ -2033,6 +2036,7 @@ export type KnownClipEffect =
   | ClipDeflickerEffect
   | ClipDebandEffect
   | ClipSecondaryColorEffect
+  | ClipHueSatCurvesEffect
   | ClipExposureEffect
   | ClipColorEffect
   | ClipBlurEffect
@@ -2125,6 +2129,7 @@ export const CLIP_EFFECT_TYPES = [
   "deband",
   "secondaryColor",
   "exposure",
+  "hueSatCurves",
   "color",
   "blur",
   "glow",
@@ -2152,6 +2157,68 @@ export function parseClipEffectType(type: string): ClipEffectType | null {
   return (CLIP_EFFECT_TYPES as readonly string[]).includes(type)
     ? (type as ClipEffectType)
     : null;
+}
+
+/**
+ * One vertex of an {@link EffectMask} path, in clip-normalized 0..1 space.
+ * `in*` and `out*` are Bézier tangents relative to the vertex. Absent
+ * tangents make a corner.
+ */
+export interface EffectMaskVertex {
+  x: number;
+  y: number;
+  inX?: number;
+  inY?: number;
+  outX?: number;
+  outY?: number;
+}
+
+/** How a mask combines with the coverage of the masks above it. */
+export type EffectMaskMode = "add" | "subtract" | "intersect";
+
+/**
+ * A mask that limits where one grade effect lands. The effect result is mixed
+ * with the effect input through the combined coverage of the effect's masks.
+ *
+ * Every shape is one closed vertex path, as in Premiere: `shape` records how
+ * the mask was made (an ellipse is four smooth vertices) and selects the
+ * editing handles. `feather` and `expansion` are fractions of the clip's
+ * shorter side, so a mask survives a proxy or an upscale.
+ */
+export interface EffectMask {
+  id: string;
+  /** `"ellipse" | "polygon" | "bezier"`. */
+  shape: string;
+  vertices: EffectMaskVertex[];
+  /** Soft edge width, 0..1 of the shorter side. Default 0. */
+  feather?: number;
+  /** 0..1. Default 1. */
+  opacity?: number;
+  /** Grows (positive) or shrinks (negative) the shape, fraction of the shorter side. */
+  expansion?: number;
+  inverted?: boolean;
+  /** Default `"add"`. */
+  mode?: EffectMaskMode;
+  /** Default true. */
+  enabled?: boolean;
+  name?: string;
+}
+
+/** Effect types that accept {@link EffectMask}s. */
+export const MASKABLE_EFFECT_TYPES = [
+  "color",
+  "exposure",
+  "liftGammaGain",
+  "curves",
+  "hueSatCurves",
+  "secondaryColor",
+  "vignette",
+  "sharpen",
+  "blur"
+] as const;
+
+export function isMaskableEffectType(type: string): boolean {
+  return (MASKABLE_EFFECT_TYPES as readonly string[]).includes(type);
 }
 
 /** One control point of a tone curve. Both axes are normalized 0..1. */
@@ -2236,6 +2303,8 @@ export interface ClipSecondaryColorEffect {
   id: string;
   type: "secondaryColor";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   hueCenter?: number;
   hueWidth?: number;
   hueSoftness?: number;
@@ -2256,19 +2325,48 @@ export interface ClipExposureEffect {
   id: string;
   type: "exposure";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** Linear-light gain in stops, -5..5. */
   exposure?: number;
   /** Highlight shoulder strength, 0..1. Zero disables compression. */
   rolloff?: number;
   /** Source-highlight-weighted gain in stops, -2..2. */
   whites?: number;
+  /**
+   * Shadow-weighted offset after the gain, -1..1, default 0. Positive lifts the
+   * black point, negative crushes it: `v + blacks * 0.15 * (1 - v)^3` in encoded RGB.
+   */
+  blacks?: number;
 }
 export const isClipExposureEffect = (e: ClipEffect): e is ClipExposureEffect => e.type === "exposure";
+
+/**
+ * Premiere-style Hue Saturation Curves. Every curve is neutral at output 0.5.
+ * The hue-input curves are periodic. Hue vs Hue shifts by `(y - 0.5)` turns,
+ * the saturation curves multiply saturation by `2y`, and Hue vs Luma offsets
+ * HSL lightness by `(y - 0.5)` scaled by the pixel's saturation.
+ */
+export interface ClipHueSatCurvesEffect {
+  id: string;
+  type: "hueSatCurves";
+  enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
+  hueVsSat?: CurvePoint[];
+  hueVsHue?: CurvePoint[];
+  hueVsLuma?: CurvePoint[];
+  lumaVsSat?: CurvePoint[];
+  satVsSat?: CurvePoint[];
+}
+export const isClipHueSatCurvesEffect = (e: ClipEffect): e is ClipHueSatCurvesEffect => e.type === "hueSatCurves";
 
 export interface ClipColorEffect {
   id: string;
   type: "color";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** -1..1, default 0 */
   brightness?: number;
   /** 0..4, default 1 */
@@ -2291,6 +2389,8 @@ export interface ClipBlurEffect {
   id: string;
   type: "blur";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** Blur radius in source pixels (up to 256 in the GPU exporter). */
   radius: number;
   /** Optional Gaussian sigma. Defaults to radius / 3. */
@@ -2413,6 +2513,8 @@ export interface ClipVignetteEffect {
   id: string;
   type: "vignette";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** 0..1. */
   amount: number;
   /** Falloff width, 0..1. */
@@ -2428,7 +2530,10 @@ export interface ClipVignetteEffect {
   /** Center in normalized image coordinates, default (0.5, 0.5). */
   centerX?: number;
   centerY?: number;
-  /** 0 keeps the frame-shaped oval. 1 is a circle measured against the shorter axis. */
+  /**
+   * -1..1. 0 keeps the frame-shaped oval, 1 is a circle measured against the
+   * shorter axis, and -1 a rounded rectangle (a superellipse of exponent 8).
+   */
   roundness?: number;
 }
 
@@ -2481,6 +2586,8 @@ export interface ClipSharpenEffect {
   id: string;
   type: "sharpen";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** 0..2 typical. */
   amount: number;
   /** Unsharp-mask radius in source pixels. */
@@ -2510,6 +2617,8 @@ export interface ClipCurvesEffect {
   id: string;
   type: "curves";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** Luminance curve applied to every channel. */
   master: CurvePoint[];
   r?: CurvePoint[];
@@ -2535,6 +2644,8 @@ export interface ClipLiftGammaGainEffect {
   id: string;
   type: "liftGammaGain";
   enabled: boolean;
+  /** Limits where this effect lands. Absent or empty applies everywhere. */
+  masks?: EffectMask[];
   /** Per-channel RGB triples. */
   lift: [number, number, number];
   gamma: [number, number, number];

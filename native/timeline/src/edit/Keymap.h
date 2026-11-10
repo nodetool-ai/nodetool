@@ -25,7 +25,7 @@ struct KeyEventLike {
     bool altKey = false;
 };
 
-// The action id `e` triggers under `preset` ("nodetool", "premiere", "fcp"),
+// The action id `e` triggers under `preset` ("premiere", "fcp"),
 // or an empty string.
 QString resolveTimelineAction(const KeyEventLike& e, const QString& preset);
 // The same, on the web table alone. The differential against the web reads this.

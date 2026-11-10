@@ -35,6 +35,7 @@ This original enumeration precedes the corrections below.
 | `color/grayscale/v1/module.ts` | linear | 3 |
 | `color/hsb/v1/module.ts` | linear | 3 |
 | `color/hslAdjust/v1/module.ts` | srgb | 3 |
+| `color/hueSatCurves/v1/module.ts` | srgb | 2 |
 | `color/invert/v1/module.ts` | linear | 3 |
 | `color/levels/v1/module.ts` | linear | 3 |
 | `color/liftGammaGain/v1/module.ts` | srgb | 3 |
@@ -193,6 +194,8 @@ RGBA8. Gaussian blur also processes zero-RGB masks in the drop-shadow recipe.
 | color/hslAdjust/v1/module.ts | color.hslAdjust@1 | source | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
 | color/hslAdjust/v1/module.ts | color.hslAdjust@1 | mask | mask | data | premultiplied | Alpha coverage only, RGB ignored or zero |
 | color/hslAdjust/v1/module.ts | color.hslAdjust@1 | output | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
+| color/hueSatCurves/v1/module.ts | color.hueSatCurves@1 | source | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
+| color/hueSatCurves/v1/module.ts | color.hueSatCurves@1 | output | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
 | color/invert/v1/module.ts | color.invert@1 | source | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
 | color/invert/v1/module.ts | color.invert@1 | mask | mask | data | premultiplied | Alpha coverage only, RGB ignored or zero |
 | color/invert/v1/module.ts | color.invert@1 | output | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |

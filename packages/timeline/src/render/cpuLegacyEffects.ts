@@ -3,13 +3,15 @@ import { stabilizeImage, stabilizationNeutral } from "./stabilization.js";
 import { debandImage } from "./deband.js";
 import { exposeRgb } from "./exposure.js";
 import {
-  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipHueSatCurvesEffect, isClipExposureEffect,
   isClipChromaKeyEffect, isClipColorEffect, isClipCurvesEffect, isClipGlowEffect,
   isClipGrainEffect, isClipLevelsEffect, isClipLiftGammaGainEffect,
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
 } from "../types.js";
 import { parseCssColorOrBlack } from "./color.js";
 import { secondaryCurveTransfer, secondaryNeutral, secondaryRgb } from "./secondaryColor.js";
+import { hueSatCurvesNeutral, hueSatCurvesRgb, hueSatCurvesTransfer } from "./hueSatCurves.js";
+import { vignetteDistance } from "./vignette.js";
 import { curveTransfer, sampleTransfer } from "./curveTransfer.js";
 import type { PixelBuffer } from "./cpuVisualEffects.js";
 
@@ -18,7 +20,7 @@ const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 
 const byte = (v: number): number => Math.round(clamp(v) * 255);
 
 export function isCpuLegacyEffect(effect: ClipEffect): boolean {
-  return isClipDenoiseEffect(effect) || isClipStabilizeEffect(effect) || isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
+  return isClipDenoiseEffect(effect) || isClipStabilizeEffect(effect) || isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipHueSatCurvesEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
     || isClipSharpenEffect(effect) || isClipChromaKeyEffect(effect)
     || isClipCurvesEffect(effect) || isClipLevelsEffect(effect)
     || isClipLiftGammaGainEffect(effect) || isClipGrainEffect(effect);
@@ -201,7 +203,8 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
     if (isClipStabilizeEffect(effect) && stabilizationNeutral(effect)) { continue; }
     if (isClipDebandEffect(effect) && (effect.strength ?? 0) <= 0) { continue; }
     if (isClipSecondaryColorEffect(effect) && secondaryNeutral(effect)) { continue; }
-    if (isClipExposureEffect(effect) && !(effect.exposure || effect.rolloff || effect.whites)) { continue; }
+    if (isClipHueSatCurvesEffect(effect) && hueSatCurvesNeutral(effect)) { continue; }
+    if (isClipExposureEffect(effect) && !(effect.exposure || effect.rolloff || effect.whites || effect.blacks)) { continue; }
     const sharpenRadius = isClipSharpenEffect(effect) ? Math.max(0, Math.min(256, effect.radius ?? 1)) : 0;
     if (isClipSharpenEffect(effect) && (sharpenRadius === 0 || effect.amount === 0)) continue;
     const input = premultiply(data);
@@ -247,6 +250,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
       continue;
     }
     const secondary = isClipSecondaryColorEffect(effect) ? secondaryCurveTransfer(effect) : undefined;
+    const hueSat = isClipHueSatCurvesEffect(effect) ? hueSatCurvesTransfer(effect) : undefined;
     const curve = isClipCurvesEffect(effect) ? curveTransfer(effect) : undefined;
     const key = isClipChromaKeyEffect(effect) ? parseCssColorOrBlack(effect.color) : undefined;
     for (let y = 0; y < height; y++) {
@@ -256,8 +260,10 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         const rgb = [input[i]!, input[i + 1]!, input[i + 2]!].map((v) => v / Math.max(1, input[i + 3]!));
         if (isClipSecondaryColorEffect(effect) && secondary) {
           rgb.splice(0, 3, ...secondaryRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect, secondary));
+        } else if (hueSat) {
+          rgb.splice(0, 3, ...hueSatCurvesRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], hueSat));
         } else if (isClipExposureEffect(effect)) {
-          const value = exposeRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect.exposure, effect.rolloff, effect.whites);
+          const value = exposeRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect.exposure, effect.rolloff, effect.whites, effect.blacks);
           rgb.splice(0, 3, ...value);
         } else if (isClipChromaKeyEffect(effect) && key) {
           // Keying reads straight pixels, before the premultiplied bridge.
@@ -330,10 +336,8 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
               const radius = effect.radius ?? 0.9;
               const inner = Math.max(0, radius - effect.softness);
               const roundness = effect.roundness ?? 0;
-              const shortAxis = Math.min(width, height);
-              const dx = ((x + 0.5) / width * 2 - (effect.centerX ?? 0.5) * 2) * (1 + roundness * (width / shortAxis - 1));
-              const dy = ((y + 0.5) / height * 2 - (effect.centerY ?? 0.5) * 2) * (1 + roundness * (height / shortAxis - 1));
-              const distance = Math.hypot(dx, dy);
+              const distance = vignetteDistance((x + 0.5) / width * 2 - (effect.centerX ?? 0.5) * 2,
+                (y + 0.5) / height * 2 - (effect.centerY ?? 0.5) * 2, width, height, roundness);
               v *= 1 - effect.amount * smooth((distance - inner) / (Math.max(inner + 0.001, radius) - inner));
             }
             rgb[c] = clamp(v);

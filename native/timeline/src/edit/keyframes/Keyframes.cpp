@@ -398,6 +398,7 @@ constexpr EffectParam kEffectParams[] = {
     {"exposure", "exposure", 0, -5, 5},
     {"exposure", "rolloff", 0, 0, 1},
     {"exposure", "whites", 0, -2, 2},
+    {"exposure", "blacks", 0, -1, 1},
     {"blur", "radius", 8, 0, 20},
     {"glow", "radius", 8, 0, kUnbounded},
     {"glow", "intensity", 1, 0, 2},

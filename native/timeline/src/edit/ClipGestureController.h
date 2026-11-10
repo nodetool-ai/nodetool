@@ -306,7 +306,7 @@ private:
     bool m_linked = true;
     QString m_dropMode = QStringLiteral("overwrite");
     QString m_tool = QStringLiteral("select");
-    QString m_preset = QStringLiteral("nodetool");
+    QString m_preset = QStringLiteral("premiere");
     Gesture m_gesture;
     QTimer m_autoScrollTimer;
     double m_snapGuideMs = -1;

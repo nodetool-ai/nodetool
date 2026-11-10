@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Packages NodeTool Timeline with the NodeTool server inside, for a test
 # build that runs on its own. It runs package-macos.sh, then copies the
-# bundled backend (scripts/bundle-backend.mjs) and the Node runtime that
+# bundled backend (scripts/bundle-backend.mjs --profile timeline) and the Node runtime that
 # Electron ships into Contents/Resources/backend. With no arguments the app
 # starts that server (src/server/BundledServer.h) and lists its timelines.
 #
@@ -22,7 +22,7 @@ scripts/package-macos.sh
 
 # The backend bundle reads the built packages, so build them first.
 (cd "$root" && npm run build:packages > "$timeline/$build/server-packages.log")
-(cd "$root" && node scripts/bundle-backend.mjs > "$timeline/$build/server-bundle.log")
+(cd "$root" && node scripts/bundle-backend.mjs --profile timeline > "$timeline/$build/server-bundle.log")
 (cd "$root/electron" && node scripts/fetch-node-runtime.mjs > "$timeline/$build/server-node.log")
 
 arch=$(uname -m)

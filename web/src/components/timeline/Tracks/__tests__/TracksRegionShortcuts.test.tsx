@@ -29,7 +29,7 @@ import { usePanelStore } from "../../../../stores/PanelStore";
 import { performSourceEdit } from "../../sourceEdit";
 
 afterEach(() => {
-  useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "nodetool" });
+  useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "premiere" });
   usePanelStore.getState().setActiveView("documents");
   mockedPerformSourceEdit.mockClear();
 });
@@ -101,7 +101,7 @@ describe("TracksRegion keyboard shortcuts", () => {
     setup();
     const start = useTimelineUIStore.getState().msPerPx;
     act(() => {
-      fireEvent.keyDown(window, { key: "+" });
+      fireEvent.keyDown(window, { key: "=" });
     });
     const zoomedIn = useTimelineUIStore.getState().msPerPx;
     expect(zoomedIn).toBeLessThan(start);
@@ -197,7 +197,7 @@ describe("TracksRegion keyboard shortcuts", () => {
       useTimelineUIStore.getState().setSelection([clip.id]);
       useTimelinePlaybackStore.getState().seek(1000);
       useTimelinePlaybackStore.getState().setTimeMs(5000);
-      fireEvent.keyDown(window, { key: "s" });
+      fireEvent.keyDown(window, { key: "k", code: "KeyK", ctrlKey: true, altKey: true });
     });
 
     expect(
@@ -297,7 +297,7 @@ describe("TracksRegion keyboard shortcuts", () => {
     act(() => {
       useTimelinePlaybackStore.getState().seek(1000);
       useTimelinePlaybackStore.getState().setTimeMs(5000);
-      fireEvent.keyDown(window, { key: "w" });
+      fireEvent.keyDown(window, { key: "," });
     });
 
     expect(mockedPerformSourceEdit).toHaveBeenCalledWith(
@@ -411,7 +411,7 @@ describe("TracksRegion held-key undo batching (F55)", () => {
         fireEvent.keyDown(window, {
           key: "ArrowLeft",
           ctrlKey: true,
-          shiftKey: true,
+          altKey: true,
           repeat: i > 0
         });
       });

@@ -89,7 +89,7 @@ class TestSceneEdit : public WiringFixture {
     }
 
 private slots:
-    void init() { open(); gestures()->setKeyboardPreset("nodetool"); }
+    void init() { open(); gestures()->setKeyboardPreset("premiere"); }
     void cleanup() { view.reset(); }
 
     void theClipMenuOffersItForAVideoSelection() {
@@ -97,7 +97,7 @@ private slots:
         QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(gestures())},
                             {"timeline", QVariant::fromValue<QObject*>(&model)}};
         const auto enabledInMenu = [&] {
-            for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, context)) {
+            for (const auto& menu : nt::app::shellMenuDescription("premiere", {}, context)) {
                 if (menu.label != "Clip") { continue; }
                 for (const auto& entry : menu.items) {
                     if (entry.action == "sceneEditDetection") { return entry.enabled ? 1 : 0; }

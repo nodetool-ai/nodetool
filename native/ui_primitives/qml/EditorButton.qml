@@ -9,6 +9,7 @@ Basic.Button {
     property int contentAlignment: Qt.AlignHCenter
     property string providerEntry: ""
     property string iconName: ""
+    property real iconSize: Metrics.iconSm
     property string trailingIconName: ""
     property bool menuButton: false
     property bool menuExpanded: false
@@ -60,7 +61,7 @@ Basic.Button {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Metrics.sm
         layoutDirection: root.mirrored ? Qt.RightToLeft : Qt.LeftToRight
-        Ui.Icon { id: buttonIcon; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry === "" && root.iconName !== "" && root.display !== Basic.AbstractButton.TextOnly; name: root.iconName; tone: root.iconTone }
+        Ui.Icon { id: buttonIcon; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry === "" && root.iconName !== "" && root.display !== Basic.AbstractButton.TextOnly; name: root.iconName; size: root.iconSize; tone: root.iconTone }
         Ui.ProviderIcon { id: provider; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry !== "" && root.display !== Basic.AbstractButton.TextOnly; entry: root.providerEntry; tone: root.iconTone }
         Ui.BusyIndicator { id: spinner; anchors.verticalCenter: parent.verticalCenter; visible: root.loading; running: visible; width: Metrics.iconSm; height: width; tone: (root.variant === 1 || root.variant === 3) ? Ui.Text.OnAccent : Ui.Text.Primary }
         // A proportional line height leaves its slack under the glyphs, which pushes a one-line label above center.

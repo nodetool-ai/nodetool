@@ -76,7 +76,17 @@ QFont fontFor(const scene::TextStyle& style, double spacing = 0) {
     }
     QFont font;
     font.setFamilies({family, QStringLiteral("Inter")});
-    font.setPointSizeF(std::max(1.0, style.fontSizePx) * 72 / 96);
+    // QFont converts points to pixels with the platform's logical DPI: 72 on
+    // macOS, 96 on most Linux setups. HarfBuzz advances come from the
+    // resulting pixel size and FreeType outlines from fontSizePx, so the
+    // conversion must use the same DPI or glyphs overlap (0.75x on macOS).
+    static const double pixelsPerPoint = [] {
+        QFont probe;
+        probe.setPointSizeF(72);
+        const double measured = QRawFont::fromFont(probe).pixelSize() / 72;
+        return measured > 0 ? measured : 96.0 / 72;
+    }();
+    font.setPointSizeF(std::max(1.0, style.fontSizePx) / pixelsPerPoint);
     const bool interStatic = family.compare("Inter", Qt::CaseInsensitive) == 0 && style.fontStyle != "italic" &&
                              style.fontStyle != "oblique";
     // Skia selects Inter's static ExtraBold for 700..900 and SemiBold for

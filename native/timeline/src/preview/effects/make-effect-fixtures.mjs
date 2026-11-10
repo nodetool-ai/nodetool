@@ -93,6 +93,22 @@ matched.effects = [
   effect("color", { saturation: 1.15 }, "inspector:color")
 ];
 save("clip-color-panel", [graded, matched], [0, 30], "color panel grade: wheels, curves, vignette and basic correction");
+// Per-effect masks: the result mixes back into the effect input by the coverage.
+const kappa = 0.5522847498307936;
+const ellipse = (cx, cy, rx, ry) => [
+  { x: cx, y: cy - ry, inX: -rx * kappa, inY: 0, outX: rx * kappa, outY: 0 },
+  { x: cx + rx, y: cy, inX: 0, inY: -ry * kappa, outX: 0, outY: ry * kappa },
+  { x: cx, y: cy + ry, inX: rx * kappa, inY: 0, outX: -rx * kappa, outY: 0 },
+  { x: cx - rx, y: cy, inX: 0, inY: ry * kappa, outX: 0, outY: -ry * kappa }];
+const masked = clip("masked", "t0", 0, "source-pattern.png");
+masked.effects = [
+  effect("color", { ...settings.color[0], masks: [{ id: "m1", shape: "ellipse", vertices: ellipse(0.5, 0.5, 0.3, 0.35), feather: 0.08 }] }, "masked-color"),
+  effect("curves", { ...settings.curves[1], masks: [
+    { id: "m2", shape: "polygon", vertices: [{ x: 0.05, y: 0.1 }, { x: 0.6, y: 0.15 }, { x: 0.45, y: 0.9 }, { x: 0.1, y: 0.7 }], feather: 0.02, opacity: 0.8 },
+    { id: "m3", shape: "ellipse", vertices: ellipse(0.3, 0.4, 0.1, 0.1), mode: "subtract", expansion: 0.02 }] }, "masked-curves"),
+  effect("blur", { radius: 24, masks: [{ id: "m4", shape: "polygon", vertices: [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.2 }, { x: 0.8, y: 0.8 }, { x: 0.2, y: 0.8 }], inverted: true, feather: 0.05 }] }, "masked-blur")
+];
+save("clip-masked-effects", [masked], [0], "per-effect masks: feathered ellipse, subtracted polygon pair, inverted feathered rectangle");
 const ordered = clip("ordered", "t0", 0, "source-pattern.png");
 ordered.effects = [effect("color", { brightness: 0.06 }, "early-color"), effect("pixelate", { cellSize: 36 }),
   effect("blur", { radius: 6 }, "early-blur"), effect("curves", settings.curves[0]), effect("posterize", { levels: 6 }),

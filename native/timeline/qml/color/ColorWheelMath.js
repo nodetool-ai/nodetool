@@ -46,7 +46,7 @@ function ringColor(deg) {
     return "#" + channel(0) + channel(8) + channel(4);
 }
 // Effect types of the panel's sections, in the order the chain keeps them.
-const SECTION_TYPES = ["liftGammaGain", "curves", "vignette"];
+const SECTION_TYPES = ["exposure", "liftGammaGain", "curves", "hueSatCurves", "vignette"];
 // The index at which a new effect of a section type goes, so the chain follows the panel.
 function insertionIndex(effects, type) {
     const order = SECTION_TYPES.indexOf(type);
@@ -59,6 +59,22 @@ function identity(type, id) {
     case "liftGammaGain": return {id, type, enabled: true, lift: [0, 0, 0], gamma: [1, 1, 1], gain: [1, 1, 1]};
     case "curves": return {id, type, enabled: true, master: [{x: 0, y: 0}, {x: 1, y: 1}]};
     case "vignette": return {id, type, enabled: true, amount: 0, softness: 0.5, radius: 0.9};
+    case "exposure": return {id, type, enabled: true, exposure: 0, rolloff: 0, whites: 0, blacks: 0};
+    case "hueSatCurves": return {id, type, enabled: true};
     }
     return null;
+}
+
+function hex(r, g, b) {
+    return "#" + [r, g, b].map(v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, "0")).join("");
+}
+// The color under a curve's input at t in 0..1, as plain hex: "hue" runs red through the spectrum
+// back to red, "luma" black to white and "saturation" gray to full red.
+function stripColor(kind, t) {
+    if (kind === "luma")
+        return hex(t, t, t);
+    if (kind === "saturation")
+        return hex(0.5 + 0.5 * t, 0.5 - 0.5 * t, 0.5 - 0.5 * t);
+    const channel = offset => Math.max(0, Math.min(1, Math.abs(((t + offset) % 1) * 6 - 3) - 1));
+    return hex(channel(0), channel(2 / 3), channel(1 / 3));
 }

@@ -16654,7 +16654,6 @@
       "press": "プレス",
       "toggleHint": "いつでもこのパネルを切り替えることができます · macOS では Ctrl は ⌘ にも反応します",
       "presets": {
-        "nodetool": "ノードツール",
         "premiere": "プレミアプロ",
         "fcp": "ファイナルカットプロ"
       },

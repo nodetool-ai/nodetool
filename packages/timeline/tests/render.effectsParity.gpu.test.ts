@@ -121,6 +121,21 @@ describe("effect parity on diagnostic pixels", () => {
     for (const pixels of [curve.cpu, curve.gpu]) { expect([...pixels.slice(0, 4)]).toEqual([191, 64, 64, 255]); }
     expect(curve.maxError).toBeLessThanOrEqual(1);
   });
+  it("applies hue saturation curves, blacks and a squared vignette alike on CPU and GPU", async () => {
+    const width = 64, height = 16, rgba = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      rgba.set([Math.round(255 * Math.abs(Math.sin(x / 9))), Math.round(255 * y / (height - 1)), Math.round(255 * x / (width - 1)), 255], (y * width + x) * 4);
+    }
+    const curves = await comparePixels(width, height, rgba, {id: "h", type: "hueSatCurves", enabled: true,
+      hueVsSat: [{x: 0, y: 0.2}, {x: 0.5, y: 0.8}, {x: 1, y: 0.2}], hueVsHue: [{x: 0.3, y: 0.6}],
+      hueVsLuma: [{x: 0, y: 0.4}, {x: 0.6, y: 0.7}, {x: 1, y: 0.4}], lumaVsSat: [{x: 0, y: 0.5}, {x: 1, y: 0.3}], satVsSat: [{x: 0, y: 0.6}, {x: 1, y: 0.5}]});
+    expect(curves.maxError).toBeLessThanOrEqual(2);
+    expect(curves.cpu).not.toEqual(rgba);
+    const blacks = await comparePixels(width, height, rgba, {id: "e", type: "exposure", enabled: true, blacks: 0.8});
+    expect(blacks.maxError).toBeLessThanOrEqual(1);
+    const square = await comparePixels(width, height, rgba, {id: "v", type: "vignette", enabled: true, amount: 0.8, radius: 0.8, softness: 0.4, roundness: -0.7});
+    expect(square.maxError).toBeLessThanOrEqual(1);
+  });
   it("exposes in linear light and compresses highlights before quantizing", async () => {
     const width = 256, height = 1, rgba = new Uint8ClampedArray(width * 4);
     for (let x = 0; x < width; x++) { rgba.set([x, x, x, 255], x * 4); }

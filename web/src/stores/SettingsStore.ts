@@ -87,7 +87,7 @@ export interface Settings {
    */
   audioBufferMs: number;
   /** Which editor's keyboard layout the timeline follows. */
-  timelineKeyboardPreset: "nodetool" | "premiere" | "fcp";
+  timelineKeyboardPreset: "premiere" | "fcp";
   /**
    * Where the timeline preview gets its video frames. `"element"` plays
    * `<video>` elements, `"webcodecs"` decodes with WebCodecs. A clip with a
@@ -154,7 +154,7 @@ export const defaultSettings: Settings = {
   confirmLargeRun: true,
   largeRunThreshold: 5,
   audioBufferMs: 100,
-  timelineKeyboardPreset: "nodetool",
+  timelineKeyboardPreset: "premiere",
   timelinePreviewDecoder: "element",
   showNodesWithoutKey: false,
   autosave: { ...defaultAutosaveSettings }
@@ -347,6 +347,14 @@ export const useSettingsStore = create<SettingsStore>()(
         }
         if (!isThemeContrast(settings.themeContrast)) {
           settings.themeContrast = DEFAULT_THEME_CONTRAST;
+        }
+        // The NodeTool keyboard layout was removed. A stored value that is not
+        // a current preset falls back to Premiere.
+        if (
+          settings.timelineKeyboardPreset !== "premiere" &&
+          settings.timelineKeyboardPreset !== "fcp"
+        ) {
+          settings.timelineKeyboardPreset = defaultSettings.timelineKeyboardPreset;
         }
         return { ...currentState, settings };
       }

@@ -282,9 +282,9 @@ private slots:
         };
         click(ruler);
         clock.seek(1500);
-        QTest::keyClick(&window, Qt::Key_L, Qt::ShiftModifier);
+        QTest::keyClick(&window, Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier);
         QVERIFY(clock.loop());
-        QTest::keyClick(&window, Qt::Key_Right, Qt::AltModifier);
+        QTest::keyClick(&window, Qt::Key_Right);
         QVERIFY(qAbs(clock.time() - 46 * 1000.0 / 30) < 1e-9);
         auto* bar = item(editor.get(), "documentBar");
         QVERIFY(bar);
@@ -293,7 +293,7 @@ private slots:
         QTRY_VERIFY(item(window.contentItem(), "cancelSettings"));
         click(item(window.contentItem(), "cancelSettings"));
         click(ruler);
-        QTest::keyClick(&window, Qt::Key_L, Qt::ShiftModifier);
+        QTest::keyClick(&window, Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier);
         QVERIFY(!clock.loop());
     }
     void panelKeepsCppOwnership() {

@@ -15,6 +15,7 @@ const SOURCE_CORRECTIONS: KnownClipEffect[] = [
   { id: "denoise", type: "denoise", enabled: true, lumaStrength: 0.6, chromaStrength: 0.4, radius: 2 },
   { id: "exposure", type: "exposure", enabled: true, exposure: 0.6, rolloff: 0.2, whites: 0.1 },
   { id: "secondaryColor", type: "secondaryColor", enabled: true, hueCenter: 140, hueWidth: 100, hueShift: 25, saturation: 0.6, lightness: 0.1 },
+  { id: "hueSatCurves", type: "hueSatCurves", enabled: true, hueVsSat: [{ x: 0, y: 0.2 }, { x: 0.5, y: 0.8 }, { x: 1, y: 0.2 }], lumaVsSat: [{ x: 0, y: 0.5 }, { x: 1, y: 0.3 }] },
   { id: "deflicker", type: "deflicker", enabled: true, analysis: {
     version: 1, source: { assetId: "source", mediaPath: "" }, rangeStartMs: 0, rangeEndMs: 1000,
     windowMs: 500, maxCorrection: 1, frameRate: 30, samples: [{ timeMs: 0, stops: 0.5 }]
@@ -84,8 +85,9 @@ function extreme(effect: KnownClipEffect): KnownClipEffect {
     case "lensDistortion": return { ...effect, amount: -1 };
     case "lut": return { ...effect, intensity: 1 };
     case "stylize": case "generator": return { ...effect, amount: 1, scale: 1, time: 10, seed: 91 };
-    case "exposure": return { ...effect, exposure: 5, whites: 2, rolloff: 1 };
+    case "exposure": return { ...effect, exposure: 5, whites: 2, rolloff: 1, blacks: 1 };
     case "secondaryColor": return { ...effect, hueWidth: 360, hueShift: 180, saturation: 4, lightness: -1 };
+    case "hueSatCurves": return { ...effect, hueVsSat: [{ x: 0, y: 1 }, { x: 1, y: 1 }], hueVsHue: [{ x: 0, y: 1 }, { x: 1, y: 1 }], hueVsLuma: [{ x: 0, y: 0 }, { x: 1, y: 0 }], satVsSat: [{ x: 0, y: 1 }, { x: 1, y: 1 }] };
     case "deband": return { ...effect, strength: 1, range: 32, threshold: 1, dither: 1 };
     case "denoise": return { ...effect, lumaStrength: 1, chromaStrength: 1, radius: 4 };
     case "deflicker": case "stabilize": return effect;

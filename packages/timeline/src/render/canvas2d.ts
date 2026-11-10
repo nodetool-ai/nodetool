@@ -51,6 +51,7 @@ import { clipMask, drawMask, maskIsHard, type MaskContext2D } from "./draw.js";
 import { applyCpuDropShadows, applyCpuIris, applyCpuVisualEffects, isCpuVisualEffect } from "./cpuVisualEffects.js";
 import { alphaBounds, applyCpuColorGrade, applyCpuGaussianBlur, applyCpuLegacyEffects, isCpuLegacyEffect } from "./cpuLegacyEffects.js";
 import { aggregateBlurRadius } from "./effects.js";
+import { effectMaskCoverage, effectMasksOf, isMaskedEffect, mixByEffectMaskCoverage } from "../effectMasks.js";
 import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
 import { trackEffectsAsClipEffects } from "./trackEffects.js";
 import {
@@ -394,7 +395,7 @@ export interface Canvas2DFrameReport<TSource> {
 /**
  * Effect types handled by the Canvas pixel path or a native draw operation.
  */
-const CANVAS_EFFECT_TYPES = new Set(["denoise", "stabilize", "deband", "secondaryColor", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+const CANVAS_EFFECT_TYPES = new Set(["denoise", "stabilize", "deband", "secondaryColor", "hueSatCurves", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
 
 function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffect[], trackEffects: readonly ClipEffect[] = [], neighbors?: TemporalSources<ImagePixels>): void {
   applyCpuLegacyEffects(pixels, clipEffects.filter(effect => effect.type === "denoise"), neighbors);
@@ -403,13 +404,23 @@ function applyCpuEffectChain(pixels: ImagePixels, clipEffects: readonly ClipEffe
   if (trackKey) applyCpuLegacyEffects(pixels, [trackKey]);
   for (const effect of clipEffects) {
     if (!effect.enabled || effect.type === "denoise" || effect.type === "stabilize") continue;
-    if (isClipDropShadowEffect(effect)) applyCpuDropShadows(pixels, [effect]);
+    const masked = isMaskedEffect(effect);
+    if (!masked && (isClipColorEffect(effect) || isClipBlurEffect(effect))) continue;
+    const before = masked ? pixels.data.slice() : undefined;
+    if (isClipColorEffect(effect)) applyCpuColorGrade(pixels, [effect]);
+    else if (isClipBlurEffect(effect)) applyCpuGaussianBlur(pixels, effect.radius);
+    else if (isClipDropShadowEffect(effect)) applyCpuDropShadows(pixels, [effect]);
     else if (isCpuVisualEffect(effect)) applyCpuVisualEffects(pixels, [effect]);
     else if (isCpuLegacyEffect(effect)) applyCpuLegacyEffects(pixels, [effect]);
+    if (before) {
+      const coverage = effectMaskCoverage(effectMasksOf(effect), pixels.width, pixels.height);
+      if (coverage) mixByEffectMaskCoverage(before, pixels.data, coverage);
+    }
   }
   applyCpuLegacyEffects(pixels, trackEffects.filter(effect => effect.type === "exposure"));
-  const combinedEffects = [...clipEffects, ...trackEffects];
-  const blurRadius = aggregateBlurRadius(clipEffects.filter((effect) => effect.enabled), trackEffects.filter((effect) => effect.enabled));
+  const unmasked = clipEffects.filter((effect) => !isMaskedEffect(effect));
+  const combinedEffects = [...unmasked.filter((effect) => isClipColorEffect(effect) || isClipBlurEffect(effect)), ...trackEffects];
+  const blurRadius = aggregateBlurRadius(unmasked.filter((effect) => effect.enabled), trackEffects.filter((effect) => effect.enabled));
   const sharedBounds = blurRadius >= 0.5 && combinedEffects.some((effect) => effect.enabled && isClipColorEffect(effect))
     && pixels.data.length === pixels.width * pixels.height * 4
     ? alphaBounds(pixels)

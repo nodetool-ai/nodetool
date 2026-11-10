@@ -27,6 +27,8 @@ class Preferences : public QObject {
     Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY changed)
     Q_PROPERTY(double trackHeaderWidth READ trackHeaderWidth WRITE setTrackHeaderWidth NOTIFY changed)
     // Playback audio. Both default to on. PlaybackClock carries the live values.
+    // The Program monitor's transport buttons the Button Editor hides.
+    Q_PROPERTY(QStringList hiddenTransportButtons READ hiddenTransportButtons WRITE setHiddenTransportButtons NOTIFY changed)
     Q_PROPERTY(bool scrubAudio READ scrubAudio WRITE setScrubAudio NOTIFY changed)
     Q_PROPERTY(bool shuttleKeepsPitch READ shuttleKeepsPitch WRITE setShuttleKeepsPitch NOTIFY changed)
     Q_PROPERTY(QString themePreference READ themePreference WRITE setThemePreference NOTIFY changed)
@@ -48,6 +50,7 @@ public:
     QString decoderMode() const;
     QString audioDevice() const;
     double trackHeaderWidth() const;
+    QStringList hiddenTransportButtons() const;
     bool scrubAudio() const;
     bool shuttleKeepsPitch() const;
     QString themePreference() const;
@@ -64,6 +67,7 @@ public:
     void setDecoderMode(const QString& value);
     void setAudioDevice(const QString& value);
     void setTrackHeaderWidth(double value);
+    void setHiddenTransportButtons(const QStringList& value);
     void setScrubAudio(bool value);
     void setShuttleKeepsPitch(bool value);
     void setThemePreference(const QString& value);

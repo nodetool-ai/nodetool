@@ -3,6 +3,7 @@
 // the ruler. Its x is the only thing that follows the clock (D30): a move
 // touches no model, no lane and not the ruler.
 import QtQuick
+import QtQuick.Shapes
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
@@ -60,29 +61,27 @@ Item {
         color: TimelineVisuals.editBlue
     }
 
-    // The head: a blue tab with a point at the bottom of the ruler. The
-    // timecode reads in the track header corner.
-    Item {
+    // The head: a blue pentagon over the ruler ticks, its point on the line at
+    // the bottom of the ruler, as in Premiere. The timecode reads in the track
+    // header corner.
+    Shape {
         id: pill
         objectName: "playheadPill"
         readonly property string timecode: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
         x: (playhead.width - width) / 2
         y: playhead.grabTopPx - height
-        width: 13
-        height: 14
-        Rectangle {
-            width: parent.width
-            height: parent.height - 4
-            radius: Ui.Metrics.radiusControl
-            color: TimelineVisuals.editBlue
-        }
-        Rectangle {
-            x: (parent.width - width) / 2
-            y: parent.height - 4 - height / 2
-            width: 6.5
-            height: 6.5
-            rotation: 45
-            color: TimelineVisuals.editBlue
+        width: 15
+        height: 16
+        preferredRendererType: Shape.CurveRenderer
+        ShapePath {
+            fillColor: TimelineVisuals.editBlue
+            strokeColor: "transparent"
+            startX: 0; startY: 0
+            PathLine { x: pill.width; y: 0 }
+            PathLine { x: pill.width; y: pill.height * 0.55 }
+            PathLine { x: pill.width / 2; y: pill.height }
+            PathLine { x: 0; y: pill.height * 0.55 }
+            PathLine { x: 0; y: 0 }
         }
     }
 

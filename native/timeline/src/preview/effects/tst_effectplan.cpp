@@ -14,6 +14,12 @@
 using namespace nt::effects;
 namespace {
 QJsonObject effect(const char *type) { return {{"type", type}, {"enabled", true}}; }
+QJsonObject effect(const char *type, const QJsonObject &fields) {
+    auto result = fields;
+    result.insert("type", type);
+    result.insert("enabled", true);
+    return result;
+}
 QJsonArray points(std::initializer_list<std::pair<double, double>> values) {
     QJsonArray result;
     for (const auto &[x, y] : values) {
@@ -269,6 +275,26 @@ class TestEffectPlan : public QObject {
         QVERIFY(planChain({effect("secondaryColor")}).empty());
         const auto table=secondaryCurveTransfer({{"hueCurve",points({{0.2,0.3},{0.8,0.7}})}});
         QCOMPARE(table[0],table[1020]); QVERIFY(std::abs(table[0]-0.5f)<0.00001f);
+    }
+    void colorPanelEffects() {
+        // Blacks alone makes an exposure pass, and rides in the fourth parameter.
+        const auto blacks=planChain({effect("exposure",{{"blacks",-0.4}})});
+        QCOMPARE(blacks.size(),size_t(1)); QCOMPARE(blacks[0].op,Op::Exposure); QCOMPARE(blacks[0].params[3],-0.4f);
+        QVERIFY(planChain({effect("exposure",{{"exposure",0},{"whites",0},{"blacks",0}})}).empty());
+        // Neutral or absent curves plan nothing.
+        QVERIFY(planChain({effect("hueSatCurves")}).empty());
+        QVERIFY(planChain({effect("hueSatCurves",{{"lumaVsSat",points({{0,0.5},{1,0.5}})}})}).empty());
+        const auto curves=planChain({effect("hueSatCurves",{{"satVsSat",points({{0,0.5},{1,0.25}})}})});
+        QCOMPARE(curves.size(),size_t(1)); QCOMPARE(curves[0].op,Op::HueSatCurves);
+        // Hue rows 0..255 wrap through red; value rows 256..511 hold flat past the end points.
+        const auto table=hueSatCurvesTransfer({{"hueVsSat",points({{0.2,0.3},{0.8,0.7}})},{"lumaVsSat",points({{0.5,0.2}})},
+                                               {"satVsSat",points({{0,0.5},{1,0.25}})}});
+        QCOMPARE(table[1],table[255*4+1]); QVERIFY(std::abs(table[1]-0.5f)<0.00001f);
+        QCOMPARE(table[0],0.5f); QCOMPARE(table[2],0.5f);
+        QCOMPARE(table[256*4],0.2f); QCOMPARE(table[511*4],0.2f);
+        QCOMPARE(table[256*4+1],0.5f); QCOMPARE(table[511*4+1],0.25f);
+        // Vignette roundness below zero reaches the plan as written.
+        QCOMPARE(planChain({effect("vignette",{{"amount",0.5},{"roundness",-0.6}})})[0].params[5],-0.6f);
     }
     void contextDecorators() {
         const QJsonObject raw{{"fps", 23.976}, {"width", 64}, {"height", 32}, {"durationMs", 3000},

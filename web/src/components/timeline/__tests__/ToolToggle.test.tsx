@@ -22,7 +22,7 @@ const renderToggle = () =>
 describe("ToolToggle", () => {
   afterEach(() => {
     act(() =>
-      useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "nodetool" })
+      useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "premiere" })
     );
   });
 

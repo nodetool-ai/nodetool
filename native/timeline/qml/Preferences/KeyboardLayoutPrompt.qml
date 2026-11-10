@@ -39,7 +39,7 @@ Rectangle {
             width: parent.width
             spacing: Ui.Metrics.xs
             Repeater {
-                model: [{label: "Premiere Pro", value: "premiere"}, {label: "Final Cut Pro", value: "fcp"}, {label: "NodeTool", value: "nodetool"}]
+                model: [{label: "Premiere Pro", value: "premiere"}, {label: "Final Cut Pro", value: "fcp"}]
                 delegate: Ui.EditorButton {
                     required property var modelData
                     objectName: "keyboardLayout_" + modelData.value
@@ -56,7 +56,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.margins: Ui.Metrics.sm
         iconName: "close"
-        accessibleName: "Keep the NodeTool layout"
-        onClicked: root.chosen("nodetool")
+        accessibleName: "Keep the Premiere Pro layout"
+        onClicked: root.chosen("premiere")
     }
 }

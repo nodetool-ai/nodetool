@@ -18,7 +18,7 @@
 namespace nt::app {
 namespace {
 bool validLayout(const QString& layout) {
-    return layout == "nodetool" || layout == "premiere" || layout == "fcp";
+    return layout == "premiere" || layout == "fcp";
 }
 bool validDecoder(const QString& mode) {
     return mode == "sw" || mode == "hw" || mode == "auto";
@@ -43,8 +43,8 @@ Preferences::Preferences(QObject* parent) : QObject(parent) {
     }
 }
 QString Preferences::keyboardLayout() const {
-    const QString value = m_settings->value("keyboardLayout", "nodetool").toString();
-    return validLayout(value) ? value : QStringLiteral("nodetool");
+    const QString value = m_settings->value("keyboardLayout", "premiere").toString();
+    return validLayout(value) ? value : QStringLiteral("premiere");
 }
 bool Preferences::keyboardLayoutChosen() const { return m_settings->contains("keyboardLayout"); }
 QString Preferences::cacheFolder() const { return m_settings->value("cacheFolder").toString(); }
@@ -63,6 +63,12 @@ double Preferences::trackHeaderWidth() const {
 }
 void Preferences::setTrackHeaderWidth(double value) {
     if (std::isfinite(value) && (value > 0 || value == -1)) { write("layout/trackHeaderWidth", value); }
+}
+QStringList Preferences::hiddenTransportButtons() const {
+    return m_settings->value("monitor/hiddenTransportButtons").toStringList();
+}
+void Preferences::setHiddenTransportButtons(const QStringList& value) {
+    if (value != hiddenTransportButtons()) { write("monitor/hiddenTransportButtons", value); }
 }
 bool Preferences::scrubAudio() const { return m_settings->value("playback/scrubAudio", true).toBool(); }
 bool Preferences::shuttleKeepsPitch() const { return m_settings->value("playback/shuttleKeepsPitch", true).toBool(); }

@@ -224,6 +224,10 @@ float rangeMask(float v,float low,float high,float soft) {
     if (soft<=0) return 0.;
     return v<low ? smoothstep(low-soft,low,v) : 1.-smoothstep(high,high+soft,v);
 }
+vec4 hueSatRow(int offset,float at) {
+    float position=clamp(at,0.,1.)*255.; int lo=int(floor(position)), hi=min(255,lo+1);
+    return mix(texelFetch(second,ivec2(offset+lo,0),0),texelFetch(second,ivec2(offset+hi,0),0),fract(position));
+}
 float cubic(float distance) {
     float x=abs(distance);
     return x<=1 ? 1.5*x*x*x-2.5*x*x+1 : x<2 ? -0.5*x*x*x+2.5*x*x-4*x+2 : 0;
@@ -339,9 +343,12 @@ void main() {
         return;
     } else if (op==6) {
         float inner=max(0,p[0].y-p[0].z), outer=max(inner+0.001,p[0].y);
-        vec2 axis=mix(vec2(1),dimensions.zw/min(dimensions.z,dimensions.w),p[1].y);
-        vec2 position=(logical*2-vec2(p[0].w,p[1].x)*2)*axis;
-        float t=clamp((length(position)-inner)/(outer-inner),0,1);
+        // Roundness 0 is the frame oval, 1 a circle, -1 a superellipse of exponent 8.
+        vec2 axis=mix(vec2(1),dimensions.zw/min(dimensions.z,dimensions.w),clamp(p[1].y,0,1));
+        vec2 position=abs((logical*2-vec2(p[0].w,p[1].x)*2)*axis);
+        float square=clamp(-p[1].y,0,1), power=2+6*square;
+        float distance=square>0 ? pow(pow(position.x,power)+pow(position.y,power),1/power) : length(position);
+        float t=clamp((distance-inner)/(outer-inner),0,1);
         fragColor=vec4(src.rgb*(1-p[0].x*t*t*(3-2*t)),src.a); return;
     } else if (op==7 || op==26) {
         vec4 low;
@@ -452,6 +459,15 @@ void main() {
         if (strength>0 && peak>knee) { gain*=(knee+(1.-knee)*(1.-exp(-(peak-knee)/(1.-knee))))/peak; }
         linear*=gain;
         rgb=mix(1.055*pow(linear,vec3(1./2.4))-0.055,12.92*linear,lessThanEqual(linear,vec3(0.0031308)));
+        vec3 shade=vec3(1)-clamp(rgb,0,1);
+        rgb+=clamp(p[0].w,-1.,1.)*0.15*shade*shade*shade;
+    }
+    else if (op==33) {
+        // Rows 0..255 by hue: hue vs hue, hue vs sat, hue vs luma. Rows 256..511: luma vs sat, sat vs sat.
+        vec3 hsl=toHsl(rgb);
+        vec4 byHue=hueSatRow(0,hsl.x), byLuma=hueSatRow(256,hsl.z), bySat=hueSatRow(256,hsl.y);
+        rgb=fromHsl(vec3(fract(hsl.x+byHue.x-0.5),clamp(hsl.y*2.*byHue.y*2.*byLuma.x*2.*bySat.y,0.,1.),
+                         clamp(hsl.z+(byHue.z-0.5)*hsl.y,0.,1.)));
     }
     fragColor=vec4(clamp(rgb,0,1)*src.a,src.a);
 }

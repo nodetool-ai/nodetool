@@ -41,6 +41,10 @@ nt_sources(qml
     src/ui/TimelineGestureArea.cpp
     src/ui/RulerCanvas.h
     src/ui/RulerCanvas.cpp
+    src/ui/MonitorMiniTimeline.h
+    src/ui/MonitorMiniTimeline.cpp
+    src/ui/MonitorZoomBar.h
+    src/ui/MonitorZoomBar.cpp
     src/ui/MediaPreviews.h
     src/ui/MediaPreviews.cpp
     src/ui/ThumbnailDiskCache.h

@@ -1,16 +1,21 @@
-// Mirrors web/src/components/timeline/preview/PreviewArea.tsx: the
-// compositor, letterboxed to the canvas aspect ratio, over the transport bar
-// (start, frame back, play, stop, loop, frame forward, end, the timecode, the
-// scrubber, the duration and the fps). The native monitor adds view controls
-// the web has no equivalent for: zoom and pan, resolution, overlays, guides and
-// registered monitor views. The quality select, volume, matte and fullscreen
-// controls are not part of the prototype.
+// The Program monitor: the compositor, letterboxed to the canvas aspect ratio,
+// over Premiere-style controls taken from filmcraft's monitor.rs. From the top:
+// the controls row (the editable playhead timecode, the zoom and playback
+// resolution menus, scrub audio, the wrench menu and the duration), the mini
+// timeline (ticks, markers, the in/out range and the playhead; press seeks,
+// drag scrubs), its zoom scroll bar, and the transport row (Add Marker, Mark In
+// and Out, Go to In, previous edit, frame steps, Play, next edit, Go to Out,
+// Lift, Extract, Export Frame and Loop). Buttons that do not fit go to an
+// overflow menu, and the Button Editor hides buttons per user. Below the compact
+// width the view settings take a second row. The monitor also has zoom and pan,
+// overlays, guides and registered monitor views.
 //
 // `previewFrame` is the whole picture at its zoomed size and can be far larger
 // than the screen. Only what is on screen is rendered: the compositor covers
 // the visible part. Painted overlays size themselves to `monitor.visibleItemRect`.
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
@@ -195,159 +200,376 @@ Rectangle {
         }
     }
 
-    // The control bar: 36 px, paper, a top rule, 2 px padding and gap.
+    // The controls under the picture, as in Premiere and filmcraft's monitor.rs.
+    readonly property bool stackedControls: width < TimelineMetrics.monitorCompactWidth
+    // The part of the sequence the mini timeline shows, as fractions. 0..1 shows all of it.
+    property real timeZoomStart: 0
+    property real timeZoomEnd: 1
+    // The transport, in Premiere's order. `id` is the key action, except for the clock steps.
+    readonly property var transportButtons: [
+        {id: "addMarker", icon: "addMarker", label: "Add Marker"},
+        {id: "markIn", icon: "markIn", label: "Mark In"},
+        {id: "markOut", icon: "markOut", label: "Mark Out"},
+        {id: "goToIn", icon: "goToIn", label: "Go to In"},
+        {id: "prevCut", icon: "previousEdit", label: "Go to Previous Edit Point"},
+        {id: "stepFrameBack", icon: "stepBackFrame", label: "Step Back 1 Frame"},
+        {id: "playPause", icon: "playArrow", label: "Play-Stop Toggle"},
+        {id: "stepFrameForward", icon: "stepForwardFrame", label: "Step Forward 1 Frame"},
+        {id: "nextCut", icon: "nextEdit", label: "Go to Next Edit Point"},
+        {id: "goToOut", icon: "goToOut", label: "Go to Out"},
+        {id: "liftRange", icon: "liftRange", label: "Lift"},
+        {id: "extractRange", icon: "extractRange", label: "Extract"},
+        {id: "exportFrame", icon: "photoCamera", label: "Export Frame"},
+        {id: "toggleLoop", icon: "repeat", label: "Loop"}
+    ]
+    // The Button Editor hides buttons; their shortcuts and menu items still work.
+    readonly property var hiddenTransport: transportPreferences.hiddenTransportButtons
+    readonly property var visibleTransport: transportButtons.filter(b => hiddenTransport.indexOf(b.id) < 0)
+    readonly property real transportAvailable: Math.max(0, width - TimelineMetrics.monitorTransportReserve)
+    readonly property real transportGap: {
+        const count = visibleTransport.length
+        return count * TimelineMetrics.monitorTransportButton + Math.max(0, count - 1) * Ui.Metrics.sm <= transportAvailable
+            ? Ui.Metrics.sm : Ui.Metrics.micro
+    }
+    // Buttons that do not fit go to the overflow menu, which takes one place.
+    readonly property int transportShownCount: {
+        const count = visibleTransport.length
+        const pitch = TimelineMetrics.monitorTransportButton + transportGap
+        if (count * pitch - transportGap <= transportAvailable) return count
+        return Math.max(0, Math.floor((transportAvailable + transportGap) / pitch) - 1)
+    }
+    // Any preference write re-reads the hidden list. The lists change only when their buttons do,
+    // so a write never rebuilds the buttons under the pointer.
+    property var shownTransport: []
+    property var overflowTransport: []
+    function refreshTransport() {
+        const shown = visibleTransport.slice(0, transportShownCount)
+        const overflow = visibleTransport.slice(transportShownCount)
+        const ids = list => list.map(b => b.id).join(",")
+        if (ids(shown) !== ids(shownTransport)) shownTransport = shown
+        if (ids(overflow) !== ids(overflowTransport)) overflowTransport = overflow
+    }
+    onVisibleTransportChanged: refreshTransport()
+    onTransportShownCountChanged: refreshTransport()
+    Component.onCompleted: refreshTransport()
+
+    Preferences { id: transportPreferences }
+
+    function transportShortcut(id) {
+        return gestures !== null && gestures.keyboardPreset !== "" ? gestures.shortcutFor(id) : ""
+    }
+    function transportLabel(button) {
+        return button.id === "playPause" ? (clock.playing ? "Pause" : "Play") : button.label
+    }
+    function transportEnabled(id) {
+        if (id === "stepFrameBack" || id === "stepFrameForward") return !clock.playing
+        if (id === "playPause" || id === "toggleLoop") return true
+        return gestures !== null
+    }
+    function runTransport(id) {
+        if (id === "playPause") clock.toggle()
+        else if (id === "stepFrameBack") clock.seek(Math.max(0, clock.time - frameMs))
+        else if (id === "stepFrameForward") clock.seek(Math.min(timeline.contentEndMs, clock.time + frameMs))
+        else if (id === "toggleLoop") clock.loop = !clock.loop
+        else if (id === "exportFrame") gestures.runAction("exportFrame", {monitor: "program"})
+        else gestures.runAction(id)
+    }
+    function setTransportShown(id, shown) {
+        const hidden = hiddenTransport.filter(other => other !== id)
+        if (!shown) hidden.push(id)
+        transportPreferences.hiddenTransportButtons = hidden
+    }
+    function resetTransport() { transportPreferences.hiddenTransportButtons = [] }
+    function setTimeZoom(start, end) {
+        timeZoomStart = start
+        timeZoomEnd = end
+    }
+
+    component TransportButton: Ui.ToolbarIconButton {
+        id: transportButton
+        required property var modelData
+        readonly property string actionId: modelData.id
+        objectName: actionId === "playPause" ? "transportPlay" : actionId === "exportFrame" ? "exportFrameButton" : "transport_" + actionId
+        width: TimelineMetrics.monitorTransportButton
+        height: TimelineMetrics.monitorTransportButton
+        iconName: actionId === "playPause" && area.clock.playing ? "pause" : modelData.icon
+        iconSize: actionId === "playPause" ? Ui.Metrics.iconLg : Ui.Metrics.iconMd
+        accessibleName: area.transportLabel(modelData)
+        shortcutText: area.transportShortcut(actionId)
+        active: actionId === "toggleLoop" && area.clock.loop
+        Accessible.checkable: actionId === "toggleLoop"
+        Accessible.checked: active
+        enabled: area.transportEnabled(actionId)
+        disabledReason: actionId === "stepFrameBack" || actionId === "stepFrameForward" ? "Pause playback to step one frame" : "Open a sequence first"
+        onClicked: area.runTransport(actionId)
+    }
+
     Rectangle {
         id: controlBar
         objectName: "transportBar"
         y: parent.height - height
         width: parent.width
-        height: TimelineMetrics.transportHeight
+        height: TimelineMetrics.monitorControlsRowHeight + (area.stackedControls ? TimelineMetrics.monitorStackedRowHeight : 0)
+                + TimelineMetrics.monitorScrubHeight + TimelineMetrics.monitorZoomBarHeight + TimelineMetrics.monitorTransportRowHeight
         color: Ui.Theme.surfacePanel
         Rectangle {
             width: parent.width
-            height: 1
+            height: Ui.Metrics.border
             color: Ui.Theme.borderSubtle
         }
 
-        Row {
-            id: buttons
-            x: Ui.Metrics.micro
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Ui.Metrics.micro
-            Ui.ToolbarIconButton {
-                iconName: "skipPrevious"
-                accessibleName: "Go to start"
-                onClicked: area.clock.seek(0)
-            }
-            Ui.ToolbarIconButton {
-                iconName: "navigateBefore"
-                accessibleName: "Previous frame"
-                enabled: !area.clock.playing
-                disabledReason: "Pause playback to step one frame"
-                onClicked: area.clock.seek(Math.max(0, area.clock.time - area.frameMs))
-            }
-            Ui.ToolbarIconButton {
-                objectName: "transportPlay"
-                iconName: area.clock.playing ? "pause" : "playArrow"
-                accessibleName: area.clock.playing ? "Pause" : "Play"
-                variant: Ui.EditorButton.Primary
-                onClicked: area.clock.toggle()
-            }
-            Ui.ToolbarIconButton {
-                iconName: "stop"
-                accessibleName: "Stop"
-                onClicked: {
-                    area.clock.pause()
-                    area.clock.seek(0)
-                }
-            }
-            Ui.ToolbarIconButton {
-                iconName: "repeat"
-                active: area.clock.loop
-                Accessible.checkable: true
-                Accessible.checked: area.clock.loop
-                accessibleName: "Loop playback"
-                onClicked: area.clock.loop = !area.clock.loop
-            }
-            Ui.ToolbarIconButton {
-                iconName: "navigateNext"
-                accessibleName: "Next frame"
-                enabled: !area.clock.playing
-                disabledReason: "Pause playback to step one frame"
-                onClicked: area.clock.seek(Math.min(area.timeline.contentEndMs, area.clock.time + area.frameMs))
-            }
-            Ui.ToolbarIconButton {
-                iconName: "skipNext"
-                accessibleName: "Go to end"
-                onClicked: area.clock.seek(area.timeline.contentEndMs)
-            }
+        // Controls row: timecode, zoom, resolution, scrub audio, wrench and duration.
+        Item {
+            id: controlsRow
+            x: TimelineMetrics.monitorControlsInset
+            y: Ui.Metrics.micro
+            width: parent.width - TimelineMetrics.monitorControlsInset * 2
+            height: TimelineMetrics.monitorStackedRowHeight
             TimecodeField {
                 objectName: "transportTimecode"
-                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(implicitWidth, TimelineMetrics.monitorTimecodeWidth)
+                height: parent.height
                 timeMs: area.clock.time
                 fps: area.timeline.fps
                 dropFrame: area.timeline.dropFrame
                 maxMs: area.timeline.contentEndMs
+                textRole: Ui.Typography.MonoStrong
+                domainColor: TimelineVisuals.editBlue
                 accessibleName: "Playhead timecode"
                 onSeekRequested: ms => area.clock.seek(ms)
             }
-        }
-
-        // The scrubber fills the rest; 12 px padding each side.
-        Ui.Slider {
-            id: scrubber
-            objectName: "transportScrubber"
-            property real gestureBaseline: 0
-            x: buttons.x + buttons.width + Ui.Metrics.micro + Ui.Metrics.lg
-            width: Math.max(Ui.Metrics.standard, trailing.x - Ui.Metrics.micro - Ui.Metrics.lg - x)
-            anchors.verticalCenter: parent.verticalCenter
-            from: 0
-            to: Math.max(1, area.timeline.contentEndMs)
-            value: area.clock.time
-            onEditStarted: gestureBaseline = area.clock.time
-            onValuePreviewed: value => area.clock.seek(value)
-            onValueCommitted: value => area.clock.seek(value)
-            onEditCanceled: area.clock.seek(gestureBaseline)
-            accessibleName: "Playhead position"
-            density: Ui.EditorButton.Compact
-        }
-
-        Row {
-            id: trailing
-            x: parent.width - width - Ui.Metrics.md
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Ui.Metrics.md
-            Ui.ToolbarIconButton {
-                objectName: "transportScrubAudio"
-                iconName: area.clock.scrubAudio ? "volumeUp" : "volumeOffOutlined"
-                anchors.verticalCenter: parent.verticalCenter
-                active: area.clock.scrubAudio
-                Accessible.checkable: true
-                Accessible.checked: area.clock.scrubAudio
-                accessibleName: "Play audio while scrubbing"
-                shortcutText: "Shift+S"
-                onClicked: area.clock.scrubAudio = !area.clock.scrubAudio
-            }
             Ui.Text {
                 objectName: "transportDuration"
+                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                visible: area.width >= TimelineMetrics.transportDurationMinWidth
-                text: "/" + TimelineFormat.timecode(area.timeline.contentEndMs, area.timeline.fps, area.timeline.dropFrame)
-                role: Ui.Typography.MonoCaption
+                text: TimelineFormat.timecode(area.timeline.contentEndMs, area.timeline.fps, area.timeline.dropFrame)
+                role: Ui.Typography.MonoLabel
                 tone: Ui.Text.Secondary
-            }
-            Ui.Text {
-                objectName: "transportFps"
-                anchors.verticalCenter: parent.verticalCenter
-                visible: area.width >= TimelineMetrics.transportDurationMinWidth
-                text: area.timeline.fps + " fps"
-                role: Ui.Typography.MonoCaption
-                tone: Ui.Text.Secondary
-            }
-            MonitorZoomMenu {
-                anchors.verticalCenter: parent.verticalCenter
-                monitor: viewState
-            }
-            Ui.ToolbarIconButton {
-                objectName: "exportFrameButton"
-                anchors.verticalCenter: parent.verticalCenter
-                iconName: "photoCamera"
-                accessibleName: "Export frame"
-                description: "Export frame"
-                enabled: area.gestures !== null
-                onClicked: area.gestures.runAction("exportFrame", {monitor: "program"})
-            }
-            Ui.ToolbarIconButton {
-                id: settingsButton
-                objectName: "monitorSettingsButton"
-                anchors.verticalCenter: parent.verticalCenter
-                iconName: "wrench"
-                accessibleName: "Monitor settings"
-                menuButton: true
-                menuExpanded: settingsMenu.visible
-                onClicked: settingsMenu.visible ? settingsMenu.close() : settingsMenu.openAt(settingsButton)
+                Accessible.name: "Sequence duration " + text
             }
         }
+        Item {
+            id: settingsRow
+            x: controlsRow.x
+            y: controlsRow.y + (area.stackedControls ? TimelineMetrics.monitorStackedRowHeight : 0)
+            width: controlsRow.width
+            height: controlsRow.height
+            MonitorZoomMenu {
+                id: zoomMenu
+                anchors.verticalCenter: parent.verticalCenter
+                x: area.stackedControls ? Math.max(0, settingsRow.width / 2 - TimelineMetrics.monitorStackedZoomOffset) : TimelineMetrics.monitorZoomOffset
+                monitor: viewState
+            }
+            Row {
+                id: viewSettings
+                anchors.verticalCenter: parent.verticalCenter
+                x: area.stackedControls ? zoomMenu.x + zoomMenu.width + Ui.Metrics.sm
+                                        : settingsRow.width - width - durationGap.width
+                spacing: Ui.Metrics.sm
+                Ui.MenuButton {
+                    id: resolutionButton
+                    objectName: "monitorResolutionButton"
+                    anchors.verticalCenter: parent.verticalCenter
+                    density: Ui.EditorButton.Compact
+                    variant: Ui.EditorButton.Flat
+                    text: viewState.playbackResolution === 1 ? "Full" : "1/" + viewState.playbackResolution
+                    accessibleName: "Playback resolution " + text
+                    menu: Ui.ContextMenu {
+                        id: resolutionMenu
+                        objectName: "monitorResolutionMenu"
+                        popupType: Controls.Popup.Item
+                        Instantiator {
+                            model: [{label: "Full", denominator: 1}, {label: "1/2", denominator: 2},
+                                    {label: "1/4", denominator: 4}, {label: "1/8", denominator: 8}]
+                            onObjectAdded: (index, object) => resolutionMenu.addItem(object)
+                            onObjectRemoved: (index, object) => resolutionMenu.removeItem(object)
+                            delegate: Ui.MenuItem {
+                                required property var modelData
+                                objectName: "monitorResolution_" + modelData.denominator
+                                text: modelData.label
+                                checkable: true
+                                checked: viewState.playbackResolution === modelData.denominator
+                                onTriggered: viewState.playbackResolution = modelData.denominator
+                            }
+                        }
+                    }
+                }
+                Ui.ToolbarIconButton {
+                    objectName: "transportScrubAudio"
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: area.clock.scrubAudio ? "volumeUp" : "volumeOffOutlined"
+                    active: area.clock.scrubAudio
+                    Accessible.checkable: true
+                    Accessible.checked: area.clock.scrubAudio
+                    accessibleName: "Play audio while scrubbing"
+                    shortcutText: "Shift+S"
+                    onClicked: area.clock.scrubAudio = !area.clock.scrubAudio
+                }
+                Ui.ToolbarIconButton {
+                    id: settingsButton
+                    objectName: "monitorSettingsButton"
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: "wrench"
+                    accessibleName: "Monitor settings"
+                    menuButton: true
+                    menuExpanded: settingsMenu.visible
+                    onClicked: settingsMenu.visible ? settingsMenu.close() : settingsMenu.openAt(settingsButton)
+                }
+            }
+            // The duration's place at the right of the first row.
+            Item {
+                id: durationGap
+                width: area.stackedControls ? 0 : TimelineMetrics.monitorTimecodeWidth
+                height: 1
+            }
+        }
+
+        // Mini timeline: ticks, markers, in/out and the playhead. Press seeks, drag scrubs.
+        MonitorMiniTimeline {
+            id: scrubber
+            objectName: "transportScrubber"
+            x: controlsRow.x
+            y: controlsRow.y + TimelineMetrics.monitorStackedRowHeight + (area.stackedControls ? TimelineMetrics.monitorStackedRowHeight : 0)
+            width: controlsRow.width
+            height: TimelineMetrics.monitorScrubHeight
+            durationMs: area.timeline.contentEndMs
+            fps: area.timeline.fps
+            timeMs: area.clock.time
+            zoomStart: area.timeZoomStart
+            zoomEnd: area.timeZoomEnd
+            rangeInMs: area.clock.rangeInMs
+            rangeOutMs: area.clock.rangeOutMs
+            markers: area.timeline.markers
+            uiScale: Ui.Theme.uiScale
+            tickColor: Ui.Theme.textDisabled
+            rangeColor: Ui.Theme.borderControl
+            playheadColor: TimelineVisuals.editBlue
+            markerColor: Ui.Theme.accentPrimary
+            Accessible.role: Accessible.Slider
+            Accessible.name: "Playhead position"
+            onSeekRequested: ms => area.clock.seek(ms)
+            onScrubRequested: ms => area.clock.scrub(ms)
+            onMarkerClicked: (index, modifiers) => {
+                const marker = markers[index]
+                const additive = (modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0
+                MarkerSession.select(marker.id, additive)
+                if (!additive) area.clock.seek(marker.timeMs)
+            }
+            onMarkerDoubleClicked: index => MarkerSession.requestEdit(markers[index].id)
+            onMarkerMenuRequested: (index, menuX, menuY) => {
+                const marker = markers[index]
+                if (!MarkerSession.isSelected(marker.id)) MarkerSession.select(marker.id)
+                markerMenu.context = { markerId: marker.id, timeMs: marker.timeMs, color: marker.color ?? "", editable: true }
+                markerMenu.popupAt(scrubber, menuX, menuY)
+            }
+        }
+        // Zoom scroll bar: drag a handle to zoom the mini timeline, the middle to scroll.
+        MonitorZoomBar {
+            id: zoomBar
+            objectName: "monitorTimeZoomBar"
+            x: scrubber.x
+            y: scrubber.y + scrubber.height
+            width: scrubber.width
+            height: TimelineMetrics.monitorZoomBarHeight
+            start: area.timeZoomStart
+            end: area.timeZoomEnd
+            // Five frames at the most zoom, as in filmcraft.
+            minSpan: Math.min(1, 5 * area.frameMs / Math.max(1, area.timeline.contentEndMs))
+            uiScale: Ui.Theme.uiScale
+            trackColor: Ui.Theme.borderSubtle
+            thumbColor: Ui.Theme.borderControl
+            thumbHoverColor: Ui.Theme.borderStrong
+            handleFill: Ui.Theme.surfacePanel
+            handleStroke: Ui.Theme.textPrimary
+            Accessible.role: Accessible.ScrollBar
+            Accessible.name: "Mini timeline zoom"
+            onRangeEdited: (start, end) => area.setTimeZoom(start, end)
+        }
+
+        // Transport row: centred buttons, an overflow menu and the Button Editor.
+        Row {
+            id: transportRow
+            objectName: "transportButtons"
+            y: zoomBar.y + zoomBar.height + Ui.Metrics.xs + Ui.Metrics.micro
+            x: Math.max(0, parent.width / 2 - TimelineMetrics.monitorButtonEditorWidth / 2 - width / 2)
+            spacing: area.transportGap
+            Repeater {
+                model: area.shownTransport
+                delegate: TransportButton {}
+            }
+            Ui.ToolbarIconButton {
+                id: overflowButton
+                objectName: "transportOverflow"
+                visible: area.overflowTransport.length > 0
+                width: TimelineMetrics.monitorTransportButton
+                height: TimelineMetrics.monitorTransportButton
+                iconName: "moreHoriz"
+                accessibleName: "More transport controls"
+                menuButton: true
+                menuExpanded: overflowMenu.visible
+                onClicked: overflowMenu.visible ? overflowMenu.close() : overflowMenu.openAt(overflowButton)
+            }
+        }
+        Ui.ToolbarIconButton {
+            id: editorButton
+            objectName: "transportButtonEditor"
+            x: parent.width - TimelineMetrics.monitorButtonEditorWidth
+            anchors.verticalCenter: transportRow.verticalCenter
+            iconName: "add"
+            accessibleName: "Button Editor"
+            menuButton: true
+            menuExpanded: editorMenu.visible
+            onClicked: editorMenu.visible ? editorMenu.close() : editorMenu.openAt(editorButton)
+        }
+    }
+    Ui.ContextMenu {
+        id: overflowMenu
+        objectName: "transportOverflowMenu"
+        popupType: Controls.Popup.Item
+        Instantiator {
+            model: area.overflowTransport
+            onObjectAdded: (index, object) => overflowMenu.insertItem(index, object)
+            onObjectRemoved: (index, object) => overflowMenu.removeItem(object)
+            delegate: Ui.MenuItem {
+                required property var modelData
+                objectName: "transportOverflow_" + modelData.id
+                text: area.transportLabel(modelData)
+                shortcutText: area.transportShortcut(modelData.id)
+                checkable: modelData.id === "toggleLoop"
+                checked: modelData.id === "toggleLoop" && area.clock.loop
+                enabled: area.transportEnabled(modelData.id)
+                onTriggered: area.runTransport(modelData.id)
+            }
+        }
+    }
+    Ui.ContextMenu {
+        id: editorMenu
+        objectName: "transportButtonEditorMenu"
+        popupType: Controls.Popup.Item
+        Instantiator {
+            model: area.transportButtons
+            onObjectAdded: (index, object) => editorMenu.insertItem(index, object)
+            onObjectRemoved: (index, object) => editorMenu.removeItem(object)
+            delegate: Ui.MenuItem {
+                required property var modelData
+                objectName: "transportEditor_" + modelData.id
+                text: modelData.label
+                checkable: true
+                checked: area.hiddenTransport.indexOf(modelData.id) < 0
+                onTriggered: area.setTransportShown(modelData.id, checked)
+            }
+        }
+        Controls.MenuSeparator { contentItem: Ui.Separator {} }
+        Ui.MenuItem {
+            objectName: "transportEditorReset"
+            text: "Reset"
+            onTriggered: area.resetTransport()
+        }
+    }
+    RegistryContextMenu {
+        id: markerMenu
+        kind: "marker"
+        gestures: area.gestures
     }
     MonitorSettingsMenu {
         id: settingsMenu

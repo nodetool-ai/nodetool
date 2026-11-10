@@ -2,6 +2,7 @@ import { filtersDenoiseSpatialV1, filtersDenoiseTemporalV1 } from "./filters/den
 import { transformStabilizeV1 } from "./transform/stabilize/v1/module.js";
 import { filterDebandV1 } from "./filters/deband/v1/module.js";
 import { colorSecondaryV1 } from "./color/secondary/v1/module.js";
+import { colorHueSatCurvesV1 } from "./color/hueSatCurves/v1/module.js";
 /**
  * Explicit shader barrel. The registry is populated from `ALL_SHADERS` (not
  * `import.meta.glob`) so the catalog is Node-bundling-safe, grep-able, and
@@ -62,6 +63,7 @@ import { keyerLumaKeyV1 } from "./keyer/lumaKey/v1/module.js";
 import { maskApplyV1 } from "./mask/apply/v1/module.js";
 import { maskFromImageV1 } from "./mask/fromImage/v1/module.js";
 import { maskInvertV1 } from "./mask/invert/v1/module.js";
+import { maskMixV1 } from "./mask/mix/v1/module.js";
 
 import { sourcesSolidV1 } from "./sources/solid/v1/module.js";
 import { sourcesLinearGradientV1 } from "./sources/linearGradient/v1/module.js";
@@ -114,6 +116,7 @@ export {
   transformStabilizeV1,
   filterDebandV1,
   colorSecondaryV1,
+  colorHueSatCurvesV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
@@ -142,6 +145,7 @@ export {
   maskApplyV1,
   maskFromImageV1,
   maskInvertV1,
+  maskMixV1,
   sourcesSolidV1,
   sourcesLinearGradientV1,
   sourcesCheckerboardV1,
@@ -196,6 +200,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   transformStabilizeV1,
   filterDebandV1,
   colorSecondaryV1,
+  colorHueSatCurvesV1,
   colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
@@ -224,6 +229,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   maskApplyV1,
   maskFromImageV1,
   maskInvertV1,
+  maskMixV1,
   // sources
   sourcesSolidV1,
   sourcesLinearGradientV1,

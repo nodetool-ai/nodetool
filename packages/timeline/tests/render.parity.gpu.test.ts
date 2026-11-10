@@ -16,6 +16,7 @@ import {
   type FrameLayer
 } from "../src/render/frameCompositor.js";
 import { makeClip } from "../src/defaults.js";
+import { ellipseMaskVertices } from "../src/effectMasks.js";
 import { resolveAnalysisEffects } from "../src/render/clipAnalysis.js";
 
 const SIZE = 48;
@@ -24,6 +25,7 @@ const SOURCE_CORRECTIONS: KnownClipEffect[] = [
   { id: "denoise", type: "denoise", enabled: true, lumaStrength: 0.6, chromaStrength: 0.4, radius: 2 },
   { id: "exposure", type: "exposure", enabled: true, exposure: 0.6, rolloff: 0.2, whites: 0.1 },
   { id: "secondaryColor", type: "secondaryColor", enabled: true, hueCenter: 140, hueWidth: 100, hueShift: 25, saturation: 0.6, lightness: 0.1 },
+  { id: "hueSatCurves", type: "hueSatCurves", enabled: true, hueVsSat: [{ x: 0, y: 0.2 }, { x: 0.5, y: 0.8 }, { x: 1, y: 0.2 }], lumaVsSat: [{ x: 0, y: 0.5 }, { x: 1, y: 0.3 }] },
   { id: "deflicker", type: "deflicker", enabled: true, analysis: {
     version: 1, source: { assetId: "source", mediaPath: "" }, rangeStartMs: 0, rangeEndMs: 1000,
     windowMs: 500, maxCorrection: 1, frameRate: 30, samples: [{ timeMs: 0, stops: 0.5 }]
@@ -214,6 +216,27 @@ describe("preview/export pixel comparison matrix", () => {
       });
     }
   }
+
+  it("mixes masked grade effects back by their coverage in both compositors", async () => {
+    const ellipse = { id: "m1", shape: "ellipse", vertices: ellipseMaskVertices(0.5, 0.5, 0.3, 0.35), feather: 0.15 };
+    const box = { id: "m2", shape: "polygon", vertices: [{ x: 0.1, y: 0.1 }, { x: 0.6, y: 0.1 }, { x: 0.6, y: 0.9 }, { x: 0.1, y: 0.9 }], inverted: true, feather: 0.05 };
+    const cases: KnownClipEffect[][] = [
+      [{ id: "c", type: "color", enabled: true, brightness: 0.3, hue: 40, masks: [ellipse] }],
+      [{ id: "b", type: "blur", enabled: true, radius: 6, masks: [box] }],
+      [{ id: "e", type: "exposure", enabled: true, exposure: 1, masks: [ellipse, { ...box, inverted: false, mode: "subtract" }] }],
+      [{ id: "c", type: "color", enabled: true, saturation: 0.2, masks: [box] }, { id: "s", type: "sharpen", enabled: true, amount: 2, radius: 3, masks: [ellipse] },
+        { id: "u", type: "color", enabled: true, contrast: 1.4 }]
+    ];
+    const plain = await compare();
+    for (const effects of cases) {
+      const masked = await compare(effects);
+      const full = await compare(effects.map((effect) => ({ ...effect, masks: undefined })));
+      expect(masked.unsupported).toEqual([]);
+      expect(masked.meanError, `${effects[0]!.id}: ${JSON.stringify(masked)}`).toBeLessThanOrEqual(3);
+      expect(masked.previewHash).not.toEqual(plain.previewHash);
+      expect(masked.previewHash).not.toEqual(full.previewHash);
+    }
+  });
 
   it("preserves effect order across old and new types", async () => {
     const effects: KnownClipEffect[] = [

@@ -1945,12 +1945,12 @@ replacement = "NodeTool.UiPrimitives: Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem
 [[file]]
 path = "native/timeline/qml/preview/PreviewArea.qml"
 category = "chrome"
-controls = ["Rectangle", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Slider"]
+controls = ["Rectangle", "Ui.ToolbarIconButton", "Ui.Text", "Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator", "MonitorMiniTimeline", "MonitorZoomBar", "RegistryContextMenu"]
 signals = []
 test_host = "tst_monitorui"
 test_scope = "interaction"
 qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text, Ui.Slider"
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text, Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem; MonitorMiniTimeline and MonitorZoomBar paint the domain time ruler"
 
 [[file]]
 path = "native/timeline/qml/preview/TimecodeField.qml"
@@ -2159,7 +2159,7 @@ controls = ["Ui.ContextMenu"]
 signals = []
 test_host = "tst_wiringedit"
 test_scope = "build/import"
-qml_callers = ["native/timeline/qml/Tracks/TimeRuler.qml"]
+qml_callers = ["native/timeline/qml/Tracks/TimeRuler.qml", "native/timeline/qml/preview/PreviewArea.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ContextMenu"
 
 [[file]]
@@ -2441,6 +2441,26 @@ test_host = "tst_clipeffects"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/EffectMasksSection.qml"
+category = "chrome"
+controls = ["InspectorSliderRow"]
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/color/ColorPanel.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/effectmasks/EffectMaskOverlay.qml"
+category = "domain"
+controls = ["TransformGizmoController", "ClipInspectorController", "ClipEffectsEdits"]
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "interaction"
+qml_callers = []
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
 
 [[file]]
 path = "native/timeline/src/edit/clipeffects/EffectNumber.qml"
@@ -3187,11 +3207,11 @@ reason = "The marquee must render above clips while the pointer selects a range 
 
 [[exception]]
 path = "native/timeline/qml/Tracks/TimeRuler.qml"
-object = "ruler/Item[0]/Repeater[0]/flag/MouseArea[0]"
+object = "ruler/Item[0]/Repeater[0]/flag/seekArea"
 binding = "onClicked"
 rule = "manual-control"
 owner = "Timeline marker navigation"
-reason = "Clicking a marker flag seeks to its document time; the separate delete action uses Ui.ToolbarIconButton."
+reason = "Clicking a marker glyph seeks to its document time, and Alt+drag sets its duration; the marker menu deletes it."
 
 [[exception]]
 path = "native/timeline/qml/Tracks/TrackLane.qml"
@@ -3317,7 +3337,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Select, Ui.Text"
 
 [[exception]]
 path = "native/timeline/qml/Tracks/TimeRuler.qml"
-object = "ruler/Item[0]/Repeater[0]/flag/MouseArea[0]"
+object = "ruler/Item[0]/Repeater[0]/flag/seekArea"
 binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Timeline marker editing"
@@ -3552,3 +3572,11 @@ binding = "radius"
 rule = "metric"
 owner = "Timeline clip rendering"
 reason = "Clips are near-square blocks so adjacent clips on a track read as one continuous edit."
+
+[[exception]]
+path = "native/timeline/qml/effectmasks/EffectMaskOverlay.qml"
+object = "overlay/pointer"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Program monitor effect mask overlay"
+reason = "A double click on a mask vertex converts it between a corner and a smooth point, as in Premiere. The overlay's one pointer target hit-tests vertices, tangents, the body and the feather and expansion handles."

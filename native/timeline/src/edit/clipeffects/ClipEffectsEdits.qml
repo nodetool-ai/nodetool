@@ -130,7 +130,8 @@ QtObject {
     function remove(id) {
         write(effects.filter(effect => effect.id !== id));
     }
-    function processingStage(effect) { return effect.type === "denoise" ? -2 : effect.type === "stabilize" ? -1 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
+    // A masked color or blur runs in place, so only an unmasked one joins the combined stage.
+    function processingStage(effect) { return effect.type === "denoise" ? -2 : effect.type === "stabilize" ? -1 : (effect.masks || []).some(mask => mask.enabled !== false && (mask.vertices || []).length >= 2) ? 0 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
     function orderedEffects() {
         return effects
             .map((effect, index) => ({effect: effect, index: index}))

@@ -4,6 +4,7 @@
 #include "edit/Keymap.h"
 #include "export/ExportController.h"
 #include "export/ExportQueue.h"
+#include <QScopeGuard>
 #include <QAccessible>
 #include <QElapsedTimer>
 #include <QJSValue>
@@ -149,7 +150,9 @@ private slots:
         QTRY_VERIFY(!queue->running());
     }
     void exportMenu() {
-        const auto menus = nt::app::shellMenuDescription("nodetool");
+        // Premiere binds Ctrl+M to Add Marker at In and Out, so the export key
+        // is checked under the Final Cut preset.
+        const auto menus = nt::app::shellMenuDescription("fcp");
         const auto& items = menus.front().items;
         QVERIFY(items.size() >= 3);
         const auto recentItem = items.begin();
@@ -180,7 +183,9 @@ private slots:
             QMetaObject::invokeMethod(panel, "currentSettings", Q_RETURN_ARG(QVariant, value));
             return value.value<QJSValue>().toVariant().toMap();
         };
-        // Ctrl+M opens the full dialog in every keyboard preset. With no marks it exports the whole timeline.
+        // Ctrl+M opens the full dialog where the preset leaves it free. With no marks it exports the whole timeline.
+        gestures()->setKeyboardPreset("fcp");
+        const auto restorePreset = qScopeGuard([this] { gestures()->setKeyboardPreset("premiere"); });
         clock.clearRange();
         QTest::keyClick(view.get(), Qt::Key_M, Qt::ControlModifier);
         QTRY_VERIFY(dialog->property("visible").toBool());

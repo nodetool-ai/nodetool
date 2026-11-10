@@ -114,7 +114,7 @@ private slots:
         QVERIFY(!nt::targeting::TrackTargeting::current().isTargeted("v"));
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
         click("timeRuler"); clock.seek(1500);
-        QTest::keyClick(view.get(), Qt::Key_S);
+        QTest::keyClick(view.get(), Qt::Key_K, Qt::ControlModifier);
         QCOMPARE(clip("c").value("durationMs").toDouble(), 2000.0);
         QVERIFY(clip("e").isEmpty()); QCOMPARE(model.clipCount(), 6); QCOMPARE(model.undoStack()->count(), 1);
         click("undoButton"); QCOMPARE(doc(), before);
@@ -126,8 +126,8 @@ private slots:
         QTest::addColumn<int>("key"); QTest::addColumn<double>("later"); QTest::addColumn<bool>("marks");
         QTest::newRow("B27-lift") << int(Qt::Key_Semicolon) << 5000.0 << true;
         QTest::newRow("B27-extract") << int(Qt::Key_Apostrophe) << 3000.0 << true;
-        QTest::newRow("B27-trim-prev") << int(Qt::Key_BracketLeft) << 4500.0 << false;
-        QTest::newRow("B27-trim-next") << int(Qt::Key_BracketRight) << 3500.0 << false;
+        QTest::newRow("B27-trim-prev") << int(Qt::Key_Q) << 4500.0 << false;
+        QTest::newRow("B27-trim-next") << int(Qt::Key_W) << 3500.0 << false;
     }
     void rangeEdits() {
         QFETCH(int, key); QFETCH(double, later); QFETCH(bool, marks);
@@ -164,7 +164,7 @@ private slots:
     void clipboard() {
         QFETCH(QString, operation); const auto before = doc(); click("clip-c");
         if (operation == "duplicate" || operation == "duplicateWithGap") {
-            QTest::keyClick(view.get(), Qt::Key_D, operation == "duplicate" ? Qt::ControlModifier : Qt::ControlModifier | Qt::ShiftModifier);
+            QTest::keyClick(view.get(), Qt::Key_D, operation == "duplicate" ? Qt::AltModifier : Qt::AltModifier | Qt::ShiftModifier);
             QCOMPARE(model.clipCount(), 6);
             QCOMPARE(clip(gestures()->selection().value(0)).value("startMs").toDouble(), operation == "duplicate" ? 3000.0 : 4000.0);
         } else {

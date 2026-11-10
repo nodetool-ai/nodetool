@@ -48,6 +48,12 @@ function(nt_render2d_tests)
         set(render2d_platform windows)
     endif()
     set_tests_properties(tst_render2d PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=${render2d_platform}" FIXTURES_REQUIRED render2d_reference)
+    if(APPLE)
+        # The app runs on cocoa at 72 DPI. Text advances must not depend on
+        # the DPI. No window is shown.
+        add_test(NAME tst_render2d_cocoa_advances COMMAND tst_render2d bundledInterWeights)
+        set_tests_properties(tst_render2d_cocoa_advances PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=cocoa")
+    endif()
     add_test(NAME render2d_stills_script COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/check-example-stills.test.mjs)
     add_test(NAME render2d_serein_m0 COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/serein-m0.test.mjs)
     add_test(NAME render2d_window_dry_run COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/window-checks.test.mjs)
