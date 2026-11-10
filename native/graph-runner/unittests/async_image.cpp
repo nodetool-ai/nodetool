@@ -11,6 +11,7 @@
 // capture by value (native/AGENTS.md rule 12).
 #include "host/capabilities.h"
 #include "host/image_jobs.h"
+#include "host/sandbox_ocr.h"
 #include "js/engine.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
@@ -627,6 +628,105 @@ void admissionRejectsBeforeTheCopy(Suite& t) {
   CHECK(eventually([&] { return zero(h.ledger->usage()); }));
 }
 
+// --- PT12: large outputs and slow calls on the CPU lane ----------------------------
+
+// Gate (PT12): a 50 MB decode copies once. Inside a run, decodeAsync decodes
+// on the CPU lane, and both it and the synchronous decode hand the decoded
+// pixels to JavaScript without a copy: the runner's JavaScript ledger holds
+// them while the arrays live, and nothing once they are collected.
+void largeDecodeCopiesOnce(Suite& t) {
+  ThreadPoolExecutor cpu("cpu", 1);
+  Harness h(cpu);
+  constexpr uint64_t kSide = 3540;
+  const uint64_t pixels = kSide * kSide * 4;
+  h.eval("globalThis.big = __host.image.encodePng(solid(3540, 3540, [10, 20, 30, 255]), 3540, 3540);");
+  h.beginRun();
+  auto start = Clock::now();
+  h.eval("globalThis.syncDecoded = __host.image.decode(big);");
+  const auto syncMs = std::chrono::duration_cast<milliseconds>(Clock::now() - start).count();
+  const uint64_t syncLedger = h.runner->usage().javaScriptBytes;
+  std::fprintf(stderr, "PT12 sync decode of %llu bytes: %lld ms on the worker, %llu bytes adopted\n",
+               static_cast<unsigned long long>(pixels), static_cast<long long>(syncMs),
+               static_cast<unsigned long long>(syncLedger));
+  CHECK(syncLedger >= pixels);
+  CHECK(h.truthy("syncDecoded.rgba.length === 3540 * 3540 * 4 && syncDecoded.rgba[2] === 30"));
+  CHECK(h.truthy("typeof __host.image.decodeAsync === 'function'"));
+  start = Clock::now();
+  h.eval("globalThis.callKind = attempt(() => __host.image.decodeAsync(big));"
+         "keep('d', __host.image.decodeAsync(big));");
+  const auto callMs = std::chrono::duration_cast<milliseconds>(Clock::now() - start).count();
+  CHECK(h.str("callKind") == "promise");
+  CHECK(h.runUntilLogged(1) == RunExit::Done);
+  const auto asyncMs = std::chrono::duration_cast<milliseconds>(Clock::now() - start).count();
+  CHECK(h.log() == "d:ok");
+  CHECK(h.truthy("results.d.width === 3540 && results.d.height === 3540 && results.d.rgba.length === 3540 * 3540 * 4"));
+  CHECK(h.truthy("results.d.rgba[0] === 10 && results.d.rgba[3] === 255"));
+  const uint64_t ledger = h.runner->usage().javaScriptBytes;
+  std::fprintf(stderr, "PT12 decodeAsync: call %lld ms, settled %lld ms, %llu bytes adopted\n",
+               static_cast<long long>(callMs), static_cast<long long>(asyncMs),
+               static_cast<unsigned long long>(ledger - syncLedger));
+  CHECK(ledger >= syncLedger + pixels);
+  h.eval("syncDecoded = null; results = {};");
+  h.engine->collectGarbage();
+  CHECK(h.runner->usage().javaScriptBytes == 0);
+  CHECK(h.drained());
+  h.endRun();
+  CHECK(eventually([&] { return zero(h.ledger->usage()); }));
+}
+
+#ifdef GR_TEST_TESSDATA
+// Gate (PT12): a cancel during OCR ends the call. Inside a run, OCR returns
+// a promise at once and recognizes on the CPU lane. A cancel while it runs
+// rejects the promise with an AbortError, and Tesseract's cancel callback
+// sees the job's stop token, so the job ends and releases its charge long
+// before a full recognition would.
+void cancelDuringOcrEndsTheCall(Suite& t) {
+  ThreadPoolExecutor cpu("cpu", 1);
+  Harness h(cpu);
+  js::Engine& e = *h.engine;
+  js::Value ocr = e.object();
+  gr::host::installSandboxOcr(e, ocr, GR_TEST_TESSDATA, nullptr);
+  e.set(e.get(e.global(), "__host"), "ocr", ocr);
+  h.eval("globalThis.noise = __host.image.encodePng(pattern(4000, 4000, 13), 4000, 4000);");
+  CHECK(h.truthy("noise.length <= 10 * 1024 * 1024"));
+  // Outside a run, the recognition runs at the call, to its end.
+  auto start = Clock::now();
+  h.eval("globalThis.full = typeof __host.ocr.ocr(noise, 'eng', 30000);");
+  const auto fullMs = std::chrono::duration_cast<milliseconds>(Clock::now() - start).count();
+  CHECK(h.str("full") == "string");
+  std::fprintf(stderr, "PT12 OCR outside a run: %lld ms at the call\n", static_cast<long long>(fullMs));
+  h.beginRun();
+  start = Clock::now();
+  h.eval("globalThis.pending = __host.ocr.ocr(noise, 'eng', 30000);"
+         "globalThis.ocrKind = pending instanceof Promise ? 'promise' : 'value';"
+         "if (ocrKind === 'promise') keep('ocr', pending);");
+  const auto callMs = std::chrono::duration_cast<milliseconds>(Clock::now() - start).count();
+  if (h.str("ocrKind") != "promise") {
+    std::fprintf(stderr, "PT12 OCR ran on the worker for %lld ms and could not be cancelled\n",
+                 static_cast<long long>(callMs));
+    CHECK(h.str("ocrKind") == "promise");
+    h.endRun();
+    return;
+  }
+  CHECK(callMs < 1000);
+  // Let the lane start the recognition.
+  CHECK(eventually([&] { return cpu.queued() == 0; }));
+  std::this_thread::sleep_for(milliseconds(50));
+  CHECK(h.logged() == 0);
+  const auto cancelled = Clock::now();
+  h.async->cancel();
+  CHECK(h.runUntilLogged(1) == RunExit::Done);
+  CHECK(h.log() == "ocr:AbortError:The operation was aborted");
+  CHECK(h.drained());
+  const auto stopMs = std::chrono::duration_cast<milliseconds>(Clock::now() - cancelled).count();
+  std::fprintf(stderr, "PT12 OCR: call %lld ms, job ended %lld ms after the cancel\n",
+               static_cast<long long>(callMs), static_cast<long long>(stopMs));
+  CHECK(stopMs < 2000 && stopMs < fullMs);
+  h.endRun();
+  CHECK(eventually([&] { return zero(h.ledger->usage()); }));
+}
+#endif
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -645,6 +745,10 @@ int main(int argc, char** argv) {
       {"failuresRejectAndRelease", failuresRejectAndRelease},
       {"specsAreBoundedBeforeAllocation", specsAreBoundedBeforeAllocation},
       {"admissionRejectsBeforeTheCopy", admissionRejectsBeforeTheCopy},
+      {"largeDecodeCopiesOnce", largeDecodeCopiesOnce},
+#ifdef GR_TEST_TESSDATA
+      {"cancelDuringOcrEndsTheCall", cancelDuringOcrEndsTheCall},
+#endif
   };
   Suite t;
   for (const Case& c : cases) {

@@ -51,6 +51,10 @@ struct MetadataPayload final : JobPayload {
   explicit MetadataPayload(VipsInfo i) : info(std::move(i)) {}
   VipsInfo info;
 };
+struct DecodedPayload final : JobPayload {
+  explicit DecodedPayload(RgbaImage i) : image(std::move(i)) {}
+  RgbaImage image;
+};
 struct TransformPayload final : JobPayload {
   explicit TransformPayload(VipsOutput o) : output(std::move(o)) {}
   VipsOutput output;
@@ -120,6 +124,31 @@ private:
   std::vector<uint8_t> rgba_;
   uint32_t width_;
   uint32_t height_;
+};
+
+// Decodes a PNG, JPEG or other stb image into straight RGBA.
+//
+// Thread affinity: as PngJob. The stb decoder state lives inside run().
+class DecodeJob final : public NativeJob {
+public:
+  explicit DecodeJob(std::vector<uint8_t> bytes) : bytes_(std::move(bytes)) {}
+
+  // The output is the decoded RGBA of the header's size. stb decodes into
+  // its own buffer of that size, which is copied into the result.
+  JobCost cost() const override {
+    const uint64_t output = checkedMul(encodedPixels(bytes_), 4);
+    return {bytes_.size(), output, output};
+  }
+
+  JobOutcome run(std::stop_token stop) override {
+    if (stop.stop_requested()) return JobOutcome::stopped();
+    RgbaImage image = decodeImage(bytes_.data(), bytes_.size());
+    if (stop.stop_requested()) return JobOutcome::stopped();
+    return JobOutcome::value(std::make_unique<DecodedPayload>(std::move(image)));
+  }
+
+private:
+  std::vector<uint8_t> bytes_;
 };
 
 // Reads an image header through libvips.
@@ -266,6 +295,22 @@ std::unique_ptr<NativeJob> makeMetadataJob(std::vector<uint8_t> bytes, ImageSpec
   return std::make_unique<MetadataJob>(std::move(bytes), spec);
 }
 
+std::unique_ptr<NativeJob> makeDecodeJob(std::vector<uint8_t> bytes) {
+  return std::make_unique<DecodeJob>(std::move(bytes));
+}
+
+ResultConverter decodeConverter() {
+  return [](ResultConversion& conversion) {
+    auto* payload = static_cast<DecodedPayload*>(conversion.payload());
+    js::Engine& e = conversion.engine();
+    js::Value out = e.object();
+    e.set(out, "rgba", conversion.adoptBytes(std::move(payload->image.pixels)));
+    e.set(out, "width", e.number(payload->image.width));
+    e.set(out, "height", e.number(payload->image.height));
+    return out;
+  };
+}
+
 ResultConverter metadataConverter() {
   return [](ResultConversion& conversion) {
     conversion.chargeCopy(kInfoBytes);
@@ -302,14 +347,35 @@ void installImage(js::Engine& e, const js::Value& object, const HostOptions&) {
   // reject with the reason, and the stb functions keep working.
   vipsStartup();
   auto binding = RunBinding::of(e);
-  e.set(object, "decode", e.function("decode", 1, [](js::Engine& e, Args a) {
+  // Synchronous: a canvas Image decodes when its src is set. Inside a run
+  // the pixels reach JavaScript without a copy.
+  e.set(object, "decode", e.function("decode", 1, [binding](js::Engine& e, Args a) {
     auto bytes = bytesArg(e, a, 0, "decode");
     RgbaImage image = decodeImage(bytes.data(), bytes.size());
     js::Value out = e.object();
-    e.set(out, "rgba", e.bytes(image.pixels.data(), image.pixels.size()));
+    AsyncRun* run = binding->run();
+    e.set(out, "rgba", run ? run->adoptBytes(std::move(image.pixels)) : e.bytes(image.pixels.data(), image.pixels.size()));
     e.set(out, "width", e.number(image.width));
     e.set(out, "height", e.number(image.height));
     return out;
+  }));
+  // decode on the run's CPU lane, cancellable. Outside a run, decodes at
+  // the call and returns the value.
+  e.set(object, "decodeAsync", e.function("decodeAsync", 1, [binding](js::Engine& e, Args a) {
+    if (a.empty() || !e.isBytes(a[0])) throw std::runtime_error("__host.image.decodeAsync: expected bytes");
+    AsyncRun* run = binding->run();
+    if (!run) {
+      auto bytes = e.viewBytes(a[0]);
+      RgbaImage image = decodeImage(bytes.data(), bytes.size());
+      js::Value out = e.object();
+      e.set(out, "rgba", e.bytes(image.pixels.data(), image.pixels.size()));
+      e.set(out, "width", e.number(image.width));
+      e.set(out, "height", e.number(image.height));
+      return out;
+    }
+    Reservation reservation = run->reserve();
+    auto bytes = snapshotBytes(e, a[0], "Image bytes", reservation);
+    return submitImageJob(*run, makeDecodeJob(std::move(bytes)), decodeConverter(), std::move(reservation));
   }));
   e.set(object, "info", e.function("info", 1, [](js::Engine& e, Args a) {
     auto bytes = bytesArg(e, a, 0, "info");
@@ -323,7 +389,7 @@ void installImage(js::Engine& e, const js::Value& object, const HostOptions&) {
   }));
   // Synchronous: canvas toBuffer and Fabric toDataURL need the bytes at the
   // call (design section 5.1).
-  e.set(object, "encodePng", e.function("encodePng", 3, [](js::Engine& e, Args a) {
+  e.set(object, "encodePng", e.function("encodePng", 3, [binding](js::Engine& e, Args a) {
     // The sizes are read first: their conversion can run JavaScript.
     uint32_t w = dimArg(e, a, 1), h = dimArg(e, a, 2);
     auto rgba = bytesArg(e, a, 0, "encodePng");
@@ -331,6 +397,7 @@ void installImage(js::Engine& e, const js::Value& object, const HostOptions&) {
       throw std::runtime_error("__host.image.encodePng: pixel data does not match width * height * 4");
     }
     auto png = encodePng(rgba.data(), w, h);
+    if (AsyncRun* run = binding->run()) return run->adoptBytes(std::move(png));
     return e.bytes(png.data(), png.size());
   }));
   e.set(object, "encodePngAsync", e.function("encodePngAsync", 3, [binding](js::Engine& e, Args a) {

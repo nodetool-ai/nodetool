@@ -179,8 +179,9 @@ namespace {
 // A coroutine of its own, so its arguments live in its frame.
 Task<Json> outputValue(Guest* guest, std::string nodeId, Json value) {
   js::Engine& e = guest->engine();
+  Guest::Passed in = Guest::pass(e, value);
   co_return co_await guest->callSettled(
-      e.call(guest->api("outputValue"), e.undefined(), {e.string(nodeId), e.string(value.dump())}));
+      e.call(guest->api("outputValue"), e.undefined(), {e.string(nodeId), in.text, in.blobs}));
 }
 
 }  // namespace
@@ -603,13 +604,26 @@ Task<void> Runner::dispatchInputs(Json params) {
     for (const Edge* e : graph_.outgoing(node.id)) {
       if (e->isData()) out.push_back(e);
     }
+    // One shared value per handle, read by every edge from it.
+    std::map<std::string, SharedValue> shared;
+    std::optional<SharedValue> sharedInput;
     for (const Edge* e : out) {
       bool hasHandle = outputs.contains(e->sourceHandle);
       if (!outputsEmpty && !hasHandle) continue;
       auto it = inboxes_.find(e->target);
       if (it != inboxes_.end()) {
-        durableDelivery_->put(e->target, *it->second, e->targetHandle,
-                        hasHandle ? outputs[e->sourceHandle] : value, {}, e->key());
+        SharedValue delivered;
+        if (hasHandle) {
+          auto found = shared.find(e->sourceHandle);
+          if (found == shared.end()) {
+            found = shared.emplace(e->sourceHandle, SharedValue(outputs[e->sourceHandle])).first;
+          }
+          delivered = found->second;
+        } else {
+          if (!sharedInput) sharedInput.emplace(value);
+          delivered = *sharedInput;
+        }
+        durableDelivery_->put(e->target, *it->second, e->targetHandle, std::move(delivered), {}, e->key());
       }
       incrementEdgeCounter(*e);
     }
@@ -736,19 +750,25 @@ std::string Runner::outputCollectionKey(const Node& node) const {
 Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
                                RoutingHints hints) {
   const Node* source = graph_.findNode(nodeId);
-  // The last edge that reads each output handle. It takes the value by move
-  // when no output_update reads the handle afterwards.
-  const bool keepValues = !source || source->alwaysEmitOutputUpdates;
-  std::unordered_map<std::string, const Edge*> lastReader;
-  for (const Edge* edge : graph_.outgoing(nodeId)) {
-    lastReader[edge->control && outputs.contains("__control_output__") ? std::string("__control_output__")
-                                                                        : edge->sourceHandle] = edge;
-  }
+  // Each data output read by an edge becomes one SharedValue, which every
+  // edge from that handle and the output_update share, so a fan-out of N
+  // edges copies nothing.
+  std::unordered_map<std::string, SharedValue> shared;
+  auto sharedOutput = [&](const std::string& handle) -> SharedValue& {
+    auto found = shared.find(handle);
+    if (found == shared.end()) {
+      found = shared.emplace(handle, SharedValue(std::move(outputs[handle]))).first;
+    }
+    return found->second;
+  };
   for (const Edge* edge : graph_.outgoing(nodeId)) {
     if (edge->control) {
       const auto handle = outputs.contains("__control_output__") ? std::string("__control_output__") : edge->sourceHandle;
-      if (!outputs.contains(handle) || !outputs[handle].is_object()) continue;
-      Json event = outputs[handle];
+      if (!outputs.contains(handle)) continue;
+      auto sharedHandle = shared.find(handle);
+      const Json& controlValue = sharedHandle != shared.end() ? *sharedHandle->second : outputs[handle];
+      if (!controlValue.is_object()) continue;
+      Json event = controlValue;
       if (!event.contains("event_type") || !event["event_type"].is_string()) {
         Json properties = event.contains("properties") && event["properties"].is_object() ? event["properties"] : event;
         event = {{"event_type","run"},{"properties",properties}};
@@ -788,10 +808,8 @@ Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
       }
     }
     if (!found && hints.invocationLineage) lineage = *hints.invocationLineage;
-    Json& value = outputs[edge->sourceHandle];
-    const bool last = !keepValues && lastReader[edge->sourceHandle] == edge;
     durableDelivery_->put(edge->target, *it->second, edge->targetHandle,
-                          last ? std::move(value) : Json(value), lineage, edgeId);
+                          sharedOutput(edge->sourceHandle), lineage, edgeId);
     incrementEdgeCounter(*edge);
   }
 
@@ -799,6 +817,7 @@ Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
       !startsWith(source->type, "nodetool.input.") && outputs.is_object()) {
     for (auto&& [handle, value] : outputs.items()) {
       if (handle == "__control__" || handle == "__control_output__") continue;
+      auto sharedValue = shared.find(handle);
       if (!source->alwaysEmitOutputUpdates) {
         bool connected = false;
         for (const Edge* e : graph_.edgesFrom(nodeId, handle)) {
@@ -814,11 +833,22 @@ Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
       msg["node_id"] = nodeId;
       msg["node_name"] = source->name.value_or(nodeId);
       msg["output_name"] = clientFacingOutputName(*source, handle);
-      msg["value"] = std::move(value);
+      msg["value"] = Json();
       msg["output_type"] = declared;
       msg["metadata"] = Json::object();
       msg["disposition"] = "append";
-      emit(std::move(msg));
+      if (sharedValue == shared.end()) {
+        msg["value"] = std::move(value);
+        emit(std::move(msg));
+      } else {
+        // The edges hold the value. The message borrows it for the
+        // synchronous emit and gives it back, instead of copying it.
+        sharedValue->second.lend([&](Json& lent) {
+          std::swap(msg["value"], lent);
+          emit_(msg);
+          std::swap(msg["value"], lent);
+        });
+      }
     }
   }
   co_return;

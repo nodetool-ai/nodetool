@@ -5,6 +5,7 @@
 
 #include "kernel/json.h"
 #include "kernel/task.h"
+#include "kernel/value.h"
 
 #include <deque>
 #include <map>
@@ -17,7 +18,8 @@
 namespace gr {
 
 struct Envelope {
-  Json data;
+  // Shared with the other readers of the same output.
+  SharedValue data;
   Lineage lineage;
   std::string sourceEdgeId;
 };
@@ -28,8 +30,12 @@ public:
   static constexpr size_t kMaxPendingMessagesPerKey = 10000;
 
   void addUpstream(const std::string& handle, int count = 1);
-  void put(const std::string& handle, Json data, Lineage lineage = {},
+  void put(const std::string& handle, SharedValue data, Lineage lineage = {},
            std::string sourceEdgeId = {});
+  void put(const std::string& handle, Json data, Lineage lineage = {},
+           std::string sourceEdgeId = {}) {
+    put(handle, SharedValue(std::move(data)), std::move(lineage), std::move(sourceEdgeId));
+  }
   void prepend(const std::string& handle, Envelope envelope);
   void markSourceDone(const std::string& handle);
   // Lineage signals only wake the consumer in A1; nothing reads them back.

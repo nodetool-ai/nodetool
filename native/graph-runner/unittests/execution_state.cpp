@@ -199,7 +199,7 @@ void durable(const std::string& directory) {
     DurableDelivery delivery(state,"delivery");
     delivery.put("n",inbox,"h",1,{},"edge");
     delivery.put("n",inbox,"h",2,{},"edge");
-    auto items=inbox.drainHandle("h"); check(items.size()==2 && items[0].data==1 && items[1].data==2,"delivery ordering");
+    auto items=inbox.drainHandle("h"); check(items.size()==2 && *items[0].data==1 && *items[1].data==2,"delivery ordering");
   }
   {
     auto state=std::make_shared<ExecutionState>(directory);
@@ -211,6 +211,43 @@ void durable(const std::string& directory) {
   {
     ExecutionState state(directory);
     check(state.pending("delivery","n").empty(),"ack survives second restart");
+  }
+}
+// C4 of PT13: the store holds the bytes of a value, as base64 text, never
+// a reference to a blob, and a cache key depends on their content.
+void storedBytes(const std::string& directory) {
+  const auto bytes=[](std::vector<uint8_t> data, BlobKind kind=BlobKind::Uint8Array) {
+    return Json::binary(Blob(std::move(data),kind));
+  };
+  const Json tagged={{"__bytes__","AQID"}};
+  check(ExecutionState::cacheKey("u","t",{{"data",bytes({1,2,3})}})==ExecutionState::cacheKey("u","t",{{"data",tagged}}),
+        "a cache key is the same for bytes and for their stored form");
+  check(ExecutionState::cacheKey("u","t",{{"data",bytes({1,2,3})}})!=ExecutionState::cacheKey("u","t",{{"data",bytes({1,2,4})}}),
+        "a cache key depends on byte content");
+  check(ExecutionState::cacheKey("u","t",{{"data",bytes({1,2,3})}})!=ExecutionState::cacheKey("u","t",{{"data",bytes({1,2,3},BlobKind::Int8Array)}}),
+        "a cache key depends on the byte type");
+  const auto path=directory + "/bytes";
+  std::filesystem::create_directory(path);
+  {
+    auto state=std::make_shared<ExecutionState>(path);
+    state->cache("bytes",{{"output",bytes({1,2,3})},{"typed",bytes({0,0,128,63},BlobKind::Float32Array)}});
+    Inbox inbox;
+    DurableDelivery delivery(state,"bytes-run");
+    delivery.put("n",inbox,"h",Json{{"frame",bytes({1,2,3},BlobKind::Buffer)}},{},"edge");
+    auto items=inbox.drainHandle("h");
+    check(items.size()==1 && items[0].data->at("frame").is_binary(),"the inbox holds the blob itself");
+  }
+  {
+    // A new process has no blob. Everything it reads comes from the file.
+    auto state=std::make_shared<ExecutionState>(path);
+    check(state->cached("bytes")==Json{{"output",tagged},{"typed",{{"__typed__","Float32Array"},{"__bytes__","AACAPw=="}}}},
+          "the result cache holds the bytes as base64");
+    auto messages=state->pending("bytes-run","n");
+    check(messages.size()==1 && messages[0].at("payload").at("data")==Json{{"frame",{{"__bytes__","AQID"},{"__buffer__",true}}}},
+          "the journal holds the bytes as base64");
+    Inbox inbox; DurableDelivery restarted(state,"bytes-run"); restarted.restore("n",inbox);
+    auto items=inbox.drainHandle("h");
+    check(items.size()==1 && items[0].data->at("frame").at("__bytes__")=="AQID","a restart restores the bytes from the journal");
   }
 }
 class TestCatalog final : public NodeCatalog {
@@ -290,7 +327,7 @@ int main(int argc,char** argv) {
     auto directory=std::filesystem::path(argv[2]) / ("g6-state-" + std::to_string(getpid()));
     std::filesystem::create_directory(directory);
     struct Clean { std::filesystem::path path; ~Clean() { std::filesystem::remove_all(path); } } clean{directory};
-    cacheAndRecovery(); streamRecovery(); descendantStickyScope(); grants(directory.string()); durable(directory.string()); runnerRestart(directory.string()); realGuest(argv[1]);
+    cacheAndRecovery(); streamRecovery(); descendantStickyScope(); grants(directory.string()); durable(directory.string()); storedBytes(directory.string()); runnerRestart(directory.string()); realGuest(argv[1]);
     std::cout << checks << " state checks passed\n";
     return 0;
   } catch(const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

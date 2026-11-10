@@ -16,7 +16,11 @@ public:
   DurableDelivery(std::shared_ptr<ExecutionState> state, std::string run);
   void restore(const std::string& node, Inbox& inbox);
   void put(const std::string& node, Inbox& inbox, const std::string& handle,
-           Json data, Lineage lineage, const std::string& edge);
+           SharedValue data, Lineage lineage, const std::string& edge);
+  void put(const std::string& node, Inbox& inbox, const std::string& handle,
+           Json data, Lineage lineage, const std::string& edge) {
+    put(node, inbox, handle, SharedValue(std::move(data)), std::move(lineage), edge);
+  }
   void acknowledge(const std::string& node);
 private:
   std::shared_ptr<ExecutionState> state_;

@@ -1,6 +1,7 @@
 #include "kernel/guest.h"
 
 #include "host/capabilities.h"
+#include "kernel/async_jobs.h"
 
 #include <quickjs.h>
 
@@ -10,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <span>
+#include <stdexcept>
 #include <utility>
 
 namespace gr {
@@ -32,10 +34,24 @@ std::string currentQuickJsVersion() {
   return std::string(JS_GetVersion()).substr(0, kVersionSize - 1);
 }
 
-// Awaits a guest promise that settles with a string.
+// A blob on its way from the guest to the kernel. __host.blob() copies the
+// guest's bytes into it and returns it as an opaque object. The guest lists
+// the object next to the text that names it, and the kernel takes the blob
+// out when it reads that text (Guest::reply).
+//
+// Ownership: the JavaScript object, through the engine's reference to its
+// native payload. Guest::Transit holds a weak reference, to drop the bytes
+// of a handle the guest never returned when the run ends.
+//
+// Thread affinity: worker only.
+struct TransitBlob final : js::NativePayload {
+  std::optional<Blob> blob;
+};
+
+// Awaits a guest promise that settles with a value's text and bytes.
 struct PromiseAwaiter {
   struct State {
-    std::optional<std::string> value;
+    std::optional<GuestReply> value;
     std::optional<std::string> error;
     std::coroutine_handle<> handle;
   };
@@ -58,7 +74,11 @@ struct PromiseAwaiter {
     js::then(
         engine, promise,
         [st](js::Engine& e, const js::Value& v) {
-          st->value = e.toString(v);
+          try {
+            st->value = Guest::reply(e, v);
+          } catch (const std::exception& ex) {
+            st->error = ex.what();
+          }
           if (st->handle) Loop::current().post(std::exchange(st->handle, nullptr));
         },
         [st](js::Engine& e, const js::Value& v) {
@@ -66,14 +86,14 @@ struct PromiseAwaiter {
           if (st->handle) Loop::current().post(std::exchange(st->handle, nullptr));
         });
   }
-  std::string await_resume() {
+  GuestReply await_resume() {
     if (state->error) throw NodeError(*state->error);
-    return *state->value;
+    return std::move(*state->value);
   }
 };
 
-Json unwrap(const std::string& reply) {
-  Json r = Json::parse(reply);
+Json unwrap(const GuestReply& reply) {
+  Json r = reply.parse();
   if (!r.value("ok", false)) {
     throw NodeError(r.value("error", std::string("guest call failed")));
   }
@@ -96,9 +116,9 @@ public:
   Task<std::optional<Json>> next() override {
     if (done_) co_return std::nullopt;
     js::Engine& e = guest_.engine();
-    std::string reply = co_await PromiseAwaiter{
+    GuestReply reply = co_await PromiseAwaiter{
         e, e.call(guest_.api("genNext"), e.undefined(), {gid_})};
-    Json r = Json::parse(reply);
+    Json r = reply.parse();
     if (!r.value("ok", false)) {
       done_ = true;
       throw NodeError(r.value("error", std::string("generator failed")));
@@ -137,8 +157,8 @@ public:
   }
   std::unique_ptr<FrameIterator> genProcess(Json inputs) override {
     js::Engine& e = guest_.engine();
-    js::Value gid = e.call(guest_.api("genStart"), e.undefined(),
-                           {id_, e.string(inputs.dump())});
+    Guest::Passed in = Guest::pass(e, inputs);
+    js::Value gid = e.call(guest_.api("genStart"), e.undefined(), {id_, in.text, in.blobs});
     return std::make_unique<GuestFrames>(guest_, gid);
   }
   bool hasRun() const override { return hasRun_; }
@@ -147,7 +167,7 @@ public:
     int ioId = guest_.registerIo(&io);
     js::Value p = e.call(guest_.api("run"), e.undefined(),
                          {id_, e.number(ioId)});
-    std::string reply = co_await PromiseAwaiter{e, p};
+    GuestReply reply = co_await PromiseAwaiter{e, p};
     guest_.unregisterIo(ioId);
     co_return unwrap(reply);
   }
@@ -155,9 +175,9 @@ public:
 private:
   Task<Json> call(std::string method, Json inputs) {
     js::Engine& e = guest_.engine();
-    js::Value p = e.call(guest_.api("call"), e.undefined(),
-                         {id_, e.string(method), e.string(inputs.dump())});
-    std::string reply = co_await PromiseAwaiter{e, p};
+    Guest::Passed in = Guest::pass(e, inputs);
+    js::Value p = e.call(guest_.api("call"), e.undefined(), {id_, e.string(method), in.text, in.blobs});
+    GuestReply reply = co_await PromiseAwaiter{e, p};
     co_return unwrap(reply);
   }
 
@@ -186,11 +206,22 @@ Task<void> hostNext(js::Engine& e, js::PromiseCapability cap, StreamIO* io,
   } else {
     reply = {{"done", false},
              {"handle", r->first},
-             {"data", r->second.data},
+             {"data", *r->second.data},
              {"lineage", lineageToJson(r->second.lineage)},
              {"source_edge_id", r->second.sourceEdgeId}};
   }
-  e.call(cap.resolve, e.undefined(), {e.string(reply.dump())});
+  // The bytes of the value travel next to the text, each copied into a
+  // buffer of its own for this reader.
+  std::vector<Blob> blobs;
+  const std::string text = dumpTransit(reply, blobs);
+  if (blobs.empty()) {
+    e.call(cap.resolve, e.undefined(), {e.string(text)});
+    co_return;
+  }
+  js::Value out = e.object();
+  e.set(out, "text", e.string(text));
+  e.set(out, "blobs", Guest::bytesOf(e, blobs));
+  e.call(cap.resolve, e.undefined(), {out});
 }
 
 Task<void> settleVoid(js::Engine& e, js::PromiseCapability cap, Task<void> op) {
@@ -215,11 +246,97 @@ std::optional<Json> optJson(js::Engine& e, const std::vector<js::Value>& args,
   return Json::parse(e.toString(args[i]));
 }
 
+// A node value the guest passed as its text at `text` and its bytes at
+// `blobs`.
+std::optional<Json> optValue(js::Engine& e, const std::vector<js::Value>& args,
+                             size_t text, size_t blobs) {
+  if (args.size() <= text || e.isUndefined(args[text]) || e.isNull(args[text])) {
+    return std::nullopt;
+  }
+  return Guest::reply(e, args[text], args.size() > blobs ? args[blobs] : e.undefined()).parse();
+}
+
 }  // namespace
 
+// The handles of this run that may still hold bytes. A reply takes the
+// bytes of its handles at once, so one stays only when the guest never
+// returned its text, as after a cancel. clear() drops those bytes when the
+// run ends, so no blob outlives its run while it waits for the collector.
+//
+// Thread affinity: worker only.
+struct Guest::Transit {
+  std::vector<std::weak_ptr<TransitBlob>> handles;
+  size_t sweepAt = kSweep;
+
+  void add(const std::shared_ptr<TransitBlob>& handle) {
+    if (handles.size() >= sweepAt) {
+      std::erase_if(handles, [](const std::weak_ptr<TransitBlob>& weak) {
+        const auto held = weak.lock();
+        return !held || !held->blob;
+      });
+      sweepAt = std::max(kSweep, handles.size() * 2);
+    }
+    handles.push_back(handle);
+  }
+  void clear() {
+    for (const auto& weak : handles) {
+      if (const auto held = weak.lock()) held->blob.reset();
+    }
+    handles.clear();
+    sweepAt = kSweep;
+  }
+
+private:
+  static constexpr size_t kSweep = 64;
+};
+
+Json GuestReply::parse() const {
+  Json value = Json::parse(text);
+  attachBlobs(value, blobs);
+  return value;
+}
+
 Guest::Guest(js::Engine& engine, HostOptions options)
-    : engine_(engine), options_(std::move(options)) {
+    : engine_(engine), options_(std::move(options)), transit_(std::make_shared<Transit>()) {
   installHost();
+}
+
+js::Value Guest::bytesOf(js::Engine& e, const std::vector<Blob>& blobs) {
+  if (blobs.empty()) return e.undefined();
+  js::Value out = e.object();
+  for (size_t i = 0; i < blobs.size(); ++i) {
+    e.set(out, std::to_string(i), e.bytes(blobs[i].data(), blobs[i].size()));
+  }
+  return out;
+}
+
+Guest::Passed Guest::pass(js::Engine& e, const Json& value) {
+  std::vector<Blob> blobs;
+  const std::string text = dumpTransit(value, blobs);
+  return {e.string(text), bytesOf(e, blobs)};
+}
+
+GuestReply Guest::reply(js::Engine& e, const js::Value& value) {
+  if (e.isString(value) || !e.isObject(value)) return {e.toString(value), {}};
+  return reply(e, e.get(value, "text"), e.get(value, "blobs"));
+}
+
+GuestReply Guest::reply(js::Engine& e, const js::Value& text, const js::Value& blobs) {
+  GuestReply out;
+  out.text = e.toString(text);
+  if (!e.isObject(blobs)) return out;
+  const double count = e.toNumber(e.get(blobs, "length"));
+  if (!(count >= 0 && count <= 1e7) || count != std::floor(count)) {
+    throw std::runtime_error("RangeError: expected a list of blobs");
+  }
+  out.blobs.reserve(static_cast<size_t>(count));
+  for (size_t i = 0; i < static_cast<size_t>(count); ++i) {
+    const auto handle = std::dynamic_pointer_cast<TransitBlob>(e.nativePayload(e.get(blobs, std::to_string(i))));
+    if (!handle || !handle->blob) throw std::runtime_error("TypeError: expected bytes that __host.blob returned");
+    out.blobs.push_back(std::move(*handle->blob));
+    handle->blob.reset();
+  }
+  return out;
 }
 
 bool Guest::isBytecode(const std::vector<uint8_t>& bundle) {
@@ -369,7 +486,7 @@ void Guest::ensureType(const Json& node) {
 std::optional<Json> Guest::describe(const Json& node) {
   // A bare {type} is answered from the type snapshot without the module.
   if (node.size() > 1) ensureType(node);
-  Json r = Json::parse(callString("describe", {engine_.string(node.dump())}));
+  Json r = Json::parse(callString("describe", {engine_.string(dumpWire(node))}));
   if (r.is_null()) return std::nullopt;
   return r;
 }
@@ -379,20 +496,20 @@ Json Guest::validate(const Json& node,
   ensureType(node);
   Json c = connected;
   return Json::parse(callString(
-      "validate", {engine_.string(node.dump()), engine_.string(c.dump())}));
+      "validate", {engine_.string(dumpWire(node)), engine_.string(c.dump())}));
 }
 
 std::unique_ptr<Executor> Guest::create(const Json& node) {
   ensureType(node);
   auto flags = describe(node);
   js::Value id = engine_.call(api("create"), engine_.undefined(),
-                              {engine_.string(node.dump())});
+                              {engine_.string(dumpWire(node))});
   bool hasRun = flags && flags->value("has_run", false);
   return std::make_unique<GuestExecutor>(*this, id, hasRun);
 }
 
 Task<Json> Guest::callSettled(js::Value promise) {
-  std::string reply = co_await PromiseAwaiter{engine_, std::move(promise)};
+  GuestReply reply = co_await PromiseAwaiter{engine_, std::move(promise)};
   co_return unwrap(reply);
 }
 
@@ -437,7 +554,7 @@ void Guest::installHost() {
   e.set(host, "emit", e.function("emit", 4, [this](js::Engine& e, Args a) {
     StreamIO* s = &io(a.at(0));
     std::string slot = e.toString(a.at(1));
-    std::optional<Json> value = optJson(e, a, 2);
+    std::optional<Json> value = optValue(e, a, 2, 4);
     std::optional<Lineage> lineage;
     if (auto l = optJson(e, a, 3)) lineage = lineageFromJson(*l);
     auto cap = e.newPromise();
@@ -448,7 +565,7 @@ void Guest::installHost() {
   // native-rules #12: host function captures raw this and runs later from the engine
   e.set(host, "emitGroup", e.function("emitGroup", 3, [this](js::Engine& e, Args a) {
     StreamIO* s = &io(a.at(0));
-    Json values = optJson(e, a, 1).value_or(Json::object());
+    Json values = optValue(e, a, 1, 3).value_or(Json::object());
     std::optional<Lineage> lineage;
     if (auto l = optJson(e, a, 2)) lineage = lineageFromJson(*l);
     auto cap = e.newPromise();
@@ -493,6 +610,36 @@ void Guest::installHost() {
     Json s = io(a.at(0)).invocationScope();
     return e.string(s.dump());
   }));
+
+  // The bytes of a value the guest is about to return or emit. Copies them
+  // once, at the call, so the node may reuse its buffer afterwards, and
+  // charges them to the run like the copied input of a native job. The
+  // charge is retained: only the readers of the value release it.
+  const auto binding = RunBinding::of(e);
+  const std::weak_ptr<Transit> transit = transit_;
+  e.set(host, "blob", e.function("blob", 1, [binding, transit](js::Engine& e, Args a) {
+    const js::Value& source = a.at(0);
+    if (!e.isBytes(source)) throw std::runtime_error("TypeError: expected an ArrayBuffer or a typed array");
+    const std::span<const uint8_t> view = e.viewBytes(source);
+    nodetool::jobs::Reservation charge;
+    if (AsyncRun* run = binding->run()) charge = run->reserve();
+    if (charge) {
+      charge.reserveSnapshot(view.size());
+      charge.retain();
+    }
+    auto handle = std::make_shared<TransitBlob>();
+    handle->blob.emplace(std::vector<uint8_t>(view.begin(), view.end()), BlobKind::Uint8Array, std::move(charge));
+    if (const auto list = transit.lock()) list->add(handle);
+    return e.nativeObject(std::move(handle));
+  }));
+  // Frees the bytes of handles the guest made and will not return.
+  e.set(host, "dropBlobs", e.function("dropBlobs", 1, [](js::Engine& e, Args a) {
+    (void)Guest::reply(e, e.undefined(), a.at(0));
+    return e.undefined();
+  }));
+  e.addRunCleanup([transit] {
+    if (const auto list = transit.lock()) list->clear();
+  });
 
   for (const auto& capability : host::capabilities()) {
     js::Value object = e.object();

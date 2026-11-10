@@ -38,7 +38,7 @@ import {
 import { supportsPlatform } from "@nodetool-ai/protocol";
 import { createContext } from "./host/context.mjs";
 import { outputValue } from "./host/output.mjs";
-import { fromJson, toJson } from "./values.mjs";
+import { fromJson, fromReply, fromWire, toJson, toWire, wireReply } from "./values.mjs";
 // `{ nodeType: [{ spec, name, reason, note }] }`: the unavailable exports of
 // the module contract each node type's code reaches, computed when the
 // bundle is built (guest/module-contract-build.mjs).
@@ -85,7 +85,7 @@ function errorMessage(err) {
 
 function settle(promise) {
   return Promise.resolve(promise).then(
-    (value) => toJson({ ok: true, value }),
+    (value) => wireReply({ ok: true, value }),
     (err) => JSON.stringify({ ok: false, error: errorMessage(err) })
   );
 }
@@ -139,7 +139,7 @@ class HostInputs {
     return JSON.parse(host().invocationScope(this._io));
   }
   async _next(handle) {
-    const r = fromJson(await host().next(this._io, handle ?? null));
+    const r = fromReply(await host().next(this._io, handle ?? null));
     return r.done ? null : r;
   }
   async first(name, defaultValue) {
@@ -179,12 +179,14 @@ class HostOutputs {
   }
   async emitGroup(values, opts) {
     for (const [slot, value] of Object.entries(values)) this._collected[slot] = value;
-    await host().emitGroup(this._io, toJson(values), lineageJson(opts));
+    const wire = toWire(values);
+    await host().emitGroup(this._io, wire.text, lineageJson(opts), wire.blobs);
   }
   async emit(slot, value, opts) {
     const resolved = slot || "output";
     this._collected[resolved] = value;
-    await host().emit(this._io, resolved, toJson(value), lineageJson(opts));
+    const wire = toWire(value);
+    await host().emit(this._io, resolved, wire.text, lineageJson(opts), wire.blobs);
   }
   async default(value) {
     await this.emit("output", value);
@@ -211,8 +213,10 @@ function executorOf(id) {
 }
 
 globalThis.__nodetool = {
-  prepareInputs(nodeJson, inputsJson) {
-    try { return toJson({ ok: true, value: applyDynamicSlotTypes(fromJson(nodeJson), fromJson(inputsJson)) }); }
+  // Without `blobs` the bytes stayed in the kernel, and the markers that
+  // name them pass through as plain objects.
+  prepareInputs(nodeJson, inputsJson, blobs) {
+    try { return wireReply({ ok: true, value: applyDynamicSlotTypes(fromJson(nodeJson), fromWire(inputsJson, blobs)) }); }
     catch (error) { return JSON.stringify({ ok: false, error: errorMessage(error) }); }
   },
   prepareInnerGraph(graphJson) { return toJson(prepareInnerGraph(fromJson(graphJson))); },
@@ -356,19 +360,19 @@ globalThis.__nodetool = {
   },
 
   /** `initialize` | `preProcess` | `finalize` | `process`. */
-  call(id, method, inputsJson) {
+  call(id, method, inputsJson, blobs) {
     return settle(
       (async () => {
         const executor = executorOf(id);
-        if (method === "process") return executor.process(applyDynamicSlotTypes(instances.get(id).node, fromJson(inputsJson)), instances.get(id).context);
+        if (method === "process") return executor.process(applyDynamicSlotTypes(instances.get(id).node, fromWire(inputsJson, blobs)), instances.get(id).context);
         await executor[method]?.();
         return null;
       })()
     );
   },
 
-  genStart(id, inputsJson) {
-    const iterator = executorOf(id).genProcess(applyDynamicSlotTypes(instances.get(id).node, fromJson(inputsJson)), instances.get(id).context);
+  genStart(id, inputsJson, blobs) {
+    const iterator = executorOf(id).genProcess(applyDynamicSlotTypes(instances.get(id).node, fromWire(inputsJson, blobs)), instances.get(id).context);
     const gid = nextId++;
     generators.set(gid, iterator);
     return gid;
@@ -381,7 +385,7 @@ globalThis.__nodetool = {
       .then(
         (r) => {
           if (r.done) generators.delete(gid);
-          return toJson({ ok: true, done: !!r.done, value: r.done ? null : r.value });
+          return wireReply({ ok: true, done: !!r.done, value: r.done ? null : r.value });
         },
         (err) => {
           generators.delete(gid);
@@ -399,8 +403,8 @@ globalThis.__nodetool = {
   },
 
   /** The Output node's value step for a media value; see host/output.mjs. */
-  outputValue(nodeId, valueJson) {
-    return settle(outputValue(fromJson(valueJson), context, nodeId));
+  outputValue(nodeId, valueJson, blobs) {
+    return settle(outputValue(fromWire(valueJson, blobs), context, nodeId));
   },
 
   run(id, ioId) {

@@ -212,9 +212,21 @@ property and platform validators, `create` mirrors `NodeRegistry.resolve()`, and
 `call`, `genStart`/`genNext` and `run` invoke `process`, step `genProcess`, and
 run `run(inputs, outputs)`. Streaming inputs and outputs inside the guest call
 back into `globalThis.__host`, which the kernel installs. Values cross the
-boundary as JSON strings. A `Uint8Array` travels as
-`{"__bytes__": "<base64>"}` (`guest/values.mjs`) and reaches the next node as
-bytes again. Messages a host receives carry bytes in that form.
+boundary as JSON text. The bytes of a node value do not travel in that text.
+The guest hands each `Uint8Array`, `Buffer`, `ArrayBuffer`, typed array and
+`DataView` to the kernel with one copy (`__host.blob`), and the text holds a
+`{"__blob__": <index>}` marker in its place (`guest/values.mjs`,
+`src/kernel/wire.h`). The kernel keeps the bytes as a `Blob`, the binary type
+of its JSON values (`src/kernel/blob.h`). The edges, inboxes and messages of
+one output share one blob, and the last of them frees it. Each node that
+reads the value gets a new buffer with one copy, of the type the producer
+returned, so a node may change its input and no other reader sees the change.
+A value with an object that has a `__blob__` key of its own travels as
+base64. Messages a host receives, the durable journal and the result cache
+carry bytes as `{"__bytes__": "<base64>"}`, with `"__typed__"` for a type
+other than `Uint8Array` and `"__buffer__"` for a `Buffer`. The guest's host
+calls (context operations, `postMessage`) and run parameters use that form
+too.
 `guest/build.mjs` bundles the guest with esbuild as one self-contained ES
 module. The [module contract](guest/host/README.md#the-module-contract)
 (`guest/module-contract.mjs`) declares what replaces
@@ -438,6 +450,13 @@ upload. Runs blocked by the ledger wait in the order they began waiting. A
 result keeps its charge while it waits for the worker, and a run that ends
 keeps the charge of its running jobs until they finish, so a cancelled run
 with a stuck job still holds back other runs.
+
+The bytes of a node value are charged to the run from the copy out of the
+guest until the last edge, inbox or message that holds the value drops it.
+`__host.blob` reserves them before the copy, so a node whose output does not
+fit the run or the ledger fails with an Error. The charge counts as retained
+input, which only the nodes that read the value release. It ends with the
+run at the latest.
 
 Bytes a converter hands to JavaScript without a copy
 (`ResultConversion::adoptBytes`) move to a separate JavaScript ledger, 1 GiB
@@ -966,7 +985,8 @@ and denial of ungranted pretrained resources, without claiming pretrained infere
 - Image formats outside the sharp adapter's allowed PNG, JPEG, GIF and WebP
   loaders. The direct codec retains its stb formats.
 - Host-backed media refs without the corresponding explicit host grant.
-  Bytes cross JSON as `{__bytes__: "<base64>"}` and revive as Uint8Array.
+  Bytes reach a host as `{__bytes__: "<base64>"}`. Between two nodes they
+  cross as bytes and keep their type (see [Architecture](#architecture)).
   GPU textures cross as handles and leave the runner as PNG.
 - MsgPack output.
 

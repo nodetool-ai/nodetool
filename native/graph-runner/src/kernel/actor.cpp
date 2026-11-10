@@ -39,6 +39,11 @@ void spreadInto(Json& target, const Json& source) {
   if (!source.is_object()) return;
   for (const auto& [k, v] : source.items()) target[k] = v;
 }
+// The same, moving the values out of `source`.
+void spreadInto(Json& target, Json&& source) {
+  if (!source.is_object()) return;
+  for (auto& [k, v] : source.items()) target[k] = std::move(v);
+}
 
 std::string firstTypeArg(const std::string& inner) {
   int depth = 0;
@@ -388,10 +393,10 @@ Task<void> Actor::runCorrelated() {
     Json out = Json::array();
     bool nested = isNestedList(h);
     for (const auto& e : envs) {
-      if (!nested && e.data.is_array()) {
-        for (const auto& item : e.data) out.push_back(item);
+      if (!nested && e.data->is_array()) {
+        for (const auto& item : *e.data) out.push_back(item);
       } else {
-        out.push_back(e.data);
+        out.push_back(*e.data);
       }
     }
     return out;
@@ -464,8 +469,8 @@ Task<void> Actor::runCorrelated() {
           bool sticky = driver && h != *driver;
           Envelope env = b->front();
           if (!sticky) b->pop_front();
-          envelopes.set(h, env);
-          values[h] = env.data;
+          values[h] = *env.data;
+          envelopes.set(h, std::move(env));
           if (!sticky && b->empty()) maxBuckets[h].erase(key);
         }
       } else if (c == Cls::Prefix) {
@@ -478,7 +483,7 @@ Task<void> Actor::runCorrelated() {
           }
         } else if (const Envelope* env = prefixSticky[h].find(parentKey)) {
           envelopes.set(h, *env);
-          values[h] = env->data;
+          values[h] = *env->data;
         }
       } else if (isList(h)) {
         const auto& envs = emptyListEnvelopes[h];
@@ -488,7 +493,7 @@ Task<void> Actor::runCorrelated() {
         }
       } else if (const Envelope* env = emptySticky.find(h)) {
         envelopes.set(h, *env);
-        values[h] = env->data;
+        values[h] = *env->data;
       }
     }
   };
@@ -645,7 +650,7 @@ Task<void> Actor::runCorrelated() {
           if (sticky.empty()) continue;
           const Envelope& first = sticky.begin()->second;
           envelopes.set(h, first);
-          values[h] = first.data;
+          values[h] = *first.data;
         }
       } else if (isList(h)) {
         const auto& envs = emptyListEnvelopes[h];
@@ -657,7 +662,7 @@ Task<void> Actor::runCorrelated() {
         }
       } else if (const Envelope* env = emptySticky.find(h)) {
         envelopes.set(h, *env);
-        values[h] = env->data;
+        values[h] = *env->data;
       } else if (inbox_.isOpen(h)) {
         readyOrAllowed = false;
       }
@@ -687,14 +692,14 @@ Task<void> Actor::runCorrelated() {
 // Invocation
 // ---------------------------------------------------------------------------
 
-Json Actor::appendStaticItems(const Json& edgeInputs) const {
-  Json result = edgeInputs;
+Json Actor::appendStaticItems(Json edgeInputs) const {
+  Json result = std::move(edgeInputs);
   for (const auto& handle : node_.appendStaticInputs) {
-    if (!edgeInputs.contains(handle)) continue;
+    if (!result.contains(handle)) continue;
     if (!node_.properties.is_object() || !node_.properties.contains(handle)) continue;
     const Json& staticItems = node_.properties[handle];
     if (!staticItems.is_array() || staticItems.empty()) continue;
-    const Json& incoming = edgeInputs[handle];
+    const Json incoming = std::move(result[handle]);
     Json merged = Json::array();
     if (incoming.is_array()) {
       for (const auto& v : incoming) merged.push_back(v);
@@ -712,12 +717,14 @@ Task<void> Actor::executeWithInputs(Json edgeInputs) {
   // sticky values it holds. Firing on them would run the node on partial
   // input after the run was stopped.
   if (host_.cancelled()) co_return;
-  Json inputs = edgeInputs;
+  Json inputs;
   if (node_.properties.is_object() || node_.dynamicProperties.is_object()) {
     inputs = Json::object();
     spreadInto(inputs, node_.properties);
     spreadInto(inputs, node_.dynamicProperties);
-    spreadInto(inputs, appendStaticItems(edgeInputs));
+    spreadInto(inputs, appendStaticItems(std::move(edgeInputs)));
+  } else {
+    inputs = std::move(edgeInputs);
   }
 
   inputs = host_.prepareInputs(node_,std::move(inputs));
@@ -739,9 +746,12 @@ Task<void> Actor::executeWithInputs(Json edgeInputs) {
   }
 
   executor_.beginInvocation(currentInvocationLineage_ ? lineageToJson(*currentInvocationLineage_).dump() : "");
+  // What generation_complete reports of the inputs, taken before they move
+  // into the executor.
+  Json properties = isConstantOrInput(node_.type) ? Json(nullptr) : scalarInputProperties(inputs);
   Json outputs;
   bool skipped = false;
-  try { outputs = co_await executor_.process(inputs); }
+  try { outputs = co_await executor_.process(std::move(inputs)); }
   catch (const InvocationSkipped&) { skipped = true; }
   if (skipped) {
     RoutingHints hints;
@@ -757,8 +767,10 @@ Task<void> Actor::executeWithInputs(Json edgeInputs) {
   latestResult_ = outputs;
   commitInvocationResult(outputs);
   auto hints = currentHints(keysOf(outputs));
-  co_await host_.sendOutputs(node_.id, outputs, hints.value_or(RoutingHints{}));
-  emitGenerationComplete(outputs, &inputs);
+  // generation_complete reports latestResult_, which only this actor sets,
+  // so the outputs move into the edges.
+  co_await host_.sendOutputs(node_.id, std::move(outputs), hints.value_or(RoutingHints{}));
+  emitGenerationCompleteWith(*latestResult_, std::move(properties));
 }
 
 void Actor::commitInvocationResult(const Json& outputs) {
@@ -937,13 +949,18 @@ void Actor::emitNodeStatus(const std::string& status, const Json& result,
 
 void Actor::emitGenerationComplete(const Json& outputs, const Json* inputs) {
   if (isConstantOrInput(node_.type)) return;
+  emitGenerationCompleteWith(outputs, inputs ? scalarInputProperties(*inputs) : Json(nullptr));
+}
+
+void Actor::emitGenerationCompleteWith(const Json& outputs, Json properties) {
+  if (isConstantOrInput(node_.type)) return;
   Json msg = Json::object();
   msg["type"] = "generation_complete";
   msg["node_id"] = node_.id;
   msg["node_name"] = node_.label();
   msg["node_type"] = node_.type;
   msg["outputs"] = outputs;
-  msg["properties"] = inputs ? scalarInputProperties(*inputs) : Json(nullptr);
+  msg["properties"] = std::move(properties);
   host_.emitMessage(std::move(msg));
 }
 

@@ -5,6 +5,7 @@
 #include "js/engine.h"
 #include "kernel/executor.h"
 #include "kernel/json.h"
+#include "kernel/wire.h"
 #include "nodetool/graph_runner.h"
 
 #include <functional>
@@ -15,6 +16,20 @@
 #include <vector>
 
 namespace gr {
+
+// What a guest function returned or passed: JSON text, and the bytes of
+// the value, which the text names with {"__blob__": <index>} markers
+// (kernel/wire.h). The bytes were copied out of the guest when it wrote the
+// text, so a later change to the guest's buffer never reaches them.
+//
+// Thread affinity: worker only, like the engine it was read from.
+struct GuestReply {
+  std::string text;
+  std::vector<Blob> blobs;
+
+  // Parses the text and puts the bytes in place of their markers.
+  Json parse() const;
+};
 
 class Guest {
 public:
@@ -49,6 +64,25 @@ public:
   // Throws when the guest has no such type.
   std::unique_ptr<Executor> create(const Json& node);
 
+  // A value for a guest function, as two arguments: its JSON text, and the
+  // object that holds its bytes by index, or undefined for a value without
+  // bytes. Each byte value is copied into a new JavaScript buffer, so the
+  // node that reads it may change it and no other reader sees the change.
+  struct Passed {
+    js::Value text;
+    js::Value blobs;
+  };
+  static Passed pass(js::Engine& engine, const Json& value);
+  // The object that holds `blobs` by index for a guest function, or
+  // undefined when there are none.
+  static js::Value bytesOf(js::Engine& engine, const std::vector<Blob>& blobs);
+  // Reads what a guest function returned or passed: a string, or an object
+  // {text, blobs} whose blobs __host.blob() made. Takes the bytes out of
+  // the guest's handles.
+  static GuestReply reply(js::Engine& engine, const js::Value& value);
+  // The same for a value passed as two arguments, text and blobs.
+  static GuestReply reply(js::Engine& engine, const js::Value& text, const js::Value& blobs);
+
   // Used by GuestExecutor.
   Task<Json> callSettled(js::Value promise);
   js::Value api(const std::string& name);
@@ -72,6 +106,12 @@ private:
   js::Engine& engine_;
   HostOptions options_;
   js::Value nodetool_;
+  // The blobs __host.blob() made and no reply has taken yet (guest.cpp).
+  struct Transit;
+  // native-rules #1: shared so the __host.blob function and the run
+  // cleanup, which the engine stores and may call after this Guest is
+  // gone, can hold weak references. This Guest holds the only strong one.
+  std::shared_ptr<Transit> transit_;
   std::map<int, StreamIO*> ios_;
   int nextIo_ = 1;
 };

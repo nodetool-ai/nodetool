@@ -214,6 +214,12 @@ public:
   // reserve snapshot bytes in before it copies them (job_inputs.h).
   nodetool::jobs::Reservation reserve() const { return nodetool::jobs::Reservation(account_); }
   const std::shared_ptr<nodetool::jobs::RunAccount>& account() const { return account_; }
+  // Worker. A Uint8Array over `bytes` a synchronous host function made, as
+  // ResultConversion::adoptBytes() hands over a job's output: from
+  // kAdoptMinimum bytes on without a copy, charged to the run's JavaScript
+  // ledger until the buffer is finalized. Throws AdmissionError when the
+  // ledger cannot take them.
+  js::Value adoptBytes(std::vector<uint8_t> bytes);
   // Worker. Admits deferred starts in FIFO order while the ledger lets
   // them, recomputing each one's cost() from its snapshot first. A start
   // whose cost became invalid fails with an Error. Cheap when the ledger

@@ -2,6 +2,7 @@
 
 #include "host/gpu_device.h"
 #include "host/image.h"
+#include "kernel/async_jobs.h"
 
 #include <algorithm>
 #include <cmath>
@@ -236,6 +237,7 @@ void installGpu(js::Engine& e, const js::Value& object, const HostOptions& optio
   state->options = options.gpu;
   e.setHostState(kCatalogState, state);
   e.addRunCleanup([state] { state->clear(); });
+  auto binding = RunBinding::of(e);
 
   e.set(object, "init", e.function("init", 1, [state](js::Engine& e, Args a) {
     Json reply;
@@ -298,14 +300,17 @@ void installGpu(js::Engine& e, const js::Value& object, const HostOptions& optio
     return e.string(Json{{"texture", id}}.dump());
   }));
 
-  e.set(object, "readback", e.function("readback", 1, [state](js::Engine& e, Args a) {
+  // Runs on the worker: the device and its textures belong to it. Inside a
+  // run the pixels reach JavaScript without a copy.
+  e.set(object, "readback", e.function("readback", 1, [state, binding](js::Engine& e, Args a) {
     Device& device = state->ready();
     uint32_t w = 0, h = 0;
     const uint64_t id = textureArg(e, a, 0);
     state->require(id);
     std::vector<uint8_t> rgba = device.read(id, w, h);
     js::Value out = e.object();
-    e.set(out, "rgba", e.bytes(rgba.data(), rgba.size()));
+    AsyncRun* run = binding->run();
+    e.set(out, "rgba", run ? run->adoptBytes(std::move(rgba)) : e.bytes(rgba.data(), rgba.size()));
     e.set(out, "width", e.number(w));
     e.set(out, "height", e.number(h));
     return out;

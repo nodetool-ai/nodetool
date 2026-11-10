@@ -131,6 +131,7 @@ add_library(gr_kernel STATIC
   src/kernel/actor_control.cpp
   src/kernel/runner.cpp
   src/kernel/guest.cpp
+  src/kernel/wire.cpp
   src/kernel/normalize.cpp
   src/kernel/output_node.cpp
   src/host/capabilities.cpp
@@ -401,6 +402,14 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(gr_context_message_tests PRIVATE nodetool_graph_runner gr_kernel gr_js)
   add_dependencies(gr_context_message_tests gr_context_message_test_bundle)
   add_test(NAME gr_context_message_tests COMMAND gr_context_message_tests "${GR_CONTEXT_MESSAGE_TEST}")
+  set(GR_BLOB_VALUE_TEST "${CMAKE_CURRENT_BINARY_DIR}/blob-value-test.mjs")
+  add_custom_target(gr_blob_value_test_bundle ALL
+    COMMAND "${GR_NODE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/build-blob-values.mjs" "${GR_BLOB_VALUE_TEST}"
+    VERBATIM)
+  add_executable(gr_blob_value_tests unittests/blob_values.cpp)
+  target_link_libraries(gr_blob_value_tests PRIVATE nodetool_graph_runner nodetool_jobs nlohmann_json::nlohmann_json)
+  add_dependencies(gr_blob_value_tests gr_blob_value_test_bundle)
+  add_test(NAME gr_blob_value_tests COMMAND gr_blob_value_tests "${GR_BLOB_VALUE_TEST}")
   include(cmake/context-av-tests.cmake)
   # The asynchronous media and track staging hosts (rollout step 5).
   add_executable(gr_media_async_tests unittests/media_async.cpp)

@@ -15,7 +15,7 @@ void Inbox::addUpstream(const std::string& handle, int count) {
   ensure(handle);
 }
 
-void Inbox::put(const std::string& handle, Json data, Lineage lineage,
+void Inbox::put(const std::string& handle, SharedValue data, Lineage lineage,
                 std::string sourceEdgeId) {
   if (closed_) return;
   ensure(handle);

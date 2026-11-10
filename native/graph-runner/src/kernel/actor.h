@@ -77,7 +77,7 @@ private:
   Task<bool> routeStreamingFrame(const Json& partial);
   Task<void> route(Json outputs, RoutingHints hints);
 
-  Json appendStaticItems(const Json& edgeInputs) const;
+  Json appendStaticItems(Json edgeInputs) const;
   void commitInvocationResult(const Json& outputs);
   std::optional<Json> mintIterationFrameOverrides(const Json& frame);
   long long mintIterationToken(const std::string& root,
@@ -98,6 +98,8 @@ private:
   void emitNodeStatus(const std::string& status, const Json& result = nullptr,
                       const std::optional<std::string>& error = std::nullopt);
   void emitGenerationComplete(const Json& outputs, const Json* inputs);
+  // As above, with the reported input properties already taken.
+  void emitGenerationCompleteWith(const Json& outputs, Json properties);
 
   ActorHost& host_;
   const Node& node_;

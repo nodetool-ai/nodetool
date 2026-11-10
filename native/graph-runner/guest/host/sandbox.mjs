@@ -296,8 +296,9 @@ export async function runInSandbox(options) {
           throw new Error("OCR export is not granted");
         const [bytes, ocrOptions] = args[2];
         const language = String(ocrOptions?.language ?? "eng").trim() || "eng";
+        // A promise inside a run: the recognition runs on the CPU lane.
         return JSON.parse(
-          globalThis.__host.context.ocr(
+          await globalThis.__host.context.ocr(
             bytes,
             language,
             Math.min(30000, Math.max(1, options.timeoutMs ?? 30000))

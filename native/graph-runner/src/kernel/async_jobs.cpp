@@ -91,6 +91,12 @@ void ResultConversion::chargeCopy(uint64_t bytes) {
   copies_.push_back(chargeWithCollection(engine_, [&] { return runner().reserveJavaScript(bytes); }));
 }
 
+js::Value AsyncRun::adoptBytes(std::vector<uint8_t> bytes) {
+  Reservation none;
+  ResultConversion conversion(engine_, nullptr, none, account_ ? account_->runner() : nullptr);
+  return conversion.adoptBytes(std::move(bytes));
+}
+
 void SettlerRegistry::add(uint64_t id, js::PromiseCapability capability, ResultConverter convert, bool cancellable) {
   owner_.check("gr::SettlerRegistry");
   settlers_.insert_or_assign(id, Settler{std::move(capability), std::move(convert), cancellable});

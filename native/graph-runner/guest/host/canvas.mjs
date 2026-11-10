@@ -268,7 +268,9 @@ export class Image {
   }
   set src(value) {
     const bytes = typeof value === "string" ? readFileSync(value) : value;
-    const result = globalThis.__host.image.decode(bytes);
+    this._decoded(globalThis.__host.image.decode(bytes));
+  }
+  _decoded(result) {
     this.width = result.width;
     this.height = result.height;
     this._pixels = result.rgba;
@@ -284,9 +286,11 @@ export class Image {
     return this.height;
   }
 }
+// Decodes on the run's CPU lane, so a cancel stops a large decode.
 export async function loadImage(value) {
+  const bytes = typeof value === "string" ? readFileSync(value) : value;
   const image = new Image();
-  image.src = value;
+  image._decoded(await globalThis.__host.image.decodeAsync(bytes));
   return image;
 }
 export const GlobalFonts = {

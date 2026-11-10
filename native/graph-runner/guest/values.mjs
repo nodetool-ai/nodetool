@@ -6,11 +6,20 @@
 // {"__typed__": "<constructor name>", "__bytes__": "<base64>"} and comes back
 // with the same type. Every other value is plain JSON.
 //
-// The kernel keeps the tagged form, so the messages a host receives carry
-// bytes as {"__bytes__": "<base64>"}.
+// That text is what a host reads and writes: context calls, messages and
+// run parameters (toJson, fromJson).
+//
+// A node value that crosses to the kernel does not put its bytes in the
+// text (toWire, fromWire). __host.blob copies the bytes into the kernel
+// once, and the text holds {"__blob__": <index>} in their place, with the
+// same "__typed__" and "__buffer__" tags. The other way, the kernel passes
+// the text and one new buffer for each index. The kernel still writes the
+// base64 form for a host, so the messages a host receives carry bytes as
+// {"__bytes__": "<base64>"}.
 
 const TAG = "__bytes__";
 const TYPED = "__typed__";
+const BLOB = "__blob__";
 const VIEWS = {
   Int8Array, Uint8ClampedArray, Int16Array, Uint16Array, Int32Array, Uint32Array,
   Float32Array, Float64Array, BigInt64Array, BigUint64Array, DataView,
@@ -84,4 +93,87 @@ export function toJson(value) {
 export function fromJson(text) {
   // Text without the tag holds no bytes, so it needs no reviver call per value.
   return text.includes('"__bytes__"') ? JSON.parse(text, reviver) : JSON.parse(text);
+}
+
+/**
+ * A node value for the kernel: `{ text, blobs }`. `blobs` lists the kernel's
+ * copy of each byte value the text names with {"__blob__": <index>}, or is
+ * undefined when the text names none. The copy is made here, so the caller
+ * may change its buffers afterwards.
+ */
+export function toWire(value) {
+  const put = globalThis.__host?.blob;
+  if (typeof put !== "function") return { text: toJson(value), blobs: undefined };
+  const blobs = [];
+  // An object of the value that has a "__blob__" key of its own. The kernel
+  // could not tell it from a marker, so such a value travels as base64.
+  let reserved = false;
+  const mark = (bytes, tags) => {
+    blobs.push(put(bytes));
+    return tags;
+  };
+  const text = JSON.stringify(value, function (key, current) {
+    const raw = this[key];
+    if (raw instanceof Uint8Array) {
+      const plain = raw.constructor === Uint8Array ? raw : new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
+      return mark(plain, isBuffer(raw) ? { [BLOB]: blobs.length, __buffer__: true } : { [BLOB]: blobs.length });
+    }
+    if (raw instanceof ArrayBuffer) return mark(raw, { [TYPED]: "ArrayBuffer", [BLOB]: blobs.length });
+    if (ArrayBuffer.isView(raw)) {
+      const name = raw instanceof DataView ? "DataView" : raw[Symbol.toStringTag];
+      if (VIEWS[name]) {
+        return mark(new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength), { [TYPED]: name, [BLOB]: blobs.length });
+      }
+    }
+    if (current !== null && typeof current === "object" && Object.hasOwn(current, BLOB)) reserved = true;
+    return current;
+  });
+  if (!reserved) return { text, blobs: blobs.length ? blobs : undefined };
+  if (blobs.length) globalThis.__host.dropBlobs(blobs);
+  return { text: toJson(value), blobs: undefined };
+}
+
+/** toWire for a value a guest function returns: the text, or `{ text, blobs }`. */
+export function wireReply(value) {
+  const wire = toWire(value);
+  return wire.blobs ? wire : wire.text;
+}
+
+function fromBlob(bytes, marker) {
+  const keys = Object.keys(marker);
+  if (keys.length === 1) return bytes;
+  if (keys.length !== 2) return undefined;
+  if (marker.__buffer__ === true) {
+    return typeof globalThis.Buffer === "function"
+      ? globalThis.Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+      : bytes;
+  }
+  if (typeof marker[TYPED] !== "string") return undefined;
+  const whole = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength;
+  const buffer = whole ? bytes.buffer : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  if (marker[TYPED] === "ArrayBuffer") return buffer;
+  const View = VIEWS[marker[TYPED]];
+  return View ? new View(buffer) : undefined;
+}
+
+/**
+ * The value of text from the kernel. `blobs` holds one Uint8Array, over a
+ * buffer of its own, for each {"__blob__": <index>} of the text. Tagged
+ * base64 in the text turns into bytes as in fromJson.
+ */
+export function fromWire(text, blobs) {
+  if (!blobs) return fromJson(text);
+  return JSON.parse(text, (key, value) => {
+    if (value !== null && typeof value === "object" && typeof value[BLOB] === "number") {
+      const bytes = blobs[value[BLOB]];
+      const made = bytes instanceof Uint8Array ? fromBlob(bytes, value) : undefined;
+      if (made !== undefined) return made;
+    }
+    return reviver(key, value);
+  });
+}
+
+/** fromWire for what a host function resolves with: text, or `{ text, blobs }`. */
+export function fromReply(reply) {
+  return typeof reply === "string" ? fromJson(reply) : fromWire(reply.text, reply.blobs);
 }

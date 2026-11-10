@@ -31,7 +31,7 @@ Task<void> Actor::runControlled() {
     auto popped = inbox_.tryPopAny();
     if (popped) {
       if (popped->first == "__control__") held.push_back(std::move(popped->second));
-      else { cached[popped->first] = popped->second.data; pending.erase(popped->first); }
+      else { cached[popped->first] = *popped->second.data; pending.erase(popped->first); }
     } else {
       if (inbox_.isClosed()) break;
       co_await inbox_.waitForActivity();
@@ -41,18 +41,18 @@ Task<void> Actor::runControlled() {
   while (!host_.cancelled()) {
     auto event = co_await inbox_.nextInput("__control__");
     if (!event || host_.cancelled()) break;
-    const auto kind = event->data.value("event_type", std::string());
+    const auto kind = event->data->value("event_type", std::string());
     if (kind == "stop") break;
     if (kind != "run") continue;
     for (const auto& h : inbox_.handles()) {
       if (h == "__control__") continue;
       auto values = inbox_.drainHandle(h);
-      if (!values.empty()) cached[h] = values.back().data;
+      if (!values.empty()) cached[h] = *values.back().data;
     }
     Json inputs = Json::object();
     merge(inputs, node_.properties); merge(inputs, node_.dynamicProperties);
     merge(inputs, appendStaticItems(cached));
-    merge(inputs, event->data.value("properties", Json::object()));
+    merge(inputs, event->data->value("properties", Json::object()));
     inputs = host_.prepareInputs(node_,std::move(inputs));
     executor_.beginInvocation(lineageToJson(event->lineage).dump());
     Json outputs;
@@ -125,7 +125,7 @@ Task<void> Actor::runLoop() {
     auto popped = inbox_.tryPopAny();
     if (popped) {
       const auto& [handle,env] = *popped;
-      if (handle == "initial") co_await start(env.lineage,env.data);
+      if (handle == "initial") co_await start(env.lineage,*env.data);
       else if (handle == "next" || handle == "condition") {
         const auto key = tryProjectLineageKey(env.lineage,parentScope);
         auto it = key ? runs.find(*key) : runs.end();
@@ -134,8 +134,8 @@ Task<void> Actor::runLoop() {
         auto& run = it->second;
         (handle == "next" ? run.next : run.condition) = env;
         if (run.next && (!conditionWired || run.condition)) {
-          Json value = run.next->data;
-          const bool again = !conditionWired || truthy(run.condition->data);
+          Json value = *run.next->data;
+          const bool again = !conditionWired || truthy(*run.condition->data);
           if (again && run.iteration + 1 < maximum) {
             ++run.iteration; run.next.reset(); run.condition.reset();
             co_await iteration(run,value);

@@ -8,8 +8,9 @@
 namespace gr {
 namespace {
 
+// Bytes from a node, or their tagged base64 form from a host or the store.
 bool isBytesTag(const Json& v) {
-  return v.is_object() && v.contains("__bytes__") && v["__bytes__"].is_string();
+  return v.is_binary() || (v.is_object() && v.contains("__bytes__") && v["__bytes__"].is_string());
 }
 
 bool containsBytes(const Json& v) {

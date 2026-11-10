@@ -1,4 +1,5 @@
 #include "kernel/execution_state.h"
+#include "kernel/wire.h"
 #include "host/paths.h"
 #include <sqlite3.h>
 #include <cstdint>
@@ -83,7 +84,8 @@ ExecutionState::ExecutionState(const std::string& directory) : impl_(std::make_u
 }
 ExecutionState::~ExecutionState() = default;
 std::string ExecutionState::cacheKey(const std::string& user, const std::string& type, const Json& props) {
-  return user + ":" + type + ":" + canonical(props).dump(-1, ' ', false, Json::error_handler_t::replace);
+  // dumpWire writes bytes as base64, so the key depends on their content.
+  return user + ":" + type + ":" + dumpWire(canonical(props), Json::error_handler_t::replace);
 }
 std::optional<Json> ExecutionState::cached(const std::string& key) {
   Statement q(impl_->db, "SELECT value,expires FROM result_cache WHERE key=?");
@@ -97,7 +99,8 @@ std::optional<Json> ExecutionState::cached(const std::string& key) {
 }
 void ExecutionState::cache(const std::string& key, const Json& value, double ttl) {
   Statement q(impl_->db,"INSERT OR REPLACE INTO result_cache VALUES(?,?,?)");
-  q.bind(1,key); q.bind(2,value.dump());
+  // The store holds the bytes themselves, as base64 text.
+  q.bind(1,key); q.bind(2,dumpWire(value));
   if (ttl != 0) {
     if (!std::isfinite(ttl) || std::abs(ttl) > 1e12) throw std::runtime_error("Invalid cache TTL");
     q.number(3,nowMs() + static_cast<long long>(ttl * 1000));
@@ -140,7 +143,7 @@ Json ExecutionState::append(const std::string& run, const std::string& node, con
     std::string finalId = id.value_or(messageId(run,node,handle,seq));
     Statement insert(impl_->db,"INSERT OR IGNORE INTO durable_messages VALUES(?,?,?,?,?,?, 'pending',?,NULL)");
     insert.bind(1,finalId); insert.bind(2,run); insert.bind(3,node); insert.bind(4,handle);
-    insert.number(5,seq); insert.bind(6,payload.dump()); insert.number(7,nowMs()); insert.next();
+    insert.number(5,seq); insert.bind(6,dumpWire(payload)); insert.number(7,nowMs()); insert.next();
     Statement q(impl_->db,"SELECT run,node,handle,seq,payload,status FROM durable_messages WHERE id=?");
     q.bind(1,finalId); q.next();
     Json result = {{"messageId",finalId},{"runId",q.text(0)},{"nodeId",q.text(1)},

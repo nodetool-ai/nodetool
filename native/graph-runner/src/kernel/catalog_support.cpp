@@ -27,19 +27,30 @@ Json Runner::prepareInputs(const Node& node, Json inputs) { return catalog_.prep
 Json GuestCatalog::prepareInputs(const Node& node, Json inputs) {
   auto& e = guest_.engine(); auto fn = guest_.api("prepareInputs");
   if (!e.isFunction(fn)) return inputs;
-  const auto result = Json::parse(e.toString(e.call(fn,e.undefined(),{e.string(node.raw.dump()),e.string(inputs.dump())})));
+  // Only a node with typed dynamic slots reads its input values here. For
+  // any other node the guest returns the inputs as they are, so their bytes
+  // stay in the kernel: the text carries their markers out and back.
+  const auto slots = node.raw.find("dynamic_inputs");
+  const bool typed = slots != node.raw.end() && slots->is_object() && !slots->empty();
+  std::vector<Blob> blobs;
+  const std::string text = dumpTransit(inputs, blobs);
+  const GuestReply reply = Guest::reply(e, e.call(fn, e.undefined(),
+      {e.string(dumpWire(node.raw)), e.string(text), typed ? Guest::bytesOf(e, blobs) : e.undefined()}));
+  Json result = Json::parse(reply.text);
   if (!result.value("ok",false)) throw NodeError(result.value("error",std::string("Preparing dynamic inputs failed")));
-  return result.at("value");
+  Json value = std::move(result.at("value"));
+  attachBlobs(value, typed ? reply.blobs : blobs);
+  return value;
 }
 Json GuestCatalog::prepareGraph(Json graph) {
   auto& e = guest_.engine();
   auto fn = guest_.api("prepareGraph");
   if (!e.isFunction(fn)) return graph;
-  return Json::parse(e.toString(e.call(fn,e.undefined(),{e.string(graph.dump())})));
+  return Json::parse(e.toString(e.call(fn,e.undefined(),{e.string(dumpWire(graph))})));
 }
 Json GuestCatalog::prepareInnerGraph(Json graph) {
   auto& e = guest_.engine();
-  return Json::parse(e.toString(e.call(guest_.api("prepareInnerGraph"),e.undefined(),{e.string(graph.dump())})));
+  return Json::parse(e.toString(e.call(guest_.api("prepareInnerGraph"),e.undefined(),{e.string(dumpWire(graph))})));
 }
 Task<std::optional<Json>> Runner::triggerEvent(const Node& node, StreamIO& io) {
   if (!options_.triggerEvent.is_object() || options_.triggerEvent.value("node_id",std::string()) != node.id) co_return std::nullopt;
@@ -53,7 +64,7 @@ Task<std::optional<Json>> GuestCatalog::triggerEvent(const Node& node, Json even
   std::optional<Json> result;
   std::exception_ptr failure;
   try {
-    result = co_await guest_.callSettled(e.call(fn,e.undefined(),{e.string(node.id),e.string(event.dump()),e.number(id)}));
+    result = co_await guest_.callSettled(e.call(fn,e.undefined(),{e.string(node.id),e.string(dumpWire(event)),e.number(id)}));
   } catch (...) { failure = std::current_exception(); }
   guest_.unregisterIo(id);
   if (failure) std::rethrow_exception(failure);

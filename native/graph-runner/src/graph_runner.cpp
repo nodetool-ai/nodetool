@@ -415,7 +415,7 @@ void GraphRunner::Impl::work() {
     }
     auto deliver = [&job](const Json& msg) {
       try {
-        job->handler(msg.dump(-1, ' ', false, Json::error_handler_t::replace), true);
+        job->handler(dumpWire(msg, Json::error_handler_t::replace), true);
       } catch (...) {
         // A handler failure must not reach the kernel.
       }
@@ -456,8 +456,8 @@ void GraphRunner::Impl::runJob(Job& job) {
       logLine("ERROR", kLog, std::string("message boundary: ") + e.what());
     }
     try {
-      job.handler((portable ? *portable : msg).dump(-1, ' ', false, Json::error_handler_t::replace),
-                  last);
+      // A host reads bytes as tagged base64, whatever form the kernel holds.
+      job.handler(dumpWire(portable ? *portable : msg, Json::error_handler_t::replace), last);
     } catch (...) {
       // A handler failure must not reach the kernel.
     }

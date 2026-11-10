@@ -335,7 +335,8 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
           if (a.size() != 1) {
             throw std::runtime_error("canvas: font bytes required");
           }
-          auto bytes = e.toBytes(a[0]);
+          // A view: nothing below runs JavaScript.
+          const auto bytes = e.viewBytes(a[0]);
           if (bytes.empty() || bytes.size() > 16 * 1024 * 1024 || fonts->descriptors.size() >= 64 ||
               fonts->byteCount + bytes.size() > 64 * 1024 * 1024) {
             throw std::runtime_error("canvas: font budget exceeded");
@@ -373,8 +374,11 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
         auto s = std::make_shared<Surface>(dimension(e.toNumber(a[0])), dimension(e.toNumber(a[1])),
                                            budget);
         auto out = e.object();
-        e.set(out, "pixels", e.function("pixels", 0, [s](js::Engine& e, const auto&) {
+        // Synchronous, as getImageData needs. Inside a run the snapshot
+        // reaches JavaScript without a copy.
+        e.set(out, "pixels", e.function("pixels", 0, [s, binding](js::Engine& e, const auto&) {
           auto rgba = straightRgba(*s);
+          if (AsyncRun* run = binding->run()) return run->adoptBytes(std::move(rgba));
           return e.bytes(rgba.data(), rgba.size());
         }));
         // The pixels are copied here, on the worker that owns the surface,

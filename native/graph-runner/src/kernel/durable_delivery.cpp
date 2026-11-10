@@ -18,12 +18,13 @@ void DurableDelivery::restore(const std::string& node, Inbox& inbox) {
   }
 }
 void DurableDelivery::put(const std::string& node, Inbox& inbox, const std::string& handle,
-                         Json data, Lineage lineage, const std::string& edge) {
+                         SharedValue data, Lineage lineage, const std::string& edge) {
   if (!state_) { inbox.put(handle,std::move(data),std::move(lineage),edge); return; }
   auto seq = ++ordinals_[{node,edge}];
   auto id = ExecutionState::messageId(run_,node,edge,seq);
   Json message = state_->append(run_,node,handle,
-    {{"data",data},{"lineage",lineageToJson(lineage)},{"edge",edge}},id);
+    // The journal holds the value itself (a copy), not a reference.
+    {{"data",*data},{"lineage",lineageToJson(lineage)},{"edge",edge}},id);
   if (message.at("status") == "consumed" || !delivered_.insert(id).second) return;
   pending_[node].push_back(id);
   inbox.put(handle,std::move(data),std::move(lineage),edge);

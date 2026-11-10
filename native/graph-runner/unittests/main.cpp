@@ -8,7 +8,10 @@
 #include "kernel/normalize.h"
 #include "kernel/runner.h"
 #include "kernel/task.h"
+#include "kernel/wire.h"
+#include "nodetool/jobs/admission.h"
 
+#include <chrono>
 #include <cstdio>
 #include <functional>
 #include <string>
@@ -198,7 +201,7 @@ Task<void> collectHandle(gr::Inbox& inbox, std::string handle, std::vector<Json>
   for (;;) {
     auto env = co_await inbox.nextInput(handle);
     if (!env) break;
-    out.push_back(env->data);
+    out.push_back(*env->data);
   }
 }
 
@@ -206,7 +209,7 @@ Task<void> collectAny(gr::Inbox& inbox, std::vector<std::string>& out) {
   for (;;) {
     auto item = co_await inbox.nextAny();
     if (!item) break;
-    out.push_back(item->first + "=" + item->second.data.dump());
+    out.push_back(item->first + "=" + item->second.data->dump());
   }
 }
 
@@ -489,6 +492,196 @@ void stalledRunIsAbandoned() {
   CHECK(messages.back()["node_name"] == "Stall");
 }
 
+// PT11: an output of 1.5 million numbers crosses a fan-out of 4 edges. The
+// source's value reaches every sink intact, and the time of the run is
+// printed: the kernel shares one value between the edges and inboxes
+// instead of copying it for each edge.
+constexpr size_t kFanOutCount = 1500000;
+
+class BigExecutor final : public gr::Executor {
+public:
+  Task<void> initialize() override { co_return; }
+  Task<void> preProcess() override { co_return; }
+  Task<void> finalize() override { co_return; }
+  Task<Json> process(Json) override {
+    Json list = Json::array();
+    list.get_ref<Json::array_t&>().reserve(kFanOutCount);
+    for (size_t i = 0; i < kFanOutCount; ++i) list.push_back(static_cast<double>(i));
+    co_return Json{{"output", std::move(list)}};
+  }
+  std::unique_ptr<gr::FrameIterator> genProcess(Json) override { return nullptr; }
+  bool hasRun() const override { return false; }
+  Task<Json> run(gr::StreamIO&) override { co_return Json::object(); }
+};
+
+// Records what reached it. Thread affinity: the test's worker thread.
+struct SinkSeen {
+  size_t calls = 0;
+  size_t intact = 0;
+};
+
+class SinkExecutor final : public gr::Executor {
+public:
+  explicit SinkExecutor(SinkSeen& seen) : seen_(seen) {}
+  Task<void> initialize() override { co_return; }
+  Task<void> preProcess() override { co_return; }
+  Task<void> finalize() override { co_return; }
+  Task<Json> process(Json inputs) override {
+    ++seen_.calls;
+    const Json& list = inputs["input"];
+    if (list.is_array() && list.size() == kFanOutCount && list[0] == 0.0 &&
+        list[kFanOutCount - 1] == static_cast<double>(kFanOutCount - 1)) {
+      ++seen_.intact;
+    }
+    co_return Json::object();
+  }
+  std::unique_ptr<gr::FrameIterator> genProcess(Json) override { return nullptr; }
+  bool hasRun() const override { return false; }
+  Task<Json> run(gr::StreamIO&) override { co_return Json::object(); }
+
+private:
+  SinkSeen& seen_;
+};
+
+class FanOutCatalog final : public gr::NodeCatalog {
+public:
+  SinkSeen seen;
+  std::optional<Json> describe(const Json&) override { return Json::object(); }
+  std::optional<Json> resolve(const std::string& type) override {
+    if (type == "test.Big") {
+      return Json{{"nodeType", type}, {"descriptorDefaults", {{"name", "Big"}}}, {"outputs", {{"output", "list"}}}};
+    }
+    if (type == "test.Sink") return Json{{"nodeType", type}, {"descriptorDefaults", {{"name", "Sink"}}}};
+    return std::nullopt;
+  }
+  Json validate(const Json&, const std::vector<std::string>&) override { return Json::array(); }
+  std::unique_ptr<gr::Executor> create(const Json& node) override {
+    if (node.value("type", std::string()) == "test.Big") return std::make_unique<BigExecutor>();
+    return std::make_unique<SinkExecutor>(seen);
+  }
+};
+
+void fanOutSharesLargeValues() {
+  FanOutCatalog catalog;
+  Json graph = Json::parse(R"({"nodes": [{"id": "big", "type": "test.Big", "data": {}}], "edges": []})");
+  for (int i = 0; i < 4; ++i) {
+    const std::string id = "sink" + std::to_string(i);
+    graph["nodes"].push_back({{"id", id}, {"type", "test.Sink"}, {"data", Json::object()}});
+    graph["edges"].push_back({{"id", "e" + std::to_string(i)}, {"source", "big"}, {"sourceHandle", "output"},
+                              {"target", id}, {"targetHandle", "input"}});
+  }
+  std::vector<std::string> failed;
+  const auto start = std::chrono::steady_clock::now();
+  {
+    gr::Runner runner(catalog, [&](const Json& m) {
+      if (m.value("status", std::string()) == "error") failed.push_back(m.dump());
+    });
+    auto task = runner.run(graph, Json::object());
+    Loop::current().run();
+    CHECK(task.done());
+  }
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+  std::fprintf(stderr, "PT11 fan-out of %zu numbers to 4 edges: %lld ms\n", kFanOutCount, static_cast<long long>(ms));
+  CHECK(failed.empty());
+  CHECK(catalog.seen.calls == 4);
+  CHECK(catalog.seen.intact == 4);
+
+  // Inboxes hold the shared value itself: two readers see one Json.
+  gr::SharedValue value(Json::array({1, 2, 3}));
+  gr::Inbox a, b;
+  a.addUpstream("in");
+  b.addUpstream("in");
+  a.put("in", value);
+  b.put("in", value);
+  auto fromA = a.drainHandle("in"), fromB = b.drainHandle("in");
+  CHECK(fromA.size() == 1 && fromB.size() == 1);
+  CHECK(&*fromA[0].data == &*fromB[0].data);
+  CHECK(*fromA[0].data == Json::array({1, 2, 3}));
+  // take() copies while another holder remains, and moves from the last.
+  Json copied = fromA[0].data.take();
+  CHECK(copied == Json::array({1, 2, 3}) && fromA[0].data->is_null());
+  value = gr::SharedValue();
+  Json moved = fromB[0].data.take();
+  CHECK(moved == Json::array({1, 2, 3}));
+}
+
+// PT13: bytes in a value are a Blob. The text a host reads holds them as
+// tagged base64, byte for byte as guest/values.mjs writes it, and the text
+// the guest reads holds markers next to the blobs.
+void bytesHaveTheirWireText() {
+  using gr::Blob;
+  using gr::BlobKind;
+  const Json plain = Json::binary(Blob({1, 2, 3}));
+  const Json value = {{"a", plain},
+                      {"b", Json::binary(Blob({4, 5, 6}, BlobKind::Buffer))},
+                      {"c", Json::binary(Blob({0, 0, 192, 63, 0, 0, 16, 192}, BlobKind::Float32Array))},
+                      {"d", Json::array({Json::binary(Blob({}, BlobKind::ArrayBuffer)), 1.0, "x\n", nullptr})},
+                      {"e", {{"k\"", Json::binary(Blob({255, 254}, BlobKind::DataView))}}},
+                      {"f", {{"n", 1}, {"list", {1, 2.5, true}}}}};
+  CHECK(gr::dumpWire(value) ==
+        R"({"a":{"__bytes__":"AQID"},"b":{"__bytes__":"BAUG","__buffer__":true},)"
+        R"("c":{"__typed__":"Float32Array","__bytes__":"AADAPwAAEMA="},)"
+        R"("d":[{"__typed__":"ArrayBuffer","__bytes__":""},1.0,"x\n",null],)"
+        R"("e":{"k\"":{"__typed__":"DataView","__bytes__":"//4="}},"f":{"n":1,"list":[1,2.5,true]}})");
+  // Without bytes the text is the one dump() gives.
+  const Json numbers = {{"n", 1.0}, {"s", "\xff"}};
+  CHECK(gr::dumpWire(numbers, Json::error_handler_t::replace) == numbers.dump(-1, ' ', false, Json::error_handler_t::replace));
+  CHECK(gr::holdsBytes(value) && !gr::holdsBytes(numbers));
+
+  // The guest text names each blob by its index, and attachBlobs is the
+  // way back.
+  std::vector<Blob> blobs;
+  const std::string transit = gr::dumpTransit(value, blobs);
+  CHECK(transit ==
+        R"({"a":{"__blob__":0},"b":{"__blob__":1,"__buffer__":true},"c":{"__typed__":"Float32Array","__blob__":2},)"
+        R"("d":[{"__typed__":"ArrayBuffer","__blob__":3},1.0,"x\n",null],)"
+        R"("e":{"k\"":{"__typed__":"DataView","__blob__":4}},"f":{"n":1,"list":[1,2.5,true]}})");
+  CHECK(blobs.size() == 5);
+  Json back = Json::parse(transit);
+  gr::attachBlobs(back, blobs);
+  CHECK(back == value);
+  CHECK(back["c"].get_binary().kind() == BlobKind::Float32Array);
+  // A copy shares the bytes.
+  CHECK(back["a"].get_binary().data() == plain.get_binary().data());
+  const Json copy = value;
+  CHECK(copy["b"].get_binary().data() == value["b"].get_binary().data());
+  // Equal bytes of another kind, or other bytes, are another value.
+  CHECK(Json::binary(Blob({1, 2, 3})) == plain);
+  CHECK(Json::binary(Blob({1, 2, 3}, BlobKind::Int8Array)) != plain);
+  CHECK(Json::binary(Blob({1, 2, 4})) != plain);
+
+  // An object that is no marker stays an object.
+  std::vector<Blob> one{Blob({9})};
+  Json lookalikes = Json::parse(R"([{"__blob__":0,"other":1},{"__blob__":5},{"__blob__":"0"},{"__typed__":"Nope","__blob__":0},{"__blob__":0}])");
+  gr::attachBlobs(lookalikes, one);
+  CHECK(lookalikes[0].is_object() && lookalikes[1].is_object() && lookalikes[2].is_object() && lookalikes[3].is_object());
+  CHECK(lookalikes[4].is_binary());
+  // A value that already has a "__blob__" key cannot use markers.
+  std::vector<Blob> none;
+  const Json clash = {{"bytes", plain}, {"user", {{"__blob__", 0}}}};
+  CHECK(gr::dumpTransit(clash, none) == R"({"bytes":{"__bytes__":"AQID"},"user":{"__blob__":0}})");
+  CHECK(none.empty());
+
+  // The charge of a blob lasts as long as its last copy.
+  auto ledger = std::make_shared<nodetool::jobs::AdmissionLedger>();
+  auto account = ledger->openRunner()->openRun();
+  {
+    nodetool::jobs::Reservation charge(account);
+    charge.reserveSnapshot(1000);
+    charge.retain();
+    Json held = Json::binary(Blob(std::vector<uint8_t>(1000, 7), BlobKind::Uint8Array, std::move(charge)));
+    CHECK(ledger->usage().bytes == 1000);
+    {
+      gr::SharedValue shared(held);
+      Json other = *shared;
+      held = nullptr;
+      CHECK(ledger->usage().bytes == 1000);
+      CHECK(other.get_binary().chargedBytes() == 1000);
+    }
+    CHECK(ledger->usage().bytes == 0);
+  }
+}
+
 // --- correlation analysis -------------------------------------------------
 
 gr::Node makeNode(std::string id, std::string type,
@@ -646,6 +839,8 @@ int main() {
       {"normalizeMovesEditorFields", normalizeMovesEditorFields},
       {"normalizePrunesEditorOnlyNodes", normalizePrunesEditorOnlyNodes},
       {"stalledRunIsAbandoned", stalledRunIsAbandoned},
+      {"fanOutSharesLargeValues", fanOutSharesLargeValues},
+      {"bytesHaveTheirWireText", bytesHaveTheirWireText},
       {"inboxEndsStreamWhenAllUpstreamsAreDone", inboxEndsStreamWhenAllUpstreamsAreDone},
       {"inboxAnyFollowsArrivalOrder", inboxAnyFollowsArrivalOrder},
       {"inboxDrainAndClose", inboxDrainAndClose},

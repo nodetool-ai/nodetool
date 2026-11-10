@@ -34,6 +34,11 @@ std::unique_ptr<nodetool::jobs::NativeJob> makePngJob(std::vector<uint8_t> rgba,
 // Resolves with a Uint8Array of the PNG.
 ResultConverter pngConverter();
 
+// Decodes encoded image `bytes` into straight RGBA.
+std::unique_ptr<nodetool::jobs::NativeJob> makeDecodeJob(std::vector<uint8_t> bytes);
+// Resolves with {rgba: Uint8Array, width, height}.
+ResultConverter decodeConverter();
+
 // Reads the size and format of the image `spec` describes in `bytes`.
 std::unique_ptr<nodetool::jobs::NativeJob> makeMetadataJob(std::vector<uint8_t> bytes, ImageSpec spec);
 // Resolves with {width, height, channels, format, hasAlpha}.
