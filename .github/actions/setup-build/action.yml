@@ -57,6 +57,7 @@ runs:
         package-manager-cache: false
 
     - name: Install system libraries
+      if: runner.os == 'Linux'
       shell: bash
       # The runner image usually ships libsecret, so a leg with no extra
       # packages skips the ~20 s `apt-get update`.
