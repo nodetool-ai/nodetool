@@ -139,7 +139,9 @@ jobs:
           CCACHE_DIR: ${{ runner.temp }}/ccache
           SAN_FLAGS: ${{ matrix.flags }}
         run: |
+          # GCC 13 stops with an internal compiler error in catalog_support.cpp.
           cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_FLAGS="$SAN_FLAGS" -DCMAKE_CXX_FLAGS="$SAN_FLAGS" \
