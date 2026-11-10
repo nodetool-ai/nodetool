@@ -1,4 +1,5 @@
 #include "nodetool/graph_runner.h"
+#include <initializer_list>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 #include <algorithm>
@@ -73,7 +74,9 @@ Json leaf(const std::string& value,bool corrected = false) {
   return {{"nodes",nodes},{"edges",edges}};
 }
 Json sub(const std::string& id,const Json& child) { return {{"id",id},{"name",id},{"type","nodetool.workflows.subgraph.Subgraph"},{"properties",{{"graph",child}}}}; }
-Json graph(Json nodes) { return {{"nodes",std::move(nodes)},{"edges",Json::array()}}; }
+// An initializer list, so graph({one}) is an array of one node on every compiler.
+// A Json parameter made Clang 18 build the object itself instead.
+Json graph(std::initializer_list<Json> nodes) { Json list=Json::array(); for (const auto& node : nodes) { list.push_back(node); } return {{"nodes",list},{"edges",Json::array()}}; }
 gr::HostOptions options(const std::filesystem::path& dir) { std::filesystem::create_directories(dir); gr::HostOptions value;value.executionStateDirectory=dir;value.durableInboxes=true;return value; }
 void repeatedAndReopened(const std::string& bundle,const std::filesystem::path& dir) {
   const auto opt = options(dir);

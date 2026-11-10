@@ -673,8 +673,9 @@ void spareContextReplacesADiscardedContext(bool withSpare) {
   gr::GraphRunner runner(bundle, options);
   CHECK(runner.waitUntilLoaded(60000));
   const double coldMs = msSince(start);
-  // Idle time for the spare load, which takes about as long as the first.
-  std::this_thread::sleep_for(std::chrono::milliseconds(int(coldMs) * 3 + 500));
+  // Idle time for the spare load, which starts after one second of idle time
+  // and takes about as long as the first.
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(coldMs) * 3 + 1500));
 
   Collector longSleep;
   runner.submit("long", "wf", graphOf("test.Sleep", 60000), "", longSleep.handler());
@@ -690,6 +691,23 @@ void spareContextReplacesADiscardedContext(bool withSpare) {
   CHECK(pending.is_object() && pending["pending"] == 0);
   CHECK(runner.contextLoads() == 2);
   if (withSpare) CHECK(nextMs < coldMs / 2);
+}
+
+// A job sent right after the first load starts before the spare load, so it
+// does not wait one more bundle load.
+void firstJobGoesBeforeTheSpareLoad() {
+  const std::string bundle = testBundle(true);
+  Clock::time_point start = Clock::now();
+  gr::GraphRunner runner(bundle);
+  CHECK(runner.waitUntilLoaded(60000));
+  const double coldMs = msSince(start);
+  start = Clock::now();
+  Json pending = pendingAfter(runner, "first-job");
+  const double firstMs = msSince(start);
+  std::fprintf(stderr, "cold load %.0f ms, first job %.0f ms\n", coldMs, firstMs);
+  CHECK(pending.is_object());
+  CHECK(firstMs < coldMs / 2);
+  CHECK(runner.contextLoads() == 1);
 }
 
 void teardownDuringATimerWait() {
@@ -752,6 +770,7 @@ int main(int argc, char** argv) {
   tests.push_back({"cancelReachesAbortListenerWithoutPoll", [] { cancelReachesAbortListenerWithoutPoll(); }});
   tests.push_back({"spareContextReplacesADiscardedContext (without)", [] { spareContextReplacesADiscardedContext(false); }});
   tests.push_back({"spareContextReplacesADiscardedContext (with)", [] { spareContextReplacesADiscardedContext(true); }});
+  tests.push_back({"firstJobGoesBeforeTheSpareLoad", [] { firstJobGoesBeforeTheSpareLoad(); }});
   tests.push_back({"teardownDuringATimerWait", teardownDuringATimerWait});
   for (const auto& [name, fn] : tests) {
     int before = failures;

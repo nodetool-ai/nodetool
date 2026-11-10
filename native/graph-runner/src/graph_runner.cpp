@@ -78,6 +78,10 @@ std::shared_ptr<nodetool::jobs::RunnerAccount> openRunnerAccount(const HostOptio
 // A cancelled run gets this long to unwind before running JavaScript is
 // interrupted. Cancellation normally lands at the next kernel step.
 constexpr auto kCancelGrace = std::chrono::milliseconds(500);
+// A spare context loads only after the queue stays empty this long. A job
+// sent right after a load or a run then starts at once instead of waiting
+// for the whole spare load.
+constexpr auto kSpareIdleDelay = std::chrono::milliseconds(1000);
 // Types the guest has but the kernel rejects (README: what A1 does not
 // support). Controlled node classes are excluded at load time.
 const std::set<std::string> kRejectedTypes = {};
@@ -396,8 +400,8 @@ void GraphRunner::Impl::work() {
     std::string unavailable;
     {
       std::unique_lock lock(mutex);
-      const bool idle = queue.empty() && !stopping && context && !spare && options.spareContext;
-      if (idle) {
+      const auto wantsSpare = [this] { return queue.empty() && !stopping && context && !spare && options.spareContext; };
+      if (wantsSpare() && !changed.wait_for(lock, kSpareIdleDelay, [this] { return stopping || !queue.empty(); })) {
         lock.unlock();
         load(true);
         lock.lock();

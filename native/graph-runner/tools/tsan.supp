@@ -1,0 +1,3 @@
+# Wasmtime is prebuilt Rust without TSan instrumentation, so TSan cannot see
+# the locks of its Cranelift compile threads and reports races between them.
+called_from_lib:libwasmtime.so

@@ -19,7 +19,15 @@ int main(int argc,char** argv) {
     }
     std::lock_guard lock(mutex);messages.push_back(message); if(last){done=true;cv.notify_all();}
   },argc > 3 ? argv[3] : "");
-  { std::unique_lock lock(mutex);if(!cv.wait_for(lock,std::chrono::seconds(15),[&]{return done;})){runner.cancel("job");std::cerr<<"run timeout\n";return 1;} }
+  {
+    std::unique_lock lock(mutex);
+    if(!cv.wait_for(lock,std::chrono::seconds(15),[&]{return done;})) {
+      // The handler refers to this stack frame, so wait for its last message.
+      lock.unlock();runner.cancel("job");lock.lock();
+      cv.wait(lock,[&]{return done;});
+      std::cerr<<"run timeout\n";return 1;
+    }
+  }
   for (const auto& message:messages) std::cout<<message<<'\n';
   if(messages.empty())return 1;
   return nlohmann::json::parse(messages.back()).value("status","") == (argc > 4 ? "cancelled" : "completed") ? 0 : 1;

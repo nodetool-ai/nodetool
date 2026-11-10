@@ -49,6 +49,12 @@ FetchContent_Declare(sqlite_vec
   EXCLUDE_FROM_ALL)
 
 FetchContent_MakeAvailable(quickjs nlohmann_json sqlite_amalgamation sqlite_vec)
+# QuickJS-ng casts js_realloc to DynBufReallocFunc*. The cast is safe on every
+# supported ABI, but Clang's -fsanitize=function aborts on the call. The check
+# stays on for the project's own code.
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  target_compile_options(qjs PRIVATE -fno-sanitize=function)
+endif()
 
 # SQLite with better-sqlite3's compile options (deps/defines.gypi), so
 # queries behave as on the server, minus its SQLITE_OMIT_* options, which the

@@ -1,9 +1,11 @@
 # Optional system rasterizer. No network fetch, native addon or child process.
-# Tested system versions are recorded by the G4 focused-test report.
+# The floor is the oldest release with every call canvas.cpp makes:
+# pango_color_parse_with_alpha needs Pango 1.46. Cairo 1.16 and Fontconfig
+# 2.13 are far above the calls used. Ubuntu 24.04 meets all three.
 find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
   pkg_check_modules(GR_CANVAS QUIET IMPORTED_TARGET
-    cairo>=1.18.6 pangocairo>=1.58.2 pangoft2>=1.58.2 fontconfig>=2.17)
+    cairo>=1.16 pangocairo>=1.46 pangoft2>=1.46 fontconfig>=2.13)
 endif()
 target_sources(gr_kernel PRIVATE src/host/canvas.cpp)
 if(GR_CANVAS_FOUND)

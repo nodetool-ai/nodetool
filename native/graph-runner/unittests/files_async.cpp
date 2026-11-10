@@ -27,6 +27,16 @@
 #include "nodetool/jobs/admission.h"
 #include "resource_test_support.h"
 
+// The sanitizer runtimes replace malloc, so glibc's mallinfo2 sees no heap.
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+#define GR_SANITIZED_ALLOCATOR 1
+#endif
+#endif
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+#define GR_SANITIZED_ALLOCATOR 1
+#endif
+
 #include <arpa/inet.h>
 #if defined(__linux__)
 #include <malloc.h>
@@ -482,8 +492,8 @@ void removalMemoryIsBounded(Suite& t) {
   CHECK(!fs::exists(h.dir.path("ws/again")));
 #if !defined(__linux__)
   std::fprintf(stderr, "  note: the peak heap check needs glibc's mallinfo2 and is skipped here\n");
-#elif defined(__SANITIZE_THREAD__)
-  std::fprintf(stderr, "  note: the peak heap check is skipped under ThreadSanitizer\n");
+#elif defined(GR_SANITIZED_ALLOCATOR)
+  std::fprintf(stderr, "  note: the sanitizer allocator hides the heap from mallinfo2, so the peak heap check is skipped\n");
 #else
   CHECK(probe->peak > 0);
   CHECK(probe->peak <= probe->reserved);
@@ -837,12 +847,13 @@ int childWriter(const std::string& assetDir, const std::string& key, char byte, 
   auto engine = js::createQuickJsEngine();
   gr::HostOptions options;
   options.assetDir = assetDir;
-  js::Value host = engine->object(), assets = engine->object();
-  gr::host::installAssets(*engine, assets, options);
-  engine->set(host, "assets", assets);
-  engine->set(engine->global(), "__host", host);
   int failures = 0;
   {
+    // The values must be released before the engine that owns them.
+    js::Value host = engine->object(), assets = engine->object();
+    gr::host::installAssets(*engine, assets, options);
+    engine->set(host, "assets", assets);
+    engine->set(engine->global(), "__host", host);
     BoundRun run(*engine, io, nullptr, ledger->openRunner()->openRun());
     engine->evaluateScript("globalThis.done = false; globalThis.failed = 0; (async () => { for (let i = 0; i < " +
                                std::to_string(count) + "; i++) { try { await __host.assets.writeAsync('" + key +

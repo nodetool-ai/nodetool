@@ -60,6 +60,12 @@ jobs:
           - name: TSan
             flags: "-fsanitize=thread"
             build_type: RelWithDebInfo
+    # Job level, so the runner's compile step in "Build guest bundle and shader
+    # catalog" gets the same options as the tests.
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:suppressions=${{ github.workspace }}/native/graph-runner/tools/tsan.supp
     defaults:
       run:
         shell: bash
@@ -163,8 +169,4 @@ jobs:
 
       - name: Test
         working-directory: native/graph-runner
-        env:
-          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
-          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
         run: ctest --test-dir build --output-on-failure --timeout 900

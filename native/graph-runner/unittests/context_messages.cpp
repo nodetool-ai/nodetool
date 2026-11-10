@@ -24,11 +24,16 @@ struct Messages {
       }
     };
   }
-  void wait() {
+  // On a timeout the job is cancelled and its last message awaited, so the
+  // runner never calls the handler after these rows are destroyed.
+  void wait(gr::GraphRunner &runner, const std::string &job) {
     std::unique_lock lock(mutex);
-    if (!changed.wait_for(lock, std::chrono::seconds(20),
-                          [&] { return finished; }))
-      throw std::runtime_error("Public job did not terminate");
+    if (changed.wait_for(lock, std::chrono::seconds(20), [&] { return finished; })) return;
+    lock.unlock();
+    runner.cancel(job);
+    lock.lock();
+    changed.wait(lock, [&] { return finished; });
+    throw std::runtime_error("Public job did not terminate");
   }
   bool completed(const std::string &job) {
     for (const auto &[row, last] : rows)
@@ -75,25 +80,25 @@ int main(int argc, char **argv) {
     awaitStartup(runner);
     Messages first;
     runner.submit("first", "workflow", graph("first"), "{}", first.handler());
-    first.wait();
+    first.wait(runner, "first");
     if (!first.completed("first"))
       throw std::runtime_error("Observer exception changed first job outcome");
     Messages second;
     runner.submit("second", "workflow", graph("second"), "{}",
                   second.handler());
-    second.wait();
+    second.wait(runner, "second");
     if (!second.completed("second"))
       throw std::runtime_error("Per-run call budget leaked into second job");
     Messages exceeded;
     runner.submit("exceeded", "workflow", graph("exceeded", 2), "{}",
                   exceeded.handler());
-    exceeded.wait();
+    exceeded.wait(runner, "exceeded");
     if (!exceeded.completed("exceeded"))
       throw std::runtime_error("Messages were charged to the context call budget");
     Messages recovered;
     runner.submit("recovered", "workflow", graph("recovered"), "{}",
                   recovered.handler());
-    recovered.wait();
+    recovered.wait(runner, "recovered");
     if (!recovered.completed("recovered"))
       throw std::runtime_error("Failed job poisoned later budget");
     for (auto *batch : {&first, &second, &recovered}) {
@@ -125,7 +130,7 @@ int main(int argc, char **argv) {
     Messages spoofed;
     spoofRunner.submit("real", "workflow", graph("real", 1, true), "{}",
                        spoofed.handler());
-    spoofed.wait();
+    spoofed.wait(spoofRunner, "real");
     if (!spoofed.completed("real"))
       throw std::runtime_error("Node terminal-shaped message ended real job");
     bool seen = false;
@@ -139,13 +144,13 @@ int main(int argc, char **argv) {
     Messages many;
     spoofRunner.submit("many", "workflow", graph("many", 20000), "{}",
                        many.handler());
-    many.wait();
+    many.wait(spoofRunner, "many");
     if (!many.completed("many"))
       throw std::runtime_error("20000 messages failed the node");
     Messages large;
     spoofRunner.submit("large", "workflow", graph("large", 1, false, 2 << 20),
                        "{}", large.handler());
-    large.wait();
+    large.wait(spoofRunner, "large");
     if (!large.completed("large"))
       throw std::runtime_error("A 2 MiB message failed the node");
     if (!seen || observerCalls != 5)
@@ -198,7 +203,7 @@ int main(int argc, char **argv) {
       envGraph["nodes"][0]["properties"]["environment"] = true;
       Messages batch;
       codeRunner.submit(id, "workflow", envGraph.dump(), "{}", batch.handler());
-      batch.wait();
+      batch.wait(codeRunner, id);
       if (!batch.completed(id))
         throw std::runtime_error(
             "Per-job granted environment was not reset and applied");
@@ -209,7 +214,7 @@ int main(int argc, char **argv) {
     Messages codeResult;
     codeRunner.submit("public-code", "workflow", codeGraph.dump(), "{}",
                       codeResult.handler());
-    codeResult.wait();
+    codeResult.wait(codeRunner, "public-code");
     if (!codeResult.completed("public-code") || toolCalls != 1 ||
         modelCalls != 1 || permissions != 1) {
       for (const auto &[row, last] : codeResult.rows)
@@ -223,7 +228,7 @@ int main(int argc, char **argv) {
     Messages deniedResult;
     codeRunner.submit("ungranted", "workflow", deniedGraph.dump(), "{}",
                       deniedResult.handler());
-    deniedResult.wait();
+    deniedResult.wait(codeRunner, "ungranted");
     if (deniedResult.completed("ungranted") || toolCalls != 1 ||
         modelCalls != 1 || permissions != 1)
       throw std::runtime_error("Missing public module grant was accepted");
