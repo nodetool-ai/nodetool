@@ -1418,6 +1418,9 @@ one input, and nothing more.
 
 ## 16. Delivery plan
 
+The [implementation plan](graph-runner-realtime-issues.md) splits these phases
+into work packages, one GitHub issue each, with one milestone for each phase.
+
 | Phase | Work | Exit evidence |
 |---|---|---|
 | P0 | A spike outside the product on macOS. One shader chain on a wgpu surface in a Qt container window. One audio chain on the buffered driver. A synced param and one plan swap each second, with state that follows the node. A batch GPU workload on the shared device. One built-in kernel as WebAssembly in an AudioWorklet. A deliberate worker stall | Recorded frame interval statistics. The audio measures of section 13 for each load profile. The offset between sound and picture for a synced change, from a camera and a microphone. Frame misses with the gate, without it and with a second device. Pipeline creation times. Equal bytes from the native and the browser kernel |
