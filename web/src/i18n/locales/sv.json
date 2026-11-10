@@ -12777,7 +12777,6 @@
       "debuggingNotice": "Chrome visar fältet \"Nodetool felsöker den här webbläsaren\" medan en begäran körs. Tillägget gör ingenting på andra flikar.",
       "setup": "Ställ in det",
       "step1": "Låt Chrome starta NodeTools webbläsarbrygga.",
-      "windowsUnsupported": "Detta stöds inte på Windows ännu. Mediegenerering genom tillägget fungerar på macOS och Linux.",
       "bridgeRegistered": "Klart. NodeTool registrerade sin brygga med dina webbläsare.",
       "registering": "Registrerar med dina webbläsare...",
       "registrationFailed": "Registrering av webbläsarbryggan misslyckades",

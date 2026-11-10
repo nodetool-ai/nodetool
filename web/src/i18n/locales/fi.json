@@ -12777,7 +12777,6 @@
       "debuggingNotice": "Chrome näyttää pyynnön aikana palkin ”Nodetool is debugging this browser”. Laajennus ei tee mitään muilla välilehdillä.",
       "setup": "Ota käyttöön",
       "step1": "Anna Chromen käynnistää NodeToolin selainsilta.",
-      "windowsUnsupported": "Tätä ei vielä tueta Windowsissa. Median generointi laajennuksen kautta toimii macOS:ssä ja Linuxissa.",
       "bridgeRegistered": "Valmis. NodeTool rekisteröi siltansa selaimiisi.",
       "registering": "Rekisteröidään selaimiin…",
       "registrationFailed": "Selainsillan rekisteröinti epäonnistui",

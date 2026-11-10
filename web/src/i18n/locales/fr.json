@@ -12976,7 +12976,6 @@
       "debuggingNotice": "Chrome affiche une barre « Nodetool débogue ce navigateur » pendant l'exécution d'une requête. L'extension ne fait rien sur les autres onglets.",
       "setup": "Configurez-le",
       "step1": "Laissez Chrome démarrer le pont de navigateur de NodeTool.",
-      "windowsUnsupported": "Ceci n'est pas encore pris en charge sous Windows. La génération de médias via l'extension fonctionne sur macOS et Linux.",
       "bridgeRegistered": "Terminé. NodeTool a enregistré son pont auprès de vos navigateurs.",
       "registering": "Inscription avec vos navigateurs…",
       "registrationFailed": "L'enregistrement du pont de navigateur a échoué",

@@ -12777,7 +12777,6 @@
       "debuggingNotice": "Chrome toont de balk 'Nodetool debugt deze browser' terwijl een verzoek wordt uitgevoerd. De extensie doet niets op andere tabbladen.",
       "setup": "Stel het in",
       "step1": "Laat Chrome de browserbrug van NodeTool starten.",
-      "windowsUnsupported": "Dit wordt nog niet ondersteund op Windows. Mediageneratie via de extensie werkt op macOS en Linux.",
       "bridgeRegistered": "Klaar. NodeTool registreerde zijn bridge bij uw browsers.",
       "registering": "Registreren met uw browser…",
       "registrationFailed": "Registratie via browserbridge is mislukt",

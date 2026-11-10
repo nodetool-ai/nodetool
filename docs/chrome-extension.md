@@ -29,7 +29,7 @@ The chat panel talks to a NodeTool server. The backend and the CLI reach the CDP
 
 ## Installing
 
-On a local install, the first launch with no API key stored opens a two-step onboarding. It signs in to ChatGPT and Claude, then sets up the extension with a live connection status. The app registers the native host itself, and the desktop app points Load unpacked at the extension folder it ships, so no terminal step is needed. **Settings → Browser Extension** has the same **Connect to Chrome** button. ChatGPT image generation and every Gemini request (chat, images, Veo video) run through the extension.
+On a local install, the first launch with no API key stored opens a two-step onboarding. It signs in to ChatGPT and Claude, then sets up the extension with a live connection status. The app registers the native host itself, and the desktop app points Load unpacked at the extension folder it ships, so no terminal step is needed. **Settings → Integrations → Browser extension** has the same **Connect to Chrome** button. ChatGPT image generation and every Gemini request (chat, images, Veo video) run through the extension.
 
 ```bash
 git clone https://github.com/nodetool-ai/nodetool.git
@@ -132,7 +132,7 @@ Sites such as Midjourney, Sora, Runway, and ElevenLabs often block headless Chro
 
 1. **Install** the extension (see [Installing](#installing) above) and pin it to your toolbar.
 2. **Sign in** to the target site (e.g. Midjourney) in a normal Chrome tab, as you would manually.
-3. **Register the native host once**: click **Connect to Chrome** in the app (onboarding or **Settings → Browser Extension**), or run `nodetool extension install`. Then reload the extension in `chrome://extensions`. Check it with `nodetool extension status`. No server needs to run.
+3. **Register the native host once**: click **Connect to Chrome** in the app (onboarding or **Settings → Integrations → Browser extension**), or run `nodetool extension install`. Then reload the extension in `chrome://extensions`. Check it with `nodetool extension status`. No server needs to run.
 4. **Open the extension popup** on the signed-in tab and click **Attach to this tab**. Chrome shows its standard "Nodetool is debugging this browser" banner while attached.
 5. **Ask the agent**, run a workflow, or call a provider such as `nodetool generate dreamina …`. The `browser_*` tools drive the attached tab — `browser_status` first to confirm the extension is connected, then `browser_restart` with `transport: "extension"` if the process is still on its headless Chrome (or set `NODETOOL_BROWSER_TRANSPORT=extension` before starting it — see [Transport selection](#transport-selection)).
 6. **Run it**. The action loop drives your attached tab: it types the prompt, submits the form, waits for the result, and captures a screenshot or the generated asset into your library.
@@ -149,9 +149,22 @@ nodetool generate dreamina high_aes_general_v50p_large "a red apple" --aspect-ra
 
 Images go through `textToImage` and `imageToImage`. Image-to-image uses the site's blend mode, takes up to nine source images and a `strength` from 0 to 1, and works on models that list `byte_edit`. Video goes through the provider API: `textToVideo` for every model Dreamina lists, `imageToVideo` for models that list `first_frame` (the image is the first frame, and `endImage` is the last frame on models that list `end_frame`), and `referenceToVideo` for the Seedance 2.x models (up to nine reference images, three reference videos and three reference audios, placed in the prompt with `[Image N]`, `[Video N]` and `[Audio N]` markers). A reference audio needs an image or video beside it. Multiframes, smart edit and long video are not supported. Music goes through `textToMusic`. The `instrumental` model needs no model key and returns a WAV track (44.1 kHz stereo) of the length you ask for in whole seconds, 10 seconds by default. Vocal models, with optional lyrics, appear in `getAvailableMusicModels` only when your Dreamina account lists them. The calls spend your Dreamina credits.
 
+### Windows setup
+
+Settings → Integrations → Browser extension registers the host for the current
+Windows user. It detects Chrome, Chromium, Brave and Edge profiles under
+`LOCALAPPDATA`, writes a manifest for each browser, and registers it under that
+browser's `HKCU\Software\…\NativeMessagingHosts\ai.nodetool.browser_bridge`
+key in both registry views. Administrator rights are not required.
+
+The launcher in `~/.nodetool/browser-bridge/native-host.cmd` pins the Node
+executable and host script. Run setup again if either moves. Installation status
+checks the registry entries, manifest, launcher and target files. Loading the
+extension unpacked in Chrome remains a separate step.
+
 ### The native host
 
-Chrome starts the host when the extension connects and ends it when the connection closes. It listens on a per-user unix socket (`<tmp>/nodetool-browser-bridge-<user>/<pid>.sock`, mode 0600 in a 0700 directory), so only your OS user reaches the extension. Several clients can share one extension: the host rewrites command ids per client, sends events to all, and keeps the debugger attached until the last client lets go. `nodetool extension install` writes the host manifest for Chrome, Chromium, Brave, Edge and Arc. The extension ID is fixed by the `key` in `chrome-extension/manifest.json`.
+Chrome starts the host when the extension connects and ends it when the connection closes. On macOS and Linux, it listens on a per-user unix socket (`<tmp>/nodetool-browser-bridge-<user>/<pid>.sock`, mode 0600 in a 0700 directory), so only your OS user reaches the extension. On Windows it uses a named pipe instead. Several clients can share one extension: the host rewrites command ids per client, sends events to all, and keeps the debugger attached until the last client lets go. `nodetool extension install` writes the host manifest for Chrome, Chromium, Brave, Edge and Arc. The extension ID is fixed by the `key` in `chrome-extension/manifest.json`.
 
 ### How it works
 
@@ -159,7 +172,7 @@ The extension has no CDP logic. Browser-automation semantics (element selection,
 
 ```
 NodeTool backend / CLI / provider
-        │  CDP commands/events, NDJSON on a unix socket
+        │  CDP commands/events, NDJSON on a unix socket or Windows named pipe
         ▼
    native host  (started by Chrome)
         │  native messaging, length-prefixed JSON

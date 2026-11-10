@@ -14,9 +14,8 @@ import { parseExtensionFrame, type ExtensionFrame, type ExtensionHostToExtFrame 
 /** Overrides socket discovery with an explicit path. */
 const SOCKET_ENV = "NODETOOL_BROWSER_BRIDGE_SOCKET";
 
-export const BRIDGE_UNAVAILABLE_MESSAGE = process.platform === "win32"
-  ? "The NodeTool browser extension is not connected. Automatic browser-bridge installation is not supported on Windows yet. See Settings → Integrations → Browser extension for setup information."
-  : "The NodeTool browser extension is not connected. Set it up in Settings → Integrations → Browser extension:\n" +
+export const BRIDGE_UNAVAILABLE_MESSAGE =
+  "The NodeTool browser extension is not connected. Set it up in Settings → Integrations → Browser extension:\n" +
     "1. Click Connect to Chrome.\n" +
     "2. Download and unzip the extension, or reveal its bundled folder.\n" +
     "3. Open chrome://extensions, enable Developer mode, and choose Load unpacked. Select the extension folder.\n" +

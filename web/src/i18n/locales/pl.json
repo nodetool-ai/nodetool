@@ -13175,7 +13175,6 @@
       "debuggingNotice": "Podczas wykonywania żądania Chrome wyświetla pasek „Nodetool debuguje tę przeglądarkę”. Rozszerzenie nie robi nic na innych kartach.",
       "setup": "Skonfiguruj to",
       "step1": "Pozwól Chrome uruchomić mostek przeglądarki NodeTool.",
-      "windowsUnsupported": "Nie jest to jeszcze obsługiwane w systemie Windows. Generowanie multimediów za pomocą rozszerzenia działa na systemach macOS i Linux.",
       "bridgeRegistered": "Gotowe. NodeTool zarejestrował swój most w Twoich przeglądarkach.",
       "registering": "Rejestrowanie się w przeglądarkach…",
       "registrationFailed": "Rejestracja mostu przeglądarki nie powiodła się",

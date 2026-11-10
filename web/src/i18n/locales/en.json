@@ -12777,7 +12777,6 @@
       "debuggingNotice": "Chrome shows a “Nodetool is debugging this browser” bar while a request runs. The extension does nothing on other tabs.",
       "setup": "Set it up here or in Settings → Integrations → Browser extension",
       "step1": "Let Chrome start NodeTool's browser bridge.",
-      "windowsUnsupported": "This is not supported on Windows yet. Media generation through the extension works on macOS and Linux.",
       "bridgeRegistered": "Done. NodeTool registered its bridge with your browsers.",
       "registering": "Registering with your browsers…",
       "registrationFailed": "Browser bridge registration failed",
