@@ -16,6 +16,7 @@ const CLOUD = [
   "api_route",
   "runcrate",
   "standardcompute",
+  "uberllm",
   "fal_ai",
   "kie",
   "replicate",

@@ -596,6 +596,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.standardcompute.com"
   },
   {
+    key: "UBERLLM_API_KEY",
+    providerId: PROVIDER_IDS.UBERLLM,
+    name: "UberLLM",
+    description: "Chat and image models on one key through an OpenAI-compatible gateway.",
+    section: "gateways",
+    docsUrl: "https://uberllm.dev/docs"
+  },
+  {
     key: "SERPAPI_API_KEY",
     name: "SerpAPI",
     description: "Web search via SerpAPI.",

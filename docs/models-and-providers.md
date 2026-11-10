@@ -60,6 +60,7 @@ Add a key in **Settings → Models & Providers** and that provider's models appe
 | Cheaper Inference | Claude, GPT, Gemini, DeepSeek and more through one OpenAI-compatible gateway |
 | Runcrate | DeepSeek, Qwen, GLM, Kimi, gpt-oss and more open-weight models through one OpenAI-compatible API |
 | Standard Compute | Open and frontier chat models through one OpenAI-compatible gateway, with a routed `StandardCompute` model |
+| UberLLM | Claude, GPT, Gemini, DeepSeek, Qwen and more chat models, plus FLUX, Seedream, Qwen Image and other image models, through one OpenAI-compatible key |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
 | kie.ai | GPT, Claude, Grok, Kimi, DeepSeek, and Gemini models through its chat gateway |

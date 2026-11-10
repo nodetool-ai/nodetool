@@ -59,6 +59,7 @@ import { CheaperInferenceProvider } from "./cheaperinference-provider.js";
 import { APIRouteProvider } from "./api-route-provider.js";
 import { RuncrateProvider } from "./runcrate-provider.js";
 import { StandardComputeProvider } from "./standardcompute-provider.js";
+import { UberLLMProvider } from "./uberllm-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
   ALIBABA_DEFAULT_BASE_URL,
@@ -322,6 +323,7 @@ export { CheaperInferenceProvider };
 export { APIRouteProvider };
 export { RuncrateProvider };
 export { StandardComputeProvider };
+export { UberLLMProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
 export { CerebrasProvider };
@@ -721,6 +723,9 @@ registerBuiltinProvider(PROVIDER_IDS.RUNCRATE, RuncrateProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.STANDARD_COMPUTE, StandardComputeProvider, {
   STANDARDCOMPUTE_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.UBERLLM, UberLLMProvider, {
+  UBERLLM_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""

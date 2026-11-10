@@ -9068,6 +9068,10 @@
           "button": "Verkrijg de Standard Compute API-sleutel",
           "tooltip": "Ga naar het Standard Compute-platform om uw API-sleutel op te halen"
         },
+        "UBERLLM_API_KEY": {
+          "button": "Verkrijg de UberLLM API-sleutel",
+          "tooltip": "Ga naar het UberLLM-platform om uw API-sleutel op te halen"
+        },
         "API_ROUTE_API_KEY": {
           "button": "API-routesleutel ophalen",
           "tooltip": "Ga naar de pagina API Route API-sleutels"

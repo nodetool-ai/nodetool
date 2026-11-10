@@ -9072,6 +9072,10 @@
           "button": "Get Standard Compute API key",
           "tooltip": "Go to Standard Compute API keys page"
         },
+        "UBERLLM_API_KEY": {
+          "button": "Get UberLLM API key",
+          "tooltip": "Go to UberLLM API keys page"
+        },
         "HF_TOKEN": {
           "button": "Get Hugging Face token",
           "tooltip": "Go to Hugging Face tokens page"

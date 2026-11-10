@@ -204,6 +204,7 @@ describe("cloud provider + pack allowlists", () => {
       "api_route",
       "runcrate",
       "standardcompute",
+      "uberllm",
       "fal_ai",
       "kie",
       "replicate",

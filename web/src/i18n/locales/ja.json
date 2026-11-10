@@ -9068,6 +9068,10 @@
           "button": "Standard Compute API キーを取得する",
           "tooltip": "Standard Compute プラットフォームに移動して API キーを取得します"
         },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API キーを取得する",
+          "tooltip": "UberLLM プラットフォームに移動して API キーを取得します"
+        },
         "API_ROUTE_API_KEY": {
           "button": "APIルートキーの取得",
           "tooltip": "API ルートの API キー ページに移動する"
