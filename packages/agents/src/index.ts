@@ -116,6 +116,7 @@ export {
   capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,
+  surfaceServerTools,
   contextSecretAvailability,
   capabilityProviderTool,
   resolveCapabilityMessage,

@@ -63,6 +63,7 @@ export {
   ungatedCapabilityRun
 } from "./invoke.js";
 export type { CreateCapabilityRunOptions } from "./invoke.js";
+export { surfaceServerTools } from "./surface-tools.js";
 export { gateFromContext } from "./gate-from-context.js";
 export {
   VIDEO_PRODUCTION_SCHEMA_VERSION,

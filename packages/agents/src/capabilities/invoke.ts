@@ -126,6 +126,12 @@ export interface CreateCapabilityRunOptions {
    * host can also override one.
    */
   capabilities?: Iterable<CapabilityExport>;
+  /**
+   * The only capability names this run serves, when the host limits them
+   * (`surfaceServerTools`). `invoke` refuses every other name, so a sandbox
+   * import cannot reach a capability the belt left out.
+   */
+  allowedNames?: ReadonlySet<string>;
 }
 
 /** Build a run whose `invoke` runs the gate before every implementation. */
@@ -158,6 +164,9 @@ export function createCapabilityRun(
     workflowEnvironment: options.workflowEnvironment,
     loaders: options.loaders,
     invoke: async (name, args) => {
+      if (options.allowedNames && !options.allowedNames.has(name)) {
+        throw new Error(`"${name}" is not available in this assistant`);
+      }
       const entry =
         local.get(name) ??
         (capabilitySpec(name) ? capabilityForName(name) : undefined);

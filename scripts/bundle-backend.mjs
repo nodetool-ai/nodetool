@@ -6,7 +6,12 @@
  * the staged native/optional packages differ per profile.
  *
  * Usage:
- *   node scripts/bundle-backend.mjs [--out <dir>] [--profile desktop|server]
+ *   node scripts/bundle-backend.mjs [--out <dir>] [--profile desktop|server|timeline]
+ *
+ * The timeline profile is the desktop profile without Dawn (webgpu) and
+ * node-web-audio-api. The NodeTool Timeline app renders and mixes in C++, and
+ * its assistant gets no server tools that load either package. Both load
+ * lazily, so the server starts without them.
  *                                   [--with-migrate]
  *
  * Defaults preserve the Electron flow: --out electron/backend-bundle,
@@ -94,9 +99,9 @@ function parseArgs(argv) {
       throw new Error(`Unknown argument: ${arg}`);
     }
   }
-  if (opts.profile !== "desktop" && opts.profile !== "server") {
+  if (!["desktop", "server", "timeline"].includes(opts.profile)) {
     throw new Error(
-      `--profile must be "desktop" or "server", got: ${opts.profile}`
+      `--profile must be "desktop", "server" or "timeline", got: ${opts.profile}`
     );
   }
   return opts;
@@ -114,6 +119,9 @@ const PROFILE = OPTIONS.profile;
 // webgpu (Dawn) is on this list for every profile: the server renders
 // timelines through the same GPU compositor the editor previews with, on
 // lavapipe in the container (D9, docs/plans/motion-graphics.md).
+// Packages the timeline profile does not stage.
+const TIMELINE_OMITTED_PACKAGES = new Set(["webgpu", "node-web-audio-api"]);
+
 const REQUIRED_EXTERNAL_PACKAGES = [
   "@opentelemetry/api",
   "sharp",
@@ -124,7 +132,7 @@ const REQUIRED_EXTERNAL_PACKAGES = [
   "node-av",
   "webgpu",
   "esbuild",
-];
+].filter((pkg) => PROFILE !== "timeline" || !TIMELINE_OMITTED_PACKAGES.has(pkg));
 
 // Staged into _modules/ on every profile.
 const COMMON_EXTERNAL_PACKAGES = [
@@ -258,9 +266,11 @@ const SERVER_OPTIONAL_PACKAGES = [
 ];
 
 const EXTERNAL_PACKAGES =
-  PROFILE === "desktop"
-    ? [...COMMON_EXTERNAL_PACKAGES, ...DESKTOP_ONLY_EXTERNAL_PACKAGES]
-    : COMMON_EXTERNAL_PACKAGES;
+  PROFILE === "server"
+    ? COMMON_EXTERNAL_PACKAGES
+    : [...COMMON_EXTERNAL_PACKAGES, ...DESKTOP_ONLY_EXTERNAL_PACKAGES].filter(
+        (pkg) => PROFILE !== "timeline" || !TIMELINE_OMITTED_PACKAGES.has(pkg)
+      );
 
 // Packages that esbuild should treat as external (to avoid bundling .node binaries)
 // but that should NOT be copied to _modules/ — they are loaded optionally at runtime
@@ -1615,7 +1625,7 @@ async function main() {
   // regression fails the build here instead of silently shipping an app with
   // empty model lists.
   console.log("\nVerifying staged bundle layout...");
-  for (const line of verifyBackendBundle(BUNDLE_DIR)) {
+  for (const line of verifyBackendBundle(BUNDLE_DIR, { requireWebgpu: PROFILE !== "timeline" })) {
     console.log(`  ${line}`);
   }
 
