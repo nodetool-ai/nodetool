@@ -104,7 +104,7 @@ describe("schema", () => {
 // The native port reads this fixture (tst_effectmasks). Regenerate with
 // UPDATE_EFFECT_MASK_FIXTURE=1 after an intended change to the coverage math.
 it("matches the coverage fixture shared with the native renderer", () => {
-  const path = fileURLToPath(new URL("../../../native/timeline/src/preview/effects/fixtures/effect-mask-coverage.json", import.meta.url));
+  const path = fileURLToPath(new URL("../../../native/timeline/src/preview/effects/fixtures/coverage/effect-mask-coverage.json", import.meta.url));
   const masks: EffectMask[] = [
     { id: "e", shape: "ellipse", vertices: ellipseMaskVertices(0.4, 0.5, 0.3, 0.35), feather: 0.15, opacity: 0.9 },
     { id: "p", shape: "polygon", vertices: [{ x: 0.5, y: 0.1 }, { x: 0.95, y: 0.4 }, { x: 0.7, y: 0.9 }], feather: 0.05, mode: "subtract", expansion: 0.02 },

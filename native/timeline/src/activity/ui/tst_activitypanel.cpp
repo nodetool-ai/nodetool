@@ -19,9 +19,11 @@ class ActivityPanelSource : public QObject {
     Q_PROPERTY(QString error MEMBER error NOTIFY changed)
     Q_PROPERTY(QString scopeLabel MEMBER scopeLabel NOTIFY changed)
     Q_PROPERTY(QString lastUpdated MEMBER lastUpdated NOTIFY changed)
+    Q_PROPERTY(bool active MEMBER active NOTIFY changed)
 public:
     using QObject::QObject;
     QObject* timeline = nullptr;
+    bool active = false;
     QVariantList rows;
     bool busy = false;
     bool connected = true;

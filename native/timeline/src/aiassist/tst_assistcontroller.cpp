@@ -196,9 +196,13 @@ private slots:
         QCOMPARE(controller.result().toMap().value("id").toString(), QString("script"));
     }
     void oneEditEmitsChangedOnce() {
-        const QJsonObject clip{{"id", "clip"}, {"startMs", 0}, {"durationMs", 100}};
-        const QJsonObject document{{"id", "sequence"}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{clip}}};
-        TimelineModel model; model.setTimeline(*nt::parseTimelineJson(QJsonDocument(document).toJson()).timeline);
+        const QJsonObject clip{{"id", "clip"}, {"trackId", "v"}, {"mediaType", "video"}, {"startMs", 0}, {"durationMs", 100}};
+        const QJsonObject document{{"id", "sequence"},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{clip}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
+        TimelineModel model; model.setTimeline(*parsed.timeline);
         AssistController controller; controller.setModel(&model);
         QSignalSpy changed(&controller, &AssistController::changed);
         QSignalSpy edits(&model, &TimelineModel::timelineChanged);

@@ -64,6 +64,7 @@ This original enumeration precedes the corrections below.
 | `mask/apply/v1/module.ts` | linear | 3 |
 | `mask/fromImage/v1/module.ts` | linear | 2 |
 | `mask/invert/v1/module.ts` | linear | 2 |
+| `mask/mix/v1/module.ts` | linear | 4 |
 | `mixer/add/v1/module.ts` | linear | 3 |
 | `mixer/colorOverlay/v1/module.ts` | linear | 2 |
 | `mixer/dropShadow/v1/module.ts` | linear | 2 |
@@ -267,6 +268,10 @@ RGBA8. Gaussian blur also processes zero-RGB masks in the drop-shadow recipe.
 | mask/fromImage/v1/module.ts | mask.fromImage@1 | output | mask | data | premultiplied | Alpha coverage only, RGB ignored or zero |
 | mask/invert/v1/module.ts | mask.invert@1 | source | mask | data | premultiplied | Alpha coverage only, RGB ignored or zero |
 | mask/invert/v1/module.ts | mask.invert@1 | output | mask | data | premultiplied | Alpha coverage only, RGB ignored or zero |
+| mask/mix/v1/module.ts | mask.mix@1 | source | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
+| mask/mix/v1/module.ts | mask.mix@1 | base | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
+| mask/mix/v1/module.ts | mask.mix@1 | mask | mask | data | premultiplied | Alpha coverage only, RGB ignored or zero |
+| mask/mix/v1/module.ts | mask.mix@1 | output | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
 | mixer/add/v1/module.ts | mixer.add@1 | source | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
 | mixer/add/v1/module.ts | mixer.add@1 | over | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |
 | mixer/add/v1/module.ts | mixer.add@1 | output | colour | encoded-sdr | premultiplied | Encoded sample math, no transfer conversion |

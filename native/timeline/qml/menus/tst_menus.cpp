@@ -666,7 +666,8 @@ private slots:
         QCOMPARE(clip("e").value("labelColor").toString(), QString("#E5484D"));
         QCOMPARE(model.undoStack()->count(), 1);
         auto* tint = named(item("clip-c"), "clipTint"); QVERIFY(tint);
-        QTRY_COMPARE(tint->property("color").value<QColor>().rgb(), QColor("#E5484D").rgb());
+        // Selected clips render the label fill lightened; the unselected fill stays the raw label.
+        QTRY_COMPARE(tint->property("color").value<QColor>().rgb(), QColor("#E5484D").lighter(118).rgb());
         popup("clip", "clip-c");
         QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipMenu-label")));
