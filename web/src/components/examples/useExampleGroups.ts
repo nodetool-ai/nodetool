@@ -51,6 +51,7 @@ import { EXAMPLE_APPS_QUERY_KEY } from "../portal/DashboardExampleApps";
 
 export type ExampleKind =
   | "workflows"
+  | "comfy"
   | "apps"
   | "storyboards"
   | "timelines"
@@ -92,6 +93,10 @@ const plural = (count: number, noun: string): string =>
   `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 const NO_RETRY = (): void => undefined;
+
+/** Shipped ComfyUI examples carry the `comfy` tag. */
+export const isComfyExample = (workflow: Pick<Workflow, "tags">): boolean =>
+  workflow.tags?.includes("comfy") ?? false;
 
 /** Server gallery paths are relative to the API, like on the Examples page. */
 const serverImage = (url: string | null | undefined): string | undefined => {
@@ -219,27 +224,43 @@ export const useExampleGroups = (): ExampleGroups => {
   const groups = useMemo((): ExampleGroup[] => {
     const modelsLoading = catalogs.some((catalog) => catalog.isPending);
     const modelsFailed = catalogs.some((catalog) => catalog.isError);
+    // Both workflow groups key rows as `workflows:<id>`, so opening and the
+    // busy indicator treat ComfyUI examples like any other workflow.
+    const workflowGroup = (
+      kind: "workflows" | "comfy",
+      label: string,
+      workflows: readonly Workflow[]
+    ): ExampleGroup => ({
+      kind,
+      label,
+      icon: AccountTreeOutlinedIcon,
+      dropHint: "Drag onto the workflow canvas to add its nodes.",
+      entries: workflows.map((workflow) => ({
+        key: `workflows:${workflow.id}`,
+        name: workflow.name,
+        secondary:
+          workflow.description || plural(workflow.graph.nodes.length, "node"),
+        thumbnail: serverImage(workflow.thumbnail_url),
+        drag: {
+          type: "example-workflow",
+          payload: { name: workflow.name, graph: workflow.graph }
+        }
+      })),
+      isLoading: templates.isPending,
+      isError: templates.isError,
+      retry: () => void templates.refetch()
+    });
     return [
-      {
-        kind: "workflows",
-        label: "Workflows",
-        icon: AccountTreeOutlinedIcon,
-        dropHint: "Drag onto the workflow canvas to add its nodes.",
-        entries: (workflowList ?? []).map((workflow: Workflow) => ({
-          key: `workflows:${workflow.id}`,
-          name: workflow.name,
-          secondary:
-            workflow.description || plural(workflow.graph.nodes.length, "node"),
-          thumbnail: serverImage(workflow.thumbnail_url),
-          drag: {
-            type: "example-workflow",
-            payload: { name: workflow.name, graph: workflow.graph }
-          }
-        })),
-        isLoading: templates.isPending,
-        isError: templates.isError,
-        retry: () => void templates.refetch()
-      },
+      workflowGroup(
+        "workflows",
+        "Workflows",
+        (workflowList ?? []).filter((workflow) => !isComfyExample(workflow))
+      ),
+      workflowGroup(
+        "comfy",
+        "ComfyUI",
+        (workflowList ?? []).filter(isComfyExample)
+      ),
       {
         kind: "apps",
         label: "Apps",

@@ -7024,6 +7024,7 @@
       "allCategories": "Все",
       "categories": {
         "workflows": "Рабочие процессы",
+        "comfy": "ComfyUI",
         "apps": "Приложения",
         "storyboards": "Раскадровки",
         "timelines": "Таймлайны",

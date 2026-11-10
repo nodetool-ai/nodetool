@@ -7024,6 +7024,7 @@
       "allCategories": "Wszystko",
       "categories": {
         "workflows": "Przepływy pracy",
+        "comfy": "ComfyUI",
         "apps": "Aplikacje",
         "storyboards": "Storyboardy",
         "timelines": "Osie czasu",

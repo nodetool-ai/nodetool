@@ -6826,6 +6826,7 @@
       "allCategories": "Allemaal",
       "categories": {
         "workflows": "Werkstromen",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Tijdlijnen",

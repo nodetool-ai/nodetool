@@ -6826,6 +6826,7 @@
       "allCategories": "Kaikki",
       "categories": {
         "workflows": "Työnkulut",
+        "comfy": "ComfyUI",
         "apps": "Sovellukset",
         "storyboards": "Kuvakäsikirjoitukset",
         "timelines": "Aikajanat",
