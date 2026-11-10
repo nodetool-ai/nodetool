@@ -7,6 +7,7 @@
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
@@ -246,6 +247,20 @@ bool click(EditorWindow &window, const QString &name) {
 class SetupHostTest : public QObject {
     Q_OBJECT
     QTemporaryDir settings_;
+public:
+    static void initMain() {
+        // The setup controller reads runtime statuses from a nodetool CLI on
+        // PATH when it finds one. These tests serve them from a fake server, so
+        // no CLI may be found, also under `npm run`, which puts the repository's
+        // CLI on PATH.
+        QStringList kept;
+        const auto separator = QDir::listSeparator();
+        for (const auto &directory : qEnvironmentVariable("PATH").split(separator, Qt::SkipEmptyParts)) {
+            if (QStandardPaths::findExecutable("nodetool", {directory}).isEmpty()) kept.append(directory);
+        }
+        qputenv("PATH", kept.join(separator).toUtf8());
+        qunsetenv("NODETOOL_CLI");
+    }
 private slots:
     void initTestCase() {
         QSettings::setDefaultFormat(QSettings::IniFormat);
