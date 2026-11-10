@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cmath>
 #include <cstdint>
 #include <deque>
@@ -55,6 +56,12 @@ size_t bounded(const Json& value, const char* key, size_t fallback, size_t lo, s
   const auto n = value.at(key).get<double>();
   if (!std::isfinite(n)) throw std::runtime_error("Sandbox limit must be finite");
   return size_t(std::clamp(n,double(lo),double(hi)));
+}
+unsigned idArg(js::Engine& en,const js::Value& v) {
+  const double d=en.toNumber(v);
+  if (!(d>=0 && d<=double(UINT_MAX)) || d!=std::floor(d))
+    throw std::runtime_error("RangeError: sandbox: expected an integer id");
+  return unsigned(d);
 }
 struct Session {
   std::unique_ptr<JSRuntime,decltype(&JS_FreeRuntime)> runtimeOwner{nullptr,JS_FreeRuntime};
@@ -206,20 +213,28 @@ struct Session {
     JS_SetPropertyStr(context,global,"__nativeBridge",JS_NewCFunction(context,bridge,"bridge",2));
     JS_FreeValue(context,global);
     const auto globals = options.value("globals",Json::object());
-    evaluate("Object.assign(globalThis,JSON.parse("+Json(globals.dump()).dump()+"));", "sandbox-data.js");
+    {
+      // Parse the globals once, without a quoted copy inside a script.
+      const auto encoded=globals.dump();
+      // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
+      auto parsed=JS_ParseJSON(context,encoded.c_str(),encoded.size(),"sandbox-data.json");
+      if(JS_IsException(parsed)) {auto ex=JS_GetException(context);error=text(context,ex);JS_FreeValue(context,ex);}
+      else {auto global=JS_GetGlobalObject(context);JS_SetPropertyStr(context,global,"__sandboxGlobals",parsed);JS_FreeValue(context,global);}
+      evaluate("Object.assign(globalThis,globalThis.__sandboxGlobals);delete globalThis.__sandboxGlobals;","sandbox-data.js");
+    }
     evaluate(R"JS(
 const __serialize = value => JSON.stringify(value,function(key,encoded){
  const raw=this[key];
  if(raw instanceof Uint8Array || raw instanceof ArrayBuffer) {
-   const bytes=raw instanceof Uint8Array?raw:new Uint8Array(raw);let text='';for(const b of bytes)text+=String.fromCharCode(b);
-   return {__nodetool_sandbox_bytes__:btoa(text)};
+   const bytes=raw instanceof Uint8Array?raw:new Uint8Array(raw);
+   return {__nodetool_sandbox_bytes__:bytes.toBase64()};
  }
  return encoded;
 });
 globalThis.__serialize=__serialize;
 const __revive=value=>{
  if(value && typeof value==='object') {
-   if(typeof value.__nodetool_sandbox_bytes__==='string'){const raw=atob(value.__nodetool_sandbox_bytes__);return Uint8Array.from(raw,c=>c.charCodeAt(0));}
+   if(typeof value.__nodetool_sandbox_bytes__==='string')return Uint8Array.fromBase64(value.__nodetool_sandbox_bytes__);
    for(const key of Object.keys(value))value[key]=__revive(value[key]);
  }
  return value;
@@ -367,13 +382,13 @@ void installSandboxSessions(js::Engine& engine,const js::Value& object,std::func
     const auto id=++*next; sessions->emplace(id,std::make_unique<Session>(Json::parse(en.toString(args[0])),cancelled,std::move(open),args.size()>2 && en.isFunction(args[2]) ? std::function<std::string(const std::string&,const std::string&)>([&en,callback=args[2]](const std::string& name,const std::string& payload){return en.toString(en.call(callback,en.undefined(),{en.string(name),en.string(payload)}));}):std::function<std::string(const std::string&,const std::string&)>{}));return en.number(id);
   }));
   engine.set(object,"step",engine.function("step",1,[sessions](js::Engine& en,const std::vector<js::Value>& args){
-    const auto id=unsigned(en.toNumber(args.at(0)));return en.string(sessions->at(id)->step().dump());
+    const auto id=idArg(en,args.at(0));return en.string(sessions->at(id)->step().dump());
   }));
   engine.set(object,"resume",engine.function("resume",4,[sessions](js::Engine& en,const std::vector<js::Value>& args){
-    sessions->at(unsigned(en.toNumber(args.at(0))))->resume(unsigned(en.toNumber(args.at(1))),Json::parse(en.toString(args.at(2))),en.toBoolean(args.at(3)));return en.undefined();
+    sessions->at(idArg(en,args.at(0)))->resume(idArg(en,args.at(1)),Json::parse(en.toString(args.at(2))),en.toBoolean(args.at(3)));return en.undefined();
   }));
   engine.set(object,"close",engine.function("close",1,[sessions](js::Engine& en,const std::vector<js::Value>& args){
-    sessions->erase(unsigned(en.toNumber(args.at(0))));return en.undefined();
+    sessions->erase(idArg(en,args.at(0)));return en.undefined();
   }));
 }
 }

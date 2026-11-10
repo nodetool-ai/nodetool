@@ -1,4 +1,5 @@
 #include "host/webassembly.h"
+#include "host/sandbox_wasm.h"
 #include <fstream>
 #include <wasmtime.h>
 #include <cstring>
@@ -23,6 +24,11 @@ int main(int argc, char** argv) {
     if (auto* error = wasmtime_wat2wasm(wat, std::strlen(wat), &fixture)) { wasmtime_error_delete(error); throw std::runtime_error("Invalid test WAT"); }
     e->set(e->global(), "__wasmFixture", e->bytes(reinterpret_cast<uint8_t*>(fixture.data), fixture.size));
     wasm_byte_vec_delete(&fixture);
+    const char* scalarWat = R"((module (func (export "add") (param i32 i32) (result i32) local.get 0 local.get 1 i32.add)))";
+    wasm_byte_vec_t scalar;
+    if (auto* error = wasmtime_wat2wasm(scalarWat, std::strlen(scalarWat), &scalar)) { wasmtime_error_delete(error); throw std::runtime_error("Invalid scalar WAT"); }
+    e->set(e->global(), "__wasmFixtureScalar", e->bytes(reinterpret_cast<uint8_t*>(scalar.data), scalar.size));
+    wasm_byte_vec_delete(&scalar);
     auto host = e->object(); auto wasm = e->object();
     auto cancelled = std::make_shared<std::atomic<bool>>(false);
     std::jthread canceller;
@@ -31,6 +37,9 @@ int main(int argc, char** argv) {
       canceller = std::jthread([cancelled] { std::this_thread::sleep_for(std::chrono::milliseconds(2)); cancelled->store(true); });
       return en.undefined();
     }));
+    auto sandboxWasm = e->object();
+    gr::host::installSandboxWasm(*e, sandboxWasm, [cancelled] { return cancelled->load(); });
+    e->set(e->global(), "__sandboxWasm", sandboxWasm);
     e->set(host, "webassembly", wasm); e->set(e->global(), "__host", host);
     auto console = e->object();
     e->set(console, "log", e->function("log", 0, [](auto& en, const auto& args) { for (const auto& arg : args) std::cout << en.toString(arg) << '\n'; return en.undefined(); }));

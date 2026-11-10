@@ -18,6 +18,7 @@
 #include "js/engine.h"
 #include "kernel/async_jobs.h"
 #include "kernel/cancel_state.h"
+#include "kernel/guest.h"
 #include "kernel/host_lanes.h"
 #include "kernel/run_control.h"
 #include "kernel/task.h"
@@ -1598,9 +1599,34 @@ void runnerReportsBothMaps(Suite& t) {
 
 }  // namespace
 
+// S3: a guest promise that settles after Loop::abandon() destroyed the
+// awaiting frame posts no step. A drain then resumes nothing.
+void abandonedAwaitPostsNoStep(Suite& t) {
+  auto engine = js::createQuickJsEngine();
+  gr::Guest guest(*engine);
+  Loop& loop = Loop::current();
+  engine->evaluateScript(
+      "globalThis.__settle = null;"
+      "globalThis.__pending = new Promise(r => { __settle = r; });",
+      "abandon.js");
+  {
+    auto task = guest.callSettled(engine->evaluateScript("__pending", "p.js"));
+    CHECK(!task.done());
+    CHECK(loop.liveFrames() >= 1);
+    loop.abandon();
+  }
+  CHECK(loop.liveFrames() == 0);
+  engine->evaluateScript("__settle(JSON.stringify({ok:true,value:1}));", "s.js");
+  while (engine->drainJobs() > 0) {
+  }
+  CHECK(loop.idle());
+  loop.run();
+}
+
 int main(int argc, char** argv) {
   Suite suite(argc > 1 ? argv[1] : "");
   const std::vector<std::pair<const char*, void (*)(Suite&)>> tests = {
+      {"abandonedAwaitPostsNoStep", abandonedAwaitPostsNoStep},
       {"retainedDoneFromAnotherThread", retainedDoneFromAnotherThread},
       {"inlineDoneSettlesAsMacrotask", inlineDoneSettlesAsMacrotask},
       {"movedFromCompletionIsInert", movedFromCompletionIsInert},

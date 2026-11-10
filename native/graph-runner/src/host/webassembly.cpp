@@ -3,6 +3,10 @@
 #include <chrono>
 #include <cmath>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+#include <memory>
 
 namespace gr::host {
 namespace {
@@ -24,23 +28,76 @@ struct Memory {
   uint8_t* data = nullptr;
   size_t size = 0;
 };
-struct State : js::NativePayload {
-  Engine& js;
-  // native-rules #6: raw wasm engine and store freed by hand in the destructor
+// One wasm engine and one watchdog thread serve every instance of a context.
+// The watchdog sleeps until a top-level call arms it with a deadline.
+struct Runtime {
+  // native-rules #6: raw wasm engine freed by hand in the destructor
   wasm_engine_t* engine;
-  wasmtime_store_t* store;
   std::function<bool()> cancelled;
-  std::vector<Value> callbacks;
-  std::vector<std::shared_ptr<Memory>> memories;
-  bool closed = false;
+  std::mutex mutex;
+  std::condition_variable cv;
+  bool armed = false;
+  bool stop = false;
   unsigned depth = 0;
-  State(Engine& e, std::function<bool()> c) : js(e), cancelled(std::move(c)) {
+  std::chrono::steady_clock::time_point deadline;
+  std::once_flag started;
+  std::thread watchdog;
+  explicit Runtime(std::function<bool()> c) : cancelled(std::move(c)) {
     auto* config = wasm_config_new();
     wasmtime_config_consume_fuel_set(config, true);
     wasmtime_config_epoch_interruption_set(config, true);
     wasmtime_config_max_wasm_stack_set(config, 512 * 1024);
     engine = wasm_engine_new_with_config(config);
-    store = wasmtime_store_new(engine, nullptr, nullptr);
+  }
+  void run() {
+    std::unique_lock lock(mutex);
+    while (!stop) {
+      if (!armed) { cv.wait(lock); continue; }
+      const auto now = std::chrono::steady_clock::now();
+      if (now >= deadline || (cancelled && cancelled())) {
+        wasmtime_engine_increment_epoch(engine);
+        armed = false;
+        continue;
+      }
+      cv.wait_until(lock, std::min(deadline, now + std::chrono::milliseconds(1)));
+    }
+  }
+  void arm() {
+    std::call_once(started, [this] { watchdog = std::thread([this] { run(); }); });
+    {
+      std::lock_guard lock(mutex);
+      deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+      armed = true;
+    }
+    cv.notify_one();
+  }
+  void disarm() {
+    std::lock_guard lock(mutex);
+    armed = false;
+  }
+  ~Runtime() {
+    {
+      std::lock_guard lock(mutex);
+      stop = true;
+    }
+    cv.notify_one();
+    if (watchdog.joinable()) watchdog.join();
+    wasm_engine_delete(engine);
+  }
+};
+// Set once the context is cleaned up. Instances made later are refused.
+struct ContextFlag { bool closed = false; };
+struct State {
+  Engine& js;
+  std::shared_ptr<Runtime> runtime;
+  // native-rules #6: raw wasm store freed by hand in close() and the destructor
+  wasmtime_store_t* store;
+  std::vector<Value> callbacks;
+  std::vector<std::shared_ptr<Memory>> memories;
+  bool closed = false;
+  unsigned depth = 0;
+  State(Engine& e, std::shared_ptr<Runtime> r) : js(e), runtime(std::move(r)) {
+    store = wasmtime_store_new(runtime->engine, nullptr, nullptr);
     wasmtime_store_limiter(store, 64 * 1024 * 1024, 100000, 32, 32, 4);
   }
   auto* context() { if (closed) throw std::runtime_error("WebAssembly context is closed"); return wasmtime_store_context(store); }
@@ -63,36 +120,49 @@ struct State : js::NativePayload {
     wasmtime_store_delete(store);
     store = nullptr;
   }
-  ~State() override { if (store) wasmtime_store_delete(store); wasm_engine_delete(engine); }
+  ~State() { if (store) wasmtime_store_delete(store); }
 };
-struct Module : js::NativePayload {
+// The guest-visible functions, memories and tables of one instance share a
+// Lifetime. When the last one is collected, the instance's store, import
+// callbacks and memory buffers are released, so instances made in a loop do
+// not add up against the store limits.
+struct Lifetime {
   std::shared_ptr<State> state;
+  explicit Lifetime(std::shared_ptr<State> s) : state(std::move(s)) {}
+  ~Lifetime() { try { state->close(); } catch (...) {} }
+};
+using Life = std::shared_ptr<Lifetime>;
+struct Module : js::NativePayload {
+  std::shared_ptr<Runtime> runtime;
+  std::shared_ptr<ContextFlag> context;
   // native-rules #6: raw wasmtime module freed by hand in the destructor
   wasmtime_module_t* module = nullptr;
   ~Module() override { if (module) wasmtime_module_delete(module); }
 };
 struct Budget {
   State& state;
-  std::jthread watchdog;
+  bool armedHere = false;
+  bool counted = false;
   Budget(State& s) : state(s) {
     s.context();
-    if (s.cancelled && s.cancelled()) throw std::runtime_error("WebAssembly execution cancelled");
-    if (s.depth++ == 0) {
+    auto& rt = *s.runtime;
+    if (rt.cancelled && rt.cancelled()) throw std::runtime_error("WebAssembly execution cancelled");
+    // Arm before counting: a throw here leaves the depth counters unchanged.
+    if (s.depth == 0) {
       check(wasmtime_context_set_fuel(s.context(), 100000000));
       wasmtime_context_set_epoch_deadline(s.context(), 1);
-      // native-rules #12: lambda holds a raw State reference on another thread
-      watchdog = std::jthread([&s](std::stop_token stop) {
-        auto end = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-        while (!stop.stop_requested()) {
-          if (std::chrono::steady_clock::now() >= end || (s.cancelled && s.cancelled())) {
-            wasmtime_engine_increment_epoch(s.engine); return;
-          }
-          std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-      });
     }
+    if (rt.depth == 0) { rt.arm(); armedHere = true; }
+    ++rt.depth;
+    ++s.depth;
+    counted = true;
   }
-  ~Budget() { watchdog.request_stop(); --state.depth; }
+  ~Budget() {
+    if (!counted) return;
+    --state.depth;
+    --state.runtime->depth;
+    if (armedHere) state.runtime->disarm();
+  }
 };
 Value fromWasm(Engine& e, const wasmtime_val_t& v) {
   switch (v.kind) {
@@ -132,38 +202,51 @@ wasm_trap_t* callback(void* data, wasmtime_caller_t*, const wasmtime_val_t* args
     return nullptr;
   } catch (const std::exception& e) { return wasmtime_trap_new(e.what(), std::char_traits<char>::length(e.what())); }
 }
-Value function(std::shared_ptr<State> s, wasmtime_func_t fn) {
-  return s->js.function("wasm", 0, [s, fn](Engine& e, const std::vector<Value>& args) {
-    Budget budget(*s);
+Value function(Life life, wasmtime_func_t fn) {
+  auto& s = life->state;
+  // The type of a function never changes: read it once, not for every call.
+  struct Signature { std::vector<wasm_valkind_t> params; size_t results = 0; wasm_valkind_t result = WASM_I32; };
+  auto sig = std::make_shared<Signature>();
+  {
     std::unique_ptr<wasm_functype_t, decltype(&wasm_functype_delete)> type(wasmtime_func_type(s->context(), &fn), wasm_functype_delete);
     auto* params = wasm_functype_params(type.get());
     auto* results = wasm_functype_results(type.get());
-    if (results->size > 1) throw std::runtime_error("Multi-value exports are unsupported");
+    for (size_t i = 0; i < params->size; ++i) sig->params.push_back(wasm_valtype_kind(params->data[i]));
+    sig->results = results->size;
+    if (results->size) sig->result = wasm_valtype_kind(results->data[0]);
+  }
+  return s->js.function("wasm", 0, [life, fn, sig](Engine& e, const std::vector<Value>& args) {
+    auto& s = life->state;
+    Budget budget(*s);
+    if (sig->results > 1) throw std::runtime_error("Multi-value exports are unsupported");
     std::vector<wasmtime_val_t> inputs;
-    for (size_t i = 0; i < params->size; ++i) inputs.push_back(toWasm(e, i < args.size() ? args[i] : e.undefined(), wasm_valtype_kind(params->data[i])));
+    for (size_t i = 0; i < sig->params.size(); ++i) inputs.push_back(toWasm(e, i < args.size() ? args[i] : e.undefined(), sig->params[i]));
     wasmtime_val_t result{};
     wasm_trap_t* trap = nullptr;
-    auto* error = wasmtime_func_call(s->context(), &fn, inputs.data(), inputs.size(), &result, results->size, &trap);
+    auto* error = wasmtime_func_call(s->context(), &fn, inputs.data(), inputs.size(), &result, sig->results, &trap);
     s->refresh();
     check(error, trap);
-    return results->size ? fromWasm(e, result) : e.undefined();
+    return sig->results ? fromWasm(e, result) : e.undefined();
   });
 }
-Value memory(std::shared_ptr<State> s, wasmtime_memory_t mem) {
+Value memory(Life life, wasmtime_memory_t mem) {
+  auto s = life->state;
   auto m = std::make_shared<Memory>(); m->memory = mem; s->memories.push_back(m);
   auto object = s->js.object();
   s->js.set(object, "kind", s->js.string("memory"));
-  s->js.set(object, "buffer", s->js.function("buffer", 0, [s, m](Engine& e, const auto&) {
+  s->js.set(object, "buffer", s->js.function("buffer", 0, [life, m](Engine& e, const auto&) {
+    auto& s = life->state;
     s->refresh();
     if (m->buffer.empty()) {
       m->data = wasmtime_memory_data(s->context(), &m->memory);
       m->size = wasmtime_memory_data_size(s->context(), &m->memory);
-      // The context cleanup detaches every view before releasing the store.
-      m->buffer = e.externalArrayBuffer(m->data, m->size, s);
+      // The Lifetime detaches every view before it releases the store.
+      m->buffer = e.externalArrayBuffer(m->data, m->size, nullptr);
     }
     return m->buffer;
   }));
-  s->js.set(object, "grow", s->js.function("grow", 1, [s, m](Engine& e, const auto& args) {
+  s->js.set(object, "grow", s->js.function("grow", 1, [life, m](Engine& e, const auto& args) {
+    auto& s = life->state;
     double n = e.toNumber(args.at(0));
     if (!std::isfinite(n) || n < 0 || n != std::trunc(n) || n > 4096) throw std::runtime_error("Invalid WebAssembly memory growth");
     uint64_t previous;
@@ -174,36 +257,52 @@ Value memory(std::shared_ptr<State> s, wasmtime_memory_t mem) {
   }));
   return object;
 }
-Value table(std::shared_ptr<State> s, wasmtime_table_t t) {
+Value table(Life life, wasmtime_table_t t) {
+  auto s = life->state;
   auto object = s->js.object();
   s->js.set(object, "kind", s->js.string("table"));
-  s->js.set(object, "length", s->js.function("length", 0, [s, t](Engine& e, const auto&) { return e.number(double(wasmtime_table_size(s->context(), &t))); }));
-  s->js.set(object, "get", s->js.function("get", 1, [s, t](Engine& e, const auto& args) {
+  s->js.set(object, "length", s->js.function("length", 0, [life, t](Engine& e, const auto&) { return e.number(double(wasmtime_table_size(life->state->context(), &t))); }));
+  s->js.set(object, "get", s->js.function("get", 1, [life, t](Engine& e, const auto& args) {
+    auto& s = life->state;
     auto n = e.toNumber(args.at(0));
     if (!std::isfinite(n) || n < 0 || n != std::trunc(n) || n > 100000) throw std::runtime_error("Invalid WebAssembly table index");
     wasmtime_val_t value;
     if (!wasmtime_table_get(s->context(), &t, uint64_t(n), &value)) throw std::runtime_error("WebAssembly table index out of bounds");
     if (value.kind != WASMTIME_FUNCREF) { wasmtime_val_unroot(s->context(), &value); throw std::runtime_error("Unsupported table element"); }
-    return value.of.funcref.store_id == 0 ? e.null() : function(s, value.of.funcref);
+    return value.of.funcref.store_id == 0 ? e.null() : function(life, value.of.funcref);
   }));
   return object;
 }
 }
 void installWebAssembly(Engine& e, const Value& object, std::function<bool()> cancelled) {
-  // native-rules #1: state shared by many wasm functions, no justification
-  auto s = std::make_shared<State>(e, std::move(cancelled));
-  e.addContextCleanup([s] { s->close(); });
-  e.set(object, "compile", e.function("compile", 1, [s](Engine& en, const auto& args) {
-    s->context();
+  // native-rules #1: runtime and flag shared by every module and instance of a context, no justification
+  auto runtime = std::make_shared<Runtime>(std::move(cancelled));
+  auto flag = std::make_shared<ContextFlag>();
+  // Live instances, closed when the context goes. Weak: a collected instance closes itself.
+  auto live = std::make_shared<std::vector<std::weak_ptr<State>>>();
+  e.addContextCleanup([flag, live] {
+    flag->closed = true;
+    for (auto& w : *live) if (auto s = w.lock()) s->close();
+    live->clear();
+  });
+  e.set(object, "compile", e.function("compile", 1, [runtime, flag](Engine& en, const auto& args) {
+    if (flag->closed) throw std::runtime_error("WebAssembly context is closed");
     if (en.byteLength(args.at(0)) > 16 * 1024 * 1024) throw std::runtime_error("WebAssembly module size limit exceeded");
     auto bytes = en.toBytes(args.at(0));
-    auto module = std::make_shared<Module>(); module->state = s;
-    check(wasmtime_module_new(s->engine, bytes.data(), bytes.size(), &module->module));
+    auto module = std::make_shared<Module>(); module->runtime = runtime; module->context = flag;
+    check(wasmtime_module_new(runtime->engine, bytes.data(), bytes.size(), &module->module));
     return en.nativeObject(module);
   }));
-  e.set(object, "instantiate", e.function("instantiate", 2, [s](Engine& en, const auto& args) {
+  e.set(object, "instantiate", e.function("instantiate", 2, [runtime, flag, live](Engine& en, const auto& args) {
+    if (flag->closed) throw std::runtime_error("WebAssembly context is closed");
     auto m = std::dynamic_pointer_cast<Module>(en.nativePayload(args.at(0)));
-    if (!m || m->state != s) throw std::runtime_error("Invalid WebAssembly module");
+    if (!m || m->runtime != runtime) throw std::runtime_error("Invalid WebAssembly module");
+    // Each instance has its own store, so the store limits apply to one instance.
+    auto state = std::make_shared<State>(en, runtime);
+    auto life = std::make_shared<Lifetime>(state);
+    std::erase_if(*live, [](auto& w) { return w.expired(); });
+    live->push_back(state);
+    auto* s = state.get();
     Budget budget(*s);
     wasm_importtype_vec_t types;
     wasmtime_module_imports(m->module, &types);
@@ -218,7 +317,7 @@ void installWebAssembly(Engine& e, const Value& object, std::function<bool()> ca
       auto fn = en.get(en.get(args.at(1), std::string(moduleName->data, moduleName->size)), std::string(field->data, field->size));
       if (!en.isFunction(fn)) throw std::runtime_error("WebAssembly import must be a function");
       auto* ft = wasm_externtype_as_functype_const(type);
-      auto cb = std::make_unique<Callback>(); cb->state = s.get(); cb->index = s->callbacks.size();
+      auto cb = std::make_unique<Callback>(); cb->state = s; cb->index = s->callbacks.size();
       auto* results = wasm_functype_results(ft);
       for (size_t j = 0; j < results->size; ++j) cb->results.push_back(wasm_valtype_kind(results->data[j]));
       s->callbacks.push_back(fn);
@@ -234,9 +333,9 @@ void installWebAssembly(Engine& e, const Value& object, std::function<bool()> ca
     wasmtime_extern_t item; char* name; size_t length;
     for (size_t i = 0; wasmtime_instance_export_nth(s->context(), &instance, i, &name, &length, &item); ++i) {
       Value value;
-      if (item.kind == WASMTIME_EXTERN_FUNC) value = function(s, item.of.func);
-      else if (item.kind == WASMTIME_EXTERN_MEMORY) value = memory(s, item.of.memory);
-      else if (item.kind == WASMTIME_EXTERN_TABLE) value = table(s, item.of.table);
+      if (item.kind == WASMTIME_EXTERN_FUNC) value = function(life, item.of.func);
+      else if (item.kind == WASMTIME_EXTERN_MEMORY) value = memory(life, item.of.memory);
+      else if (item.kind == WASMTIME_EXTERN_TABLE) value = table(life, item.of.table);
       else throw std::runtime_error("Unsupported WebAssembly export");
       en.set(exports, std::string(name, length), value);
     }

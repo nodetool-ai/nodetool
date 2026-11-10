@@ -82,5 +82,6 @@ export function toJson(value) {
 
 /** JSON.parse that turns tagged bytes back into Uint8Array (or Buffer). */
 export function fromJson(text) {
-  return JSON.parse(text, reviver);
+  // Text without the tag holds no bytes, so it needs no reviver call per value.
+  return text.includes('"__bytes__"') ? JSON.parse(text, reviver) : JSON.parse(text);
 }

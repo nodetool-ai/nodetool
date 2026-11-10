@@ -17,6 +17,10 @@
 
 namespace gr::host {
 
+namespace {
+constexpr size_t kMaxTimers = 10000;
+}
+
 void installTimers(js::Engine& engine, const js::Value& object, const HostOptions&) {
   using Args = const std::vector<js::Value>&;
   engine.set(object, "set", engine.function("set", 3, [](js::Engine& e, Args a) {
@@ -26,6 +30,10 @@ void installTimers(js::Engine& engine, const js::Value& object, const HostOption
     const double ms = a.size() > 1 ? e.toNumber(a[1]) : 0;
     if (!std::isfinite(ms) || ms < 0 || ms > 2147483647) {
       throw std::runtime_error("timers.set: the delay must be between 0 and 2147483647 milliseconds");
+    }
+    // A guest that sets timers without end would grow the loop without bound.
+    if (Loop::current().pendingTimers() >= kMaxTimers) {
+      throw std::runtime_error("timers.set: too many pending timers");
     }
     const bool repeat = a.size() > 2 && e.toBoolean(a[2]);
     js::Engine* engine = &e;

@@ -4,6 +4,7 @@
 #include "kernel/subgraph.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 namespace gr {
 namespace {
@@ -734,6 +735,15 @@ std::string Runner::outputCollectionKey(const Node& node) const {
 
 Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
                                RoutingHints hints) {
+  const Node* source = graph_.findNode(nodeId);
+  // The last edge that reads each output handle. It takes the value by move
+  // when no output_update reads the handle afterwards.
+  const bool keepValues = !source || source->alwaysEmitOutputUpdates;
+  std::unordered_map<std::string, const Edge*> lastReader;
+  for (const Edge* edge : graph_.outgoing(nodeId)) {
+    lastReader[edge->control && outputs.contains("__control_output__") ? std::string("__control_output__")
+                                                                        : edge->sourceHandle] = edge;
+  }
   for (const Edge* edge : graph_.outgoing(nodeId)) {
     if (edge->control) {
       const auto handle = outputs.contains("__control_output__") ? std::string("__control_output__") : edge->sourceHandle;
@@ -778,15 +788,16 @@ Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
       }
     }
     if (!found && hints.invocationLineage) lineage = *hints.invocationLineage;
+    Json& value = outputs[edge->sourceHandle];
+    const bool last = !keepValues && lastReader[edge->sourceHandle] == edge;
     durableDelivery_->put(edge->target, *it->second, edge->targetHandle,
-                          outputs[edge->sourceHandle], lineage, edgeId);
+                          last ? std::move(value) : Json(value), lineage, edgeId);
     incrementEdgeCounter(*edge);
   }
 
-  const Node* source = graph_.findNode(nodeId);
   if (source && !startsWith(source->type, "nodetool.constant.") &&
       !startsWith(source->type, "nodetool.input.") && outputs.is_object()) {
-    for (const auto& [handle, value] : outputs.items()) {
+    for (auto&& [handle, value] : outputs.items()) {
       if (handle == "__control__" || handle == "__control_output__") continue;
       if (!source->alwaysEmitOutputUpdates) {
         bool connected = false;
@@ -803,7 +814,7 @@ Task<void> Runner::sendOutputs(std::string nodeId, Json outputs,
       msg["node_id"] = nodeId;
       msg["node_name"] = source->name.value_or(nodeId);
       msg["output_name"] = clientFacingOutputName(*source, handle);
-      msg["value"] = value;
+      msg["value"] = std::move(value);
       msg["output_type"] = declared;
       msg["metadata"] = Json::object();
       msg["disposition"] = "append";

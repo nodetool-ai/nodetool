@@ -234,6 +234,45 @@ int main(int argc, char **argv) {
       throw std::logic_error("Response limit ignored");
     } catch (const gr::js::JsError &) {
     }
+    {
+      // A 5 MB buffer crosses the bridge in each direction in < 100 ms.
+      const std::string zeros64((5u << 20) / 3 * 4 + 4, 'A');
+      const auto started = std::chrono::steady_clock::now();
+      auto out = invoke({{"code", "return new Uint8Array(5*1024*1024);"},
+                         {"limits", {{"maxOutputSize", 10 * 1024 * 1024}}}});
+      const auto mid = std::chrono::steady_clock::now();
+      auto in = invoke({{"code", "return buf.length;"},
+                        {"globals",
+                         {{"buf", {{"__nodetool_sandbox_bytes__", zeros64}}}}}});
+      const auto ended = std::chrono::steady_clock::now();
+      const auto ms = [](auto d) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(d)
+            .count();
+      };
+      std::cout << "bridge 5MB out " << ms(mid - started) << " ms, in "
+                << ms(ended - mid) << " ms\n";
+      if (out.at("success") != true || in.at("result") != (5u << 20) / 3 * 3 + 3)
+        throw std::runtime_error("5 MB bridge result differs: " +
+                                 in.dump().substr(0, 200));
+      if (ms(mid - started) >= 100 || ms(ended - mid) >= 100)
+        throw std::runtime_error("5 MB bridge crossing took >= 100 ms");
+    }
+    for (const char *bad : {"NaN", "-1", "1e20", "1.5", "Infinity"}) {
+      for (const char *fn : {"step", "close"}) {
+        try {
+          engine->call(engine->get(sandbox, fn), sandbox,
+                       {engine->evaluateScript(bad, "bad-id.js")});
+          throw std::logic_error(std::string("Sandbox ") + fn +
+                                 " accepted id " + bad);
+        } catch (const gr::js::JsError &error) {
+          if (std::string(error.what()).find("RangeError") ==
+              std::string::npos)
+            throw std::runtime_error(std::string("Sandbox ") + fn + " id " +
+                                     bad + " was not a RangeError: " +
+                                     error.what());
+        }
+      }
+    }
     std::cout << "context grants, real nodes, sandbox isolation and resource "
                  "limits passed\n";
   } catch (const std::exception &error) {

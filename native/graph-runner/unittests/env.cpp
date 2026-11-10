@@ -159,6 +159,18 @@ std::string loadError(const std::string& source, bool bytecode) {
   return "";
 }
 
+// The guest cannot queue an unbounded number of timers.
+void timerCountIsBounded() {
+  CHECK_EQ(loadError("let stopped = false;"
+                     "try { for (let i = 0; i < 20000; i++) __host.timers.set(() => {}, 60000, false); }"
+                     "catch (e) { stopped = String(e.message).includes('timers'); }"
+                     "if (!stopped) throw new Error('no timer quota');"
+                     "globalThis.__nodetool = {};",
+                     false),
+           "");
+  CHECK(Loop::current().pendingTimers() == 0);
+}
+
 void moduleFailuresAreLoadErrors() {
   for (bool bytecode : {false, true}) {
     CHECK_EQ(loadError("await null; throw new TypeError('late');", bytecode), "TypeError: late");
@@ -628,6 +640,7 @@ int main(int argc, char** argv) {
       {"moduleTopLevelAwaitFromSource", moduleTopLevelAwaitFromSource},
       {"moduleTopLevelAwaitFromBytecode", moduleTopLevelAwaitFromBytecode},
       {"moduleFailuresAreLoadErrors", moduleFailuresAreLoadErrors},
+      {"timerCountIsBounded", timerCountIsBounded},
       {"bytecodeHeaderIsChecked", bytecodeHeaderIsChecked},
       {"loadStopsWhenAsked", loadStopsWhenAsked},
       {"loopTimersFireInDeadlineOrder", loopTimersFireInDeadlineOrder},

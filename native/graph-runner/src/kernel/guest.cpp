@@ -4,10 +4,13 @@
 
 #include <quickjs.h>
 
+#include <climits>
+#include <cmath>
 #include <coroutine>
 #include <cstdio>
 #include <cstring>
 #include <span>
+#include <utility>
 
 namespace gr {
 namespace {
@@ -41,6 +44,13 @@ struct PromiseAwaiter {
   // native-rules #1: shared with promise callbacks, no justification
   std::shared_ptr<State> state = std::make_shared<State>();
 
+  PromiseAwaiter(js::Engine& e, js::Value p) : engine(e), promise(std::move(p)) {}
+  PromiseAwaiter(const PromiseAwaiter&) = delete;
+  PromiseAwaiter& operator=(const PromiseAwaiter&) = delete;
+  // The awaiting frame owns this awaiter. When Loop::abandon() destroys the
+  // frame, the promise callbacks find no handle and post nothing.
+  ~PromiseAwaiter() { state->handle = nullptr; }
+
   bool await_ready() const noexcept { return false; }
   void await_suspend(std::coroutine_handle<> h) {
     state->handle = h;
@@ -49,11 +59,11 @@ struct PromiseAwaiter {
         engine, promise,
         [st](js::Engine& e, const js::Value& v) {
           st->value = e.toString(v);
-          Loop::current().post(st->handle);
+          if (st->handle) Loop::current().post(std::exchange(st->handle, nullptr));
         },
         [st](js::Engine& e, const js::Value& v) {
           st->error = e.isObject(v) ? e.toString(e.get(v, "message")) : e.toString(v);
-          Loop::current().post(st->handle);
+          if (st->handle) Loop::current().post(std::exchange(st->handle, nullptr));
         });
   }
   std::string await_resume() {
@@ -67,7 +77,7 @@ Json unwrap(const std::string& reply) {
   if (!r.value("ok", false)) {
     throw NodeError(r.value("error", std::string("guest call failed")));
   }
-  return r.contains("value") ? r["value"] : Json();
+  return r.contains("value") ? std::move(r["value"]) : Json();
 }
 
 class GuestFrames final : public FrameIterator {
@@ -97,7 +107,7 @@ public:
       done_ = true;
       co_return std::nullopt;
     }
-    co_return r["value"];
+    co_return std::move(r["value"]);
   }
 
 private:
@@ -375,7 +385,10 @@ int Guest::registerIo(StreamIO* io) {
 }
 
 StreamIO& Guest::io(const js::Value& id) {
-  auto it = ios_.find(int(engine_.toNumber(id)));
+  const double d = engine_.toNumber(id);
+  if (!(d >= INT_MIN && d <= INT_MAX) || d != std::floor(d))
+    throw std::runtime_error("RangeError: expected an integer stream I/O handle");
+  auto it = ios_.find(int(d));
   if (it == ios_.end()) throw std::runtime_error("unknown stream I/O handle");
   return *it->second;
 }

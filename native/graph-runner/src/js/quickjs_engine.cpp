@@ -321,7 +321,21 @@ public:
     externalBufferRoots_.push_back(JS_DupValue(ctx_, value));
     return wrap(value);
   }
-  void detachArrayBuffer(const Value& buffer) override { own(); JS_DetachArrayBuffer(ctx_, raw(buffer)); }
+  void detachArrayBuffer(const Value& buffer) override {
+    own();
+    JS_DetachArrayBuffer(ctx_, raw(buffer));
+    // A detached buffer needs no root: drop it so the cap counts live buffers.
+    void* ptr = JS_VALUE_GET_PTR(raw(buffer));
+    if (externalBuffers_.erase(ptr) == 0) return;
+    for (auto it = externalBufferRoots_.begin(); it != externalBufferRoots_.end(); ++it) {
+      if (JS_VALUE_GET_PTR(*it) == ptr) {
+        JSValue root = *it;
+        externalBufferRoots_.erase(it);
+        JS_FreeValue(ctx_, root);
+        break;
+      }
+    }
+  }
   Value adoptBytes(std::unique_ptr<AdoptedBytes> bytes) override {
     own();
     // On failure the buffer was never made, and `bytes` still owns the data.

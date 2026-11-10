@@ -129,7 +129,7 @@ Task<ActorResult> Actor::run() {
   }
   Json latest = latestResult_.value_or(Json::object());
   emitNodeStatus("completed", isConstantOrInput(node_.type) ? Json(nullptr) : latest);
-  result.outputs = latest;
+  result.outputs = std::move(latest);
   for (const auto& [_, v] : invocationResults_) result.invocationOutputs.push_back(v);
   co_return result;
 }
