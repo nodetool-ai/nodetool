@@ -332,7 +332,7 @@ void Guest::begin(const std::string& jobId, const std::string& workflowId) {
                {engine_.string(jobId), engine_.string(workflowId)});
 }
 
-Json Guest::types() {
+std::string Guest::settleNow(const std::string& fn, std::vector<js::Value> args) {
   struct Settled {
     std::optional<std::string> value;
     std::optional<std::string> error;
@@ -340,19 +340,35 @@ Json Guest::types() {
   // native-rules #1: shared by two promise callbacks, no justification
   auto st = std::make_shared<Settled>();
   js::then(
-      engine_, engine_.call(api("types"), engine_.undefined(), {}),
+      engine_, engine_.call(api(fn), engine_.undefined(), std::move(args)),
       [st](js::Engine& e, const js::Value& v) { st->value = e.toString(v); },
       [st](js::Engine& e, const js::Value& v) {
         st->error = e.isObject(v) ? e.toString(e.get(v, "message")) : e.toString(v);
       });
   while (!st->value && !st->error && engine_.drainJobs() > 0) {
   }
-  if (st->error) throw std::runtime_error("guest types() failed: " + *st->error);
-  if (!st->value) throw std::runtime_error("guest types() did not settle");
-  return Json::parse(*st->value);
+  if (st->error) throw std::runtime_error("guest " + fn + "() failed: " + *st->error);
+  if (!st->value) throw std::runtime_error("guest " + fn + "() did not settle");
+  return *st->value;
+}
+
+Json Guest::types() { return Json::parse(settleNow("types", {})); }
+
+std::string Guest::typeSnapshot() { return settleNow("snapshot", {}); }
+
+void Guest::ensureType(const Json& node) {
+  if (!node.is_object() || !node.contains("type") || !node["type"].is_string()) return;
+  const js::Value type = engine_.string(node["type"].get<std::string>());
+  if (!engine_.isFunction(api("pending")) ||
+      !engine_.toBoolean(engine_.call(api("pending"), engine_.undefined(), {type}))) {
+    return;
+  }
+  settleNow("ensure", {type});
 }
 
 std::optional<Json> Guest::describe(const Json& node) {
+  // A bare {type} is answered from the type snapshot without the module.
+  if (node.size() > 1) ensureType(node);
   Json r = Json::parse(callString("describe", {engine_.string(node.dump())}));
   if (r.is_null()) return std::nullopt;
   return r;
@@ -360,12 +376,14 @@ std::optional<Json> Guest::describe(const Json& node) {
 
 Json Guest::validate(const Json& node,
                      const std::vector<std::string>& connected) {
+  ensureType(node);
   Json c = connected;
   return Json::parse(callString(
       "validate", {engine_.string(node.dump()), engine_.string(c.dump())}));
 }
 
 std::unique_ptr<Executor> Guest::create(const Json& node) {
+  ensureType(node);
   auto flags = describe(node);
   js::Value id = engine_.call(api("create"), engine_.undefined(),
                               {engine_.string(node.dump())});

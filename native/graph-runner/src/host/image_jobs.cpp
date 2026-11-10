@@ -72,11 +72,12 @@ uint32_t dimArg(js::Engine& e, Args args, size_t i) {
   return uint32_t(d);
 }
 
-std::vector<uint8_t> bytesArg(js::Engine& e, Args args, size_t i, const char* fn) {
+// A view of the argument's bytes, valid until JavaScript runs again.
+std::span<const uint8_t> bytesArg(js::Engine& e, Args args, size_t i, const char* fn) {
   if (args.size() <= i || !e.isBytes(args[i])) {
     throw std::runtime_error(std::string("__host.image.") + fn + ": expected bytes");
   }
-  return e.toBytes(args[i]);
+  return e.viewBytes(args[i]);
 }
 
 template <class Area>
@@ -323,8 +324,9 @@ void installImage(js::Engine& e, const js::Value& object, const HostOptions&) {
   // Synchronous: canvas toBuffer and Fabric toDataURL need the bytes at the
   // call (design section 5.1).
   e.set(object, "encodePng", e.function("encodePng", 3, [](js::Engine& e, Args a) {
-    auto rgba = bytesArg(e, a, 0, "encodePng");
+    // The sizes are read first: their conversion can run JavaScript.
     uint32_t w = dimArg(e, a, 1), h = dimArg(e, a, 2);
+    auto rgba = bytesArg(e, a, 0, "encodePng");
     if (rgba.size() != size_t(w) * h * 4) {
       throw std::runtime_error("__host.image.encodePng: pixel data does not match width * height * 4");
     }

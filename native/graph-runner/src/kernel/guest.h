@@ -38,6 +38,9 @@ public:
   // Registry entry per node type, as the server's graph node type resolver
   // returns it: {nodeType, propertyTypes, outputs, descriptorDefaults, ...}.
   Json types();
+  // json {buildId, types, flags} for <bundle>.assets/types.json, from a
+  // guest that loaded every node module, or "null" (guest/parity/profile.mjs).
+  std::string typeSnapshot();
 
   // Class flags for a node, or nullopt when the guest has no such type.
   std::optional<Json> describe(const Json& node);
@@ -61,6 +64,10 @@ private:
   void settleEvaluation(const js::Value& result, const std::function<bool()>& stop);
   StreamIO& io(const js::Value& id);
   std::string callString(const std::string& fn, std::vector<js::Value> args);
+  // Calls fn and drains jobs until its promise settles. Throws on rejection.
+  std::string settleNow(const std::string& fn, std::vector<js::Value> args);
+  // Evaluates the deferred module of node.type when the guest has not yet.
+  void ensureType(const Json& node);
 
   js::Engine& engine_;
   HostOptions options_;

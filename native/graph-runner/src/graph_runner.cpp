@@ -18,6 +18,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iterator>
@@ -180,7 +181,9 @@ struct GraphRunner::Impl {
   }
 
   void work();
-  void load();
+  // Loads a context. A spare one (PT8) is kept in `spare` without touching
+  // the published state, and a later load() adopts it at once.
+  void load(bool asSpare = false);
   void runJob(Job& job);
   bool interruptRequested();
 
@@ -224,6 +227,9 @@ struct GraphRunner::Impl {
   // Worker thread only.
   std::vector<uint8_t> bundle;
   std::unique_ptr<Context> context;
+  // A loaded context that waits for the current one to be discarded. Built
+  // while the queue is empty, so a run after a discard starts without a load.
+  std::unique_ptr<Context> spare;
   bool interrupted = false;
   std::function<void(const Json&)> processingMessage;
   std::shared_ptr<ExecutionState> executionState;
@@ -236,8 +242,21 @@ bool GraphRunner::Impl::interruptRequested() {
   return now;
 }
 
-void GraphRunner::Impl::load() {
+void GraphRunner::Impl::load(bool asSpare) {
   const auto start = Clock::now();
+  if (!asSpare && spare) {
+    context = std::move(spare);
+    logLine("INFO", kLog, "replaced the discarded context with the spare in " + std::to_string(msSince(start)) + " ms");
+    {
+      std::lock_guard lock(mutex);
+      loadFinished = true;
+      isReady = true;
+      error.clear();
+      ++loads;
+    }
+    changed.notify_all();
+    return;
+  }
   auto next = std::make_unique<Context>();
   std::set<std::string> types;
   std::map<std::string, std::string> missing;
@@ -308,6 +327,19 @@ void GraphRunner::Impl::load() {
       types.insert(type);
     }
     catalogMs = msSince(catalogStart);
+    if (!asSpare && options.writeTypeSnapshot && !options.bundleAssetsDir.empty()) {
+      const std::string snapshot = next->guest->typeSnapshot();
+      if (snapshot != "null") {
+        const std::filesystem::path target = std::filesystem::path(options.bundleAssetsDir) / "types.json";
+        const std::filesystem::path staged = target.string() + ".tmp";
+        {
+          std::ofstream out(staged, std::ios::binary | std::ios::trunc);
+          out << snapshot;
+          if (!out) throw std::runtime_error("cannot write " + staged.string());
+        }
+        std::filesystem::rename(staged, target);
+      }
+    }
   } catch (const std::exception& e) {
     failure = e.what();
   }
@@ -317,6 +349,15 @@ void GraphRunner::Impl::load() {
   const bool bytecodeBundle = Guest::isBytecode(bundle);
   const size_t bundleBytes = bundle.size();
   std::vector<uint8_t>().swap(bundle);
+  if (asSpare) {
+    if (failure.empty()) {
+      spare = std::move(next);
+      logLine("INFO", kLog, "spare context loaded in " + std::to_string(msSince(start)) + " ms");
+    } else {
+      logLine("WARN", kLog, "spare context load failed: " + failure);
+    }
+    return;
+  }
   if (failure.empty()) {
     context = std::move(next);
     logLine("INFO", kLog,
@@ -355,6 +396,12 @@ void GraphRunner::Impl::work() {
     std::string unavailable;
     {
       std::unique_lock lock(mutex);
+      const bool idle = queue.empty() && !stopping && context && !spare && options.spareContext;
+      if (idle) {
+        lock.unlock();
+        load(true);
+        lock.lock();
+      }
       changed.wait(lock, [this] { return stopping || !queue.empty(); });
       if (queue.empty()) break;
       job = std::move(queue.front());
@@ -392,6 +439,7 @@ void GraphRunner::Impl::work() {
     if (reload) load();
   }
   Loop::current().setPump(nullptr);
+  spare.reset();
   context.reset();
   std::lock_guard lock(mutex);
   workerLoop = nullptr;
@@ -527,9 +575,6 @@ void GraphRunner::Impl::runJob(Job& job) {
       unknownState = true;
       loop.abandon();
     }
-    // JavaScript cut off mid-call may have left the guest's own state half
-    // updated.
-    if (interrupted) unknownState = true;
     // A run that never reached the kernel's terminal update gets one from
     // here. Like the server's own terminal update for a run that threw, it
     // carries an empty result.
@@ -547,6 +592,13 @@ void GraphRunner::Impl::runJob(Job& job) {
     // waiting completes into the closed mailbox.
     currentRun->set({});
     if (options.providerJobs) options.providerJobs->retireRun(identity);
+  }
+  // JavaScript cut off mid-call may have left the guest's own state half
+  // updated. Read after the Runner destructor, whose release calls can also
+  // be interrupted.
+  if (interrupted) {
+    unknownState = true;
+    if (failure.empty()) failure = "JavaScript was interrupted";
   }
   context->engine->releaseRunResources();
   host::endRun(*context->engine, job.id);
@@ -568,8 +620,14 @@ std::shared_ptr<AdmissionLedger> newAdmissionLedger(AdmissionLimits limits) {
   return std::make_shared<AdmissionLedger>(process);
 }
 
-GraphRunner::GraphRunner(std::string bundlePath, HostOptions options)
-    : impl_(std::make_unique<Impl>(std::move(bundlePath), std::move(options))) {}
+GraphRunner::GraphRunner(std::string bundlePath, HostOptions options) {
+  if (options.bundleAssetsDir.empty()) {
+    std::string dir = defaultBundleAssetsDir(bundlePath);
+    std::error_code ec;
+    if (std::filesystem::is_directory(dir, ec)) options.bundleAssetsDir = std::move(dir);
+  }
+  impl_ = std::make_unique<Impl>(std::move(bundlePath), std::move(options));
+}
 
 GraphRunner::~GraphRunner() {
   {

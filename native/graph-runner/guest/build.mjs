@@ -18,7 +18,9 @@
 // bundle and writes <bundle>.node-requirements.json next to it.
 import { build } from "esbuild";
 import { providerCapabilitiesPlugin } from "./provider-capabilities-plugin.mjs";
-import { textEncodingBanner } from "./text-encoding-banner.mjs";
+import { lazyTextEncodingBanner } from "./text-encoding-banner.mjs";
+import { bundleAssetPlugins, enableBundleAssets, writeBundleAssets } from "./bundle-assets-build.mjs";
+import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,6 +50,7 @@ if (moduleList && profile !== "parity") {
 }
 const outfile = args[0] ?? join(here, "..", "build", { default: "guest.js", parity: "guest-parity.js", core: "guest-core.js" }[profile]);
 mkdirSync(dirname(outfile), { recursive: true });
+enableBundleAssets();
 
 const options = {
   entryPoints: [join(here, "entry.mjs")],
@@ -56,18 +59,22 @@ const options = {
   platform: "browser",
   target: "es2022",
   outfile,
-  banner: { js: textEncodingBanner },
+  banner: { js: await lazyTextEncodingBanner() },
   write: false,
   metafile: true,
   // Smaller source to parse and keep. Names stay: node code and stack traces read them.
   minifySyntax: true,
   minifyWhitespace: true,
   legalComments: "none",
-  plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), hostModulesPlugin(), contractPlugin({ profile: "core" })],
+  plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), ...bundleAssetPlugins(), hostModulesPlugin(), contractPlugin({ profile: "core" })],
   logLevel: "warning",
 };
 
+// Modules evaluated at load even with a type snapshot: those whose
+// evaluation registers something beyond node classes.
+const EAGER_MODULE = /^@nodetool-ai\/(core-nodes\/|automation-nodes\/nodes\/triggers$)/;
 let result;
+let lazy = null;
 if (profile === "core") {
   result = await build(options);
 } else {
@@ -91,9 +98,19 @@ if (profile === "core") {
     modules = modules.filter((spec) => needed.has(spec));
     for (const spec of needed) {
       if (!modules.includes(spec)) throw new Error(`admitted module ${spec} is not a base node module`);
-    }
+    }    // PT7: the modules outside core are evaluated on first use once the
+    // runner has written a type snapshot for this build (types.json in the
+    // bundle assets, `nodetool-graph-runner compile`). Core modules carry the
+    // entry's own types and stay eager.
+    const moduleOfType = {};
+    for (const entry of inventory) if (needed.has(entry.module)) moduleOfType[entry.type] = entry.module;
+    lazy = {
+      buildId: randomUUID(),
+      eager: (spec) => EAGER_MODULE.test(spec),
+      moduleOfType,
+    };
   }
-  result = await build({ ...options, logLevel: "silent", plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), ...await parityPlugins({ modules, admit })] });
+  result = await build({ ...options, logLevel: "silent", plugins: [providerCapabilitiesPlugin(), imageNodePlugin(), ...capabilityPlugins(), ...bundleAssetPlugins(), ...await parityPlugins({ modules, admit, lazy })] });
 }
 // The drift check, the node requirements manifest and the write
 // (module-contract-build.mjs). Only a build of every node module can tell
@@ -103,5 +120,8 @@ if (profile === "core") {
 const finished = await finishBundle(result, outfile, { complete: profile === "parity" && !moduleList });
 // The esbuild metafile, for the size accounting of the bundle.
 if (result.metafile) writeFileSync(`${outfile}.meta.json`, JSON.stringify(result.metafile));
+// Resources kept out of the bundle, read on first use (bundle-assets-build.mjs).
+const assets = writeBundleAssets(outfile);
 console.log(outfile);
+console.error(`bundle assets: ${assets.dir} (${assets.count} files, ${(assets.bytes / 1e6).toFixed(1)} MB)`);
 console.error(`node requirements: ${finished.manifest} (${finished.types} of ${finished.classes} node types)`);

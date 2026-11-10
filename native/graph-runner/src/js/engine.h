@@ -165,6 +165,10 @@ public:
   virtual Value bytes(const uint8_t* data, size_t size) = 0;
   virtual bool isBytes(const Value& v) = 0;
   virtual std::vector<uint8_t> toBytes(const Value& v) = 0;
+  // The bytes that view covers, without a copy. The span is valid only
+  // until JavaScript runs again or `v` is released. A detached buffer gives
+  // an empty span.
+  virtual std::span<const uint8_t> viewBytes(const Value& v) = 0;
   virtual size_t byteLength(const Value& v) = 0;
   // True for a detached ArrayBuffer, and for a typed array whose buffer was
   // detached or, after a resize, no longer covers it. Leaves no exception.

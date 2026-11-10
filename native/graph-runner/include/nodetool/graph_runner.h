@@ -108,6 +108,21 @@ struct HostOptions {
   // read-only. A path with `..`, a leading `/` or a symlink below the
   // directory is refused. Empty: package:// refs fail with an error.
   std::string packageAssetsDir;
+  // Read-only resources the guest build keeps out of the bundle: fonts,
+  // tokenizer ranks, encoding tables and WebAssembly modules, which the
+  // guest reads on first use through `__host.bundleAssets`. Empty: the
+  // runner uses defaultBundleAssetsDir(bundlePath) when that directory
+  // exists, and grants none otherwise.
+  std::string bundleAssetsDir;
+  // After the load, write the node type snapshot of a bundle with lazy node
+  // modules to <bundleAssetsDir>/types.json. A later load of the same build
+  // then evaluates those modules on first use. Set by the compile command,
+  // on a load that must evaluate every module, so remove types.json first.
+  bool writeTypeSnapshot = false;
+  // Keep a second loaded context while the runner is idle, so a run after a
+  // discarded context starts at once instead of after a bundle load. Costs
+  // one idle JavaScript heap.
+  bool spareContext = true;
   // Every provider id resolves to the runtime's FakeProvider in the guest, one
   // instance per id, and the context's provider:* and prediction:* grants are
   // dropped from both grant maps. Provider calls then reach no grant, secret
@@ -228,6 +243,10 @@ private:
 // Compiles guest bundle source to bytecode for this build's engine. The
 // result is valid only for the same engine build. Throws std::runtime_error.
 std::vector<uint8_t> compileBundle(const std::string& source, const std::string& filename);
+
+// The resource directory guest/build.mjs writes next to a bundle:
+// <dir>/<stem>.assets for <dir>/<stem>.js and <dir>/<stem>.bin alike.
+std::string defaultBundleAssetsDir(const std::string& bundlePath);
 
 // Whether `bundle` is bytecode written by compileBundle().
 bool isBundleBytecode(const std::vector<uint8_t>& bundle);

@@ -114,6 +114,12 @@ std::vector<uint8_t> bytesArg(js::Engine& e, const std::vector<js::Value>& a, si
   return e.toBytes(a[i]);
 }
 
+// A view of the argument's bytes, valid until JavaScript runs again.
+std::span<const uint8_t> viewArg(js::Engine& e, const std::vector<js::Value>& a, size_t i, const char* fn) {
+  if (a.size() <= i || !e.isBytes(a[i])) throw std::runtime_error(std::string("__host.gpu.") + fn + ": expected bytes");
+  return e.viewBytes(a[i]);
+}
+
 std::string stringArg(js::Engine& e, const std::vector<js::Value>& a, size_t i) {
   return a.size() > i && !e.isUndefined(a[i]) && !e.isNull(a[i]) ? e.toString(a[i]) : std::string();
 }
@@ -249,7 +255,7 @@ void installGpu(js::Engine& e, const js::Value& object, const HostOptions& optio
 
   e.set(object, "uploadEncoded", e.function("uploadEncoded", 2, [state](js::Engine& e, Args a) {
     Device& device = state->ready();
-    auto bytes = bytesArg(e, a, 0, "uploadEncoded");
+    auto bytes = viewArg(e, a, 0, "uploadEncoded");
     RgbaImage image = decodeImage(bytes.data(), bytes.size());
     const std::string run = stringArg(e, a, 1);
     const uint64_t bytesNeeded = state->allocation(image.width, image.height);

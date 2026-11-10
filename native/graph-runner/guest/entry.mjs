@@ -55,6 +55,12 @@ for (const mod of [constant, control, input, subgraph, variable, triggers]) {
   }
 }
 
+// Lazy node modules (guest/parity/profile.mjs, PT7): set by the generated
+// node entry, which evaluates before this body. With a type snapshot, types()
+// and describe() of a bare type answer from it, and the kernel calls
+// ensure(type) before it needs a type's class.
+const lazyNodes = globalThis.__nodetoolLazyNodes?.snapshot ? globalThis.__nodetoolLazyNodes : null;
+
 const NEVER_ABORTED = {
   aborted: false,
   reason: undefined,
@@ -243,6 +249,7 @@ globalThis.__nodetool = {
 
   /** Promise of json `{[nodeType]: resolved}`; the resolver's closures are dropped. */
   types() {
+    if (lazyNodes) return Promise.resolve(JSON.stringify(lazyNodes.snapshot.types));
     const registry = new NodeRegistry();
     for (const cls of classes.values()) registry.register(cls);
     const { resolveNodeType } = createGraphNodeTypeResolver(registry);
@@ -262,6 +269,7 @@ globalThis.__nodetool = {
   describe(nodeJson) {
     const node = fromJson(nodeJson);
     const cls = classes.get(node.type);
+    if (!cls && lazyNodes?.pendingModule(node.type)) return JSON.stringify(lazyNodes.snapshot.flags[node.type] ?? null);
     return cls ? JSON.stringify(describe(cls, node)) : "null";
   },
 
@@ -313,6 +321,32 @@ globalThis.__nodetool = {
     const id = nextId++;
     instances.set(id, { instance, node, context: contexts.get(node.__context_id ?? 0) ?? context, executor: instance.toExecutor() });
     return id;
+  },
+
+  /** Whether `type` needs ensure() before its class is used. */
+  pending(type) {
+    return !classes.has(type) && lazyNodes?.pendingModule(type) !== undefined;
+  },
+
+  /** Evaluates the deferred module of `type` and registers its classes. */
+  ensure(type) {
+    return lazyNodes.ensure(type).then((found) => {
+      for (const [name, cls] of Object.entries(found)) if (!classes.has(name)) classes.set(name, cls);
+    });
+  },
+
+  /**
+   * json `{buildId, types, flags}` for the bundle assets' types.json, from a
+   * guest that loaded every module, or "null" for a bundle without lazy modules.
+   */
+  snapshot() {
+    const buildId = globalThis.__nodetoolLazyNodes?.buildId;
+    if (!buildId || lazyNodes) return Promise.resolve("null");
+    return globalThis.__nodetool.types().then((typesJson) => {
+      const flags = {};
+      for (const cls of classes.values()) flags[cls.nodeType] = describe(cls, { type: cls.nodeType });
+      return JSON.stringify({ buildId, types: JSON.parse(typesJson), flags });
+    });
   },
 
   /** Drops a node instance or an unfinished generator. */

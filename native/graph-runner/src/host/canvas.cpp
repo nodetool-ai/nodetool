@@ -399,12 +399,14 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
           if (a.size() != 5) {
             throw std::runtime_error("canvas: put arguments");
           }
-          auto bytes = e.toBytes(a[0]);
+          // The numbers are read first: their conversion can run JavaScript,
+          // which would end the view below.
           int w = dimension(e.toNumber(a[1])), h = dimension(e.toNumber(a[2]));
+          double dx = e.toNumber(a[3]), dy = e.toNumber(a[4]);
+          const auto bytes = e.viewBytes(a[0]);
           if (size_t(w) * h > MAX_PIXELS || bytes.size() != size_t(w) * h * 4) {
             throw std::runtime_error("canvas: pixel length mismatch");
           }
-          double dx = e.toNumber(a[3]), dy = e.toNumber(a[4]);
           if (!std::isfinite(dx) || !std::isfinite(dy) || std::abs(dx) > 1e7 ||
               std::abs(dy) > 1e7) {
             throw std::runtime_error("canvas: invalid pixel origin");
@@ -831,8 +833,10 @@ void installCanvas(js::Engine& e, const js::Value& object, const HostOptions&) {
             cairo_append_path(c, path.get());
 
           } else if (op == "drawImage") {
-            auto bytes = e.toBytes(e.get(args, "0"));
+            // The sizes are read first: their conversion can run JavaScript.
             int w = dimension(n(1)), h = dimension(n(2));
+            const js::Value pixels = e.get(args, "0");
+            const auto bytes = e.viewBytes(pixels);
             if (size_t(w) * h > MAX_PIXELS || bytes.size() != size_t(w) * h * 4) {
               throw std::runtime_error("canvas: image pixel length mismatch");
             }

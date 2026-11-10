@@ -1,5 +1,8 @@
 // Bundled fonts are immutable guest resources. Registration consumes only the
-// approved corpus embedded at build time, never a runtime path or system font.
+// approved corpus the build wrote to the bundle assets, never a runtime path
+// or system font.
+import { readBundleAsset } from "./bundle-assets.mjs";
+
 export function embeddedFontRegistration(GlobalFonts, catalog, embedded) {
   let done = null;
   return function registerBundledFonts() {
@@ -20,11 +23,7 @@ export function embeddedFontRegistration(GlobalFonts, catalog, embedded) {
           `canvas: bundled font resource is missing: ${face.file}`
         );
       }
-      const binary = atob(entry.bytes);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
+      const bytes = entry.asset ? readBundleAsset(entry.asset) : decodeBase64(entry.bytes);
       // The intrinsic name table determines the family, as in register-node.
       if (!GlobalFonts.register(bytes)) {
         throw new Error(`canvas: bundled font rejected: ${face.file}`);
@@ -40,4 +39,13 @@ export function embeddedFontRegistration(GlobalFonts, catalog, embedded) {
     });
     return done;
   };
+}
+
+function decodeBase64(text) {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }

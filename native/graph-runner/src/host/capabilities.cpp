@@ -17,6 +17,7 @@ namespace gr::host {
 void installFiles(js::Engine&, const js::Value&, const HostOptions&);
 void installAssets(js::Engine&, const js::Value&, const HostOptions&);
 void installPackageAssets(js::Engine&, const js::Value&, const HostOptions&);
+void installBundleAssets(js::Engine&, const js::Value&, const HostOptions&);
 void installSecrets(js::Engine&, const js::Value&, const HostOptions&);
 void installHttp(js::Engine&, const js::Value&, const HostOptions&);
 void installProcess(js::Engine&, const js::Value&, const HostOptions&);
@@ -46,6 +47,7 @@ const std::vector<Capability>& capabilities() {
       {"canvas", installCanvas},
       {"intl", [](js::Engine& e, const js::Value& o, const HostOptions&) { installIntl(e, o); }},
       {"packageAssets", installPackageAssets},
+      {"bundleAssets", installBundleAssets},
       {"providers", [](js::Engine& e, const js::Value& o, const HostOptions& options) {
         const bool fake = options.fakeProviders;
         e.set(o, "fake", e.function("fake", 0, [fake](js::Engine& en, const std::vector<js::Value>&) { return en.boolean(fake); }));

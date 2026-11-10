@@ -284,7 +284,13 @@ void loopWakeEndsAWait() {
 // The default guest bundle, loaded once for the environment checks.
 struct LoadedGuest {
   std::unique_ptr<js::Engine> engine = js::createQuickJsEngine();
-  std::unique_ptr<gr::Guest> guest = std::make_unique<gr::Guest>(*engine);
+  std::unique_ptr<gr::Guest> guest = std::make_unique<gr::Guest>(*engine, withBundleAssets());
+
+  static gr::HostOptions withBundleAssets() {
+    gr::HostOptions options;
+    options.bundleAssetsDir = gr::defaultBundleAssetsDir(bundlePath);
+    return options;
+  }
 
   LoadedGuest() { guest->load(bytesOf(readFile(bundlePath)), bundlePath); }
   ~LoadedGuest() { Loop::current().clearTimers(); }
@@ -306,6 +312,26 @@ struct LoadedGuest {
     loop.setPump(nullptr);
   }
 };
+
+// PT7: with the type snapshot that `compile` writes, a module outside core
+// is evaluated when one of its types is first needed, and the catalog still
+// lists every type. Without a snapshot every module loads at once.
+void lazyNodeModulesLoadOnFirstUse(LoadedGuest& g) {
+  const bool snapshot = std::filesystem::exists(std::filesystem::path(gr::defaultBundleAssetsDir(bundlePath)) / "types.json");
+  if (!snapshot || g.eval("String(!!globalThis.__nodetoolLazyNodes?.snapshot)") != "true") {
+    CHECK(!snapshot);  // a snapshot must put the guest in lazy mode
+    return;
+  }
+  const std::string type = g.eval(
+      "Object.keys(globalThis.__nodetoolLazyNodes.snapshot.types)"
+      ".find((t) => globalThis.__nodetool.pending(t)) ?? ''");
+  CHECK(!type.empty());
+  CHECK(g.guest->types().contains(type));
+  CHECK(g.guest->describe(gr::Json{{"type", type}}).has_value());  // from the snapshot
+  CHECK(g.eval("String(__nodetool.pending(" + gr::Json(type).dump() + "))") == "true");
+  CHECK(g.guest->describe(gr::Json{{"type", type}, {"id", "n"}, {"properties", gr::Json::object()}}).has_value());
+  CHECK(g.eval("String(__nodetool.pending(" + gr::Json(type).dump() + "))") == "false");
+}
 
 void intlMatchesNode(LoadedGuest& g) {
   for (const auto& [expr, expected] : kIntlCases) CHECK_EQ(g.eval(expr), expected);
@@ -607,6 +633,35 @@ void cancelledRunsLeaveNoTimers(bool bytecode) {
   CHECK(runner.contextLoads() == 2);
 }
 
+// PT8: the spare context, loaded while the runner is idle, replaces a
+// discarded context, so the next run starts without a bundle load.
+void spareContextReplacesADiscardedContext(bool withSpare) {
+  const std::string bundle = testBundle(true);
+  Clock::time_point start = Clock::now();
+  gr::HostOptions options;
+  options.spareContext = withSpare;
+  gr::GraphRunner runner(bundle, options);
+  CHECK(runner.waitUntilLoaded(60000));
+  const double coldMs = msSince(start);
+  // Idle time for the spare load, which takes about as long as the first.
+  std::this_thread::sleep_for(std::chrono::milliseconds(int(coldMs) * 3 + 500));
+
+  Collector longSleep;
+  runner.submit("long", "wf", graphOf("test.Sleep", 60000), "", longSleep.handler());
+  CHECK(longSleep.waitFor([&] { return longSleep.started("n"); }));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  CHECK(runner.cancel("long"));
+  CHECK_EQ(longSleep.waitTerminal(), "cancelled");
+  start = Clock::now();
+  Json pending = pendingAfter(runner, "after-discard");
+  const double nextMs = msSince(start);
+  std::fprintf(stderr, "%s spare: cold load %.0f ms, run after a discarded context %.0f ms\n",
+               withSpare ? "with" : "without", coldMs, nextMs);
+  CHECK(pending.is_object() && pending["pending"] == 0);
+  CHECK(runner.contextLoads() == 2);
+  if (withSpare) CHECK(nextMs < coldMs / 2);
+}
+
 void teardownDuringATimerWait() {
   Clock::time_point start;
   // The collector outlives the runner, whose teardown sends it the
@@ -654,6 +709,7 @@ int main(int argc, char** argv) {
       fn(*guest);
     };
   };
+  tests.push_back({"lazyNodeModulesLoadOnFirstUse", withGuest(lazyNodeModulesLoadOnFirstUse)});
   tests.push_back({"intlMatchesNode", withGuest(intlMatchesNode)});
   tests.push_back({"intlRefusesWhatItCannotFormat", withGuest(intlRefusesWhatItCannotFormat)});
   tests.push_back({"structuredCloneMatchesNode", withGuest(structuredCloneMatchesNode)});
@@ -663,6 +719,8 @@ int main(int argc, char** argv) {
   tests.push_back({"runsWaitForTimersAndDropThemAfter (bytecode)", [] { runsWaitForTimersAndDropThemAfter(true); }});
   tests.push_back({"cancelledRunsLeaveNoTimers (source)", [] { cancelledRunsLeaveNoTimers(false); }});
   tests.push_back({"cancelledRunsLeaveNoTimers (bytecode)", [] { cancelledRunsLeaveNoTimers(true); }});
+  tests.push_back({"spareContextReplacesADiscardedContext (without)", [] { spareContextReplacesADiscardedContext(false); }});
+  tests.push_back({"spareContextReplacesADiscardedContext (with)", [] { spareContextReplacesADiscardedContext(true); }});
   tests.push_back({"teardownDuringATimerWait", teardownDuringATimerWait});
   for (const auto& [name, fn] : tests) {
     int before = failures;

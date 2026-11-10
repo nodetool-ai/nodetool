@@ -79,10 +79,63 @@ const newContext = (jobId, workflowId) => new Proxy(createContext(jobId, workflo
  * ALL_BASE_NODES from. Each is a dynamic import(), so a module with
  * top-level await bundles, and modules load one after another in this order.
  */
-function nodesSource(modules, polyfillBuffer, admit) {
-  const loads = modules
-    .map((spec) => `await load(${JSON.stringify(spec)}, () => import(${JSON.stringify(spec)}));`)
+function nodesSource(modules, polyfillBuffer, admit, lazy) {
+  const thunk = (spec) => `() => import(${JSON.stringify(spec)})`;
+  const eager = lazy ? modules.filter((spec) => lazy.eager(spec)) : modules;
+  const deferred = lazy ? modules.filter((spec) => !lazy.eager(spec)) : [];
+  const loads = eager
+    .map((spec) => `await load(${JSON.stringify(spec)}, ${thunk(spec)});`)
     .join("\n");
+  // Lazy evaluation (PT7): with a type snapshot that matches this build in
+  // the bundle assets, a deferred module is evaluated when one of its types
+  // is first needed (entry.mjs, lazyNodes). Without one, every module loads.
+  const lazySource = lazy
+    ? `const deferredModules = { ${deferred.map((spec) => `${JSON.stringify(spec)}: ${thunk(spec)}`).join(", ")} };
+const moduleOfType = ${JSON.stringify(lazy.moduleOfType)};
+const BUILD_ID = ${JSON.stringify(lazy.buildId)};
+function readSnapshot() {
+  const assets = globalThis.__host?.bundleAssets;
+  if (!assets?.available?.()) return null;
+  let snapshot;
+  try {
+    snapshot = JSON.parse(assets.readText("types.json"));
+  } catch {
+    return null;
+  }
+  return snapshot?.buildId === BUILD_ID ? snapshot : null;
+}
+const snapshot = readSnapshot();
+const loading = new Map();
+globalThis.__nodetoolLazyNodes = {
+  buildId: BUILD_ID,
+  snapshot,
+  // The deferred module that defines a type not yet loaded, or undefined.
+  pendingModule(type) {
+    const spec = moduleOfType[type];
+    return snapshot && spec in deferredModules && !loading.has(spec + ":done") && type in snapshot.types ? spec : undefined;
+  },
+  // Evaluates the module of a type; resolves to the classes it admits.
+  ensure(type) {
+    const spec = moduleOfType[type];
+    if (!loading.has(spec)) {
+      loading.set(spec, deferredModules[spec]().then((mod) => {
+        loading.set(spec + ":done", true);
+        const found = {};
+        for (const value of Object.values(mod)) {
+          for (const cls of Array.isArray(value) ? value : [value]) {
+            if (typeof cls === "function" && typeof cls.nodeType === "string" && cls.nodeType in snapshot.types) found[cls.nodeType] ??= cls;
+          }
+        }
+        return found;
+      }));
+    }
+    return loading.get(spec);
+  }
+};
+if (!snapshot) {
+${deferred.map((spec) => `  await load(${JSON.stringify(spec)}, ${thunk(spec)});`).join("\n")}
+}`
+    : "";
   // Node's Buffer, from the "buffer" package (the implementation browser
   // bundlers use), installed before any node module loads.
   const buffer = polyfillBuffer
@@ -128,6 +181,7 @@ const admitTypes = new Set(${JSON.stringify(admit.types)});
 const admitted = (spec, type) => admitModules.has(spec) || admitTypes.has(type);`
     : "const admitted = () => true;"}
 ${loads}
+${lazySource}
 const probe = buildProbe(report, classes);
 export const parityClasses = ${admit ? "probe.admitted" : "{ ...probe.admitted, [probe.Probe.nodeType]: probe.Probe }"};
 `;
@@ -149,7 +203,7 @@ const CONSTANT_IMPORT = 'import * as constant from "@nodetool-ai/core-nodes/node
  * listed node types, and leaves out the probe node. Without it every class
  * loads.
  */
-export async function parityPlugins({ modules, admit = null }) {
+export async function parityPlugins({ modules, admit = null, lazy = null }) {
   const polyfillBuffer = hasBufferPackage();
   const emptyEsm = join(here, "empty.mjs");
   return [
@@ -165,7 +219,7 @@ export async function parityPlugins({ modules, admit = null }) {
           return { path: emptyEsm };
         });
         b.onLoad({ filter: /.*/, namespace: "parity-nodes" }, () => ({
-          contents: nodesSource(modules, polyfillBuffer, admit),
+          contents: nodesSource(modules, polyfillBuffer, admit, lazy),
           loader: "js",
           resolveDir: here
         }));

@@ -585,6 +585,46 @@ void lineageProjection() {
   CHECK(gr::tryProjectLineageKey(l, {}).value() == "");
 }
 
+void engineViewBytesLendsWithoutCopy() {
+  // F8: viewBytes lends the bytes a view covers; two views share memory.
+  auto e = js::createQuickJsEngine();
+  js::Value whole = e->evaluateScript("globalThis.buf = new Uint8Array([9, 1, 2, 3, 4]); buf", "t.js");
+  js::Value part = e->evaluateScript("buf.subarray(1, 4)", "t.js");
+  const auto a = e->viewBytes(whole);
+  const auto b = e->viewBytes(part);
+  CHECK(a.size() == 5 && b.size() == 3);
+  CHECK(b.data() == a.data() + 1);
+  CHECK(b[0] == 1 && b[2] == 3);
+  js::Value detached = e->evaluateScript("const d = new ArrayBuffer(8); d.transfer(); d", "t.js");
+  CHECK(e->viewBytes(detached).empty());
+}
+
+void engineInterruptStaysUncatchableInHostCalls() {
+  // S4: a host function that calls back into JavaScript and wraps the
+  // interrupt in its own C++ error must not make the interrupt catchable.
+  auto e = js::createQuickJsEngine();
+  bool stop = false;
+  e->evaluateScript("globalThis.spin = () => { for (;;) {} };", "t.js");
+  e->set(e->global(), "reenter", e->function("reenter", 0, [&stop](js::Engine& en, const std::vector<js::Value>&) -> js::Value {
+    stop = true;
+    try {
+      en.call(en.get(en.global(), "spin"), en.undefined(), {});
+    } catch (const js::JsError&) {
+      throw std::runtime_error("wrapped");
+    }
+    return en.undefined();
+  }));
+  e->setInterruptHandler([&stop] { return stop; });
+  bool escaped = false;
+  try {
+    e->evaluateScript("(() => { try { reenter(); } catch (x) { return 'caught'; } return 'none'; })()", "t.js");
+  } catch (const js::JsError&) {
+    escaped = true;
+  }
+  e->setInterruptHandler({});
+  CHECK(escaped);
+}
+
 }  // namespace
 
 int main() {
@@ -598,6 +638,8 @@ int main() {
       {"engineHeapLimitRaisesOutOfMemory", engineHeapLimitRaisesOutOfMemory},
       {"engineBytecodeKeepsStackLines", engineBytecodeKeepsStackLines},
       {"engineHostErrorsKeepMessageAndName", engineHostErrorsKeepMessageAndName},
+      {"engineViewBytesLendsWithoutCopy", engineViewBytesLendsWithoutCopy},
+      {"engineInterruptStaysUncatchableInHostCalls", engineInterruptStaysUncatchableInHostCalls},
       {"tasksResumeThroughTheLoop", tasksResumeThroughTheLoop},
       {"abandonDestroysSuspendedFrames", abandonDestroysSuspendedFrames},
       {"finishedTasksLeaveNoFrames", finishedTasksLeaveNoFrames},

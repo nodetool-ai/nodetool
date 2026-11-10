@@ -298,7 +298,7 @@ V invoke(E& e, Args a, const std::shared_ptr<State>& s) {
       if(op=="writeTexture") {
         if(!(tex->usage&WGPUTextureUsage_CopyDst)||!e.isBytes(arg(base+1))||e.byteLength(arg(base+1))>67108864) throw std::runtime_error("WebGPU texture upload usage/byte budget invalid");
         if(required>e.byteLength(arg(base+1))) throw std::runtime_error("WebGPU texture data too short");
-        auto data=e.toBytes(arg(base+1)); wgpuQueueWriteTexture(q,&ti,data.data(),data.size(),&bl,&size);
+        auto data=e.viewBytes(arg(base+1)); wgpuQueueWriteTexture(q,&ti,data.data(),data.size(),&bl,&size);
       } else {
         auto enc=get(1,Encoder), buf=get(base+1,Buffer);
         if(enc->used||enc->active||buf->mapped||buf->pending||row%256||required>buf->size||!(tex->usage&WGPUTextureUsage_CopySrc)||!(buf->usage&WGPUBufferUsage_CopyDst)) throw std::runtime_error("WebGPU texture copy state/usage/range invalid");
@@ -365,7 +365,7 @@ V invoke(E& e, Args a, const std::shared_ptr<State>& s) {
       enc->dependencies.push_back(src); enc->dependencies.push_back(dst);
       wgpuCommandEncoderCopyBufferToBuffer((WGPUCommandEncoder)enc->handle,(WGPUBuffer)src->handle,so,(WGPUBuffer)dst->handle,off,len);
     } else if(op=="write") {
-      auto b=get(1,Buffer); auto off=num(e,arg(2)); if(!e.isBytes(arg(3))) throw std::runtime_error("WebGPU writeBuffer requires bytes"); if(e.byteLength(arg(3))>b->size) throw std::runtime_error("WebGPU upload byte budget exceeded"); auto bytes=e.toBytes(arg(3));
+      auto b=get(1,Buffer); auto off=num(e,arg(2)); if(!e.isBytes(arg(3))) throw std::runtime_error("WebGPU writeBuffer requires bytes"); if(e.byteLength(arg(3))>b->size) throw std::runtime_error("WebGPU upload byte budget exceeded"); auto bytes=e.viewBytes(arg(3));
       if(b->mapped||b->pending||off%4||bytes.size()%4||off>b->size||bytes.size()>b->size-off) throw std::runtime_error("WebGPU write range/state invalid");
       wgpuQueueWriteBuffer(q,(WGPUBuffer)b->handle,off,bytes.data(),bytes.size());
     } else if(op=="submit") {

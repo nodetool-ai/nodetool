@@ -275,15 +275,22 @@ public:
     for (int i = 0; i < argc; ++i) {
       args.push_back(engine->wrap(JS_DupValue(ctx, argv[i])));
     }
+    const uint64_t exceptionsBefore = engine->lastExceptionId_;
+    // An interrupt raised by a nested call stays uncatchable, whatever error
+    // the host function turned it into.
+    auto interruptedInCall = [&] {
+      return engine->lastExceptionId_ != exceptionsBefore && JS_IsUncatchableError(engine->lastException_);
+    };
     try {
       Value result = box->fn(*engine, args);
       return result.empty() ? JS_UNDEFINED : JS_DupValue(ctx, raw(result));
     } catch (const JsError& e) {
-      if (e.exceptionId() != 0 && e.exceptionId() == engine->lastExceptionId_) {
+      if ((e.exceptionId() != 0 && e.exceptionId() == engine->lastExceptionId_) || interruptedInCall()) {
         return JS_Throw(ctx, JS_DupValue(ctx, engine->lastException_));
       }
       return engine->throwHostError(e.what(), e.name());
     } catch (const std::exception& e) {
+      if (interruptedInCall()) return JS_Throw(ctx, JS_DupValue(ctx, engine->lastException_));
       // JS_ThrowInternalError is not catchable from script in QuickJS-ng.
       return engine->throwHostError(e.what(), {});
     }
@@ -386,12 +393,16 @@ public:
     return false;
   }
   std::vector<uint8_t> toBytes(const Value& v) override {
+    const auto view = viewBytes(v);
+    return std::vector<uint8_t>(view.begin(), view.end());
+  }
+  std::span<const uint8_t> viewBytes(const Value& v) override {
     own();
     size_t size = 0;
     if (JS_IsArrayBuffer(raw(v))) {
       uint8_t* data = JS_GetArrayBuffer(ctx_, &size, raw(v));
       if (!data && size > 0) throwPending();
-      return std::vector<uint8_t>(data, data + size);
+      return data ? std::span<const uint8_t>(data, size) : std::span<const uint8_t>();
     }
     size_t offset = 0, perElement = 0;
     // native-rules #6: raw JSValue freed by hand with JS_FreeValue, not an RAII handle
@@ -399,10 +410,11 @@ public:
         JS_GetTypedArrayBuffer(ctx_, raw(v), &offset, &size, &perElement));
     size_t total = 0;
     uint8_t* data = JS_GetArrayBuffer(ctx_, &total, buffer);
+    // The view keeps the buffer alive, so its data outlives this reference.
     JS_FreeValue(ctx_, buffer);
     // A detached buffer reports no data; its view is empty.
     if (!data || offset + size > total) return {};
-    return std::vector<uint8_t>(data + offset, data + offset + size);
+    return {data + offset, size};
   }
 
   bool isUndefined(const Value& v) override { own(); return JS_IsUndefined(raw(v)); }

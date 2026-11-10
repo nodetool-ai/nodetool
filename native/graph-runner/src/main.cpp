@@ -167,6 +167,9 @@ int main(int argc, char** argv) {
   bool benchLoad = false;
   
   host.gpu.enabled = true;
+  // One process runs one bundle load's worth of jobs: a spare context would
+  // only delay the exit.
+  host.spareContext = false;
   // The CLI's one runner owns the process's admission limits.
   host.admissionLedger = gr::newAdmissionLedger();
   for (int i = 2; i < argc; ++i) {
@@ -218,6 +221,25 @@ int main(int argc, char** argv) {
     out.write(reinterpret_cast<const char*>(bytecode.data()), std::streamsize(bytecode.size()));
     if (!out) return usage("cannot write --out");
     std::fprintf(stderr, "wrote %zu bytes to %s\n", bytecode.size(), flags["out"].c_str());
+    // The node type snapshot that lets later loads of this build evaluate
+    // node modules on first use. It sits in <stem>.assets, which the source
+    // bundle and the bytecode share. The load that makes it evaluates every
+    // module, so the old snapshot goes first.
+    const std::string assets = gr::defaultBundleAssetsDir(flags["bundle"]);
+    std::error_code ec;
+    if (std::filesystem::is_directory(assets, ec)) {
+      std::filesystem::remove(std::filesystem::path(assets) / "types.json", ec);
+      gr::HostOptions snapshotHost = host;
+      snapshotHost.writeTypeSnapshot = true;
+      gr::GraphRunner runner(flags["bundle"], snapshotHost);
+      if (!runner.waitUntilLoaded(600000)) {
+        std::fprintf(stderr, "type snapshot failed: %s\n", runner.loadError().c_str());
+        return 1;
+      }
+      if (std::filesystem::exists(std::filesystem::path(assets) / "types.json", ec)) {
+        std::fprintf(stderr, "wrote the node type snapshot to %s/types.json\n", assets.c_str());
+      }
+    }
     return 0;
   }
 

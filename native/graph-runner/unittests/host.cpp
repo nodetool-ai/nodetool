@@ -447,6 +447,29 @@ void packageAssetsReadAndRefuseEscapes() {
   CHECK(startsWith(run(*e, "__host.packageAssets.read('nodetool-base/link.wav')"), "error: EACCES"));
 }
 
+// --- bundle assets ----------------------------------------------------------
+
+void bundleAssetsReadAndRefuseEscapes() {
+  TempDir t;
+  writeText(t.path("guest.assets/fonts/a.ttf"), "ttf");
+  writeText(t.path("outside.txt"), "outside");
+  CHECK(gr::defaultBundleAssetsDir(t.path("guest.bin")) == t.path("guest.assets"));
+  CHECK(gr::defaultBundleAssetsDir(t.path("guest.js")) == t.path("guest.assets"));
+  {
+    auto e = engineWith({});
+    CHECK(run(*e, "__host.bundleAssets.available()") == "false");
+    CHECK(startsWith(run(*e, "__host.bundleAssets.read('fonts/a.ttf')"), "error: bundle asset fonts/a.ttf: the native runner has no bundle assets directory"));
+  }
+  gr::HostOptions o;
+  o.bundleAssetsDir = t.path("guest.assets");
+  auto e = engineWith(o);
+  CHECK(run(*e, "__host.bundleAssets.available()") == "true");
+  CHECK(run(*e, "text(__host.bundleAssets.read('fonts/a.ttf'))") == "ttf");
+  CHECK(run(*e, "__host.bundleAssets.readText('fonts/a.ttf')") == "ttf");
+  CHECK(startsWith(run(*e, "__host.bundleAssets.read('fonts/missing.ttf')"), "error: bundle asset fonts/missing.ttf is missing"));
+  CHECK(startsWith(run(*e, "__host.bundleAssets.read('../outside.txt')"), "error: Invalid storage key"));
+}
+
 // --- providers --------------------------------------------------------------
 
 void fakeProvidersDropProviderGrants() {

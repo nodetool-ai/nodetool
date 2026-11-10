@@ -45,6 +45,14 @@
 //   read(key)            -> Uint8Array, or null when missing
 //   readAsync(key)       -> as read, as a promise on the I/O lane while a run is bound
 //   bound()              -> whether a run is bound
+//
+// `__host.bundleAssets`: resources guest/build.mjs writes next to the
+// bundle instead of into it, from HostOptions::bundleAssetsDir. Read-only,
+// synchronous, and read once by the guest module that needs them.
+//
+//   available()          -> whether a bundle assets directory is granted
+//   read(name)           -> Uint8Array; throws when missing
+//   readText(name)       -> the file as a UTF-8 string; throws when missing
 #include "host/asset_destinations.h"
 #include "host/assets.h"
 #include "host/capabilities.h"
@@ -61,6 +69,7 @@
 #include <atomic>
 #include <cerrno>
 #include <dirent.h>
+#include <filesystem>
 #include <fcntl.h>
 #include <memory>
 #include <sys/stat.h>
@@ -447,4 +456,41 @@ void installPackageAssets(js::Engine& e, const js::Value& object, const HostOpti
   }));
 }
 
+void installBundleAssets(js::Engine& e, const js::Value& object, const HostOptions& options) {
+  // Shared by the host functions below. Immutable.
+  auto assets = std::make_shared<Assets>();
+  if (!options.bundleAssetsDir.empty()) assets->roots = canonicalRoots({{options.bundleAssetsDir, false}});
+  const std::shared_ptr<const Assets> store = std::move(assets);
+  auto load = [store](js::Engine& en, Args a) {
+    const std::string name = a.empty() ? std::string() : en.toString(a[0]);
+    if (store->roots.empty()) {
+      throw std::runtime_error("bundle asset " + name +
+                               ": the native runner has no bundle assets directory (<bundle>.assets)");
+    }
+    auto data = store->read(name);
+    if (!data) throw std::runtime_error("bundle asset " + name + " is missing from " + store->root());
+    return std::move(*data);
+  };
+  e.set(object, "available", e.function("available", 0, [store](js::Engine& en, Args) {
+    return en.boolean(!store->roots.empty());
+  }));
+  e.set(object, "read", e.function("read", 1, [load](js::Engine& en, Args a) {
+    const std::vector<uint8_t> data = load(en, a);
+    return en.bytes(data.data(), data.size());
+  }));
+  e.set(object, "readText", e.function("readText", 1, [load](js::Engine& en, Args a) {
+    const std::vector<uint8_t> data = load(en, a);
+    return en.string(std::string_view(reinterpret_cast<const char*>(data.data()), data.size()));
+  }));
+}
+
 }  // namespace gr::host
+
+namespace gr {
+
+std::string defaultBundleAssetsDir(const std::string& bundlePath) {
+  std::filesystem::path path(bundlePath);
+  return (path.parent_path() / (path.stem().string() + ".assets")).string();
+}
+
+}  // namespace gr

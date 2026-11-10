@@ -51,6 +51,16 @@ same build.
 wrote it, so recompile it after changing the engine pin, and after this
 change from a script bundle to a module bundle.
 
+`guest/build.mjs` also writes `build/guest.assets/`. It holds the resources
+the bundle reads on first use: the timeline fonts, the tiktoken ranks, the
+legacy text encoding tables and the Rapier WebAssembly module. The runner
+grants `<dir>/<stem>.assets/` next to the bundle by default
+(`HostOptions::bundleAssetsDir`), so ship the directory with `guest.js` or
+`guest.bin`. `compile` also writes `guest.assets/types.json`, the node type
+snapshot. With it, a load evaluates the node modules outside core when one
+of their types is first used. A rebuild of `guest.js` removes the snapshot,
+and the next load evaluates every module until `compile` runs again.
+
 ## Run
 
 ```bash

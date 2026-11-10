@@ -2,7 +2,7 @@
 #include "host/image.h"
 #include <cmath>
 #include <filesystem>
-#include <leptonica/allheaders.h>
+#include <allheaders.h>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <regex>
@@ -49,7 +49,7 @@ void installSandboxOcr(js::Engine &e, const js::Value &object,
             if (cancelled && cancelled()) {
               throw std::runtime_error("OCR cancelled");
             }
-            const auto bytes = en.toBytes(args[0]);
+            const auto bytes = en.viewBytes(args[0]);
             if (bytes.size() > 10 * 1024 * 1024) {
               throw std::runtime_error("OCR input byte limit exceeded");
             }

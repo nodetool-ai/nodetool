@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { addBundleAsset, bundleAssetsEnabled } from "../bundle-assets-build.mjs";
 const registration = fileURLToPath(
   new URL("./canvas-fonts.mjs", import.meta.url)
 );
@@ -65,7 +66,9 @@ export function canvasPlugins() {
                 family: face.family,
                 sha256: createHash("sha256").update(bytes).digest("hex"),
                 licenseText: readFileSync(license, "utf8"),
-                bytes: bytes.toString("base64")
+                ...(bundleAssetsEnabled()
+                  ? { asset: addBundleAsset(`fonts/${face.file}`, bytes) }
+                  : { bytes: bytes.toString("base64") })
               });
               watchFiles.push(file, license);
             }
