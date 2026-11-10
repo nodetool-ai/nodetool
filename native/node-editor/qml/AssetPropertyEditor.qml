@@ -29,7 +29,9 @@ ColumnLayout {
     property bool multipleFiles: false
     // A media list shows one click-or-drop zone instead of the library controls
     // (web components/properties/ImageListProperty.tsx and its audio, video and text siblings).
-    property bool dropZoneOnly: false
+    // The card drop zone and the Library replace an image, video or audio
+    // asset, so those kinds show no picker list.
+    property bool dropZoneOnly: mediaKind === "image" || mediaKind === "video" || mediaKind === "audio"
     readonly property string dropPrompt: mediaKind === "image" ? qsTr("Click or drop images here")
         : mediaKind === "audio" ? qsTr("Click or drop audio files here")
         : mediaKind === "video" ? qsTr("Click or drop videos here")

@@ -330,7 +330,7 @@ private slots:
             {"rail-theme", "Switch to light mode"},
             {"rail-panel", "Toggle panel"},
             {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
-            {"rail-library", "The asset library has no native panel yet."},
+            {"rail-library", "Library"},
             {"rail-entities", "Entities has no native panel yet."},
             {"rail-examples", "Examples has no native panel yet."},
             {"rail-more", "The More panel has no native equivalent. Native commands are in the toolbar More menu."},
