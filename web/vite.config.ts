@@ -321,6 +321,11 @@ export default defineConfig(async ({ mode }) => {
       port: 3000,
       proxy: proxyConfig
     },
+    // `vite preview` serves the production build to the latency suite, which
+    // needs the same backend routes as the dev server.
+    preview: {
+      proxy: proxyConfig
+    },
     optimizeDeps: {
       include: [
         "@trpc/client",

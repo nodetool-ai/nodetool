@@ -215,6 +215,7 @@ export default {
     "tests/debug-harness/",
     "tests/smoke/",
     "tests/journeys/",
+    "tests/latency/",
     // Node test runner owns these offline Playwright checks.
     "tests/agentic-qa/",
     // Shared helpers living inside __tests__ dirs — not suites themselves.

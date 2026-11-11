@@ -137,6 +137,7 @@ E2E tests are located in:
 ```
 web/tests/
 ├── journeys/         # User-journey suites (chat, editor, library, mini-app, subgraph)
+├── latency/          # Doherty threshold: interactions must respond within 400 ms
 ├── smoke/            # Page-load smoke suite
 ├── e2e-runner/       # In-browser workflow harness suite
 ├── debug-harness/    # Browser surface of `nodetool debug`
@@ -164,6 +165,8 @@ from Vite on port 3000 by default.
   starts the real backend on port 7777. Other suites must select their own
   config explicitly so unrelated tests cannot be discovered accidentally.
 - `playwright.journeys.config.ts` — `./tests/journeys`, retries 0.
+- `playwright.latency.config.ts` — `./tests/latency`, retries 0, against the
+  production build. See the [latency suite](tests/latency/README.md).
 - `playwright.smoke.config.ts` — `./tests/smoke`, retries 0.
 - `playwright.e2e-runner.config.ts` — `./tests/e2e-runner`, retries 0.
 - `playwright.debug-harness.config.ts` — `./tests/debug-harness`, retries 0.
@@ -206,6 +209,7 @@ npm run test:e2e:headed
 
 # Run a specific suite
 npm run test:journeys
+npm run test:latency
 npm run test:smoke
 
 # Run the deterministic chat-history virtualization regression
@@ -286,7 +290,7 @@ test('should interact with workflow', async ({ page }) => {
 
 Each Playwright suite has its own workflow:
 
-- `.github/workflows/user-journeys.yml` — `npm run test:journeys`
+- `.github/workflows/user-journeys.yml` — `npm run test:journeys` and `npm run test:latency`
 - `.github/workflows/page-load-smoke.yml` — the page-load smoke suite
 - `.github/workflows/e2e-runner.yml` — `npm run test:e2e-runner`
 - `.github/workflows/screenshots.yml` — `tests/benchmarks/screenshots.spec.ts`

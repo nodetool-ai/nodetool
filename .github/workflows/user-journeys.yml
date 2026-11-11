@@ -17,9 +17,11 @@ on:
     paths:
       - "web/src/**"
       - "web/tests/journeys/**"
+      - "web/tests/latency/**"
       - "web/tests/globalSetup.ts"
       - "web/tests/benchmarks/helpers/**"
       - "web/playwright.journeys.config.ts"
+      - "web/playwright.latency.config.ts"
       - "web/tsconfig.playwright.json"
       - "web/package.json"
       - "packages/**"
@@ -97,6 +99,50 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: user-journeys-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 14
+
+  latency:
+    name: Hold interactions under the 400 ms Doherty threshold
+    # Advisory, with the same triggers as the journey job above.
+    if: >-
+      ${{ github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'pull_request' && github.event.label.name == 'browser-suites') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+
+      - name: Type-check browser suites
+        working-directory: web
+        run: npm run typecheck:playwright
+
+      - name: Install Playwright Chromium browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run latency suite
+        working-directory: web
+        env:
+          CI: "true"
+          # Deterministic test-only master key committed in tests/globalSetup.ts.
+          # Never use in production.
+          SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
+        run: npm run test:latency
+
+      - name: Upload latency report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: latency-report
           path: |
             web/playwright-report/
             web/test-results/

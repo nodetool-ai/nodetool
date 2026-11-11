@@ -183,6 +183,20 @@ function ensureIndexes(nodes: NodeMetadata[]) {
   return { prefixTree, bm25, entries };
 }
 
+/**
+ * Build the search indexes for `metadata` ahead of the first query.
+ *
+ * Building them takes a few hundred milliseconds for the full catalog. Done
+ * lazily, that cost landed on the first keystroke in the node menu and pushed
+ * the first results past the 400 ms Doherty threshold.
+ */
+export function warmSearchIndexes(metadata: NodeMetadata[]): void {
+  const nodes = withoutDefaultNamespace(metadata);
+  if (nodes.length > 0) {
+    ensureIndexes(nodes);
+  }
+}
+
 function ensureBM25Index(nodes: NodeMetadata[]): BM25Index {
   return ensureIndexes(nodes).bm25;
 }
