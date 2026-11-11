@@ -196,6 +196,7 @@ struct Statement {
 // so it closes when the engine that holds them is destroyed.
 struct State {
   std::string root;      // canonical granted directory, or empty
+  std::string given;     // the granted directory as named, lexically normal
   std::string vfs;       // sandbox VFS name
   // native-rules #6: raw sqlite3 handles closed by hand in the destructor
   std::unordered_map<int, sqlite3*> dbs;
@@ -246,11 +247,15 @@ std::string resolvePath(const State& state, const std::string& filename) {
   fs::path p(filename);
   if (p.is_relative()) p = root / p;
   p = p.lexically_normal();
-  const auto outside = [&](const fs::path& candidate) {
-    const fs::path rel = candidate.lexically_relative(root);
+  const auto outsideOf = [](const fs::path& dir, const fs::path& candidate) {
+    const fs::path rel = candidate.lexically_relative(dir);
     return rel.empty() || *rel.begin() == ".." || rel == ".";
   };
-  if (outside(p)) fail("SQLITE_CANTOPEN", "database path is outside the granted directory: " + filename);
+  const auto outside = [&](const fs::path& candidate) { return outsideOf(root, candidate); };
+  // The directory as named can sit below a symlink, such as /var -> /private/var
+  // on macOS. The canonical check below still refuses a link that leaves it.
+  const bool outsideGiven = state.given.empty() || outsideOf(fs::path(state.given), p);
+  if (outside(p) && outsideGiven) fail("SQLITE_CANTOPEN", "database path is outside the granted directory: " + filename);
   std::error_code ec;
   const fs::path real = fs::weakly_canonical(p, ec);
   if (ec || outside(real)) {
@@ -568,9 +573,15 @@ void installSqlite(js::Engine& engine, const js::Value& object, const HostOption
   if (!options.sqliteDirectory.empty()) {
     std::error_code ec;
     const fs::path root = fs::canonical(options.sqliteDirectory, ec);
-    if (!ec && fs::is_directory(root, ec)) state->root = root.string();
-    else std::fprintf(stderr, "[sqlite] granted directory %s does not exist; in-memory only\n",
-                      options.sqliteDirectory.c_str());
+    if (!ec && fs::is_directory(root, ec)) {
+      state->root = root.string();
+      fs::path named = fs::path(options.sqliteDirectory).lexically_normal();
+      if (!named.has_filename()) named = named.parent_path();
+      if (named.is_absolute()) state->given = named.string();
+    } else {
+      std::fprintf(stderr, "[sqlite] granted directory %s does not exist; in-memory only\n",
+                   options.sqliteDirectory.c_str());
+    }
   }
   state->vfs = sandboxVfs(state->root);
 

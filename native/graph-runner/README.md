@@ -24,8 +24,8 @@ Configuration also requires ICU development libraries, the
 [image adapter dependencies](#native-image-adapter-dependencies), the
 [libav development libraries](#native-media), Tesseract 5.5.3 and Leptonica
 1.80 or newer. [Canvas](#headless-canvas-2d) needs Cairo, Pango and Fontconfig.
-CMake fetches the SHA-256-pinned Wasmtime 29.0.1 shared C API on Linux x86_64.
-Other platforms must supply its matching distribution through `WASMTIME_ROOT`.
+CMake fetches the SHA-256-pinned Wasmtime 29.0.1 shared C API on Linux x86_64
+and on macOS arm64 and x86_64. Other platforms must supply its matching distribution through `WASMTIME_ROOT`.
 See [runtime library staging](#runtime-library-staging) before distributing a build.
 
 ```bash
@@ -610,6 +610,9 @@ QuickJS has no WebGPU, so the guest replaces those two functions
   carrying a different guest label, without affecting peer runners with the
   same job id. The catalog path admits at most 4096 textures and 64 MiB of
   retained RGBA8 textures per engine, checked before native allocation.
+  `uploadEncoded` keeps the last two images it decoded with their encoded
+  bytes, per engine and across runs. An upload of the same bytes skips the
+  decode, as each preview run of a slider drag uploads one source image again.
 - Input images arrive as inline bytes, base64 `data` or `data:` URIs, which the
   image capability decodes with stb_image (PNG, JPEG, BMP, GIF, TGA, PSD, PNM;
   plus libwebp for WebP). Other references go to `loadMediaRefBytes`, the media capability's

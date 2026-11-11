@@ -325,6 +325,29 @@ void confinementAtCommit(Suite& t) {
   }
 }
 
+// Gate: a symlink above a granted root, such as /var -> /private/var on
+// macOS, was resolved with the root and passes a no-symlink check. A symlink
+// below the root is still refused.
+void symlinkAboveTheRoot(Suite& t) {
+  TempDir base;
+  const std::string real = base.path() + "/real";
+  CHECK(fs::create_directory(real));
+  CHECK(fs::create_directory(real + "/inner"));
+  fs::create_directory_symlink(real, base.path() + "/link");
+  fs::create_directory_symlink(real + "/inner", real + "/below");
+  const auto roots = gr::host::canonicalRoots({{base.path() + "/link", true}});
+  CHECK(roots.size() == 1);
+  const auto staged = gr::host::confine(roots, "", base.path() + "/link/file.bin", gr::host::Access::Write, "open", true);
+  CHECK(staged.real == real + "/file.bin");
+  std::string refusal;
+  try {
+    gr::host::confine(roots, "", base.path() + "/link/below/file.bin", gr::host::Access::Write, "open", true);
+  } catch (const gr::host::FsError& error) {
+    refusal = error.what();
+  }
+  CHECK(contains(refusal, "symbolic links are refused here"));
+}
+
 // --- destination steps run on their executor -------------------------------------------
 
 // A step that records its thread and blocks until its gate opens.
@@ -539,6 +562,7 @@ int main() {
       {"cancellationBeforeCommit", cancellationBeforeCommit},
       {"ownTemporaryFileOnly", ownTemporaryFileOnly},
       {"confinementAtCommit", confinementAtCommit},
+      {"symlinkAboveTheRoot", symlinkAboveTheRoot},
       {"keysCheckedAtSubmission", keysCheckedAtSubmission},
       {"syncStepRunsOnTheCaller", syncStepRunsOnTheCaller},
       {"abandonedTicketRunsNoStep", abandonedTicketRunsNoStep},
