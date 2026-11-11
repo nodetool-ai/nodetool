@@ -1,7 +1,7 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, delimiter } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -445,6 +445,23 @@ describe("selectChecks", () => {
 });
 
 describe("executeChecks", () => {
+  it.each([1, 2])("uses the gate's Node runtime despite an earlier PATH executable (jobs=%s)", async (jobs) => {
+    const directory = mkdtempSync(join(tmpdir(), "gate-runtime-"));
+    commandFixtures.push(directory);
+    writeFileSync(join(directory, process.platform === "win32" ? "node.cmd" : "node"),
+      process.platform === "win32" ? "@exit /b 41\r\n" : "#!/bin/sh\nexit 41\n", { mode: 0o755 });
+    const key = Object.keys(process.env).find(name => name.toLowerCase() === "path") ?? "PATH";
+    const previous = process.env[key];
+    process.env[key] = `${directory}${delimiter}${previous ?? ""}`;
+    try {
+      const results = await executeChecks([check("runtime", "node --version")], runOpts({ jobs }));
+      expect(results[0]?.ok).toBe(true);
+    } finally {
+      if (previous === undefined) delete process.env[key];
+      else process.env[key] = previous;
+    }
+  });
+
   afterEach(() => vi.restoreAllMocks());
 
   it.each([1, 2])("reports progress on stderr and durations without contaminating JSON output with jobs=%s", async (jobs) => {
