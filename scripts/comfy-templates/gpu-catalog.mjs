@@ -105,6 +105,99 @@ function classify(metadata, workflow) {
   return { kind: "image", task: images ? "image_to_image" : "text_to_image" };
 }
 
+// Output classes that prepareComfyGpuPrompt in comfy-gpu-models.ts keeps as roots.
+const OUTPUT_CLASS = {
+  image: /^(Save.*Image|SaveAnimated)/, video: /^(SaveVideo|VHS_VideoCombine)/, audio: /^SaveAudio/,
+  text: /^(PreviewAny|SaveText)/, model3d: /^(Save(?!.*(?:Image|Video|Audio|Text))|Preview3D)/i
+};
+
+/**
+ * Count the media loaders that remain after the provider prunes the graph to
+ * its outputs. This follows comfyUiToPrompt's link resolution (subgraphs,
+ * reroutes, Set/Get variables, mute and bypass) on topology alone, so it needs
+ * no live object_info.
+ */
+function mediaInputs(kind, workflow) {
+  const definitions = new Map((workflow.definitions?.subgraphs ?? []).map((definition) => [String(definition.id), definition]));
+  const linkMap = (scope) => new Map((scope.links ?? []).map((raw) => Array.isArray(raw)
+    ? [String(raw[0]), { origin: String(raw[1]), slot: raw[2], target: String(raw[3]), input: raw[4] }]
+    : [String(raw.id), { origin: String(raw.origin_id), slot: raw.origin_slot, target: String(raw.target_id), input: raw.target_slot }]));
+  const built = new Map();
+  let expanded = 0;
+  function scopeOf(scope, prefix, external, depth) {
+    if (depth > 30 || (expanded += scope.nodes.length) > 20000) {throw new Error("Comfy template subgraph expansion exceeded its limit");}
+    const nodes = new Map(scope.nodes.map((node) => [String(node.id), node]));
+    const links = linkMap(scope);
+    const children = new Map();
+    const inputValue = (node, index) => {
+      const input = (node.inputs ?? [])[index];
+      const entry = input?.link == null ? undefined : links.get(String(input.link));
+      if (entry) {resolve(entry.origin, entry.slot);}
+    };
+    const child = (id, node, definition) => {
+      if (!children.has(id)) {
+        const supplied = new Map();
+        (definition.inputs ?? []).forEach((port, index) => {
+          const named = (node.inputs ?? []).findIndex((input) => input.name === port.name);
+          if (named >= 0) {supplied.set(index, () => inputValue(node, named));}
+        });
+        children.set(id, scopeOf(definition, `${prefix}${id}:`, supplied, depth + 1));
+      }
+      return children.get(id);
+    };
+    function resolve(id, slot) {
+      if (id === "-10") { external.get(slot)?.(); return; }
+      const node = nodes.get(id);
+      if (!node || node.mode === 2) {return;}
+      const definition = definitions.get(String(node.type));
+      if (definition) { child(id, node, definition).output(slot); return; }
+      if (node.type === "PrimitiveNode") {return;}
+      if (node.type === "Reroute" || node.type === "SetNode") { inputValue(node, 0); return; }
+      if (node.type === "GetNode") {
+        const setter = [...nodes.values()].find((candidate) => candidate.type === "SetNode" && candidate.widgets_values?.[0] === node.widgets_values?.[0]);
+        if (setter) {inputValue(setter, 0);}
+        return;
+      }
+      if (node.mode === 4) {
+        const inputs = node.inputs ?? [];
+        const matching = inputs.findIndex((input) => input.type === node.outputs?.[slot]?.type);
+        inputValue(node, matching >= 0 ? matching : slot);
+        return;
+      }
+      build(id, node);
+    }
+    function build(id, node) {
+      const apiId = `${prefix}${id}`;
+      if (built.has(apiId)) {return;}
+      built.set(apiId, String(node.type));
+      (node.inputs ?? []).forEach((_input, index) => inputValue(node, index));
+    }
+    return {
+      output(slot) {
+        const port = (scope.outputs ?? [])[slot];
+        const entry = (port?.linkIds ?? []).map((key) => links.get(String(key))).find(Boolean) ??
+          [...links.values()].find((candidate) => candidate.target === "-20" && candidate.input === slot);
+        if (entry) {resolve(entry.origin, entry.slot);}
+      },
+      emit() {
+        for (const [id, node] of nodes) {
+          if (node.mode === 2 || node.mode === 4) {continue;}
+          const definition = definitions.get(String(node.type));
+          if (definition) {child(id, node, definition).emit();}
+          else if (OUTPUT_CLASS[kind].test(String(node.type))) {build(id, node);}
+        }
+      }
+    };
+  }
+  scopeOf(workflow, "", new Map(), 0).emit();
+  const types = [...built.values()];
+  return {
+    image: types.filter((type) => type === "LoadImage").length,
+    video: types.filter((type) => /^(LoadVideo|VHS_LoadVideo)/.test(type)).length,
+    audio: types.filter((type) => type === "LoadAudio").length
+  };
+}
+
 const templates = [];
 const excluded = [];
 for (const { metadata, workflow } of source.templates) {
@@ -121,6 +214,7 @@ for (const { metadata, workflow } of source.templates) {
     kind: result.kind, task: result.task,
     outputNodes: (metadata.io?.outputs ?? []).map((output) => String(output.nodeId)),
     restricted: (metadata.models ?? []).some((model) => /\bH3\b/.test(model) && !/music/i.test(model)),
+    inputs: mediaInputs(result.kind, workflow),
     workflow
   });
 }

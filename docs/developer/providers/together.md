@@ -4,7 +4,8 @@ title: "Together AI: Add Models & Nodes"
 description: "How to add new Together AI models and workflow nodes to NodeTool — manifest entries, provider lists, codegen, and verification."
 ---
 
-> **Audience:** Contributors and coding agents adding Together AI models or nodes to this repo.
+> **Runs:** cloud. **Needs:** `TOGETHER_API_KEY`. The provider constructor throws `TOGETHER_API_KEY is required` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -14,8 +15,6 @@ description: "How to add new Together AI models and workflow nodes to NodeTool �
 4. For TTS and ASR models, also update the matching static array in `packages/runtime/src/providers/together-provider.ts`. Embedding models exist only there.
 5. Verify with `nodetool node run together.<module>.<ClassName>`.
 
----
-
 ## Where things live
 
 | What | Path |
@@ -23,16 +22,14 @@ description: "How to add new Together AI models and workflow nodes to NodeTool �
 | Manifest generator (source of truth) | `packages/together-nodes/scripts/generate-manifest.mjs` |
 | Generated manifest (do not hand-edit) | `packages/together-nodes/src/together-manifest.json` |
 | Node factory (manifest → `BaseNode` subclasses) | `packages/together-nodes/src/together-factory.ts` |
-| HTTP helpers / API executors | `packages/together-nodes/src/together-base.ts` |
+| Asset resolution and per-modality request building | `packages/together-nodes/src/together-base.ts` |
 | Node registration entry point | `packages/together-nodes/src/index.ts` |
-| Provider class (chat, image, video, TTS, ASR, embeddings) | `packages/runtime/src/providers/together-provider.ts` |
+| Provider class (chat, image, video, TTS, ASR, embeddings, and the endpoint calls the nodes use) | `packages/runtime/src/providers/together-provider.ts` |
 | Manifest→model-list bridge | `packages/runtime/src/providers/manifest-models.ts` |
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.TOGETHER, ...)`) |
 | Pack registration (`registerTogetherNodes`) | `packages/base-nodes/src/builtin-packs.ts` |
 | Pack catalog entry | `packages/protocol/src/builtin-packs.ts` |
 | `PROVIDER_IDS.TOGETHER` constant | `packages/protocol/src/api-types.ts` |
-
----
 
 ## How Together models and nodes are defined
 
@@ -56,7 +53,7 @@ Each entry looks like this:
 }
 ```
 
-The factory (`together-factory.ts`) turns every entry into a `BaseNode` subclass at runtime. The node type is `together.<moduleName>.<className>`. Fields declared in `"fields"` become node properties; the `"modality"` value routes execution to the matching HTTP executor in `together-base.ts`.
+The factory (`together-factory.ts`) turns every entry into a `BaseNode` subclass at runtime. The node type is `together.<moduleName>.<className>`. Fields declared in `"fields"` become node properties; the `"modality"` value routes execution to the matching executor in `together-base.ts`. The executor builds Together's request body and sends it with `context.callProviderEndpoint`. `TogetherProvider.callEndpoint` holds the API key, posts to the endpoint family named by `route` (`images`, `audio/speech`, `audio/transcriptions` or `videos`), polls video jobs, and writes the generation record. Result URLs download through `context.downloadProviderMedia`. Nodes never read the API key.
 
 The same manifest is read by `manifest-models.ts` (via `loadImageModels` / `loadVideoModels`) to populate `TogetherProvider.getAvailableImageModels()` and `getAvailableVideoModels()`. This means the node catalog and the provider's model catalog stay in sync automatically — there is no second list to update for image and video models.
 
@@ -73,8 +70,6 @@ These are hardcoded in `packages/runtime/src/providers/together-provider.ts`:
 - `TOGETHER_EMBEDDING_MODELS` — 1 entry (Multilingual E5 Large, 1024 dims).
 
 TTS and ASR models are **also** in the manifest, so they get workflow nodes (`together.audio.<Model>TextToSpeech` and `together.transcription.<Model>Transcribe`). Embedding models appear only in the provider array and have no workflow node.
-
----
 
 ## Add a new model or node
 
@@ -178,8 +173,6 @@ const TOGETHER_EMBEDDING_MODELS: EmbeddingModel[] = [
 ];
 ```
 
----
-
 ## Verify
 
 **1. Build and type-check.**
@@ -230,12 +223,3 @@ npm run test:affected
 npm run lint
 npm run dev:nodetool -- harness gate --base origin/main
 ```
-
----
-
-## Contributing
-
-- Repository: <https://github.com/nodetool-ai/nodetool>
-- Discord: <https://discord.gg/WmQTWZRcYE>
-- Before opening a PR, run the Verify steps above.
-- Follow the writing style in [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.

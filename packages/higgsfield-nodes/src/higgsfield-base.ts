@@ -1,20 +1,13 @@
 import { isRecord, isString } from "@nodetool-ai/node-sdk";
 import type { NodeValue } from "@nodetool-ai/node-sdk";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { higgsfieldCreateUploadUrl, higgsfieldUploadMedia, type HiggsfieldCredentials } from "@nodetool-ai/runtime";
 
-export function getCredentials(secrets: Record<string, string> | undefined): HiggsfieldCredentials {
-  const keyId = secrets?.HIGGSFIELD_API_KEY_ID || process.env.HIGGSFIELD_API_KEY_ID || "";
-  const secret = secrets?.HIGGSFIELD_API_KEY_SECRET || process.env.HIGGSFIELD_API_KEY_SECRET || "";
-  if (!keyId.trim() || !secret.trim()) throw new Error("HIGGSFIELD_API_KEY_ID and HIGGSFIELD_API_KEY_SECRET are required");
-  return { keyId: keyId.trim(), secret: secret.trim() };
-}
-
+/** Pass a public https URL through, otherwise upload the ref's bytes through the Higgsfield provider. */
 export async function resolveHiggsfieldMedia(
   ref: NodeValue,
-  context: ProcessingContext | undefined,
-  credentials: HiggsfieldCredentials,
+  context: ProcessingContext,
   mimeType: string,
   signal?: AbortSignal
 ): Promise<string> {
@@ -23,6 +16,7 @@ export async function resolveHiggsfieldMedia(
   if (/^https:\/\//.test(uri)) return uri;
   const bytes = await loadMediaRefBytes(ref, context);
   if (!bytes || bytes.length === 0) throw new Error("Could not resolve Higgsfield media input");
-  const upload = await higgsfieldCreateUploadUrl(credentials, mimeType, signal);
-  return higgsfieldUploadMedia(upload, bytes, mimeType, signal);
+  const upload: Parameters<ProcessingContext["uploadProviderMedia"]>[0] = { provider: PROVIDER_IDS.HIGGSFIELD, bytes, mimeType };
+  if (signal) upload.signal = signal;
+  return context.uploadProviderMedia(upload);
 }

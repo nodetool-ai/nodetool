@@ -143,11 +143,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-copy",
-                        "binding": "op:copy/exec#progress",
-                        "label": "Writing three registers…"
+                        "operationId": "copy",
+                        "label": "Writing three registers…",
+                        "steps": []
                       }
                     },
                     {
@@ -181,11 +182,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-headlines",
-                        "binding": "op:headlines/exec#progress",
-                        "label": "Testing five angles…"
+                        "operationId": "headlines",
+                        "label": "Testing five angles…",
+                        "steps": []
                       }
                     },
                     {
@@ -347,11 +349,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-visual",
-                        "binding": "op:visual/exec#progress",
-                        "label": "Writing the prompt and rendering…"
+                        "operationId": "visual",
+                        "label": "Writing the prompt and rendering…",
+                        "steps": []
                       }
                     },
                     {

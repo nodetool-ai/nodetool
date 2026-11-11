@@ -272,7 +272,9 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
     }
     const blob = await response.blob();
     const type = blob.type || "image/png";
-    const file = new File([blob], `${stillName}.${type.split("/")[1] ?? "png"}`, {
+    // `image/svg+xml` names an `.svg` file, not a `.svg+xml` one.
+    const extension = (type.split("/")[1] ?? "png").split("+")[0];
+    const file = new File([blob], `${stillName}.${extension}`, {
       type
     });
     const asset = await useAssetStore.getState().createAsset(file);

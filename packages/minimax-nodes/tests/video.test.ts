@@ -1,143 +1,112 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { MinimaxTextToVideoNode } from "../src/nodes/text-to-video.js";
 import { MinimaxImageToVideoNode } from "../src/nodes/image-to-video.js";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { predictions, scriptedMinimax } from "./scripted.js";
 
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
-
+const VIDEO_URL = "https://cdn.minimax.io/video.mp4";
 const videoBytes = new Uint8Array([0x00, 0x00, 0x00, 0x18]);
 const videoB64 = Buffer.from(videoBytes).toString("base64");
+const imageB64 = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
 
-/** Queue the submit → poll → retrieve → download responses for a video job. */
-function queueVideoSuccess(): void {
-  mockFetch
-    .mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ task_id: "task-1", base_resp: { status_code: 0 } })
-    })
-    .mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ status: "Success", file_id: "file-1" })
-    })
-    .mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        file: { download_url: "https://cdn.minimax.io/video.mp4" },
+/** The provider's video route answers with the files/retrieve reply. */
+function scriptedVideo(): ReturnType<typeof scriptedMinimax> {
+  return scriptedMinimax(
+    {
+      output: {
+        file: { download_url: VIDEO_URL },
         base_resp: { status_code: 0 }
-      })
-    })
-    .mockResolvedValueOnce({
-      ok: true,
-      arrayBuffer: async () =>
-        videoBytes.buffer.slice(
-          videoBytes.byteOffset,
-          videoBytes.byteOffset + videoBytes.byteLength
-        )
-    });
+      },
+      requestId: "task-1"
+    },
+    { [VIDEO_URL]: videoBytes }
+  );
 }
 
 describe("MinimaxTextToVideoNode", () => {
-  beforeEach(() => {
-    process.env.MINIMAX_API_KEY = "test-key";
-  });
-  afterEach(() => {
-    delete process.env.MINIMAX_API_KEY;
-    mockFetch.mockReset();
-  });
-
-  it("submits, polls, downloads and returns a video ref", async () => {
-    queueVideoSuccess();
+  it("runs the video route, downloads the file and returns a video ref", async () => {
+    const { provider, context } = scriptedVideo();
     const node = new MinimaxTextToVideoNode({
       prompt: "a sunset",
       duration: 6,
       resolution: "768P"
     });
-    const result = await node.process();
+    node.__node_id = "t2v-1";
+    const result = await node.process(context);
 
-    const [submitUrl, submitOpts] = mockFetch.mock.calls[0] as [
-      string,
-      RequestInit
-    ];
-    expect(submitUrl).toContain("/v1/video_generation");
-    const body = JSON.parse(submitOpts.body as string) as Record<
-      string,
-      unknown
-    >;
-    expect(body.prompt).toBe("a sunset");
-    expect(body.model).toBe("MiniMax-Hailuo-02");
-
-    expect(mockFetch).toHaveBeenCalledTimes(4);
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "MiniMax-Hailuo-02",
+      route: "video",
+      input: {
+        model: "MiniMax-Hailuo-02",
+        prompt: "a sunset",
+        duration: 6,
+        resolution: "768P"
+      }
+    });
+    expect(provider.downloadCalls.map((call) => call.url)).toEqual([VIDEO_URL]);
+    expect(predictions(context).at(-1)).toMatchObject({
+      status: "completed",
+      provider: "minimax",
+      capability: "text_to_video",
+      model: "MiniMax-Hailuo-02",
+      node_id: "t2v-1"
+    });
     expect(result.output).toMatchObject({ type: "video", data: videoB64 });
   });
 
-  it("stops polling a submitted job when the run is cancelled", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        task_id: "task-1",
-        status: "Processing",
-        base_resp: { status_code: 0 }
-      })
-    });
+  it("stops a submitted job when the run is cancelled", async () => {
+    const { provider, context } = scriptedVideo();
     const controller = new AbortController();
+    context.signal = controller.signal;
     controller.abort(new Error("cancelled"));
-    const node = new MinimaxTextToVideoNode({ prompt: "a sunset" });
     await expect(
-      node.process({ signal: controller.signal } as unknown as ProcessingContext)
+      new MinimaxTextToVideoNode({ prompt: "a sunset" }).process(context)
     ).rejects.toThrow("cancelled");
-    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(provider.endpointCalls[0].signal?.aborted).toBe(true);
+    expect(provider.downloadCalls).toEqual([]);
   });
 
   it("omits duration/resolution for the 01-series Director model", async () => {
-    queueVideoSuccess();
-    const node = new MinimaxTextToVideoNode({
+    const { provider, context } = scriptedVideo();
+    await new MinimaxTextToVideoNode({
       model: "T2V-01-Director",
       prompt: "[Pan left] a beach",
       duration: 10,
       resolution: "1080P"
-    });
-    await node.process();
-    const body = JSON.parse(
-      (mockFetch.mock.calls[0][1] as RequestInit).body as string
-    ) as Record<string, unknown>;
+    }).process(context);
     // T2V-01-Director is fixed at 6s/720P; the API rejects the parameters.
-    expect(body.duration).toBeUndefined();
-    expect(body.resolution).toBeUndefined();
+    const input = provider.endpointCalls[0].input;
+    expect(input.duration).toBeUndefined();
+    expect(input.resolution).toBeUndefined();
   });
 
   it("clamps invalid Hailuo duration/resolution combos to 768P", async () => {
-    queueVideoSuccess();
-    const node = new MinimaxTextToVideoNode({
+    const { provider, context } = scriptedVideo();
+    await new MinimaxTextToVideoNode({
       model: "MiniMax-Hailuo-2.3",
       prompt: "a beach",
       duration: 10,
       resolution: "1080P"
-    });
-    await node.process();
-    const body = JSON.parse(
-      (mockFetch.mock.calls[0][1] as RequestInit).body as string
-    ) as Record<string, unknown>;
-    expect(body.duration).toBe(10);
-    expect(body.resolution).toBe("768P");
+    }).process(context);
+    const input = provider.endpointCalls[0].input;
+    expect(input.duration).toBe(10);
+    expect(input.resolution).toBe("768P");
   });
 
-  it("aborts polling when the status query reports a base_resp error", async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ task_id: "task-1", base_resp: { status_code: 0 } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          base_resp: { status_code: 1004, status_msg: "auth failed" }
-        })
-      });
+  it("surfaces a failed task from the provider", async () => {
+    const { context } = scriptedMinimax(
+      new Error('MiniMax video task failed: {"status_msg":"nope"}')
+    );
     await expect(
-      new MinimaxTextToVideoNode({ prompt: "x" }).process()
-    ).rejects.toThrow(/auth failed/);
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+      new MinimaxTextToVideoNode({ prompt: "x" }).process(context)
+    ).rejects.toThrow("video task failed");
+  });
+
+  it("throws when the file record has no download URL", async () => {
+    const { context } = scriptedMinimax({ output: { file: {} } });
+    await expect(
+      new MinimaxTextToVideoNode({ prompt: "x" }).process(context)
+    ).rejects.toThrow("MiniMax files/retrieve returned no download_url");
   });
 
   it("requires a prompt", async () => {
@@ -145,68 +114,43 @@ describe("MinimaxTextToVideoNode", () => {
       new MinimaxTextToVideoNode({ prompt: "" }).process()
     ).rejects.toThrow("Prompt is required");
   });
-
-  it("throws when the task fails", async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ task_id: "task-1", base_resp: { status_code: 0 } })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: "Fail", base_resp: { status_msg: "nope" } })
-      });
-    await expect(
-      new MinimaxTextToVideoNode({ prompt: "x" }).process()
-    ).rejects.toThrow("video task failed");
-  });
 });
 
 describe("MinimaxImageToVideoNode", () => {
-  beforeEach(() => {
-    process.env.MINIMAX_API_KEY = "test-key";
-  });
-  afterEach(() => {
-    delete process.env.MINIMAX_API_KEY;
-    mockFetch.mockReset();
-  });
-
   it("sends the input image as the first frame", async () => {
-    queueVideoSuccess();
-    const imageB64 = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
-    const node = new MinimaxImageToVideoNode({
+    const { provider, context } = scriptedVideo();
+    const result = await new MinimaxImageToVideoNode({
       image: { type: "image", data: imageB64 },
       prompt: "[Push in] zoom"
-    });
-    const result = await node.process();
+    }).process(context);
 
-    const body = JSON.parse(
-      (mockFetch.mock.calls[0][1] as RequestInit).body as string
-    ) as Record<string, unknown>;
-    expect(String(body.first_frame_image)).toContain("base64,");
-    expect(body.prompt).toBe("[Push in] zoom");
+    const input = provider.endpointCalls[0].input;
+    expect(String(input.first_frame_image)).toContain("base64,");
+    expect(input.prompt).toBe("[Push in] zoom");
+    expect(predictions(context).at(-1)).toMatchObject({
+      provider: "minimax",
+      capability: "image_to_video",
+      model: "MiniMax-Hailuo-02"
+    });
     expect(result.output).toMatchObject({ type: "video", data: videoB64 });
   });
 
   it("sends a subject_reference instead of first_frame_image for S2V-01", async () => {
-    queueVideoSuccess();
-    const imageB64 = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
-    const node = new MinimaxImageToVideoNode({
+    const { provider, context } = scriptedVideo();
+    await new MinimaxImageToVideoNode({
       model: "S2V-01",
       image: { type: "image", data: imageB64 },
       prompt: "wave",
       duration: 10,
       resolution: "1080P"
-    });
-    await node.process();
+    }).process(context);
 
-    const body = JSON.parse(
-      (mockFetch.mock.calls[0][1] as RequestInit).body as string
-    ) as Record<string, unknown>;
-    expect(body.first_frame_image).toBeUndefined();
-    expect(body.duration).toBeUndefined();
-    expect(body.resolution).toBeUndefined();
-    const ref = body.subject_reference as Array<Record<string, unknown>>;
+    const input = provider.endpointCalls[0].input;
+    expect(provider.endpointCalls[0].model).toBe("S2V-01");
+    expect(input.first_frame_image).toBeUndefined();
+    expect(input.duration).toBeUndefined();
+    expect(input.resolution).toBeUndefined();
+    const ref = input.subject_reference as Array<Record<string, unknown>>;
     expect(ref).toHaveLength(1);
     expect(ref[0].type).toBe("character");
     expect(String((ref[0].image as string[])[0])).toContain("base64,");

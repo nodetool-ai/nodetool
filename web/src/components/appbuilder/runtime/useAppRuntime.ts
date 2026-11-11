@@ -17,16 +17,19 @@
  * a `run` action naming an operation runs that operation — never operation 0
  * against the host workflow.
  */
+import { useGenerationBatchStore } from "../../../stores/GenerationBatchStore";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import {
   appendValue,
   decideRun,
+  findWidgetLabel,
   parseApplicationDocument,
   implicitOperation,
   initialVariableValues,
   isLiveInvocation,
   isMissingRequiredMediaValue,
+  isMissingRequiredModelValue,
   liveInvocations,
   mergeVariables,
   messageToEvents,
@@ -402,10 +405,7 @@ export const useAppRuntime = (
   // the select/boolean fallbacks the controls display, so an untouched form
   // runs with what it shows. Idempotent, so re-running it on any identity churn
   // costs nothing and clobbers nothing.
-  useEffect(() => {
-    if (options.deferInitialization) {
-      return;
-    }
+  const seed = useCallback((restorePersisted: boolean) => {
     const dispatchEvent = store.getState().dispatchEvent;
     const values: Record<string, unknown> = {};
     for (const entry of operationRuntimes.values()) {
@@ -426,7 +426,7 @@ export const useAppRuntime = (
     // Restored user-scoped values first, declared defaults second: seeding
     // never clobbers, so what the user left behind wins over the default.
     const variables = document?.variables ?? [];
-    if (!designMode && !persistence.enabled && !persistence.visitor) {
+    if (restorePersisted && !designMode && !persistence.enabled && !persistence.visitor) {
       dispatchEvent({
         type: "seedVariables",
         values: loadPersistedVariables(identity, variables)
@@ -441,11 +441,24 @@ export const useAppRuntime = (
     document,
     identity,
     operationRuntimes,
-    options.deferInitialization,
     persistence.enabled,
     persistence.visitor,
     store
   ]);
+
+  useEffect(() => {
+    if (!options.deferInitialization) {
+      seed(true);
+    }
+  }, [options.deferInitialization, seed]);
+
+  // Restart drops every value, saved one and run of the app, then seeds the
+  // declared defaults as on a first open. The saved values follow the store.
+  const restart = useCallback(() => {
+    store.getState().dispatchEvent({ type: "reset" });
+    seed(false);
+    void persistence.flush();
+  }, [persistence, seed, store]);
 
   useEffect(() => {
     if (designMode || persistence.enabled || persistence.visitor || !identity) {
@@ -614,6 +627,9 @@ export const useAppRuntime = (
   const fold = useCallback(
     (message: MsgpackData) => {
       const transportId = "job_id" in message && typeof message.job_id === "string" ? message.job_id : undefined;
+      if (message.type === "generation_batch_update") {
+        useGenerationBatchStore.getState().applyUpdate(message);
+      }
       // A refused credential gets the dialog that fixes it, as in the editor.
       if (message.type === "node_update" && message.error_detail) {
         promptForErrorDetail(message.error_detail, transportId ?? message.node_id);
@@ -1248,6 +1264,29 @@ export const useAppRuntime = (
         );
         return;
       }
+      const missingModel =
+        binding.kind === "script"
+          ? undefined
+          : entry.io.inputs.find((input) =>
+              isMissingRequiredModelValue(
+                input.nodeType,
+                params[input.name],
+                input.defaultValue
+              )
+            );
+      if (missingModel) {
+        const mapping = entry.operation.inputs[missingModel.nodeId];
+        const widgetLabel =
+          mapping?.from === "variable"
+            ? findWidgetLabel(document?.ui, `var:${mapping.variableId}`)
+            : undefined;
+        failInvocation(
+          operationId,
+          `Choose a model in "${widgetLabel ?? missingModel.label}" before you run this operation.`,
+          reservationId
+        );
+        return;
+      }
       if (appRunId) {
         try {
           await updateAppRun(appRunId, { status: "running", inputs: params });
@@ -1406,6 +1445,7 @@ export const useAppRuntime = (
       cancelInvocations,
       claimInvocation,
       designMode,
+      document,
       failInvocation,
       mountedRef,
       rememberBrowserTrace,
@@ -1732,6 +1772,12 @@ export const useAppRuntime = (
     [findNode]
   );
 
+  const getOperationGraph = useCallback(
+    (operationId: string): Workflow["graph"] | undefined =>
+      operationRuntimesRef.current.get(operationId)?.workflow?.graph,
+    []
+  );
+
   const getNodeType = useCallback(
     (nodeId: string, operationId?: string): string | undefined =>
       findNode(nodeId, operationId)?.type,
@@ -1788,11 +1834,13 @@ export const useAppRuntime = (
       flushInstance: persistence.flush,
       refreshInstance: persistence.refresh,
       reloadInstance: persistence.reload,
+      restart,
       dispatch,
       write,
       selectResource,
       getNodeProperty,
       getNodeType,
+      getOperationGraph,
       reportWidgetError
     }),
     [
@@ -1810,11 +1858,13 @@ export const useAppRuntime = (
       persistence.flush,
       persistence.refresh,
       persistence.reload,
+      restart,
       dispatch,
       write,
       selectResource,
       getNodeProperty,
       getNodeType,
+      getOperationGraph,
       reportWidgetError
     ]
   );

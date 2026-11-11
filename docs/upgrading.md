@@ -5,11 +5,11 @@ permalink: /upgrading
 description: "How to update the NodeTool desktop app, the CLI, and a self-hosted Docker server, what happens to your database on start, and how to back up first."
 ---
 
-Updating NodeTool replaces the program and leaves your data directory in place. On start, the server applies any database migrations the new version needs. Back up before you update, because a migration cannot be undone by installing the old version.
+An update replaces the program and keeps your data directory. On start, the server applies pending database migrations. Back up first: installing the old version does not undo a migration.
 
 ## Back up first
 
-Stop NodeTool, then copy the data. The desktop app and a local server keep these in the data directory.
+Stop NodeTool, then copy:
 
 | What | Where |
 |------|-------|
@@ -49,13 +49,13 @@ A build whose version ends in `-nightly.<date>.<n>` starts on **Nightly**. Any o
 
 ### What you see
 
-When a newer version exists, the app downloads it in the background and shows a system notification. When the download finishes a second notification, "NodeTool Update Ready", appears. Click it to restart into the new version. Otherwise the update installs the next time you quit. While the startup screen is still showing, a card at its top right repeats both messages and offers **Restart to Update**. See [Update Notification](electron-views.md#update-notification).
+The app downloads a newer version in the background and shows a system notification. When the download finishes, a "NodeTool Update Ready" notification appears. Click it to restart into the new version, or the update installs on the next quit. The startup screen shows a card with **Restart to Update**. See [Update Notification](electron-views.md#update-notification).
 
 If the app logs that `app-update.yml` is missing, you have an older installation. Reinstall from [GitHub releases](https://github.com/nodetool-ai/nodetool/releases) to enable auto-updates.
 
 ### Update by hand
 
-Download the current installer from [nodetool.ai](https://nodetool.ai) or from GitHub releases, and install it over the existing app. Your data directory stays. See [Installation](installation.md).
+Install the current installer from [nodetool.ai](https://nodetool.ai) or GitHub releases over the existing app. See [Installation](installation.md).
 
 ### Node packs and runtimes
 

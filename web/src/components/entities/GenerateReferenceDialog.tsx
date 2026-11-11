@@ -356,6 +356,7 @@ export const GenerateReferenceDialog = ({
                 >
                   <ResponsiveImage
                     locator={`asset://${assetId}`}
+                    preferThumbnail
                     alt=""
                     aspectRatio={aspectRatio.replace(":", "/")}
                     fit="contain"

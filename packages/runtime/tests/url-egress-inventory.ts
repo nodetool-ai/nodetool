@@ -151,6 +151,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: [],
     note: "Fixed Google manifest endpoint; downloads require the official storage.googleapis.com bucket path, reject redirects, and verify the manifest SHA-512."
   },
+  {
+    file: "packages/config/src/package-media.ts",
+    owner: "Package media downloads",
+    inputSource: "fixed",
+    schemes: ["https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "fixed-host",
+    guardedBy: [],
+    note: "Downloads example media listed in a shipped manifest. The manifest base must be on https://media.nodetool.ai, the key is the file's SHA-256, redirects are rejected, and the bytes must match the manifest hash and size."
+  },
   // ---------------------------------------------------------------- screening
   {
     file: "packages/runtime-core/src/safe-url.ts",
@@ -325,7 +337,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   {
     file: "packages/runtime/src/providers/together-provider.ts",
-    owner: "Together image result downloads",
+    owner: "Together image and endpoint result downloads",
     inputSource: "provider-response",
     schemes: ["https"],
     authScope: "none",
@@ -333,7 +345,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     dnsRebinding: "deployment-egress",
     policy: "guarded",
     guardedBy: ["safeFetch"],
-    note: "Generated image URLs use safeFetch with the provider's injected transport. Fixed API requests and the existing video path retain their provider transport."
+    note: "Generated image URLs, and the image and video URLs together-nodes downloads through downloadMedia, use safeFetch with the provider's injected transport. Fixed API requests and the capability video path retain their provider transport."
   },
   guardedMedia(
     "packages/together-nodes/src/together-base.ts",
@@ -373,6 +385,19 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "A user's own MCP server URL. Under the cloud profile the MCP transport is handed safeFetch and the URL is checked on save and probe; a local install may reach its own loopback servers and uses the global fetch."
   },
 
+  {
+    file: "packages/runtime/src/providers/uberllm-provider.ts",
+    owner: "UberLLM generated image downloads",
+    inputSource: "provider-response",
+    schemes: ["https"],
+    authScope:
+      "The UberLLM key is sent only to UberLLM's own origin; any other host is fetched through safeFetch without it.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch"],
+    note: "An image answer that returns a URL instead of b64_json. A URL on UberLLM's own origin is downloaded with the provider transport; any other host goes through safeFetch."
+  },
   {
     file: "packages/runtime/src/providers/custom-openai-provider.ts",
     owner: "custom OpenAI-compatible provider",
@@ -432,35 +457,17 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   },
 
   // -------------------------------------------- guarded (provider result URLs)
-  guardedSafeFetch(
-    "packages/kie-nodes/src/kie-base.ts",
-    "KIE result downloads",
-    "provider-response",
-    "resultUrls / videoUrl / audioUrl come out of a response body; the API calls beside them are fixed-host."
-  ),
-  {
-    ...guardedSafeFetch(
-      "packages/topaz-nodes/src/topaz-base.ts",
-      "Topaz result downloads",
-      "provider-response",
-      "download_url from a status body, plus a media-ref read on the way in."
-    ),
-    // Same delegation as reve-base: the inbound media read goes through
-    // loadMediaRefBytes, which is inventoried above; safeFetch still guards the
-    // download_url that comes out of the status body.
-    guardedBy: ["safeFetch", "loadMediaRefBytes"]
-  },
-  guardedSafeFetch(
-    "packages/minimax-nodes/src/minimax-base.ts",
-    "MiniMax audio / file downloads",
-    "provider-response",
-    "download_url and hosted-audio URLs; the poll endpoints beside them are fixed-host."
+  guardedMedia(
+    "packages/runtime/src/providers/base-provider.ts",
+    "Default provider downloadMedia",
+    "A result URL a vendor returned to an endpoint call. Providers whose result URLs need credentials override it.",
+    "provider-response"
   ),
   guardedSafeFetch(
-    "packages/minimax-nodes/src/nodes/text-to-image.ts",
-    "MiniMax image download",
+    "packages/runtime/src/providers/kie-endpoint.ts",
+    "KIE endpoint result downloads",
     "provider-response",
-    "image_urls out of the generation response."
+    "resultUrls / audioUrl come out of a response body and reach downloadMedia; the API calls beside them are fixed-host."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/fal-provider.ts",
@@ -488,9 +495,9 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/topaz-provider.ts",
-    "Topaz provider download",
+    "Topaz provider and node pack downloads and part uploads",
     "provider-response",
-    "finalUrl from the result body."
+    "download_url from the download lookup, download.url from a video status body, and the presigned part URLs from the accept body."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/atlascloud-transport.ts",
@@ -538,7 +545,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/runtime/src/providers/minimax-provider.ts",
     "MiniMax provider downloads",
     "provider-response",
-    "download_url, fetched through the provider's own injected fetch under the same screening."
+    "download_url, image_urls and hosted-audio URLs, for the provider's own calls and through downloadMedia for minimax-nodes, fetched with the provider's injected fetch under the same screening."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/evolink-provider.ts",
@@ -735,6 +742,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     policy: "private-integration",
     guardedBy: [],
     note: "The fetch is the retry wrapper handed to @comfyorg/sdk, so it sends the SDK's own requests. No caller, provider or model names the base URL: the client takes only an API key and uses the SDK's default. See comfy-sdk.ts for how the SDK scopes the key."
+  },
+  {
+    file: "packages/runtime/src/providers/comfy-fetch.ts",
+    owner: "Comfy Cloud fetch for @comfyorg/sdk clients",
+    inputSource: "operator",
+    schemes: ["https"],
+    authScope: "the user's COMFY_API_KEY, sent only to https://cloud.comfy.org",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The fetch the Comfy SDK clients use. It sends the SDK's own requests, and upgrades http://cloud.comfy.org job links to https so the key reaches only https://cloud.comfy.org. Other URLs pass through without the key added."
   },
   {
     file: "packages/agents/src/capabilities/web.ts",
@@ -990,8 +1009,8 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "generativelanguage.googleapis.com, model id from a constant."
   ),
   fixedHost(
-    "packages/elevenlabs-nodes/src/nodes/text-to-speech.ts",
-    "ElevenLabs TTS",
+    "packages/runtime/src/providers/elevenlabs-provider.ts",
+    "ElevenLabs provider (TTS and STT, incl. the elevenlabs-nodes request nodes)",
     "ELEVENLABS_API_KEY",
     "api.elevenlabs.io."
   ),
@@ -1021,9 +1040,9 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   fixedHost(
     "packages/fal-nodes/src/fal-base.ts",
-    "FAL queue + upload",
-    "FAL_API_KEY",
-    "fal.run / fal.ai endpoints, plus a /api/storage/<key> read from the local server; workflow http(s) uris go through fetchExternalMedia."
+    "FAL node local storage read",
+    "none",
+    "A /api/storage/<key> read from the local server. Workflow http(s) uris go through fetchExternalMedia, and the FAL queue and upload run in the runtime provider."
   ),
   fixedHost(
     "packages/fal-nodes/src/fal-billing.ts",
@@ -1038,10 +1057,10 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "OpenAPI + model-info URLs built from a constant base."
   ),
   fixedHost(
-    "packages/fal-nodes/src/fal-provider.ts",
-    "FAL node provider bridge",
+    "packages/runtime/src/providers/fal-provider.ts",
+    "FAL queue + upload",
     "FAL_API_KEY",
-    "fal endpoints from a constant base."
+    "queue.fal.run submit, status and result, and the SDK storage upload, for capability calls and FAL node endpoint calls."
   ),
   fixedHost(
     "packages/huggingface/src/llama-cpp-download.ts",
@@ -1183,26 +1202,14 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   fixedHost(
     "packages/runtime/src/providers/topaz-provider.ts",
-    "Topaz provider API calls",
+    "Topaz provider and node pack API calls",
     "TOPAZ_API_KEY",
     "api.topazlabs.com; the download beside them is guarded."
   ),
   fixedHost(
-    "packages/kie-nodes/src/kie-base.ts",
-    "KIE API calls",
+    "packages/runtime/src/providers/kie-endpoint.ts",
+    "KIE endpoint API calls",
     "KIE_API_KEY",
-    "kie.ai endpoints; the result downloads beside them are guarded."
+    "kie.ai endpoints; a route path must be an /api/v1/ path. The result downloads beside them are guarded."
   ),
-  fixedHost(
-    "packages/minimax-nodes/src/minimax-base.ts",
-    "MiniMax API calls",
-    "MINIMAX_API_KEY",
-    "MiniMax endpoints; the downloads beside them are guarded."
-  ),
-  fixedHost(
-    "packages/topaz-nodes/src/topaz-base.ts",
-    "Topaz API calls",
-    "TOPAZ_API_KEY",
-    "api.topazlabs.com; the downloads beside them are guarded."
-  )
 ];

@@ -52,7 +52,11 @@ describe("SupabaseStorageAdapter store", () => {
     expect(bucket.upload).toHaveBeenCalledWith(
       "dir/file.png",
       expect.any(Uint8Array),
-      { upsert: true, contentType: "image/png" }
+      {
+        upsert: true,
+        cacheControl: "max-age=604800",
+        contentType: "image/png"
+      }
     );
   });
 
@@ -60,7 +64,8 @@ describe("SupabaseStorageAdapter store", () => {
     const { adapter, bucket } = makeAdapter();
     await adapter.store("file.bin", new Uint8Array([9]));
     expect(bucket.upload).toHaveBeenCalledWith("file.bin", expect.any(Uint8Array), {
-      upsert: true
+      upsert: true,
+      cacheControl: "max-age=604800"
     });
   });
 
@@ -394,5 +399,27 @@ describe("SupabaseStorageAdapter lazy client (fetch-backed)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url] = fetchMock.mock.calls[0];
     expect(url).toBe("https://proj.supabase.co/storage/v1/object/assets/f.txt");
+  });
+});
+
+describe("SupabaseStorageAdapter createUploadUrl", () => {
+  it("has the browser send the Cache-Control a server upload stores", async () => {
+    const { adapter } = makeAdapter({
+      createSignedUploadUrl: vi.fn(async () => ({
+        data: {
+          signedUrl:
+            "https://x.supabase.co/storage/v1/object/upload/sign/uploads/u/a.png?token=t",
+          token: "t"
+        },
+        error: null
+      }))
+    });
+    const target = await adapter.createUploadUrl("u/a.png", {
+      contentType: "image/png"
+    });
+    expect(target?.headers).toEqual({
+      "cache-control": "max-age=604800",
+      "content-type": "image/png"
+    });
   });
 });

@@ -518,6 +518,21 @@ describe("POST /api/js-scripts/:id/run", () => {
     }
   });
 
+  it("gives the run a workspace so host media tools can run", async () => {
+    const script = await seedScript({ code: "await output('x', 1);", outputs: [{ name: "x", type: "int" }] });
+    const contexts: ProcessingContext[] = [];
+    const set = ProcessingContext.prototype.set;
+    vi.spyOn(ProcessingContext.prototype, "set").mockImplementation(function (this: ProcessingContext, ...args) {
+      contexts.push(this);
+      return set.apply(this, args);
+    });
+    app = await buildServer(USER_ID);
+    const response = await app.inject({ method: "POST", url: `/api/js-scripts/${script.id}/run`, payload: {} });
+    expect(response.statusCode).toBe(200);
+    expect(contexts.length).toBeGreaterThan(0);
+    expect(contexts[0]!.workspace).not.toBeNull();
+  });
+
   it("runs the stored body over the given inputs", async () => {
     const script = await seedScript({
       code: "await emit('greeting', `hi ${inputs.who}`);\nawait output('greeting', 'done');",

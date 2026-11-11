@@ -81,6 +81,7 @@ const restorableTab = z.object({
     "jsscript",
     "audio",
     "text",
+    "document",
     "model3d",
     "application",
     "game",
@@ -98,6 +99,11 @@ async function isOwnedRestorableTab(
 ): Promise<boolean> {
   let row: { user_id: string; project_id: string } | null = null;
   switch (tab.type) {
+    case "document":
+      row = tab.ref.startsWith("asset://")
+        ? await Asset.find(userId, tab.ref.slice("asset://".length))
+        : null;
+      break;
     case "workflow":
       row = await Workflow.find(userId, tab.ref);
       break;

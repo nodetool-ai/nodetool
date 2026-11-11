@@ -54,11 +54,16 @@ import {
   GenerationScopeError,
   type GenerationProviderRequestOptions,
   type GenerationReceiptScopeOptions,
+  currentGenerationReceipt,
+  insideGenerationScope,
   isAuthoritativeProviderTerminalError,
   runWithGenerationReceipt
 } from "./generation-receipt.js";
 import { generationRegistry, type GenerationDelivery } from "./generation-registry.js";
-import { redactGenerationParams } from "./redact-params.js";
+import {
+  redactGenerationOutput,
+  redactGenerationParams
+} from "./redact-params.js";
 import {
   isCallable,
   isBoolean,
@@ -73,7 +78,7 @@ import {
   expandEntityRefs,
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
-import { getNodeBuiltinSync } from "@nodetool-ai/config";
+import { getNodeBuiltinSync, readPackageMedia } from "@nodetool-ai/config";
 import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
 import type { Workspace } from "./workspace.js";
 
@@ -176,7 +181,12 @@ const resolve = (...parts: string[]): string =>
 
 const pathToFileURL = (p: string): URL =>
   nodeUrl ? nodeUrl.pathToFileURL(p) : notOnNode("node:url.pathToFileURL");
-import type { BaseProvider } from "./providers/base-provider.js";
+import type {
+  BaseProvider,
+  EndpointCallRequest,
+  EndpointCallResult,
+  EndpointProgress
+} from "./providers/base-provider.js";
 import type {
   Model3D,
   EncodedAudioResult,
@@ -2686,6 +2696,21 @@ export class ProcessingContext {
             }
           }
         }
+        try {
+          const bytes = await readPackageMedia(
+            [root],
+            packageRef.packageName,
+            packageRef.path
+          );
+          if (bytes) {
+            attempts.push(`package media: ${trimmed}`);
+            return { bytes, attempts };
+          }
+        } catch (error) {
+          attempts.push(
+            `package media miss: ${trimmed} (${error instanceof Error ? error.message : String(error)})`
+          );
+        }
       }
       const httpPath = packageAssetHttpPath(trimmed);
       if (httpPath) {
@@ -3978,6 +4003,110 @@ export class ProcessingContext {
   }
 
   /**
+   * Call a vendor endpoint through its provider, inside the generation seam.
+   * This is the one entry point provider node packs use: the node never holds
+   * the API key and every call writes the same record, receipt and terminal
+   * messages.
+   *
+   * Inside an enclosing seam the provider is called directly, so the call
+   * records into that generation and no second row opens. The returned
+   * `requestId` falls back to the receipt's provider request id when the
+   * provider left it null.
+   */
+  async callProviderEndpoint(args: {
+    provider: string;
+    capability: GenerationRequest["capability"];
+    model: string;
+    input: Record<string, unknown>;
+    route?: string;
+    nodeId?: string;
+    onProgress?: (event: EndpointProgress) => void;
+    signal?: AbortSignal;
+  }): Promise<EndpointCallResult> {
+    const provider = await this.getProvider(args.provider);
+    if (!provider.supportsEndpointCalls()) {
+      throw new Error(`${provider.provider} does not support endpoint calls`);
+    }
+    const endpointRequest = (signal?: AbortSignal): EndpointCallRequest => {
+      const request: EndpointCallRequest = {
+        model: args.model,
+        input: args.input
+      };
+      if (args.route !== undefined) request.route = args.route;
+      if (signal) request.signal = signal;
+      if (args.onProgress) request.onProgress = args.onProgress;
+      return request;
+    };
+
+    if (insideGenerationScope()) {
+      const result = await provider.callEndpoint(endpointRequest(args.signal));
+      return {
+        ...result,
+        requestId:
+          result.requestId ??
+          currentGenerationReceipt()?.provider_request_id ??
+          null
+      };
+    }
+
+    const generationRequest: GenerationRequest = {
+      provider: args.provider,
+      capability: args.capability,
+      model: args.model,
+      params: args.input,
+      origin:
+        args.nodeId !== undefined
+          ? { surface: "workflow", node_id: args.nodeId }
+          : { surface: "workflow" }
+    };
+    if (args.nodeId !== undefined) generationRequest.nodeId = args.nodeId;
+    if (args.signal) generationRequest.signal = args.signal;
+
+    // The seam's output is the vendor JSON, as the prediction message carries
+    // it. The rest of the provider result travels beside it.
+    let result: EndpointCallResult | undefined;
+    const generation = await this.runGenerationWith(
+      generationRequest,
+      async (_provider, signal) => {
+        result = await provider.callEndpoint(endpointRequest(signal));
+        return result.output;
+      }
+    );
+    if (!result) {
+      throw new Error(`${args.provider} endpoint call returned no result`);
+    }
+    return {
+      ...result,
+      requestId:
+        result.requestId ?? generation.receipt?.provider_request_id ?? null
+    };
+  }
+
+  /** Store bytes where a provider's vendor can read them and return the URL. */
+  async uploadProviderMedia(args: {
+    provider: string;
+    bytes: Uint8Array;
+    mimeType: string;
+    filename?: string;
+    signal?: AbortSignal;
+  }): Promise<string> {
+    const { provider, ...upload } = args;
+    return (await this.getProvider(provider)).uploadMedia(upload);
+  }
+
+  /** Fetch a result URL a provider's vendor returned. */
+  async downloadProviderMedia(args: {
+    provider: string;
+    url: string;
+    signal?: AbortSignal;
+  }): Promise<Uint8Array> {
+    return (await this.getProvider(args.provider)).downloadMedia(
+      args.url,
+      args.signal
+    );
+  }
+
+  /**
    * Save a generation's media output as assets, stamping the generation id
    * on each. Bytes only: a segmentation result, a transcript or an embedding
    * is a result and stays on the message.
@@ -4895,7 +5024,7 @@ function generationResultData(
     }
     return { count: output.length };
   }
-  return output ?? null;
+  return redactGenerationOutput(output) ?? null;
 }
 
 const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([

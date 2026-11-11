@@ -887,8 +887,19 @@ export const pendingCodexLogins = new Map<
   { userId: string; codeVerifier: string; createdAt: number }
 >();
 
+const codexLoginResults = new Map<string, {
+  userId: string;
+  status: "completed" | "failed" | "cancelled";
+  createdAt: number;
+}>();
+
 function pruneExpiredCodexLogins(): void {
   const now = Date.now();
+  for (const [state, result] of codexLoginResults) {
+    if (now - result.createdAt > CODEX_LOGIN_TTL_MS) {
+      codexLoginResults.delete(state);
+    }
+  }
   for (const [state, pending] of pendingCodexLogins) {
     if (now - pending.createdAt > CODEX_LOGIN_TTL_MS) {
       pendingCodexLogins.delete(state);
@@ -942,6 +953,7 @@ function codexOAuthClient(): OAuthClient {
 let activeCodexLogin: {
   server: LocalCallbackServer;
   abort: AbortController;
+  state: string;
 } | null = null;
 
 /** Abort and tear down any in-flight Codex login listener. Idempotent. */
@@ -978,7 +990,9 @@ async function handleOpenAIStart(
 
   if (!manual) {
     const server = new LocalCallbackServer({
-      host: "localhost",
+      // Bind IPv4 explicitly: Node can resolve localhost to ::1 while the
+      // browser uses 127.0.0.1. Keep the registered redirect URI unchanged.
+      host: "127.0.0.1",
       port: CODEX_CALLBACK_PORT,
       path: CODEX_CALLBACK_PATH
     });
@@ -994,7 +1008,7 @@ async function handleOpenAIStart(
     }
 
     const abort = new AbortController();
-    activeCodexLogin = { server, abort };
+    activeCodexLogin = { server, abort, state };
     // Finish the exchange off the request path; the UI polls /tokens.
     void completeCodexLogin({
       server,
@@ -1045,8 +1059,14 @@ async function completeCodexLogin(args: {
     });
 
     const accountId = await persistCodexTokens(tokens, userId);
+    codexLoginResults.set(state, { userId, status: "completed", createdAt: Date.now() });
     logger.info("Codex OAuth login completed", { accountId });
   } catch (err) {
+    codexLoginResults.set(state, {
+      userId,
+      status: abort.signal.aborted ? "cancelled" : "failed",
+      createdAt: Date.now()
+    });
     logger.warn("Codex OAuth login did not complete", {
       error: err instanceof Error ? err.message : String(err)
     });
@@ -1163,6 +1183,48 @@ async function handleOpenAIComplete(
     logger.warn("Codex OAuth code exchange failed", { error: message });
     return errorResponse(400, message);
   }
+}
+
+async function handleOpenAIStatus(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const body: unknown = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || !("state" in body) || !isNonEmptyString(body.state)) {
+    return errorResponse(400, "Login state is required");
+  }
+  pruneExpiredCodexLogins();
+  const userId = getUserId();
+  const result = codexLoginResults.get(body.state);
+  if (result?.userId === userId) {
+    return jsonResponse({ status: result.status });
+  }
+  const pending = pendingCodexLogins.get(body.state);
+  return jsonResponse({ status: pending?.userId === userId ? "pending" : "expired" });
+}
+
+async function handleOpenAICancel(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const body: unknown = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || !("state" in body) || !isNonEmptyString(body.state)) {
+    return errorResponse(400, "Login state is required");
+  }
+  const pending = pendingCodexLogins.get(body.state);
+  if (pending?.userId === getUserId()) {
+    pendingCodexLogins.delete(body.state);
+    if (activeCodexLogin?.state === body.state) {
+      await closeActiveCodexCallbackServer();
+    }
+  }
+  return jsonResponse({ success: true });
 }
 
 async function handleOpenAITokens(getUserId: () => string): Promise<Response> {
@@ -1540,6 +1602,10 @@ export async function handleOAuthRequest(
       return handleOpenAIStart(request, getUserId);
     case "/api/oauth/openai/complete":
       return handleOpenAIComplete(request, getUserId);
+    case "/api/oauth/openai/status":
+      return handleOpenAIStatus(request, getUserId);
+    case "/api/oauth/openai/cancel":
+      return handleOpenAICancel(request, getUserId);
     case "/api/oauth/openai/tokens":
       return handleOpenAITokens(getUserId);
     case "/api/oauth/openai/disconnect":

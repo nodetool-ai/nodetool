@@ -2,7 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   cleanParams,
-  getHfToken,
   hfPipelineBinary,
   hfPipelineJson,
   imageRefFromBase64,
@@ -122,8 +121,9 @@ export class TextToImageNode extends BaseNode {
   })
   declare seed: number;
 
-  async process(): Promise<TextToImageNodeOutputs> {
-    const token = getHfToken(this._secrets);
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<TextToImageNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt cannot be empty");
 
@@ -133,10 +133,12 @@ export class TextToImageNode extends BaseNode {
     const steps = Number(this.num_inference_steps ?? 0);
     const seed = Number(this.seed ?? -1);
 
-    const { bytes, mimeType } = await hfPipelineBinary(
-      token,
-      String(this.model ?? "black-forest-labs/FLUX.1-schnell"),
-      {
+    const { bytes, mimeType } = await hfPipelineBinary({
+      context,
+      nodeId: this.__node_id,
+      task: "text-to-image",
+      model: String(this.model ?? "black-forest-labs/FLUX.1-schnell"),
+      body: {
         inputs: prompt,
         parameters: cleanParams({
           negative_prompt: String(this.negative_prompt ?? "") || undefined,
@@ -147,7 +149,7 @@ export class TextToImageNode extends BaseNode {
           seed: seed >= 0 ? seed : undefined
         })
       }
-    );
+    });
 
     return {
       output: imageRefFromBytes(bytes, mimeType.startsWith("image/") ? mimeType : "image/png")
@@ -232,7 +234,6 @@ export class ImageToImageNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ImageToImageNodeOutputs> {
-    const token = getHfToken(this._secrets);
     const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
@@ -242,10 +243,12 @@ export class ImageToImageNode extends BaseNode {
     const guidance = Number(this.guidance_scale ?? 0);
     const steps = Number(this.num_inference_steps ?? 0);
 
-    const { bytes, mimeType } = await hfPipelineBinary(
-      token,
-      String(this.model ?? "black-forest-labs/FLUX.1-Kontext-dev"),
-      {
+    const { bytes, mimeType } = await hfPipelineBinary({
+      context,
+      nodeId: this.__node_id,
+      task: "image-to-image",
+      model: String(this.model ?? "black-forest-labs/FLUX.1-Kontext-dev"),
+      body: {
         inputs: base64,
         parameters: cleanParams({
           prompt: String(this.prompt ?? "") || undefined,
@@ -254,7 +257,7 @@ export class ImageToImageNode extends BaseNode {
           num_inference_steps: steps > 0 ? steps : undefined
         })
       }
-    );
+    });
 
     return {
       output: imageRefFromBytes(bytes, mimeType.startsWith("image/") ? mimeType : "image/png")
@@ -311,21 +314,22 @@ export class ImageClassificationNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ImageClassificationNodeOutputs> {
-    const token = getHfToken(this._secrets);
     const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
     const base64 = await refToBase64(image, context);
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "google/vit-base-patch16-224"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "image-classification",
+      model: String(this.model ?? "google/vit-base-patch16-224"),
+      body: {
         inputs: base64,
         parameters: { top_k: Number(this.top_k ?? 5) }
       }
-    );
+    });
 
     const scores = jsonArray(result);
     return { output: jsonString(jsonObject(scores[0])["label"]), scores };
@@ -370,18 +374,19 @@ export class ImageSegmentationNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ImageSegmentationNodeOutputs> {
-    const token = getHfToken(this._secrets);
     const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
     const base64 = await refToBase64(image, context);
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "nvidia/segformer-b0-finetuned-ade-512-512"),
-      { inputs: base64 }
-    );
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "image-segmentation",
+      model: String(this.model ?? "nvidia/segformer-b0-finetuned-ade-512-512"),
+      body: { inputs: base64 }
+    });
 
     // Each segment's mask comes back as a base64 PNG — expose it as an image ref.
     const segments = jsonArray(result).map((entry) => {
@@ -447,21 +452,22 @@ export class ObjectDetectionNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ObjectDetectionNodeOutputs> {
-    const token = getHfToken(this._secrets);
     const image = this.image;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
     const base64 = await refToBase64(image, context);
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "facebook/detr-resnet-50"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "object-detection",
+      model: String(this.model ?? "facebook/detr-resnet-50"),
+      body: {
         inputs: base64,
         parameters: { threshold: Number(this.threshold ?? 0.5) }
       }
-    );
+    });
 
     return { output: jsonArray(result) };
   }

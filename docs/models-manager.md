@@ -4,9 +4,10 @@ title: "Models Manager"
 description: "Browse, download, and manage AI models for your NodeTool workflows."
 ---
 
-> **Local model panel.** The Model Manager downloads and manages models that run on your machine or on an attached worker. For the model catalog see [Supported Models](models.md). For provider keys see [Providers](providers.md).
+The **Model Manager** lists the local models NodeTool can run, searches the Hugging Face Hub, and downloads what you pick. Cloud models do not appear here because they need a key, not a download (see [Providers](providers.md)). For the catalog see [Supported Models](models.md).
 
-The **Model Manager** lists the local models NodeTool can run, lets you search the Hugging Face Hub, and downloads what you pick. Cloud models from OpenAI, Anthropic, and other API providers do not appear here because they need a key, not a download. Add keys in **Settings → Models & Providers**.
+> **Runs:** locally or on an attached worker. **Needs:** no key for public repos, a Hugging Face token for gated ones (see [HuggingFace](huggingface.md#authentication-and-gated-models)). **Hardware:** each row carries a fit badge computed against your machine's memory budget.
+{: .callout-note}
 
 ---
 

@@ -20,6 +20,7 @@ import {
   isInitializeRequest,
   isJSONRPCRequest,
   isJSONRPCResultResponse,
+  LATEST_PROTOCOL_VERSION,
   type JSONRPCMessage,
   type JSONRPCRequest,
   type RequestId
@@ -437,6 +438,11 @@ export function closeAllMcpHttpSessions(): void {
   }
 }
 
+/** Open HTTP sessions in this process, for tests and diagnostics. */
+export function mcpHttpSessionCount(): number {
+  return sessionTransports.size;
+}
+
 /**
  * True when the session exists and belongs to somebody other than the caller.
  * A session with no recorded owner (stdio, or a mount that predates the
@@ -504,9 +510,137 @@ function scopeRefusal(challenge?: string): Response {
   );
 }
 
+/** Session ids this mount accepts: the spec's visible-ASCII range, bounded. */
+const SESSION_ID_PATTERN = /^[\x21-\x7E]{1,128}$/;
+
+/** JSON-RPC error body, the shape the SDK transport uses for its own refusals. */
+function jsonRpcError(status: number, code: number, message: string): Response {
+  return new Response(
+    JSON.stringify({ jsonrpc: "2.0", id: null, error: { code, message } }),
+    { status, headers: { "content-type": "application/json" } }
+  );
+}
+
+/**
+ * Build a transport and server for the scoped user. With `sessionId`, the
+ * transport reuses that id instead of minting one, which is how a lost session
+ * comes back under the id its client already holds.
+ */
+async function openSessionTransport(
+  options: McpServerOptions & {
+    agentToolsScope: NonNullable<McpServerOptions["agentToolsScope"]>;
+  },
+  sessionId?: string
+): Promise<WebStandardStreamableHTTPServerTransport> {
+  const ownerUserId = options.agentToolsScope.userId;
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    enableJsonResponse: true,
+    sessionIdGenerator: () => sessionId ?? crypto.randomUUID(),
+    onsessioninitialized: (id) => {
+      sessionTransports.set(id, transport);
+      sessionOwners.set(id, ownerUserId);
+      sessionLastSeen.set(id, Date.now());
+    }
+  });
+  // Evict the session when the transport closes (client disconnect without an
+  // explicit DELETE) so sessionTransports — and the McpServer each entry keeps
+  // alive — does not grow unbounded over the process lifetime. A transport
+  // that a revival already replaced must not forget its successor.
+  transport.onclose = () => {
+    const id = transport.sessionId;
+    if (id && sessionTransports.get(id) === transport) forgetSession(id);
+  };
+  const server = createMcpServer(options);
+  await server.connect(transport);
+  return transport;
+}
+
+/**
+ * Replay a handshake on a fresh transport so it serves `sessionId` again.
+ *
+ * A session id only lives in the process that minted it. Production runs two
+ * replicas behind cookie affinity that MCP clients do not carry, every deploy
+ * replaces both processes, and idle or over-cap sessions are closed here. Each
+ * of those used to answer the client's next request with a 404, and most MCP
+ * clients surface that as a dead connection the user has to reconnect by hand.
+ *
+ * Nothing a client negotiates is needed again: this server sends no
+ * server-initiated requests and reads no client capability. Every tool runs
+ * against the authenticated caller, so the id grants nothing by itself — a
+ * revived session is bound to whoever presented it, exactly like a new one.
+ * What does not survive is in-process state: queued, uncommitted graph edits
+ * from earlier actions.
+ */
+async function reviveSession(
+  request: Request,
+  sessionId: string,
+  options: McpServerOptions & {
+    agentToolsScope: NonNullable<McpServerOptions["agentToolsScope"]>;
+  }
+): Promise<WebStandardStreamableHTTPServerTransport | Response> {
+  const transport = await openSessionTransport(options, sessionId);
+  const protocolVersion =
+    request.headers.get("mcp-protocol-version") ?? LATEST_PROTOCOL_VERSION;
+  const post = (body: unknown, withSession: boolean): Promise<Response> => {
+    const headers = new Headers({
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream"
+    });
+    if (withSession) {
+      headers.set("mcp-session-id", sessionId);
+      headers.set("mcp-protocol-version", protocolVersion);
+    }
+    return transport.handleRequest(
+      new Request(request.url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body)
+      })
+    );
+  };
+  const initialized = await post(
+    {
+      jsonrpc: "2.0",
+      id: "nodetool-session-revival",
+      method: "initialize",
+      params: {
+        protocolVersion,
+        capabilities: {},
+        clientInfo: { name: "nodetool-session-revival", version: "1.0.0" }
+      }
+    },
+    false
+  );
+  if (!initialized.ok || transport.sessionId !== sessionId) {
+    void transport.close().catch(() => undefined);
+    if (transport.sessionId === sessionId) forgetSession(sessionId);
+    log.warn("Could not revive MCP session", {
+      sessionId,
+      status: initialized.status
+    });
+    return sessionNotFound();
+  }
+  await post({ jsonrpc: "2.0", method: "notifications/initialized" }, true);
+  log.info("Revived MCP session", {
+    sessionId,
+    userId: options.agentToolsScope.userId
+  });
+  return transport;
+}
+
+// Revivals in flight, so concurrent requests on one lost id share one session.
+const pendingRevivals = new Map<
+  string,
+  Promise<WebStandardStreamableHTTPServerTransport | Response>
+>();
+
 /**
  * Handle an MCP HTTP request at the /mcp path.
  * Uses WebStandardStreamableHTTPServerTransport for stateful sessions.
+ *
+ * A failure inside the mount answers with a JSON-RPC error rather than
+ * escaping to the HTTP framework, whose generic 500 body an MCP client cannot
+ * parse.
  */
 export async function handleMcpHttpRequest(
   request: Request,
@@ -514,13 +648,30 @@ export async function handleMcpHttpRequest(
 ): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/mcp")) return null;
+  try {
+    return await routeMcpHttpRequest(request, options);
+  } catch (err) {
+    log.error("MCP HTTP request failed", {
+      method: request.method,
+      error: err instanceof Error ? err.message : String(err)
+    });
+    return jsonRpcError(
+      500,
+      ErrorCode.InternalError,
+      "The NodeTool MCP server failed to handle this request. Retry it."
+    );
+  }
+}
 
+async function routeMcpHttpRequest(
+  request: Request,
+  options?: McpServerOptions
+): Promise<Response> {
   const method = request.method;
   const now = Date.now();
   sweepIdleSessions(now);
 
   if (method === "POST") {
-    // Check for existing session
     const sessionId = request.headers.get("mcp-session-id");
     if (sessionId && sessionTransports.has(sessionId)) {
       if (isForeignSession(sessionId, options)) return sessionNotFound();
@@ -528,66 +679,65 @@ export async function handleMcpHttpRequest(
       touchSession(sessionId, now);
       return transport.handleRequest(request);
     }
-    // A session id that is present but unknown must NOT fall through to the
-    // new-session path: that constructed a fresh transport + server per stale
-    // request (leaking both). Reject it — only an initialize request without a
-    // session id creates a new session.
-    if (sessionId) {
-      return sessionNotFound();
-    }
 
     // A session this mount cannot bind to a user is refused here, at
-    // initialize, rather than answering with an empty surface.
+    // initialize or revival, rather than answering with an empty surface.
     if (!options?.agentToolsScope) {
       log.warn("Refusing MCP session: no authenticated user to bind");
       return scopeRefusal(options?.unauthorizedChallenge);
     }
+    const scoped = { ...options, agentToolsScope: options.agentToolsScope };
+    if (sessionId && !SESSION_ID_PATTERN.test(sessionId)) {
+      return sessionNotFound();
+    }
 
-    // New session — create transport and server
-    const ownerUserId = options.agentToolsScope.userId;
     // One user's clients cannot crowd out everyone else's: their oldest
     // session goes first. The global cap is what is left after that, and it
     // refuses rather than evicting a stranger's live session.
-    evictOverflowForUser(ownerUserId);
-    if (sessionTransports.size >= MCP_MAX_SESSIONS) {
-      log.warn("Refusing MCP session: server session cap reached", {
-        cap: MCP_MAX_SESSIONS
-      });
-      return sessionsExhausted();
-    }
-    const transport = new WebStandardStreamableHTTPServerTransport({
-      enableJsonResponse: true,
-      sessionIdGenerator: () => crypto.randomUUID(),
-      onsessioninitialized: (id) => {
-        sessionTransports.set(id, transport);
-        sessionOwners.set(id, ownerUserId);
-        sessionLastSeen.set(id, Date.now());
+    const ownerUserId = scoped.agentToolsScope.userId;
+    if (!(sessionId && pendingRevivals.has(sessionId))) {
+      evictOverflowForUser(ownerUserId);
+      if (sessionTransports.size >= MCP_MAX_SESSIONS) {
+        log.warn("Refusing MCP session: server session cap reached", {
+          cap: MCP_MAX_SESSIONS
+        });
+        return sessionsExhausted();
       }
-    });
-    // Evict the session when the transport closes (client disconnect without an
-    // explicit DELETE) so sessionTransports — and the McpServer each entry keeps
-    // alive — does not grow unbounded over the process lifetime.
-    transport.onclose = () => {
-      if (transport.sessionId) forgetSession(transport.sessionId);
-    };
+    }
 
-    const server = createMcpServer(options);
-    await server.connect(transport);
+    if (sessionId) {
+      // A session id this process does not hold: another replica minted it,
+      // a deploy restarted the process, or it was closed here as idle or over
+      // the cap. Bring it back instead of making the client reconnect.
+      let pending = pendingRevivals.get(sessionId);
+      if (!pending) {
+        pending = reviveSession(request, sessionId, scoped).finally(() => {
+          pendingRevivals.delete(sessionId);
+        });
+        pendingRevivals.set(sessionId, pending);
+      }
+      const revived = await pending;
+      if (revived instanceof Response) return revived;
+      if (isForeignSession(sessionId, options)) return sessionNotFound();
+      touchSession(sessionId, Date.now());
+      return revived.handleRequest(request);
+    }
+
+    const transport = await openSessionTransport(scoped);
     return transport.handleRequest(request);
   }
 
   if (method === "GET") {
-    const sessionId = request.headers.get("mcp-session-id");
-    if (
-      sessionId &&
-      sessionTransports.has(sessionId) &&
-      !isForeignSession(sessionId, options)
-    ) {
-      const transport = sessionTransports.get(sessionId)!;
-      touchSession(sessionId, now);
-      return transport.handleRequest(request);
-    }
-    return sessionNotFound();
+    // This mount answers every request in its POST response and never sends
+    // a server-initiated message, so it offers no standalone SSE stream. The
+    // spec's answer for that is 405, which clients treat as "no stream". An
+    // open stream here was never delivered: the route buffers the whole
+    // response body, so the request hung, and the stream it registered made
+    // every later GET on the session fail with 409.
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: { allow: "POST, DELETE" }
+    });
   }
 
   if (method === "DELETE") {

@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { z } from "zod";
 import { applyTimelineTrackOp, type TimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
 import {
@@ -222,6 +223,9 @@ function writingHooks(
         clips: adapted.clips,
         markers: adapted.markers
       };
+      if (adapted.workingColorSpaceVersion !== undefined) {
+        derivedDocument.workingColorSpaceVersion = adapted.workingColorSpaceVersion;
+      }
       if (adapted.transcript !== undefined) {
         derivedDocument.transcript = adapted.transcript;
       }
@@ -389,6 +393,7 @@ export async function applyOps(
     bakeModel3DClip?: TimelineModel3DBaker;
   } = {}
 ): Promise<ApplyOutcome> {
+  assertTimelineColorSpaceSupported(document);
   if (ops.every(({ op }) => op === "ui_timeline_add_track" || op === "ui_timeline_move_track" || op === "ui_timeline_delete_track")) {
     return applyTrackOps(sequence, document, ops);
   }
@@ -400,6 +405,7 @@ export async function applyOps(
     sequenceName: sequence.name,
     projectId: sequence.project_id,
     sequence: {
+      workingColorSpaceVersion: document.workingColorSpaceVersion,
       fps: sequence.fps,
       width: sequence.width,
       height: sequence.height,

@@ -21,10 +21,10 @@ describe("jsScriptDocument schema", () => {
   });
 
   it("rejects a timeout above the sandbox ceiling", () => {
-    expect(jsScriptDocument.safeParse({ schemaVersion: 1, timeoutSeconds: 121 }).success).toBe(
+    expect(jsScriptDocument.safeParse({ schemaVersion: 1, timeoutSeconds: 1801 }).success).toBe(
       false
     );
-    expect(jsScriptDocument.safeParse({ schemaVersion: 1, timeoutSeconds: 120 }).success).toBe(
+    expect(jsScriptDocument.safeParse({ schemaVersion: 1, timeoutSeconds: 1800 }).success).toBe(
       true
     );
   });

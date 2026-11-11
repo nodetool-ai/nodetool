@@ -1,6 +1,7 @@
 "use client";
 import { useRef } from "react";
 import { useAutoplayInView } from "@/lib/useAutoplayInView";
+import { useNearViewport } from "@/lib/useNearViewport";
 import type { AdVideo } from "./AdBeatSequence";
 import { BeatProgress } from "./BeatProgress";
 import { useVideoBeatClock } from "./useVideoBeatClock";
@@ -54,20 +55,24 @@ export function ComplexityMeter({ complexity }: { complexity: string }) {
  */
 function ConceptVideo({
   concept,
-  className = ""
+  className = "",
+  eagerPoster = false
 }: {
   concept: AdConceptSummary;
   className?: string;
+  /** The hero's poster may be the LCP element, so it loads with the page. */
+  eagerPoster?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const clock = useVideoBeatClock(videoRef, concept.beats);
   useAutoplayInView(videoRef);
+  const near = useNearViewport(videoRef);
   return (
     <div className={`relative overflow-hidden bg-slate-900 ${className}`}>
       <video
         ref={videoRef}
         src={concept.video.src}
-        poster={concept.video.poster}
+        poster={eagerPoster || near ? concept.video.poster : undefined}
         muted
         loop
         playsInline
@@ -131,6 +136,7 @@ export function AutoPlayFrame({
     <div className={className}>
       <ConceptVideo
         concept={concept}
+        eagerPoster
         className="rounded-[1.75rem] shadow-[0_40px_80px_-30px_rgba(0,0,0,0.9)] ring-1 ring-white/15"
       />
     </div>

@@ -37,6 +37,25 @@ function nodePaths(platform: string): typeof import("node:path") {
   return platform === "win32" ? paths.win32 : paths.posix;
 }
 
+/**
+ * The `settings.yaml` the desktop app writes and every host reads `CONDA_ENV`
+ * from: `~/.config/nodetool` on macOS and Linux, `%APPDATA%\nodetool` on Windows.
+ */
+export function nodetoolSettingsFile(
+  env: NodeJS.ProcessEnv = safeProcessEnv(),
+  options: { readonly platform?: string; readonly homeDir?: string } = {}
+): string {
+  const platform = options.platform ?? safeProcessPlatform();
+  const paths = nodePaths(platform);
+  const os = getNodeBuiltinSync<typeof import("node:os")>("node:os");
+  if (!os) { throw new Error("Runtime locations require Node.js"); }
+  const home = options.homeDir ?? env["HOME"] ?? env["USERPROFILE"] ?? os.homedir();
+  const configDir = platform === "win32"
+    ? paths.join(env["APPDATA"] ?? home, "nodetool")
+    : paths.join(home, ".config", "nodetool");
+  return paths.join(configDir, "settings.yaml");
+}
+
 /** Electron supplies its userData path. Backend code never derives an Electron directory. */
 export function runtimeLocations(
   env: NodeJS.ProcessEnv = safeProcessEnv(),
@@ -62,10 +81,7 @@ export function runtimeLocations(
     throw new Error("The desktop host must supply its userData directory");
   }
   const root = host === "desktop" && desktopUserData ? desktopUserData : dataDir;
-  const configDir = platform === "win32"
-    ? paths.join(env["APPDATA"] ?? home, "nodetool")
-    : paths.join(home, ".config", "nodetool");
-  const settingsFile = paths.join(configDir, "settings.yaml");
+  const settingsFile = nodetoolSettingsFile(env, { platform, homeDir: home });
   const condaOverride = env["NODETOOL_CONDA_ENV"]?.trim() || undefined;
   let configuredConda: string | undefined;
   if (!condaOverride && !options.condaEnv) {

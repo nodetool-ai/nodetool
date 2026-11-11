@@ -6,9 +6,8 @@ description: "How to add local Ollama models to NodeTool and how to change provi
 
 The Ollama provider connects NodeTool to a local [Ollama](https://ollama.com) daemon. Models are discovered dynamically from the running daemon — no code change is needed to add a new model. Provider-level changes (tool detection, embedding behavior, URL configuration) require editing the provider source.
 
-> **Audience:** coding agents and contributors — both users adding local models and devs modifying the provider.
-
----
+> **Runs:** locally. **Needs:** no API key, only a running Ollama daemon. `OLLAMA_API_URL` overrides the default `http://127.0.0.1:11434`.
+{: .callout-note}
 
 ## TL;DR
 
@@ -19,8 +18,6 @@ ollama pull nomic-embed-text  # embedding models work the same way
 
 No code change. No restart required (NodeTool queries the daemon on every model-list call). If you need to change tool-support detection, the default URL, or `keep_alive` behavior, see [Provider-level changes](#provider-level-changes-dev-path) below.
 
----
-
 ## Where things live
 
 | Concern | Path |
@@ -29,8 +26,6 @@ No code change. No restart required (NodeTool queries the daemon on every model-
 | Default daemon URL | `packages/runtime/src/providers/defaults.ts` (`OLLAMA_DEFAULT_URL`) |
 | Registration + `optionalKwargs` | `packages/runtime/src/providers/index.ts` (the `PROVIDER_IDS.OLLAMA` block) |
 | Provider registry resolution logic | `packages/runtime/src/providers/provider-registry.ts` |
-
----
 
 ## How Ollama models are discovered
 
@@ -79,8 +74,6 @@ The constructor also reads `OLLAMA_KEEP_ALIVE` from the secret store, then `proc
 
 `OLLAMA_CONTEXT_LENGTH` (secret store, then env) sets `num_ctx` for every chat request. When it is unset, the provider uses the Modelfile's `num_ctx`, else the model's trained context length capped at `OLLAMA_DEFAULT_NUM_CTX` (32768). See `resolveNumCtx` in `ollama-provider.ts`.
 
----
-
 ## Add a model (user path)
 
 Pull the model with the Ollama CLI:
@@ -115,8 +108,6 @@ Or set the environment variable before starting the server:
 ```bash
 OLLAMA_API_URL=http://192.168.1.10:11434 npm run dev
 ```
-
----
 
 ## Provider-level changes (dev path)
 
@@ -154,8 +145,6 @@ this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
 
 Change `OLLAMA_DEFAULT_URL` in `packages/runtime/src/providers/defaults.ts`. The constant is re-exported from `packages/runtime/src/providers/index.ts` so callers import it as `@nodetool-ai/runtime`.
 
----
-
 ## Verify
 
 ```bash
@@ -174,18 +163,3 @@ npm run test:affected
 ```
 
 If the daemon is not running, `getAvailableLanguageModels()` returns `[]` silently (the provider guards `if (!response.ok) return []`). Check that `ollama serve` (or the Ollama desktop app) is running before debugging further.
-
----
-
-## Contributing
-
-PRs welcome at <https://github.com/nodetool-ai/nodetool>. Before pushing:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-npm run dev:nodetool -- harness gate --base origin/main
-```
-
-Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

@@ -121,13 +121,124 @@ jobs:
 
       - name: Install mobile check dependencies
         run: npm --prefix mobile ci
+      - name: Prepare Chromium crash capture
+        if: matrix.task == 'test-packages-game'
+        run: |
+          sudo apt-get install -y gdb
+          crash_dir="$RUNNER_TEMP/chromium-crashes"
+          mkdir -p "$crash_dir/cores" "$crash_dir/upload"
+          echo "Original kernel.core_pattern:"
+          cat /proc/sys/kernel/core_pattern | tee "$crash_dir/core_pattern"
+          systemctl status systemd-coredump.socket apport.service --no-pager || true
+          dpkg-query -W systemd-coredump apport gdb || true
+          sudo sysctl -w "kernel.core_pattern=$crash_dir/cores/core.%e.%p.%t"
+          find "$HOME/.cache/ms-playwright" -type f -name chrome-headless-shell -executable \
+            -exec sh -c '"$1" --version; sha256sum "$1"' sh {} \;
+          if [[ -v DBUS_SESSION_BUS_ADDRESS ]]; then
+            echo "DBUS_SESSION_BUS_ADDRESS is set (value not logged)"
+          else
+            echo "DBUS_SESSION_BUS_ADDRESS is unset"
+          fi
+          df -h /dev/shm "$RUNNER_TEMP"
+          free -h
+          # Apply the limit to the unchanged, pinned bucket command only.
+          cat > "$crash_dir/bash-env" <<'SH'
+          unset BASH_ENV
+          ulimit -c unlimited
+          echo "Core limit: $(ulimit -c)"
+          : > "$RUNNER_TEMP/chromium-crashes/processes.log"
+          (
+            while true; do
+              date -u +%FT%TZ
+              ps -eo pid,ppid,stat,comm,args | awk '/chrome-headless-shell/ && !/awk/ { print; if ($0 !~ /--type=/) browsers++ } END { print "live browser parents:", browsers+0 }'
+              free -h
+              df -h /dev/shm "$RUNNER_TEMP"
+              sleep 1
+            done
+          ) > "$RUNNER_TEMP/chromium-crashes/processes.log" 2>&1 &
+          monitor_pid=$!
+          capture_exit() {
+            status=$?
+            trap - EXIT
+            kill "$monitor_pid" 2>/dev/null || true
+            wait "$monitor_pid" 2>/dev/null || true
+            if (( status != 0 )); then
+              free -h || true
+              df -h /dev/shm "$RUNNER_TEMP" || true
+              tail -100 "$RUNNER_TEMP/chromium-crashes/processes.log" || true
+            fi
+            exit "$status"
+          }
+          trap capture_exit EXIT
+          SH
       - name: Run the selected verification bucket
+        id: verification-bucket
+        shell: bash
         env:
           NODETOOL_WEB_TEST_RECYCLE_WORKERS: "1"
           NODETOOL_TURBO_CONCURRENCY: "1"
           NODETOOL_TEST_WORKERS: "1"
           PACKED_TASK: ${{ matrix.task }}
+          BASH_ENV: ${{ matrix.task == 'test-packages-game' && format('{0}/chromium-crashes/bash-env', runner.temp) || '/dev/null' }}
+          DEBUG: ${{ matrix.task == 'test-packages-game' && 'pw:browser' || '' }}
         run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
+      - name: Diagnose Chromium cores and restore the core handler
+        if: always() && matrix.task == 'test-packages-game'
+        env:
+          BUCKET_OUTCOME: ${{ steps.verification-bucket.outcome }}
+          DEBUGINFOD_URLS: https://debuginfod.ubuntu.com
+        run: |
+          crash_dir="$RUNNER_TEMP/chromium-crashes"
+          if [[ -f "$crash_dir/core_pattern" ]]; then
+            sudo tee /proc/sys/kernel/core_pattern < "$crash_dir/core_pattern" > /dev/null
+          fi
+          if [[ "$BUCKET_OUTCOME" != failure ]]; then
+            exit 0
+          fi
+          free -h
+          df -h /dev/shm "$RUNNER_TEMP"
+          sudo journalctl -k --since "-30 min" --no-pager | tail -200 || true
+          shopt -s nullglob
+          cores=("$crash_dir"/cores/core.*)
+          echo "Captured ${#cores[@]} core files"
+          # Playwright already supplies --disable-breakpad. The observed headless
+          # stack handler re-raises SIGSEGV, so leave launch flags unchanged.
+          executable=$(find "$HOME/.cache/ms-playwright" -type f -name chrome-headless-shell -executable -print -quit)
+          total=0
+          for core in "${cores[@]}"; do
+            name=$(basename "$core")
+            file "$core"
+            timeout 120s gdb -nx -batch \
+              -iex 'set auto-load off' -iex 'set debuginfod enabled on' \
+              -ex 'set pagination off' -ex 'info files' -ex 'info sharedlibrary' \
+              -ex 'info registers' -ex 'thread apply all bt full' \
+              "$executable" "$core" 2>&1 | tee "$crash_dir/upload/$name.txt" || true
+            # Bound compression work and the total uploaded core payload.
+            if [[ $(stat -c %s "$core") -le 1073741824 ]]; then
+              if timeout 60s gzip -c "$core" > "$crash_dir/$name.gz"; then
+                size=$(stat -c %s "$crash_dir/$name.gz")
+                if (( total + size <= 104857600 )); then
+                  mv "$crash_dir/$name.gz" "$crash_dir/upload/"
+                  total=$((total + size))
+                else
+                  echo "Omitting $name: compressed cores would exceed 100 MiB"
+                fi
+              fi
+              rm -f "$crash_dir/$name.gz"
+            else
+              echo "Omitting $name: raw core exceeds 1 GiB"
+            fi
+            rm -f "$core"
+          done
+          cp "$crash_dir/processes.log" "$crash_dir/upload/" || true
+      - name: Upload Chromium crash diagnostics
+        if: failure() && matrix.task == 'test-packages-game' && steps.verification-bucket.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chromium-crashes-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/chromium-crashes/upload/
+          retention-days: 3
+          if-no-files-found: warn
   packed-install:
     runs-on: ubuntu-latest
     timeout-minutes: 90

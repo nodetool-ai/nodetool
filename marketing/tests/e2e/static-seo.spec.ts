@@ -140,6 +140,14 @@ test.describe("static marketing output", () => {
             "@type": expect.any(String),
           })
         );
+        // Google's video report rejects a bare day: it wants a datetime
+        // with a timezone, and it needs uploadDate to show a video at all.
+        const video = parsed as { "@type"?: unknown; uploadDate?: unknown };
+        if (video["@type"] === "VideoObject") {
+          expect(video.uploadDate, `${route} VideoObject uploadDate`).toMatch(
+            /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/
+          );
+        }
       }
 
       for (const mediaPath of mediaPaths(html)) {

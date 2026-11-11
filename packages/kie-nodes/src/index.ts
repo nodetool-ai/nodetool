@@ -6,18 +6,16 @@ import type { KieManifestEntry } from "./kie-factory.js";
 export { loadKieNodesFromManifest, createKieNodeClass } from "./kie-factory.js";
 export type { KieManifestEntry } from "./kie-factory.js";
 export {
-  getApiKey,
   isRefSet,
-  kieExecuteTask,
-  kieExecuteOmniDirect,
+  kieCapability,
+  kieExecute,
   kieImageRef,
-  parseCreditsConsumed,
   reportKieProviderCost,
   uploadAudioInput,
   uploadImageInput,
   uploadVideoInput
 } from "./kie-base.js";
-export type { KieExecuteResult } from "./kie-base.js";
+export type { KieExecuteRequest, KieExecuteResult } from "./kie-base.js";
 export {
   buildVideoClipsFromRefs,
   readClipStart,

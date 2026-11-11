@@ -63,7 +63,7 @@ this workspace's Jest suite (`.github/workflows/quality-checks.yml`).
 
 ## GPU Detection
 
-Electron uses [torchruntime](https://github.com/easydiffusion/torchruntime) to pick the PyTorch wheel index for the packs whose dependencies include torch, `nodetool-huggingface` and `nodetool-mlx`. The HuggingFace pack pins torch 2.14.x.
+The runtime installer (`@nodetool-ai/runtime-install`) uses [torchruntime](https://github.com/easydiffusion/torchruntime) to pick the PyTorch wheel index for the packs whose dependencies include torch, `nodetool-huggingface` and `nodetool-mlx`. The HuggingFace pack pins torch 2.14.x.
 
 Before every install or update of either pack, the package manager:
 
@@ -72,7 +72,7 @@ Before every install or update of either pack, the package manager:
 3. Saves a successful result as `TORCH_PLATFORM_DETECTED` in `~/.config/nodetool/settings.yaml` (or `%APPDATA%/nodetool/settings.yaml` on Windows). Installs that do not detect, such as the Python runtime's core install, reuse it. A failed detection is never saved.
 4. Passes `--torch-backend <backend>` to `uv pip install`. uv then takes torch packages only from `https://download.pytorch.org/whl/<backend>` and everything else from PyPI.
 
-`mapTorchPlatform` in `electron/src/torchruntime.ts` maps the detected platform to a backend:
+`mapTorchPlatform` in `packages/runtime-install/src/torch.ts` maps the detected platform to a backend:
 
 | Detected platform | Backend |
 |---|---|

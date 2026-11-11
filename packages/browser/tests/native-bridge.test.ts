@@ -156,7 +156,7 @@ describe("native bridge", () => {
   it("fails fast with an install hint when no host runs", async () => {
     await host.close();
     const cdp = new ExtensionCdpClient(createSocketChannel());
-    await expect(cdp.attach(5_000)).rejects.toThrow("nodetool extension install");
+    await expect(cdp.attach(5_000)).rejects.toThrow("Settings → Integrations → Browser extension");
     await cdp.close();
   });
 });

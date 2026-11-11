@@ -12,11 +12,13 @@ import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
+import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 
 import { isProduction } from "../../lib/env";
 import { isCloudProfile } from "../../lib/runtimeConfig";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useIsAdmin } from "../../serverState/useAdminUsers";
 import { openPageTab } from "../workspace/openPageTab";
 import { type PageTabKey } from "../workspace/pageTabs";
 import { useTranslation } from "react-i18next";
@@ -54,6 +56,7 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     }))
   );
 
+  const isAdmin = useIsAdmin();
   const finish = useCallback(() => onFinish?.(), [onFinish]);
 
   const openPage = useCallback(
@@ -155,6 +158,17 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         onClick: () => openPage("memory"),
         dividerAfter: true
       },
+      ...(isAdmin
+        ? [
+            {
+              key: "admin",
+              label: t("admin.page.title"),
+              icon: <AdminPanelSettingsOutlinedIcon />,
+              placement: "both" as const,
+              onClick: () => openPage("admin")
+            }
+          ]
+        : []),
       {
         key: "settings",
         label: t("batch2_3.navigation.settings"),
@@ -189,5 +203,5 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
     }
 
     return actions;
-  }, [openPage, finish, handleOpenHelp, openDownloadsDialog, downloadProgress, t]);
+  }, [openPage, finish, handleOpenHelp, openDownloadsDialog, downloadProgress, isAdmin, t]);
 };

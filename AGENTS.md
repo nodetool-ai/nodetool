@@ -50,13 +50,15 @@ Expand these aliases only when given as a standalone instruction:
 
 All prose follows [Writing Style](docs/WRITING_STYLE.md). Fix violations you
 pass when editing Markdown. User-facing copy also follows [Brand & Verbal
-Guidelines](docs/BRAND.md).
+Guidelines](docs/BRAND.md). Published docs pages also follow the [Docs
+Editorial Spec](docs/docs-editorial.spec.md).
 
 ## Quick Navigation
 
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
 - **[Repository Skills](#repository-skills)** — Task-specific engineering and NodeTool authoring workflows.
-- **[Design System](docs/DESIGN.md)** — Required for UI work.
+- **[Design System](docs/DESIGN.md)** — Required for React UI work.
+- **[Native UI primitives](native/ui_primitives/AGENTS.md)** — Qt Quick presentation rules and the independent [native design specification](native/ui_primitives/DESIGN.md).
 - **[UX Guidelines](docs/UX_GUIDELINES.md)** — Required for UI work: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Drawn from the UX research studies.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
@@ -65,12 +67,13 @@ Guidelines](docs/BRAND.md).
 - **[Production Deploy (Docker)](docs/docker-production-deploy.md)** — How `main` reaches api.nodetool.ai: the release gates, restricted SSH, and rolling drain
 - **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver, building the VST instrument host
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`), and the index of the per-package overlays
-- **[Agent System](packages/agents/AGENTS.md)** — Planning, execution, parallelism, skills, tuning
+- **[Agent System](packages/agents/AGENTS.md)** — Package rules and the index of implementation notes: sandbox, capabilities, planning, evals, tuning
 - **[Agent Architecture & Tools](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
 - **[JavaScript Sandbox](docs/javascript-sandbox.md)** — The QuickJS guest: capabilities, limits, imports, security model, and how the Code node and CodeAct use it
 - **[Web UI](web/src/AGENTS.md)** — React web application
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
+- **[Native chat](native/chat/AGENTS.md)** — Qt Quick chat component and standalone app
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
@@ -80,6 +83,7 @@ Guidelines](docs/BRAND.md).
 - **[Product Analytics](docs/analytics.md)** — Opt-in anonymous analytics: the typed event schema, consent per client, the ingest route, retention
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
+- **[Docs Editorial Spec](docs/docs-editorial.spec.md)** — What a published docs page must show and cut, page archetypes, and the `check:docs-prose` lint
 - **[Brand & Verbal Guidelines](docs/BRAND.md)** — Positioning, voice, messaging pillars, and product lexicon for anything user-facing
 
 
@@ -92,6 +96,7 @@ Use these sections for the detailed rules summarized below.
 | Language and runtime | [TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript), [ES modules](docs/DEVELOPMENT_STANDARDS.md#2-es-modules--node-runtime), [error handling](docs/DEVELOPMENT_STANDARDS.md#18-error-handling) |
 | Components and state | [React](docs/DEVELOPMENT_STANDARDS.md#3-react), [Zustand](docs/DEVELOPMENT_STANDARDS.md#4-zustand), [TanStack Query](docs/DEVELOPMENT_STANDARDS.md#6-tanstack-query-v5), [ReactFlow](docs/DEVELOPMENT_STANDARDS.md#7-reactflow-12) |
 | UI quality | [MUI and primitives](docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives), [accessibility](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y), [performance](docs/DEVELOPMENT_STANDARDS.md#15-performance) |
+| Native Qt UI | [Native presentation rules](docs/DEVELOPMENT_STANDARDS.md#23-native-qt-ui), [native design specification](native/ui_primitives/DESIGN.md) |
 | API and persistence | [Fastify](docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server), [Drizzle](docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm), [Zod](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation), [WebSocket protocol](docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol) |
 | Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
 | Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security) |
@@ -126,7 +131,9 @@ document and nothing else in the directory reaches the product.
 | Write or repair web and workflow Playwright tests | [e2e-testing](.claude/skills/yts806379-everything-claude-code-e2e-testing/SKILL.md) |
 | Run blind first-time-user QA through the browser (typed only) | [agentic-qa](.claude/skills/agentic-qa/SKILL.md) |
 | Run a UX research study with blind agent participants and track its insights (typed only) | [ux-research](.claude/skills/ux-research/SKILL.md) |
+| Remove AI tells from prose | [humanizer](.claude/skills/humanizer/SKILL.md) |
 | Map source structure before reading selected code | [ast-grep-outline](.claude/skills/ast-grep-outline/SKILL.md) |
+| Write or modernize C++, such as `native/timeline/` | [modern-cpp](.claude/skills/modern-cpp/SKILL.md) |
 | Design module interfaces and test boundaries | [codebase-design](.claude/skills/codebase-design/SKILL.md) |
 | Turn an agreed discussion into a spec or dependent tickets | [to-spec](.claude/skills/to-spec/SKILL.md), [to-tickets](.claude/skills/to-tickets/SKILL.md) |
 | Create or edit a NodeTool workflow graph | [nodetool-workflow-builder](.claude/skills/nodetool-workflow-builder/SKILL.md) |
@@ -293,6 +300,9 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   dependencies first, then rerun checks before investigating further. A
   workspace added since the last install has no `node_modules/@nodetool-ai/`
   link and fails every build that imports it. Run `npm install` to link it.
+- Run `npm run media:pull` in a new checkout. Example media lives on
+  media.nodetool.ai, and tests read it from disk. See
+  [package media](packages/base-nodes/AGENTS.md#package-media-nodetoolassetsnodetool-basemediajson).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.
@@ -306,6 +316,14 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.
 - For sandbox/proxy download failures, use `npm install --ignore-scripts` only
   for lint/typecheck work. See [Dev Environment](docs/dev-environment.md).
+- Agent shared-shader timeline qualification requires the optional `webgpu`
+  addon and an adapter, including Mesa lavapipe on headless Linux. Run real
+  adapter-backed tests without skips. For lavapipe, unset `DISPLAY` and set
+  both `VK_ICD_FILENAMES` and `VK_DRIVER_FILES` to the installed lavapipe ICD
+  JSON path. `VK_DRIVER_FILES` takes precedence. Keep deliberately missing-addon
+  and missing-adapter tests separate from adapter-backed rendering coverage.
+  See [S5 qualification](docs/plans/color-precision/results/s5-agent-rendering.md)
+  for the migration gate and the unchanged production caller boundary.
 - “No WebGPU adapter available (Node/Dawn)” requires a Vulkan ICD such as
   lavapipe. Do not skip the test. Follow the
   [headless WebGPU setup](docs/dev-environment.md#webgpu-on-a-headless-machine).
@@ -321,10 +339,12 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   `npm run build:packages` after edits and before `npm run dev`.
 - Give a new worktree its dependencies with `scripts/setup-agent-env.sh`,
   which clones every `node_modules/` and `dist/` from the main checkout
-  instead of running `npm install`. Rebuild with `npm run build:packages`. After a
+  instead of running `npm install`. It uses copy-on-write clones on macOS
+  (APFS) and Linux reflink file systems (btrfs, XFS).
+  Rebuild with `npm run build:packages`. After a
   dependency change, check the package's placement with `npm explain` and
   run `npm run fix:lockfile-libc`. See
-  [worktrees with cloned dependencies](docs/dev-environment.md#worktrees-with-cloned-dependencies-macos).
+  [worktrees with cloned dependencies](docs/dev-environment.md#worktrees-with-cloned-dependencies-macos-and-linux).
 
 ## Build, Lint & Test Commands
 
@@ -465,6 +485,7 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 
 | Need | Command or tool |
 |---|---|
+| [Check native Qt presentation](native/ui_primitives/README.md) | `python3 native/ui_primitives/tools/check_design.py --strict` and `python3 native/ui_primitives/tools/check_dependencies.py` |
 | [Validate a graph before running it](docs/harnesses.md#nodetool-validate-static-workflow-check) | `nodetool validate <id\|file.json\|file.ts>` / `validate_workflow` |
 | [Isolate a node](docs/harnesses.md#nodetool-node-run-single-node-harness) | `nodetool node run <type> --props '{…}' [--no-secrets]` |
 | [Run and inspect a workflow](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug <id\|file>` / `debug_workflow` |

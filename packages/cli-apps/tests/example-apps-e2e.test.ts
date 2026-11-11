@@ -220,6 +220,90 @@ function sampleFor(schema: unknown, depth = 0): unknown {
   }
 }
 
+const isRecord = (value: unknown): value is Json =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+// The director scripts need dependent tool calls. Schema sampling cannot pass
+// generated asset URIs into animation, editing and the final submission.
+function* directMovie(film: boolean): Generator<{ name: string; args: Json }, void, Json> {
+  const uri = (result: Json): string => {
+    expect(result["error"]).toBeUndefined();
+    const value = result["asset_uri"] ?? result["uri"] ?? result["asset_url"];
+    if (typeof value !== "string") {
+      throw new Error(JSON.stringify(result));
+    }
+    if (value.startsWith("file:")) {
+      expect(statSync(fileURLToPath(value)).size).toBeGreaterThan(0);
+    } else {
+      expect(value).toMatch(/^asset:\/\//);
+    }
+    return value;
+  };
+  // media_edit returns a workspace path and a storage URL, not a database asset URI.
+  const editedPath = (result: Json): string => {
+    expect(result["error"]).toBeUndefined();
+    expect(result["success"]).toBe(true);
+    expect(result["output_file"]).toBeTypeOf("string");
+    return String(result["output_file"]);
+  };
+  const batchUris = (result: Json): string[] => {
+    expect(result["failed"], JSON.stringify(result)).toBe(0);
+    expect(result["completed"]).toBe(3);
+    const items = result["results"];
+    if (!Array.isArray(items) || !items.every(isRecord)) {
+      throw new Error("Batch did not return generation results");
+    }
+    return items.map(uri);
+  };
+  let style: string | undefined;
+  if (film) {
+    style = uri(yield { name: "generate_image", args: {
+      provider: "fake", model: "fake-image", prompt: "A moonlit forest", aspect_ratio: "16:9"
+    } });
+  }
+  const stills = batchUris(yield { name: "generate_batch", args: {
+    requests: Array.from({ length: 3 }, (_, i) => ({
+      tool: film ? "edit_image" : "generate_image", label: `Shot ${i + 1}`,
+      args: { provider: "fake", model: "fake-image", prompt: `Moonlit forest shot ${i + 1}`,
+        aspect_ratio: "16:9", ...(style ? { input_file: style } : {}) }
+    }))
+  } });
+  const clips = batchUris(yield { name: "generate_batch", args: {
+    requests: stills.map((input_file, i) => ({
+      tool: "animate_image", label: `Shot ${i + 1}`,
+      args: { provider: "fake", model: "fake-video", input_file, prompt: "Slow pan", duration_seconds: 2 }
+    }))
+  } });
+  let cut = editedPath(yield { name: "media_edit", args: {
+    operation: "concat", sources: clips, output_file: "cut.mp4"
+  } });
+  const probe = yield { name: "media_probe", args: { path: cut } };
+  expect(probe["error"]).toBeUndefined();
+  expect(probe["has_video"]).toBe(true);
+  if (film) {
+    const speech = uri(yield { name: "generate_speech", args: {
+      provider: "fake", model: "fake-tts", text: "Night falls."
+    } });
+    cut = editedPath(yield { name: "media_edit", args: {
+      operation: "add_audio", input: cut, audio: speech, output_file: "narrated.mp4"
+    } });
+  }
+  const music = uri(yield { name: "generate_music", args: {
+    provider: "fake", model: "fake-music", prompt: "Quiet orchestral score", duration_seconds: 3
+  } });
+  const finalResult = yield { name: "media_edit", args: {
+    operation: "add_audio", input: cut, audio: music, mode: "mix", output_file: "final.mp4"
+  } };
+  const finished = yield { name: "media_probe", args: { path: editedPath(finalResult) } };
+  expect(finished["has_video"]).toBe(true);
+  expect(finished["has_audio"]).toBe(true);
+  yield { name: "submit_result", args: {
+    [film ? "film_uri" : "trailer_uri"]: uri(finalResult),
+    ...(film ? { direction: "Three shots in a moonlit forest." } : {}),
+    notes: "Generated, animated, cut and scored three shots."
+  } };
+}
+
 const isToolResult = (message: Message): boolean => message.role === "tool";
 
 let report: (slug: string, interact: InteractionStep[]) => Promise<AppDebugReport>;
@@ -227,13 +311,17 @@ let report: (slug: string, interact: InteractionStep[]) => Promise<AppDebugRepor
 beforeAll(async () => {
   const [
     { Asset, Project, initTestDb },
-    { FakeProvider },
+    { FakeProvider, ProcessingContext, createLocalWorkspace },
+    { createJsScriptAppRunner },
+    { FileStorageAdapter },
     { runAppDebug },
     { runOnServer },
     { installLocalModelInterfaces }
   ] = await Promise.all([
     import("@nodetool-ai/models"),
     import("@nodetool-ai/runtime"),
+    import("@nodetool-ai/agents"),
+    import("@nodetool-ai/storage"),
     import("../src/app-debug/harness.js"),
     import("@nodetool-ai/cli-execution/debug/server-runner"),
     import("@nodetool-ai/cli-execution/local-model-interfaces")
@@ -250,7 +338,21 @@ beforeAll(async () => {
    * text the way the registry's fake does.
    */
   class ConversationFakeProvider extends FakeProvider {
+    private director: ReturnType<typeof directMovie> | undefined;
+
     private calls(messages: Message[], tools: ProviderTool[] | undefined): ToolCall[] | null {
+      const submit = tools?.find((tool) => tool.name === "submit_result");
+      const properties = isRecord(submit?.inputSchema) ? submit.inputSchema["properties"] : undefined;
+      if (isRecord(properties) && ("film_uri" in properties || "trailer_uri" in properties)) {
+        const results = messages.filter(isToolResult);
+        if (results.length === 0) {
+          this.director = directMovie("film_uri" in properties);
+        }
+        const last = results.at(-1);
+        const result = last ? JSON.parse(String(last.content)) : {};
+        const next = this.director!.next(result);
+        return next.done ? null : [{ id: `director-${results.length}`, ...next.value }];
+      }
       if (!tools || tools.length === 0 || messages.some(isToolResult)) return null;
       return tools.map((tool, index) => ({
         id: `fake-call-${index}-${Math.random().toString(36).slice(2, 10)}`,
@@ -332,11 +434,20 @@ beforeAll(async () => {
     const file = join(scratch, `${slug}.app.json`);
     writeFileSync(file, JSON.stringify(bundle));
     const provider = new ConversationFakeProvider({ toolCallsPerTool: 0 });
+    const context = new ProcessingContext({
+      userId: "1", jobId: `e2e-${slug}`,
+      workspace: createLocalWorkspace(join(scratch, "workspace", slug)),
+      storage: new FileStorageAdapter(join(scratch, "assets"))
+    });
+    context.registerProvider("fake", provider);
     return runAppDebug(
       file,
       { interact: [...fillInputs(bundle), ...interact], outDir: join(scratch, "out", slug), timeoutMs: 120_000 },
       {
         loadFromDb: async () => null,
+        ...(["film-studio", "trailer-room"].includes(slug)
+          ? { runScript: createJsScriptAppRunner("1", { context }) }
+          : {}),
         runOnServer: async (input) => {
           input.context?.registerProvider("fake", provider);
           return runOnServer(input);

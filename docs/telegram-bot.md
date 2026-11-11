@@ -5,9 +5,12 @@ permalink: /telegram-bot
 description: "Chat with your NodeTool agent from Telegram by running the bridge, creating a bot with BotFather, and linking your account."
 ---
 
-The Telegram bridge lets you message your NodeTool agent from a phone. It is a separate process started with `nodetool telegram serve`. It turns each private-chat message into an agent turn on a running NodeTool server and streams the answer back into the chat. The bridge holds no conversation state and no user credentials. The agent loop, tools, permissions, threads and cost tracking stay on the server, and each turn runs as the NodeTool account linked to the Telegram user.
+`nodetool telegram serve` starts a bridge process that turns each private-chat Telegram message into an agent turn on a running NodeTool server and streams the answer back. The bridge holds no conversation state or user credentials. Each turn runs on the server as the NodeTool account linked to the Telegram user.
 
-This guide covers setup from end to end. For the command reference see [CLI](cli.md#nodetool-telegram). For the design see [telegram-bot-design.md](telegram-bot-design.md).
+> **Runs:** the bridge anywhere that reaches both the server and the Telegram Bot API. **Needs:** `TELEGRAM_BOT_TOKEN` from BotFather and `NODETOOL_INTEGRATION_TOKEN` (16 characters or more) on the server.
+{: .callout-note}
+
+Command reference: [CLI](cli.md#nodetool-telegram). Design: [telegram-bot-design.md](telegram-bot-design.md).
 
 ## Requirements
 

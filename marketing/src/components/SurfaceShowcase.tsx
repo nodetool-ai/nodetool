@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
 import { STAGE_COSTS } from "../data/stageCosts";
+import { useNearViewport } from "../lib/useNearViewport";
 
 interface Surface {
   id: string;
@@ -60,8 +61,8 @@ const SURFACES: Surface[] = [
     id: "storyboard",
     label: "Storyboard",
     icon: Clapperboard,
-    headline: "Cheap stages first",
-    body: `Settle the framing and the cast on stills before you pay for video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
+    headline: "Edit a shot yourself",
+    body: "Change a shot’s description, camera or characters, then generate a new version. Preview the prompt before rendering and choose which take to use. Other shots are unchanged.",
     asset: "surface-storyboard",
   },
   {
@@ -108,30 +109,44 @@ const SURFACES: Surface[] = [
     id: "nodes",
     label: "Nodes",
     icon: Workflow,
-    headline: "The node editor underneath",
-    body: "Underneath, every project is a chain of connected steps called a node graph. Open it to rewire a step, swap a provider, or check what each step produced, from the first text prompt to the finished clip.",
+    headline: "Build repeatable workflows",
+    body: "Connect models and processing steps in the node editor. Swap a model, adjust settings and inspect each step’s output, then reuse the workflow in your projects.",
     asset: "surface-nodes",
   },
 ];
+
+/**
+ * The storyboard panel as the homepage tells it: the cost of a still against
+ * a clip. The homepage owns that argument (site-editorial.spec.md), so only
+ * the homepage passes it. Prices come from the calculator catalog.
+ */
+export const STORYBOARD_COST_COPY = {
+  headline: "Preview each shot before animating it",
+  body: `Try out characters and camera angles as still images before spending money on video. A ${STAGE_COSTS.stillModel} still costs ${STAGE_COSTS.stillPrice}. Five seconds of ${STAGE_COSTS.clipModel} costs ${STAGE_COSTS.clipPrice}. Only the shots you approve become clips. (${STAGE_COSTS.attribution})`,
+};
 
 interface SurfaceShowcaseProps {
   surfaceIds?: string[];
   heading?: string;
   intro?: string;
+  /** Replace a panel's headline and body on one page, keyed by surface id. */
+  copy?: Partial<Record<string, { headline: string; body: string }>>;
 }
 
 export default function SurfaceShowcase({
   surfaceIds,
   heading = "Seven editors. The agent works in all of them.",
   intro =
-    "The agent is not stuck in a chat panel. Each editor exposes its actions to the agent as tools, so when you ask it to tighten the opening cut or recast a voice, it changes the document you have open. Take over at any point and hand it back.",
+    "Ask the agent to shorten the opening scene or change a character's voice. It makes the changes directly in your project. You can also edit any part yourself.",
+  copy,
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>
-      surfaceIds
+      (surfaceIds
         ? SURFACES.filter((surface) => surfaceIds.includes(surface.id))
-        : SURFACES,
-    [surfaceIds]
+        : SURFACES
+      ).map((surface) => ({ ...surface, ...copy?.[surface.id] })),
+    [surfaceIds, copy]
   );
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
@@ -145,6 +160,9 @@ export default function SurfaceShowcase({
   const autoAdvance = rotating && !reducedMotion && surfaces.length > 1;
   const progressRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const sectionRef = useRef<HTMLElement>(null);
+  // Chromium starts `loading="lazy"` images up to 2,500 px early, so the
+  // poster loaded with the page on a phone. Wait until the section is near.
+  const postersNear = useNearViewport(sectionRef);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -305,6 +323,7 @@ export default function SurfaceShowcase({
           <p className="text-lg text-slate-300">{intro}</p>
         </div>
 
+        {surfaces.length > 1 && (
         <div
           role="tablist"
           aria-label="Editing surfaces"
@@ -346,26 +365,35 @@ export default function SurfaceShowcase({
             );
           })}
         </div>
+        )}
 
+        {/* A single surface renders without tabs, as a plain figure. */}
         {surfaces.map((surface, i) => (
           <div
             key={surface.id}
-            role="tabpanel"
+            {...(surfaces.length > 1
+              ? {
+                  role: "tabpanel",
+                  "aria-labelledby": `surface-tab-${surface.id}`,
+                }
+              : {})}
             id={`surface-panel-${surface.id}`}
-            aria-labelledby={`surface-tab-${surface.id}`}
             hidden={i !== active}
           >
             <div className="relative overflow-hidden rounded-2xl bg-slate-900/60 border border-slate-800/60 ring-1 ring-white/5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`/${surface.asset}-poster.webp`}
-                alt={`${surface.label} editor`}
-                width={1920}
-                height={1080}
-                decoding="async"
-                loading={i === 0 ? "eager" : "lazy"}
-                className="block h-auto w-full"
-              />
+              {postersNear ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/${surface.asset}-poster.webp`}
+                  alt={`${surface.label} editor`}
+                  width={1920}
+                  height={1080}
+                  decoding="async"
+                  className="block h-auto w-full"
+                />
+              ) : (
+                <div role="img" aria-label={`${surface.label} editor`} className="aspect-video w-full" />
+              )}
               {inView && (
                 <video
                   ref={(el) => {

@@ -24,6 +24,8 @@ import { writeToArrayBuffer } from "typegpu";
 import * as d from "typegpu/data";
 import type { TgpuBindGroupLayout } from "typegpu";
 import type { AnyWgslStruct, Infer } from "typegpu/data";
+import { resolveWorkingModule, validateWorkingOutput } from "./workingFormat.js";
+import type { WorkingFormat } from "./workingFrame.js";
 import type { GPUCapabilities, GPUContext } from "./context.js";
 import {
   encodePremulValidationPass,
@@ -87,6 +89,9 @@ function variantMeetsCapabilities(
   if (!req) {
     return true;
   }
+  if (req.shaderF16 && !capabilities.shaderF16) {
+    return false;
+  }
   if (req.textureExternal && !capabilities.textureExternal) {
     return false;
   }
@@ -148,6 +153,7 @@ export interface EncodeArgs<Schema extends AnyWgslStruct> {
   output: LabeledTexture;
   params: Infer<Schema>;
   dispatch: ExecutorDispatch;
+  workingFormat?: WorkingFormat;
 }
 
 export interface Executor {
@@ -237,7 +243,7 @@ export function createExecutor(): Executor {
         // bucketed allocation would leave the margin unwritten, which the
         // normalized sample reads as garbage.
         exact: true,
-        format: "rgba8unorm",
+        format: args.workingFormat === "rgba16float" && bound.format === "rgba16float" ? "rgba16float" : "rgba8unorm",
         usage:
           GPUTextureUsage.TEXTURE_BINDING |
           GPUTextureUsage.STORAGE_BINDING |
@@ -257,6 +263,7 @@ export function createExecutor(): Executor {
       encodeInternal({
         ctx,
         module: convertModule,
+        workingFormat: scratch.format === "rgba16float" ? "rgba16float" : "rgba8unorm",
         encoder,
         inputs: { source: bound },
         output: scratch,
@@ -410,10 +417,10 @@ export function createExecutor(): Executor {
     resolved: ResolvedShader
   ): GPUComputePipeline {
     const variantTag = resolved.variant ? `:${resolved.variant}` : "";
-    const cacheKey = `${moduleKey(module.id, module.version)}${variantTag}:compute`;
+    const cacheKey = `${moduleKey(module.id, module.version)}${variantTag}:compute:${module.io.output.format}`;
     const cached = ctx.pipelineCache.get(cacheKey);
     if (cached) {
-      // SAFETY: the key ends in `:compute`, and the only write under a
+      // SAFETY: the key carries the `:compute:` segment, and the only write under a
       // `:compute` key is the `createComputePipeline` result below, so a hit
       // here is a GPUComputePipeline.
       return cached as GPUComputePipeline;
@@ -514,6 +521,17 @@ export function createExecutor(): Executor {
   function encodeInternal<Schema extends AnyWgslStruct>(
     args: EncodeArgs<Schema>
   ): void {
+    const format = args.workingFormat ?? "rgba8unorm";
+    validateWorkingOutput(args.module, format, args.output.format);
+    if (format === "rgba16float") {
+      for (const [name, policy] of Object.entries(args.module.precision ?? {})) {
+        const input = args.inputs[name];
+        if (name !== "output" && policy !== "fixed" && input && input.format !== format) {
+          throw new Error(`${args.module.id}: fixed-byte working input ${name}; expected ${format}`);
+        }
+      }
+    }
+    args = { ...args, module: resolveWorkingModule(args.module, format) };
     validateInputs(args.module, args.inputs);
     const { inputs: maybeConverted, scratchToRelease } = convertAlphaIfNeeded(
       args

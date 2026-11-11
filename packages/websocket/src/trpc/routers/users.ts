@@ -10,6 +10,7 @@
  */
 
 import { FileUserManager } from "@nodetool-ai/auth";
+import { isAuthEnforced } from "@nodetool-ai/config";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -37,15 +38,16 @@ async function requireAdmin(userId: string): Promise<void> {
 
 /**
  * API user tokens authenticate only in Local mode (see the auth hook in
- * server.ts). In Supabase mode a token issued here would never work, so
+ * server.ts). With Supabase or SSO auth a token issued here would never work, so
  * refuse to issue one.
  */
 function requireLocalMode(): void {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+  if (isAuthEnforced()) {
     throwApiError(
       ApiErrorCode.INVALID_INPUT,
-      "API users are only supported in Local mode. With Supabase auth, " +
-        "create the user in Supabase or have them mint an access token in the app."
+      "API users are only supported in Local mode. With Supabase or SSO auth, " +
+        "create the user in the identity provider or have them mint an access " +
+        "token in the app."
     );
   }
 }

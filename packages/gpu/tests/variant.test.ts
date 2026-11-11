@@ -206,3 +206,15 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f { return vec4f(layout.$
     expect(variantWgsl).toContain("textureSampleBaseClampToEdge");
   });
 });
+
+
+it("distinguishes storage support from optional half arithmetic", () => {
+  const base = passthroughWithVariant.variants?.[0];
+  if (!base) throw new Error("Missing test variant");
+  const arithmetic = { ...passthroughWithVariant, variants: [{ ...base, bindingKinds: undefined, requires: { shaderF16: true } }] };
+  const inputs = { source: fakeLabeled("texture_2d") };
+  expect(resolveVariant(arithmetic, inputs, { textureExternal: false, f16Storage: true, shaderF16: false }).variant).toBeUndefined();
+  expect(resolveVariant(arithmetic, inputs, { textureExternal: false, f16Storage: true, shaderF16: true }).variant).toBe("external");
+  const storage = { ...arithmetic, variants: [{ ...base, bindingKinds: undefined, requires: { f16Storage: true } }] };
+  expect(resolveVariant(storage, inputs, { textureExternal: false, f16Storage: true, shaderF16: false }).variant).toBe("external");
+});

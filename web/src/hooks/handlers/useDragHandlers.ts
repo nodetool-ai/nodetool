@@ -7,7 +7,6 @@ import {
   resetWiggleDetection
 } from "../../utils/MousePosition";
 import { useReactFlow, Node } from "@xyflow/react";
-import { useKeyPressed } from "../../stores/KeyPressedStore";
 import { NodeData } from "../../stores/NodeData";
 import { useAddToGroup } from "../nodes/useAddToGroup";
 import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
@@ -39,10 +38,6 @@ export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  // Alt (Option) pulls dragged nodes out of their group. Ctrl and Cmd add to
-  // the selection, so holding them from a multi-select click into the drag
-  // must not ungroup.
-  const ungroupKeyPressed = useKeyPressed((state) => state.isKeyPressed("alt"));
   const reactFlow = useReactFlow();
   // Drag bookkeeping, never read during render: state here re-renders the
   // whole canvas on every drag start/stop.
@@ -96,14 +91,13 @@ export default function useDragHandlers() {
         removeFromGroup(dragged.filter((n) => n.parentId));
       }
 
-      let wasUngroupedByControlKey = false;
-      // Alt-key ungrouping
-      if (node.parentId && ungroupKeyPressed) {
+      // Read the drag event so modifiers pressed mid-gesture take effect immediately.
+      const ungroupKeyPressed = event.altKey;
+      if (ungroupKeyPressed) {
         removeFromGroup(dragged.filter((n) => n.parentId));
-        wasUngroupedByControlKey = true;
       }
 
-      if (wasUngroupedByControlKey) {
+      if (ungroupKeyPressed) {
         setLastParentNode(undefined);
         if (lastHoveredIdsRef.current !== "") {
           lastHoveredIdsRef.current = "";
@@ -140,7 +134,6 @@ export default function useDragHandlers() {
     },
     [
       pause,
-      ungroupKeyPressed,
       removeFromGroup,
       reactFlow,
       setHoveredNodes,
@@ -151,11 +144,11 @@ export default function useDragHandlers() {
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
-    (_event: NodeDragEvent, node: Node<NodeData>, nodes?: Node<NodeData>[]) => {
+    (event: NodeDragEvent, node: Node<NodeData>, nodes?: Node<NodeData>[]) => {
       // Only add to group if a valid parent was intersected during drag.
       // addToGroup skips nodes that already have a parent.
       const dragged = nodes && nodes.length > 0 ? nodes : [node];
-      if (lastParentNode) {
+      if (lastParentNode && !event.altKey) {
         addToGroup(
           dragged.filter((n) => n.id !== lastParentNode.id),
           lastParentNode
@@ -174,10 +167,7 @@ export default function useDragHandlers() {
   /* SELECTION DRAG START */
   const onSelectionDragStart = useCallback(
     (event: ReactMouseEvent, nodes: Node<NodeData>[]) => {
-      // Suppress transform transition on selected nodes for the duration of the drag.
-      // During a NodesSelection drag, ReactFlow never adds .dragging to individual
-      // nodes, so the CSS :not(.dragging) rule keeps the 0.18s transform transition
-      // active, making all nodes lag behind the cursor.
+      // Selection drags do not mark individual nodes as .dragging.
       const rfContainer = (event.target as Element)?.closest(".react-flow");
       rfContainer?.classList.add("nodesselection-dragging");
 
@@ -208,16 +198,12 @@ export default function useDragHandlers() {
         removeFromGroup(parentedNodesForSpeedCheck);
       }
 
-      let wasUngroupedByControlKey = false;
-
-      // Alt-key ungrouping for selection
-      if (parentedNodesForSpeedCheck.length > 0 && ungroupKeyPressed) {
+      const ungroupKeyPressed = event.altKey;
+      if (ungroupKeyPressed) {
         removeFromGroup(parentedNodesForSpeedCheck); // removeFromGroup is idempotent
-        wasUngroupedByControlKey = true;
       }
 
-      // Intersection logic conditional on *control key* ungrouping
-      if (wasUngroupedByControlKey) {
+      if (ungroupKeyPressed) {
         setLastParentNode(undefined);
         if (lastHoveredIdsRef.current !== "") {
           lastHoveredIdsRef.current = "";
@@ -260,7 +246,6 @@ export default function useDragHandlers() {
       setHoveredNodes,
       isGroup,
       findNode,
-      ungroupKeyPressed,
       removeFromGroup
     ]
   );
@@ -274,7 +259,7 @@ export default function useDragHandlers() {
 
       // addToGroup skips nodes that already have a parent, so a mixed
       // selection still adds the loose ones.
-      if (lastParentNode && nodes.length > 0) {
+      if (lastParentNode && nodes.length > 0 && !event.altKey) {
         addToGroup(
           nodes.filter((n) => n.id !== lastParentNode.id),
           lastParentNode

@@ -5,6 +5,8 @@ What the site says, in what order, and why. This file covers the message.
 guidelines: mission, voice, the four messaging pillars, and the lexicon.
 `PRODUCT.md` covers brand, users, and design principles. `POSITIONING_PLAN.md`
 covers the competitive positioning, landing-page blueprint, and launch plan.
+[site-editorial.spec.md](site-editorial.spec.md) says which page owns which
+argument and what each page leaves out.
 
 When page copy and this file disagree, one of them is wrong. Fix both in the
 same change. The page is edited more often than this file, so when in doubt
@@ -12,9 +14,13 @@ the page is the newer of the two. Bring the doc up to it, then fix the page.
 
 The homepage, README, and docs share the primary tagline and intro in
 `BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
-`<h1>` names the contrast: "Stop prompting slot machines. Direct the agent."
-The hero paragraph says what the slot machine is (a paid roll that returns a
-flat MP4), what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
+`<h1>` reads: "Create with AI. Make it your own."
+The hero paragraph introduces the AI video editor and node-based workflows.
+Below the demo, six linked cards cover timeline and node workflows, agents,
+media types, model choice, local projects and integrations. Each links to its
+detailed page. The lower strip covers plans and provider costs.
+The homepage editor showcase omits experimental game creation.
+The project section introduces the demo with "From an idea to a video you can edit."
 
 ## Shared copy
 
@@ -24,13 +30,15 @@ These lines appear on more than one surface. Change them everywhere at once.
 |---|---|
 | "Open-source agent-first creative workspace" (tagline) | Homepage line above the `<h1>`, README title line, docs home `<h1>` |
 | The intro ("Create images, video, audio, and text with agents…") | README, docs home lead, `BRAND.md` |
-| "Stop prompting slot machines. Direct the agent." and its paragraph | Homepage `<h1>`, README under the intro |
+| "Create with AI. Make it your own." and its paragraph | Homepage `<h1>`, README under the intro |
 | "Give Claude Code a creative harness." | `/agents` `<h1>`, README § MCP, docs home agents block |
-| The plan table (ChatGPT, Claude, Gemini) | `SubscriptionSection`, README, docs home |
-| The category comparison rows | `ComparisonSection`, README § How NodeTool compares, docs `comparisons.md` |
+| The plan table (ChatGPT, Claude, Gemini) | `SubscriptionSection` on `/pricing`, README, docs home |
+| The category comparison rows | README § How NodeTool compares, docs `comparisons.md` |
+| One line per shared fact | `SpecStrip` on `/`, `/agents`, `/studio` |
 
-The homepage component is the source for each row it owns. The README and the
-docs copy it, shortened where a sentence depends on the page layout.
+The page is the source for each row it shows. The README and the docs copy
+it, shortened where a sentence depends on the page layout. The category
+comparison rows left the homepage, so the README is now their source.
 
 ## The register
 
@@ -60,14 +68,18 @@ like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
 workflows and documents that creators can inspect and edit. Keep the homepage
-metadata category-led, and keep the category line visible directly above the
-homepage `<h1>`. Edition and audience pages use
+metadata category-led. The homepage pill above the `<h1>` speaks to creators:
+"Open-source AI film studio · agent + node workflows". Edition and audience pages use
 distinct headlines that answer the reason to choose that route: Studio makes
 and revises production work, Cloud evaluates the workspace without an install,
 and Agents builds reusable automation around editable artifacts.
 
-Keep the trust line under the CTA: free, open source, AGPL-3.0, and the
-supported desktop platforms.
+Keep a setup line and a trust line under the homepage CTA. The setup line says
+that Studio signs in with a ChatGPT or Claude plan or uses your own provider
+keys at list price. The trust line says free, open source, and the supported
+desktop platforms, and that the browser version is in alpha. Name AGPL-3.0 in
+the FAQ, the footer, and on `/studio`, not in the hero. Keep "alpha" out of
+button labels.
 
 ### The harness line
 
@@ -102,43 +114,36 @@ this order of importance:
    runs on their own provider key at the provider's price. Abundance and
    ownership in one breath. It sits under the agent story rather than in front
    of it, because a reader who meets the model wall before they have seen the
-   product reads us as a router. The plan section is the exception: it sits
-   directly under the hero because it answers "what will this cost me" before
-   the reader asks.
+   product reads us as a router. On the homepage it is one line in the spec
+   strip.
 
 Provider lists, node counts, tool counts, and architecture belong under those
-claims, not next to them. On the homepage they are one strip of links to
-`/studio` and `/developers`, not ten sections.
+claims, not next to them. The homepage gives a short overview and links to the
+pages that explain each topic.
 
 ## Order of the page
 
-Hero → **use the AI plan you already pay for** → the editors, framed as control over the project → finished films with
-their editable timelines → ad library → example storyboards → **the agent
-builds the project** (a brief, then a board, takes, and a cut that opens) →
-**every model, your keys** → recipes for related
-production work ("Build your next campaign") → ownership → **build the workflows that work for you** → comparison → Studio vs
-Cloud → ways in → FAQ → community → download.
+Hero → **one shot changed, the rest of the cut kept** → **approve the still
+before paying for the clip** → spec strip → FAQ → download.
 
-Three rules produced that order:
+[site-editorial.spec.md § Homepage](site-editorial.spec.md#homepage) holds the
+five blocks and why each is there. Everything the homepage used to carry now
+lives on the page that owns it: the editor tour and the films that open as
+timelines on `/studio`, the ad library and recipes on `/marketing`, the plan
+table on `/pricing`, models on `/models`, the node canvas on
+`/node-based-workflows`, and comparisons on `/alternatives/*`.
 
-**The product before its parts.** The agent working inside a real project is the
-second beat, because it is the only one a hosted platform cannot copy sentence
-for sentence. Recipes and models read as evidence for that story once it
-has landed, and as a catalogue before it.
+Two rules produced that order:
 
-**Control answers velocity.** The editors follow the agent immediately, because
-the question the agent beat raises is what a reader can change afterwards. An
-answer held until the bottom of the page reads as a render that does not reopen.
+**Show the backward edit.** The hero reel shows the forward pass, sentence in,
+film out, which every hosted platform can also show. The second block shows
+what they cannot: one note sends one shot back, and the cut keeps every other
+shot.
 
-**Graphs last.** The node canvas is the power-user layer and is introduced as
-one, near the bottom, under its own heading — "Build the workflows that work for
-you." A visual programming surface presented first reads as work; presented last
-it reads as headroom. `/developers`, `/agents`, the CLI and SDK pages are the
-back door, not the doorway.
-
-Detailed comparison tables and the calculator belong on their own pages —
-`/alternatives/*` and `/pricing`. The homepage names the difference and links
-to the numbers.
+**Keep the homepage useful on its own.** The overview cards summarize what
+people can do. The download note explains provider accounts and local models.
+The plans strip and five short FAQ answers cover costs, editions, setup and editing.
+Contextual links lead to detail without requiring another page for the basics.
 
 ## Vertical pages
 
@@ -157,11 +162,11 @@ The hero of an industry page has a fixed grammar:
    drift. The advertising page counts `adRecipes` from `src/data/adLibrary.ts`
    and names the video models.
 4. **The download CTA and one anchor to the proof below.**
-5. **One row of three facts**, each specific enough to check against the
-   page: the variant axes, the price, the formats from one run.
 
-The proof follows the hero directly. On the advertising page that is the ad
-library, then the timeline showcase.
+The proof follows the hero directly. On the advertising page that is one
+campaign end to end: the Directed Campaign Kit run, its three formats, and the
+one revision note sent back. The ad library, storyboards, and recipes are
+links under it.
 
 A vertical page argues about the industry's job, never about a competitor.
 What makes ours different from a hosted platform's is stated as fact in the
@@ -201,14 +206,13 @@ but it is not their product category.
 
 ## Jobs, not demos
 
-The homepage shows shipped timeline examples under "Every film is a timeline you
+`/studio` shows shipped timeline examples under "Every film is a timeline you
 can open." Each pairs a full film with a capture of its editable timeline. Lead
 with Serein, Kite, and Tidewater, followed by Cadence, Prism, and Voltra.
-T minus 30 stays outside the marketing showcase. The advertising page uses the
-same showcase directly below its ad library.
+T minus 30 stays outside the marketing showcase.
 
-Selected recipes (`/recipes`) follow under "Build your next campaign". Each
-pairs example media with a guide to making related work in Studio. The use cases on `/use-cases`
+Recipes (`/recipes`) pair example media with a guide to making related work in
+Studio. The use cases on `/use-cases`
 (trailer, teaser, product video, poster) are demos of a surface; they stay on
 their own pages.
 
@@ -231,24 +235,21 @@ strong move is the same one they make: show what the product does and let the
 difference be self-evident.
 
 What survives is the fact, never the grievance. "Your keys, your project file,
-your models, AGPL-3.0" is stated in the ownership section as plain fact and in
-the hero as one bullet. The comparison section stays, late and skippable, and it
-compares **categories** — open studio against hosted platform — with a real
-price worked through, not a brand name and a column of red crosses.
+your models, AGPL-3.0" is stated in the spec strip as plain fact. The category
+comparison lives in the README and `/alternatives/*`, not on the homepage.
 
 If a claim only works by making someone else look bad, it is not our claim. The
 one about them that is both true and ours to make is narrow: what a hosted
 platform keeps is the editable project and the model list. The hero states it
-once as a category ("most AI video apps"), and the comparison section states it
-again with the table. Neither names a product or shows a logo.
+once as a category ("most AI video apps"), and names no product and shows no
+logo.
 
 Keep the contrast plain. "Slot machine" and "flat MP4" are fine because a
 reader can check them. Coined labels are not: no "model sovereignty",
 "arbitrage", "bidirectional harness", "entity bibles", or "wrapper tax".
 
-Two carve-outs on the homepage, both navigation rather than argument: the
-footer's Compare column and the link line under the comparison table may name a
-product, because their whole job is to route a reader who is already searching
+One carve-out on the homepage, navigation rather than argument: the
+footer's Compare column may name a product, because their whole job is to route a reader who is already searching
 for that name to its `/alternatives` page. Meta keywords may carry competitor
 terms for the same reason. Body copy on the homepage may not. Dedicated
 `/alternatives/*` comparison pages are exempt from the homepage competitor-name
@@ -296,9 +297,8 @@ calculator catalog through `src/data/stageCosts.ts`, so they move with it.
   price, or billing model before the deployment owner confirms it.
 - **Subscriptions.** A reader who already pays for ChatGPT, Claude, or Gemini
   (about $20 a month) can run NodeTool on that plan, which is the cheapest way
-  in. The homepage
-  says so right under the hero, and `/studio`, `/pricing`, `/agents`, and
-  `/node-based-workflows` repeat the same section (`SubscriptionSection`).
+  in. `/pricing` explains it in `SubscriptionSection`. The homepage, `/agents`,
+  and `/studio` state it in one `SpecStrip` line that links there.
   State the limits with the claim: subscriptions run in Studio, not Cloud.
   Sign in with ChatGPT runs chat, the agent, and GPT Image with no extension.
   Gemini needs the NodeTool Chrome extension in the browser where the reader

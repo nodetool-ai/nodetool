@@ -504,9 +504,11 @@ live preview, so an exported frame is identical to what playback showed:
 - `render/TimelineRenderer.ts` — steps the playhead in exact `1 / fps`
   increments and requests each video source at its precise timestamp.
   `render/SequentialVideoSource.ts` reuses a decoder for supported forward
-  streams. Other sources use video-element seeks, waiting for `seeked` before
-  compositing. The renderer composites at full sequence resolution, encodes
-  frames with WebCodecs, and muxes to MP4 via [mediabunny](https://mediabunny.dev).
+  streams and hands decoded `VideoFrame`s directly to the compositor. WebGPU
+  imports eligible frames as external textures and copies the source when
+  import is unavailable. Other sources use video-element seeks and wait for
+  `seeked` before compositing. The renderer composites at full sequence
+  resolution, encodes frames with WebCodecs, and muxes via [mediabunny](https://mediabunny.dev).
 - `render/renderAudio.ts` — mixes the audio tracks down through the same
   `AudioGraph` (clip gain, fades, speed, clip audio effects, mute/solo, DSP
   chain) driven by an `OfflineAudioContext`. A clip's `audioEffects` run

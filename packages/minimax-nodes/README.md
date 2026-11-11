@@ -2,9 +2,11 @@
 
 MiniMax AI nodes for [NodeTool](https://nodetool.ai).
 
-These nodes call the [MiniMax API](https://platform.minimax.io/docs/api-reference/api-overview)
-directly so they can expose MiniMax-specific controls that the generic provider
-nodes don't carry.
+These nodes build [MiniMax API](https://platform.minimax.io/docs/api-reference/api-overview)
+requests themselves so they can expose MiniMax-specific controls that the
+generic provider nodes don't carry. They send them through the runtime
+`MinimaxProvider` (`context.callProviderEndpoint`), which holds the API key and
+records each call as a generation.
 
 ## Nodes
 
@@ -20,7 +22,7 @@ nodes don't carry.
 ## Configuration
 
 Set `MINIMAX_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an
-environment variable.
+environment variable. Node code never reads the key.
 
 > MiniMax chat models and the generic Text to Image / Text to Video / Text to
 > Speech nodes also work through the built-in MiniMax provider; this pack adds

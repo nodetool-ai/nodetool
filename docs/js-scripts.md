@@ -5,9 +5,16 @@ permalink: /js-scripts
 description: "Write reusable JavaScript as a saved document with declared inputs, outputs, secrets, and tests, then run it, test it, or use it as a node."
 ---
 
-A JS script is a saved JavaScript document. It has a body, declared input and output ports, the secret names it may read, a timeout, and saved test cases. Unlike the body of a Code node, which lives inside one workflow, a script is a standalone document you can reuse, run on its own, and test.
+A JS script is a saved JavaScript document with a body, declared input and output ports, the secret names it may read, a timeout, and saved test cases. Unlike a Code node body, which lives inside one workflow, a script can be reused, run on its own, and tested.
 
-Scripts run in the server's QuickJS sandbox, never in the browser. For what the sandbox allows, its limits, and its imports, see [JavaScript Sandbox](javascript-sandbox.md).
+```js
+await output("total", inputs.numbers.reduce((a, n) => a + n, 0));
+```
+
+> **Runs:** in the server's QuickJS sandbox, never in the browser. **Needs:** no API key unless the body reads a declared secret. **Timeout:** 30 seconds by default, 1800 at most.
+{: .callout-note}
+
+For what the sandbox allows, its limits, and its imports, see [JavaScript Sandbox](javascript-sandbox.md).
 
 ## Create a script
 
@@ -39,10 +46,6 @@ The host wraps the body in an async function, so write top-level statements only
 - Do not return outputs. A body that returns its outputs fails validation.
 - Import any installed sandbox pack or `@nodetool-ai/sandbox-nodetool/<namespace>` directly.
 
-```js
-await output("total", inputs.numbers.reduce((a, n) => a + n, 0));
-```
-
 Media handles are valid only for the current run. Persist them before output, for example with `await image.toAsset(frame)`. A body that reads its inputs with `stream` runs once and pulls items as they arrive. For the full model, see the [nodetool-js-scripting skill](skills.md) and [JavaScript Sandbox](javascript-sandbox.md).
 
 ## Declare inputs and outputs
@@ -57,7 +60,7 @@ The ports are the only source for the run dialog, the test cases, and the valida
 |-------|--------------|
 | Description | What the script does. Agents read it to decide whether to call the script. |
 | Show in node menu | Adds the script to **My Nodes** so it drops onto a graph like any node. **Category** sets the group, and defaults to My Nodes. |
-| Timeout (seconds, max 120) | How long a run may take. The default is 30. |
+| Timeout (seconds, max 1800) | How long a run may take. The default is 30. |
 
 ## Secrets
 

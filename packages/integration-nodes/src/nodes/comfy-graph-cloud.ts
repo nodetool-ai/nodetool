@@ -215,14 +215,14 @@ export class ComfyCloudGraphNode extends BaseNode {
   static readonly description =
     "Runs a whole Comfy workflow as one job on the target in COMFY_TARGET: Comfy Cloud, a ComfyUI server or a ComfyUI worker.\n    comfy, comfyui, cloud, workflow";
   static readonly hidden = true;
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = [];
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   static readonly autoSaveAsset = true;
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
-  static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = [];
 
   @prop({
     type: "list[dict[str, any]]",

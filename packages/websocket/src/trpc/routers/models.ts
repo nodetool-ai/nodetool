@@ -1536,6 +1536,17 @@ export const modelsRouter = router({
       );
     }),
 
+  ollamaStatus: protectedProcedure
+    .output(z.enum(["connected", "unreachable", "unavailable"]))
+    .query(async ({ ctx }) => {
+      if (isProduction()) {
+        return "unavailable" as const;
+      }
+      const getSecret = secretResolverFor(ctx.userId);
+      const url = ((await getSecret("OLLAMA_API_URL")) || process.env.OLLAMA_API_URL || OLLAMA_DEFAULT_URL).replace(/\/+$/, "");
+      return await isServerReachable(`${url}/api/tags`) ? "connected" as const : "unreachable" as const;
+    }),
+
   ollama: protectedProcedure.output(ollamaModelsOutput).query(async ({ ctx }) =>
     safeProviderCall(
       "ollama models",

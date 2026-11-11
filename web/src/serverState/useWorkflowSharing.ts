@@ -95,7 +95,17 @@ export const useWorkflowSharing = (workflowId: string | null | undefined) => {
     onSuccess: invalidate
   });
 
-  return { query, createLink, revokeLink, setRole, removeCollaborator };
+  const invite = useMutation({
+    mutationFn: (opts: { userId: string; role: CollaboratorRole }) =>
+      trpcClient.workflows.sharing.invite.mutate({
+        id: workflowId as string,
+        user_id: opts.userId,
+        role: opts.role
+      }),
+    onSuccess: invalidate
+  });
+
+  return { query, createLink, revokeLink, setRole, removeCollaborator, invite };
 };
 
 /** Redeem a share token; resolves to the workflow and granted role. */

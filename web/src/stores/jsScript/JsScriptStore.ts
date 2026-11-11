@@ -39,7 +39,7 @@ export type JsScriptPalette = jsScripts.JsScriptPalette;
 
 /** Default and ceiling mirrored from the protocol schema. */
 export const JS_SCRIPT_DEFAULT_TIMEOUT_SECONDS = 30;
-export const JS_SCRIPT_MAX_TIMEOUT_SECONDS = 120;
+export const JS_SCRIPT_MAX_TIMEOUT_SECONDS = 1800;
 
 /** What one server run answered with — the run endpoint's response body. */
 export interface JsScriptRunOutcome {

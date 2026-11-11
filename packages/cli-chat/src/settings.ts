@@ -27,6 +27,7 @@ export const ALWAYS_ENABLED_TOOLS: readonly string[] = [
   "find_model",
   "list_models",
   "list_provider_models",
+  "list_providers",
   "search_nodes",
   "get_node_info",
   "list_nodes",

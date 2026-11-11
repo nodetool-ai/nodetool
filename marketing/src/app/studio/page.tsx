@@ -1,23 +1,19 @@
 import React from "react";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
-import CommunitySection from "../../components/CommunitySection";
 import FaqBlock from "../../components/FaqBlock";
-import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
 import MarketingFacts from "../../components/MarketingFacts";
 import MarketingPageShell from "../../components/MarketingPageShell";
-import ModelSupportSection from "../../components/ModelSupportSection";
 import ProductImage from "../../components/ProductImage";
-import RecipeShowcase from "../../components/RecipeShowcase";
+import ProjectSection from "../../components/ProjectSection";
 import StudioHero from "../../components/StudioHero";
-import SubscriptionSection from "../../components/SubscriptionSection";
-import StoryboardTeaser from "../../components/storyboards/StoryboardTeaser";
+import SpecStrip from "../../components/SpecStrip";
 import SurfaceShowcase from "../../components/SurfaceShowcase";
 import TimelineShowcase from "../../components/TimelineShowcase";
 import { EDITIONS } from "../../data/editions";
 import PageUpdated from "@/components/PageUpdated";
-import { OWNERSHIP_FACTS, SETUP_FACTS, STUDIO_PROJECT } from "@/data/studioPage";
+import { OWNERSHIP_FACTS, SETUP_FACTS } from "@/data/studioPage";
 
 const primaryButtonClass =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring sm:w-auto";
@@ -40,48 +36,18 @@ export default function StudioPage() {
         primaryAction={<StudioPrimaryAction />}
       />
 
-      <SubscriptionSection className="rhythm-section" />
-
-      <section
-        id="editable-project"
-        aria-labelledby="studio-project-title"
-        className="rhythm-section scroll-mt-24"
-      >
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <header className="mx-auto mb-10 max-w-5xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
-              One saved project
-            </p>
-            <h2
-              id="studio-project-title"
-              className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
-            >
-              A brief becomes a project you can reopen.
-            </h2>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
-              {STUDIO_PROJECT}
-            </p>
-          </header>
-          <div className="mx-auto max-w-5xl">
-            <HeroDemoPlayer
-              mediaBase="/hero-flow"
-              priority={false}
-              alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
-              caption="In NodeTool, one sentence becomes a storyboard and an editable cut inside the saved project."
-            />
-          </div>
-        </div>
-      </section>
-
       <SurfaceShowcase
         heading="Direct the details."
         intro="Open the same project in the editor that fits the change. Revise a shot, a line reading, a layer, or the timing of the cut without starting over."
       />
 
+      {/* One note sends one shot back, and the cut keeps every other shot.
+          Moved here from the homepage when the workflow section took its
+          slot there. */}
+      <ProjectSection />
+
       {/* Finished films whose editable timelines open in Studio */}
       <TimelineShowcase />
-
-      <RecipeShowcase compact />
 
       <section
         id="ownership"
@@ -95,7 +61,7 @@ export default function StudioPage() {
               alt="NodeTool model manager showing locally available models"
               width={1600}
               height={1089}
-              caption="The model manager is optional setup for supported local inference. Studio also works with hosted providers on your own accounts."
+              caption="Use the model manager to download local models, or connect your provider accounts."
             />
           </div>
           <div className="lg:col-span-5">
@@ -106,7 +72,7 @@ export default function StudioPage() {
               id="studio-ownership-title"
               className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
             >
-              Your files. Your models. Your keys.
+              Your projects stay on your computer.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
               Studio keeps the project on your computer. It only goes online
@@ -118,8 +84,6 @@ export default function StudioPage() {
           </div>
         </div>
       </section>
-
-      <ModelSupportSection />
 
       <section
         id="studio-setup"
@@ -155,13 +119,7 @@ export default function StudioPage() {
         />
       </section>
 
-      <StoryboardTeaser
-        slugs={["duel-in-the-wheat", "movement-in-gold", "fox-in-snow", "cold-brew-pour"]}
-        heading="Storyboards that become films."
-        body="Plan the shots in Studio, then render the film. These examples ship with NodeTool."
-      />
-
-      <CommunitySection />
+      <SpecStrip items={["plan", "cost", "access"]} className="rhythm-section" />
 
       <MarketingClosingAction
         headingId="studio-closing-title"

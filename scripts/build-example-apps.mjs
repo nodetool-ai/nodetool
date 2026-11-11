@@ -315,6 +315,19 @@ function buildControl(control, ctx) {
 
   if (control.textVar !== undefined) {
     ctx.useVariable(control.textVar);
+    let placeholderFieldsBinding;
+    if (control.placeholderFields) {
+      const { op, output, demo } = control.placeholderFields;
+      const operation = ctx.operations.get(op);
+      const port = operation?.template.outputs.get(output);
+      if (!operation || !port) {
+        fail(`${ctx.app.name}: placeholder fields reference an unknown output "${op}:${output}"`);
+      }
+      const portId = operation.kind === "script" ? port.name : port.id;
+      placeholderFieldsBinding = outputBinding(op, portId);
+      ctx.displayed.add(`${op}:${portId}`);
+      if (demo !== undefined) ctx.values[placeholderFieldsBinding] = demo;
+    }
     return {
       type: "TextInput",
       props: {
@@ -322,6 +335,8 @@ function buildControl(control, ctx) {
         binding: varBinding(control.textVar),
         label: control.label,
         multiline: control.multiline === true,
+        ...(placeholderFieldsBinding ? { placeholderFieldsBinding } : {}),
+        ...(control.cameraPresets ? { cameraPresets: true } : {}),
         events: []
       }
     };
@@ -351,6 +366,22 @@ function buildControl(control, ctx) {
     if (control.demo !== undefined) ctx.values[binding] = control.demo;
     return {
       type: "VideoInput",
+      props: {
+        id: nextId(idParts),
+        binding,
+        label: control.label,
+        events: []
+      }
+    };
+  }
+
+  if (control.document !== undefined) {
+    const { binding, idParts } =
+      typeof control.document === "string"
+        ? variableTarget(control.document)
+        : inputTarget("document", control.document.input);
+    return {
+      type: "DocumentInput",
       props: {
         id: nextId(idParts),
         binding,
@@ -433,14 +464,24 @@ function buildControl(control, ctx) {
   }
 
   if (control.number !== undefined) {
-    const { operation, node } = opInput(control.op, control.number);
-    ctx.seedInputValue(control.op, node);
-    const portId = operation.kind === "script" ? node.name : node.id;
+    let target;
+    if (typeof control.number === "object" && control.number.variable) {
+      // One field for an app variable that several operations read.
+      target = variableTarget(control.number.variable);
+    } else {
+      const { operation, node } = opInput(control.op, control.number);
+      ctx.seedInputValue(control.op, node);
+      const portId = operation.kind === "script" ? node.name : node.id;
+      target = {
+        binding: inputBinding(control.op, portId),
+        idParts: ["in", control.op, control.number]
+      };
+    }
     return {
       type: "NumberInput",
       props: {
-        id: nextId(["in", control.op, control.number]),
-        binding: inputBinding(control.op, portId),
+        id: nextId(target.idParts),
+        binding: target.binding,
         label: control.label,
         min: control.min,
         max: control.max,
@@ -453,7 +494,9 @@ function buildControl(control, ctx) {
     const { binding, idParts } =
       typeof control.select === "string"
         ? inputTarget("select", control.select)
-        : propTarget("select", control.select);
+        : control.select.variable !== undefined
+          ? variableTarget(control.select.variable)
+          : propTarget("select", control.select);
     return {
       type: "Select",
       props: {
@@ -525,11 +568,40 @@ function buildResult(result, ctx) {
   const nextId = ctx.nextId;
   const items = [];
 
+  if (result.steps !== undefined) {
+    if (!ctx.operations.has(result.steps)) {
+      fail(`${ctx.app.name}: steps names unknown operation "${result.steps}"`);
+    }
+    items.push({
+      type: "WorkflowSteps",
+      props: {
+        id: nextId(["steps", result.steps]),
+        operationId: result.steps,
+        label: result.label ?? ""
+      }
+    });
+    return items;
+  }
+
   if (result.progress !== undefined) {
     if (!ctx.operations.has(result.progress)) {
       fail(
         `${ctx.app.name}: progress names unknown operation "${result.progress}"`
       );
+    }
+    // A workflow run reports each node, so it shows its steps. A script run
+    // reports one number, so it keeps the bar.
+    if (ctx.operations.get(result.progress).kind !== "script") {
+      items.push({
+        type: "WorkflowSteps",
+        props: {
+          id: nextId(["progress", result.progress]),
+          operationId: result.progress,
+          label: result.label ?? "",
+          steps: result.stepNodes ?? []
+        }
+      });
+      return items;
     }
     items.push({
       type: "Progress",
@@ -718,6 +790,7 @@ function buildApp(app, templates) {
     for (const result of section.results ?? []) {
       if (result.op) operationIds.add(result.op);
       if (result.progress) operationIds.add(result.progress);
+      if (result.steps) operationIds.add(result.steps);
       if (result.error) operationIds.add(result.error);
     }
 

@@ -22,6 +22,7 @@ const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
 const LipsyncStudio = React.lazy(() => import("../lipsync/LipsyncStudio"));
 const EffectsGallery = React.lazy(() => import("../effects/EffectsGallery"));
 const MemoryPage = React.lazy(() => import("../memory/MemoryPage"));
+const AdminPage = React.lazy(() => import("../admin/AdminPage"));
 
 const PAGE_COMPONENTS = {
   assets: AssetExplorer,
@@ -36,7 +37,8 @@ const PAGE_COMPONENTS = {
   lipsync: LipsyncStudio,
   effects: EffectsGallery,
   memory: MemoryPage,
-  settings: SettingsPage
+  settings: SettingsPage,
+  admin: AdminPage
 } satisfies Record<PageTabKey, React.ComponentType>;
 
 const surfaceStyle: React.CSSProperties = {

@@ -133,11 +133,12 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-edit",
-                        "binding": "op:edit/exec#progress",
-                        "label": "Editing…"
+                        "operationId": "edit",
+                        "label": "Editing…",
+                        "steps": []
                       }
                     },
                     {

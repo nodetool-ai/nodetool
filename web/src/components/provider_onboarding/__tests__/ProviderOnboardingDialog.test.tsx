@@ -1,3 +1,6 @@
+jest.mock("../../../serverState/useOllamaStatus", () => ({
+  useOllamaStatus: () => ({ data: "unreachable", isPending: false, isError: false, isFetching: false, refetch: jest.fn() })
+}));
 import { asMock, stub } from "../../../test-utils/doubles";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -61,6 +64,7 @@ beforeEach(() => {
     connect: jest.fn(),
     disconnect: jest.fn(),
     manualPrompt: null,
+    callbackUrl: null,
     isSubmittingManual: false,
     submitManualCode: jest.fn(),
     cancelManual: jest.fn()

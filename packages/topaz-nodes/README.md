@@ -28,7 +28,7 @@ npm install @nodetool-ai/topaz-nodes
 
 ## Configuration
 
-Set `TOPAZ_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable.
+Set `TOPAZ_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable. The runtime's Topaz provider holds the key and sends every request. The nodes never read it.
 
 ## Links
 

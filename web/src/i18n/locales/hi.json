@@ -1799,6 +1799,12 @@
       "localTitle": "स्थानीय मॉडल को पसंद करते हैं?",
       "localDescription": "Ollama स्थापित करें और अपनी मशीन पर चलाने के लिए एक मॉडल डाउनलोड करें।",
       "getOllama": "ओलमा",
+      "ollamaChecking": "Ollama से कनेक्शन जाँचा जा रहा है…",
+      "ollamaCheckFailed": "Ollama की जाँच नहीं हो सकी। फिर कोशिश करें।",
+      "ollamaConnected": "Ollama कनेक्ट है। मॉडल मैनेजर में कोई मॉडल चुनें या डाउनलोड करें।",
+      "ollamaUnavailable": "अपने कंप्यूटर पर Ollama से कनेक्ट करने के लिए NodeTool डेस्कटॉप ऐप का उपयोग करें।",
+      "ollamaUnreachable": "Ollama से संपर्क नहीं हो सका। अगर यह इंस्टॉल है, तो इसे खोलें। नहीं तो शुरू करने के लिए इसे डाउनलोड करें।",
+      "checkOllamaAgain": "फिर जाँचें",
       "encryptedKeys": "एपीआई कुंजी एन्क्रिप्टेड हैं। आप उन्हें सेटिंग्स में प्रबंधित या हटा सकते हैं।",
       "signInAgain": "साइन इन करें {{provider}} फिर",
       "waitingSignIn": "साइन-इन के लिए प्रतीक्षा करें ...",
@@ -2272,7 +2278,10 @@
       "title": "NodeTool Cloud में साइन इन करें",
       "description": "आप क्या चाहते हैं इसका वर्णन करें। एजेंट इसे बनाता है, और आप किसी भी कदम पर ले जा सकते हैं।",
       "ownKeys": "अपनी सूची की कीमतों पर अपनी खुद की API कुंजी और पे प्रदाताओं का उपयोग करें।",
-      "cloudAlphaNotice": "क्लाउड अल्फा में है। उत्पादन कार्य के लिए, उपयोग करें"
+      "cloudAlphaNotice": "क्लाउड अल्फा में है। उत्पादन कार्य के लिए, उपयोग करें",
+      "ssoTitle": "NodeTool में साइन इन करें",
+      "ssoSignIn": "{{provider}} से साइन इन करें",
+      "ssoFailed": "साइन इन विफल रहा ({{reason}})। फिर से कोशिश करें, या अपने व्यवस्थापक से एक्सेस मांगें।"
     },
     "inspector": {
       "params": "परम",
@@ -6171,7 +6180,6 @@
         "checkingModels": "फिर भी अपने भाषा मॉडल की जाँच करें। एक पल में फिर से कोशिश करें।",
         "chatNeedsModel": "लगभग वहाँ — चैट चलाने के लिए एक मॉडल की जरूरत है।",
         "pickModelToStartChat": "एक भाषा मॉडल चुनें और चैट शुरू हो जाती है।",
-        "pickMediaModel": "एक मॉडल चुनें और पीढ़ी शुरू होती है।",
         "openChatError": "चैट नहीं खुल सकता: {{error}}",
         "startFlowError": "शुरू नहीं किया जा सकता {{flow}}: {{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "वर्कफ़्लो उदाहरण",
             "description": "स्वचालन, बहु-चरण"
           }
+        },
+        "goals": {
+          "label": "क्या शुरू करें",
+          "chat": "चैट",
+          "image": "छवि",
+          "video": "वीडियो",
+          "audio": "ऑडियो"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "सभी",
       "categories": {
         "workflows": "वर्कफ़्लो",
+        "comfy": "ComfyUI",
         "apps": "ऐप्स",
         "storyboards": "स्टोरीबोर्ड",
         "timelines": "समयरेखा",
@@ -8788,8 +8804,6 @@
       "studio": "स्टूडियो",
       "switchToProject": "परियोजना के लिए स्विच {{name}}",
       "personal": "व्यक्तिगत",
-      "newChatInMode": "नया चैट: {{mode}}",
-      "newChatInModeValue": "नया चैट {{mode}}",
       "newTextFileValue": "नई पाठ फ़ाइल {{label}}",
       "newTextFile": "नई पाठ फ़ाइल: {{label}}",
       "newStoryboard": "न्यू स्टोरीबोर्ड",
@@ -8821,8 +8835,7 @@
         "script": "नई स्क्रिप्ट",
         "jsscript": "न्यू जे एस स्क्रिप्ट",
         "skill": "नई कौशल",
-        "model3d": "नया 3D मॉडल",
-        "create": "चित्र और वीडियो बनाएं"
+        "model3d": "नया 3D मॉडल"
       },
       "templates": {
         "markdown": "मार्कडाउन (.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV (.csv)",
         "tsv": "टीएसवी (.tv)",
         "plainText": "सादा पाठ (.txt)"
+      },
+      "createSession": {
+        "image": "नई छवि",
+        "video": "नया वीडियो",
+        "audio": "पढ़कर सुनाएँ",
+        "music": "संगीत बनाएँ"
       }
     },
     "googleWorkspace": {
@@ -9040,6 +9059,18 @@
         "CHEAPER_INFERENCE_API_KEY": {
           "button": "Cheaper Inference API कुंजी प्राप्त करें",
           "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Cheaper Inference प्लेटफॉर्म पर जाएं"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Runcrate प्लेटफॉर्म पर जाएं"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Standard Compute प्लेटफॉर्म पर जाएं"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए UberLLM प्लेटफॉर्म पर जाएं"
         },
         "API_ROUTE_API_KEY": {
           "button": "API रूट कुंजी प्राप्त करें",
@@ -12166,6 +12197,31 @@
         "undo": "Undo",
         "redo": "रेडो",
         "agent": "एजेंट"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12729,7 +12785,6 @@
       "debuggingNotice": "क्रोम एक \"Nodetool इस ब्राउज़र को डीबगिंग है\" बार दिखाता है जबकि एक अनुरोध रन करता है। विस्तार अन्य टैब पर कुछ भी नहीं करता है।",
       "setup": "इसे सेट करें",
       "step1": "क्रोम नोडेटूल के ब्राउज़र पुल को शुरू करते हैं।",
-      "windowsUnsupported": "यह अभी तक विंडोज पर समर्थित नहीं है। मैकओएस और लिनक्स पर एक्सटेंशन कार्यों के माध्यम से मीडिया पीढ़ी।",
       "bridgeRegistered": "डोन. नोडटूल ने अपने ब्राउज़र के साथ अपने पुल को पंजीकृत किया।",
       "registering": "अपने ब्राउज़र के साथ पंजीकरण ...",
       "registrationFailed": "ब्राउज़र ब्रिज पंजीकरण विफल",
@@ -12756,7 +12811,7 @@
       "disableAll": "सभी नोड्स को निष्क्रिय करें",
       "color": "समूह रंग",
       "removeNodesHeading": "ग्रुप से कोड प्राप्त करें",
-      "dragOutModifier": "CTRL chlor chlor chlor chlor chlor chlor ch ",
+      "dragOutModifier": "Alt (Mac पर Option ⌥) दबाकर बाहर खींचें",
       "shakeToRemove": "तेज़ी से हिलाना, फिर खींचें"
     }
   },
@@ -15942,7 +15997,8 @@
         "memory": "स्मृति",
         "settings": "सेटिंग्स",
         "effects": "प्रभाव",
-        "lipsync": "लिप्सिन"
+        "lipsync": "लिप्सिन",
+        "admin": "प्रशासन"
       }
     },
     "script": {
@@ -18896,6 +18952,12 @@
     "refreshModels": "ताज़ा मॉडल",
     "statusUnavailable": "स्थिति अनुपलब्ध"
   },
+  "copilot": {
+    "description": "भाषा मॉडल के लिए अपने GitHub Copilot खाते का उपयोग करें। API कुंजी की ज़रूरत नहीं है।",
+    "install": "इस कंप्यूटर के टर्मिनल में GitHub Copilot CLI इंस्टॉल करें।",
+    "signIn": "फिर साइन इन करें और मॉडल रीफ़्रेश करें। आपके Copilot प्लान में शामिल न होने वाले मॉडल दिखाई नहीं देते।",
+    "refreshModels": "मॉडल रीफ़्रेश करें"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "एक वीडियो ट्रैक पर एक शॉट खींचें, या इसे प्लेहेड पर रखने के लिए एंटर दबाएं।",
@@ -18954,6 +19016,15 @@
       "invalidLink": "यह शेयर लिंक अमान्य है या रद्द कर दिया गया है। दस्तावेज़ मालिक को एक नए के लिए पूछो।",
       "goToWorkspace": "कार्यस्थल पर जाएं",
       "opening": "साझा दस्तावेज़ खोलना"
+    },
+    "invite": {
+      "label": "लोगों को आमंत्रित करें",
+      "placeholder": "नाम या ईमेल",
+      "role": "भूमिका",
+      "submit": "आमंत्रित करें",
+      "typeMore": "कम से कम 2 अक्षर लिखें",
+      "noMatches": "कोई मेल नहीं",
+      "failed": "पहुंच नहीं दी जा सकी।"
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19055,6 @@
     "missingTarget": "हटाए गए उपकरण",
     "laneLabel": "स्वचालन लेन: {{name}}",
     "deletePoint": "बिंदु हटाएं"
-  },
-  "generationFeed": {
-    "recent": "हाल ही में",
-    "imageEmptyTitle": "चित्र बनाएं",
-    "imageEmptyDescription": "नीचे एक दृश्य का वर्णन करें और एक मॉडल और पहलू अनुपात चुनें। इसे संपादित करने के लिए एक छवि संलग्न करें।",
-    "videoEmptyTitle": "वीडियो",
-    "videoEmptyDescription": "नीचे शॉट, कैमरा गति और प्रकाश व्यवस्था का वर्णन करें। इसे अलग करने के लिए एक फ्रेम संलग्न करें।",
-    "audioEmptyTitle": "भाषण और संगीत उत्पन्न करना",
-    "audioEmptyDescription": "इसे पढ़ने के लिए एक लाइन टाइप करें। एक ट्रैक को रचना करने के लिए संगीत उत्पन्न करने के लिए स्विच करें।",
-    "editImage": "इस छवि को संपादित करें",
-    "openInSketch": "स्केच में ओपन",
-    "addToCanvas": "कैनवास में जोड़ें",
-    "rerun": "रेन",
-    "copyPrompt": "शीघ्रता",
-    "removeFromThread": "धागा से निकालें",
-    "history": "इतिहास (Harya){{total}}(a)",
-    "tileSize": "टाइल का आकार",
-    "viewMode": "मोड देखें",
-    "list": "सूची",
-    "grid": "ग्रिड",
-    "video": "वीडियो",
-    "speech": "भाषण",
-    "music": "संगीत",
-    "noVideoOutput": "कोई वीडियो वापस नहीं आया।",
-    "noAudioOutput": "कोई ऑडियो वापस नहीं आया।",
-    "untitledTrack": "ऑडियो ट्रैक",
-    "extendClip": "इस क्लिप को विस्तारित करें",
-    "referenceAlt": "संदर्भ {{index}}",
-    "sketchTitle": "स्केच",
-    "audio": "ऑडियो"
   },
   "preset_chip": {
     "label": "Preset",
@@ -19480,13 +19521,34 @@
     "takes_other": "{{count}} लेना",
     "placeholder": {
       "image": "एक प्रकाशघर, फिल्म अभी भी",
-      "video": "एक प्रकाशघर पर डस्क पर धीमी डोली"
+      "video": "एक प्रकाशघर पर डस्क पर धीमी डोली",
+      "image_edit": "इसे रात बना दें और बारिश जोड़ें",
+      "image_to_video": "लहरें टकराती हैं और रोशनी घूमने लगती है",
+      "reference_to_video": "रेफ़रेंस वाला किरदार घाट पर चलता है",
+      "retake": "आसमान को तूफ़ान में बदलें",
+      "extend": "कैमरा पीछे हटता रहता है",
+      "audio": "बोले जाने वाले शब्द लिखें",
+      "music": "हल्की बारिश के साथ धीमा एम्बिएंट पियानो"
     },
     "blocker": {
       "noPrompt": "उत्पन्न करने के लिए एक संकेत लिखें।",
       "noModel": {
         "image": "एक छवि मॉडल को उत्पन्न करने के लिए चुनें।",
-        "video": "उत्पन्न करने के लिए एक वीडियो मॉडल चुनें।"
+        "video": "उत्पन्न करने के लिए एक वीडियो मॉडल चुनें।",
+        "image_edit": "जेनरेट करने के लिए इमेज एडिटिंग मॉडल चुनें।",
+        "image_to_video": "जेनरेट करने के लिए इमेज-से-वीडियो मॉडल चुनें।",
+        "reference_to_video": "जेनरेट करने के लिए रेफ़रेंस-से-वीडियो मॉडल चुनें।",
+        "retake": "जेनरेट करने के लिए वीडियो एडिटिंग मॉडल चुनें।",
+        "extend": "जेनरेट करने के लिए वीडियो बढ़ाने वाला मॉडल चुनें।",
+        "audio": "जेनरेट करने के लिए आवाज़ मॉडल चुनें।",
+        "music": "जेनरेट करने के लिए संगीत मॉडल चुनें।"
+      },
+      "needsInput": {
+        "image_edit": "एडिट करने के लिए इमेज जोड़ें।",
+        "image_to_video": "एनिमेट करने के लिए इमेज जोड़ें।",
+        "reference_to_video": "कम से कम एक रेफ़रेंस इमेज या क्लिप जोड़ें।",
+        "retake": "बदलने के लिए क्लिप जोड़ें।",
+        "extend": "बढ़ाने के लिए क्लिप जोड़ें।"
       }
     },
     "sendFailed": "शुरू करना {{sent}} of {{count}} ले जाता है। बाकी नोडेटूल तक नहीं पहुंचता। अपने कनेक्शन की जांच करें और फिर से कोशिश करें।",
@@ -19495,8 +19557,9 @@
     "gridLabel": "जनरेशन",
     "empty": {
       "title": "अभी तक कुछ नहीं बनाया",
-      "description": "ऊपर एक संकेत लिखें और जनरेट प्रेस करें। आपकी छवियां और वीडियो यहां दिखाई देते हैं, सबसे पहले।",
-      "action": "एक त्वरित संदेश"
+      "description": "ऊपर प्रॉम्प्ट लिखें और जेनरेट दबाएँ। आपकी इमेज, वीडियो और ऑडियो यहाँ दिखते हैं, सबसे नए पहले।",
+      "action": "एक त्वरित संदेश",
+      "sessionTitle": "इस टैब में अभी कुछ नहीं है"
     },
     "item": {
       "open": "खोलें {{title}}",
@@ -19512,8 +19575,75 @@
       "downloaded": "डाउनलोड {{name}}",
       "downloadFailed": "डाउनलोड नहीं किया जा सकता: {{reason}}",
       "workflowName": "वर्कफ़्लो बनाएं",
-      "workflowFailed": "एक वर्कफ़्लो का निर्माण नहीं कर सकता: {{reason}}"
-    }
+      "workflowFailed": "एक वर्कफ़्लो का निर्माण नहीं कर सकता: {{reason}}",
+      "more": "और कार्रवाइयाँ",
+      "moreLabel": "{{title}} के लिए और कार्रवाइयाँ",
+      "useAsReference": "रेफ़रेंस के रूप में इस्तेमाल करें",
+      "startFrom": {
+        "image_edit": "यह इमेज एडिट करें",
+        "image_to_video": "यह इमेज एनिमेट करें",
+        "retake": "यह क्लिप बदलें",
+        "extend": "यह क्लिप बढ़ाएँ"
+      },
+      "openInSketch": "स्केच में खोलें",
+      "reusePrompt": "प्रॉम्प्ट दोबारा इस्तेमाल करें",
+      "sketchTitle": "बनाई गई इमेज"
+    },
+    "kindLabel": "क्या बनाना है",
+    "modeLabel": "कैसे बनाना है",
+    "kinds": {
+      "image": "इमेज",
+      "video": "वीडियो",
+      "audio": "ऑडियो"
+    },
+    "modes": {
+      "image": "टेक्स्ट से",
+      "image_edit": "एडिट करें",
+      "video": "टेक्स्ट से",
+      "image_to_video": "एनिमेट करें",
+      "reference_to_video": "रेफ़रेंस से",
+      "retake": "बदलें",
+      "extend": "बढ़ाएँ",
+      "audio": "आवाज़",
+      "music": "संगीत"
+    },
+    "references": {
+      "label": "रेफ़रेंस",
+      "remove": "हटाएँ",
+      "removeLabel": "{{name}} हटाएँ",
+      "role": {
+        "source": "स्रोत इमेज",
+        "startFrame": "शुरुआती फ़्रेम",
+        "sourceClip": "स्रोत क्लिप",
+        "reference": "रेफ़रेंस",
+        "unused": "यहाँ इस्तेमाल नहीं होता"
+      },
+      "add": {
+        "image": "इमेज जोड़ें",
+        "video": "क्लिप जोड़ें",
+        "image-or-video": "रेफ़रेंस जोड़ें"
+      },
+      "hint": {
+        "image_edit": "एडिट करने वाली इमेज जोड़ें या यहाँ छोड़ें। अतिरिक्त इमेज लुक तय करती हैं।",
+        "image_to_video": "वह इमेज जोड़ें या यहाँ छोड़ें जिससे क्लिप शुरू होती है।",
+        "reference_to_video": "जिन लोगों, जगहों और स्टाइल को बनाए रखना है उनकी इमेज और क्लिप जोड़ें या यहाँ छोड़ें।",
+        "retake": "बदलने वाली क्लिप जोड़ें या यहाँ छोड़ें। आपकी जोड़ी इमेज लुक तय करती हैं।",
+        "extend": "बढ़ाने वाली क्लिप जोड़ें या यहाँ छोड़ें।"
+      },
+      "uploadFailed": "{{name}} अपलोड नहीं हो सका: {{reason}}"
+    },
+    "switched": "आपने इमेज जोड़ी, इसलिए {{mode}} पर स्विच किया गया।",
+    "undoSwitch": "{{from}} पर वापस जाएँ",
+    "scope": {
+      "label": "कौन से टेक दिखाने हैं",
+      "session": "यह टैब",
+      "all": "सभी टेक"
+    },
+    "renameFailed": "टैब का नाम नहीं बदला जा सका: {{reason}}",
+    "sessionFailed": "इस टैब के टेक लोड नहीं हो सके।",
+    "sessionKind": "Create सत्र",
+    "openInCreate": "Create में खोलें",
+    "openInCreateFailed": "Create नहीं खुल सका: {{reason}}"
   },
   "effectsGallery": {
     "title": "प्रभाव",
@@ -19628,5 +19758,209 @@
     "showAssistant": "सहायक",
     "hideAssistant": "सहायक",
     "resizeAssistant": "समयरेखा सहायक का आकार बदलें"
+  },
+  "generationBatch": {
+    "summary": "{{total}} में से {{done}} पूरे",
+    "remaining": "लगभग {{time}} बाकी",
+    "finishing": "पूरा हो रहा है",
+    "failedCount": "विफल: {{count}}",
+    "status": {
+      "queued": "कतार में",
+      "running": "चल रहा है",
+      "completed": "पूरा",
+      "failed": "विफल"
+    },
+    "showRequests": "अनुरोध दिखाएँ",
+    "hideRequests": "अनुरोध छिपाएँ",
+    "expected": "अनुमानित {{time}}",
+    "took": "{{time}} लगे",
+    "progressLabel": "जनरेशन की प्रगति"
+  },
+  "workflowSteps": {
+    "stepOf": "चरण {{current}} / {{total}}",
+    "allDone": "सभी {{total}} चरण पूरे",
+    "waiting": "प्रतीक्षा में",
+    "running": "चल रहा है",
+    "done": "पूरा",
+    "failed": "विफल",
+    "progressLabel": "वर्कफ़्लो प्रगति",
+    "steps": "चरण",
+    "addStep": "चरण जोड़ें",
+    "removeStep": "चरण हटाएँ",
+    "node": "नोड",
+    "title": "शीर्षक",
+    "description": "विवरण",
+    "autoHint": "कोई चरण तय नहीं। विजेट हर जनरेटिव नोड दिखाता है।",
+    "chooseNode": "नोड चुनें"
+  },
+  "admin": {
+    "page": {
+      "title": "प्रशासन",
+      "subtitle": "इस सर्वर में साइन इन करने वाले लोगों को प्रबंधित करें।",
+      "deniedTitle": "एडमिन एक्सेस आवश्यक है",
+      "deniedDescription": "केवल इस सर्वर के एडमिन यह पेज खोल सकते हैं।"
+    },
+    "users": {
+      "searchPlaceholder": "नाम, ईमेल या यूज़र ID से खोजें",
+      "filter": {
+        "label": "स्थिति",
+        "all": "सभी",
+        "active": "सक्रिय",
+        "disabled": "निष्क्रिय"
+      },
+      "columns": {
+        "person": "व्यक्ति",
+        "role": "भूमिका",
+        "status": "स्थिति",
+        "usage": "उपयोग",
+        "lastSeen": "अंतिम बार देखा गया",
+        "actions": "कार्रवाइयाँ"
+      },
+      "role": {
+        "admin": "एडमिन",
+        "member": "सदस्य",
+        "viaGroup": "किसी समूह या सर्वर सेटिंग के ज़रिए"
+      },
+      "status": {
+        "active": "सक्रिय",
+        "disabled": "निष्क्रिय"
+      },
+      "never": "कभी नहीं",
+      "actions": {
+        "makeAdmin": "एडमिन बनाएँ",
+        "removeAdmin": "एडमिन हटाएँ",
+        "disable": "निष्क्रिय करें",
+        "enable": "सक्रिय करें"
+      },
+      "loadFailed": "यूज़र लोड नहीं हो सके",
+      "retry": "फिर से कोशिश करें",
+      "noMatches": "इस खोज से कोई यूज़र मेल नहीं खाता",
+      "emptyTitle": "अभी कोई यूज़र नहीं",
+      "emptyDescription": "लोग सिंगल साइन-ऑन से पहली बार साइन इन करने के बाद यहाँ दिखते हैं।",
+      "range": "{{total}} में से {{first}}–{{last}}",
+      "previous": "पिछला",
+      "next": "अगला",
+      "updateFailed": "यूज़र अपडेट नहीं हो सका।",
+      "disableDialog": {
+        "title": "{{name}} को निष्क्रिय करें?",
+        "body": "वे तुरंत हर जगह से साइन आउट हो जाएँगे और जब तक आप खाता सक्रिय नहीं करते, साइन इन नहीं कर पाएँगे। उनका काम सर्वर पर रहता है।",
+        "cancel": "रद्द करें"
+      }
+    },
+    "quotas": {
+      "editDefault": "डिफ़ॉल्ट सीमाएँ बदलें",
+      "editLimits": "सीमाएँ",
+      "defaultTitle": "डिफ़ॉल्ट सीमाएँ",
+      "userTitle": "{{name}} की सीमाएँ",
+      "defaultNone": "कोई डिफ़ॉल्ट सीमा नहीं। हर कोई इस सर्वर की कुंजियों पर बिना सीमा के खर्च कर सकता है।",
+      "defaultSummaryDay": "सभी के लिए डिफ़ॉल्ट: प्रति दिन {{tokens}} मॉडल टोकन और मीडिया के लिए {{media}}।",
+      "defaultSummaryMonth": "सभी के लिए डिफ़ॉल्ट: प्रति माह {{tokens}} मॉडल टोकन और मीडिया के लिए {{media}}।",
+      "unlimited": "कोई सीमा नहीं",
+      "tokensLabel": "टोकन:",
+      "mediaLabel": "मीडिया:",
+      "usedOf": "{{limit}} में से {{used}}",
+      "usedNoLimit": "{{used}}, कोई सीमा नहीं",
+      "ownLimits": "अपनी सीमाएँ",
+      "period": {
+        "label": "अवधि",
+        "day": "प्रति दिन",
+        "month": "प्रति माह"
+      },
+      "tokenLimit": "मॉडल टोकन",
+      "mediaLimit": "मीडिया बजट (USD)",
+      "noLimit": "कोई सीमा नहीं",
+      "invalid": "0 या उससे बड़ी संख्या दर्ज करें, या कोई सीमा न रखने के लिए फ़ील्ड खाली छोड़ें।",
+      "useDefault": "सर्वर डिफ़ॉल्ट इस्तेमाल करें",
+      "useDefaultDescription": "इस व्यक्ति को अपनी सीमाएँ देने के लिए बंद करें।",
+      "ownKeysNote": "सिर्फ़ इस सर्वर की प्रोवाइडर कुंजियों पर हुआ काम गिना जाता है। व्यक्ति की सेटिंग्स में सहेजी गई कुंजी पर हुआ काम कभी नहीं गिना जाता।",
+      "save": "सहेजें",
+      "cancel": "रद्द करें",
+      "saveFailed": "सीमाएँ सहेजी नहीं जा सकीं।"
+    },
+    "permissions": {
+      "edit": "अनुमतियाँ",
+      "editDefault": "डिफ़ॉल्ट अनुमतियाँ बदलें",
+      "defaultTitle": "डिफ़ॉल्ट अनुमतियाँ",
+      "userTitle": "{{name}} की अनुमतियाँ",
+      "defaultAll": "डिफ़ॉल्ट अनुमतियाँ: सब कुछ अनुमत है।",
+      "defaultBlockedCount": "डिफ़ॉल्ट अनुमतियाँ: {{count}} अवरुद्ध।",
+      "blockedCount": "अवरुद्ध अनुमतियाँ: {{count}}",
+      "defaultIntro": "हर उपयोगकर्ता क्या कर सकता है, जब तक आप उसके लिए अलग अनुमति तय न करें।",
+      "userIntro": "हर अनुमति डिफ़ॉल्ट का पालन करती है, जब तक आप उसे यहाँ अनुमति या अवरोध न दें।",
+      "allow": "अनुमति दें",
+      "block": "अवरुद्ध करें",
+      "defaultAllowed": "डिफ़ॉल्ट: अनुमत",
+      "defaultBlocked": "डिफ़ॉल्ट: अवरुद्ध",
+      "adminNote": "एडमिन के पास हमेशा सभी अनुमतियाँ होती हैं।",
+      "save": "सहेजें",
+      "cancel": "रद्द करें",
+      "saveFailed": "अनुमतियाँ सहेजी नहीं जा सकीं।",
+      "flags": {
+        "use_llm": {
+          "label": "भाषा मॉडल इस्तेमाल करें",
+          "description": "चैट, एजेंट और टेक्स्ट जनरेशन।"
+        },
+        "generate_media": {
+          "label": "मीडिया बनाएँ",
+          "description": "इमेज, वीडियो, ऑडियो और 3D।"
+        },
+        "use_server_keys": {
+          "label": "सर्वर की प्रोवाइडर कुंजियाँ इस्तेमाल करें",
+          "description": "अवरुद्ध होने पर व्यक्ति सिर्फ़ सेटिंग्स में जोड़ी गई अपनी कुंजियों से काम कर सकता है।"
+        },
+        "manage_own_keys": {
+          "label": "अपनी प्रोवाइडर कुंजियाँ प्रबंधित करें",
+          "description": "प्रोवाइडर कुंजियाँ और कस्टम प्रोवाइडर जोड़ें, बदलें या हटाएँ।"
+        },
+        "share_links": {
+          "label": "शेयर लिंक बनाएँ",
+          "description": "ऐसे लिंक जिनसे साइन-इन लोग किसी वर्कफ़्लो या दस्तावेज़ को देख या बदल सकें।"
+        },
+        "share_public": {
+          "label": "सार्वजनिक रूप से शेयर करें",
+          "description": "वर्कफ़्लो को सार्वजनिक करें या ऐसा सार्वजनिक लिंक बनाएँ जिसे कोई भी खोल सके।"
+        },
+        "publish_apps": {
+          "label": "ऐप प्रकाशित करें",
+          "description": "मिनी ऐप प्रकाशित, रिलीज़ और डिप्लॉय करें।"
+        },
+        "install_packs": {
+          "label": "नोड पैक बदलें",
+          "description": "पैक भरोसा बदलें, बिल्ट-इन पैक चालू या बंद करें और पैक फिर से लोड करें। इसका असर सभी उपयोगकर्ताओं पर होता है।"
+        }
+      }
+    },
+    "sharing": {
+      "open": "साझाकरण",
+      "title": "{{name}} का साझाकरण",
+      "links": "शेयर लिंक",
+      "noLinks": "कोई सक्रिय शेयर लिंक नहीं।",
+      "granted": "पहुंच दी",
+      "noGranted": "किसी को पहुंच नहीं दी।",
+      "received": "पहुंच है",
+      "noReceived": "किसी ने पहुंच नहीं दी।",
+      "public": "सार्वजनिक वर्कफ़्लो",
+      "noPublic": "कोई सार्वजनिक वर्कफ़्लो नहीं।",
+      "revoke": "रद्द करें",
+      "removeAccess": "पहुंच हटाएं",
+      "makePrivate": "निजी बनाएं",
+      "untitled": "बिना शीर्षक",
+      "loadFailed": "साझाकरण लोड नहीं हो सका।",
+      "actionFailed": "बदलाव नहीं हो सका।",
+      "types": {
+        "workflow": "वर्कफ़्लो",
+        "storyboard": "स्टोरीबोर्ड",
+        "script": "स्क्रिप्ट",
+        "timeline": "टाइमलाइन",
+        "sketch": "स्केच",
+        "application": "ऐप",
+        "jsscript": "JS स्क्रिप्ट"
+      },
+      "roles": {
+        "viewer": "देख सकते हैं",
+        "editor": "संपादित कर सकते हैं",
+        "public": "सार्वजनिक"
+      }
+    }
   }
 }

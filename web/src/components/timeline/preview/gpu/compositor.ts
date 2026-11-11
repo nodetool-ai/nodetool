@@ -363,6 +363,7 @@ export class WebGPUCompositor implements TimelineCompositor {
     return {
       id: layer.id,
       source: layer.source,
+      temporalSources: layer.temporalSources,
       opacity: layer.opacity,
       blendMode: layer.blendMode,
       zIndex: layer.zIndex,

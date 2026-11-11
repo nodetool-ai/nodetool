@@ -97,7 +97,8 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
   await row!.save();
   const release = await publishApplication(row!);
   expect(release.document.recipe).toEqual(bundle!.app.recipe);
-  expect(release.document.operations).toEqual(doc.operations);
+  // Publishing is what pins: the imported draft runs the current graphs.
+  expect(release.document.operations).toEqual(doc.operations.map(operation => ({...operation, workflowVersion: 1})));
   // The release pins the Plan and Build job graphs.
   expect(release.workflows.map(entry => entry.workflowId).sort()).toEqual(doc.operations.map(operation => operation.workflowId).sort());
   doc = (await releasedApplicationRelease(installed.id, USER))!.document;

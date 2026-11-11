@@ -1,6 +1,7 @@
-import type { Asset } from "../../../stores/ApiTypes";
+import type { Asset, Message } from "../../../stores/ApiTypes";
 import type { GenerationActivity } from "../../../stores/GenerationActivityStore";
-import { buildCreateFeed, canRetake, requestFromAsset } from "../createFeed";
+import { extractGenerationTurns } from "../../chat/generation/extractGenerationTurns";
+import { buildCreateFeed, buildSessionFeed, canRetake, requestFromAsset } from "../createFeed";
 
 const generation = (
   id: string,
@@ -62,15 +63,26 @@ describe("buildCreateFeed", () => {
     expect(feed[0].generation?.id).toBe("a");
   });
 
-  it("leaves out uploads, workflow outputs, audio and non-media generations", () => {
+  it("leaves out uploads, workflow outputs and non-media generations", () => {
     const feed = buildCreateFeed(
-      [generation("speech", { kind: "audio", assetIds: ["s"] })],
+      [generation("text", { kind: "other", assetIds: ["t"] })],
       [
         asset("upload", "2026-01-01T00:00:00Z"),
-        { ...asset("clip", "2026-01-01T00:00:00Z", rendered("x")), content_type: "audio/wav" }
+        { ...asset("doc", "2026-01-01T00:00:00Z", rendered("x")), content_type: "text/plain" }
       ]
     );
     expect(feed).toEqual([]);
+  });
+
+  it("lists speech and music takes next to pictures and clips", () => {
+    const feed = buildCreateFeed(
+      [generation("speech", { kind: "audio", assetIds: ["s"], startedAt: Date.parse("2026-01-03") })],
+      [{ ...asset("song", "2026-01-02T00:00:00Z", rendered("piano")), content_type: "audio/wav" }]
+    );
+    expect(feed.map((item) => [item.key, item.kind])).toEqual([
+      ["speech:s", "audio"],
+      ["song", "audio"]
+    ]);
   });
 
   it("keeps running and failed generations as one tile each", () => {
@@ -127,5 +139,46 @@ describe("requestFromAsset", () => {
     const metadata = rendered("p");
     metadata.generation.capability = "image_to_video";
     expect(requestFromAsset(asset("x", "2026-01-01", metadata))).toBeNull();
+  });
+});
+
+describe("buildSessionFeed with a media thread's messages", () => {
+  const turn = (id: string, at: string, content: Message["content"]): Message[] => [
+    {
+      id,
+      role: "user",
+      content: [{ type: "text", text: `prompt ${id}` }],
+      media_generation: { mode: "image", model: "flux" },
+      created_at: at
+    } as Message,
+    { id: `${id}-reply`, role: "assistant", content, created_at: at } as Message
+  ];
+
+  it("lists the takes in the messages after the session's own, once each", () => {
+    const messages = [
+      ...turn("t1", "2026-01-01T00:00:00Z", [
+        { type: "image_url", image: { type: "image", uri: "", asset_id: "old-1" } },
+        // A picture with no stored asset has nothing to show.
+        { type: "image_url", image: { type: "image", uri: "data:image/png;base64,AA" } }
+      ]),
+      ...turn("t2", "2026-01-02T00:00:00Z", [
+        { type: "image_url", image: { type: "image", uri: "", asset_id: "asset-a" } }
+      ]),
+      ...turn("t3", "2026-01-03T00:00:00Z", [{ type: "text", text: "No model selected" }])
+    ];
+    const feed = buildSessionFeed(
+      "thread-1",
+      [generation("a", { threadId: "thread-1", startedAt: Date.parse("2026-01-05") })],
+      [],
+      extractGenerationTurns(messages, "connected")
+    );
+    expect(feed.map((item) => item.key)).toEqual(["a:asset-a", "t3", "t1:old-1"]);
+    expect(feed[1]).toMatchObject({ status: "failed", error: "No model selected", kind: "image" });
+    expect(feed[2]).toMatchObject({
+      status: "generated",
+      prompt: "prompt t1",
+      model: "flux",
+      request: null
+    });
   });
 });

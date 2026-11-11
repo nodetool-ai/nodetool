@@ -9,7 +9,15 @@ description: "NodeTool design system reference — typography, spacing, color, b
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)
 
-Single reference for every design token and visual rule in NodeTool. All frontend work must follow these rules. Start at [Element standards](#element-standards): one row per kind of UI element, with the primitive to use and the check that finds deviations. When touching any UI file, scan for violations in the sections below and fix them in the same PR.
+This document specifies React presentation. Native Qt Quick follows the
+[native design specification](../native/ui_primitives/DESIGN.md), with its own
+configuration, resources, and implementation. The
+[alignment record](../native/ui_primitives/ALIGNMENT.md) documents the intended
+relationship between the two implementations.
+
+For React work, start at [Element standards](#element-standards): one row per
+kind of UI element, with the primitive to use and the check that finds
+deviations. When touching a React UI file, fix violations in that file.
 
 **Authoritative source files:**
 - Tokens: [`web/src/components/ui_primitives/tokens.ts`](../web/src/components/ui_primitives/tokens.ts)

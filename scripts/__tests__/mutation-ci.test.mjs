@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 import { belongsToShard } from "../../packages/mutator/dist/shards.js";
-import { aggregate, createPlan, executePartition, createPartitions, mutantWorkers, TARGETS } from "../mutation-ci.mjs";
+import { aggregate, createPlan, executePartition, createPartitions, mutantWorkers, resolveBase, TARGETS } from "../mutation-ci.mjs";
 
 const helper = new URL("../mutation-ci.mjs", import.meta.url).pathname;
 let resultDirectory;
@@ -351,16 +351,19 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
     expect(checkout.with.filter).toBe("blob:none");
-    if (job !== jobs.plan) {
-      expect(checkout.with.ref).toBe("${{ needs.plan.outputs.head }}");
-    }
+    // The default ref is the run's own commit. An explicit ref from a job
+    // output reads to CodeQL as a checkout of untrusted code.
+    expect(checkout.with.ref).toBeUndefined();
     for (const artifact of job.steps.filter((step) => step.uses?.startsWith("actions/upload-artifact@"))) {
       expect(artifact.with["include-hidden-files"]).toBe(true);
       expect(artifact.with["if-no-files-found"]).toBe("error");
     }
   }
-  expect(jobs.plan.steps.find((step) => step.id === "plan").env.BASE).toBe("${{ github.event.pull_request.base.sha }}");
-  expect(jobs["mutation-complete"].if).toBe("always()");
+  expect(jobs.plan.steps.find((step) => step.id === "plan").env.BASE).toBe("${{ steps.base.outputs.base }}");
+  expect(jobs.plan.steps.find((step) => step.id === "base").run).toBe('node scripts/mutation-ci.mjs base "$PREVIOUS"');
+  expect(jobs.plan.permissions).toEqual({ contents: "read", actions: "read" });
+  expect(jobs["mutate-changed"].if).toBe("needs.plan.outputs.mutants != '0'");
+  expect(jobs["mutation-complete"].if).toBe("always() && needs.plan.outputs.mutants != '0'");
   expect(jobs["mutation-complete"].needs).toEqual(["plan", "mutate-changed"]);
   const guard = jobs["mutation-complete"].steps[0];
   expect(guard.env).toEqual({ PLAN: "${{ needs.plan.result }}", MUTATIONS: "${{ needs.mutate-changed.result }}" });
@@ -371,9 +374,40 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     }
   }
   expect(TARGETS).toEqual(["agents", "auth", "config", "kernel", "mutator", "node-sdk", "runtime", "security", "storage"].map((name) => `packages/${name}/src`));
-  for (const path of ["scripts/mutation-ci.mjs", "scripts/mutation-score.mjs", "scripts/__tests__/mutation-ci.test.mjs", "packages/mutator/tests/**"]) {
-    expect(workflow.on.pull_request.paths).toContain(path);
-  }
+  expect(Object.keys(workflow.on).sort()).toEqual(["schedule", "workflow_dispatch"]);
+  expect(workflow.on.schedule).toEqual([{ cron: "0 2 * * *" }]);
+  expect(workflow.concurrency["cancel-in-progress"]).toBe(false);
+});
+
+it("diffs against the previous scheduled head, or the last commit before the window", () => {
+  const repo = mkdtempSync(join(tmpdir(), "mutation-base-"));
+  const run = (...args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
+  const commit = (message, date) => {
+    writeFileSync(join(repo, "file.txt"), message);
+    run("add", ".");
+    execFileSync("git", ["-C", repo, "-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-qm", message], {
+      env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date }
+    });
+    return run("rev-parse", "HEAD");
+  };
+  run("init", "-q");
+  const old = commit("old", "2020-01-01T00:00:00Z");
+  const yesterday = commit("yesterday", "2020-01-02T00:00:00Z");
+  const today = commit("today", "2020-01-03T00:00:00Z");
+  const since = "2020-01-02T12:00:00Z";
+  expect(resolveBase(repo, old, since)).toBe(old);
+  expect(resolveBase(repo, "", since)).toBe(yesterday);
+  expect(resolveBase(repo, "0".repeat(40), since)).toBe(yesterday);
+  run("checkout", "-q", "-b", "side", old);
+  const unrelated = commit("side", "2020-01-04T00:00:00Z");
+  run("checkout", "-q", "-");
+  expect(run("rev-parse", "HEAD")).toBe(today);
+  expect(resolveBase(repo, unrelated, since)).toBe(yesterday);
+  expect(resolveBase(repo, "", "2019-01-01T00:00:00Z")).toBe(old);
+  const output = join(repo, "github-output");
+  writeFileSync(output, "");
+  execFileSync(process.execPath, [helper, "base", yesterday], { cwd: repo, env: { ...process.env, GITHUB_OUTPUT: output } });
+  expect(readFileSync(output, "utf8")).toBe(`base=${yesterday}\n`);
 });
 
 

@@ -15,7 +15,7 @@ import type { QaPair } from "@/lib/jsonld";
 
 export const VIDEO_TITLE = "Open-Source AI Video Editor with an Editable Timeline | NodeTool";
 export const VIDEO_DESCRIPTION =
-  "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and cuts a multi-track timeline you keep editing. Open source.";
+  "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and assembles a multi-track timeline you can edit. Open source.";
 
 export const VIDEO_LEAD =
   "NodeTool is an open-source AI video editor where the agent's work stays editable. The agent plans a storyboard, renders each shot on the video model you pick, voices the script, and assembles a multi-track timeline. You open that timeline, swap a take, trim a cut, or regenerate one shot without rendering the rest. Use the built-in agent, or connect Claude Code or Codex over MCP.";
@@ -29,23 +29,23 @@ export const FLOW_STEPS: FlowStep[] = [
   },
   {
     title: "Keep characters consistent",
-    body: "Entities hold a character, location, style, or product with a reference image and a fixed description. Cast them on the board, and every shot that uses them gets the same reference.",
+    body: "Save characters, locations, styles and products as entities, each with a reference image and a description. Reuse these entities across shots.",
   },
   {
     title: "Render stills, then clips",
-    body: "Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Each render keeps its takes, so a better earlier take is one click away.",
+    body: "Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Compare takes and return to an earlier version whenever you prefer.",
   },
   {
     title: "Voice the script",
-    body: "A script holds the lines and voices. Voice all lines, and a line you change is marked stale so only that line is voiced again.",
+    body: "Generate dialogue for the script. When you edit a line, regenerate its voice recording without redoing the others.",
   },
   {
     title: "Cut the timeline",
     body: "Create timeline turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.",
   },
   {
-    title: "Deliver every format",
-    body: "Adapt format makes 9:16, 1:1, and 4:5 versions of the sequence in one step. Export MP4, WebM, or a PNG sequence, or hand the cut to Premiere Pro.",
+    title: "Resize and export",
+    body: "Create 9:16, 1:1 and 4:5 versions, then export your media or save a NodeTool project. Partial Premiere Pro handoff is also available through XML and is a work in progress.",
   },
 ];
 
@@ -70,14 +70,15 @@ export const AGENT_TOOLS: { name: string; body: string }[] = [
 ];
 
 export const EXPORT_ROWS: { target: string; detail: string }[] = [
-  { target: "Browser export", detail: "MP4 (H.264), WebM (VP9 with optional alpha), or a PNG sequence, encoded in the browser with WebCodecs. MP4 needs a browser that can encode H.264." },
-  { target: "Server render", detail: "MP4, WebM, MOV (ProRes), or a PNG sequence, from the editor or with render_timeline." },
-  { target: "Premiere Pro", detail: "An FCP7 XML file with the media. Text, shapes, captions, effects, animations, transitions, and fades do not carry over." },
-  { target: "Project files", detail: "Export the timeline as a project zip, or the whole project as one .nodetool-project file." },
+  { target: "Aspect ratios", detail: "Adapt the sequence to 9:16, 1:1 or 4:5. Review the framing of each version before exporting." },
+  { target: "Media files — browser export", detail: "MP4 (H.264), WebM (VP9 with optional alpha), or a PNG sequence, encoded in the browser with WebCodecs. MP4 needs a browser that can encode H.264." },
+  { target: "Media files — server render", detail: "MP4, WebM, MOV (ProRes), or a PNG sequence, from the editor or with render_timeline." },
+  { target: "Premiere Pro project handoff — work in progress", detail: "Export FCP7 XML with the media to continue editing in Premiere Pro. Support is partial, not a native .prproj export. Some properties transfer, while titles, effects and transitions may need rebuilding. Review the export report and check the imported edit." },
+  { target: "NodeTool project files", detail: "Export the timeline as a project zip, or the whole project as one .nodetool-project file." },
 ];
 
 export const VIDEO_LIMITS: string[] = [
-  "Final Cut Pro (FCPXML) and DaVinci Resolve export are not available. Premiere Pro export drops text, effects, and transitions.",
+  "Final Cut Pro and DaVinci Resolve handoff are not available in the export interface. Premiere Pro XML handoff is partial and a work in progress; it does not preserve every feature.",
   "The guided Video and Storyboard flows do not make on-camera speech. Lip-synced dialogue needs the agent, a character entity, a source face video, and a model that supports lip sync.",
   "Smart Reframe in Adapt format needs a subject track or authored framing for every visual clip.",
   "Without WebGPU the preview skips chroma key, vignette, and sharpen.",
@@ -85,13 +86,23 @@ export const VIDEO_LIMITS: string[] = [
 ];
 
 export const VIDEO_LIMITS_SUMMARY =
-  "NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, export the cut to Premiere Pro or work in a dedicated editor.";
+  "NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, use a dedicated editor. Premiere Pro XML handoff is partial, so check the imported edit before continuing.";
 
 export const VIDEO_FAQ: QaPair[] = [
   {
     question: "Is there an AI video editor that keeps the project editable?",
     answer:
       "Yes. In NodeTool the agent's storyboard, script, and timeline are the same documents you open and edit. Swap a take, trim a clip, change a line, or regenerate one shot, and the rest of the edit stays as it was.",
+  },
+  {
+    question: "Which desktop apps combine AI video generation with a full editing timeline?",
+    answer:
+      "NodeTool Studio does, on macOS, Windows, and Linux. One project holds the storyboard, video generation through providers such as fal, Replicate, and KIE on your own keys, and a multi-track timeline where the generated clips land in shot order for trimming, audio, and export. It is free and open source under AGPL-3.0.",
+  },
+  {
+    question: "Can an AI agent go from storyboard to final cut?",
+    answer:
+      "Yes. In NodeTool the agent writes the storyboard from a brief, renders each shot, assembles the clips on the timeline, and renders the cut. Every step leaves a document you can open and change, so you can take over at any point.",
   },
   {
     question: "Can Claude Code edit a video timeline?",
@@ -121,7 +132,7 @@ export const VIDEO_FAQ: QaPair[] = [
   {
     question: "Does it replace Premiere Pro or DaVinci Resolve?",
     answer:
-      "No. NodeTool covers generation, assembly, and a capable multi-track edit for short pieces. For long-form editing, grading, and finishing, export the cut to Premiere Pro.",
+      "No. NodeTool covers generation, assembly, and a capable multi-track edit for short pieces. For long-form editing, grading and finishing, use a dedicated editor. Premiere Pro XML handoff is partial and may require rebuilding unsupported elements.",
   },
 ];
 

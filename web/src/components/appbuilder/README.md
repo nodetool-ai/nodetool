@@ -186,6 +186,45 @@ The builder embeds the same agent chat the other editors use (`AppBuilderAgentPa
 So one conversation can add an Input node and bind a control to it, or add a Set
 Variable node and wire app state to it.
 
+## Chat apps
+
+A document with `presentation: "chat"` runs as a conversation with the app
+agent instead of as one page. The agent owns the loop; the app's steps show as
+cards in the thread. Use it for apps whose steps call agents or providers,
+where a failure, a question or a missing value should be a turn in the
+conversation rather than a dead end.
+
+- **Steps come from the document.** `chatAppLayout` in app-runtime
+  (`src/chat-app.ts`) reads the top-level `Stepper` and assigns every
+  top-level widget gated `visibleWhen: <stepper binding> eq <step>` to that
+  step. A step app with that shape needs only the flag. Ungated top-level
+  widgets render above the thread.
+- **Cards** (`chat/ChatAppStepCard.tsx`) render a step's widgets with Puck's
+  `<Render>` against the app's live runtime, so they read and write the same
+  store as the page. The newest card is open; earlier cards fold.
+- **Cards run nothing.** `chat/useCardRuntime.ts` wraps `dispatch`: a step
+  change or a `run` becomes one `[app event]` user turn (the control, what it
+  asks for, the step's values that changed). Other actions pass through.
+  Choosing a step on the steps bar sends the same kind of event.
+- **The agent's tools** are `ui_app_run_*` (`lib/tools/builtin/appRun.ts`,
+  `chat/chatAppBridge.ts`): read the state, show a step, set values, run an
+  operation and wait for its outputs or error, cancel. The view focuses
+  `app_run` in `ui_context`, so the server offers these as direct tools
+  (`chat-turn.ts`) and each show-step call is its own row, which
+  `chat/registerChatAppMessages.ts` renders as the card.
+- **The system prompt** is `buildChatAppSystemPrompt`: the steps with the
+  values each holds, the operations, and the loop's rules.
+- **The chat's model does the LLM work.** The cards hide each `ModelSelect`
+  with `modelKind: "language_model"` and its `<id>-help` or `<id>-hint` text
+  (`chatModelVariableIds`). Before every run, the handler writes the chat's
+  model into those variables.
+- **An operation with `agentTask` is the agent's own job.** The prompt lists
+  its instructions and output variables. The agent does the work with its own
+  tools and writes the result with `ui_app_run_set_inputs`.
+  `ui_app_run_operation` refuses it. The page presentation runs the target.
+- The conversation is stored per app run (instance id, else application id)
+  under `nodetool.chat-app-thread.v1.<id>`. The view keeps a Page view toggle.
+
 ## Where it shows up
 
 Apps are opened from the **Apps** panel in the left sidebar. "New app" starts

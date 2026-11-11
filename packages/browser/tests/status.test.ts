@@ -49,7 +49,7 @@ describe("browserStatus", () => {
 
     expect(status.transport).toBe("extension");
     expect(status.extension_connected).toBe(false);
-    expect(status.hint).toContain("nodetool extension install");
+    expect(status.hint).toContain("Settings → Integrations → Browser extension");
   });
 
   it("reports a connected extension with nothing left to warn about", async () => {

@@ -25,7 +25,7 @@ import { ProcessingContext } from "@nodetool-ai/runtime";
 import { resolveAnimatedLayerProps } from "@nodetool-ai/timeline/scene";
 
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
-import { renderTimelineFrames } from "../src/timeline-preview/frames.js";
+import { renderTimelineFrames, renderTimelineFrames as renderFrames } from "../src/timeline-preview/frames.js";
 
 function track(
   index: number,
@@ -150,7 +150,8 @@ async function brightColumns(
   return { first, last, count };
 }
 
-describe("renderTimelineFrames", () => {
+describe.each([false, true])("renderTimelineFrames shared=%s", (shared) => {
+  const renderTimelineFrames = (options: Parameters<typeof renderFrames>[0]) => renderFrames(options, shared);
   it("renders only the inspected clip while preserving full scene context", async () => {
     const { frames } = await renderTimelineFrames({
       sequence: sequence([track(0), track(1)], [
@@ -863,6 +864,17 @@ describe("preview_timeline_frame", () => {
       });
       expect(Number(frame.width)).toBe(160);
     }
+  });
+
+  it("keeps a vertical document's own frame instead of the 16:9 default", async () => {
+    const result = await call({
+      document: { ...document, width: 1080, height: 1920, fps: 30 },
+      times_ms: [1000],
+      width: 108
+    });
+    expect(result.error).toBeUndefined();
+    const frames = result.frames as Array<{ width: number; height: number }>;
+    expect(frames[0]).toMatchObject({ width: 108, height: 192 });
   });
 
   it("previews an early frame when a later clip requests motion blur", async () => {

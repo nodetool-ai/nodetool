@@ -36,6 +36,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const transformCropV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "transform.crop",
   version: 1,
   surface: "internal",
@@ -70,13 +71,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "derived"

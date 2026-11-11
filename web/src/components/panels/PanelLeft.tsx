@@ -36,6 +36,7 @@ import {
   AssetGridStoreProvider,
   LIBRARY_ASSET_GRID_STORE_KEY
 } from "../../stores/AssetGridStore";
+import HidePanelOnAssetOpen from "./HidePanelOnAssetOpen";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
@@ -454,6 +455,9 @@ const PanelContent = memo(function PanelContent({
             />
           )}
           <AssetGridStoreProvider persistKey={LIBRARY_ASSET_GRID_STORE_KEY}>
+            {/* The phone sheet unmounts its content when it closes, which
+                would take the viewer with it. */}
+            {!isMobile && <HidePanelOnAssetOpen />}
             <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
           </AssetGridStoreProvider>
         </FlexColumn>

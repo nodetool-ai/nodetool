@@ -51,10 +51,7 @@ import {
   type ChatStateSetter
 } from "../core/chat/chatProtocol";
 import type { SubAgentMessages } from "../core/chat/subAgentMessages";
-import useMediaGenerationStore, {
-  type ChatOutgoingMessage,
-  type MediaMode
-} from "./MediaGenerationStore";
+import type { ChatOutgoingMessage } from "./MediaGenerationStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   DEFAULT_THREAD_RUNTIME,
@@ -398,20 +395,13 @@ export interface GlobalChatState {
       makeCurrent?: boolean;
     }
   ) => void;
-  /**
-   * Start a local thread. The composer's mode is set to `options.mediaMode`,
-   * Chat when omitted, so a new chat never inherits the last chat's mode.
-   * `keepMediaMode` leaves the mode alone, for a thread created in the
-   * background that the person did not ask to start.
-   */
+  /** Start a local thread. A chat has no media mode: Create tabs generate media. */
   createNewThread: (
     title?: string,
     workflowId?: string | null,
     options?: {
       makeCurrent?: boolean;
       projectId?: string | null;
-      mediaMode?: MediaMode;
-      keepMediaMode?: boolean;
     }
   ) => Promise<string>;
   switchThread: (threadId: string) => void;
@@ -567,9 +557,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
 
         // No conversation yet — start a fresh thread bound to this workflow.
-        const threadId = await get().createNewThread(undefined, workflowId, {
-          keepMediaMode: true
-        });
+        const threadId = await get().createNewThread(undefined, workflowId);
         set((s) => ({
           workflowThreadId: { ...s.workflowThreadId, [workflowId]: threadId }
         }));
@@ -1119,10 +1107,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Ensure we have a thread
         let threadId = targetThreadId ?? currentThreadId;
         if (!threadId) {
-          // Created for this send, so it keeps the mode the send was made in.
           threadId = await get().createNewThread(undefined, undefined, {
-            projectId: creationProjectId(),
-            mediaMode: useMediaGenerationStore.getState().mode
+            projectId: creationProjectId()
           });
         }
         const tid = threadId;
@@ -1488,20 +1474,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         options?: {
           makeCurrent?: boolean;
           projectId?: string | null;
-          mediaMode?: MediaMode;
-          keepMediaMode?: boolean;
         }
       ) => {
         const id = crypto.randomUUID();
-        if (!options?.keepMediaMode) {
-          const nextMode = options?.mediaMode ?? "chat";
-          const mediaStore = useMediaGenerationStore.getState();
-          mediaStore.setMode(nextMode);
-          mediaStore.setThreadMode(id, nextMode);
-        } else {
-          const mediaStore = useMediaGenerationStore.getState();
-          mediaStore.setThreadMode(id, mediaStore.mode);
-        }
         get().ensureLocalThread(id, {
           title: isString(title) ? title : undefined,
           workflowId,
@@ -1571,6 +1546,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // An open tab for the deleted thread would recreate it as an empty
           // "New conversation" on the next load.
           useWorkspaceTabsStore.getState().closeTab(tabId("chat", threadId));
+          // A Create session is a thread too, opened as a Create tab.
+          useWorkspaceTabsStore.getState().closeTab(tabId("create", threadId));
 
           // Update local state
           set((state) => {
@@ -1684,9 +1661,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           // If no threads remain, create a new one immediately
           const { threads, currentThreadId } = get();
           if (!currentThreadId && Object.keys(threads).length === 0) {
-            await get().createNewThread(undefined, undefined, {
-              keepMediaMode: true
-            });
+            await get().createNewThread();
           }
         } catch (error) {
           console.error("Failed to delete thread:", error);

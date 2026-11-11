@@ -15,6 +15,55 @@ import { test, expect, FIXTURES } from "./fixtures";
 import { EditorPage } from "./pages";
 
 test.describe("Canvas selection", () => {
+  test("group children follow a drag without a position transition", async ({ page }) => {
+    const editor = new EditorPage(page);
+    await editor.open(FIXTURES.editorGraph);
+    await editor.clickNode("prompt_input");
+    await page.keyboard.press("ControlOrMeta+g");
+    await expect(editor.groups()).toHaveCount(1);
+    await editor.clickPane();
+    await editor.waitForNodeSettled("prompt_input");
+
+    const label = await editor.groups().locator(".group-label").boundingBox();
+    if (!label) {
+      throw new Error("the group has no label to drag");
+    }
+    await page.mouse.move(label.x + 8, label.y + label.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(label.x + 108, label.y + label.height / 2 + 80, { steps: 5 });
+    await expect(editor.groups()).toHaveClass(/dragging/);
+    await expect(editor.node("prompt_input")).not.toHaveCSS("transition-property", /transform|all/);
+    await page.mouse.up();
+    await expect(editor.node("prompt_input")).toHaveCSS("transition-property", /transform/);
+  });
+
+  test("Alt/Option drags a node out and Ctrl/Cmd keeps it grouped", async ({ page }) => {
+    const editor = new EditorPage(page);
+    await editor.open(FIXTURES.editorGraph);
+    await editor.clickNode("prompt_input");
+    await page.keyboard.press("ControlOrMeta+g");
+    await expect(editor.groups()).toHaveCount(1);
+    const header = editor.node("prompt_input").locator(".node-header");
+    await expect(header).toHaveClass(/has-parent/);
+
+    for (const key of ["Control", "Meta"] as const) {
+      await editor.clickNode("prompt_input");
+      await page.keyboard.down(key);
+      await expect(editor.groups().locator(".group-node")).toHaveCSS("opacity", "1");
+      await editor.dragNode("prompt_input", 20, 0);
+      await page.keyboard.up(key);
+      await expect(header).toHaveClass(/has-parent/);
+    }
+
+    await editor.clickNode("prompt_input");
+    await page.keyboard.down("Alt");
+    await expect(editor.groups().locator(".group-node")).toHaveCSS("opacity", "0.5");
+    await editor.dragNode("prompt_input", 40, 0);
+    await page.keyboard.up("Alt");
+    await expect(header).not.toHaveClass(/has-parent/);
+    await expect(editor.groups()).toHaveCount(1);
+  });
+
   test("Shift+click adds a node to the selection and removes it again", async ({
     page
   }) => {

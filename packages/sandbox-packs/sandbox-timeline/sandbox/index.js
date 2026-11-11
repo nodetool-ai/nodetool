@@ -131,6 +131,11 @@ function reduceConstantRuns(points) {
 export function clipAssetId(ref) {
   if (typeof ref !== "string") return ref;
   const trimmed = ref.trim();
+  // A run's temporary file or an inline image is gone, or unreadable, when
+  // the timeline plays later. Only library assets and public locators last.
+  if (/^(file:|data:|blob:|\/)/i.test(trimmed)) {
+    throw new Error(`A timeline image needs a library asset, not ${trimmed.slice(0, 80)}. Save it first with nodetool.media.toImage(handle) or save_asset {source}, then pass the asset:// id it returns.`);
+  }
   if (trimmed.startsWith("asset://")) {
     const rest = trimmed.slice("asset://".length).split(/[?#]/)[0];
     return rest.replace(/\.[A-Za-z0-9]{1,8}$/, "") || rest;
@@ -974,7 +979,14 @@ export function video(options = {}) {
       clip._pathPoints = points;
       return clip;
     };
-    const image = (assetId, o = {}) => makeClip("image", ctx, { ...o, currentAssetId: clipAssetId(assetId) });
+    const image = (assetId, o = {}) => {
+      // A still has no box of its own: it fits the frame (contain) and `s`
+      // scales it from there. A size option would be dropped without a word.
+      for (const key of ["w", "h", "width", "height", "size", "scale"]) {
+        if (o[key] !== undefined) throw new Error(`s.image() has no \`${key}\` option: the image fits the frame and \`s\` scales it. For a target width use s = targetWidth / fittedWidth, and \`crop\` or \`mask\` to frame it.`);
+      }
+      return makeClip("image", ctx, { ...o, currentAssetId: clipAssetId(assetId) });
+    };
 
     /**
      * `media(mediaType, assetId, o)` is the shared body for `video`/`audio`:

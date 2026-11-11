@@ -49,7 +49,7 @@ export const moviePosterUseCase: UseCaseEntry = {
     },
     {
       title: "Spin up concepts",
-      body: "A list generator turns the strategy into a batch of distinct plot angles, so one run gives you a spread of directions, not a single guess.",
+      body: "Generate several concepts from the same brief, then choose one to develop.",
       detail: "Five plot concepts per run",
     },
     {
@@ -63,6 +63,11 @@ export const moviePosterUseCase: UseCaseEntry = {
       question: "How do you generate a movie poster with AI?",
       answer:
         "In NodeTool it takes four nodes: enter the title, genre, and audience; an agent writes the creative strategy; a list generator turns it into distinct plot concepts; an image model renders each concept as a full theatrical poster, title, tagline, and billing block included.",
+    },
+    {
+      question: "What is a billing block, and does the AI poster include one?",
+      answer:
+        "A billing block is the block of credits at the bottom of a theatrical poster: cast, director, producers, studio logos, and the release date in tall condensed type. The poster prompt asks the image model for one in the standard layout, so every poster has it, but the names in it are placeholder text the model writes. For real credits, put the exact names in the prompt and fix any wrong letters with a masked edit.",
     },
     {
       question: "Which models does this workflow use?",
@@ -221,7 +226,7 @@ export const productVideoUseCase: UseCaseEntry = {
     },
     {
       title: "Direct the shot",
-      body: "An agent turns the request into a concrete, cinematic prompt with framing, lens, and motion cues, the part most people get wrong by hand.",
+      body: "The agent adds camera angles, lighting, and movement to your description.",
       detail:
         "Gemini 3.1 Pro · 50mm macro push over the watch on a wet river rock at dawn",
     },

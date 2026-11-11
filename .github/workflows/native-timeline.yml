@@ -1,0 +1,464 @@
+# Native timeline prototype (native/timeline/, PLAN M6): build and run the
+# headless ctest suite on macOS, Linux and Windows. No test opens a window or
+# plays a sound. The render tests (ctest label `render`) need the platform
+# QRhi: Metal on Cocoa (macOS), Vulkan on Mesa lavapipe through xcb under Xvfb
+# (Linux), D3D11 on WARP through the Windows platform (Windows); a step checks
+# the backend and the adapter in their log. The window-event tests set the
+# offscreen platform themselves (ctest ENVIRONMENT). Audio runs on miniaudio's
+# null backend. Hosted runners have no hardware video decoder, so the
+# hardware decode tests are skipped (NT_NO_HW_DECODE=1); the benches and the
+# window checks (scripts/window-checks.sh) need a reference machine.
+name: Native timeline
+
+# Pull requests and main pushes run only when native code or this workflow
+# changes. The oracle and golden tests also compare against the TypeScript
+# packages in REFERENCE_PATHS (the `changes` job). A change there alone no
+# longer runs this workflow on its pull request. The nightly run tests main
+# instead, and only when a commit in the last day touched those packages.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 4 * * *"
+  pull_request:
+    paths:
+      - "native/timeline/**"
+      - "native/ui_primitives/**"
+      - "native/chat/**"
+      - "native/model-picker/**"
+      - ".github/workflows/native-timeline.yml"
+      - ".github/actions/setup-native-timeline/**"
+  # A pull request can restore only its own caches and its base branch's. This
+  # run builds the base branch and saves its compiler caches, so the first run
+  # of each pull request does not compile from scratch.
+  push:
+    branches: [main, feat/native-timeline]
+    paths:
+      - "native/timeline/**"
+      - "native/ui_primitives/**"
+      - "native/chat/**"
+      - "native/model-picker/**"
+      - ".github/workflows/native-timeline.yml"
+      - ".github/actions/setup-native-timeline/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-timeline-${{ github.ref }}
+  # A cancelled base branch build saves no cache, so only pull requests cancel.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  QT_VERSION: "6.12.0"
+  NT_NO_HW_DECODE: "1"
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_COMPILERCHECK: content
+  CCACHE_MAXSIZE: 2G
+
+jobs:
+  # Decides whether a scheduled run has anything new to test. Every other
+  # event already passed its paths filter, so it always runs.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          # The web references the oracles and export_golden compare against.
+          REFERENCE_PATHS: packages/timeline packages/gpu packages/cli-timeline
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" != "schedule" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          for path in $REFERENCE_PATHS; do
+            count=$(gh api -X GET "repos/$REPO/commits" -f sha="$REF" -f path="$path" -f since="$since" -f per_page=1 --jq length)
+            if [[ "$count" != "0" ]]; then
+              echo "$path changed since $since"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "No reference package changed since $since"
+          echo "run=false" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.name }}
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-15
+          - name: Linux
+            os: ubuntu-24.04
+          - name: Windows
+            os: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set native temporary paths
+        run: |
+          echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # Motion contracts and golden checks read the shipped example media.
+      - name: Restore package media
+        uses: ./.github/actions/package-media
+
+      # Scratch-server and golden checks also load decorated node packages.
+      - name: Build the server and timeline packages
+        env:
+          NODETOOL_TURBO_CONCURRENCY: "2"
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
+          npm run rebuild:native
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            npm run build:packages:tsc
+          else
+            npm run build:packages
+          fi
+
+      - name: Set up native dependencies
+        uses: ./.github/actions/setup-native-timeline
+
+      - name: Restore compiler cache
+        id: compiler-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-
+
+      - name: Bound restored compiler cache
+        run: |
+          ccache --cleanup
+          ccache --zero-stats
+
+      - name: Verify prerequisites and prepare media
+        run: |
+          node native/timeline/scripts/check-ci-prerequisites.mjs
+          node --test native/timeline/scripts/check-ci-prerequisites.test.mjs \
+            native/timeline/scripts/measure-psnr.test.mjs \
+            native/timeline/src/server/sync/sync-e2e-transport.test.mjs
+          native/timeline/scripts/make-fixtures.sh
+
+      - name: Configure
+        run: |
+          launcher=()
+          if command -v ccache >/dev/null 2>&1; then
+            launcher=(-DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+            if [[ "$RUNNER_OS" == macOS ]]; then launcher+=(-DCMAKE_OBJCXX_COMPILER_LAUNCHER=ccache); fi
+          fi
+          cmake -S native/timeline -B native/timeline/build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$QT_PREFIX" "${launcher[@]}"
+
+      - name: Build
+        id: native-build
+        # -k 0 reports every failing file in one run, not only the first.
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" cmake --build native/timeline/build-ci --parallel 3 -- -k 0
+
+      - name: Show compiler cache statistics
+        if: success() || failure()
+        continue-on-error: true
+        run: ccache --show-stats
+
+      # Preserve successful compilation even when a later test fails.
+      - name: Save compiler cache
+        if: steps.compiler-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+
+      # The offscreen QPA platform has no QRhi: Qt Quick falls back to the
+      # software scene graph there, and tst_editpreview cannot initialize its
+      # render control. So no step sets QT_QPA_PLATFORM=offscreen globally;
+      # the window-event tests set it in their ctest ENVIRONMENT.
+      # macOS renders windowless through Metal on the Cocoa platform. Linux:
+      # xcb on Xvfb, Vulkan on lavapipe (the renderers attach a
+      # QVulkanInstance, hw/HwWindow.cpp). Windows: the Windows platform,
+      # D3D11 on the WARP software adapter.
+      # The render tests run apart, with the scene graph and QRhi logs on, and
+      # the log must name the backend and the adapter.
+      - name: Test (headless, macOS)
+        if: github.event_name != 'push' && runner.os == 'macOS'
+        run: |
+          # The render tests run even when the others fail, so one failure cannot hide
+          # theirs. The crash diagnoses read the failure list, which each run rewrites.
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          status=0
+          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
+          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
+            | tee "$RUNNER_TEMP/render.log" || status=$?
+          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+          grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
+            { echo "::error::the render tests did not run on Metal"; exit 1; }
+          exit "$status"
+
+      - name: Test (headless, Linux)
+        if: github.event_name != 'push' && runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: vulkan
+        run: |
+          # The render tests run even when the others fail, so one failure cannot hide
+          # theirs. The crash diagnoses read the failure list, which each run rewrites.
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          status=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
+          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
+            | tee "$RUNNER_TEMP/render.log" || status=$?
+          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+          grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
+            { echo "::error::the render tests did not run on Vulkan"; exit 1; }
+          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
+            { echo "::error::the render tests did not run on lavapipe"; exit 1; }
+          exit "$status"
+
+      - name: Test (headless, Windows)
+        if: github.event_name != 'push' && runner.os == 'Windows'
+        env:
+          QSG_RHI_BACKEND: d3d11
+          QSG_RHI_PREFER_SOFTWARE_RENDERER: "1"
+          QT_FORCE_STDERR_LOGGING: "1"
+        run: |
+          # Offscreen FreeType does not discover Windows system fallback fonts.
+          export QT_QPA_FONTDIR="$(cygpath -m "$WINDIR/Fonts")"
+          # The render tests run even when the others fail, so one failure cannot hide
+          # theirs. The crash diagnoses read the failure list, which each run rewrites.
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          status=0
+          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
+          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
+            | tee "$RUNNER_TEMP/render.log" || status=$?
+          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+          grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
+            { echo "::error::the render tests did not run on D3D11"; exit 1; }
+          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
+            { echo "::error::the render tests did not run on WARP"; exit 1; }
+          exit "$status"
+
+      - name: Diagnose macOS entity panel crash
+        if: github.event_name != 'push' && failure() && runner.os == 'macOS'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: |
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          if [[ ! -f "$failed" ]] || ! grep -q ':tst_entitypanel$' "$failed"; then
+            exit 0
+          fi
+          # Run the whole fixture to preserve the state preceding the crash.
+          export XDG_CONFIG_HOME="$(mktemp -d "$RUNNER_TEMP/entitypanel-config.XXXXXX")"
+          xcrun lldb --batch -o run -k 'thread backtrace all' \
+            -- native/timeline/build-ci/tst_entitypanel
+
+      - name: Diagnose Linux matte crash
+        if: github.event_name != 'push' && failure() && runner.os == 'Linux'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: vulkan
+          QSG_INFO: "1"
+        run: |
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          if [[ ! -f "$failed" ]] || ! grep -q ':tst_mattecarrier$' "$failed"; then
+            exit 0
+          fi
+          diagnostic_status=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            gdb --return-child-result -batch -ex 'set pagination off' -ex 'set debuginfod enabled off' \
+              -ex run -ex 'thread apply all bt' --args native/timeline/build-ci/tst_mattecarrier \
+              > "$RUNNER_TEMP/matte-gdb.log" 2>&1 || diagnostic_status=$?
+          cat "$RUNNER_TEMP/matte-gdb.log"
+          exit "$diagnostic_status"
+
+      - name: Upload export golden failure frames
+        if: github.event_name != 'push' && failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-timeline-export-golden-${{ runner.os }}
+          path: native/timeline/build-ci/**/export-golden-failures/
+          if-no-files-found: ignore
+
+      - name: Upload Linux matte diagnostics
+        if: github.event_name != 'push' && failure() && runner.os == 'Linux'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-timeline-matte-backtrace
+          path: ${{ runner.temp }}/matte-gdb.log
+          if-no-files-found: ignore
+
+      - name: Package (macOS, unsigned)
+        if: github.event_name != 'push' && runner.os == 'macOS'
+        run: |
+          native/timeline/scripts/package-macos.sh
+          DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
+
+      # Not verified: written for M6 (review F12); no run has checked it.
+      # The smoke runs use a copy of the package in a fresh folder, with PATH
+      # cut to the Windows system folders and no Qt variable, so a DLL, a
+      # plug-in or a QML import missing from the package cannot load from the
+      # Qt or FFmpeg folders of the build (review F3). They render the whole
+      # QML editor (--screenshot) and decode video through the packaged
+      # FFmpeg (--stills).
+      - name: Package (Windows, windeployqt, unverified)
+        if: github.event_name != 'push' && runner.os == 'Windows'
+        run: |
+          bash native/timeline/scripts/package-windows.sh
+          out=native/timeline/build-ci/package-windows
+          tmp=$(cygpath -u "$RUNNER_TEMP")
+          copy="$tmp/package-copy"
+          rm -rf "$copy" && cp -R "$out" "$copy"
+          smoke="$tmp/package-smoke"
+          rm -rf "$smoke" && mkdir -p "$smoke"
+          cd native/timeline
+          (
+            export PATH="/c/Windows/System32:/c/Windows:/c/Windows/System32/Wbem"
+            unset QT_PLUGIN_PATH QML_IMPORT_PATH QML2_IMPORT_PATH QT_QPA_PLATFORM_PLUGIN_PATH QT_QPA_PLATFORM
+            export QSG_RHI_BACKEND=d3d11 QSG_RHI_PREFER_SOFTWARE_RENDERER=1
+            exe="$copy/nodetool-timeline.exe"
+            "$exe" fixtures/three-tracks.json --dump-plan --times 0,8500 > /dev/null
+            dry=$("$exe" fixtures/av-sync.json --audio-dry-run)
+            [[ "$dry" == "audio mode: system" ]] || { echo "::error::--audio-dry-run printed '$dry'"; exit 1; }
+            "$exe" fixtures/three-tracks.json --screenshot "$smoke/editor.png" --audio none
+            [[ -s "$smoke/editor.png" ]] || { echo "::error::--screenshot of the packaged editor wrote nothing"; exit 1; }
+            "$exe" fixtures/video-cuts.json --stills "$smoke/stills" --still-frames 0,59,60 --audio none
+            shopt -s nullglob  # only bash builtins here: PATH has no Git tools
+            stills=("$smoke"/stills/frame_*.png)
+            [[ ${#stills[@]} == 3 ]] || { echo "::error::expected 3 stills from the package, got ${#stills[@]}"; exit 1; }
+          )
+
+      # Not verified: written for M6 (review F12); no run has checked it.
+      - name: Package (Linux AppImage, unverified)
+        if: github.event_name != 'push' && runner.os == 'Linux'
+        run: |
+          bash native/timeline/scripts/package-linux.sh
+
+  sanitizers:
+    name: Linux ${{ matrix.preset }}
+    # Base branch runs only seed the build job's compiler caches.
+    needs: changes
+    if: github.event_name != 'push' && needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [sanitize, tsan]
+    defaults:
+      run:
+        shell: bash
+        working-directory: native/timeline
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set native temporary paths
+        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: ".nvmrc"
+      - name: Restore package media
+        uses: ./.github/actions/package-media
+      - name: Build the server and timeline packages
+        working-directory: .
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
+          npm run rebuild:native
+          npm run build:packages
+      # Hosted runners have run out of disk while building FFmpeg (No space left on device).
+      - name: Free disk space
+        run: |
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+
+      - name: Install dependencies (Linux)
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
+            mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
+            libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
+            xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb-xkb1
+          # Vulkan on lavapipe only: the loader sees no other driver.
+          icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
+          if [[ -z "$icd" ]]; then
+            echo "::error::mesa-vulkan-drivers installed no lavapipe ICD"
+            exit 1
+          fi
+          echo "VK_DRIVER_FILES=$icd" >> "$GITHUB_ENV"
+          echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
+          VK_DRIVER_FILES=$icd vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo.txt"
+          grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
+          pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+          # FFmpeg as LGPL shared libraries, as the packages ship it.
+          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
+          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+
+      - name: Verify prerequisites and prepare media
+        run: |
+          node scripts/check-ci-prerequisites.mjs
+          scripts/make-fixtures.sh
+      - name: Configure
+        run: |
+          # ELF compression keeps line tables without duplicating large debug sections.
+          cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--compress-debug-sections=zlib" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      - name: Build
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
+      - name: Verify checker fixtures
+        run: |
+          node tools/sanitizers/check-plants.mjs --self-test
+          node tools/sanitizers/check-plants.mjs "${{ matrix.preset }}"
+      - name: Test on lavapipe
+        env:
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: vulkan
+          QSG_INFO: "1"
+        run: xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure
+      - name: Upload sanitizer logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-timeline-${{ matrix.preset }}
+          path: native/timeline/build-${{ matrix.preset }}/Testing/Temporary/

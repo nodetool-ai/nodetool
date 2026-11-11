@@ -1,3 +1,4 @@
+import type { TemporalSources } from "@nodetool-ai/timeline/render";
 /**
  * compositeLayers — turn the scene model's `ActiveLayer`s into the layer list
  * both browser compositors draw.
@@ -43,6 +44,7 @@ import type {
 /** The pixels a layer draws, and how they sit on the frame. */
 export interface ResolvedCompositeSource {
   source: CompositeSource;
+  temporalSources?: TemporalSources<CompositeSource>;
   /** Set when `source` is a window of a frame-sized raster, not the whole of it. */
   window?: FrameSourceWindow;
   /**
@@ -120,6 +122,7 @@ export function buildCompositeLayer(
   const built: CompositeLayer = {
     id: compositeLayerId(layer, idPrefix),
     source: resolved.source,
+    temporalSources: resolved.temporalSources,
     opacity: anim.opacity,
     blendMode: layer.blendMode,
     zIndex: trackZ(layer.trackIndex),
@@ -255,6 +258,7 @@ export function toCanvas2DLayer(
   }
   return {
     source: layer.source,
+    temporalSources: layer.temporalSources,
     sourceWidth: size.width,
     sourceHeight: size.height,
     opacity: layer.opacity,

@@ -26,15 +26,15 @@ npm install @nodetool-ai/together-nodes
 ## Configuration
 
 Set `TOGETHER_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an
-environment variable.
+environment variable. Node code never reads the key.
 
 ## Architecture
 
-This package is **self-contained**: `together-base.ts` re-implements the small
-slice of the Together API the nodes need (images, speech, transcription, video
-submit+poll) rather than importing the runtime's `TogetherProvider`. That mirrors
-the `fal-nodes` / `atlascloud-nodes` / `replicate-nodes` convention and keeps the
-package independently publishable.
+The nodes build Together's request bodies and send them through the runtime
+`TogetherProvider` with `context.callProviderEndpoint`. The provider holds the
+API key, owns the transport (images, speech, transcription, video submit and
+poll) and records each call as a generation. Result URLs download through
+`context.downloadProviderMedia`.
 
 - `src/together-manifest.json` — declarative catalog: one entry per
   `(model × task)` with its modality, model id, output type, and typed input
@@ -42,8 +42,8 @@ package independently publishable.
 - `src/together-factory.ts` — turns each manifest entry into a `BaseNode`
   subclass; `process()` resolves asset inputs (SSRF-guarded), dispatches on
   modality to the base executors, and persists the result via NodeTool storage.
-- `src/together-base.ts` — auth, asset→bytes resolution, and the per-modality
-  Together API executors.
+- `src/together-base.ts` — asset→bytes resolution and the per-modality
+  executors, which build each request and call the provider.
 - `src/index.ts` — `registerTogetherNodes(registry)` + exports.
 
 The same manifest is read by `@nodetool-ai/runtime`'s `together-provider`

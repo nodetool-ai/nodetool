@@ -101,7 +101,7 @@ export default function SiteFooter() {
             <p className="mt-3 max-w-xs text-sm text-slate-300">
               Free, open-source software built alongside working artists,
               designers, and video editors. Describe what you want to create,
-              watch the agent build it, keep the whole project.
+              watch the agent build it, and save the project files.
             </p>
           </div>
 

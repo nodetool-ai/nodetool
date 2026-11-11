@@ -34,5 +34,28 @@
     "license": "CC-BY-SA-4.0",
     "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
     "changes": "Footage looped under the generated meeting.wav narration for transcription examples."
+  },
+  "catalog/trail-tumbler.jpg": {
+    "source": "marketing/public/recipes/runs/2026-09-14-directed-campaign-kit-gpt25/product-reference.png",
+    "description": "Generated product packshot from an existing repository sample.",
+    "changes": "Cropped or padded to a square and resized to 768 pixels."
+  },
+  "catalog/meridian-watch.jpg": {
+    "source": "docs/assets/use-cases/smartwatch.png",
+    "description": "Generated product packshot from an existing repository sample.",
+    "changes": "Cropped or padded to a square and resized to 768 pixels."
+  },
+  "catalog/olive-travel-cup.jpg": {
+    "source": "marketing/public/recipes/runs/2026-09-14-emotional-support-cup/steps/03-product.jpg",
+    "description": "Generated product packshot from an existing repository sample.",
+    "changes": "Cropped or padded to a square and resized to 768 pixels."
+  },
+  "catalog/message-bottle.jpg": {
+    "source": "marketing/public/recipes/runs/2026-09-10-marketing-recipes-01/storyboard-to-trailer/message-bottle.jpg",
+    "description": "Generated product packshot from an existing repository sample.",
+    "changes": "Cropped or padded to a square and resized to 768 pixels."
+  },
+  "catalog/products.csv": {
+    "description": "Sample four-product catalog for the Catalog Motion app. Each row points at a shipped packshot."
   }
 }

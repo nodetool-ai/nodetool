@@ -1,0 +1,191 @@
+# The main menus of Premiere Pro, one item per line, as "Menu > Submenu > Item".
+# Written by hand from the published user guide and from FilmCraft's parity notes
+# (docs/target-app-parity.md, licenses/FilmCraft-MIT.txt). It is not a dump of the app, so a
+# version may differ in places. Replace it with a real dump when someone with the app can
+# take one. scripts/menu-parity.mjs compares it with our menu bar and writes
+# docs/menu-parity.md. The comparison is a report, not a gate.
+#
+# "Item = Ours" names the label this editor uses for the same thing.
+
+File > New > Project
+File > New > Sequence = New Timeline
+File > New > Bin
+File > New > Adjustment Layer
+File > New > Bars and Tone
+File > New > Black Video
+File > New > Captions
+File > New > Color Matte
+File > New > Transparent Video
+File > Open Project = Open Timeline…
+File > Open Recent
+File > Close
+File > Save
+File > Save As
+File > Save a Copy
+File > Revert
+File > Link Media
+File > Make Offline
+File > Import
+File > Import from Media Browser
+File > Export > Media = Export…
+File > Export > Motion Graphics Template
+File > Export > EDL
+File > Export > OMF
+File > Export > AAF
+File > Export > Final Cut Pro XML
+File > Project Settings
+File > Project Manager
+File > Exit = Quit
+
+Edit > Undo
+Edit > Redo
+Edit > Cut
+Edit > Copy
+Edit > Paste
+Edit > Paste Insert
+Edit > Paste Attributes = Paste Attributes…
+Edit > Remove Attributes
+Edit > Clear = Delete
+Edit > Ripple Delete
+Edit > Duplicate
+Edit > Select All
+Edit > Select All Matching
+Edit > Deselect All
+Edit > Find
+Edit > Label
+Edit > Remove Unused
+Edit > Consolidate Duplicates
+Edit > Edit Original
+Edit > Keyboard Shortcuts
+Edit > Preferences = Settings…
+
+Clip > Rename
+Clip > Make Subclip
+Clip > Edit Subclip
+Clip > Source Settings
+Clip > Modify
+Clip > Video Options > Frame Hold Options
+Clip > Video Options > Add Frame Hold
+Clip > Video Options > Insert Frame Hold Segment
+Clip > Video Options > Field Options
+Clip > Video Options > Time Interpolation
+Clip > Video Options > Scale to Frame Size
+Clip > Video Options > Set to Frame Size = Fit to Frame
+Clip > Audio Options > Audio Gain = Audio Gain…
+Clip > Audio Options > Breakout to Mono
+Clip > Audio Options > Extract Audio
+Clip > Speed/Duration = Speed / Duration…
+Clip > Scene Edit Detection
+Clip > Insert
+Clip > Overwrite
+Clip > Replace Footage
+Clip > Render and Replace
+Clip > Restore Unrendered
+Clip > Enable
+Clip > Link
+Clip > Group
+Clip > Ungroup
+Clip > Synchronize
+Clip > Merge Clips
+Clip > Nest
+Clip > Create Multi-Camera Source Sequence
+Clip > Multi-Camera
+
+Sequence > Sequence Settings
+Sequence > Render Effects In to Out
+Sequence > Render In to Out
+Sequence > Render Selection
+Sequence > Render Audio
+Sequence > Delete Render Files
+Sequence > Match Frame
+Sequence > Reverse Match Frame
+Sequence > Add Edit
+Sequence > Add Edit to All Tracks
+Sequence > Trim Edit
+Sequence > Extend Selected Edit to Playhead
+Sequence > Apply Video Transition
+Sequence > Apply Audio Transition
+Sequence > Apply Default Transitions to Selection
+Sequence > Lift
+Sequence > Extract
+Sequence > Zoom In
+Sequence > Zoom Out
+Sequence > Close Gap
+Sequence > Go to Gap > Next in Sequence
+Sequence > Go to Gap > Previous in Sequence
+Sequence > Go to Gap > Next in Track
+Sequence > Go to Gap > Previous in Track
+Sequence > Snap in Timeline
+Sequence > Linked Selection
+Sequence > Selection Follows Playhead
+Sequence > Show Through Edits
+Sequence > Normalize Master Track
+Sequence > Make Subsequence
+Sequence > Auto Reframe Sequence
+Sequence > Add Tracks
+Sequence > Delete Tracks
+
+Markers > Mark In
+Markers > Mark Out
+Markers > Mark Clip
+Markers > Mark Selection
+Markers > Mark Split
+Markers > Go to In
+Markers > Go to Out
+Markers > Go to Split
+Markers > Clear In
+Markers > Clear Out
+Markers > Clear In and Out
+Markers > Add Marker
+Markers > Go to Next Marker
+Markers > Go to Previous Marker
+Markers > Clear Selected Marker = Clear Selected Markers
+Markers > Clear Markers = Clear All Markers
+Markers > Edit Marker = Edit Marker…
+Markers > Add Chapter Marker
+Markers > Add Flash Cue Marker
+Markers > Ripple Sequence Markers
+
+View > Playback Resolution
+View > Paused Resolution
+View > High Quality Playback
+View > Display Mode
+View > Magnification
+View > Show Rulers
+View > Show Guides
+View > Lock Guides
+View > Add Guide
+View > Clear Guides
+View > Snap in Program Monitor
+
+Window > Workspaces > Editing
+Window > Workspaces > Color
+Window > Workspaces > Audio
+Window > Workspaces > Reset to Saved Layout
+Window > Maximize Frame
+Window > Audio Clip Mixer
+Window > Audio Track Mixer = Mixer
+Window > Audio Meters
+Window > Effect Controls
+Window > Effects
+Window > Essential Graphics
+Window > Essential Sound = Audio
+Window > Events = Activity
+Window > History
+Window > Info
+Window > Lumetri Color = Color
+Window > Lumetri Scopes = Scopes
+Window > Markers
+Window > Media Browser
+Window > Metadata
+Window > Program Monitor = Program
+Window > Progress
+Window > Project = Library
+Window > Reference Monitor = Reference
+Window > Source Monitor = Source
+Window > Text
+Window > Timecode
+Window > Timelines = Timeline
+Window > Tools
+
+Help > Keyboard = Keyboard Shortcuts

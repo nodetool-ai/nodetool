@@ -424,7 +424,7 @@ describe("the nodetool object model's own errors", () => {
     );
     expect(result.error).toBeUndefined();
     expect(result.result).toBe(
-      "function,function,find/forProvider/generate/list/pick,{}"
+      "function,function,find/forProvider/generate/list/pick/providers,{}"
     );
   }, 60_000);
 });

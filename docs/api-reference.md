@@ -238,8 +238,6 @@ exported by `@nodetool-ai/websocket/trpc` gives a typed client every shape.
 
 ## Headless Mode: Running Workflows via CLI/API
 
-NodeTool can run entirely without the UI—perfect for automation, CI/CD pipelines, and programmatic integrations. This section shows how to execute workflows from the command line or via HTTP requests.
-
 ### Quick Start: Run a Workflow via cURL
 
 ```bash
@@ -255,27 +253,20 @@ curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
   }'
 ```
 
-Response:
+Response shape (see [Workflow API](workflow-api.md#running-a-workflow)):
 ```json
 {
-  "job_id": "job_abc123",
-  "workflow_id": "YOUR_WORKFLOW_ID",
+  "job_id": "<uuid>",
+  "workflow_id": "<uuid>",
   "status": "completed",
-  "outputs": {
-    "image": {
-      "type": "image",
-      "uri": "http://localhost:7777/api/storage/assets/abc123.png"
-    },
-    "caption": "Generated image of a cyberpunk cityscape..."
-  },
+  "outputs": { "<output node name>": "<value>" },
   "error": null,
   "message_count": 12,
   "background": false
 }
 ```
 
-`outputs` is an object keyed by output-node name. The route does not stream — for
-real-time progress, run the workflow over the [WebSocket API](websocket-api.md).
+The route does not stream. For real-time progress, use the [WebSocket API](websocket-api.md).
 
 ### Interactive Runs: Answering a Failed Node
 
@@ -945,7 +936,10 @@ sequence that Premiere imports through **File > Import**, the active asset of
 every exported clip under `media/`, and `export-report.txt`, which lists each
 clip that needs baking or was left out. The XML points at its media with
 relative `media/<file>` paths. The response carries
-`x-nodetool-export-warnings` with the number of report entries, and is named
+`x-nodetool-export-warnings` with the number of report entries,
+`x-nodetool-export-report` with the clip count and the report messages as
+percent-encoded JSON (`clipsExported`, `warnings`, and `omitted` for messages
+that did not fit the header, which stay in `export-report.txt`), and is named
 `<timeline name>-premiere.zip` by the same rule as above.
 
 `GET /api/timelines/{id}/export-media` packs only the media: the original file
@@ -963,7 +957,9 @@ had no NodeTool counterpart, such as transitions or nested sequences).
 
 `POST /api/timelines/import-zip` reads the zip back as a multipart form. `file`
 is required; `project_id` defaults to `"default"` (no project) and `name`
-overrides the name in the bundle:
+overrides the name in the bundle. A `json` field holding
+`{"project_id": "...", "name": "..."}` sets the same two values, for clients
+that send their metadata that way:
 
 ```bash
 curl -X POST "http://localhost:7777/api/timelines/import-zip" \
@@ -2615,6 +2611,7 @@ curl "http://localhost:7777/api/config"
   "supabaseUrl": null,
   "supabaseAnonKey": null,
   "authRedirectUrl": null,
+  "ssoProviderName": null,
   "googleWorkspace": false,
   "googleScopes": [],
   "version": "0.7.0-rc.38"
@@ -2622,12 +2619,14 @@ curl "http://localhost:7777/api/config"
 ```
 
 `authMode` is `"supabase"` when both `SUPABASE_URL` and `SUPABASE_KEY` are set,
-and `"local"` otherwise — the same choice the server's own auth hook makes, so a
+`"oidc"` when both `OIDC_ISSUER` and `OIDC_CLIENT_ID` are set, and `"local"`
+otherwise — the same choice the server's own auth hook makes, so a
 client never has to guess it from the other fields. `supabaseUrl`,
 `supabaseAnonKey` and `authRedirectUrl` mirror `SUPABASE_URL`,
 `SUPABASE_ANON_KEY` and `AUTH_REDIRECT_URL`; each is `null` when unset. Note the
 anon key is the public one — the service key (`SUPABASE_KEY`) is never in this
-response.
+response. `ssoProviderName` is the sign-in button label from
+`OIDC_PROVIDER_NAME` (default `"SSO"`) in SSO mode, and `null` otherwise.
 
 `googleWorkspace` says whether the Google Workspace capability is on (see
 `NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,
@@ -3003,8 +3002,6 @@ print(completion.choices[0].message.content)
 
 ### Finding Your Workflow ID
 
-To run a workflow via API, you need its ID. Here's how to find it:
-
 1. **From the UI:** Open a workflow in the editor — the ID appears in the browser URL bar
 2. **From the API:** Call `GET /api/workflows` to list all workflows with their IDs
 3. **From the CLI:** Run `nodetool workflows list`
@@ -3025,7 +3022,7 @@ route family:
 | Status Code | Meaning | Common Causes |
 |-------------|---------|---------------|
 | 400 | Bad Request | Invalid parameters, malformed JSON, a graph the server refuses to run |
-| 401 | Unauthorized | Missing or invalid token |
+| 401 | Unauthorized | Missing or invalid token. The body is `{"error": "Remote access requires authentication"}`, or `{"error": "Unauthorized"}` in Supabase and OIDC modes |
 | 403 | Forbidden | Production guard on local-file and workspace routes, path traversal |
 | 404 | Not Found | Resource missing, or owned by someone else |
 | 409 | Conflict | A workflow save with a stale `expected_updated_at` |

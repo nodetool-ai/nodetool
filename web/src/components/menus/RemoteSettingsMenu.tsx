@@ -29,6 +29,7 @@ import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
 import ExternalLink from "../common/ExternalLink";
 import SearchProviderSection from "./SearchProviderSection";
+import { ComfyServerStatusLine } from "../comfy/LocalComfyConnect";
 import { matchesSearch } from "./settingsSearch";
 
 /**
@@ -69,6 +70,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
     groups: [
       "vLLM",
       "Ollama",
+      "ComfyUI",
       "LlamaCpp",
       "NodeLlamaCpp",
       "LMStudio",
@@ -210,6 +212,9 @@ const SETTING_LINKS: Record<string, string> = {
   OPPER_API_KEY: "https://platform.opper.ai",
   CHEAPER_INFERENCE_API_KEY: "https://cheaperinference.com/signup",
   API_ROUTE_API_KEY: "https://www.api-route.com/api-keys",
+  RUNCRATE_API_KEY: "https://runcrate.ai/dashboard/api-keys",
+  STANDARDCOMPUTE_API_KEY: "https://standardcompute.com/dashboard/api-keys",
+  UBERLLM_API_KEY: "https://uberllm.dev/signup",
   HF_TOKEN: "https://huggingface.co/settings/tokens",
   REPLICATE_API_TOKEN: "https://replicate.com/account/api-tokens",
   GOOGLE_APP_PASSWORD: "https://myaccount.google.com/apppasswords",
@@ -234,6 +239,9 @@ const SETTING_CREDENTIAL_KEYS: Record<string, string> = {
   OPPER_API_KEY: "OPPER_API_KEY",
   CHEAPER_INFERENCE_API_KEY: "CHEAPER_INFERENCE_API_KEY",
   API_ROUTE_API_KEY: "API_ROUTE_API_KEY",
+  RUNCRATE_API_KEY: "RUNCRATE_API_KEY",
+  STANDARDCOMPUTE_API_KEY: "STANDARDCOMPUTE_API_KEY",
+  UBERLLM_API_KEY: "UBERLLM_API_KEY",
   HF_TOKEN: "HF_TOKEN",
   REPLICATE_API_TOKEN: "REPLICATE_API_TOKEN",
   GOOGLE_APP_PASSWORD: "GOOGLE_APP_PASSWORD",
@@ -570,12 +578,17 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                         {heading}
                       </Text>
                       {visibleSettings.map((setting) => (
-                        <SettingItem
-                          key={setting.env_var}
-                          setting={setting}
-                          value={settingValues[setting.env_var] || ""}
-                          onChange={handleChange}
-                        />
+                        <Fragment key={setting.env_var}>
+                          <SettingItem
+                            setting={setting}
+                            value={settingValues[setting.env_var] || ""}
+                            onChange={handleChange}
+                          />
+                          {/* Saving the address checks the server (study-18-I2). */}
+                          {setting.env_var === "COMFY_SERVER_URL" && (
+                            <ComfyServerStatusLine />
+                          )}
+                        </Fragment>
                       ))}
                     </div>
                   )}

@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
-  getHfToken,
   hfPipelineJson,
   jsonArray,
   jsonObject,
@@ -80,7 +79,6 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<AutomaticSpeechRecognitionNodeOutputs> {
-    const token = getHfToken(this._secrets);
     const audio = this.audio;
     if (!audio || (!audio.uri && !audio.data)) {
       throw new Error("Input audio is required");
@@ -90,11 +88,13 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const returnTimestamps = Boolean(this.return_timestamps ?? false);
 
     const result = jsonObject(
-      await hfPipelineJson(
-        token,
-        String(this.model ?? "openai/whisper-large-v3"),
-        asrBody(base64, returnTimestamps)
-      )
+      await hfPipelineJson({
+        context,
+        nodeId: this.__node_id,
+        task: "automatic-speech-recognition",
+        model: String(this.model ?? "openai/whisper-large-v3"),
+        body: asrBody(base64, returnTimestamps)
+      })
     );
 
     return {
@@ -153,21 +153,22 @@ export class AudioClassificationNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<AudioClassificationNodeOutputs> {
-    const token = getHfToken(this._secrets);
     const audio = this.audio;
     if (!audio || (!audio.uri && !audio.data)) {
       throw new Error("Input audio is required");
     }
 
     const base64 = await refToBase64(audio, context);
-    const result = await hfPipelineJson(
-      token,
-      String(this.model ?? "superb/hubert-base-superb-er"),
-      {
+    const result = await hfPipelineJson({
+      context,
+      nodeId: this.__node_id,
+      task: "audio-classification",
+      model: String(this.model ?? "superb/hubert-base-superb-er"),
+      body: {
         inputs: base64,
         parameters: { top_k: Number(this.top_k ?? 5) }
       }
-    );
+    });
 
     const scores = jsonArray(result);
     return { output: jsonString(jsonObject(scores[0])["label"]), scores };

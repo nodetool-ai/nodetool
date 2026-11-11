@@ -28,6 +28,10 @@ import {
 } from "../model-download-runtime.js";
 import type { FrontendRendererRegistry } from "../frontend-renderer-registry.js";
 import { runNeedsPythonBridge } from "../python-bridge-gate.js";
+import {
+  ACCOUNT_DISABLED_CLOSE_CODE,
+  trackUserSocket
+} from "../lib/user-directory.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -235,6 +239,12 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         return;
       }
     }
+    const untrackSocket = req.userId
+      ? trackUserSocket(req.userId, () => {
+          socket.close(ACCOUNT_DISABLED_CLOSE_CODE, "account_disabled");
+        })
+      : () => {};
+    socket.on("close", untrackSocket);
     log.info("WebSocket client connected");
     void runner
       .run(new WsAdapter(socket))

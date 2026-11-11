@@ -96,9 +96,9 @@ Chat flags:
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
                          openrouter, requesty, opper, cheaperinference, api_route,
-                         huggingface, replicate, kie,
-                         aki, ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
-                         node_llama_cpp
+                         runcrate, standardcompute, uberllm, huggingface, replicate,
+                         kie, aki, ollama, lmstudio, claude_agent_sdk, codex, gmi,
+                         mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
@@ -1800,7 +1800,7 @@ structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
 `model3d-tools`, `svg-tools`, `audio-tools`, `app-tools`, `memory-tools`, and
 `creative-pipeline`. Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
-[packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
+[packages/agents/docs/evals.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/evals.md#tool-loop-eval-suites-frontend-ui_-surfaces).
 
 `workflow-escalation` runs the graph tools over objectives that are missing
 something only the user can decide — a name, permission to delete, a choice
@@ -2265,7 +2265,7 @@ is stale or when a new capability arrives with no check and no gap note. It
 also carries a fingerprint of what each capability *declares*, so
 `harness gate --base <ref>` can refuse a contract change that left its coverage
 mapping untouched while saying nothing about an ordinary refactor. See
-[packages/agents/AGENTS.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
+[packages/agents/docs/capabilities.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/capabilities.md#capability-coverage--every-capability-names-its-check).
 
 ### nodetool reliability (Cross-Surface Journey Diffs)
 
@@ -2574,6 +2574,15 @@ npm run dev:nodetool -- storage migrate-keys               # Move them
 npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
 ```
 
+Uploads store `Cache-Control: max-age=<signed URL lifetime>` on each object.
+`refresh-cache-control` rewrites asset objects stored before that with
+`no-cache`, which made browsers download them again on every mount.
+
+```bash
+npm run dev:nodetool -- storage refresh-cache-control --dry-run
+npm run dev:nodetool -- storage refresh-cache-control
+```
+
 ### nodetool auth
 
 Signs in to providers that use an account instead of an API key. `auth claude`
@@ -2659,6 +2668,33 @@ The read commands (`workflows`, `jobs`, `assets`, `models`) hit the local
 database, providers, and caches by default — no server required. Pass
 `--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
 instead.
+
+## Native Qt presentation checks
+
+The native UI library has a standalone [build and test interface](https://github.com/nodetool-ai/nodetool/blob/main/native/ui_primitives/README.md).
+Its checks read native configuration and sources. They do not import web tokens
+or require npm packages.
+
+```bash
+python3 native/ui_primitives/tools/check_design.py --strict
+python3 native/ui_primitives/tools/check_dependencies.py
+python3 native/ui_primitives/tools/check_isolated_build.py --qt-prefix /path/to/Qt
+```
+
+The design check audits the native migration inventory and presentation rules.
+The dependency check rejects feature, backend, and web dependencies in the
+primitive module. The isolation check copies the module into a temporary tree,
+then separately copies the chat and model-picker hosts. It configures, builds,
+and tests with Node and npm absent from its tool path. It also installs chat
+and loads its packaged QML resources offscreen.
+
+`harness gate` runs the Python contracts for changes to the primitive module
+or migrated QML chrome. It reports Qt interaction tests as manual work when
+run outside the dedicated native workflow. The standalone
+[`native-ui-primitives` workflow](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/native-ui-primitives.yml)
+provides Qt and runs the native tests separately from web and backend builds.
+Offscreen tests do not establish physical mixed-DPI behavior, screen-reader
+compatibility, or operating-system IME behavior.
 
 ## Observing Agent Execution
 
@@ -2767,7 +2803,7 @@ Each line in the file is one span:
 }
 ```
 
-See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for agent architecture, parallel execution, skills, and tuning.
+See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for the agent package rules and its index of implementation notes on parallel execution, skills, and tuning.
 
 ## App runs phase 1
 

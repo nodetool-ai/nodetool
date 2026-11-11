@@ -1,13 +1,16 @@
 import { promises as fs, constants } from "fs";
-import { spawn } from "child_process";
 import { app } from "electron";
 import * as path from "path";
+import {
+  canImportNodeToolWorker,
+  getInstalledPythonPackageVersion,
+  installRequiredPythonPackages as installPythonCorePackages,
+} from "@nodetool-ai/runtime-install";
 
-import { getNodePath, getProcessEnv, getPythonPath, getUVPath } from "./config";
+import { getNodePath, getPythonPath, getUVPath } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
-import { checkPermissions, fileExists } from "./utils";
-import { emitBootMessage, emitServerLog } from "./events";
-import { getTorchBackend, torchBackendArgs } from "./torchPlatformCache";
+import { checkPermissions } from "./utils";
+import { getDesktopRuntimeHost } from "./runtimeHost";
 // The bridge-protocol constants live in @nodetool-ai/protocol — a tiny
 // zod-only package — specifically so the Electron main bundle can read them
 // without dragging the @nodetool-ai/runtime barrel (and every provider's
@@ -18,11 +21,11 @@ import { runtimeLocations } from "@nodetool-ai/config";
 /**
  * Python environment manager for the Electron shell.
  *
- * This module owns the Electron-side bootstrap of the Python toolchain:
+ * This module owns the Electron-side checks of the Python toolchain:
  * - Verify the app can write to user data and log directories before installing
  * - Detect an existing conda/uv-based environment and surface clear failures
- * - Install or update the bundled Python packages from PyPI
- * - Provide helpers to run commands with the correct environment variables
+ *
+ * The install itself is in `@nodetool-ai/runtime-install`.
  */
 
 interface PathCheck {
@@ -35,9 +38,6 @@ interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
-
-const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
-const REQUIRED_PYTHON_PACKAGES = ["nodetool-core"] as const;
 
 async function verifyApplicationPaths(): Promise<ValidationResult> {
   const pathsToCheck: PathCheck[] = [
@@ -161,6 +161,7 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   // This decouples the Electron app version from the nodetool-core
   // release cadence — most app builds do NOT need a fresh core release.
   const installedCoreVersion = await getInstalledPythonPackageVersion(
+    getDesktopRuntimeHost(),
     pythonExecutablePath,
     "nodetool-core",
   );
@@ -177,7 +178,10 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
     `nodetool-core ${installedCoreVersion} is installed at ${pythonExecutablePath}`,
   );
 
-  const workerImportable = await canImportNodeToolWorker(pythonExecutablePath);
+  const workerImportable = await canImportNodeToolWorker(
+    getDesktopRuntimeHost(),
+    pythonExecutablePath,
+  );
   if (!workerImportable) {
     logMessage(
       `Python worker import check failed for ${pythonExecutablePath}; environment appears incomplete`,
@@ -188,258 +192,16 @@ async function isCondaEnvironmentInstalled(): Promise<boolean> {
   return workerImportable;
 }
 
-async function getInstalledPythonPackageVersion(
-  pythonExecutablePath: string,
-  packageName: string,
-): Promise<string | null> {
-  return new Promise((resolve) => {
-    const stdoutChunks: Buffer[] = [];
-    const proc = spawn(
-      pythonExecutablePath,
-      [
-        "-c",
-        [
-          "from importlib.metadata import PackageNotFoundError, version",
-          `package_name = ${JSON.stringify(packageName)}`,
-          "try:",
-          "    print(version(package_name))",
-          "except PackageNotFoundError:",
-          "    raise SystemExit(2)",
-        ].join("\n"),
-      ],
-      {
-        stdio: ["ignore", "pipe", "ignore"],
-        env: getProcessEnv(),
-        windowsHide: true,
-      }
-    );
-
-    proc.stdout?.on("data", (chunk: Buffer) => {
-      stdoutChunks.push(chunk);
-    });
-
-    proc.on("close", (code) => {
-      if (code === 0) {
-        const version = Buffer.concat(stdoutChunks).toString().trim();
-        resolve(version || null);
-        return;
-      }
-      if (code === 2) {
-        resolve(null);
-        return;
-      }
-      logMessage(
-        `Failed to determine installed Python package version for ${packageName} at ${pythonExecutablePath} (exit ${code})`,
-        "error",
-      );
-      resolve(null);
-    });
-
-    proc.on("error", (error) => {
-      logMessage(
-        `Failed to run Python package version check for ${packageName}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        "error",
-      );
-      resolve(null);
-    });
-  });
-}
-
-async function canImportNodeToolWorker(
-  pythonExecutablePath: string
-): Promise<boolean> {
-  return new Promise((resolve) => {
-    const proc = spawn(
-      pythonExecutablePath,
-      ["-c", "import nodetool.worker"],
-      {
-        stdio: "ignore",
-        env: getProcessEnv(),
-        // Prevent a console window from flashing on Windows.
-        windowsHide: true,
-      }
-    );
-
-    proc.on("exit", (code) => {
-      resolve(code === 0);
-    });
-
-    proc.on("error", (error) => {
-      logMessage(
-        `Failed to run Python worker import check: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        "error",
-      );
-      resolve(false);
-    });
-  });
-}
-
-function normalizePythonPackageName(packageName: string): string {
-  const trimmed = packageName.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  if (!trimmed.includes("/")) {
-    return trimmed;
-  }
-  const [, resolvedName = ""] = trimmed.split("/", 2);
-  return resolvedName || trimmed;
-}
-
+/**
+ * Install `nodetool-core` and any additional packages into the Python
+ * runtime. See `installRequiredPythonPackages` in `@nodetool-ai/runtime-install`.
+ */
 async function installRequiredPythonPackages(
   additionalPackages: string[] = []
 ): Promise<void> {
-  emitBootMessage("Installing Nodetool Python packages...");
-
-  const uvExecutable = getUVPath();
-
-  // nodetool-core is pinned by lower bound only (matched to the bridge
-  // protocol version). Additional nodetool-* node packages are installed
-  // unpinned: their own pyproject.toml declares the nodetool-core range
-  // they need, so uv resolves a coherent set automatically. This keeps
-  // node packages on an independent release cadence from the Electron
-  // app — if a user opts into nodetool-huggingface, they get the latest
-  // published version that is compatible with the resolved nodetool-core.
-  const corePackageSpecs = REQUIRED_PYTHON_PACKAGES.map(
-    normalizePythonPackageName,
-  )
-    .filter(Boolean)
-    .map((pkg) =>
-      pkg === "nodetool-core"
-        ? `${pkg}>=${MIN_NODETOOL_CORE_VERSION}`
-        : pkg,
-    );
-
-  const additionalSpecs = additionalPackages
-    .map(normalizePythonPackageName)
-    .filter(Boolean);
-
-  const packageSpecs = Array.from(
-    new Set([...corePackageSpecs, ...additionalSpecs]),
-  );
-
-  // No pre-releases: allowing them resolved httpx 1.0 dev releases, which
-  // lack AsyncClient. Torch packages, when any are pulled in, come from the
-  // detected PyTorch index (see torchruntime.ts).
-  const installCommand: string[] = [
-    uvExecutable,
-    "pip",
-    "install",
-    "--index-url",
-    PYPI_SIMPLE_INDEX_URL,
-    ...torchBackendArgs(getTorchBackend()),
-    "--system",
-    ...packageSpecs,
-  ];
-
-  logMessage(
-    `Installing required Python packages: ${packageSpecs.join(", ")}`,
-  );
-  await runCommand(installCommand);
+  await installPythonCorePackages(getDesktopRuntimeHost(), additionalPackages);
 }
 
-async function runCommand(command: string[]): Promise<void> {
-  const executable = command[0];
-
-  const executableExists = await fileExists(executable);
-  if (!executableExists) {
-    const errorMsg = `Python environment not properly installed: executable not found at ${executable}. ` +
-      `This may happen if the installation was interrupted (e.g., by a macOS permission dialog). ` +
-      `Please use "Reinstall environment" to set up the Python environment correctly.`;
-    logMessage(errorMsg, "error");
-    throw new Error(errorMsg);
-  }
-
-  const updateProcess = spawn(executable, command.slice(1), {
-    stdio: "pipe",
-    env: getProcessEnv(),
-    // Prevent a console window from flashing on Windows during pip operations.
-    windowsHide: true,
-  });
-
-  logMessage(`Running command: ${command.join(" ")}`);
-
-  updateProcess.stdout?.on("data", (data: Buffer) => {
-    const lines = data
-      .toString()
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    for (const line of lines) {
-      logMessage(line);
-      emitServerLog(line);
-      
-      // Parse package names from pip/uv output and emit boot messages
-      // Look for lines like "Downloading package-name-version"
-      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
-      if (downloadingMatch) {
-        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
-      }
-      
-      // Look for lines like "Installing package-name-version"
-      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
-      if (installingMatch) {
-        emitBootMessage(`Installing ${installingMatch[1]}...`);
-      }
-      
-      // Look for lines like "Updating package-name"
-      const updatingMatch = line.match(/Updating\s+([a-zA-Z0-9_-]+)/i);
-      if (updatingMatch) {
-        emitBootMessage(`Updating ${updatingMatch[1]}...`);
-      }
-    }
-  });
-
-  updateProcess.stderr?.on("data", (data: Buffer) => {
-    const lines = data
-      .toString()
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    for (const line of lines) {
-      logMessage(line);
-      emitServerLog(line);
-      
-      // Parse package names from pip/uv stderr output (some progress info goes to stderr)
-      const downloadingMatch = line.match(/Downloading\s+([a-zA-Z0-9_-]+)/i);
-      if (downloadingMatch) {
-        emitBootMessage(`Downloading ${downloadingMatch[1]}...`);
-      }
-      
-      const installingMatch = line.match(/Installing\s+([a-zA-Z0-9_-]+)/i);
-      if (installingMatch) {
-        emitBootMessage(`Installing ${installingMatch[1]}...`);
-      }
-    }
-  });
-
-  return new Promise<void>((resolve, reject) => {
-    updateProcess.on("exit", (code: number | null) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`Command failed with code ${code}`));
-      }
-    });
-
-    updateProcess.on("error", (error) => {
-      // Provide a more helpful error message for ENOENT
-      if (error.message.includes("ENOENT")) {
-        reject(new Error(
-          `Python environment not properly installed: could not run ${executable}. ` +
-          `This may happen if the installation was interrupted. ` +
-          `Please use "Reinstall environment" to fix this issue.`
-        ));
-      } else {
-        reject(error);
-      }
-    });
-  });
-}
 /**
  * Get the default installation location based on platform
  */

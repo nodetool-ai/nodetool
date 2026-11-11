@@ -89,6 +89,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
         connect: jest.fn(),
         disconnect: jest.fn(),
         manualPrompt: null,
+        callbackUrl: null,
         isSubmittingManual: false,
         submitManualCode: jest.fn(),
         cancelManual: jest.fn()
@@ -112,6 +113,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Codex")).not.toBeInTheDocument();
     expect(screen.queryByText("Antigravity")).not.toBeInTheDocument();
+    expect(screen.queryByText("GitHub Copilot")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /install antigravity/i })
     ).not.toBeInTheDocument();
@@ -157,6 +159,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
   });
 
   it("validates a pasted single-field API key before saving and blocks rejected keys unless confirmed", async () => {
+    const user = userEvent.setup();
     mockValidateSecret.mockResolvedValue({
       status: "invalid",
       valid: false,
@@ -174,17 +177,15 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     );
 
     const openRouterCard = screen.getByRole("article", { name: "OpenRouter" });
-    await userEvent.click(
+    await user.click(
       within(openRouterCard).getByRole("button", { name: "Connect" })
     );
 
     const dialog = screen.getByRole("dialog");
     const input = within(dialog).getByLabelText("API key");
-    // Paste in one input event, as a user would. Typing each character
-    // re-renders the dialog and took most of Jest's 10 s timeout.
-    await userEvent.click(input);
-    await userEvent.paste("  k-or-v1-missing-leading-s  ");
-    await userEvent.click(
+    await user.click(input);
+    await user.paste("  k-or-v1-missing-leading-s  ");
+    await user.click(
       within(dialog).getByRole("button", { name: "Connect" })
     );
 
@@ -200,7 +201,7 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     ).toBeInTheDocument();
 
     // Clicking "Save anyway" persists the trimmed key if the user insists.
-    await userEvent.click(
+    await user.click(
       within(dialog).getByRole("button", { name: /save anyway/i })
     );
     await waitFor(() =>

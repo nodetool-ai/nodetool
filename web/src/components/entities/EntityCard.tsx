@@ -62,6 +62,7 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
       >
         <ImageRefPreview
           value={referenceImage}
+          preferThumbnail
           placeholder={
             <FlexRow
               align="center"

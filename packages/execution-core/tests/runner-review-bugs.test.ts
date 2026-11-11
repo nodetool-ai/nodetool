@@ -169,6 +169,31 @@ describe("RunResult.outputs for a fan-out into an Output node", () => {
   });
 });
 
+describe("RunResult.outputs for two Output nodes", () => {
+  it("keys each by its name property, not the shared type title", async () => {
+    // A saved workflow loads with the type title as the descriptor name, so
+    // both Output nodes arrive named "Output".
+    const nodes: NodeDescriptor[] = [
+      { id: "src", type: "test.Source", outputs: { a: "any", b: "any" } },
+      { id: "o1", type: "nodetool.output.Output", name: "Output", properties: { name: "summary" }, outputs: { output: "any" } },
+      { id: "o2", type: "nodetool.output.Output", name: "Output", properties: { name: "products" }, outputs: { output: "any" } }
+    ];
+    const edges: Edge[] = [
+      { id: "e1", source: "src", sourceHandle: "a", target: "o1", targetHandle: "value" },
+      { id: "e2", source: "src", sourceHandle: "b", target: "o2", targetHandle: "value" }
+    ];
+    const runner = new WorkflowRunner("j", {
+      resolveExecutor: (node) =>
+        node.id === "src"
+          ? { async process() { return { a: "four products", b: [{ row: 1 }] }; } }
+          : { async process(inputs) { return { output: inputs.value }; } }
+    });
+    const result = await runner.run({ job_id: "j" }, { nodes, edges });
+    expect(result.status).toBe("completed");
+    expect(result.outputs).toEqual({ summary: ["four products"], products: [[{ row: 1 }]] });
+  });
+});
+
 describe("input-node executors", () => {
   it("are finalized after the run", async () => {
     const finalized: string[] = [];

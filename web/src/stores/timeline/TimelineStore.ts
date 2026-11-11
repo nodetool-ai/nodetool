@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { DEFAULT_TIMELINE_INSTRUMENT } from "./instrumentPresets";
 /**
  * TimelineStore
@@ -65,6 +66,7 @@ import {
   createTimeOrderedUuid,
   createMidiNote,
   hasTimeRemap,
+  isHoldRemap,
   MIDI_MAX_NOTES_PER_CLIP,
   quantizeNotes,
   msToTicks,
@@ -87,7 +89,9 @@ import {
   renameTake as renameTakeOnClip,
   deleteTake as deleteTakeOnClip,
   addReframeKeyframe as addReframeKeyframeOnClip,
-  clearReframe as clearReframeOnClip
+  clearReframe as clearReframeOnClip,
+  joinParamCurves,
+  paramCurvesForEffects
 } from "@nodetool-ai/timeline";
 import type {
   AnimatedProperty,
@@ -1657,7 +1661,7 @@ function clampEndTrimDeltaToSource(
   deltaMs: number,
   maxSourceDurationMs: number | undefined
 ): number {
-  if (maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
+  if (isHoldRemap(clip) || maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
   const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const currentOutPointMs =
@@ -1929,6 +1933,8 @@ function mergeClipsAtTime(
         )
       ];
     }
+    const paramCurves = joinParamCurves(base.paramCurves, right.paramCurves, base.durationMs, right.durationMs);
+    if (paramCurves) merged.paramCurves = paramCurves;
     replaced.set(left.id, merged);
     removed.add(right.id);
   }
@@ -2250,6 +2256,7 @@ export const createTimelineStore = (
         // ── Init ────────────────────────────────────────────────────────────
 
         loadSequence: (loaded) => {
+          assertTimelineColorSpaceSupported(loaded);
           const seq = { ...loaded, clips: normalizeClipAssetRefs(loaded.clips) };
           const transcript = seq.transcript ?? [];
 
@@ -4281,9 +4288,17 @@ export const createTimelineStore = (
               return state;
             }
             return {
-              clips: state.clips.map((c) =>
-                c.id === clipId ? { ...c, ...patch } : c
-              )
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) return c;
+                const next = { ...c, ...patch };
+                // An effect's keys go when the effect goes.
+                if ("effects" in patch && next.paramCurves) {
+                  const curves = paramCurvesForEffects(next.paramCurves, next.effects);
+                  if (curves) next.paramCurves = curves;
+                  else delete next.paramCurves;
+                }
+                return next;
+              })
             };
           }),
 

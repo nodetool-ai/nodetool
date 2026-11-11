@@ -136,6 +136,38 @@ async function resolveClient(clientId: string): Promise<ResolvedClient | null> {
   return { clientName: client.client_name, redirectUris: client.redirect_uris };
 }
 
+/** The env var naming the web app's address when it is not served by this
+ * server, such as a SPA on its own origin in front of an API host. */
+export const WEB_URL_ENV_VAR = "NODETOOL_WEB_URL";
+
+/**
+ * Where `/oauth/authorize` sends the browser for consent. The consent page
+ * must open on the origin where the user is signed in: a session lives in
+ * that origin's storage, and the remembered return path in its
+ * sessionStorage. With `NODETOOL_WEB_URL` unset the page is this server's
+ * own `/oauth/consent`. A value that is not https (or http on loopback) is
+ * ignored rather than trusted.
+ */
+export function consentPageUrl(
+  requestId: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  const path = `/oauth/consent?request_id=${encodeURIComponent(requestId)}`;
+  const raw = env[WEB_URL_ENV_VAR]?.trim();
+  if (!raw) return path;
+  try {
+    const url = new URL(raw);
+    const loopback =
+      url.hostname === "127.0.0.1" || url.hostname === "localhost";
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
+      return path;
+    }
+    return `${url.origin}${url.pathname.replace(/\/+$/, "")}${path}`;
+  } catch {
+    return path;
+  }
+}
+
 function parseFormBody(body: unknown): URLSearchParams {
   return typeof body === "string" ? new URLSearchParams(body) : new URLSearchParams();
 }
@@ -342,7 +374,7 @@ export const oauthAsRoutes: FastifyPluginAsync = async (app) => {
       redirectHostIsLoopbackOnly
     });
 
-    return reply.redirect(`/oauth/consent?request_id=${encodeURIComponent(requestId)}`);
+    return reply.redirect(consentPageUrl(requestId));
   });
 
   // ── POST /oauth/token ────────────────────────────────────────────────

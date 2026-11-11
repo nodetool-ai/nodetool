@@ -16,7 +16,8 @@ const mockCreateWorkflow = jest.fn();
 jest.mock("../../../lib/appNavigation", () => ({ navigateTo: jest.fn() }));
 jest.mock("../../../lib/runtimeConfig", () => ({
   isAuthRequired: () => false,
-  isCloudProfile: () => false
+  isCloudProfile: () => false,
+  isSsoMode: () => false
 }));
 jest.mock("../../../stores/useAuth", () => ({
   __esModule: true,

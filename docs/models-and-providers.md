@@ -1,48 +1,42 @@
 ---
 layout: page
 title: "Models & Providers"
-description: "Every AI model NodeTool runs — GPT-5.6, Claude Opus 5, Gemini, Grok, DeepSeek, Llama; FLUX, Nano Banana, Seedream, Ideogram; Sora 2, Veo 3.1, Kling, Wan, Seedance; ElevenLabs, Suno, Whisper — across 30+ providers, local or cloud, bring-your-own-key."
+description: "Model catalog by modality (text, image, video, audio, 3D, embeddings) with the provider that serves each, local or cloud."
 ---
 
-> **Overview / start here.** For the full catalog of model families see [Supported Models](models.md); for connecting and configuring each provider see [Providers](providers.md); for the desktop download panel see [Models Manager](models-manager.md).
+Every model runs locally, through a cloud API with your own key, or both in the same graph. Model lists per provider are below. Provider setup is in [Providers](providers.md), local weights are in [Supported Models](models.md), and the download panel is in [Models Manager](models-manager.md).
 
-Run models locally, through cloud APIs with your own keys, or both in the same graph.
+> **Runs:** locally or cloud, chosen per node. **Needs:** a provider key for cloud models (secret names in [Providers](providers.md)), nothing for local engines. **Hardware:** local models need disk space and a GPU or Apple Silicon. Sizes depend on the model, so check the download size in the Model Manager.
+{: .callout-note}
 
 ## Local vs. cloud
 
-### Local
+| | Local | Cloud (bring your own key) |
+|---|---|---|
+| Data | Stays on your disk | Sent to the provider |
+| Cost | Free after download | Billed by the provider at its price, no NodeTool markup |
+| Network | Works offline | Needs internet |
+| Models | What you downloaded | Latest provider releases |
 
-- Data stays on your disk
-- Free after download
-- Works offline
-- 4–20 GB per model; needs a capable GPU or Apple Silicon
+Mix per node. Run Whisper locally for sensitive audio, FLUX locally for control and FAL or kie.ai for speed, and local document processing for confidential files.
 
-### Cloud (BYOK)
+## If it fails
 
-- No download
-- Runs on the provider's hardware
-- Latest model releases
-- Billed by the provider, at the provider's price — no NodeTool markup
-- Requires internet; data goes to the provider
-
-### Mixed
-
-Pick the best provider per node:
-- ASR (Whisper) — local for sensitive audio
-- Image generation — Flux locally for control, FAL/KIE cloud for speed
-- Document processing — local for confidential files
+- **Missing key:** the provider throws at the call, for example `OPENAI_API_KEY is required` (the message names the secret). The node fails and the run reports the error. Add the key in **Settings → Models & Providers**.
+- **Rejected key (401/403):** reported as failure kind `auth`. Use the **Test** button on the provider to check the key.
+- **Rate limit (429):** reported as kind `rate_limit` with the provider's own message. Replicate calls wait and retry before failing. For other providers the error reaches the node as is.
+- **Insufficient balance (402):** reported as kind `payment`.
+- **Local model not downloaded:** download it in the [Models Manager](models-manager.md) before running.
 
 ---
 
 ## Cloud models
 
-NodeTool reaches thousands of cloud models across 30+ providers, all through the same generic nodes. The catalog below is grouped by what you're generating — text, images, video, speech and music, 3D, embeddings. Every model runs on your own API key (BYOK): you're billed by the provider at the provider's price, with no NodeTool markup. Add a key in **Settings → Models & Providers** and the models show up in the node's model dropdown.
-
-Most chat providers fetch their model list live from the provider's API, so the list reflects new releases. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from manifests or static lists that each provider ships (`packages/runtime/src/providers/` and the `packages/*-nodes/` packages), so they track what NodeTool exposes. The model names below are examples and drift as providers release.
+Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Most chat providers fetch their list live from the provider's API. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from manifests or static lists in `packages/runtime/src/providers/` and the `packages/*-nodes/` packages. The model names below are examples and drift as providers release.
 
 ### Text & chat models (LLMs)
 
-The generic `nodetool.agents.Agent` and chat nodes route to whichever provider owns the model you pick. Swap `claude-opus-5` for `gpt-5.6` or `gemini-3.1-pro-preview` without changing the rest of the graph.
+`nodetool.agents.Agent` and the chat nodes route to the provider that owns the selected model. Swapping `claude-opus-5` for `gpt-5.6` needs no other change in the graph.
 
 | Provider | Model families |
 |---|---|
@@ -64,6 +58,9 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | API Route | Hosted Claude, GPT, Gemini and DeepSeek chat models through an OpenAI-compatible API |
 | Opper | Claude, GPT, Gemini, DeepSeek, Kimi and more through one EU-hosted OpenAI-compatible gateway |
 | Cheaper Inference | Claude, GPT, Gemini, DeepSeek and more through one OpenAI-compatible gateway |
+| Runcrate | DeepSeek, Qwen, GLM, Kimi, gpt-oss and more open-weight models through one OpenAI-compatible API |
+| Standard Compute | Open and frontier chat models through one OpenAI-compatible gateway, with a routed `StandardCompute` model |
+| UberLLM | Claude, GPT, Gemini, DeepSeek, Qwen and more chat models, plus FLUX, Seedream, Qwen Image and other image models, through one OpenAI-compatible key |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
 | kie.ai | GPT, Claude, Grok, Kimi, DeepSeek, and Gemini models through its chat gateway |
@@ -190,7 +187,7 @@ AtlasCloud also lists 3D models. Open 3D families such as Hunyuan3D and Trellis 
 
 ### Embedding models
 
-Power RAG and semantic search through embedding nodes.
+Embedding nodes feed RAG and semantic search.
 
 | Provider | Embedding models |
 |---|---|
@@ -206,46 +203,22 @@ Power RAG and semantic search through embedding nodes.
 
 ### Using these models
 
-Access these models through NodeTool's **generic nodes**:
+| Output | Node |
+|---|---|
+| Video | `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo` |
+| Images | `nodetool.image.TextToImage` |
+| 3D | `nodetool.model3d.TextTo3D`, `nodetool.model3d.ImageTo3D` |
+| Music | kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others) |
 
-1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
-2. **For Images**: Use `nodetool.image.TextToImage`
-3. **For 3D**: Use `nodetool.model3d.TextTo3D` or `nodetool.model3d.ImageTo3D`
-4. **For Music**: Use the kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others)
-5. **Select Provider**: Click the model dropdown in the node properties
-6. **Configure API**: Add provider API keys in `Settings → Models & Providers`
-
-**Access via kie.ai (recommended for broad model support):**
-Many of these models are available through [kie.ai](https://kie.ai/), an AI provider aggregator that often offers competitive or lower pricing compared to upstream providers.
-- Configure using `KIE_API_KEY` in `Settings → Models & Providers`
-
-**Access via fal.ai:**
-- Configure using `FAL_API_KEY` in `Settings → Models & Providers`
-
-
-> **Cost Considerations**: Cloud models typically charge per generation. Check each provider's pricing before extensive use. Local models are free after download but require capable hardware.
-
+Pick the model in the node's model dropdown. kie.ai (`KIE_API_KEY`) and fal.ai (`FAL_API_KEY`) carry many of these models, often at lower prices than upstream. Cloud models charge per generation, so check the provider's pricing before large runs.
 
 ---
 
 ## Getting Started
 
-### Option 1: Start with Local Models (Recommended)
+**Local:** open the logo menu, choose **Model Manager**, and on an empty install use **Get Started**. It detects your hardware and lists models that fit. Download a chat model and an image model (progress shows under **Downloads** in the logo menu), then run templates that use them offline.
 
-1. Open the logo menu and choose **Model Manager**
-2. On an empty install it opens on **Get Started**, which detects your hardware and lists current models that fit it. Pick a chat model and an image model.
-3. Download them. Progress shows under **Downloads** in the logo menu.
-4. Run templates that use those models. They work offline.
-
-### Option 2: Start with Cloud Providers
-
-1. Get an API key from a provider:
-   - <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [OpenAI](https://platform.openai.com) – GPT, Whisper, Sora
-   - <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Anthropic](https://www.anthropic.com) – Claude models
-   - <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [Google](https://ai.google.dev) – Gemini models
-2. In NodeTool, go to **Settings → Models & Providers**
-3. Paste your API key
-4. Select the provider when using AI nodes
+**Cloud:** get a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev), paste it in **Settings → Models & Providers**, and select that provider in the AI node.
 
 ---
 ## Detailed Guides

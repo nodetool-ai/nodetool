@@ -4,11 +4,7 @@ title: "Node Implementation Patterns"
 description: "Architectural patterns for building TypeScript nodes: single-output, multi-output, streaming, stateful, media refs, enums, and secrets."
 ---
 
-## Overview
-
-This guide covers the key implementation patterns you will encounter when building custom nodes for NodeTool. Every node extends **`BaseNode`** from `@nodetool-ai/node-sdk`, declares its inputs with the **`@prop`** decorator, and implements a `process()` or `genProcess()` method that reads input values from `this.<field>` and returns an outputs record. The optional argument is a `ProcessingContext` from `@nodetool-ai/runtime`.
-
----
+Every node extends `BaseNode` from `@nodetool-ai/node-sdk`, declares inputs with `@prop`, and implements `process()` or `genProcess()`, which read inputs from `this.<field>` and return an outputs record. The optional argument is a `ProcessingContext` from `@nodetool-ai/runtime`. Each pattern below is adapted from a node in the repository.
 
 ## Simple Single-Output
 
@@ -40,12 +36,10 @@ export class ConstantStringNode extends BaseNode {
 
 Key points:
 
-- **`metadataOutputTypes`** maps each output key to its type string (`"str"`, `"int"`, `"float"`, `"bool"`, `"image"`, `"audio"`, etc.).
 - The engine assigns connected input values onto the instance before calling `process()`, so read them as `this.field`.
 - The return value is a plain object whose keys match the declared output names.
 - Type the field with its real type (`string`, `number`, a ref type) instead of `any`. The runtime assigns the value, so `declare` carries only the compile-time type.
 
----
 
 ## Multi-Output
 
@@ -99,7 +93,6 @@ Key points:
 - **`inputMode`** is one of `"buffered"` (collect a matched set of inputs, then call `process()` once), `"stream"` (consume inputs as an async stream via `run()`), or `"controlled"` (the node is driven by control edges). Most nodes leave it `undefined` (the default buffered behavior).
 - **`outputCorrelation`** maps each output to how it relates to its source input. A `{ kind: "forward", source: "<input>" }` entry means the output forwards that input's correlation token unchanged. There is no separate `isStreamingOutput` flag, and streaming behavior is *inferred* from `forward`, `iteration`, or `chunk` correlation, or from overriding `genProcess()`. Once you declare it, every declared output needs an entry. See [Custom Nodes Guide §11](custom-nodes-guide.md#11-streaming-nodes-genprocess).
 
----
 
 ## Streaming with genProcess()
 
@@ -153,7 +146,6 @@ Key points:
 - Nodes that consume a stream implement `run(inputs, outputs)` instead. See [Custom Nodes Guide §11](custom-nodes-guide.md#streaming-inputs-run).
 - `genProcess()` is detected automatically (the base class checks whether the subclass overrides it) — there is no `isStreamingOutput` flag to set. The `outputCorrelation` `iteration` kind tells the scheduler each yielded value is a new correlated item.
 
----
 
 ## Stateful Collector
 
@@ -198,7 +190,6 @@ Key points:
 - **`initialize()`** runs once per node before the workflow run starts -- use it to clear accumulated state. `finalize()` runs when the node finishes, even after an error.
 - The node instance is reused across the items it receives, so `process()` is called once per incoming value and appends to `_items`.
 
----
 
 ## Media Refs
 
@@ -242,7 +233,6 @@ Rules for refs (the repository's `packages/AGENTS.md` lists more):
 - Check `data.length > 0` instead of truthiness when choosing between `data` and `uri`.
 - Audio and video have equivalent helpers in their packages, such as `audioBytesAsync` in `packages/audio-nodes/src/lib/audio-wav.ts`.
 
----
 
 ## Enum Inputs
 
@@ -263,7 +253,6 @@ declare filter_type: "contains" | "starts_with" | "ends_with";
 
 The value arrives unchecked, so validate it before relying on it. `FilterStringNode` guards the prop with a type predicate and matches nothing when the value is not one it implements.
 
----
 
 ## Secret Access
 
@@ -310,42 +299,9 @@ Key points:
 - Inside `run()`, `this._secrets` is populated the same way.
 - Outbound requests to a URL a caller or model chose belong behind `safeFetch` from `@nodetool-ai/runtime`. A fixed provider endpoint like the one above does not.
 
----
 
-## Best Practices
+## Notes
 
-### Input Resolution
-
-Property values for `@prop` fields are populated on the instance before `process()` is called. Resolve with:
-
-```ts
-const value = this.field ?? defaultValue;
-```
-
-The engine handles connected edges, manually set values, and declared defaults — by the time `process()` runs, `this.field` already holds the effective value.
-
-### Async / Await
-
-All `process()` and `genProcess()` methods are async. Use `await` for any I/O -- file reads, HTTP calls, or image processing -- to keep the workflow engine responsive.
-
-### metadataOutputTypes
-
-Always declare **`metadataOutputTypes`** so the UI can render the correct output connectors and validate connections between nodes. If you omit it (and the static `outputTypes` fallback), the node has no outputs.
-
-### Error Handling
-
-Let exceptions propagate or throw `Error` with a clear message. The engine catches them and displays the error on the node in the UI.
-
-### Docstring Format
-
-The `description` static field serves double duty: the first line is the summary other tools show, and the node search indexes the whole text, so subsequent indented lines work as keywords.
-
-```ts
-static readonly description =
-  "Short description of what the node does.\n" +
-  "    keyword1, keyword2, keyword3";
-```
-
-### File Structure
-
-Nodes are organized by category across the node packages — `packages/core-nodes/` (constants, control flow, math), `packages/text-nodes/`, `packages/image-nodes/`, `packages/llm-nodes/`, `packages/automation-nodes/`, `packages/integration-nodes/`, and others. (The old `packages/base-nodes/src/nodes/` directory is gone — `packages/base-nodes/src/index.ts` only re-exports and aggregates, into `ALL_BASE_NODES`.) Each file exports an array of node classes (e.g., `CONTROL_NODES`, `TEXT_EXTRA_NODES`) and the package index registers them all. A class is only available once something registers it with a `NodeRegistry`. Third-party packs do that in their `register` function. See the [Custom Nodes Guide](custom-nodes-guide.md).
+- A node's `description` is indexed by node search. Lines after the first work as keywords: `"Short summary.\n    keyword1, keyword2"`.
+- Nodes live by category across `packages/core-nodes/`, `packages/text-nodes/`, `packages/image-nodes/`, `packages/llm-nodes/`, `packages/automation-nodes/`, `packages/integration-nodes/` and others. Each file exports an array of node classes (such as `CONTROL_NODES`) and the package index registers them. `packages/base-nodes/src/index.ts` only re-exports them into `ALL_BASE_NODES`. A class is available only after something registers it with a `NodeRegistry`. Third-party packs do that in their `register` function. See the [Custom Nodes Guide](custom-nodes-guide.md).
+- A thrown `Error` fails the node and shows its message on the node in the editor.

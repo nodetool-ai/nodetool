@@ -1,3 +1,4 @@
+import type { TemporalSources } from "@nodetool-ai/timeline/render";
 import type {
   AnimationSampleMask,
   ClipCrop,
@@ -24,7 +25,7 @@ export type { CompositorBlendMode };
  * an `ImageBitmap`. It is also the one member whose pixels change while its
  * size does not, which is what {@link isCanvasSource} exists for.
  *
- * `VideoFrame` is a frame from the WebCodecs preview decoder. Both backends
+ * `VideoFrame` is a frame from the WebCodecs preview or export decoder. Both backends
  * take it directly, so a decoded frame is never copied to an `ImageBitmap`.
  */
 export type CompositeSource =
@@ -37,6 +38,7 @@ export type CompositeSource =
 export interface CompositeLayer {
   id: string;
   source: CompositeSource;
+  temporalSources?: TemporalSources<CompositeSource>;
   opacity: number;
   blendMode: CompositorBlendMode;
   zIndex: number;

@@ -12,7 +12,6 @@ import {
   type ChatStatus
 } from "../types/chat.types";
 import type { MediaGenerationRequest } from "../types/media.types";
-import type { MediaGenerationCategory } from "../../../stores/MediaGenerationStore";
 
 const styles = (_theme: Theme) =>
   css({
@@ -55,13 +54,9 @@ type ChatInputSectionProps = {
   requireToolSupport?: boolean;
   /** Override the composer's textarea placeholder. */
   placeholder?: string;
-  /** Pure chat panel: hide the media mode picker, force chat mode. */
-  hideModePicker?: boolean;
   hideModelPicker?: boolean;
   /** Thread this composer writes to; used to pick up a seeded prompt. */
   threadId?: string | null;
-  /** When set, scopes the composer to a single media generation category. */
-  mediaCategory?: MediaGenerationCategory | null;
   /** Docked on the composer's top edge, such as the task list. */
   aboveComposer?: ReactNode;
 };
@@ -76,10 +71,8 @@ const ChatInputSection = ({
   allowedProviders,
   requireToolSupport,
   placeholder,
-  hideModePicker,
   hideModelPicker,
   threadId,
-  mediaCategory,
   aboveComposer
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
@@ -101,10 +94,10 @@ const ChatInputSection = ({
           allowedProviders={allowedProviders}
           requireToolSupport={requireToolSupport}
           placeholder={placeholder}
-          hideModePicker={hideModePicker}
+          // A chat always sends a chat turn. Create tabs generate media.
+          hideModePicker
           hideModelPicker={hideModelPicker}
           threadId={threadId}
-          mediaCategory={mediaCategory}
         />
       </div>
     </div>

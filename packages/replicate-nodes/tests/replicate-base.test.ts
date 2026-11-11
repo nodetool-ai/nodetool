@@ -1,15 +1,6 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-
-const mockFilesCreate = vi.fn();
-
-vi.mock("replicate", () => ({
-  default: class {
-    files = { create: mockFilesCreate };
-  }
-}));
+import { vi, describe, it, expect } from "vitest";
 
 import {
-  getReplicateApiKey,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -19,56 +10,14 @@ import {
   outputToString
 } from "../src/replicate-base.js";
 
-/* ------------------------------------------------------------------ */
-/*  Environment setup                                                   */
-/* ------------------------------------------------------------------ */
-
-beforeEach(() => {
-  delete process.env.REPLICATE_API_TOKEN;
-});
-
-afterEach(() => {
-  delete process.env.REPLICATE_API_TOKEN;
-});
-
-/* ================================================================== */
-/*  getReplicateApiKey                                                  */
-/* ================================================================== */
-
-describe("getReplicateApiKey", () => {
-  it("returns key from secrets.REPLICATE_API_TOKEN", () => {
-    const key = getReplicateApiKey({
-      REPLICATE_API_TOKEN: "secret-from-secrets"
-    });
-    expect(key).toBe("secret-from-secrets");
-  });
-
-  it("returns key from process.env.REPLICATE_API_TOKEN", () => {
-    process.env.REPLICATE_API_TOKEN = "secret-from-env";
-    const key = getReplicateApiKey({});
-    expect(key).toBe("secret-from-env");
-  });
-
-  it("prefers secrets over process.env", () => {
-    process.env.REPLICATE_API_TOKEN = "env-key";
-    const key = getReplicateApiKey({
-      REPLICATE_API_TOKEN: "secrets-key"
-    });
-    expect(key).toBe("secrets-key");
-  });
-
-  it("throws when no key available", () => {
-    expect(() => getReplicateApiKey({})).toThrow(
-      "REPLICATE_API_TOKEN is not configured"
-    );
-  });
-
-  it("throws when secrets.REPLICATE_API_TOKEN is empty string", () => {
-    expect(() => getReplicateApiKey({ REPLICATE_API_TOKEN: "" })).toThrow(
-      "REPLICATE_API_TOKEN is not configured"
-    );
-  });
-});
+/** An upload context whose provider uploads return `url`. */
+function uploadContext(url: string, bytes = Uint8Array.from([137, 80, 78, 71])) {
+  return {
+    storage: { retrieve: vi.fn().mockResolvedValue(null) },
+    resolveAssetBytes: vi.fn().mockResolvedValue({ bytes }),
+    uploadProviderMedia: vi.fn().mockResolvedValue(url)
+  };
+}
 
 /* ================================================================== */
 /*  removeNulls                                                         */
@@ -187,48 +136,58 @@ describe("assetToUrl", () => {
   });
 
   it("resolves asset:// refs via context.resolveAssetBytes and uploads them", async () => {
-    mockFilesCreate.mockResolvedValueOnce({
-      urls: { get: "https://replicate.delivery/uploaded/asset-123.png" }
-    });
-
-    const ctx = {
-      storage: { retrieve: vi.fn().mockResolvedValue(null) },
-      resolveAssetBytes: vi
-        .fn()
-        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
-    };
+    const ctx = uploadContext("https://replicate.delivery/uploaded/asset-123.png");
 
     const result = await assetToUrl(
       { type: "image", uri: "asset://asset-123" },
-      "api-key",
       ctx
     );
 
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(ctx.uploadProviderMedia).toHaveBeenCalledWith({
+      provider: "replicate",
+      bytes: Uint8Array.from([137, 80, 78, 71]),
+      mimeType: "image/png",
+      filename: "upload.png"
+    });
     expect(result).toBe("https://replicate.delivery/uploaded/asset-123.png");
-    expect(result).not.toBe("asset://asset-123");
   });
 
   it("resolves an asset_id-only ref (empty uri) via context.resolveAssetBytes", async () => {
-    mockFilesCreate.mockResolvedValueOnce({
-      urls: { get: "https://replicate.delivery/uploaded/asset-456.png" }
-    });
-
-    const ctx = {
-      storage: { retrieve: vi.fn().mockResolvedValue(null) },
-      resolveAssetBytes: vi
-        .fn()
-        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
-    };
+    const ctx = uploadContext("https://replicate.delivery/uploaded/asset-456.png");
 
     const result = await assetToUrl(
       { type: "image", uri: "", asset_id: "asset-456" },
-      "api-key",
       ctx
     );
 
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-456");
     expect(result).toBe("https://replicate.delivery/uploaded/asset-456.png");
+  });
+
+  it("uploads local storage bytes with the mime type of the ref", async () => {
+    const ctx = uploadContext("https://replicate.delivery/uploaded/clip.wav");
+    ctx.storage.retrieve.mockResolvedValue(Uint8Array.from([1, 2]));
+
+    const result = await assetToUrl(
+      { type: "audio", uri: "/api/storage/clip.wav" },
+      ctx
+    );
+
+    expect(ctx.storage.retrieve).toHaveBeenCalledWith("/api/storage/clip.wav");
+    expect(ctx.uploadProviderMedia).toHaveBeenCalledWith({
+      provider: "replicate",
+      bytes: Uint8Array.from([1, 2]),
+      mimeType: "audio/wav",
+      filename: "upload.wav"
+    });
+    expect(result).toBe("https://replicate.delivery/uploaded/clip.wav");
+  });
+
+  it("leaves asset:// refs alone without an upload context", async () => {
+    expect(await assetToUrl({ type: "image", uri: "asset://asset-1" })).toBe(
+      "asset://asset-1"
+    );
   });
 });
 

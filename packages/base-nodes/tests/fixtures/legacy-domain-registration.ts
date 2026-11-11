@@ -22219,7 +22219,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Prompt',
-        description: 'Describe the video using image 1, image 2, video 1, and video 2 numbering in list order.',
+        description: 'Describe the video using image 1, image 2, video 1, and video 2 numbering in list order. An image mentioned in the prompt joins the references after the wired ones and takes the next number.',
         min: undefined,
         max: undefined,
         values: undefined,
@@ -49669,8 +49669,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Run Comfy Workflow (Comfy Cloud)',
-    description: 'Runs a whole Comfy workflow on Comfy Cloud as one job through the Comfy API v2.\n' +
+    title: 'Run Comfy Workflow',
+    description: 'Runs a whole Comfy workflow as one job on the target in COMFY_TARGET: Comfy Cloud, a ComfyUI server or a ComfyUI worker.\n' +
       '    comfy, comfyui, cloud, workflow',
     namespace: 'lib.comfy',
     node_type: 'lib.comfy.RunComfyGraphOnCloud',
@@ -49763,7 +49763,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     recommended_models: [],
     inline_fields: [],
     input_fields: [],
-    required_settings: [ 'COMFY_API_KEY' ],
+    required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: true,

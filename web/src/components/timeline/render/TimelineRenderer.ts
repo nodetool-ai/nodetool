@@ -1,3 +1,6 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
+import type { FrameSourceWindow } from "@nodetool-ai/timeline/render";
+import { hasTemporalDenoise, denoiseSourceTimes } from "@nodetool-ai/timeline/scene";
 /**
  * renderTimeline — offline, frame-by-frame export of a timeline.
  *
@@ -42,6 +45,7 @@ import type {
 } from "@nodetool-ai/timeline";
 
 import type { CompositeLayer } from "../preview/gpu/types";
+import { sourceDimensions } from "../preview/gpu/source";
 import type { CompositorBackend } from "../preview/gpu/createCompositor";
 import {
   accumulateBlurSample,
@@ -55,14 +59,13 @@ import {
   resolveFrameMotionBlur,
   resolveTextStaggerContext,
   seedBlurAccumulation
-} from "@nodetool-ai/timeline/render";
+} from "@nodetool-ai/timeline/scene";
 import type {
   ActiveLayer,
   AnimatedLayerProps,
-  FrameSourceWindow,
   MotionBlurOptions,
   RasterWindow
-} from "@nodetool-ai/timeline/render";
+} from "@nodetool-ai/timeline/scene";
 import {
   buildCompositeLayer,
   buildCompositeAdjustments,
@@ -128,6 +131,7 @@ export interface RenderSink {
 }
 
 interface RenderTimelineOptions {
+  workingColorSpaceVersion?: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   mediaTracks?: MediaTrack[];
@@ -322,6 +326,7 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 export async function renderTimeline(
   opts: RenderTimelineOptions
 ): Promise<RenderResult> {
+  assertTimelineColorSpaceSupported(opts);
   const { tracks, clips, fps, durationMs, resolveUrl, signal, onProgress } =
     opts;
 
@@ -690,10 +695,13 @@ export async function renderTimeline(
               layer.bakeSourceTimeSec ?? clipSourceTimeSec(layer.clip, layerTimeMs),
               signal
             );
-            const width = decoded instanceof HTMLVideoElement
-              ? decoded.videoWidth
-              : decoded.width;
-            return width === 0 ? null : { source: decoded };
+            const { width } = sourceDimensions(decoded);
+            if (width === 0) return null;
+            if (layer.clip.mediaType !== "video" || !hasTemporalDenoise(anim.effects ?? layer.effects)) return {source: decoded};
+            const times = denoiseSourceTimes(layer.clip, clipSourceTimeSec(layer.clip, layerTimeMs) * 1000);
+            const before = await videoPool.seek(`${layer.clipId}#denoise-before`, url, times.before / 1000, signal);
+            const after = await videoPool.seek(`${layer.clipId}#denoise-after`, url, times.after / 1000, signal);
+            return {source: decoded, temporalSources: {before, after}};
           }
           const img = await loadImage(url);
           return img ? { source: img } : null;
@@ -763,7 +771,10 @@ export async function renderTimeline(
           videoClipsByEnd[releasePastIndex].durationMs <
           timeMs
       ) {
-        videoPool.release(videoClipsByEnd[releasePastIndex].id);
+        const id = videoClipsByEnd[releasePastIndex].id;
+        videoPool.release(id);
+        videoPool.release(`${id}#denoise-before`);
+        videoPool.release(`${id}#denoise-after`);
         releasePastIndex++;
       }
 

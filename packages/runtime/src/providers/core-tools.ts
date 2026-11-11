@@ -56,6 +56,7 @@ export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
  */
 export const DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Providers and models.
+  "list_providers",
   "find_model",
   "list_models",
   "list_provider_models",

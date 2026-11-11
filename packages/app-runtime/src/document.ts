@@ -218,6 +218,13 @@ export interface OperationBinding {
   outputs: Record<string, OutputMapping>;
   policy: OperationPolicy;
   timeoutMs?: number;
+  /**
+   * In the chat presentation, the app agent does this operation itself
+   * instead of running its target: it follows these instructions and writes
+   * the operation's output variables with its own tools. The page
+   * presentation runs the target as usual.
+   */
+  agentTask?: string;
 }
 
 /** What a binding runs, normalized — the one place the union is derived. */
@@ -293,9 +300,17 @@ export interface ApplicationDocument {
   resources: ResourceBinding[];
   variables: VariableDeclaration[];
   theme?: ThemeRef;
+  /**
+   * How the app is run. `page` (the default) renders the document as one
+   * page. `chat` runs it as a conversation with the app agent, which shows the
+   * app's steps as cards in the thread (see `chat-app.ts`).
+   */
+  presentation?: AppPresentation;
   /** Present only when this Application is a curated Recipe. */
   recipe?: RecipeManifest;
 }
+
+export type AppPresentation = "page" | "chat";
 
 export const createEmptyPuckData = (title?: string): PuckData => ({
   root: { props: title ? { title } : {} },
@@ -696,6 +711,7 @@ const parseOperation = (
     policy: policy === "parallel" || policy === "queue" ? policy : "replace",
     timeoutMs: isNumber(value.timeoutMs) ? value.timeoutMs : undefined
   };
+  if (isNonEmptyString(value.agentTask)) binding.agentTask = value.agentTask;
   if (script) {
     binding.target = script;
   }
@@ -893,6 +909,7 @@ export const parseApplicationDocument = (
         isRecord(value.theme) && isString(value.theme.id)
           ? { id: value.theme.id }
           : undefined,
+      presentation: value.presentation === "chat" ? "chat" : undefined,
       recipe
     };
     if (validateRecipeBindings(document).length > 0) return null;

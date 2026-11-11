@@ -24,7 +24,6 @@ import {
   autoSaveAssets,
   encodeNativeAudioChunks,
   extractEmbeddedImage,
-  getAssetStoragePath,
   primaryTextOutputName
 } from "../src/session/asset-autosave.js";
 import { retrieveAssetBytes } from "../src/lib/asset-paths.js";
@@ -500,10 +499,6 @@ describe("autoSaveAssets", () => {
     const optsBig = saveOpts();
     await autoSaveAssets({ big: 10n }, optsBig);
     expect(await assetsForJob(optsBig.jobId)).toHaveLength(0);
-  });
-
-  it("reports the configured asset storage path", () => {
-    expect(getAssetStoragePath()).toBe(process.env.ASSET_FOLDER);
   });
 
   it("swallows storage failures on every persistence branch instead of throwing", async () => {

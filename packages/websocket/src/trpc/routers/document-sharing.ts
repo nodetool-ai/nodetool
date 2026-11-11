@@ -10,6 +10,7 @@
  *   get                (query)    — collaborators and links (owner)
  *   createLink         (mutation) — mint or reuse the active link for a role
  *   revokeLink         (mutation) — stop new redemptions of a link
+ *   invite             (mutation) — give a directory account access by name
  *   setRole            (mutation) — change a collaborator's role
  *   removeCollaborator (mutation) — owner removes anyone, a collaborator leaves
  *   accept             (mutation) — redeem a link into a grant
@@ -32,6 +33,7 @@ import {
   documentSharingRemoveCollaboratorInput,
   documentSharingRevokeLinkInput,
   documentSharingSetRoleInput,
+  documentSharingInviteInput,
   documentShareItem,
   documentCollaboratorItem,
   type SharedDocumentItem
@@ -45,6 +47,8 @@ import {
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { requirePermission } from "../../lib/permissions.js";
+import { requireInvitee, withPersonNames } from "../../lib/people.js";
 
 const NOT_FOUND = "Document not found";
 
@@ -108,7 +112,9 @@ export const documentSharingRouter = router({
         DocumentShare.listForDocument(input.type, document.id)
       ]);
       return {
-        collaborators: collaborators.map(toCollaboratorItem),
+        collaborators: await withPersonNames(
+          collaborators.map(toCollaboratorItem)
+        ),
         shares: shares.map(toShareItem)
       };
     }),
@@ -118,6 +124,7 @@ export const documentSharingRouter = router({
     .output(documentShareItem)
     .mutation(async ({ ctx, input }) => {
       const document = await requireOwner(input.type, input.id, ctx.userId);
+      await requirePermission(ctx.userId, "share_links");
       const share = await DocumentShare.ensure({
         documentType: input.type,
         documentId: document.id,
@@ -145,6 +152,30 @@ export const documentSharingRouter = router({
       }
       if (!share.isRevoked) await share.revoke();
       return { ok: true as const };
+    }),
+
+  // Inviting someone who already has access sets their role.
+  invite: protectedProcedure
+    .input(documentSharingInviteInput)
+    .output(documentCollaboratorItem)
+    .mutation(async ({ ctx, input }) => {
+      const document = await requireOwner(input.type, input.id, ctx.userId);
+      await requirePermission(ctx.userId, "share_links");
+      await requireInvitee(ctx.userId, input.user_id);
+      const grant = await DocumentCollaborator.upsert({
+        documentType: input.type,
+        documentId: document.id,
+        userId: input.user_id,
+        role: input.role,
+        invitedBy: ctx.userId
+      });
+      if (grant.role !== input.role) {
+        grant.role = input.role;
+        await grant.save();
+      }
+      invalidateSharedAssets(input.user_id);
+      const [item] = await withPersonNames([toCollaboratorItem(grant)]);
+      return item;
     }),
 
   setRole: protectedProcedure

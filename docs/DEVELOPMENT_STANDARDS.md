@@ -271,8 +271,11 @@ covers the correctness- and security-critical packages: `agents`, `auth`,
   records each function's hash and each mutant's outcome, so the next run
   reruns only survivors and functions whose text changed.
 - `Mutation Testing` runs weekly and reports the score per package.
-  `Mutation Testing (changed functions)` runs on pull requests and lists
-  survivors in the functions the PR adds or rewrites. Both are advisory.
+  `Mutation Testing (merged changes)` runs daily and lists survivors in the
+  functions that commits merged to `main` since its last successful scheduled
+  run add or rewrite. Pull requests do not run mutation testing. To check a
+  branch before merging, run `npm run mutate -- --base origin/main <paths>`.
+  Both workflows are advisory.
 - **Excluded:** integration-heavy packages like `websocket` are intentionally
   not mutation-tested (their value is in end-to-end/contract tests). Revisit if
   pure-logic modules there grow.
@@ -610,6 +613,28 @@ The mechanisms that make the above stick:
 If a rule is not yet enforced by tooling, it is enforced by review. Reviewers should reject PRs that violate documented standards; if a standard is impractical, change the standard with a PR rather than ignoring it.
 
 ---
+
+## 23. Native Qt UI
+
+Qt Quick presentation follows the
+[native design specification](../native/ui_primitives/DESIGN.md) and uses
+`NodeTool.UiPrimitives`. Native configuration, fonts, icons, and build tooling
+are owned under `native/`. React retains its separate configuration and
+implementation. Neither implementation imports or generates the other's
+presentation configuration.
+
+Feature code supplies content, state, actions, and outer layout. Primitives
+own typography, internal spacing, colors, borders, focus, disabled states,
+and feedback. Keep editor geometry, document colors, networking, persistence,
+and undo policy with their features. Structural Qt layout items remain valid
+feature composition tools.
+
+Preserve editing transactions and existing inspector behavior during
+extraction. Changes to cancellation or focus-loss behavior require interaction
+and undo tests. Follow the [native verification commands](../native/ui_primitives/README.md)
+for the standalone module, isolated builds, design checks, and affected hosts.
+Run GUI checks offscreen. Report platform accessibility and rendering checks
+separately from local automated results.
 
 ## Related Documents
 

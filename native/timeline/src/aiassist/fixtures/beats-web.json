@@ -1,0 +1,784 @@
+{
+  "cases": [
+    {
+      "name": "placeholder",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "voice",
+            "name": "Voiceover",
+            "type": "audio",
+            "index": 0,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "music",
+            "name": "Music",
+            "type": "audio",
+            "index": 1,
+            "visible": true,
+            "locked": false
+          }
+        ],
+        "clips": [
+          {
+            "id": "one",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 200,
+            "durationMs": 1000,
+            "prompt": "First",
+            "status": "generated",
+            "currentAssetId": "old"
+          },
+          {
+            "id": "recording",
+            "trackId": "voice",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 1800,
+            "durationMs": 700,
+            "caption": {
+              "words": [
+                {
+                  "word": "recording",
+                  "startMs": 0,
+                  "endMs": 700
+                }
+              ]
+            }
+          },
+          {
+            "id": "two",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 2800,
+            "durationMs": 0,
+            "prompt": "Second",
+            "status": "draft"
+          },
+          {
+            "id": "music",
+            "trackId": "music",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 0,
+            "durationMs": 15000
+          }
+        ],
+        "durationMs": 15000,
+        "custom": "preserved"
+      },
+      "payload": {},
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "voice",
+            "name": "Voiceover",
+            "type": "audio",
+            "index": 0,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "music",
+            "name": "Music",
+            "type": "audio",
+            "index": 1,
+            "visible": true,
+            "locked": false
+          }
+        ],
+        "clips": [
+          {
+            "id": "one",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 200,
+            "durationMs": 1000,
+            "prompt": "First",
+            "status": "generated",
+            "currentAssetId": "old"
+          },
+          {
+            "id": "recording",
+            "trackId": "voice",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 1800,
+            "durationMs": 700,
+            "caption": {
+              "words": [
+                {
+                  "word": "recording",
+                  "startMs": 0,
+                  "endMs": 700
+                }
+              ]
+            }
+          },
+          {
+            "id": "two",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 2800,
+            "durationMs": 3000,
+            "prompt": "Second",
+            "status": "draft"
+          },
+          {
+            "id": "music",
+            "trackId": "music",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 0,
+            "durationMs": 15000
+          }
+        ],
+        "durationMs": 15000,
+        "custom": "preserved"
+      }
+    },
+    {
+      "name": "reorder",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "voice",
+            "name": "Voiceover",
+            "type": "audio",
+            "index": 0,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "music",
+            "name": "Music",
+            "type": "audio",
+            "index": 1,
+            "visible": true,
+            "locked": false
+          }
+        ],
+        "clips": [
+          {
+            "id": "one",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 200,
+            "durationMs": 1000,
+            "prompt": "First",
+            "status": "generated",
+            "currentAssetId": "old"
+          },
+          {
+            "id": "recording",
+            "trackId": "voice",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 1800,
+            "durationMs": 700,
+            "caption": {
+              "words": [
+                {
+                  "word": "recording",
+                  "startMs": 0,
+                  "endMs": 700
+                }
+              ]
+            }
+          },
+          {
+            "id": "two",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 2800,
+            "durationMs": 0,
+            "prompt": "Second",
+            "status": "draft"
+          },
+          {
+            "id": "music",
+            "trackId": "music",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 0,
+            "durationMs": 15000
+          }
+        ],
+        "durationMs": 15000,
+        "custom": "preserved"
+      },
+      "payload": {
+        "orderedClipIds": [
+          "two",
+          "one"
+        ]
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "voice",
+            "name": "Voiceover",
+            "type": "audio",
+            "index": 0,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "music",
+            "name": "Music",
+            "type": "audio",
+            "index": 1,
+            "visible": true,
+            "locked": false
+          }
+        ],
+        "clips": [
+          {
+            "id": "one",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 3500,
+            "durationMs": 1000,
+            "prompt": "First",
+            "status": "generated",
+            "currentAssetId": "old"
+          },
+          {
+            "id": "recording",
+            "trackId": "voice",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 5100,
+            "durationMs": 700,
+            "caption": {
+              "words": [
+                {
+                  "word": "recording",
+                  "startMs": 0,
+                  "endMs": 700
+                }
+              ]
+            }
+          },
+          {
+            "id": "two",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 300,
+            "durationMs": 3000,
+            "prompt": "Second",
+            "status": "draft"
+          },
+          {
+            "id": "music",
+            "trackId": "music",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 0,
+            "durationMs": 15000
+          }
+        ],
+        "durationMs": 15000,
+        "custom": "preserved"
+      }
+    },
+    {
+      "name": "duration",
+      "timeline": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "voice",
+            "name": "Voiceover",
+            "type": "audio",
+            "index": 0,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "music",
+            "name": "Music",
+            "type": "audio",
+            "index": 1,
+            "visible": true,
+            "locked": false
+          }
+        ],
+        "clips": [
+          {
+            "id": "one",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 200,
+            "durationMs": 2000,
+            "prompt": "First",
+            "status": "generated",
+            "currentAssetId": "old"
+          },
+          {
+            "id": "recording",
+            "trackId": "voice",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 1800,
+            "durationMs": 700,
+            "caption": {
+              "words": [
+                {
+                  "word": "recording",
+                  "startMs": 0,
+                  "endMs": 700
+                }
+              ]
+            }
+          },
+          {
+            "id": "two",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 2800,
+            "durationMs": 0,
+            "prompt": "Second",
+            "status": "draft"
+          },
+          {
+            "id": "music",
+            "trackId": "music",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 0,
+            "durationMs": 15000
+          }
+        ],
+        "durationMs": 15000,
+        "custom": "preserved"
+      },
+      "payload": {
+        "previousDurations": {
+          "one": 1000
+        }
+      },
+      "expected": {
+        "id": "timeline",
+        "tracks": [
+          {
+            "id": "voice",
+            "name": "Voiceover",
+            "type": "audio",
+            "index": 0,
+            "visible": true,
+            "locked": false
+          },
+          {
+            "id": "music",
+            "name": "Music",
+            "type": "audio",
+            "index": 1,
+            "visible": true,
+            "locked": false
+          }
+        ],
+        "clips": [
+          {
+            "id": "one",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 200,
+            "durationMs": 2000,
+            "prompt": "First",
+            "status": "generated",
+            "currentAssetId": "old"
+          },
+          {
+            "id": "recording",
+            "trackId": "voice",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 2800,
+            "durationMs": 700,
+            "caption": {
+              "words": [
+                {
+                  "word": "recording",
+                  "startMs": 0,
+                  "endMs": 700
+                }
+              ]
+            }
+          },
+          {
+            "id": "two",
+            "trackId": "voice",
+            "bindingKind": "text-to-audio",
+            "mediaType": "audio",
+            "sourceType": "generated",
+            "startMs": 3800,
+            "durationMs": 3000,
+            "prompt": "Second",
+            "status": "draft"
+          },
+          {
+            "id": "music",
+            "trackId": "music",
+            "mediaType": "audio",
+            "sourceType": "imported",
+            "startMs": 0,
+            "durationMs": 15000
+          }
+        ],
+        "durationMs": 15000,
+        "custom": "preserved"
+      }
+    }
+  ],
+  "added": {
+    "timeline": {
+      "id": "timeline",
+      "tracks": [
+        {
+          "id": "voice",
+          "name": "Voiceover",
+          "type": "audio",
+          "index": 0,
+          "visible": true,
+          "locked": false
+        },
+        {
+          "id": "music",
+          "name": "Music",
+          "type": "audio",
+          "index": 1,
+          "visible": true,
+          "locked": false
+        }
+      ],
+      "clips": [
+        {
+          "id": "one",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 200,
+          "durationMs": 1000,
+          "prompt": "First",
+          "status": "generated",
+          "currentAssetId": "old"
+        },
+        {
+          "id": "recording",
+          "trackId": "voice",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 1800,
+          "durationMs": 700,
+          "caption": {
+            "words": [
+              {
+                "word": "recording",
+                "startMs": 0,
+                "endMs": 700
+              }
+            ]
+          }
+        },
+        {
+          "id": "two",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 2800,
+          "durationMs": 0,
+          "prompt": "Second",
+          "status": "draft"
+        },
+        {
+          "id": "music",
+          "trackId": "music",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 0,
+          "durationMs": 15000
+        }
+      ],
+      "durationMs": 15000,
+      "custom": "preserved"
+    },
+    "payload": {
+      "id": "new-beat",
+      "text": " Appended words ",
+      "provider": "openai",
+      "model": "tts-1",
+      "voice": "alloy"
+    },
+    "expected": {
+      "id": "timeline",
+      "tracks": [
+        {
+          "id": "voice",
+          "name": "Voiceover",
+          "type": "audio",
+          "index": 0,
+          "visible": true,
+          "locked": false
+        },
+        {
+          "id": "music",
+          "name": "Music",
+          "type": "audio",
+          "index": 1,
+          "visible": true,
+          "locked": false
+        }
+      ],
+      "clips": [
+        {
+          "id": "one",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 200,
+          "durationMs": 1000,
+          "prompt": "First",
+          "status": "generated",
+          "currentAssetId": "old"
+        },
+        {
+          "id": "recording",
+          "trackId": "voice",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 1800,
+          "durationMs": 700,
+          "caption": {
+            "words": [
+              {
+                "word": "recording",
+                "startMs": 0,
+                "endMs": 700
+              }
+            ]
+          }
+        },
+        {
+          "id": "two",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 2800,
+          "durationMs": 3000,
+          "prompt": "Second",
+          "status": "draft"
+        },
+        {
+          "id": "music",
+          "trackId": "music",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 0,
+          "durationMs": 15000
+        },
+        {
+          "id": "new-beat",
+          "trackId": "voice",
+          "name": "Appended words",
+          "startMs": 2800,
+          "durationMs": 3000,
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "status": "draft",
+          "locked": false,
+          "versions": [],
+          "paragraphId": "new-beat",
+          "bindingKind": "text-to-audio",
+          "prompt": " Appended words ",
+          "provider": "openai",
+          "model": "tts-1",
+          "voice": "alloy"
+        }
+      ],
+      "durationMs": 15000,
+      "custom": "preserved"
+    }
+  },
+  "deleted": {
+    "timeline": {
+      "id": "timeline",
+      "tracks": [
+        {
+          "id": "voice",
+          "name": "Voiceover",
+          "type": "audio",
+          "index": 0,
+          "visible": true,
+          "locked": false
+        },
+        {
+          "id": "music",
+          "name": "Music",
+          "type": "audio",
+          "index": 1,
+          "visible": true,
+          "locked": false
+        }
+      ],
+      "clips": [
+        {
+          "id": "one",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 200,
+          "durationMs": 1000,
+          "prompt": "First",
+          "status": "generated",
+          "currentAssetId": "old"
+        },
+        {
+          "id": "recording",
+          "trackId": "voice",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 1800,
+          "durationMs": 700,
+          "caption": {
+            "words": [
+              {
+                "word": "recording",
+                "startMs": 0,
+                "endMs": 700
+              }
+            ]
+          }
+        },
+        {
+          "id": "two",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 2800,
+          "durationMs": 0,
+          "prompt": "Second",
+          "status": "draft"
+        },
+        {
+          "id": "music",
+          "trackId": "music",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 0,
+          "durationMs": 15000
+        }
+      ],
+      "durationMs": 15000,
+      "custom": "preserved"
+    },
+    "payload": {
+      "clipIds": [
+        "recording"
+      ]
+    },
+    "expected": {
+      "id": "timeline",
+      "tracks": [
+        {
+          "id": "voice",
+          "name": "Voiceover",
+          "type": "audio",
+          "index": 0,
+          "visible": true,
+          "locked": false
+        },
+        {
+          "id": "music",
+          "name": "Music",
+          "type": "audio",
+          "index": 1,
+          "visible": true,
+          "locked": false
+        }
+      ],
+      "clips": [
+        {
+          "id": "one",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 200,
+          "durationMs": 1000,
+          "prompt": "First",
+          "status": "generated",
+          "currentAssetId": "old"
+        },
+        {
+          "id": "two",
+          "trackId": "voice",
+          "bindingKind": "text-to-audio",
+          "mediaType": "audio",
+          "sourceType": "generated",
+          "startMs": 2100,
+          "durationMs": 0,
+          "prompt": "Second",
+          "status": "draft"
+        },
+        {
+          "id": "music",
+          "trackId": "music",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 0,
+          "durationMs": 1800,
+          "inPointMs": 0,
+          "outPointMs": 1800
+        },
+        {
+          "id": "generated-0",
+          "trackId": "music",
+          "mediaType": "audio",
+          "sourceType": "imported",
+          "startMs": 1800,
+          "durationMs": 12500,
+          "inPointMs": 2500,
+          "outPointMs": 15000
+        }
+      ],
+      "durationMs": 14300,
+      "custom": "preserved"
+    }
+  }
+}

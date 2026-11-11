@@ -105,6 +105,7 @@ const EntityPickCard: React.FC<{
         >
           <ImageRefPreview
             value={entity.reference_images?.[0]}
+            preferThumbnail
             placeholder={
               <FlexRow
                 align="center"

@@ -38,6 +38,64 @@ const fakeAuthWindow = () =>
   });
 
 describe("useOAuthConnection", () => {
+  it("stops waiting as soon as the backend reports a callback failure", async () => {
+    mockRestFetch.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/start")) {
+        return jsonResponse({ auth_url: "https://example.com/auth?state=failed-login" });
+      }
+      if (url.endsWith("/status")) {
+        return jsonResponse({ status: "failed" });
+      }
+      return jsonResponse({ tokens: [] });
+    });
+    const { result } = renderHook(() => useOAuthConnection("openai"), { wrapper: createWrapper() });
+    await act(async () => { await result.current.connect(); });
+    await waitFor(() => expect(result.current.isConnecting).toBe(false));
+    expect(mockAddNotification).toHaveBeenCalledWith(expect.objectContaining({
+      content: "Sign-in failed. Please try again.", type: "error"
+    }));
+  });
+
+  it("stops waiting and closes the Codex callback when cancelled", async () => {
+    mockRestFetch.mockImplementation(async (input) => jsonResponse(
+      String(input).endsWith("/start")
+        ? { auth_url: "https://example.com/auth?state=pending-login", redirect_uri: "http://localhost:1455/auth/callback?code=private&state=private#private" }
+        : { tokens: [] }
+    ));
+    const { result } = renderHook(() => useOAuthConnection("openai"), {
+      wrapper: createWrapper()
+    });
+    await act(async () => { await result.current.connect(); });
+    expect(result.current.isConnecting).toBe(true);
+    expect(result.current.callbackUrl).toBe("http://localhost:1455/auth/callback");
+    await act(async () => { result.current.cancelManual(); });
+    expect(result.current.callbackUrl).toBeNull();
+    expect(result.current.isConnecting).toBe(false);
+    expect(mockRestFetch).toHaveBeenCalledWith("/api/oauth/openai/cancel", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ state: "pending-login" })
+    });
+  });
+
+  it("stops waiting when the local callback expires", async () => {
+    jest.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useOAuthConnection("openai"), {
+        wrapper: createWrapper()
+      });
+      await act(async () => { await result.current.connect(); });
+      await act(async () => { jest.advanceTimersByTime(5 * 60 * 1000); });
+      expect(result.current.isConnecting).toBe(false);
+      expect(mockAddNotification).toHaveBeenCalledWith(expect.objectContaining({
+        content: "Sign-in timed out. Please try again."
+      }));
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(window, "open").mockReturnValue(fakeAuthWindow());

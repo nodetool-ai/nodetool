@@ -6,13 +6,15 @@ description: "Create, query, and run NodeTool workflows over the Editor and Serv
 
 
 
-NodeTool exposes workflow REST endpoints under `/api/workflows` from a single server (`nodetool serve`):
-`/api/workflows` for CRUD and query operations, and `POST /api/workflows/{id}/run` to run a workflow.
+Workflow REST endpoints live under `/api/workflows` on the server started by `nodetool serve`.
 
-This page collects the basics from the project README. See [API Reference](api-reference.md) for
-the canonical endpoint list and auth requirements. Send `Authorization: Bearer <token>` on every
-request except the public routes noted below. A server in Local mode trusts loopback callers without a
-token, and a server in Supabase mode requires one for everything else. See [Authentication](authentication.md).
+```bash
+curl "http://localhost:7777/api/workflows/<workflow_id>/run" \
+  -H "Authorization: Bearer YOUR_TOKEN" -H "Content-Type: application/json" \
+  -d '{"params": {"param_name": "param_value"}}'
+```
+
+See [API Reference](api-reference.md) for the full endpoint list and auth requirements. Send `Authorization: Bearer <token>` on every request except the public routes noted below. A server in Local mode trusts loopback callers without a token, and a server in Supabase mode requires one for everything else. See [Authentication](authentication.md).
 
 ## Loading Workflows
 
@@ -120,10 +122,7 @@ const body = await response.json();
 // outputs values can be a string, image, audio, etc.
 ```
 
-`POST /api/workflows/{id}/run` runs the workflow to completion and returns a
-single JSON response — it does not stream. For real-time progress (job and node
-updates, incremental output), run the workflow over the WebSocket endpoint
-instead.
+`POST /api/workflows/{id}/run` runs the workflow to completion and returns one JSON response. It does not stream. For job and node updates and incremental output, use the WebSocket endpoint.
 
 The body is optional. Its fields:
 
@@ -148,6 +147,7 @@ Failures before the run starts:
 |---|---|
 | `404` | The caller has no workflow with that id |
 | `400` | The workflow's `run_mode` is not `"workflow"`, a provider the graph needs has no key (the detail names the secret), `project_id` names another project, `node_ids` is not a non-empty list of strings or names a node the graph does not have, or `reuse_results` is not a boolean |
+| `424` | The graph uses a node pack that is not installed. `detail` is `{ "kind": "missing_pack", ... }` with the pack ids and install guidance |
 | `429` | An interactive run was refused because the caller already holds the maximum of 8 live debug sessions |
 
 ### Running Part of a Workflow
@@ -183,8 +183,7 @@ is `200` with `status: "failed"` and an `error` string.
 
 ## Listing Names and Tools
 
-Two lightweight `GET` routes answer "what workflows exist?" without paying for
-full graphs. Both read the caller's own library, so both stay behind auth.
+Two `GET` routes list workflows without full graphs. Both read the caller's own library and require auth.
 
 `GET /api/workflows/names` returns an id → name object for up to 1000 of the
 caller's workflows. Use it to label a workflow id you already hold — a job
@@ -316,6 +315,23 @@ curl "http://localhost:7777/api/workflows/examples/thumbnails/A%20Boolean%20Cons
 Only `.jpg` and `.png` are served — any other extension is a `400` — and the
 filename is reduced to its basename, so it cannot escape the examples assets
 directory.
+
+## Errors
+
+REST errors carry `{ "detail": "<message>" }`. Auth failures carry `{ "error": "<message>" }`.
+
+| Status | Body | Cause |
+|---|---|---|
+| `401` | `{ "error": "Remote access requires authentication" }` | No token or an unrecognized token on a server with a static token or API users. Supabase and OIDC servers answer `{ "error": "Unauthorized" }` for a missing token |
+| `403` | `{ "detail": "Your account is not allowed to share publicly. Ask an admin if you need it." }` | Saving `access: "public"` without the `share_public` permission |
+| `400` | `{ "detail": "Invalid JSON body" }` | The body is not JSON or fails the workflow schema |
+| `400` | `{ "detail": "graph is required and must have nodes and edges arrays" }` | `graph` is missing or lacks a `nodes` or `edges` array on create or update |
+| `404` | `{ "detail": "Workflow not found" }` | The workflow does not exist or the caller cannot read it. Debug and export routes may append the id |
+| `409` | `{ "detail": "Workflow was modified since last read (optimistic concurrency conflict)" }` | `expected_updated_at` is stale. Reread, merge, and save again |
+| `424` | `{ "detail": { "kind": "missing_pack", ... } }` | A run needs a node pack that is not installed |
+| `405` | `{ "detail": "Method not allowed" }` | Unsupported method on the route |
+
+A node failure during a run is not an HTTP error. See [Running a Workflow](#running-a-workflow).
 
 ## WebSocket API
 

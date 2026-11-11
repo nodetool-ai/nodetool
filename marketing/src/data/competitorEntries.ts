@@ -5,9 +5,9 @@ import type { LandingPage } from "../lib/analytics";
 
 /**
  * Comparison page-data contract, consumed by the `/alternatives/*` route. One
- * competitor record drives one page: a limitation intro, a short tool list, the
- * head-to-head at-a-glance cards, the feature table, the explainer, and a
- * visible FAQ. It drove two near-identical templates until 2026-08-10, when the
+ * competitor record drives one page: a short answer over the one feature table,
+ * the product stages, a "when the other tool is better" paragraph, a short
+ * tool list, and a visible FAQ (site-editorial.spec.md § Comparison pages). It drove two near-identical templates until 2026-08-10, when the
  * `/vs/<slug>` twin was folded in (see `alternativesEntries` below).
  *
  * The six original competitors (comfyui, weavy, langflow, n8n, flowise, dify)
@@ -116,25 +116,13 @@ export type Competitor = {
   // --- OG card (the /alternatives opengraph-image route reads this) ---
   og: { image: string; accent: OgAccent; subtitle: string };
 
-  /**
-   * Lead paragraph for the at-a-glance section: why this comparison comes up.
-   * Was the /vs hero paragraph before that page was folded in.
-   */
-  heroParagraph: string;
-
-  // --- at-a-glance cards ---
+  /** Used by the short answer above the comparison table, e.g. "Node editor for image and video generation". */
   competitorTagline: string;
-  competitorBullets: string[];
-  /** "negative" renders the competitor bullets with a minus icon (lock-in framing). */
-  competitorBulletTone?: "neutral" | "negative";
-  nodetoolTagline: string;
-  nodetoolBullets: string[];
 
   // --- feature table ---
   rows: FeatureRow[];
 
-  // --- explainer ---
-  explainerHeading: string;
+  /** When to choose the other tool. Shown under "When <name> is the better choice". */
   explainerParagraph: string;
 
   // --- closing CTA ---
@@ -161,6 +149,9 @@ export type Competitor = {
 
   /** Hero headline and subline, when the category default in `alternativesVisuals.ts` does not fit. */
   hero?: { headline: string; subline: string };
+
+  /** The short answer above the table, when the generic one in `shortAnswer` would only repeat the hero. */
+  answer?: string;
 
   /** Optional search snippet for pages with a distinct, high-volume query intent. */
   seo?: { title: string; description: string };
@@ -208,21 +199,7 @@ export const competitors: Competitor[] = [
       { title: "Higgsfield plans", href: "https://higgsfield.ai/pricing" },
       { title: "Higgsfield subscription and credit terms", href: "https://higgsfield.ai/terms-of-use-agreement" },
     ],
-    heroParagraph: "Higgsfield wraps third-party video and image models — Veo 3.1, Kling 3.0, Seedance 2.0, Wan 2.6, Nano Banana Pro, Flux.2 — in one-click camera, character, lipsync, and ad presets billed in monthly credits. NodeTool gives you the same models plus Sora 2, Runway Gen-4, Luma Ray, and local Wan/Flux inside an AGPL-3.0 desktop and self-hosted studio where every preset is an editable workflow and a multi-track timeline.",
     competitorTagline: "Hosted preset studio for AI video, characters, and ads",
-    competitorBullets: [
-      "Cinema Studio (70+ camera presets), Soul ID characters, Lipsync, and Marketing Studio",
-      "Monthly subscription credits that expire at the end of each billing cycle",
-      "Unlimited promos apply only on the web UI; API, MCP, and CLI runs burn credits and ban automated scraping",
-      "Fixed preset forms with a basic timeline and peak-hour generation queues",
-    ],
-    nodetoolTagline: "Open-source studio where every preset is an editable workflow",
-    nodetoolBullets: [
-      "Camera Move, Effects, Character, Ad, and Lipsync template packs you can open and rewire",
-      "Pay fal, Replicate, Google, or OpenAI at list price — or bring your Higgsfield API key through the provider pack",
-      "Full multi-track timeline editor with J/K/L shuttle, captions, keyframe animation, and ducking",
-      "Batch 50 ad variants overnight via ForEach, CLI, or Claude Code MCP with no automation ban and local models at $0",
-    ],
     rows: [
       { label: "License & source", competitor: "Proprietary SaaS", nodetool: "AGPL-3.0 open source on GitHub" },
       { label: "Where it runs", competitor: "Browser only (Higgsfield cloud)", nodetool: "macOS, Windows, Linux desktop, Docker self-host, or Cloud alpha" },
@@ -289,7 +266,6 @@ export const competitors: Competitor[] = [
       ],
       footnote: "Higgsfield subsidizes some models (such as Nano Banana Pro and Kling 3.0) inside its subscription tiers, while direct provider keys cost less on Veo 3.1 Fast and Wan, never expire between shoots, and run local models at $0.",
     },
-    explainerHeading: "Where Higgsfield wins, where NodeTool wins, and how to use both",
     explainerParagraph: "Higgsfield is built for speed on a single clip: pick a Cinema Studio preset, spend subscription credits, and download an MP4. It even subsidizes Nano Banana Pro and Kling 3.0 inside its Pro plan. NodeTool is built for creators and production teams who want to own the pipeline: every camera move, character sheet, lipsync pass, and URL-to-ad template opens as a graph you can edit, batch across 50 SKUs, cut on a multi-track timeline, or run locally at $0. And you do not have to choose between their models and your workflow — NodeTool ships a Higgsfield provider pack covering 80 Higgsfield API endpoints (including Soul 2 and Cinema Studio), so you can call Higgsfield inside a NodeTool graph alongside fal, Replicate, OpenAI, and local models.",
     ctaHeading: "Open the Camera Move template and inspect every node.",
     ctaParagraph: "Download Studio for macOS, Windows, or Linux, connect your provider key or local model, and run your first shot.",
@@ -326,11 +302,7 @@ export const competitors: Competitor[] = [
       { title: "OpenArt creative tools", href: "https://openart.ai/" },
       { title: "OpenArt plans", href: "https://openart.ai/pricing" },
     ],
-    heroParagraph: "OpenArt combines image editing, character creation, and video generation with Director for conversational shot planning. Its plans include generation credits and MCP access. NodeTool keeps agents, media workflows, and editing surfaces in an open-source workspace, with models called through accounts you connect.",
     competitorTagline: "Hosted image, video, and audio creation studio",
-    competitorBullets: ["Director for conversational video creation", "Reusable characters and image editing", "Image, video, and audio models", "Credit-based plans with MCP access"],
-    nodetoolTagline: "A saved workflow you can inspect and rerun",
-    nodetoolBullets: ["Agents, canvas, storyboard, and timeline", "Separate prompts and generated outputs", "Your provider accounts and local models", "Free open-source Studio or self-hosting"],
     rows: [
       { label: "Video direction", competitor: "OpenArt Director", nodetool: "Agents and editable storyboards" },
       { label: "Media", competitor: "Image, video, voice, and audio tools", nodetool: "Image, video, audio, and text workflows" },
@@ -338,7 +310,6 @@ export const competitors: Competitor[] = [
       { label: "Model billing", competitor: "Subscription allowances and credits", nodetool: "Your connected provider accounts" },
       { label: "Workspace deployment", competitor: "OpenArt hosted studio", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Managed creation or control of the graph",
     explainerParagraph: "OpenArt fits creators who want its character library, editing tools, and Director in a managed service. NodeTool fits projects that need inspectable steps, local execution, or provider accounts controlled by the creator. Both offer agent integrations. The distinction is how the project and generation costs are managed.",
     ctaHeading: "Keep the prompt beside the image.",
     ctaParagraph: "Try a starter that exposes the written prompt and generated image as separate outputs.",
@@ -362,11 +333,7 @@ export const competitors: Competitor[] = [
       { title: "LTX Studio production tools", href: "https://ltx.io/studio" },
       { title: "LTX Studio plans and Flows", href: "https://ltx.io/studio/pricing" },
     ],
-    heroParagraph: "LTX Studio combines storyboards, reusable Elements, timeline editing, and sound design. Its plans also list Flows for node-based automation. NodeTool brings a workflow canvas, storyboard, script, and timeline into an open-source workspace. The choice is between LTX's managed production tools and a workspace you run with your own provider accounts.",
     competitorTagline: "Hosted AI video production workspace",
-    competitorBullets: ["Dynamic storyboards and timeline editing", "Reusable characters, objects, and locations", "Sound design and node-based Flows", "Credit-based generation plans"],
-    nodetoolTagline: "An open-source workspace for the production graph",
-    nodetoolBullets: ["Workflow canvas with storyboard and timeline", "Agent-authored plans remain editable", "Connect your own generation providers", "Studio and self-hosted deployment"],
     rows: [
       { label: "Production planning", competitor: "Dynamic Storyboard and Elements", nodetool: "Scripts, entities, and storyboards" },
       { label: "Editing", competitor: "Timeline Editor and Sound Design", nodetool: "Timeline, audio, and sketch editors" },
@@ -374,7 +341,6 @@ export const competitors: Competitor[] = [
       { label: "Model billing", competitor: "Generation credits", nodetool: "Your connected provider accounts" },
       { label: "Workspace deployment", competitor: "Hosted LTX Studio", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Compare the whole project, including the workflow",
     explainerParagraph: "LTX Studio already offers planning, editing, and node-based automation. Choose it when that managed production environment suits the team. NodeTool fits when deployment, direct provider accounts, or mixing media and data in the same workflow matters. Model settings and generation quality remain specific to the provider you select.",
     ctaHeading: "Follow the brief through every step.",
     ctaParagraph: "Inspect a trailer graph and begin with one shot before increasing generation spend.",
@@ -402,11 +368,7 @@ export const competitors: Competitor[] = [
       { title: "Google Flow models and supported features", href: "https://support.google.com/flow/answer/16352836?hl=en" },
       { title: "Google Flow credits", href: "https://support.google.com/flow/answer/16526234?hl=en" },
     ],
-    heroParagraph: "Google Flow brings Google's image and video models into a creative workspace with an agent, reference-driven generation, and scene tools. NodeTool combines scripts, entities, storyboards, and a timeline with an editable workflow canvas. Compare the production controls you need and whether you want a Google-managed workspace or a workspace running on your own infrastructure.",
     competitorTagline: "Creative studio for connected film scenes",
-    competitorBullets: ["Google image and video models", "Creative agent and custom tools", "Reference frames, ingredients, and clip extension", "Hosted generation using Google Flow credits"],
-    nodetoolTagline: "A production workspace with an inspectable graph",
-    nodetoolBullets: ["Scripts, entities, storyboards, and timeline", "Agents operate editable project surfaces", "Mix supported generation providers", "Free Studio or self-hosted deployment"],
     rows: [
       { label: "Film planning", competitor: "Creative agent and scene-building tools", nodetool: "Scripts, entities, and editable storyboards" },
       { label: "Shot references", competitor: "Frames and ingredients, depending on model", nodetool: "Reference inputs supported by the selected node" },
@@ -414,7 +376,6 @@ export const competitors: Competitor[] = [
       { label: "Generation billing", competitor: "Google Flow or AI credits", nodetool: "Your connected provider accounts" },
       { label: "Workspace deployment", competitor: "Google-hosted service", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Choose the workspace as well as the model",
     explainerParagraph: "Google Flow fits filmmakers who want Google's generation and scene controls together. NodeTool fits productions that need a saved graph, direct provider accounts, or self-hosting. A model accessed through NodeTool does not bring the Google Flow interface with it. Review reference support, audio, and extension controls for each model before committing to a sequence.",
     ctaHeading: "Make the first shot a visible workflow.",
     ctaParagraph: "Inspect the trailer starter's direction, keyframe, and video stages before running a one-shot test.",
@@ -441,11 +402,7 @@ export const competitors: Competitor[] = [
       { title: "Artlist Studio production features", href: "https://artlist.io/studio" },
       { title: "Artlist AI Toolkit agent", href: "https://help.artlist.io/hc/en-us/articles/35805602922269-AI-Toolkit-AI-Agent" },
     ],
-    heroParagraph: "Artlist Studio organizes AI production around casting, locations, composition, and shot direction. Its prompt tags reuse characters and locations across scenes, while the AI Toolkit adds conversational generation. NodeTool brings reusable entities, storyboards, and a timeline beside the workflow graph, with generation billed through the provider accounts you connect.",
     competitorTagline: "Hosted production studio with casting and shot direction",
-    competitorBullets: ["Character and location capture", "Reusable prompt tags across scenes", "Composition, lensing, and shot controls", "AI Toolkit with conversational generation"],
-    nodetoolTagline: "Production steps you can edit and run yourself",
-    nodetoolBullets: ["Reusable entities and shot storyboards", "Workflow canvas and timeline editing", "Inspect prompts and intermediate outputs", "Own provider accounts and self-hosting"],
     rows: [
       { label: "Cast and locations", competitor: "Capture elements and reuse prompt tags", nodetool: "Entity library and storyboard casting" },
       { label: "Shot direction", competitor: "Dedicated composition and cinematic controls", nodetool: "Storyboard direction and model-specific node inputs" },
@@ -453,7 +410,6 @@ export const competitors: Competitor[] = [
       { label: "Model billing", competitor: "Artlist AI plan credits", nodetool: "Your connected provider accounts" },
       { label: "Workspace deployment", competitor: "Hosted Artlist Studio", nodetool: "Free Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Compare the shot controls with the pipeline controls",
     explainerParagraph: "Artlist Studio is a focused option when its casting and framing controls suit your film. NodeTool fits when you want to change the production graph or run the workspace yourself. The tools can also serve different stages of a project. Review outputs and licensing for the actual models and assets you use.",
     ctaHeading: "Keep the production graph beside the footage.",
     ctaParagraph: "Open the trailer starter and inspect each generation stage before increasing the shot count.",
@@ -480,11 +436,7 @@ export const competitors: Competitor[] = [
       { title: "Invideo filmmaking agents", href: "https://invideo.io/make/ai-filmmaking/" },
       { title: "Invideo agentic timeline editor and exports", href: "https://invideo.io/make/agentic-video-editor/" },
     ],
-    heroParagraph: "Invideo's filmmaking agents break down scripts, develop characters and locations, and generate shots using shared project context. Its browser editor keeps agent edits on an editable timeline and supports handoff to other editing tools. NodeTool also combines agents and editing, with an open-source workspace and a workflow canvas you can run on your own infrastructure.",
     competitorTagline: "Browser filmmaking platform with production agents",
-    competitorBullets: ["Script breakdown, casting, and storyboards", "Shared production context and specialist agents", "Editable timeline with color and audio tools", "Editable project exports to other editors"],
-    nodetoolTagline: "Agents and production graphs in an open-source workspace",
-    nodetoolBullets: ["Scripts, entities, storyboards, and timeline", "Inspect and change the generation graph", "Use supported local or remote models", "Studio and self-hosted deployment"],
     rows: [
       { label: "Film planning", competitor: "Production agents with persistent project context", nodetool: "Agents, scripts, entities, and storyboards" },
       { label: "Manual editing", competitor: "Browser timeline with color and audio tools", nodetool: "Timeline, audio, and sketch editors" },
@@ -492,7 +444,6 @@ export const competitors: Competitor[] = [
       { label: "Workflow visibility", competitor: "Agent tasks and editable timeline", nodetool: "Agent tools, editable node graphs, and project editors" },
       { label: "Workspace deployment", competitor: "Invideo-hosted browser workspace", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Both platforms let you direct and revise",
     explainerParagraph: "Invideo is a strong fit when you want its managed production agents and browser editing environment. NodeTool fits when the saved workflow graph, direct provider accounts, or deployment control matters. Invideo's documented editor handoff is a separate consideration from NodeTool's workflow export. Check the deliverables your finishing process needs.",
     ctaHeading: "Make the brief and generation stages inspectable.",
     ctaParagraph: "Try a short trailer graph and review its outputs before expanding the production.",
@@ -519,11 +470,7 @@ export const competitors: Competitor[] = [
       { title: "Katalist script, storyboard, and production tools", href: "https://www.katalist.ai/" },
       { title: "Katalist short-film storyboarding guide", href: "https://www.katalist.ai/how-to-storyboard/short-film" },
     ],
-    heroParagraph: "Katalist turns a script into shots and storyboards, with character references and framing controls before video generation. Its current focus also includes product swaps, voice changes, and advertising variations. NodeTool fits filmmakers who want scripts, reusable entities, storyboards, and generation steps in a workspace they can inspect and run themselves.",
     competitorTagline: "Script-to-video creative studio for storyboards and ads",
-    competitorBullets: ["Script breakdown into shots and storyboards", "Character references and shot refinement", "Product swaps and localized ad variations", "Hosted canvas for creation and export"],
-    nodetoolTagline: "A film project with editable generation steps",
-    nodetoolBullets: ["Script editor and reusable entity library", "Storyboard, workflow canvas, and timeline", "Choose supported models per stage", "Own provider accounts and open-source deployment"],
     rows: [
       { label: "Script planning", competitor: "Script-to-shot and storyboard workflow", nodetool: "Scripts and agent-authored storyboards" },
       { label: "Cast continuity", competitor: "Character references across shots", nodetool: "Reusable entities and reference assets" },
@@ -531,7 +478,6 @@ export const competitors: Competitor[] = [
       { label: "Generation control", competitor: "Refine shots in Katalist's hosted canvas", nodetool: "Inspect prompts, nodes, and intermediate outputs" },
       { label: "Workspace deployment", competitor: "Katalist-hosted studio", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Choose for the production you actually make",
     explainerParagraph: "Katalist's dedicated product-swap tools can suit agencies producing many ad variations. Its storyboarding also serves film planning. NodeTool fits when you need to build a broader media pipeline or retain control of the graph and provider accounts. Reference assets help guide both workflows, but review generated shots for continuity.",
     ctaHeading: "Take a logline through the generation graph.",
     ctaParagraph: "Inspect the trailer starter's prompts and models, then start with one shot.",
@@ -557,11 +503,7 @@ export const competitors: Competitor[] = [
     sources: [
       { title: "Storyboarder.ai features, exports, and plan details", href: "https://www.storyboarder.ai/" },
     ],
-    heroParagraph: "Storyboarder.ai focuses on pre-production: screenplay breakdown, shot lists, visual boards, animatics, and pitch decks. Its camera-angle and character tools help communicate a scene before production. NodeTool connects storyboard planning to editable generation graphs and a timeline, with agents and provider accounts inside an open-source workspace.",
     competitorTagline: "Film pre-production platform for boards and animatics",
-    competitorBullets: ["Script-to-shot-list and storyboard generation", "Character, location, and style references", "Camera-angle tools and video animatics", "PDF, MP4, and pitch-deck exports"],
-    nodetoolTagline: "Storyboard planning connected to editable workflows",
-    nodetoolBullets: ["Scripts, reusable entities, and storyboards", "Generation graphs and intermediate outputs", "Timeline and audio editing", "Studio or self-hosting with your own keys"],
     rows: [
       { label: "Pre-production", competitor: "Shot lists, storyboards, and animatics", nodetool: "Scripts, entities, and editable storyboards" },
       { label: "Camera tools", competitor: "Dedicated 3D camera-angle tool", nodetool: "Shot direction and model-specific controls" },
@@ -569,7 +511,6 @@ export const competitors: Competitor[] = [
       { label: "Generation billing", competitor: "Unlimited images on paid plans, separate video limits", nodetool: "Selected providers bill your accounts" },
       { label: "Workspace deployment", competitor: "Hosted Storyboarder.ai platform", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Pre-production package or a configurable production graph",
     explainerParagraph: "Storyboarder.ai is a focused choice for pitch decks, PDF boards, and animatic deliverables. NodeTool fits when you want storyboard decisions connected to a generation pipeline that you can inspect and rerun. Its trailer starter demonstrates that pipeline, rather than duplicating Storyboarder.ai's pitch-deck or camera-angle interface.",
     ctaHeading: "Inspect the steps after the shot plan.",
     ctaParagraph: "Review how the trailer starter turns a logline into direction, keyframes, and video.",
@@ -596,11 +537,7 @@ export const competitors: Competitor[] = [
       { title: "Story.com movie, storyboard, and editing products", href: "https://www.story.com/" },
       { title: "Story.com script-to-movie workflow", href: "https://www.story.com/explain/ai-movie-maker" },
     ],
-    heroParagraph: "Story.com brings script-to-movie generation, storyboarding, and an AI timeline editor into a hosted storytelling platform. Its Movie Agent helps with scenes and pacing, alongside voice and audio controls. NodeTool puts script, storyboard, entities, and timeline in an open-source workspace with an editable graph for the generation pipeline.",
     competitorTagline: "Hosted storytelling platform with an AI movie editor",
-    competitorBullets: ["Script-to-scene movie generation", "Visual storyboarding tools", "Timeline editor and AI Movie Agent", "Narration, dialogue, and voice generation"],
-    nodetoolTagline: "A story project with a workflow you can inspect",
-    nodetoolBullets: ["Script editor, storyboard, and entity library", "Agents work on editable project documents", "Inspect prompts and generation outputs", "Provider accounts and workspace deployment you control"],
     rows: [
       { label: "Story planning", competitor: "Script-to-movie and storyboarding products", nodetool: "Scripts, entities, and storyboards" },
       { label: "Film editing", competitor: "Timeline-based AI Studio", nodetool: "Timeline and audio editors" },
@@ -608,7 +545,6 @@ export const competitors: Competitor[] = [
       { label: "Generation pipeline", competitor: "Hosted movie and editing tools", nodetool: "Saved node graphs with intermediate outputs" },
       { label: "Workspace deployment", competitor: "Story.com-hosted platform", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Compare how revisions reach the final cut",
     explainerParagraph: "Story.com fits creators who want its movie generation and AI timeline editor together. NodeTool fits when you also want to inspect how a shot was generated, replace a stage in the workflow, or run the workspace yourself. Both support story planning and editing. Test a short sequence before trusting either workflow with a larger narrative.",
     ctaHeading: "Keep the intermediate outputs with the story.",
     ctaParagraph: "Try a trailer graph with visible direction and keyframe stages before video generation.",
@@ -635,11 +571,7 @@ export const competitors: Competitor[] = [
       { title: "Mootion video and audio creation", href: "https://www.mootion.com/" },
       { title: "Mootion Director Mode and story workflow", href: "https://mootion.com/ugc/en/use-case/ai-storytelling-video-generator" },
     ],
-    heroParagraph: "Mootion turns ideas, scripts, and references into connected story videos with motion and sound. Director Mode organizes characters, scenes, clips, and final assembly, while Instant Mode handles shorter ideas. NodeTool fits when you want to keep scripts and storyboards connected to an editable generation graph and use provider accounts you control.",
     competitorTagline: "Visual storytelling studio with directed multi-scene creation",
-    competitorBullets: ["Script and multimodal reference inputs", "Director Mode for characters and scenes", "Instant Mode for shorter videos", "Voice, music, and sound in the creation workflow"],
-    nodetoolTagline: "A configurable workflow for the story and its assets",
-    nodetoolBullets: ["Scripts, reusable entities, and storyboards", "Inspect prompts, keyframes, and generated clips", "Timeline and audio editing", "Free Studio with direct provider billing"],
     rows: [
       { label: "Story planning", competitor: "Director Mode character and scene stages", nodetool: "Scripts, entities, and editable storyboards" },
       { label: "References", competitor: "Image, video, and audio Smart Reference inputs", nodetool: "Asset references supported by selected nodes" },
@@ -647,7 +579,6 @@ export const competitors: Competitor[] = [
       { label: "Generation control", competitor: "Guided Director and Instant modes", nodetool: "Editable graphs with model-specific inputs" },
       { label: "Workspace deployment", competitor: "Mootion-hosted creation platform", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "Guided story creation or control of the generation stages",
     explainerParagraph: "Mootion is a useful option when its guided character and scene workflow suits your story. NodeTool fits when you want to inspect intermediate assets, combine models with other processing, or run the workspace yourself. Character references guide generation, but continuity and performance still need review across the finished sequence.",
     ctaHeading: "Review one shot before expanding the story.",
     ctaParagraph: "Use the trailer starter to inspect the brief, keyframe, and video steps before generating more clips.",
@@ -674,11 +605,7 @@ export const competitors: Competitor[] = [
       { title: "Moonvalley Marey shot controls", href: "https://www.moonvalley.com/marey" },
       { title: "Marey API access through FAL", href: "https://www.moonvalley.com/beyondtheframe/marey-launches-on-fal-ai" },
     ],
-    heroParagraph: "Moonvalley's Marey focuses on filmmaking controls: camera direction, motion and pose transfer, trajectories, keyframes, and reference inputs. NodeTool is the workspace around generation, with scripts, entities, storyboards, a workflow canvas, and timeline editing. Compare both the shot model and how you plan, review, and assemble its outputs.",
     competitorTagline: "Filmmaking video model with dedicated shot controls",
-    competitorBullets: ["Camera, trajectory, and keyframe controls", "Motion, pose, and subject references", "Shot extension tools", "API access, including selected FAL endpoints"],
-    nodetoolTagline: "A production workspace around your selected models",
-    nodetoolBullets: ["Scripts, entities, storyboards, and timeline", "Connect generation with other media processing", "Inspect the graph and intermediate assets", "Your provider accounts and open-source deployment"],
     rows: [
       { label: "Primary role", competitor: "Video model and shot-generation controls", nodetool: "Creative workspace and workflow execution" },
       { label: "Camera and motion", competitor: "Dedicated camera, trajectory, and transfer tools", nodetool: "Controls exposed by the selected provider node" },
@@ -686,7 +613,6 @@ export const competitors: Competitor[] = [
       { label: "Automation", competitor: "API and selected FAL endpoints", nodetool: "Node graphs, agents, API, MCP, and CLI" },
       { label: "Workspace deployment", competitor: "Moonvalley or provider-hosted model access", nodetool: "Studio, self-hosting, or Cloud alpha" },
     ],
-    explainerHeading: "The model and the production workspace are separate choices",
     explainerParagraph: "Marey can suit shots that need its specific camera and motion tools. NodeTool organizes generation within a broader production project. API access means a model can also be part of a pipeline rather than a competing workspace. Check which Marey endpoints and controls your provider exposes before selecting the model for a shot.",
     ctaHeading: "Inspect the pipeline before choosing a shot model.",
     ctaParagraph: "The trailer starter uses Gemini and KIE, so you can review the workflow without assuming Marey feature parity.",
@@ -727,21 +653,7 @@ export const competitors: Competitor[] = [
         href: "https://ir.kuaishou.com/news-releases/news-release-details/kuaishou-technology-announces-fourth-quarter-and-full-year-2025"
       }
     ],
-    heroParagraph: "Kling AI combines video generation with native audio, reference elements, and shot controls. Motion Control can guide a character using a reference performance. NodeTool fits when the shot belongs to a larger production pipeline: plan the brief, generate assets, and edit the result while retaining the workflow.",
     competitorTagline: "Creative video platform with motion and reference controls",
-    competitorBullets: [
-      "Text-to-video and image-to-video generation",
-      "Native audio on supported models",
-      "Reference elements and shot controls",
-      "Motion guided by a reference performance"
-    ],
-    nodetoolTagline: "Keep the shot inside an editable production project",
-    nodetoolBullets: [
-      "Script, storyboard, and workflow canvas",
-      "Agents revise the same project you inspect",
-      "Generation through your connected providers",
-      "Timeline editing in open-source Studio"
-    ],
     rows: [
       {
         label: "Motion direction",
@@ -764,7 +676,6 @@ export const competitors: Competitor[] = [
         nodetool: "Desktop or self-hosted workflows"
       }
     ],
-    explainerHeading: "Compare a video model with the pipeline around it",
     explainerParagraph: "Choose Kling when its movement and reference controls are the main requirement. Choose NodeTool when you need the brief, model calls, and editing steps saved as a workflow. Model-specific controls still depend on the provider integration you select.",
     ctaHeading: "Keep the brief connected to the finished clip.",
     ctaParagraph: "Inspect the trailer starter and its selected models before running a one-shot test.",
@@ -814,21 +725,7 @@ export const competitors: Competitor[] = [
         href: "https://dev.pika.art/"
       }
     ],
-    heroParagraph: "Pika offers creative apps for video, images, and audio, including motion transfer and video extension. It also provides developer access. NodeTool offers an alternative for turning a brief into a saved graph that includes planning, generation, and editing, with provider accounts you control.",
     competitorTagline: "Hosted creative platform for video, images, and audio",
-    competitorBullets: [
-      "Video creation, extension, and motion-transfer apps",
-      "Image and audio generation",
-      "Pika and third-party model access",
-      "Developer platform alongside the creative app"
-    ],
-    nodetoolTagline: "Save the production steps alongside the media",
-    nodetoolBullets: [
-      "Repeatable generation graphs",
-      "Editable storyboard and timeline",
-      "Direct provider accounts",
-      "Free Studio and self-hosted deployment"
-    ],
     rows: [
       {
         label: "Creative interface",
@@ -851,7 +748,6 @@ export const competitors: Competitor[] = [
         nodetool: "Provider charges on connected accounts"
       }
     ],
-    explainerHeading: "Choose between a creative app and a reusable production graph",
     explainerParagraph: "Pika is useful when a dedicated app gets the effect or clip you need. NodeTool fits repeated production where the brief and intermediate outputs should stay inspectable. A NodeTool workflow does not promise an equivalent for every Pika effect.",
     ctaHeading: "Save the workflow for the next brief.",
     ctaParagraph: "Start with one trailer shot, inspect the output, and retain the graph for another run.",
@@ -901,21 +797,7 @@ export const competitors: Competitor[] = [
         href: "https://lumalabs.ai/learning-hub/dream-machine-credit-system"
       }
     ],
-    heroParagraph: "Dream Machine organizes ideas into boards and offers image generation, image-to-video, reference controls, and video modification. Its subscription and API balances are separate. NodeTool connects planning, generation, and timeline editing in an open-source workspace, with model calls billed through your provider accounts.",
     competitorTagline: "Creative workspace for image and video ideas",
-    competitorBullets: [
-      "Boards and ideas for organizing concepts",
-      "Image-to-video and keyframe extension",
-      "Style and character references",
-      "Modify tools and separate API access"
-    ],
-    nodetoolTagline: "A visible graph from brief to assembled video",
-    nodetoolBullets: [
-      "Editable scripts and storyboards",
-      "Inspect prompts, keyframes, and clips",
-      "Timeline editing beside the graph",
-      "Desktop and self-hosted execution"
-    ],
     rows: [
       {
         label: "Project organization",
@@ -938,7 +820,6 @@ export const competitors: Competitor[] = [
         nodetool: "Studio or self-hosted deployment"
       }
     ],
-    explainerHeading: "Start with the project you need to keep",
     explainerParagraph: "Dream Machine suits visual exploration within its boards and generation tools. NodeTool suits work where you need to inspect the pipeline and revise individual steps. This comparison concerns the Dream Machine product, rather than every tool in Luma's broader platform.",
     ctaHeading: "Inspect each shot before expanding the trailer.",
     ctaParagraph: "Review the trailer starter's keyframes and model calls, then begin with one shot.",
@@ -988,21 +869,7 @@ export const competitors: Competitor[] = [
         href: "https://docs.platform.pixverse.ai/subscribe-api-plans-882969m0"
       }
     ],
-    heroParagraph: "PixVerse provides video and image generation, creative effects, and APIs for building creation into other products. Its API memberships are separate from its web memberships. NodeTool offers the project around those generation steps: agents, editable storyboards, a workflow canvas, and a timeline.",
     competitorTagline: "Generative media platform with production APIs",
-    competitorBullets: [
-      "Text-to-video and image-to-video",
-      "Image generation and creative effects",
-      "API task status and webhook integration",
-      "Separate web and API memberships"
-    ],
-    nodetoolTagline: "Plan, inspect, and assemble the generated media",
-    nodetoolBullets: [
-      "Storyboard and generation graph",
-      "Intermediate outputs stay inspectable",
-      "Timeline assembly in the same workspace",
-      "CLI, API, and MCP access"
-    ],
     rows: [
       {
         label: "Generation",
@@ -1025,7 +892,6 @@ export const competitors: Competitor[] = [
         nodetool: "Script, storyboard, workflow, and timeline"
       }
     ],
-    explainerHeading: "Compare the generation service and the production workspace",
     explainerParagraph: "PixVerse is a direct choice for integrating its generation capabilities into a product. NodeTool fits when creators need to inspect and revise the pipeline themselves. The model service and the workspace have different roles, so compare both against the task.",
     ctaHeading: "Keep the generated shots connected to the brief.",
     ctaParagraph: "Open the trailer graph, inspect its providers, and review each output.",
@@ -1075,21 +941,7 @@ export const competitors: Competitor[] = [
         href: "https://leonardo.ai/pricing"
       }
     ],
-    heroParagraph: "Leonardo combines image and video generation with editing, upscaling, Realtime Canvas, and model customization. It also offers team and API plans. NodeTool is an alternative for connecting those stages in a workflow you can inspect, with agents operating the same project and providers billed directly.",
     competitorTagline: "Hosted creation platform for images, video, and design",
-    competitorBullets: [
-      "Image and video generation and editing",
-      "Upscaling and Realtime Canvas",
-      "Custom-model training tools",
-      "Individual, team, and API plans"
-    ],
-    nodetoolTagline: "Keep every production step in the project",
-    nodetoolBullets: [
-      "Connect generation and upscaling nodes",
-      "Agents revise editable workflows",
-      "Local models and direct provider accounts",
-      "Open-source desktop and self-hosting"
-    ],
     rows: [
       {
         label: "Image iteration",
@@ -1112,7 +964,6 @@ export const competitors: Competitor[] = [
         nodetool: "Connected providers bill model calls"
       }
     ],
-    explainerHeading: "A managed creation service or a graph you run yourself",
     explainerParagraph: "Leonardo fits creators who want its hosted canvas, model tools, and team offering. NodeTool fits when generation is one stage of a repeatable process with inspectable inputs and outputs. Custom-model features depend on the selected provider rather than the graph alone.",
     ctaHeading: "Inspect the draft and the upscaled poster.",
     ctaParagraph: "Try a two-stage image workflow with the model and output of each stage visible.",
@@ -1162,21 +1013,7 @@ export const competitors: Competitor[] = [
         href: "https://docs.midjourney.com/hc/en-us/articles/27870484040333-Comparing-Midjourney-Plans"
       }
     ],
-    heroParagraph: "Midjourney offers image creation, a web editor with layers and retexturing, and video generation. Its plans allocate GPU time and vary in privacy and generation modes. NodeTool is an alternative when you want image creation inside an editable workflow with text, video, audio, and providers you select.",
     competitorTagline: "Image and video creation service with a web editor",
-    competitorBullets: [
-      "Web image creation and organization",
-      "Layered editing, inpainting, and retexturing",
-      "Video generation",
-      "Subscription GPU time and plan-specific privacy"
-    ],
-    nodetoolTagline: "Keep the prompt, model call, and output separate",
-    nodetoolBullets: [
-      "Inspect generated prompts and images",
-      "Connect creation to other media steps",
-      "Use your own provider accounts",
-      "Run open-source Studio or self-host"
-    ],
     rows: [
       {
         label: "Image editing",
@@ -1199,7 +1036,6 @@ export const competitors: Competitor[] = [
         nodetool: "Desktop or self-hosted workspace"
       }
     ],
-    explainerHeading: "Choose the image experience or the production workflow",
     explainerParagraph: "Midjourney fits creators who prefer its generation and editing experience. NodeTool fits projects where the prompt and output need to become reusable steps in a wider graph. Choosing NodeTool does not imply access to Midjourney's models or identical results.",
     ctaHeading: "See the prompt that made the image.",
     ctaParagraph: "Try a starter with separate prompt and image outputs, then save it for the next idea.",
@@ -1245,21 +1081,7 @@ export const competitors: Competitor[] = [
         href: "https://www.adobe.com/products/firefly.html"
       }
     ],
-    heroParagraph: "Firefly combines image, video, and audio creation with Adobe and partner models, Boards, and an AI Assistant. Adobe editing products are part of its broader creative offering. NodeTool offers an open-source workspace for connecting media steps, with agents, project editors, and your own provider accounts.",
     competitorTagline: "Creative AI suite with Adobe and partner models",
-    competitorBullets: [
-      "Image, video, and audio generation and editing",
-      "Firefly Boards for collaborative ideation",
-      "AI Assistant and partner-model access",
-      "Connections to Adobe editing products"
-    ],
-    nodetoolTagline: "An editable production workspace you can host",
-    nodetoolBullets: [
-      "Agents operate the same project editors",
-      "Generation graphs with inspectable outputs",
-      "Storyboard, sketch, and timeline surfaces",
-      "Your provider accounts and deployment"
-    ],
     rows: [
       {
         label: "Ideation",
@@ -1282,7 +1104,6 @@ export const competitors: Competitor[] = [
         nodetool: "Studio plus provider model charges"
       }
     ],
-    explainerHeading: "Compare deployment alongside the creative tools",
     explainerParagraph: "Firefly fits teams working within Adobe's creative environment. NodeTool fits teams that want to run the workspace themselves and connect provider accounts directly. Different model licenses and commercial-use terms still apply to the assets each workflow produces.",
     ctaHeading: "Keep the idea, prompt, and image in one graph.",
     ctaParagraph: "Inspect a starter's separate outputs before adding more production steps.",
@@ -1332,21 +1153,7 @@ export const competitors: Competitor[] = [
         href: "https://docs.ideogram.ai/plans-and-pricing/available-plans"
       }
     ],
-    heroParagraph: "Ideogram emphasizes readable type, image editing, and creative apps such as ad resizing and background removal. It also offers a unified media API, MCP access, and open-model licensing. NodeTool connects creative operations across project editors, with an open-source workspace you can run yourself.",
     competitorTagline: "Generative media platform with typography and creative apps",
-    competitorBullets: [
-      "Readable typography and image editing",
-      "Purpose-built creative apps",
-      "Media API and MCP agent access",
-      "Open-model weights under applicable licensing"
-    ],
-    nodetoolTagline: "Connect the brief to a repeatable production workflow",
-    nodetoolBullets: [
-      "Inspect the art direction and generated concepts",
-      "Mix text, image, video, and audio steps",
-      "Agents edit saved project documents",
-      "Direct provider accounts and self-hosting"
-    ],
     rows: [
       {
         label: "Typography",
@@ -1369,7 +1176,6 @@ export const competitors: Competitor[] = [
         nodetool: "Open-source workspace and compatible local models"
       }
     ],
-    explainerHeading: "Separate model openness from workspace control",
     explainerParagraph: "Ideogram fits work that needs its typography and focused creative apps. Its open-model offering means local use is a licensing and hardware question, not a blanket limitation. NodeTool fits when the whole production process needs editable steps across media.",
     ctaHeading: "Keep the art direction beside the poster.",
     ctaParagraph: "Open the poster starter, review the selected models, and revise the brief.",
@@ -1419,21 +1225,7 @@ export const competitors: Competitor[] = [
         href: "https://www.recraft.ai/pricing"
       }
     ],
-    heroParagraph: "Recraft focuses on design assets, including generated images and editable vector graphics with consistent styles. It also offers API access. NodeTool offers an alternative for the process around asset creation: inspect generation steps, work with image layers, and connect assets to video, audio, or data workflows.",
     competitorTagline: "AI design platform for images and vector graphics",
-    competitorBullets: [
-      "Image generation for design assets",
-      "Editable vector graphics",
-      "Consistent visual styles",
-      "API access for integrations"
-    ],
-    nodetoolTagline: "Save the asset-production workflow",
-    nodetoolBullets: [
-      "Generation and upscaling as separate steps",
-      "Sketch editing with image layers",
-      "Connect assets to other media operations",
-      "Open-source Studio and direct provider accounts"
-    ],
     rows: [
       {
         label: "Vector design",
@@ -1456,7 +1248,6 @@ export const competitors: Competitor[] = [
         nodetool: "Desktop or self-hosted project workspace"
       }
     ],
-    explainerHeading: "Keep specialist vector work separate from orchestration",
     explainerParagraph: "Recraft is a focused choice when editable vectors and visual consistency are the deliverable. NodeTool fits when an image is one output of a larger repeatable workflow. A NodeTool sketch editor is not a substitute for every vector design operation.",
     ctaHeading: "Keep the draft and the final asset connected.",
     ctaParagraph: "Try the image-and-upscale starter and inspect both outputs.",
@@ -1502,21 +1293,7 @@ export const competitors: Competitor[] = [
         href: "https://dreamina.capcut.com/"
       }
     ],
-    heroParagraph: "Dreamina combines image generation and editing with video, avatars, marketing studios, and creative templates. Its catalog includes Seedream and Seedance alongside other models. NodeTool is an alternative for retaining the brief, intermediate outputs, and editing steps in a workspace you can run with your own provider accounts.",
     competitorTagline: "Hosted creative platform for images, video, and avatars",
-    competitorBullets: [
-      "Image generation, restyling, and editing",
-      "Text-, image-, and reference-led video tools",
-      "Talking avatars and marketing studios",
-      "Creative templates and multiple model families"
-    ],
-    nodetoolTagline: "Make the project steps visible and reusable",
-    nodetoolBullets: [
-      "Editable brief, storyboard, and workflow",
-      "Inspect intermediate image and video outputs",
-      "Timeline assembly in the same workspace",
-      "Desktop and self-hosted deployment"
-    ],
     rows: [
       {
         label: "Starting point",
@@ -1539,7 +1316,6 @@ export const competitors: Competitor[] = [
         nodetool: "Open-source workspace and direct provider accounts"
       }
     ],
-    explainerHeading: "Choose how much of the production process to retain",
     explainerParagraph: "Dreamina suits creators who want its templates and dedicated marketing or avatar tools. NodeTool suits repeated work where you need to revise the brief, switch a generation step, and inspect the result. Template convenience and workflow control address different production needs.",
     ctaHeading: "Revise the brief without losing the graph.",
     ctaParagraph: "Inspect a trailer starter and begin with one paid shot.",
@@ -1577,65 +1353,40 @@ export const competitors: Competitor[] = [
       subtitle:
         "The studio around the node editor — every medium, every provider.",
     },
-    heroParagraph:
-      "ComfyUI gives you detailed control over image and video generation in a node graph, including native video workflows. Shared graphs can require matching models and custom nodes on another machine. NodeTool combines a workflow canvas with storyboard, sketch, script, and timeline editors in an editable project. Both products are open source; the better fit depends on whether graph-level generation control or a broader production workspace matters more to you.",
     competitorTagline: "Node editor for image and video generation",
-    competitorBullets: [
-      "Deep control over Stable Diffusion pipelines",
-      "Engineer-first, graph-based UX",
-      "Local model focused",
-      "Hundreds of community custom nodes — quality and maintenance vary",
-    ],
-    nodetoolTagline: "The studio around the canvas",
-    nodetoolBullets: [
-      "Image, video, audio, and text on one canvas",
-      "Every major model from every major provider",
-      "Editing tools: masks, inpaint, relight, layers",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Your own keys at provider prices — no credits, no markup",
-    ],
+    hero: {
+      headline: "Keep the ComfyUI graph. Add the editors around it.",
+      subline:
+        "NodeTool runs a ComfyUI workflow exported in API format as one node. Its Load nodes become inputs, its Save nodes become outputs, and the images and video it returns land in the same project as your storyboard and timeline.",
+    },
+    answer:
+      "ComfyUI is a node editor for image and video generation graphs, with fine control over every sampler and model setting. NodeTool is a creative workspace in which a generation graph is one editor beside a storyboard, layered sketch, script, and video timeline. It can call a ComfyUI server, a NodeTool GPU worker, or Comfy Cloud as a node in that graph.",
     rows: [
       { label: "Media types", competitor: "Image, video, audio via supported workflows", nodetool: "Image, video, audio, text" },
       { label: "Models", competitor: "Local and partner image/video models", nodetool: "Local and hosted models across media types" },
-      { label: "Provider access", competitor: "Local and partner models", nodetool: "Local and hosted models on your accounts" },
       { label: "Editing tools (masks, inpaint, relight, layers)", competitor: "Available through workflows and nodes", nodetool: "Integrated editors and nodes" },
       { label: "Local models", competitor: true, nodetool: true },
       { label: "Desktop + browser", competitor: "Local web interface and Comfy Cloud", nodetool: "Studio and Cloud (alpha)" },
       { label: "Open source", competitor: true, nodetool: true },
       { label: "Custom-node stability", competitor: "Third-party, versions can conflict", nodetool: "Built-in, one maintained codebase" },
       { label: "Workflow portability across machines", competitor: "Custom nodes may need installation", nodetool: "Requires matching models and provider access" },
+      { label: "Runs ComfyUI workflows", competitor: true, nodetool: "As a node, on your ComfyUI server, a NodeTool GPU worker, or Comfy Cloud" },
     ],
-    explainerHeading: "From generation graph to editable project",
     explainerParagraph:
-      "ComfyUI supports text-to-video and image-to-video as well as diffusion images. Choose it when you need detailed control of a generation graph and its model settings. NodeTool places generation workflows beside a storyboard, layered sketch, script, and video timeline. An agent can help build and revise the workflow, while the project remains editable. Both tools need the relevant models, extensions, or provider access for a shared workflow to run on another machine.",
-    ctaHeading: "Open, complete, and yours.",
+      "Choose ComfyUI when the graph itself is the work and you tune samplers, schedulers, and custom nodes by hand. It runs text-to-video and image-to-video as well as diffusion images. Shared graphs that use custom nodes need the same extensions and models on the next machine, and so do NodeTool workflows that call them.",
+    ctaHeading: "Bring one ComfyUI workflow.",
     ctaParagraph:
-      "Download Studio and build across image, video, audio, and text in one place.",
+      "Export it in API format and load it into the Run ComfyUI Workflow node in Studio. The rest of the graph, and the editors, work on what it returns.",
     faq: [
-      {
-        question: "What is the difference between NodeTool and ComfyUI?",
-        answer:
-          "ComfyUI supports image and video generation with detailed graph control. NodeTool combines a workflow canvas with storyboard, sketch, script, and timeline editors in a saved creative project. Both are open source, and both can run local models.",
-      },
       {
         question: "Why do ComfyUI workflows break after sharing or updating?",
         answer:
           "A shared ComfyUI graph may refer to custom nodes or models that are missing on another machine. ComfyUI Manager can help install missing nodes. Check extension and model requirements before sharing. NodeTool workflows also need matching models and provider access, although its core editing surfaces ship with the app.",
       },
       {
-        question: "Is NodeTool open source like ComfyUI?",
+        question: "Can NodeTool run my existing ComfyUI workflows?",
         answer:
-          "Yes. NodeTool is open source under AGPL-3.0. You can run it as a desktop app on macOS, Windows, or Linux, or in the browser via NodeTool Cloud, which is managed hosting of the same open-source code.",
-      },
-      {
-        question: "Can NodeTool do more than image generation?",
-        answer:
-          "Yes. NodeTool connects image, video, audio, and text workflows to editable projects, including a storyboard and timeline. ComfyUI also supports text-to-video and image-to-video workflows; the products differ in their editing surfaces and project structure.",
-      },
-      {
-        question: "How does NodeTool handle model pricing?",
-        answer:
-          "NodeTool runs on your own keys — you bring your own API keys and pay each provider their list price. There are no credits, no markup, and no hand-picked list of models. You can also run local models with Ollama, MLX, or llama.cpp in the desktop app.",
+          "Yes, when the workflow is exported in API (prompt) format. The Run ComfyUI Workflow node sends it to a ComfyUI server you run, to a NodeTool GPU worker that fronts ComfyUI, or to Comfy Cloud with a COMFY_API_KEY. The server needs the workflow's custom nodes and models.",
       },
     ],
     limitation:
@@ -1652,29 +1403,13 @@ export const competitors: Competitor[] = [
     footerName: "Weavy (Figma Weave)",
     theme: "blue",
     category: "Creative canvas",
+    related: ["flora", "krea", "comfyui"],
     og: {
       image: "screen_canvas.png",
       accent: "violet",
       subtitle: "Open source and your own keys — no credits, no hand-picked list of models, no lock-in.",
     },
-    heroParagraph:
-      "One morning in October 2025, Weavy users woke up to a new name, a new owner, and the same old credit meter. Figma acquired Weavy, renamed it Figma Weave, and the canvas stayed what it always was: closed, hosted, and billed in credits, with a model list someone else curates. NodeTool takes the opposite bet — open source, your own keys at provider prices, workflows and files you own, and an agent-first workspace where an agent can build the pipeline for you. Cloud is just managed hosting of the same code you can self-host.",
     competitorTagline: "Closed SaaS canvas, now Figma Weave",
-    competitorBullets: [
-      "Credit system you top up and burn",
-      "A hand-picked list of supported models",
-      "Closed source, hosted only",
-      "Now part of Figma — roadmap follows the platform",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "Open source · your keys",
-    nodetoolBullets: [
-      "Your own keys — pay providers directly at list prices",
-      "Every major model from every major provider",
-      "Open source under AGPL-3.0, self-hostable",
-      "Agent-first: an agent builds, runs, and repairs workflows",
-      "You own your workflows and files",
-    ],
     rows: [
       { label: "Pricing model", competitor: "Credits", nodetool: "Your keys, provider prices" },
       { label: "Models", competitor: "Hand-picked list", nodetool: "Every provider" },
@@ -1683,9 +1418,8 @@ export const competitors: Competitor[] = [
       { label: "Data ownership", competitor: false, nodetool: true },
       { label: "Desktop app", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Pay providers, not credits — and keep your work",
     explainerParagraph:
-      "Credit systems and curated model lists decide which models you can use and what each call costs — and after an acquisition, someone else's roadmap decides everything else. NodeTool flips that: you add your own API keys and pay each provider their published list price. The workspace is agent-first, so you can describe what you want and an agent authors the workflow, runs it, and repairs what fails on the same canvas you use. All of it is open source under AGPL-3.0 — run it as a desktop app or self-host it, and your workflows and files stay yours. NodeTool Cloud is managed hosting of the same code.",
+      "Figma Weave fits a team that already designs in Figma and wants a hosted canvas with nothing to install. Choose it when a curated model list billed in credits suits how you budget.",
     ctaHeading: "Own your canvas.",
     ctaParagraph:
       "Download Studio and build with every provider, at provider prices.",
@@ -1730,29 +1464,13 @@ export const competitors: Competitor[] = [
     },
     theme: "violet",
     category: "Creative canvas",
+    related: ["flora", "krea", "comfyui"],
     og: {
       image: "screen_canvas.png",
       accent: "violet",
       subtitle: "The open-source, your own keys alternative to Figma Weave.",
     },
-    heroParagraph:
-      "Figma Weave — the canvas formerly known as Weavy — is a polished hosted tool with a curated frontier model list, billed in its own AI credits and moving deeper into the Figma platform with every release. That's fine until the day a model you rely on drops off the list, or the credit math changes, or the roadmap bends toward Figma's plans instead of yours. NodeTool covers the same visual media workflows in the open: AGPL-3.0 source, your own keys at provider prices, an agent that can build the pipeline for you, a desktop app that runs offline with local models, and workflows and files that stay yours.",
     competitorTagline: "Hosted AI canvas in the Figma ecosystem",
-    competitorBullets: [
-      "Billed in Figma Weave AI credits",
-      "Curated list of models, chosen for you",
-      "Closed source, browser-only, no self-host",
-      "Roadmap follows Figma's platform plans",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "Open source · your keys",
-    nodetoolBullets: [
-      "Your own keys — pay providers directly at list prices",
-      "Every major model from every major provider",
-      "Open source under AGPL-3.0 — desktop app or self-host",
-      "Agent-first: an agent builds, runs, and repairs workflows",
-      "Local models via Ollama, MLX, and llama.cpp",
-    ],
     rows: [
       { label: "Pricing model", competitor: "AI credits", nodetool: "Your keys, provider prices" },
       { label: "Models", competitor: "Hand-picked list", nodetool: "Every provider" },
@@ -1762,9 +1480,8 @@ export const competitors: Competitor[] = [
       { label: "Desktop app / offline", competitor: false, nodetool: true },
       { label: "Local models (Ollama, MLX, llama.cpp)", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Own the canvas, not a seat in an ecosystem",
     explainerParagraph:
-      "Acquisitions change products: pricing, model lists, and roadmaps for Figma Weave now follow Figma's platform strategy, and your workflows live on their servers either way. NodeTool takes the opposite bet. The whole workspace is open source under AGPL-3.0, workflows are files you own, and models are called with your own API keys at each provider's published price — or run locally with Ollama, MLX, and llama.cpp. It is also agent-first: every editor is exposed to agents as tools, so you can describe a pipeline and an agent wires it, runs it, and repairs what fails. If the tool changes direction, you keep the code, the graphs, and the keys.",
+      "Figma Weave fits a team that already designs in Figma and wants a hosted canvas with nothing to install. Choose it when a curated model list billed in credits suits how you budget.",
     ctaHeading: "Build on a canvas nobody can acquire.",
     ctaParagraph:
       "Download Studio — open source, your own keys, every provider at provider prices.",
@@ -1806,24 +1523,7 @@ export const competitors: Competitor[] = [
       subtitle:
         "An open workspace for the whole edit — every video model on your own keys, on a timeline you own.",
     },
-    heroParagraph:
-      "Runway made prompt-to-video feel like a craft tool rather than a demo, and its own models are genuinely good. The catch is structural: the models are the ones Runway ships, the work lives on Runway's servers, and the meter runs in credits. A finished piece is rarely one clip — it is a board, a script, a voice, twenty takes, and a cut. NodeTool is the open-source, bring-your-own-key workspace for that whole pass: every video model from every provider at list price, a multi-track timeline in the same app, and an agent that can run the pipeline for you.",
     competitorTagline: "Hosted video studio",
-    competitorBullets: [
-      "Strong first-party video models",
-      "Polished hosted editor, nothing to install",
-      "Closed source, subscription + credits",
-      "The model list is Runway's own",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "Open source · your keys",
-    nodetoolBullets: [
-      "Every video model from every provider, swapped in one node",
-      "Storyboard, script, voice, and a multi-track timeline in one app",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Your own keys at provider prices — no credits, no markup",
-      "Self-hostable, and local models cost nothing per call",
-    ],
     rows: [
       { label: "Video models", competitor: "First-party", nodetool: "Every major provider" },
       { label: "Swap models mid-project", competitor: "Within the list", nodetool: "One node change" },
@@ -1834,7 +1534,6 @@ export const competitors: Competitor[] = [
       { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
       { label: "Self-host + local models", competitor: false, nodetool: true },
     ],
-    explainerHeading: "One studio's models, or every studio's",
     explainerParagraph:
       "Runway is a good answer to \"generate this shot\". It is a worse answer to \"generate this shot with whichever model is best this month, then do it again next week for forty SKUs\". NodeTool treats the model as a swappable part: the same graph calls Veo, Kling, Sora, Hailuo, Wan, or Seedance depending on which node you pick, billed to your own key at the provider's list price. Around that sit the parts a finished piece needs anyway — a storyboard that settles framing before you pay for clips, a script that knows which voice speaks each line, and a multi-track timeline to cut on. All of it is open source under AGPL-3.0, so the workflow is a file you own and can rerun anywhere.",
     ctaHeading: "Keep the edit, swap the model.",
@@ -1885,23 +1584,7 @@ export const competitors: Competitor[] = [
       accent: "emerald",
       subtitle: "Agents plus native image, video, and music generation — on one canvas.",
     },
-    heroParagraph:
-      "Your Langflow agent can answer from a thousand documents. Now ask it for a storyboard, and watch the flow end at a blank HTTP node waiting for an API you'll wire by hand. Langflow is a capable drag-and-drop builder for chat, document search, and agents, rooted in Python and LangChain — but its agents ship messages, not media. NodeTool covers that same ground and keeps going: native image, video, and music generation with editing tools on the same canvas, and an agent that can build the whole pipeline itself. Open source, your own keys at provider prices, local models included.",
     competitorTagline: "Drag-and-drop builder for chatbot and agent apps",
-    competitorBullets: [
-      "Visual flows for chatbots, document search, and agents",
-      "Python-extensible, LangChain ecosystem",
-      "Open source (MIT), self-hostable",
-      "Text workflows first",
-    ],
-    nodetoolTagline: "Agents plus native generation",
-    nodetoolBullets: [
-      "Agents, document search, and chat on the same canvas",
-      "Native image, video, and music generation nodes",
-      "Editing tools: masks, inpaint, relight, layers",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Your own keys at provider prices — local models via Ollama, MLX, llama.cpp",
-    ],
     rows: [
       { label: "Focus", competitor: "chatbot and agent apps: chat, document search, agents", nodetool: "Agents + image, video, audio, text" },
       { label: "Native media generation (image, video, music)", competitor: "Via external APIs", nodetool: "Built-in nodes" },
@@ -1912,7 +1595,6 @@ export const competitors: Competitor[] = [
       { label: "Open source", competitor: "MIT", nodetool: "AGPL-3.0" },
       { label: "Desktop app", competitor: "macOS, Windows", nodetool: "macOS, Windows, Linux" },
     ],
-    explainerHeading: "The pipeline and the picture, on one canvas",
     explainerParagraph:
       "If your project ends at a chatbot or document question-answering, Langflow is a solid choice — visual flows, Python extensibility, a mature LangChain community. But the moment an agent needs to produce something you can look at or listen to — a storyboard, a product video, a soundtrack — Langflow hands you an API key form and a blank HTTP node. NodeTool keeps going: generation nodes for image, video, and music from every major provider sit on the same canvas as your agents and retrieval, with masks, inpaint, relight, upscale, and layers built in. And the agents don't just live in the workflow, they build it: NodeTool is agent-first, so you can describe a pipeline and an agent authors the graph, validates it, and repairs what fails. You bring your own keys and pay provider list prices — no credits, no markup — and run local models via Ollama, MLX, and llama.cpp on the desktop.",
     ctaHeading: "Build agents that make things.",
@@ -1958,23 +1640,7 @@ export const competitors: Competitor[] = [
       accent: "cyan",
       subtitle: "Workflows that create, not just connect — native generation and agents.",
     },
-    heroParagraph:
-      "n8n is what you reach for when a record has to travel from Salesforce to Slack to a spreadsheet, every night, without fail. But try to make the workflow produce something — a product video, a batch of campaign images, a soundtrack — and the creative step collapses into a generic HTTP node calling an API you configured by hand. NodeTool is built for workflows where the AI work is the point: native image, video, and music generation, agents, and editing tools on one canvas, with an agent that can author the pipeline for you. Open source under AGPL-3.0, your own keys at provider prices, with a desktop app and local models.",
     competitorTagline: "Workflow automation platform",
-    competitorBullets: [
-      "400+ integrations for business apps",
-      "Scheduling, retries, and branching",
-      "AI agent nodes built on LangChain",
-      "Fair-code: source-available, commercially restricted",
-    ],
-    nodetoolTagline: "The AI-native canvas",
-    nodetoolBullets: [
-      "Native image, video, and music generation nodes",
-      "Agents and document search on the same canvas as generation",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Open source under AGPL-3.0, desktop app included",
-      "Your own keys at provider prices — no credits, no markup",
-    ],
     rows: [
       { label: "Focus", competitor: "App-to-app automation", nodetool: "AI generation + agents" },
       { label: "Native media generation (image, video, music)", competitor: "Via external APIs", nodetool: "Built-in nodes" },
@@ -1985,7 +1651,6 @@ export const competitors: Competitor[] = [
       { label: "Pricing model", competitor: "Per-execution plans (cloud)", nodetool: "Your keys, provider prices" },
       { label: "Desktop app", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Plumbing is solved. Production isn't.",
     explainerParagraph:
       "If the hard part of your workflow is moving records between Salesforce, Slack, and a spreadsheet on a schedule, n8n is built for exactly that. But when the workflow's output is the thing itself — a product video, a batch of campaign images, a soundtrack, an agent's research report — the generation can't live in a generic HTTP node. NodeTool makes it native: image, video, and music models from every major provider as built-in blocks, agents and retrieval on the same canvas, and editing tools — masks, inpaint, relight, upscale, layers — built in. It is also agent-first: describe the pipeline and an agent authors the graph, runs it, and repairs what fails, so the automation can build itself. Open source under AGPL-3.0 rather than fair-code, it runs as a desktop app on macOS, Windows, and Linux and calls models with your own keys at provider list prices.",
     ctaHeading: "Make the workflow the studio.",
@@ -2030,23 +1695,7 @@ export const competitors: Competitor[] = [
       accent: "violet",
       subtitle: "chatbots that answer from your documents plus native image, video, and music generation.",
     },
-    heroParagraph:
-      "Flowise gets you from zero to a document-answering chatbot in an afternoon: vector store, retriever, LLM node, done. Then the client asks for the demo video, the launch images, a voice for the assistant — and every one of those lands outside the flow, in a raw HTTP node or another tool entirely. NodeTool covers the same agent and retrieval ground, then keeps the whole deliverable on one canvas: native image, video, and music generation, editing tools, and an agent that can build the pipeline itself. Open source under AGPL-3.0, your own keys at provider prices, with a desktop app and local models.",
     competitorTagline: "Drag-and-drop LangChain builder",
-    competitorBullets: [
-      "Fastest path to a chatbot that answers from your documents",
-      "Vector store and LangChain node library",
-      "Source-available under Apache 2.0",
-      "Hosted cloud sold on usage-based credits",
-    ],
-    nodetoolTagline: "The AI-native canvas",
-    nodetoolBullets: [
-      "Agents, document search, and native image/video/music generation",
-      "Built-in editing tools — masks, inpaint, relight, layers",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Open source under AGPL-3.0, desktop app included",
-      "Your own keys at provider prices — no credits, no markup",
-    ],
     rows: [
       { label: "Focus", competitor: "LangChain chatbots & document search", nodetool: "AI generation + agents" },
       { label: "Native media generation (image, video, music)", competitor: "Via HTTP request nodes", nodetool: "Built-in nodes" },
@@ -2057,7 +1706,6 @@ export const competitors: Competitor[] = [
       { label: "Pricing model", competitor: "Usage-based credits (cloud)", nodetool: "Your keys, provider prices" },
       { label: "Desktop app", competitor: false, nodetool: true },
     ],
-    explainerHeading: "A chatbot is often just the front door.",
     explainerParagraph:
       "Flowise is genuinely fast at what it's built for: wire a vector store, a retriever, and a language model node into a working chatbot that answers from your documents in minutes. But the moment the workflow needs to produce something — a rendered image, a video cut, a voice line — that step lands in a generic HTTP node calling an external API by hand. In NodeTool, image, video, and music models from every major provider sit on the same canvas as the agent and retrieval nodes, with masks, inpaint, relight, upscale, and layers built in. The workspace is agent-first too: describe what the chatbot and its media pipeline should do, and an agent wires the graph, validates it, and repairs what fails. Every call runs on your own keys at list price, no credit tiers on top.",
     ctaHeading: "Build the chatbot. Ship the media too.",
@@ -2103,23 +1751,7 @@ export const competitors: Competitor[] = [
       accent: "amber",
       subtitle: "Agents and document search, plus native image, video, and music generation.",
     },
-    heroParagraph:
-      "Dify earns its reputation on the text side: prompt management, knowledge bases, agent debugging — everything a support bot or internal copilot needs. But the day the deliverable includes a rendered image, a video cut, or a synthesized voice, the work has to leave the platform. NodeTool starts from the same agent and document-search ground and keeps the whole job on one canvas: native image, video, and music generation, editing tools, and an agent that can build the pipeline for you. Open source under AGPL-3.0, your own keys at provider prices, with a desktop app and local models.",
     competitorTagline: "language model app development platform",
-    competitorBullets: [
-      "Prompt management and app-store-style deployment",
-      "Built-in knowledge bases and agent debugging",
-      "Modified Apache 2.0 license with commercial limits",
-      "Cloud sold on seat/usage plans",
-    ],
-    nodetoolTagline: "The AI-native canvas",
-    nodetoolBullets: [
-      "Agents, document search, and native image/video/music generation",
-      "Built-in editing tools — masks, inpaint, relight, layers",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Open source under AGPL-3.0, desktop app included",
-      "Your own keys at provider prices — no credits, no markup",
-    ],
     rows: [
       { label: "Focus", competitor: "Text-first chatbot and agent apps & knowledge bases", nodetool: "AI generation + agents" },
       { label: "Native media generation (image, video, music)", competitor: "Via tool/plugin calls", nodetool: "Built-in nodes" },
@@ -2130,7 +1762,6 @@ export const competitors: Competitor[] = [
       { label: "Pricing model", competitor: "Seat/usage plans (cloud)", nodetool: "Your keys, provider prices" },
       { label: "Desktop app", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Great for the chatbot. Not built for the render.",
     explainerParagraph:
       "Dify earns its reputation on debugging and knowledge-base tooling for text-first chatbot and agent apps — a support bot, an internal copilot, a document Q&A assistant. But when the deliverable includes a generated image, a video cut, or a synthesized voice line, that step has to leave the platform. NodeTool puts image, video, and music models from every major provider on the same canvas as its agent and retrieval nodes, with masks, inpaint, relight, upscale, and layers built in. And because the workspace is agent-first, an agent can author that canvas itself — build the workflow, run it, and repair what fails — with every call on your own keys at list price.",
     ctaHeading: "Build past the chatbot.",
@@ -2167,6 +1798,7 @@ export const competitors: Competitor[] = [
     name: "Flora",
     theme: "rose",
     category: "Creative canvas",
+    related: ["figma-weave", "krea", "comfyui"],
     isNew: true,
     seo: {
       title: "Flora Alternative: Open-Source AI Canvas on Your Own Keys | NodeTool",
@@ -2177,24 +1809,7 @@ export const competitors: Competitor[] = [
       accent: "rose",
       subtitle: "A creative AI canvas that's open source and runs on your own keys — not credit-metered.",
     },
-    heroParagraph:
-      "Flora is a beautifully designed hosted canvas for AI image and video — and every render on it burns credits, on a model list someone else curates, on servers where your work lives. NodeTool is the open version of that idea: image, video, music, and text on one visual canvas, every model called with your own keys at provider prices, an agent that can build the pipeline for you, and workflows and files you own and can self-host.",
     competitorTagline: "Hosted infinite canvas",
-    competitorBullets: [
-      "Polished, purpose-built creative canvas UX",
-      "Curated image and video model selection",
-      "Closed source, hosted only",
-      "Billed in credits you top up",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "Open source · your keys",
-    nodetoolBullets: [
-      "Image, video, audio, and text on one canvas",
-      "Every major model from every major provider",
-      "Open source under AGPL-3.0, self-hostable",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Your own keys at provider prices — no credits, no markup",
-    ],
     rows: [
       { label: "Design / onboarding polish", competitor: "Purpose-built creative interface", nodetool: "A visual canvas built for depth" },
       { label: "Media types", competitor: "Image, video", nodetool: "Image, video, audio, text" },
@@ -2204,7 +1819,6 @@ export const competitors: Competitor[] = [
       { label: "Self-host / data ownership", competitor: false, nodetool: true },
       { label: "Desktop app + local models", competitor: false, nodetool: true },
     ],
-    explainerHeading: "A canvas you can take with you",
     explainerParagraph:
       "Flora is genuinely pleasant to use — the onboarding and the canvas feel designed, and for a quick hosted image or video it's fast to reach for. But it's closed and credit-metered: the model list is curated, each render burns credits, and your work lives on their platform. NodeTool trades some of that turnkey polish for control. Image, video, music, and text share one canvas, every provider is called at list price with your own keys, and local models run via Ollama, MLX, and llama.cpp. It's agent-first too — describe what you want and an agent wires the graph and runs it — and the whole thing is open source under AGPL-3.0, so you can self-host it and keep your files.",
     ctaHeading: "Create on a canvas you own.",
@@ -2234,6 +1848,7 @@ export const competitors: Competitor[] = [
     name: "Krea",
     theme: "cyan",
     category: "Creative canvas",
+    related: ["leonardo-ai", "flora", "figma-weave"],
     isNew: true,
     seo: {
       title: "Krea Alternative: Open-Source AI Image and Video Canvas | NodeTool",
@@ -2244,24 +1859,7 @@ export const competitors: Competitor[] = [
       accent: "cyan",
       subtitle: "An open canvas that runs on your own keys, built for the whole process rather than one instant render.",
     },
-    heroParagraph:
-      "Krea draws an image under your cursor as you sketch, and for one instant render it is hard to beat. A finished piece is usually a chain of steps across image, video, music, and text. NodeTool is an open-source workspace for that chain. You call each model at your provider's price, edit on the same canvas, let an agent wire and run the steps, and self-host the whole thing.",
     competitorTagline: "Hosted real-time studio",
-    competitorBullets: [
-      "Real-time, instant image generation and enhance",
-      "Slick hosted UX, no setup",
-      "Closed source, subscription + credits",
-      "Curated model selection",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "Open source · your keys",
-    nodetoolBullets: [
-      "Image, video, audio, and text on one canvas",
-      "Compose and edit — masks, inpaint, relight, layers",
-      "Every major model from every major provider",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Your own keys at provider prices — self-hostable, local models",
-    ],
     rows: [
       { label: "Real-time / instant generation", competitor: "Built-in, real-time", nodetool: "Batch & workflow, not real-time" },
       { label: "Media types", competitor: "Image, video", nodetool: "Image, video, audio, text" },
@@ -2271,7 +1869,6 @@ export const competitors: Competitor[] = [
       { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
       { label: "Self-host + local models", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Speed at one step, or control across all of them",
     explainerParagraph:
       "Krea's real-time canvas is legitimately great: type or sketch and watch the image resolve instantly, then enhance and upscale — all hosted, nothing to install. If a fast, interactive single render is the job, Krea is hard to beat. NodeTool optimizes for the opposite end: composing multi-step pipelines that mix image, video, music, and text, editing on the same canvas with masks and layers, calling every provider with your own keys at list price, and running local models. It's agent-first, so an agent can author those pipelines from a description, run them, and repair what fails — and it's open source and self-hostable, so the whole pipeline is yours.",
     ctaHeading: "Own the whole pipeline.",
@@ -2312,24 +1909,7 @@ export const competitors: Competitor[] = [
       accent: "emerald",
       subtitle: "Run local models, then build the whole workflow around them.",
     },
-    heroParagraph:
-      "LM Studio lets you download local models, chat with documents, connect MCP tools, and serve models through an API. NodeTool focuses on editable creative projects: its visual workflows connect local models to image, video, audio, and document-processing steps, with agents that can edit the canvas.",
     competitorTagline: "Desktop local-language model runtime",
-    competitorBullets: [
-      "Polished model browser and one-click local language models",
-      "OpenAI-compatible local server",
-      "Chat with models and local documents",
-      "MCP tool support",
-      "Proprietary (free), text-language model focused",
-    ],
-    nodetoolTagline: "The AI-native canvas",
-    nodetoolBullets: [
-      "Local models via Ollama, MLX, and llama.cpp",
-      "Plus native image, video, and music generation",
-      "Agents, document search, and multi-step workflows on one canvas",
-      "Agent-first: describe the workflow and an agent builds and runs it",
-      "Open source under AGPL-3.0, your own keys for cloud models",
-    ],
     rows: [
       { label: "Local language model chat & model browser", competitor: "Purpose-built, polished", nodetool: "Supported via Ollama/MLX/llama.cpp" },
       { label: "OpenAI-compatible local server", competitor: true, nodetool: "Via provider integrations" },
@@ -2339,7 +1919,6 @@ export const competitors: Competitor[] = [
       { label: "Source", competitor: "Proprietary (free)", nodetool: "AGPL-3.0 (open source)" },
       { label: "Visual canvas", competitor: false, nodetool: true },
     ],
-    explainerHeading: "The runtime, and the workflow around it",
     explainerParagraph:
       "LM Studio is a focused choice for downloading local models, chatting with documents, connecting MCP tools, and serving an OpenAI-compatible endpoint. NodeTool can use local models in a visual workflow alongside retrieval, image, video, and audio steps. Its agents can build and revise that workflow, and its editors keep the resulting media in an editable project.",
     ctaHeading: "From local chat to full workflow.",
@@ -2380,23 +1959,7 @@ export const competitors: Competitor[] = [
       accent: "blue",
       subtitle: "Open and local-first — plus generation, agents, and document search on one canvas.",
     },
-    heroParagraph:
-      "Jan makes one promise and keeps it: a private, offline chat with a local model, in an app that's fully open source. NodeTool shares the open, local-first values and asks a bigger question — what happens after the chat? On its canvas the same local models, run via Ollama, MLX, and llama.cpp, drive image, video, and music generation, agents, and document search on one graph, and an agent can build that graph for you.",
     competitorTagline: "Open source local chat app",
-    competitorBullets: [
-      "Offline-first, private local language model chat",
-      "Clean local ChatGPT-style UI",
-      "Open source and self-hostable",
-      "Text and language model chat focused",
-    ],
-    nodetoolTagline: "The open AI canvas",
-    nodetoolBullets: [
-      "Local models via Ollama, MLX, and llama.cpp",
-      "Native image, video, and music generation",
-      "Agents, document search, and multi-step workflows on one canvas",
-      "Agent-first: describe the workflow and an agent builds and runs it",
-      "Open source under AGPL-3.0, your own keys for cloud models",
-    ],
     rows: [
       { label: "Local language model chat", competitor: "Purpose-built, offline-first", nodetool: "Supported, plus workflows" },
       { label: "Offline / privacy focus", competitor: "Offline-first by design", nodetool: "Local models supported" },
@@ -2406,7 +1969,6 @@ export const competitors: Competitor[] = [
       { label: "Open source", competitor: true, nodetool: true },
       { label: "Visual canvas", competitor: false, nodetool: true },
     ],
-    explainerHeading: "A great chat app, or a whole canvas",
     explainerParagraph:
       "Jan does one thing well and openly: private, offline-first chat with local models, with a UI that feels like a local ChatGPT. If that's what you want, Jan is a lovely, focused choice and fully open source. NodeTool aims wider: it runs the same local models via Ollama, MLX, and llama.cpp, but puts them on a visual canvas alongside native image, video, and music generation, agents, and document search — so a local model can drive a whole workflow, not just a chat window. It's agent-first too: describe the workflow and an agent builds it, runs it, and repairs what fails. Both are open source; the difference is scope.",
     ctaHeading: "Take local models past the chat window.",
@@ -2447,24 +2009,7 @@ export const competitors: Competitor[] = [
       accent: "violet",
       subtitle: "When the agent's job is to create — image, video, music — not just plumb ops.",
     },
-    heroParagraph:
-      "Lindy's agents live in your inbox, your calendar, and your CRM, quietly handling the operations work nobody wants. But ask one for the campaign itself — the images, the video, the soundtrack — and you've left what the platform is built for. NodeTool is an open-source, bring-your-own-key canvas where the AI work is the deliverable: native image, video, and music generation, agents, and document search on one visual canvas, with an agent that builds the pipeline from your description.",
     competitorTagline: "Hosted business-ops agents",
-    competitorBullets: [
-      "Assistants for operations work, built without code",
-      "Deep business-app integrations",
-      "Hosted, closed source",
-      "Billed in tasks/credits + seats",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "The AI-native canvas",
-    nodetoolBullets: [
-      "Native image, video, and music generation",
-      "Agents and document search on the same canvas as generation",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Open source under AGPL-3.0, desktop app included",
-      "Your own keys at provider prices — local models supported",
-    ],
     rows: [
       { label: "Focus", competitor: "Business-ops automation", nodetool: "AI generation + agents" },
       { label: "Business-app integrations", competitor: "Deep, prebuilt", nodetool: "AI-focused set" },
@@ -2474,7 +2019,6 @@ export const competitors: Competitor[] = [
       { label: "Pricing model", competitor: "Tasks/credits + seats", nodetool: "Your keys, provider prices" },
       { label: "Desktop app + local models", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Ops plumbing, or creative production",
     explainerParagraph:
       "Lindy is strong where its integrations are strong: wiring an assistant into your inbox, calendar, and CRM to handle repetitive operations, all hosted and built without code. If the job is ops automation across business apps, that prebuilt depth is a real advantage. NodeTool is built for a different job — producing things with AI. Image, video, and music models sit on the same canvas as agents and document search, with editing tools built in, and the workspace is agent-first: describe the pipeline and an agent authors it, runs it, and repairs what fails. Every call is made with your own keys at provider prices, and the whole workspace is open source under AGPL-3.0 with local-model support and a desktop app.",
     ctaHeading: "Put creation on the canvas.",
@@ -2515,24 +2059,7 @@ export const competitors: Competitor[] = [
       accent: "amber",
       subtitle: "When the workflow's output is generated media — not a business process.",
     },
-    heroParagraph:
-      "Gumloop will move your data through a business process without a line of code — prebuilt nodes, broad SaaS integrations, all hosted. But a process that ends in a spreadsheet is a different job from a workflow that ends in a finished video. NodeTool is an open-source, bring-your-own-key canvas built for the second job: native image, video, and music generation, agents, and document search on one visual canvas, with an agent that builds the pipeline from your description.",
     competitorTagline: "Hosted automation, no code required",
-    competitorBullets: [
-      "Prebuilt nodes for business automation",
-      "Broad SaaS integrations",
-      "Hosted, closed source",
-      "Billed in credits + seats",
-    ],
-    competitorBulletTone: "negative",
-    nodetoolTagline: "The AI-native canvas",
-    nodetoolBullets: [
-      "Native image, video, and music generation",
-      "Agents and document search on the same canvas as generation",
-      "Agent-first: describe the pipeline and an agent builds and runs it",
-      "Open source under AGPL-3.0, desktop app included",
-      "Your own keys at provider prices — local models supported",
-    ],
     rows: [
       { label: "Focus", competitor: "Business-process automation", nodetool: "AI generation + agents" },
       { label: "Prebuilt integrations", competitor: "Broad SaaS library", nodetool: "AI-focused set" },
@@ -2542,7 +2069,6 @@ export const competitors: Competitor[] = [
       { label: "Pricing model", competitor: "Credits + seats", nodetool: "Your keys, provider prices" },
       { label: "Desktop app + local models", competitor: false, nodetool: true },
     ],
-    explainerHeading: "Process automation, or media production",
     explainerParagraph:
       "Gumloop is good at what it's built for: automating business processes without writing code, with prebuilt nodes and broad SaaS integrations that get an ops workflow running fast and hosted. If that's the job, its integration library is a real edge. NodeTool is built to produce, not just process — image, video, and music models on the same canvas as agents and document search, editing tools built in, and an agent-first workspace where an agent authors the workflow, runs it, and repairs what fails. Every call is made with your own keys at provider prices, and the whole workspace is open source under AGPL-3.0 with local models and a desktop app.",
     ctaHeading: "Automate the creation itself.",
@@ -2581,6 +2107,7 @@ export function getCompetitor(slug: string): Competitor | undefined {
  * and short enough to be quoted whole.
  */
 export function shortAnswer(c: Competitor): string {
+  if (c.answer) return c.answer;
   const article = /^[aeiou]/i.test(c.competitorTagline) ? "an" : "a";
   const tagline =
     c.competitorTagline.charAt(0).toLowerCase() + c.competitorTagline.slice(1);
@@ -2623,9 +2150,17 @@ export function alternativesFor(slug: string): {
       : "An open-source canvas for image, video, audio, and text that runs on your own keys.",
     isNodetool: true,
   };
+  // Hand-picked `related` tools lead, in the order given, so a large category
+  // (the creative canvases include image generators) cannot push the closest
+  // rivals off the list. Same-category tools fill the remaining places.
   const related = current?.related ?? [];
-  const rivals = siblings(slug)
-    .filter((c) => c.category === current?.category || related.includes(c.slug))
+  const relatedRivals = related
+    .map((relatedSlug) => getCompetitor(relatedSlug))
+    .filter((c): c is Competitor => c !== undefined && c.slug !== slug);
+  const sameCategory = siblings(slug).filter(
+    (c) => c.category === current?.category && !related.includes(c.slug)
+  );
+  const rivals = [...relatedRivals, ...sameCategory]
     .slice(0, 5)
     .map((c) => ({
       name: c.name,

@@ -4,9 +4,24 @@ title: "Skills"
 description: "Saved instructions the NodeTool agent loads for a kind of work: your own skills, the built-in ones, the SKILL.md format, and the slash command."
 ---
 
-A skill is a saved set of instructions for one kind of work. It has a name, a one-line description of when it applies, and a Markdown body. The agent reads the name and description on every turn. It reads the body only when it needs it, or when you name the skill with `/` in chat.
+A skill is a Markdown file with a name, a one-line description, and a body of instructions. This is the start of `packages/system-skills/logo-reveal/SKILL.md`:
 
-> **Quick Access:** Click **+** in the workspace tab bar and choose **New skill**, or open the **Skills** panel from the left panel's **More** menu. In chat, type `/` to pick a skill.
+```markdown
+---
+name: logo-reveal
+description: Animate a brand mark on a NodeTool timeline — stroke draw-on, mask wipe, staggered build, wordmark type, an idle loop, and landing the settle on a sound logo. Use for an intro sting, a sign-off, an end card, a splash, or a loader loop. Not for designing the mark itself.
+---
+
+# Logo Reveal → the sting
+
+One idea per logo. Draw it, build it, or wipe it — never all three. The whole
+reveal runs 800–2500ms and ends on the clean mark, held.
+```
+
+The agent reads the name and description on every turn. It reads the body only when it needs it, or when you name the skill with `/` in chat. In the app, create one with **+** in the workspace tab bar → **New skill**, or open the **Skills** panel from the left panel's **More** menu.
+
+> **Runs:** locally or cloud, with no extra setup. **Needs:** no API key. Skills only add instructions to a chat turn.
+{: .callout-note}
 
 ![Skill editor with a brand-voice skill: its name, the description agents match against, and the Markdown body](assets/screenshots/skill-editor.png)
 
@@ -28,41 +43,24 @@ System skills cannot be renamed, edited, or deleted from the app or by the agent
 
 ## Create and edit a skill
 
-1. Click **+** in the workspace tab bar and choose **New skill**. A new skill opens in a tab with a generated name such as `skill-m3x9k2`, a placeholder description, and a short starter body. The **+** button at the top of the Skills panel does the same.
+1. Click **+** in the workspace tab bar and choose **New skill** (or **+** at the top of the Skills panel). A skill opens with a generated name such as `skill-m3x9k2`, a placeholder description, and a starter body.
 2. Set the **Name**. Use lowercase letters, digits, and hyphens, up to 64 characters. The name cannot contain `anthropic` or `claude`.
 3. Set the **Description**. Write it as when to use the skill, for example "Use when writing release notes from a changelog." It is the only part the agent always sees. It can be up to 1024 characters and cannot contain markup such as `<tag>`.
 4. Write the instructions in the Markdown editor below the two fields.
 
-The editor saves on its own about three-quarters of a second after you stop typing. **Save** saves immediately, and a dot beside it shows unsaved changes. The tab title follows the skill name.
+The editor autosaves about three-quarters of a second after you stop typing. **Save** saves immediately, and a dot beside it marks unsaved changes.
 
-In the Skills panel, right-click a skill for **Rename** and **Delete**, and for **Duplicate**, which creates a copy named `<name>-copy`. Built-in skills open as a read-only view and have no rename or delete action.
+In the Skills panel, right-click a skill for **Rename**, **Delete**, and **Duplicate** (creates `<name>-copy`). Built-in skills are read-only.
 
-You can also ask the agent to do this in chat, for example "Save these steps as a skill called weekly-report." See [How the agent finds and loads skills](#how-the-agent-finds-and-loads-skills) below.
+You can also ask the agent: "Save these steps as a skill called weekly-report." See [How the agent finds and loads skills](#how-the-agent-finds-and-loads-skills).
 
-### What makes a good skill
-
-- Write the description as a trigger. "Use when the user asks for a changelog summary" lets the agent decide from one line whether to load the skill.
-- Keep one skill to one kind of work. Several narrow skills load faster and conflict less than one large one.
-- Put the steps, defaults, and checks in the body. The agent follows the body as instructions for the turn.
+Write the description as a trigger ("Use when the user asks for a changelog summary"), and keep one skill to one kind of work.
 
 ---
 
 ## The SKILL.md format
 
-System skills are files. Each lives in its own directory, `packages/system-skills/<name>/SKILL.md`, and the directory name is the skill name. A `SKILL.md` has front matter between two `---` lines, then the body.
-
-```markdown
----
-name: release-notes
-description: "Use when writing release notes from a changelog or a list of merged changes."
-featured: true
----
-
-# Release notes
-
-1. Group the changes by user-visible area.
-2. Lead each group with the change people will notice.
-```
+System skills are files. Each lives in `packages/system-skills/<name>/SKILL.md`, and the directory name is the skill name. A `SKILL.md` has front matter between two `---` lines, then the body.
 
 ### Front matter fields
 
@@ -83,7 +81,7 @@ A `SKILL.md` is skipped, without an error, when any of these hold:
 
 The body is everything after the closing `---`. It is plain Markdown. `load_skill` returns it in one piece, so a skill is a single `SKILL.md` and nothing beside it is read.
 
-A user skill has the same three parts, but you edit them in the app as the **Name** and **Description** fields and the Markdown editor, so you never write front matter by hand.
+A user skill has the same three parts, edited as the **Name** and **Description** fields and the Markdown editor.
 
 ### Where NodeTool looks for system skills
 
@@ -97,9 +95,7 @@ On startup the agent loads system skills from the first of these that exists:
 
 ## How the agent finds and loads skills
 
-Every chat turn carries a catalog of skills: the name and description of each of your own skills, plus the system skills marked `featured: true`. The remaining system skills are counted but not listed. That keeps the prompt short. The agent finds them by searching.
-
-The agent reaches skills through five tools.
+Every chat turn carries a catalog: the name and description of each of your skills, plus system skills marked `featured: true`. The remaining system skills are counted but not listed, and the agent finds them with `list_skills`. Five tools reach skills:
 
 | Tool | What it does |
 |---|---|
@@ -123,7 +119,7 @@ When a message names a skill this way, the agent receives that skill's full inst
 
 ## Shipped skills
 
-The list below comes from the directories in `packages/system-skills`. Each skill is available to the agent on every install, and you can open any of them read-only from the Skills panel. Type `/` and the name to use one in chat.
+One row per directory in `packages/system-skills`. Open any of them read-only from the Skills panel, or type `/` and the name in chat.
 
 ### Video production
 
@@ -144,6 +140,8 @@ The list below comes from the directories in `packages/system-skills`. Each skil
 | `music-video-treatment` | A beat-synced music-video treatment and storyboard from track metadata. |
 | `trailer-template` | A trailer or teaser structured as eight audio-first beats. |
 | `video-audio-continuity` | Keeping sound continuous across a multi-scene piece cut from generated video. |
+| `ad-creative-testing` | Matched ad variants that test one storytelling choice at a time, a test plan, and reading the results. |
+| `ad-story-loops` | The question-and-payoff structure of an ad, promo, or demo: hooks, open loops, rehooks, closure. |
 | `nodetool-video-post` | Repairing or regenerating footage already on a timeline: cutouts, upscaling, outpainting, lip sync, and more. |
 
 ### Motion and timeline craft
@@ -170,6 +168,9 @@ The list below comes from the directories in `packages/system-skills`. Each skil
 | `nodetool-3d-scene` | Building, editing, validating, and rendering 3D models. |
 | `native-game` | Building or revising a playable game in NodeTool's built-in engine and preparing a web build. |
 | `game-direction` | Setting game feel, level pacing, and art direction before building. |
+| `native-game-performance` | Frame and tick targets, budgets per game type, and the `nodetool game bench`, `capture`, and `perf` loop. |
+| `native-game-reference` | Field reference for native game documents. Load after `native-game`. |
+| `manimgx` | ManimGX scenes: math and 3D animations run by the `nodetool.manimgx` nodes. |
 
 ### Workflows, apps, and code
 
@@ -186,7 +187,7 @@ The list below comes from the directories in `packages/system-skills`. Each skil
 
 ### Model prompting guides
 
-Each guide covers how one model line reads a prompt: the structure it expects, the controls that matter, and common failures. NodeTool points the agent to the matching guide when it picks a model.
+Each guide covers the prompt structure, controls, and common failures of one model line. The agent is pointed to the matching guide when it picks a model.
 
 | Skill | Model line |
 |---|---|
@@ -212,7 +213,7 @@ Each guide covers how one model line reads a prompt: the structure it expects, t
 | `nodetool-model-provider-config` | Providers, credentials, local models, and model selection. |
 | `nodetool-chat-cli` | Chat CLI sessions, provider selection, and Global Chat features. |
 
-The `api-*` skills document the `nodetool` object model that the agent calls from code actions. The agent loads one before its first call into that area.
+The `api-*` skills document the `nodetool` object model that code actions call. The agent loads one before its first call into that area.
 
 | Skill | Covers |
 |---|---|
@@ -242,7 +243,7 @@ The `api-*` skills document the `nodetool` object model that the agent calls fro
 
 ## Related pages
 
-- [Global Chat](global-chat.md) for the composer and slash commands.
-- [Editor Panels](editor-panels.md) for the **More** menu that holds **Skills**.
-- [User Interface](user-interface.md) for starting a project from a skill.
-- [Configuration](configuration.md) for `NODETOOL_SYSTEM_SKILLS_DIR`.
+- [Global Chat](global-chat.md): composer and slash commands
+- [Editor Panels](editor-panels.md): the **More** menu that holds **Skills**
+- [User Interface](user-interface.md): starting a project from a skill
+- [Configuration](configuration.md): `NODETOOL_SYSTEM_SKILLS_DIR`

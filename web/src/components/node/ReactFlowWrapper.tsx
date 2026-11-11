@@ -98,6 +98,7 @@ import { LoadingSpinner } from "../ui_primitives";
 import { DATA_TYPES } from "../../config/data_types";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import useResultsStore from "../../stores/ResultsStore";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 import useStatusStore from "../../stores/StatusStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import useNodePlacementStore from "../../stores/NodePlacementStore";
@@ -188,6 +189,7 @@ const ReactFlowWrapper = ({
   active = true
 }: ReactFlowWrapperProps) => {
   const openSubgraph = useOpenSubgraph();
+  const openInspector = useRightPanelStore((state) => state.openInspector);
   const isDarkMode = useIsDarkMode();
   const theme = useTheme();
   // Combine multiple store subscriptions into a single selector to reduce re-renders
@@ -765,13 +767,16 @@ const ReactFlowWrapper = ({
 
   const handleNodeDoubleClick = useCallback(
     (_event: ReactMouseEvent, node: Node) => {
-      if (node.type !== SUBGRAPH_NODE_TYPE) return;
+      if (node.type !== SUBGRAPH_NODE_TYPE) {
+        openInspector();
+        return;
+      }
       // The canvas this node is on, not `data.workflow_id`: that is only
       // stamped on nodes the store created, so a node loaded from a saved
       // graph would key its tab off "" and the strip would never find it.
       openSubgraph(workflowId, node.id, node.data as SubgraphNodeData);
     },
-    [openSubgraph, workflowId]
+    [openInspector, openSubgraph, workflowId]
   );
 
   const handlePaneClickWithSuppress = useCallback(

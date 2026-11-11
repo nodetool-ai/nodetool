@@ -199,6 +199,17 @@ describe.runIf(!skipReason)("render_timeline", () => {
 
   afterEach(() => setDefaultModelInterfaces(null));
 
+  it.each([2, 3])("reports unsupported version %s without starting a job or saving", async (workingColorSpaceVersion) => {
+    const seq = await makeTimeline();
+    seq.document = JSON.stringify({ ...JSON.parse(seq.document), workingColorSpaceVersion });
+    await seq.save();
+    const saved = seq.document;
+    const result = await renderTimeline.impl(run(), { timeline_id: seq.id });
+    expect(result).toEqual({ error: `Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.` });
+    expect((await TimelineSequence.findById(seq.id))?.document).toBe(saved);
+    expect(storedAssets.size).toBe(0);
+  });
+
   it("renders the cut as a job and hands back the composited asset", async () => {
     const seq = await makeTimeline();
     const result = (await renderTimeline.impl(run(), {

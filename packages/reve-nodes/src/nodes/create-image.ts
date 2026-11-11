@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
-  getReveApiKey,
   postprocessingArray,
   reveGenerate,
   reveImageToRef,
@@ -77,19 +76,27 @@ export class CreateImageNode extends BaseNode {
   })
   declare test_time_scaling: any;
 
-  async process(): Promise<CreateImageNodeOutputs> {
-    const apiKey = getReveApiKey(this._secrets);
-
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<CreateImageNodeOutputs> {
     const prompt = String(this.prompt ?? "");
     if (!prompt) throw new Error("Prompt is required");
 
-    const result = await reveGenerate(apiKey, "create", {
-      prompt,
-      aspect_ratio: String(this.aspect_ratio ?? "3:2"),
-      version: String(this.version ?? "latest"),
-      postprocessing: postprocessingArray(this.postprocessing),
-      test_time_scaling: Number(this.test_time_scaling ?? 1)
-    });
+    if (!context) {
+      throw new Error("Reve Create Image requires a processing context");
+    }
+    const result = await reveGenerate(
+      context,
+      "create",
+      {
+        prompt,
+        aspect_ratio: String(this.aspect_ratio ?? "3:2"),
+        version: String(this.version ?? "latest"),
+        postprocessing: postprocessingArray(this.postprocessing),
+        test_time_scaling: Number(this.test_time_scaling ?? 1)
+      },
+      this.__node_id || undefined
+    );
 
     return { output: await reveImageToRef(result.image) };
   }

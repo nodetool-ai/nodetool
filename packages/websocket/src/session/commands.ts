@@ -947,6 +947,7 @@ export class CommandRouter {
         ? (data.audio_format as string)
         : undefined;
       const projectId = isString(data.project_id) ? data.project_id : undefined;
+      const threadId = isNonEmptyString(data.thread_id) ? data.thread_id : undefined;
       const rawSourceContext = isRecord(data.source_context)
         ? data.source_context
         : undefined;
@@ -1023,6 +1024,7 @@ export class CommandRouter {
           referenceVideos: references.reference_videos,
           useReferenceVideoAudio: references.use_reference_video_audio,
           projectId,
+          threadId,
           sourceContext,
           timelineContext: references.timeline_context ? {
             sequenceId: references.timeline_context.sequence_id,

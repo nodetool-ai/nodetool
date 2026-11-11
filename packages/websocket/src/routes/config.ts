@@ -1,5 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
-import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
+import {
+  isGoogleWorkspaceEnabled,
+  isOidcAuthConfigured
+} from "@nodetool-ai/config";
 import { GOOGLE_WORKSPACE_SCOPES } from "@nodetool-ai/runtime";
 import { getVersion } from "./health.js";
 import { isCloudProfile } from "../lib/cloud-profile.js";
@@ -50,11 +53,21 @@ const configRoute: FastifyPluginAsync = async (app) => {
     const supabaseAnonKey = process.env["SUPABASE_ANON_KEY"]?.trim() || null;
     const authRedirectUrl = process.env["AUTH_REDIRECT_URL"]?.trim() || null;
 
-    // Mirror the server's auth-mode selection: "Supabase mode" (auth enforced)
-    // is chosen when both SUPABASE_URL and SUPABASE_KEY are set. Everything
+    // Mirror the server's auth-mode selection: "Supabase mode" when both
+    // SUPABASE_URL and SUPABASE_KEY are set, "SSO mode" when OIDC_ISSUER and
+    // OIDC_CLIENT_ID are set (the server refuses to boot with both). Everything
     // else is "Local mode" (loopback trusted, no login screen).
-    const authMode: "supabase" | "local" =
-      supabaseUrl && supabaseServiceKey ? "supabase" : "local";
+    const authMode: "supabase" | "oidc" | "local" =
+      supabaseUrl && supabaseServiceKey
+        ? "supabase"
+        : isOidcAuthConfigured()
+          ? "oidc"
+          : "local";
+    // The sign-in button label in SSO mode, such as "Okta" or "Acme SSO".
+    const ssoProviderName =
+      authMode === "oidc"
+        ? process.env["OIDC_PROVIDER_NAME"]?.trim() || "SSO"
+        : null;
 
     // When enabled, the web app offers a Workspace connect step — separate from
     // login, which asks for identity only — and posts the resulting provider
@@ -72,6 +85,7 @@ const configRoute: FastifyPluginAsync = async (app) => {
       supabaseUrl,
       supabaseAnonKey,
       authRedirectUrl,
+      ssoProviderName,
       googleWorkspace,
       googleScopes: googleWorkspace ? GOOGLE_WORKSPACE_SCOPES : [],
       version: getVersion()

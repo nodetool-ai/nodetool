@@ -1,6 +1,6 @@
 # Runtime Package Interface
 
-Status: **implemented** — see `electron/src/runtime/packages/`.
+Status: **implemented** — see `packages/runtime-install/src/packages/`.
 
 The Package Manager (`electron/src/packageManager.ts`) currently branches per
 install backend (`conda` / `npm` / `electron`) for status, install, uninstall,
@@ -52,6 +52,7 @@ interface RuntimePackage {
 
 ```ts
 interface RuntimeContext {
+  host: RuntimeInstallHost; // the app, the CLI or another Node.js host
   userDataDir: string;
   condaEnvPath: string;
   optionalNodeRoot: string;
@@ -105,15 +106,15 @@ satisfying the range when installing or updating.
   `versionRange` and moves to it. No-op if already on it. Errors if not
   installed (caller should show "Install" instead).
 
-### Server cannot resolve runtimes (Electron-only for v1)
+### One registry per host
 
-The registry lives in Electron. CLI / `npm run dev:server` cannot call
-`resolve()`. If a node needs a runtime in the server context, it must fail
-with a clear error directing the user to run via Electron or install the
-runtime manually.
-
-Future expansion (moving the registry to a shared package) is possible but
-out of scope.
+The registry lives in `@nodetool-ai/runtime-install`. Each host supplies a
+`RuntimeInstallHost`: the desktop app's adapter in `electron/src/runtimeHost.ts`,
+or `createNodeRuntimeHost()` from `@nodetool-ai/runtime-install/node-host` for
+the CLI, a server or a native editor. `runtimeRegistryFor(host)` returns that
+host's registry. A server never installs at run time. A node that needs a
+missing runtime fails with the error of the
+[runtime install design](runtime-install-design.md#57-error-contract).
 
 ### Repair is separate from install
 
@@ -163,9 +164,9 @@ Most packages share install logic. Provide base classes:
 - **`NpmRuntimePackage`** — constructor takes `{ id, name, npmPackages,
   packageNames, versionRange, ... }`. Implements against
   `optional-node/node_modules`. `resolve()` returns `nodeModulePaths`.
-- **`ElectronRuntimePackage`** — bundled. `status()` always `installed: true`,
-  `install()` yields `done` immediately, `resolve()` returns Electron's
-  bundled node path.
+- **`ProvidedRuntimePackage`** — shipped with the host. `status()` always
+  `installed: true`, `install()` yields `done` immediately, `resolve()` returns
+  the provided binary paths.
 
 Adding a new conda tool becomes one `new CondaRuntimePackage({...})` entry,
 not a new class. Bespoke packages with non-standard install flows can
@@ -188,7 +189,7 @@ provides cross-cutting concerns:
 
 ## Migration
 
-1. Define interface and base classes in `electron/src/runtime/packages/`.
+1. Define interface and base classes in `packages/runtime-install/src/packages/`.
 2. Port existing entries from `RUNTIME_DEFINITIONS` to base-class instances.
 3. Replace `installRuntimePackage` / `uninstallRuntimePackage` callsites with
    registry methods.

@@ -4,9 +4,7 @@ title: "Templates Gallery"
 description: "Browse ready-to-run example workflows and use them as starting points."
 ---
 
-The **Examples** page is a library of shipped example workflows, apps, storyboards, timelines, sketches, 3D models, and games that you can copy into your own project. Open it from the **Examples** item in the **More** panel, or from **Browse examples** on the new-project surface. It opens as a workspace tab, not as a URL route.
-
----
+The **Examples** page lists shipped workflows, apps, storyboards, timelines, sketches, 3D models, and games you can copy into your project. Open it from **More → Examples** or **Browse examples** on the new-project surface. It is a workspace tab, not a URL route.
 
 ## Tabs
 
@@ -28,11 +26,11 @@ The rest of this page covers the **Workflows** tab, which is the template galler
 
 ## Opening a Template
 
-Click a template card. NodeTool creates a private copy named after the template, tagged `example`, in your current project, and opens it in a workspace tab. The original is never modified, so you can edit and save the copy freely.
+Clicking a card creates a private copy named after the template, tagged `example`, in your current project, and opens it in a workspace tab. The original is never modified, so you can edit and save the copy freely.
 
 ![Examples page](assets/screenshots/examples-page.png)
 
-Templates ship with NodeTool and are loaded from the `workflows.examples` tRPC query. They are grouped by tag into the categories below.
+Templates are loaded from the `workflows.examples` tRPC query. They are grouped by tag into the categories below.
 
 | Category | Tags that match |
 |----------|-----------------|
@@ -59,16 +57,13 @@ If nothing matches, the page offers **Clear search** or **Show all templates**.
 
 ## Anatomy of a Template Card
 
-Each card shows:
+Each card shows a thumbnail (a category-colored placeholder when missing), title, description, and:
 
-- **Thumbnail**, or a category-colored placeholder when the template has none.
-- **Title and description**.
 - **Inputs**, each marked required, optional, or requirement unknown.
 - **Provider/model**, the models the graph selects, or the providers it uses.
 - **Execution**, whether it runs locally, on provider-hosted models, or both.
 - **Required setup** and **Runtime**, when the graph needs them.
 - **Estimated cost**, computed from published node prices. A graph with unpriced nodes shows "at least" or "unknown" with the count of unpriced nodes.
-- **Category** label.
 
 Model fields in shipped templates are empty. When you open one, NodeTool fills each from your own default model for that type. If a model is missing, the **Recommended Models** dialog offers to install it.
 

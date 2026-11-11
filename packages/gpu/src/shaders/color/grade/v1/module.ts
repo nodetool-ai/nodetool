@@ -35,6 +35,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const colorGradeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "color.grade",
   version: 1,
   // Promoted in Phase 3: param schema is stable across Phase 2 + Batch 1
@@ -131,13 +132,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

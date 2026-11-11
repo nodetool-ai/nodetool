@@ -15,7 +15,6 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@fal-ai/client": "^1.9.4",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/runtime": "*",

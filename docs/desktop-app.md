@@ -5,9 +5,12 @@ description: "What the NodeTool desktop app is, which platforms it supports, whe
 permalink: /desktop-app
 ---
 
-The desktop app is NodeTool packaged for Windows, macOS, and Linux. It opens the same editor as the web version in its own window and runs the NodeTool server on your machine, so your workflows, assets, and database stay local.
+The desktop app is an Electron build of the web editor for Windows, macOS, and Linux. It starts the NodeTool server on your machine, so workflows, assets, and the database stay local.
 
-This page is the hub for desktop-specific questions. Installing and connecting a provider is covered in [Installation](installation.md). The windows, tray, and menus are cataloged in [Desktop App Views](electron-views.md).
+> **Runs:** locally on Windows (x64), macOS (Apple Silicon and Intel), and Linux (AppImage). **Needs:** one model source, local or a cloud API key (see [Installation](installation.md)). Python is optional and installs on demand.
+{: .callout-note}
+
+Install and provider setup are in [Installation](installation.md). The windows, tray, and menus are in [Desktop App Views](electron-views.md).
 
 ---
 
@@ -19,7 +22,7 @@ Download the installer from [nodetool.ai](https://nodetool.ai). The release buil
 |----|---------|---------------|
 | macOS | `.dmg` (and a `.zip`) | Apple Silicon (arm64) and Intel (x64) |
 | Windows | NSIS installer (`.exe`) | x64 |
-| Linux | AppImage, plus a Flatpak build | See [Installation](installation.md#linux) |
+| Linux | AppImage (unsigned Flatpak builds come from CI only) | See [Installation](installation.md#linux) |
 
 Step-by-step install instructions for each OS are in [Installation](installation.md#macos).
 
@@ -27,7 +30,7 @@ Step-by-step install instructions for each OS are in [Installation](installation
 
 ## First launch
 
-NodeTool shows a boot splash while the local server starts. The first start can take longer than later ones, and the splash shows the current step. If the server does not start, the splash offers **Retry start**, **Open logs**, and **Reinstall environment**.
+A boot splash shows the current step while the local server starts, and the first start takes longer. If the server does not start, the splash offers **Retry start**, **Open logs**, and **Reinstall environment**.
 
 On macOS and Linux, NodeTool shows a one-time dialog explaining that it will use the system keychain to protect your stored API keys. Windows does not show it.
 
@@ -85,7 +88,7 @@ A vault is a separate data store with its own database, assets, and RAG collecti
 
 Open **Tools → Package Manager** to install system runtimes (such as Python and the model runners) and to enable, disable, install, or update node packs. See [Desktop App Views](electron-views.md#package-manager) for the screen and [Node Packs](node-packs.md) for where packs come from.
 
-![Package Manager on the Node Packs tab](assets/screenshots/packages-manager.png)
+![Package Manager on the Built-in nodes tab](assets/screenshots/packages-manager.png)
 
 ---
 

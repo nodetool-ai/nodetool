@@ -95,6 +95,10 @@ function slotFor(concurrencyClass: string): ConcurrencySlot {
 }
 
 function capFor(concurrencyClass: string): number {
+  if (concurrencyClass === "timeline") {
+    const raw = Number(process.env["NODETOOL_TIMELINE_RENDER_CONCURRENCY"]);
+    return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : Infinity;
+  }
   return concurrencyClass === RENDER_CONCURRENCY_CLASS
     ? maxConcurrentBlenderRenders()
     : maxConcurrentHostBinaries();
@@ -117,6 +121,7 @@ async function acquireSlot(
   concurrencyClass: string,
   signal?: AbortSignal
 ): Promise<void> {
+  signal?.throwIfAborted();
   const slot = slotFor(concurrencyClass);
   if (slot.running < capFor(concurrencyClass)) {
     slot.running++;
@@ -156,6 +161,20 @@ function releaseSlot(concurrencyClass: string): void {
     return;
   }
   slot.running--;
+}
+
+/** Run an in-process timeline render under its independent, opt-in cap. */
+export async function withTimelineRenderSlot<T>(
+  render: () => Promise<T>,
+  signal?: AbortSignal
+): Promise<T> {
+  await acquireSlot("timeline", signal);
+  try {
+    signal?.throwIfAborted();
+    return await render();
+  } finally {
+    releaseSlot("timeline");
+  }
 }
 
 /** Append to a captured stream, stopping at the cap. */

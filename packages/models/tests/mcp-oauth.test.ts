@@ -5,7 +5,8 @@ import {
   McpOauthClient,
   McpOauthGrant,
   McpOauthToken,
-  MCP_OAUTH_ACCESS_TTL_MS
+  MCP_OAUTH_ACCESS_TTL_MS,
+  MCP_OAUTH_REFRESH_REUSE_GRACE_MS
 } from "../src/mcp-oauth.js";
 
 async function makeGrant(overrides: Partial<{
@@ -198,7 +199,10 @@ describe("McpOauthGrant + McpOauthToken", () => {
     };
     expect(await McpOauthToken.verifyAccess(secondAccess)).not.toBeNull();
 
-    // Present the pre-rotation refresh token again — reuse.
+    // Present the pre-rotation refresh token again, after the retry grace
+    // window — reuse.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + MCP_OAUTH_REFRESH_REUSE_GRACE_MS + 1);
     const reuse = await McpOauthToken.rotateRefresh(firstRefresh);
     expect(reuse).toEqual({ reuseDetected: true });
 
@@ -207,6 +211,42 @@ describe("McpOauthGrant + McpOauthToken", () => {
     expect(await McpOauthToken.verifyAccess(secondAccess)).toBeNull();
     const grant = await McpOauthGrant.get(grantId);
     expect(grant!.revoked_at).not.toBeNull();
+  });
+
+  it("a retry inside the grace window gets a working pair instead of a revoked grant", async () => {
+    const grantId = await makeGrant();
+    const { refreshToken: firstRefresh } =
+      await McpOauthToken.mintPair(grantId);
+    const first = (await McpOauthToken.rotateRefresh(firstRefresh)) as {
+      accessToken: string;
+      refreshToken: string;
+    };
+
+    // The client lost the first response and retries with the same token.
+    const retry = await McpOauthToken.rotateRefresh(firstRefresh);
+    expect(retry).not.toBeNull();
+    expect("reuseDetected" in (retry as object)).toBe(false);
+    const second = retry as { accessToken: string; refreshToken: string };
+    expect(second.refreshToken).not.toBe(first.refreshToken);
+
+    // Both answers keep working, so whichever one the client stored is good.
+    expect(await McpOauthToken.verifyAccess(first.accessToken)).not.toBeNull();
+    expect(await McpOauthToken.verifyAccess(second.accessToken)).not.toBeNull();
+    expect((await McpOauthGrant.get(grantId))!.revoked_at).toBeNull();
+    const fromRetry = await McpOauthToken.rotateRefresh(second.refreshToken);
+    expect("reuseDetected" in (fromRetry as object)).toBe(false);
+    expect(fromRetry).not.toBeNull();
+    const fromFirst = await McpOauthToken.rotateRefresh(first.refreshToken);
+    expect("reuseDetected" in (fromFirst as object)).toBe(false);
+    expect(fromFirst).not.toBeNull();
+
+    // Once the window closes, the original token is reuse again.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + MCP_OAUTH_REFRESH_REUSE_GRACE_MS + 1);
+    expect(await McpOauthToken.rotateRefresh(firstRefresh)).toEqual({
+      reuseDetected: true
+    });
+    expect((await McpOauthGrant.get(grantId))!.revoked_at).not.toBeNull();
   });
 
   it("revokeByRawToken on an access token deletes only that row", async () => {

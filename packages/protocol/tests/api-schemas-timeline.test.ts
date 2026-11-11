@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  patchTimelineInput,
   clipGrainEffect,
   clipVersion,
   timelineClip,
   timelineDocument,
   timelineSequenceResponse,
+  timelineMarker,
   timelineSetup,
   timelineSetupStage,
   type ClipModel3DStyle,
@@ -55,6 +57,74 @@ const beat = {
   voiceover: "It starts before the light does.",
   music: true
 };
+
+describe("native editor fields", () => {
+  it("preserves optional drop-frame display through root sequence schemas", () => {
+    for (const dropFrame of [true, false]) {
+      const sequence = { ...legacySequence, dropFrame };
+      expect(timelineDocument.parse(sequence)).toHaveProperty("dropFrame", dropFrame);
+      expect(timelineSequenceResponse.parse(sequence)).toHaveProperty("dropFrame", dropFrame);
+      expect(patchTimelineInput.parse({ document: sequence }).document).toHaveProperty("dropFrame", dropFrame);
+    }
+    for (const schema of [timelineDocument, timelineSequenceResponse]) {
+      expect(schema.parse(legacySequence)).not.toHaveProperty("dropFrame");
+      expect(schema.safeParse({ ...legacySequence, dropFrame: 1 }).success).toBe(false);
+    }
+    expect(patchTimelineInput.safeParse({ document: { ...legacySequence, dropFrame: "true" } }).success).toBe(false);
+  });
+
+  const base = { id: "m1", timeMs: 1000, label: "Beat" };
+
+  it("keeps a marker's duration and author through the document and sequence schemas", () => {
+    const marker = { ...base, durationMs: 2500, author: "Ana" };
+    expect(timelineMarker.parse(marker)).toEqual(marker);
+    expect(timelineDocument.parse({ ...legacySequence, markers: [marker] }).markers).toEqual([marker]);
+    expect(timelineSequenceResponse.parse({ ...legacySequence, markers: [marker] }).markers).toEqual([marker]);
+  });
+
+  it("still accepts a marker without the new fields", () => {
+    expect(timelineMarker.parse(base)).toEqual(base);
+  });
+
+  it("refuses a negative marker duration", () => {
+    expect(timelineMarker.safeParse({ ...base, durationMs: -1 }).success).toBe(false);
+  });
+
+  it("keeps the values of a switched-off fixed effect", () => {
+    const clip = model3dClip;
+    const bypassedFixedEffects = {
+      motion: {
+        transform: { position: { x: 4, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
+        curves: [{ property: "rotation", keyframes: [{ t: 0, value: 1, easing: "cubic-bezier(0.2,0,0.8,1)" }] }]
+      },
+      opacity: { opacity: 0.5 },
+      volume: { volumeDb: -6, curves: [{ property: "volumeDb", keyframes: [{ t: 0, value: -3 }] }] }
+    };
+    expect(timelineClip.parse(clip).bypassedFixedEffects).toBeUndefined();
+    expect(timelineClip.parse({ ...clip, bypassedFixedEffects }).bypassedFixedEffects).toEqual(bypassedFixedEffects);
+  });
+
+  it("keeps param curves under any name, in the keyframe shape", () => {
+    const clip = model3dClip;
+    expect(timelineClip.parse(clip).paramCurves).toBeUndefined();
+    const paramCurves = [
+      { property: "volumeDb", keyframes: [{ t: 0, value: -3, easing: "hold" }, { t: 1, value: 0 }] },
+      { property: "effect:abc:radius", keyframes: [{ t: 0.5, value: 4 }] },
+      { property: "some.name.from.a.newer.build", keyframes: [{ t: 0, value: 1 }] }
+    ];
+    expect(timelineClip.parse({ ...clip, paramCurves }).paramCurves).toEqual(paramCurves);
+    expect(timelineClip.safeParse({ ...clip, paramCurves: [{ property: "x", keyframes: [{ t: 0 }] }] }).success).toBe(false);
+  });
+
+  it("keeps a clip's audio role and refuses an unknown one", () => {
+    const clip = model3dClip;
+    expect(timelineClip.parse(clip).audioRole).toBeUndefined();
+    for (const audioRole of ["dialogue", "music", "sfx", "ambience"]) {
+      expect(timelineClip.parse({ ...clip, audioRole }).audioRole).toBe(audioRole);
+    }
+    expect(timelineClip.safeParse({ ...clip, audioRole: "narration" }).success).toBe(false);
+  });
+});
 
 describe("track folders", () => {
   it("preserves folder membership through document and sequence schemas", () => {

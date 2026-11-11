@@ -17,6 +17,7 @@ describe("ModelMenuStore", () => {
         "claude_agent_sdk",
         "codex",
         "antigravity",
+        "copilot",
         "huggingface-local",
         "mlx",
         "node_llama_cpp",

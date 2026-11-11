@@ -1,3 +1,4 @@
+import { validateRenderTexture } from "../resourceValidation.js";
 /**
  * WebGPULayerCompositor — the shared layer-compositing engine.
  *
@@ -405,20 +406,29 @@ export class WebGPULayerCompositor {
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.COPY_SRC |
       GPUTextureUsage.COPY_DST;
-    this.pingPongA?.destroy();
-    this.pingPongB?.destroy();
-    this.pingPongA = this.device.createTexture({
+    validateRenderTexture(this.device, safeW, safeH, this.format, usage);
+    const nextA = this.device.createTexture({
       label: "layer-compositor-ping-A",
       size: { width: safeW, height: safeH },
       format: this.format,
       usage
     });
-    this.pingPongB = this.device.createTexture({
-      label: "layer-compositor-ping-B",
-      size: { width: safeW, height: safeH },
-      format: this.format,
-      usage
-    });
+    let nextB: GPUTexture;
+    try {
+      nextB = this.device.createTexture({
+        label: "layer-compositor-ping-B",
+        size: { width: safeW, height: safeH },
+        format: this.format,
+        usage
+      });
+    } catch (error) {
+      nextA.destroy();
+      throw error;
+    }
+    this.pingPongA?.destroy();
+    this.pingPongB?.destroy();
+    this.pingPongA = nextA;
+    this.pingPongB = nextB;
     this.widthPx = width;
     this.heightPx = height;
   }
@@ -462,6 +472,18 @@ export class WebGPULayerCompositor {
     params: BlendPassParams,
     rect: PixelRect
   ): void {
+    // D3D12/WARP loses the first row/column of an odd-origin scissored
+    // blend even though the scratch copy is intact. Cover complete 2x2 pixel
+    // quads in both operations. The shader preserves the destination outside
+    // the layer, and clamping keeps odd-sized render targets valid.
+    const x = Math.floor(rect.x / 2) * 2;
+    const y = Math.floor(rect.y / 2) * 2;
+    rect = {
+      x,
+      y,
+      width: Math.min(accumTex.width, Math.ceil((rect.x + rect.width) / 2) * 2) - x,
+      height: Math.min(accumTex.height, Math.ceil((rect.y + rect.height) / 2) * 2) - y
+    };
     encoder.copyTextureToTexture(
       { texture: accumTex, origin: { x: rect.x, y: rect.y } },
       { texture: scratchTex, origin: { x: rect.x, y: rect.y } },

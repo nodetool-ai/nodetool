@@ -333,3 +333,141 @@ describe("toolThenFinishScript", () => {
     expect((items[1] as { name: string }).name).toBe("read");
   });
 });
+
+describe("ScriptedProvider endpoint scripting", () => {
+  const OUT = { images: [{ url: "https://cdn.example/a.png" }] };
+
+  it("still requires a script when no options are given", () => {
+    expect(() => new ScriptedProvider([])).toThrow(
+      "ScriptedProvider requires at least one script"
+    );
+    expect(new ScriptedProvider([textScript("hi")]).supportsEndpointCalls()).toBe(
+      false
+    );
+  });
+
+  it("answers endpoint calls per model, repeats the last reply and logs each request", async () => {
+    const provider = new ScriptedProvider([], {
+      providerId: "replicate",
+      endpoints: {
+        "owner/model": [
+          { output: OUT, requestId: "pred-1", metadata: { cost: 1 } },
+          { output: "second" }
+        ],
+        "*": { output: "fallback", requestId: null }
+      }
+    });
+    expect(provider.provider).toBe("replicate");
+    expect(provider.supportsEndpointCalls()).toBe(true);
+
+    const first = await provider.callEndpoint({
+      model: "owner/model",
+      input: { prompt: "a" },
+      route: "predictions"
+    });
+    const second = await provider.callEndpoint({ model: "owner/model", input: {} });
+    const third = await provider.callEndpoint({ model: "owner/model", input: {} });
+    const other = await provider.callEndpoint({ model: "other", input: {} });
+
+    expect(first).toEqual({ output: OUT, requestId: "pred-1", metadata: { cost: 1 } });
+    expect(second).toEqual({ output: "second", requestId: "scripted-request-2" });
+    expect(third).toEqual({ output: "second", requestId: "scripted-request-3" });
+    expect(other).toEqual({ output: "fallback", requestId: null });
+    expect(provider.endpointCalls.map((call) => call.model)).toEqual([
+      "owner/model",
+      "owner/model",
+      "owner/model",
+      "other"
+    ]);
+    expect(provider.endpointCalls[0]).toEqual({
+      model: "owner/model",
+      input: { prompt: "a" },
+      route: "predictions"
+    });
+  });
+
+  it("reports scripted progress, throws scripted errors and refuses unscripted models", async () => {
+    const provider = new ScriptedProvider([textScript("hi")]);
+    provider
+      .scriptEndpoint("slow", {
+        output: 1,
+        progress: [{ message: "IN_QUEUE" }, { progress: 0.5 }]
+      })
+      .scriptEndpoint("broken", new Error("vendor said no"));
+    const events: unknown[] = [];
+
+    await provider.callEndpoint({
+      model: "slow",
+      input: {},
+      onProgress: (event) => events.push(event)
+    });
+
+    expect(events).toEqual([{ message: "IN_QUEUE" }, { progress: 0.5 }]);
+    await expect(provider.callEndpoint({ model: "broken", input: {} })).rejects.toThrow(
+      "vendor said no"
+    );
+    await expect(provider.callEndpoint({ model: "missing", input: {} })).rejects.toThrow(
+      'ScriptedProvider has no scripted endpoint reply for "missing"'
+    );
+    expect(provider.endpointCalls).toHaveLength(3);
+  });
+
+  it("builds a reply from the request and honours an aborted signal", async () => {
+    const provider = new ScriptedProvider([], {
+      endpoints: { echo: (request) => ({ output: request.input }) }
+    });
+    const echoed = await provider.callEndpoint({ model: "echo", input: { n: 3 } });
+    expect(echoed.output).toEqual({ n: 3 });
+
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    await expect(
+      provider.callEndpoint({ model: "echo", input: {}, signal: controller.signal })
+    ).rejects.toThrow("cancelled");
+  });
+
+  it("returns deterministic upload URLs and downloads scripted or uploaded bytes", async () => {
+    const provider = new ScriptedProvider([], {
+      downloads: { "https://cdn.example/out.png": new Uint8Array([9]) }
+    });
+    const bytes = new Uint8Array([1, 2]);
+
+    const url = await provider.uploadMedia({ bytes, mimeType: "image/png" });
+    const named = await provider.uploadMedia({
+      bytes,
+      mimeType: "audio/wav",
+      filename: "voice take.wav"
+    });
+
+    expect(url).toBe("https://scripted.invalid/uploads/1/upload");
+    expect(named).toBe("https://scripted.invalid/uploads/2/voice%20take.wav");
+    expect(await provider.downloadMedia(url)).toBe(bytes);
+    expect([...(await provider.downloadMedia("https://cdn.example/out.png"))]).toEqual([9]);
+    await expect(provider.downloadMedia("https://cdn.example/none.png")).rejects.toThrow(
+      "ScriptedProvider has no scripted download for https://cdn.example/none.png"
+    );
+    expect(provider.uploadCalls.map((call) => call.url)).toEqual([url, named]);
+    expect(provider.downloadCalls.map((call) => call.url)).toEqual([
+      url,
+      "https://cdn.example/out.png",
+      "https://cdn.example/none.png"
+    ]);
+  });
+
+  it("uses a custom upload URL and clears logs and cursors on reset", async () => {
+    const provider = new ScriptedProvider([], {
+      uploadUrl: (upload, index) => `https://fal.media/${index}/${upload.mimeType}`,
+      endpoints: { m: [{ output: "a" }, { output: "b" }] }
+    });
+    expect(
+      await provider.uploadMedia({ bytes: new Uint8Array([1]), mimeType: "image/png" })
+    ).toBe("https://fal.media/1/image/png");
+    await provider.callEndpoint({ model: "m", input: {} });
+
+    provider.reset();
+
+    expect(provider.uploadCalls).toEqual([]);
+    expect(provider.endpointCalls).toEqual([]);
+    expect((await provider.callEndpoint({ model: "m", input: {} })).output).toBe("a");
+  });
+});

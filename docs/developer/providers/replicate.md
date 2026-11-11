@@ -4,7 +4,8 @@ title: "Replicate: Add Models & Nodes"
 description: "How to add a new Replicate model as a NodeTool node using the codegen pipeline."
 ---
 
-> **Audience:** Coding agents and contributors adding Replicate models to NodeTool. This guide assumes familiarity with the monorepo structure described in [AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md).
+> **Runs:** cloud. **Needs:** `REPLICATE_API_TOKEN`. The provider constructor throws `REPLICATE_API_TOKEN is required` without it. Codegen also needs the token.
+{: .callout-note}
 
 ## TL;DR
 
@@ -14,8 +15,6 @@ description: "How to add a new Replicate model as a NodeTool node using the code
 4. Verify with `npm run dev:nodetool -- node run replicate.<module>.<ClassName> --props '{...}'`.
 
 Do **not** hand-edit `packages/replicate-nodes/src/replicate-manifest.json` — it is generated output.
-
----
 
 ## Where things live
 
@@ -30,13 +29,11 @@ Do **not** hand-edit `packages/replicate-nodes/src/replicate-manifest.json` — 
 | `packages/replicate-codegen/src/types.ts` | `ModuleConfig`, `NodeConfig`, `NodeSpec`, `FieldDef`, `EnumDef`. |
 | `packages/replicate-nodes/src/replicate-manifest.json` | **Generated.** Node definitions consumed at runtime. Never edit by hand. |
 | `packages/replicate-nodes/src/replicate-factory.ts` | Builds `NodeClass` instances from manifest entries at runtime. |
-| `packages/replicate-nodes/src/replicate-base.ts` | Shared Replicate API utilities: `replicateSubmit`, `assetToUrl`, output converters. |
+| `packages/replicate-nodes/src/replicate-base.ts` | Node helpers: `assetToUrl` (uploads through the provider), the capability for each output type, output converters. |
 | `packages/replicate-nodes/src/index.ts` | Exports `REPLICATE_NODES` (array of `NodeClass`) and `registerReplicateNodes`. |
-| `packages/runtime/src/providers/replicate-provider.ts` | `ReplicateProvider` — chat, image, video, audio, TTS, ASR, embeddings. |
+| `packages/runtime/src/providers/replicate-provider.ts` | `ReplicateProvider` — chat, image, video, audio, TTS, ASR, embeddings, and the endpoint calls and file uploads the nodes use. |
 | `packages/runtime/src/providers/manifest-models.ts` | Reads the manifest to surface image/video/music model lists to the UI. |
 | `packages/runtime/src/providers/index.ts` | Registers `ReplicateProvider` under `PROVIDER_IDS.REPLICATE`. |
-
----
 
 ## How Replicate nodes are generated
 
@@ -51,8 +48,6 @@ The codegen pipeline runs in four steps:
 4. **Manifest write** — The generator writes every `NodeSpec` as a `ManifestEntry` to `packages/replicate-nodes/src/replicate-manifest.json`. At runtime, `replicate-factory.ts` reads this file and produces `NodeClass` objects via `createReplicateNodeClass()`.
 
 The node type for a manifest entry follows the pattern `replicate.<moduleName>.<className>` where `moduleName` uses dots instead of dashes (e.g. `replicate.image.generate.Flux_Schnell`).
-
----
 
 ## Add a new Replicate model
 
@@ -168,8 +163,6 @@ export const allConfigs: Record<string, ModuleConfig> = {
 
 The module key (`"image.depth"`) becomes the `moduleName` in the manifest (stored as `"image-depth"`) and the middle segment of every node's type string (`replicate.image.depth.<ClassName>`). `--module <name>` writes a manifest that contains only that module and overwrites `replicate-manifest.json`, so use it only to inspect output. To update the shipped manifest, always run `npm run generate:replicate` (`--all`).
 
----
-
 ## Verify
 
 Run these in order after adding the config entry:
@@ -202,18 +195,3 @@ npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 If the model id is wrong or the model is private/unavailable, the generator exits with an error listing the failures. Fix the id or remove the entry.
-
----
-
-## Contributing
-
-Open a PR against `main` at [github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool). Before pushing:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-npm run dev:nodetool -- harness gate --base origin/main
-```
-
-Questions? Join the [Discord](https://discord.gg/WmQTWZRcYE).

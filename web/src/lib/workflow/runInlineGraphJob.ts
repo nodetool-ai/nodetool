@@ -1,6 +1,6 @@
 import { globalWebSocketManager } from "../websocket/GlobalWebSocketManager";
 import { isAuthRequired } from "../runtimeConfig";
-import { supabase } from "../supabaseClient";
+import { getAccessSession } from "../auth";
 import { BASE_URL } from "../../stores/BASE_URL";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { WorkflowGraph } from "../../stores/ApiTypes";
@@ -132,11 +132,9 @@ export async function runInlineGraphJob(
   let auth_token = "local_token";
   let user_id = "1";
   if (isAuthRequired()) {
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
-    auth_token = session?.access_token ?? "";
-    user_id = session?.user?.id ?? "";
+    const session = await getAccessSession();
+    auth_token = session?.token ?? "";
+    user_id = session?.userId ?? "";
   }
 
   const outputs: Record<string, unknown> = {};

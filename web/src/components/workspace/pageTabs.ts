@@ -14,7 +14,8 @@ export type PageTabKey =
   | "lipsync"
   | "effects"
   | "memory"
-  | "settings";
+  | "settings"
+  | "admin";
 
 export const PAGE_TAB_TITLES = {
   assets: "Assets",
@@ -29,7 +30,8 @@ export const PAGE_TAB_TITLES = {
   lipsync: "Lipsync",
   effects: "Effects",
   memory: "Memory",
-  settings: "Settings"
+  settings: "Settings",
+  admin: "Admin"
 } satisfies Record<PageTabKey, string>;
 
 export const isPageTabKey = (value: string): value is PageTabKey =>

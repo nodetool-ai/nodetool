@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
-  getApiKey,
   isSafeHttpUrl,
   resolveAssetBytes,
   resolveVideoDimensions,
   togetherGenerateImage,
   togetherGenerateVideo,
+  togetherTextToSpeech,
   togetherTranscribe
 } from "../src/together-base.js";
 
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
+import type { ScriptedEndpointReply } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
 const originalFetch = global.fetch;
@@ -19,24 +20,20 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// ---------------------------------------------------------------------------
-// getApiKey
-// ---------------------------------------------------------------------------
-describe("getApiKey", () => {
-  it("returns the trimmed secret", () => {
-    expect(getApiKey({ TOGETHER_API_KEY: "  tk-123  " })).toBe("tk-123");
+/** A context whose `together` provider answers from scripted replies. */
+function scripted(
+  reply: ScriptedEndpointReply,
+  downloads: Record<string, Uint8Array> = {}
+): { provider: ScriptedProvider; context: ProcessingContext } {
+  const provider = new ScriptedProvider([], {
+    providerId: "together",
+    endpoints: { "*": reply },
+    downloads
   });
-
-  it("throws when neither secret nor env is set", () => {
-    const saved = process.env.TOGETHER_API_KEY;
-    delete process.env.TOGETHER_API_KEY;
-    try {
-      expect(() => getApiKey({})).toThrow("TOGETHER_API_KEY is not configured");
-    } finally {
-      if (saved !== undefined) process.env.TOGETHER_API_KEY = saved;
-    }
-  });
-});
+  const context = new ProcessingContext({ jobId: "job-1" });
+  context.setProviderResolver(() => provider);
+  return { provider, context };
+}
 
 // ---------------------------------------------------------------------------
 // resolveAssetBytes
@@ -213,39 +210,100 @@ describe("resolveVideoDimensions", () => {
 // togetherGenerateImage
 // ---------------------------------------------------------------------------
 describe("togetherGenerateImage", () => {
-  it("posts to /v1/images/generations and decodes b64_json", async () => {
-    let body: Record<string, unknown> | null = null;
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://api.together.xyz/v1/images/generations");
-      body = JSON.parse(init!.body as string);
-      return { ok: true, json: async () => ({ data: [{ b64_json: "aGVsbG8=" }] }) } as Response;
-    }) as unknown as typeof fetch;
-
-    const out = await togetherGenerateImage("tk", "black-forest-labs/FLUX.1-schnell", {
-      prompt: "a cat",
-      width: 1024,
-      height: 768,
-      seed: 7
+  it("calls the images route and decodes b64_json", async () => {
+    const { provider, context } = scripted({
+      output: { data: [{ b64_json: "aGVsbG8=" }] }
     });
+
+    const out = await togetherGenerateImage(
+      context,
+      "black-forest-labs/FLUX.1-schnell",
+      { prompt: "a cat", width: 1024, height: 768, seed: 7 },
+      "text_to_image",
+      "node-1"
+    );
     expect(Buffer.from(out).toString()).toBe("hello");
-    expect(body).toMatchObject({
+    expect(provider.endpointCalls[0]).toMatchObject({
       model: "black-forest-labs/FLUX.1-schnell",
-      prompt: "a cat",
-      width: 1024,
-      height: 768,
-      seed: 7,
-      response_format: "b64_json"
+      route: "images",
+      input: {
+        model: "black-forest-labs/FLUX.1-schnell",
+        prompt: "a cat",
+        width: 1024,
+        height: 768,
+        seed: 7,
+        response_format: "b64_json"
+      }
+    });
+    const prediction = context
+      .getMessages()
+      .filter((m) => m.type === "prediction")
+      .at(-1);
+    expect(prediction).toMatchObject({
+      status: "completed",
+      provider: "together",
+      capability: "text_to_image",
+      model: "black-forest-labs/FLUX.1-schnell",
+      node_id: "node-1"
     });
   });
 
-  it("throws on a non-ok response", async () => {
-    global.fetch = vi.fn(async () => ({
-      ok: false,
-      text: async () => "bad request"
-    })) as unknown as typeof fetch;
+  it("downloads a URL result through the provider", async () => {
+    const url = "https://cdn.together.ai/a.png";
+    const { provider, context } = scripted(
+      { output: { data: [{ url }] } },
+      { [url]: Uint8Array.from([4, 2]) }
+    );
+    const out = await togetherGenerateImage(
+      context,
+      "m",
+      { prompt: "x" },
+      "text_to_image"
+    );
+    expect([...out]).toEqual([4, 2]);
+    expect(provider.downloadCalls.map((call) => call.url)).toEqual([url]);
+  });
+
+  it("throws on a reply with no image", async () => {
+    const { context } = scripted({ output: { data: [] } });
     await expect(
-      togetherGenerateImage("tk", "m", { prompt: "x" })
-    ).rejects.toThrow("Together image generation failed");
+      togetherGenerateImage(context, "m", { prompt: "x" }, "text_to_image")
+    ).rejects.toThrow("Together image generation returned no data.");
+    const empty = scripted({ output: { data: [{}] } });
+    await expect(
+      togetherGenerateImage(empty.context, "m", { prompt: "x" }, "text_to_image")
+    ).rejects.toThrow("Together image generation returned no image data.");
+  });
+
+  it("rejects an empty prompt before calling the provider", async () => {
+    const { provider, context } = scripted({ output: {} });
+    await expect(
+      togetherGenerateImage(context, "m", { prompt: "" }, "text_to_image")
+    ).rejects.toThrow("The input prompt cannot be empty.");
+    expect(provider.endpointCalls).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// togetherTextToSpeech
+// ---------------------------------------------------------------------------
+describe("togetherTextToSpeech", () => {
+  it("returns the provider's audio bytes with the format's mime type", async () => {
+    const { provider, context } = scripted({ output: Uint8Array.from([1, 2]) });
+    const out = await togetherTextToSpeech(context, "hexgrad/Kokoro-82M", {
+      text: "hi",
+      format: "WAV"
+    });
+    expect(out).toEqual({ data: Uint8Array.from([1, 2]), mimeType: "audio/wav" });
+    expect(provider.endpointCalls[0]).toMatchObject({
+      route: "audio/speech",
+      input: {
+        model: "hexgrad/Kokoro-82M",
+        input: "hi",
+        voice: "tara",
+        response_format: "wav"
+      }
+    });
   });
 });
 
@@ -253,19 +311,35 @@ describe("togetherGenerateImage", () => {
 // togetherTranscribe
 // ---------------------------------------------------------------------------
 describe("togetherTranscribe", () => {
-  it("uploads multipart audio and returns the text", async () => {
-    let isForm = false;
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://api.together.xyz/v1/audio/transcriptions");
-      isForm = init!.body instanceof FormData;
-      return { ok: true, json: async () => ({ text: "hello world" }) } as Response;
-    }) as unknown as typeof fetch;
+  it("sends the audio bytes as the file field and returns the text", async () => {
+    const { provider, context } = scripted({ output: { text: "hello world" } });
+    const audio = Uint8Array.from([1, 2, 3]);
 
-    const text = await togetherTranscribe("tk", "openai/whisper-large-v3", {
-      audio: Uint8Array.from([1, 2, 3])
+    const text = await togetherTranscribe(context, "openai/whisper-large-v3", {
+      audio,
+      language: "en"
     });
     expect(text).toBe("hello world");
-    expect(isForm).toBe(true);
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "openai/whisper-large-v3",
+      route: "audio/transcriptions",
+      input: { file: audio, response_format: "json", language: "en" }
+    });
+    const prediction = context
+      .getMessages()
+      .filter((m) => m.type === "prediction")
+      .at(-1);
+    expect(prediction).toMatchObject({
+      capability: "automatic_speech_recognition",
+      params: { file: { bytes: 3 } }
+    });
+  });
+
+  it("rejects empty audio", async () => {
+    const { context } = scripted({ output: {} });
+    await expect(
+      togetherTranscribe(context, "m", { audio: new Uint8Array(0) })
+    ).rejects.toThrow("audio must not be empty");
   });
 });
 
@@ -273,23 +347,51 @@ describe("togetherTranscribe", () => {
 // togetherGenerateVideo
 // ---------------------------------------------------------------------------
 describe("togetherGenerateVideo", () => {
-  it("stops polling a submitted job when the run is cancelled", async () => {
-    const fetchMock = vi.fn(async (url: string) =>
-      url.endsWith("/v2/videos")
-        ? new Response(JSON.stringify({ id: "job-1" }), { status: 200 })
-        : new Response(JSON.stringify({ status: "in_progress" }), { status: 200 })
+  const url = "https://cdn.together.ai/v.mp4";
+
+  it("calls the videos route and downloads the result", async () => {
+    const { provider, context } = scripted(
+      {
+        output: { id: "job-1", status: "completed", outputs: { video_url: url } },
+        requestId: "job-1"
+      },
+      { [url]: Uint8Array.from([9]) }
     );
-    global.fetch = fetchMock as unknown as typeof fetch;
-    const controller = new AbortController();
-    const pending = togetherGenerateVideo(
-      "key",
+    const out = await togetherGenerateVideo(
+      context,
       "minimax/video-01",
-      { prompt: "a sunset" },
-      { pollIntervalMs: 60_000, signal: controller.signal }
+      { prompt: "a sunset", durationSeconds: 6, aspectRatio: "1:1" },
+      "text_to_video"
     );
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect([...out]).toEqual([9]);
+    expect(provider.endpointCalls[0]).toMatchObject({
+      route: "videos",
+      input: {
+        model: "minimax/video-01",
+        prompt: "a sunset",
+        width: 720,
+        height: 720,
+        seconds: "6"
+      }
+    });
+    expect(provider.downloadCalls.map((call) => call.url)).toEqual([url]);
+  });
+
+  it("throws when the final status has no video URL", async () => {
+    const { context } = scripted({ output: { status: "completed" } });
+    await expect(
+      togetherGenerateVideo(context, "m", { prompt: "x" }, "text_to_video")
+    ).rejects.toThrow("Together video generation returned no video URL.");
+  });
+
+  it("stops a submitted job when the run is cancelled", async () => {
+    const { provider, context } = scripted({ output: {} });
+    const controller = new AbortController();
+    context.signal = controller.signal;
     controller.abort(new Error("cancelled"));
-    await expect(pending).rejects.toThrow("cancelled");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(
+      togetherGenerateVideo(context, "m", { prompt: "x" }, "text_to_video")
+    ).rejects.toThrow("cancelled");
+    expect(provider.endpointCalls[0].signal?.aborted).toBe(true);
   });
 });

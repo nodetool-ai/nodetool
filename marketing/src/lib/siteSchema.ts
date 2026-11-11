@@ -97,7 +97,7 @@ export const demoVideoSchema: JsonLdObject = {
     "A trailer built end to end in NodeTool: the agent drafts the script, boards the shots, generates the footage, and cuts the timeline — on one canvas, with your own keys.",
   thumbnailUrl: "https://nodetool.ai/preview.png",
   contentUrl: "https://nodetool.ai/demo.mp4",
-  uploadDate: "2026-01-01",
+  uploadDate: "2026-01-01T00:00:00+00:00",
   publisher: {
     "@type": "Organization",
     name: "NodeTool",

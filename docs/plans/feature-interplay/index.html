@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore NodeTool features, implemented connections, known limits, and proposed integrations.">
+  <title>NodeTool feature interplay</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js" defer></script>
+  <script src="created-work.js" defer></script>
+  <script src="graph.js" defer></script>
+</head>
+<body>
+  <header>
+    <div><h1>NodeTool <span>feature interplay</span></h1><p id="layer-description">One map of the systems, their boundaries, and the connections we could build.</p></div>
+    <a href="../../research/feature-interplay.md">Research notes</a>
+  </header>
+  <div class="toolbar">
+    <label>Layer<select id="layer"><option value="features">Features & systems</option><option value="created">Created work</option></select></label>
+    <label><span id="item-label">Feature</span><select id="feature"><option value="">Explore the whole graph</option></select></label>
+    <label>Connections<select id="connections"><option value="all">All evidence states</option><option value="existing">Existing: source + guides</option><option value="L">Known limits</option><option value="Q">Needs checking</option><option value="P">Proposed improvements</option><option value="opportunities">Limits, questions + proposals</option></select></label>
+    <label id="relationship-control" hidden>Relationship<select id="relationship" disabled><option value="all">All relationship types</option></select></label>
+    <label id="line-colors-control" hidden>Line colors<select id="line-colors" disabled><option value="relationship">Relationship types</option><option value="evidence">Evidence states</option></select></label>
+    <div class="camera-controls"><button id="zoom-out" aria-label="Zoom out">−</button><output id="zoom" aria-label="Zoom level">100%</output><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit all</button><button id="clear">Clear selection</button></div>
+    <label class="check"><input type="checkbox" id="sparse"><span id="sparse-label">Highlight sparsely mapped features</span></label>
+  </div>
+  <div id="relationship-legend" class="legend" aria-label="Relationship legend" hidden></div>
+  <div id="evidence-legend" class="legend" aria-label="Evidence legend">
+    <span data-status="S"><i></i>Source-backed</span><span data-status="D"><i></i>Documented</span><span data-status="L"><i></i>Known limit</span><span data-status="Q"><i></i>Needs checking</span><span data-status="P"><i></i>Proposed</span>
+    <span class="evidence-note">Inspection evidence, not runtime certification</span>
+  </div>
+  <main>
+    <section class="graph-panel" aria-label="Feature graph">
+      <svg id="graph" tabindex="0" role="region" aria-label="NodeTool feature graph. Drag to pan, scroll to zoom. Arrow keys pan. Plus and minus zoom. Select features with the dropdown or Tab and Enter.">
+        <defs>
+          <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" class="grid-dot"/></pattern>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker>
+          <marker id="rel-contains" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 5 0 L 10 5 L 5 10 Z" fill="context-stroke"/></marker>
+          <marker id="rel-uses" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="2"/></marker>
+          <marker id="rel-produces" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 Z" fill="context-stroke"/></marker>
+          <marker id="rel-reads" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><circle cx="5" cy="5" r="4" fill="none" stroke="context-stroke" stroke-width="2"/></marker>
+          <marker id="rel-writes" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 1 1 H 9 V 9 H 1 Z" fill="context-stroke"/></marker>
+          <marker id="rel-kind" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 1 1 L 9 5 L 1 9 Z" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker>
+          <marker id="rel-constraint" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 8 0 V 10" stroke="context-stroke" stroke-width="2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)"/>
+        <g id="world"><g id="areas"></g><g id="edges"></g><g id="nodes"></g></g>
+      </svg>
+      <div class="graph-help">Drag to pan · Scroll or pinch to zoom · Select an area title to focus it</div>
+      <div id="graph-summary" class="graph-summary" aria-live="polite"></div>
+    </section>
+    <aside aria-label="Selection and evidence"><div id="inspector" aria-live="polite"></div></aside>
+  </main>
+  <footer>Missing links are uncharted, not necessarily unsupported. Sparse means at most one mapped source-backed or documented connection. Proposed links do not count as working connections.</footer>
+</body>
+</html>

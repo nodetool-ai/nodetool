@@ -9,18 +9,18 @@ export {
 } from "./topaz-factory.js";
 export type { TopazManifestEntry, TopazFieldDef } from "./topaz-factory.js";
 export {
-  getApiKey,
   refToBytes,
   probeVideoMetadata,
   topazImageRef,
+  topazImageFields,
+  topazVideoCreateBody,
   topazExecuteImageTask,
   topazExecuteVideoTask,
-  sourceContainerFromRef,
-  containerContentType
+  sourceContainerFromRef
 } from "./topaz-base.js";
 export type {
-  TopazImageSpec,
-  TopazVideoSpec,
+  TopazJob,
+  TopazVideoJob,
   TopazVideoMetadata
 } from "./topaz-base.js";
 

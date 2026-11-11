@@ -1799,6 +1799,12 @@
       "localTitle": "Foretrekker du lokale modeller?",
       "localDescription": "Installer Ollama og last ned en modell som skal kjøres på maskinen din.",
       "getOllama": "Få Ollama",
+      "ollamaChecking": "Sjekker forbindelsen til Ollama…",
+      "ollamaCheckFailed": "Kunne ikke sjekke Ollama. Prøv igjen.",
+      "ollamaConnected": "Ollama er tilkoblet. Velg eller last ned en modell i modellbehandleren.",
+      "ollamaUnavailable": "Bruk NodeTool-skrivebordsappen for å koble til Ollama på datamaskinen din.",
+      "ollamaUnreachable": "Kan ikke nå Ollama. Åpne det hvis det er installert. Ellers kan du laste det ned for å komme i gang.",
+      "checkOllamaAgain": "Sjekk igjen",
       "encryptedKeys": "API-nøkler er kryptert. Du kan administrere eller fjerne dem i Innstillinger.",
       "signInAgain": "Logg på {{provider}} igjen",
       "waitingSignIn": "Venter på pålogging …",
@@ -2272,7 +2278,10 @@
       "title": "Logg på NodeTool Cloud",
       "description": "Beskriv hva du ønsker. Agenten bygger den, og du kan ta over når som helst.",
       "ownKeys": "Bruk dine egne API-nøkler og betal leverandører til deres listepriser.",
-      "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk"
+      "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk",
+      "ssoTitle": "Logg inn på NodeTool",
+      "ssoSignIn": "Logg inn med {{provider}}",
+      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang."
     },
     "inspector": {
       "params": "Params",
@@ -6171,7 +6180,6 @@
         "checkingModels": "Sjekker fortsatt språkmodellene dine. Prøv igjen om et øyeblikk.",
         "chatNeedsModel": "Nesten der - chat trenger en modell for å kjøre.",
         "pickModelToStartChat": "Velg en språkmodell og chatten starter.",
-        "pickMediaModel": "Velg en modell og generasjonen starter.",
         "openChatError": "Kunne ikke åpne chat: {{error}}",
         "startFlowError": "Kunne ikke starte {{flow}}: {{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "Eksempler på arbeidsflyt",
             "description": "Automatiseringer, flertrinn"
           }
+        },
+        "goals": {
+          "label": "Hva som startes",
+          "chat": "Chat",
+          "image": "Bilde",
+          "video": "Video",
+          "audio": "Lyd"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Arbeidsflyter",
+        "comfy": "ComfyUI",
         "apps": "Apper",
         "storyboards": "Storyboards",
         "timelines": "Tidslinjer",
@@ -8788,8 +8804,6 @@
       "studio": "Studio",
       "switchToProject": "Bytt til prosjekt {{name}}",
       "personal": "Personlig",
-      "newChatInMode": "Ny chat: {{mode}}",
-      "newChatInModeValue": "Ny chat {{mode}}",
       "newTextFileValue": "Ny tekstfil {{label}}",
       "newTextFile": "Ny tekstfil: {{label}}",
       "newStoryboard": "Nytt storyboard",
@@ -8821,8 +8835,7 @@
         "script": "Nytt manus",
         "jsscript": "Nytt JS-skript",
         "skill": "Ny ferdighet",
-        "model3d": "Ny 3D-modell",
-        "create": "Lag bilder og videoer"
+        "model3d": "Ny 3D-modell"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Ren tekst (.txt)"
+      },
+      "createSession": {
+        "image": "Nytt bilde",
+        "video": "Ny video",
+        "audio": "Les høyt",
+        "music": "Generer musikk"
       }
     },
     "googleWorkspace": {
@@ -9040,6 +9059,18 @@
         "CHEAPER_INFERENCE_API_KEY": {
           "button": "Få Cheaper Inference API-nøkkel",
           "tooltip": "Gå til Cheaper Inference-plattformen for å få API-nøkkelen din"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Få Runcrate API-nøkkel",
+          "tooltip": "Gå til Runcrate-plattformen for å få API-nøkkelen din"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Få Standard Compute API-nøkkel",
+          "tooltip": "Gå til Standard Compute-plattformen for å få API-nøkkelen din"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Få UberLLM API-nøkkel",
+          "tooltip": "Gå til UberLLM-plattformen for å få API-nøkkelen din"
         },
         "API_ROUTE_API_KEY": {
           "button": "Få API-rutenøkkel",
@@ -12166,6 +12197,31 @@
         "undo": "Angre",
         "redo": "Gjenta",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12729,7 +12785,6 @@
       "debuggingNotice": "Chrome viser en «Nodetool feilsøker denne nettleseren»-linje mens en forespørsel kjøres. Utvidelsen gjør ingenting på andre faner.",
       "setup": "Sett den opp",
       "step1": "La Chrome starte NodeTools nettleserbro.",
-      "windowsUnsupported": "Dette støttes ikke på Windows ennå. Mediegenerering gjennom utvidelsen fungerer på macOS og Linux.",
       "bridgeRegistered": "Ferdig. NodeTool registrerte broen sin med nettleserne dine.",
       "registering": "Registrerer med nettleserne dine …",
       "registrationFailed": "Registrering av nettleserbro mislyktes",
@@ -12756,7 +12811,7 @@
       "disableAll": "Deaktiver alle noder",
       "color": "Gruppefarge",
       "removeNodesHeading": "FJERN NODER FRA GRUPPEN",
-      "dragOutModifier": "Dra ut mens du holder CTRL | ⌘-tasten",
+      "dragOutModifier": "Dra ut mens du holder Alt (Tilvalg ⌥ på Mac)",
       "shakeToRemove": "Rist raskt, og dra deretter ut"
     }
   },
@@ -15942,7 +15997,8 @@
         "memory": "Minne",
         "settings": "Innstillinger",
         "effects": "Effekter",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Administrasjon"
       }
     },
     "script": {
@@ -18896,6 +18952,12 @@
     "refreshModels": "Oppdater modellene",
     "statusUnavailable": "Status utilgjengelig"
   },
+  "copilot": {
+    "description": "Bruk GitHub Copilot-kontoen din til språkmodeller. Ingen API-nøkkel er nødvendig.",
+    "install": "Installer GitHub Copilot CLI i en terminal på denne datamaskinen.",
+    "signIn": "Logg deretter inn og oppdater modellene. Modeller som Copilot-abonnementet ditt ikke inkluderer, vises ikke.",
+    "refreshModels": "Oppdater modeller"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Dra et skudd til et videospor, eller trykk på Enter for å plassere det ved spillehodet.",
@@ -18954,6 +19016,15 @@
       "invalidLink": "Denne delingslenken er ugyldig eller har blitt opphevet. Be dokumenteieren om et nytt.",
       "goToWorkspace": "Gå til arbeidsområdet",
       "opening": "Åpner delt dokument"
+    },
+    "invite": {
+      "label": "Inviter personer",
+      "placeholder": "Navn eller e-post",
+      "role": "Rolle",
+      "submit": "Inviter",
+      "typeMore": "Skriv minst 2 tegn",
+      "noMatches": "Ingen treff",
+      "failed": "Kunne ikke gi tilgang."
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19055,6 @@
     "missingTarget": "Fjernet enhet",
     "laneLabel": "Automatiseringsfelt: {{name}}",
     "deletePoint": "Slett punkt"
-  },
-  "generationFeed": {
-    "recent": "Nylig",
-    "imageEmptyTitle": "Lag bilder",
-    "imageEmptyDescription": "Beskriv en scene nedenfor og velg en modell og sideforhold. Legg ved et bilde for å redigere det.",
-    "videoEmptyTitle": "Lag videoer",
-    "videoEmptyDescription": "Beskriv bildet, kamerabevegelsen og lyssettingen nedenfor. Fest en ramme for å animere den.",
-    "audioEmptyTitle": "Generer tale og musikk",
-    "audioEmptyDescription": "Skriv inn en linje for å høre den lest opp. Bytt til Generer musikk for å komponere et spor.",
-    "editImage": "Rediger dette bildet",
-    "openInSketch": "Åpne i Sketch",
-    "addToCanvas": "Legg til lerret",
-    "rerun": "Kjør på nytt",
-    "copyPrompt": "Kopiér melding",
-    "removeFromThread": "Fjern fra tråden",
-    "history": "Historikk ({{total}})",
-    "tileSize": "Flisstørrelse",
-    "viewMode": "Visningsmodus",
-    "list": "Liste",
-    "grid": "Rutenett",
-    "video": "Video",
-    "speech": "Tale",
-    "music": "Musikk",
-    "noVideoOutput": "Ingen video ble returnert.",
-    "noAudioOutput": "Ingen lyd ble returnert.",
-    "untitledTrack": "Lydspor",
-    "extendClip": "Forleng dette klippet",
-    "referenceAlt": "Referanse {{index}}",
-    "sketchTitle": "Skisse",
-    "audio": "Lyd"
   },
   "preset_chip": {
     "label": "Forhåndsinnstillinger",
@@ -19480,13 +19521,34 @@
     "takes_other": "{{count}} tar",
     "placeholder": {
       "image": "Et fyrtårn i skumringen, filmstille",
-      "video": "Slow dolly inn på et fyrtårn i skumringen"
+      "video": "Slow dolly inn på et fyrtårn i skumringen",
+      "image_edit": "Gjør det til natt og legg til regn",
+      "image_to_video": "Bølgene slår inn og lyset begynner å snu",
+      "reference_to_video": "Figuren fra referansene går langs brygga",
+      "retake": "Gjør himmelen om til en storm",
+      "extend": "Kameraet fortsetter å trekke seg tilbake",
+      "audio": "Skriv ordene som skal leses opp",
+      "music": "Rolig ambient-piano med stille regn"
     },
     "blocker": {
       "noPrompt": "Skriv en melding om å generere.",
       "noModel": {
         "image": "Velg en bildemodell du vil generere.",
-        "video": "Velg en videomodell du vil generere."
+        "video": "Velg en videomodell du vil generere.",
+        "image_edit": "Velg en bilderedigeringsmodell for å generere.",
+        "image_to_video": "Velg en bilde-til-video-modell for å generere.",
+        "reference_to_video": "Velg en referanse-til-video-modell for å generere.",
+        "retake": "Velg en videoredigeringsmodell for å generere.",
+        "extend": "Velg en modell for videoforlengelse for å generere.",
+        "audio": "Velg en talemodell for å generere.",
+        "music": "Velg en musikkmodell for å generere."
+      },
+      "needsInput": {
+        "image_edit": "Legg til bildet som skal redigeres.",
+        "image_to_video": "Legg til bildet som skal animeres.",
+        "reference_to_video": "Legg til minst ett referansebilde eller én referanseklipp.",
+        "retake": "Legg til klippet som skal endres.",
+        "extend": "Legg til klippet som skal forlenges."
       }
     },
     "sendFailed": "Startet {{sent}} av {{count}} opptak. Resten nådde ikke NodeTool. Sjekk tilkoblingen og prøv igjen.",
@@ -19495,8 +19557,9 @@
     "gridLabel": "Generasjoner",
     "empty": {
       "title": "Ingenting er opprettet ennå",
-      "description": "Skriv en melding ovenfor og trykk Generer. Bildene og videoene dine vises her, nyeste først.",
-      "action": "Skriv en melding"
+      "description": "Skriv en prompt over og trykk Generer. Bildene, videoene og lydene dine vises her, nyeste først.",
+      "action": "Skriv en melding",
+      "sessionTitle": "Ingenting i denne fanen ennå"
     },
     "item": {
       "open": "Åpne {{title}}",
@@ -19512,8 +19575,75 @@
       "downloaded": "Lastet ned {{name}}",
       "downloadFailed": "Kunne ikke laste ned: {{reason}}",
       "workflowName": "Lag arbeidsflyt",
-      "workflowFailed": "Kunne ikke bygge en arbeidsflyt: {{reason}}"
-    }
+      "workflowFailed": "Kunne ikke bygge en arbeidsflyt: {{reason}}",
+      "more": "Flere handlinger",
+      "moreLabel": "Flere handlinger for {{title}}",
+      "useAsReference": "Bruk som referanse",
+      "startFrom": {
+        "image_edit": "Rediger dette bildet",
+        "image_to_video": "Animer dette bildet",
+        "retake": "Endre dette klippet",
+        "extend": "Forleng dette klippet"
+      },
+      "openInSketch": "Åpne i skisse",
+      "reusePrompt": "Bruk prompten på nytt",
+      "sketchTitle": "Laget bilde"
+    },
+    "kindLabel": "Hva du vil lage",
+    "modeLabel": "Hvordan det lages",
+    "kinds": {
+      "image": "Bilde",
+      "video": "Video",
+      "audio": "Lyd"
+    },
+    "modes": {
+      "image": "Fra tekst",
+      "image_edit": "Rediger",
+      "video": "Fra tekst",
+      "image_to_video": "Animer",
+      "reference_to_video": "Fra referanser",
+      "retake": "Endre",
+      "extend": "Forleng",
+      "audio": "Tale",
+      "music": "Musikk"
+    },
+    "references": {
+      "label": "Referanser",
+      "remove": "Fjern",
+      "removeLabel": "Fjern {{name}}",
+      "role": {
+        "source": "Kildebilde",
+        "startFrame": "Startbilde",
+        "sourceClip": "Kildeklipp",
+        "reference": "Referanse",
+        "unused": "Brukes ikke her"
+      },
+      "add": {
+        "image": "Legg til bilde",
+        "video": "Legg til klipp",
+        "image-or-video": "Legg til referanse"
+      },
+      "hint": {
+        "image_edit": "Legg til eller slipp bildet som skal redigeres. Flere bilder styrer uttrykket.",
+        "image_to_video": "Legg til eller slipp bildet klippet starter med.",
+        "reference_to_video": "Legg til eller slipp bilder og klipp av personene, stedene og stilen som skal beholdes.",
+        "retake": "Legg til eller slipp klippet som skal endres. Bilder du legger til styrer uttrykket.",
+        "extend": "Legg til eller slipp klippet som skal forlenges."
+      },
+      "uploadFailed": "Kunne ikke laste opp {{name}}: {{reason}}"
+    },
+    "switched": "Byttet til {{mode}} fordi du la til et bilde.",
+    "undoSwitch": "Tilbake til {{from}}",
+    "scope": {
+      "label": "Hvilke opptak som vises",
+      "session": "Denne fanen",
+      "all": "Alle opptak"
+    },
+    "renameFailed": "Fanen kunne ikke gis nytt navn: {{reason}}",
+    "sessionFailed": "Opptakene i denne fanen kunne ikke lastes inn.",
+    "sessionKind": "Create-økt",
+    "openInCreate": "Åpne i Create",
+    "openInCreateFailed": "Create kunne ikke åpnes: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekter",
@@ -19628,5 +19758,209 @@
     "showAssistant": "Vis assistent",
     "hideAssistant": "Skjul assistent",
     "resizeAssistant": "Endre størrelse på tidslinjeassistent"
+  },
+  "generationBatch": {
+    "summary": "{{done}} av {{total}} ferdige",
+    "remaining": "Omtrent {{time}} igjen",
+    "finishing": "Fullfører",
+    "failedCount": "Mislyktes: {{count}}",
+    "status": {
+      "queued": "I kø",
+      "running": "Kjører",
+      "completed": "Ferdig",
+      "failed": "Mislyktes"
+    },
+    "showRequests": "Vis forespørsler",
+    "hideRequests": "Skjul forespørsler",
+    "expected": "Forventet {{time}}",
+    "took": "Tok {{time}}",
+    "progressLabel": "Fremdrift for generering"
+  },
+  "workflowSteps": {
+    "stepOf": "Steg {{current}} av {{total}}",
+    "allDone": "Alle {{total}} steg ferdige",
+    "waiting": "Venter",
+    "running": "Kjører",
+    "done": "Ferdig",
+    "failed": "Mislyktes",
+    "progressLabel": "Fremdrift for arbeidsflyten",
+    "steps": "Steg",
+    "addStep": "Legg til steg",
+    "removeStep": "Fjern steg",
+    "node": "Node",
+    "title": "Tittel",
+    "description": "Beskrivelse",
+    "autoHint": "Ingen steg er satt. Widgeten viser hver generative node.",
+    "chooseNode": "Velg en node"
+  },
+  "admin": {
+    "page": {
+      "title": "Administrasjon",
+      "subtitle": "Administrer personene som logger på denne serveren.",
+      "deniedTitle": "Administratortilgang kreves",
+      "deniedDescription": "Bare administratorer for denne serveren kan åpne siden."
+    },
+    "users": {
+      "searchPlaceholder": "Søk etter navn, e-post eller bruker-ID",
+      "filter": {
+        "label": "Status",
+        "all": "Alle",
+        "active": "Aktive",
+        "disabled": "Deaktiverte"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Rolle",
+        "status": "Status",
+        "usage": "Forbruk",
+        "lastSeen": "Sist sett",
+        "actions": "Handlinger"
+      },
+      "role": {
+        "admin": "Administrator",
+        "member": "Medlem",
+        "viaGroup": "Via en gruppe eller serverinnstilling"
+      },
+      "status": {
+        "active": "Aktiv",
+        "disabled": "Deaktivert"
+      },
+      "never": "Aldri",
+      "actions": {
+        "makeAdmin": "Gjør til administrator",
+        "removeAdmin": "Fjern administrator",
+        "disable": "Deaktiver",
+        "enable": "Aktiver"
+      },
+      "loadFailed": "Kunne ikke laste inn brukere",
+      "retry": "Prøv igjen",
+      "noMatches": "Ingen brukere samsvarer med søket",
+      "emptyTitle": "Ingen brukere ennå",
+      "emptyDescription": "Personer vises her etter første pålogging med enkel pålogging.",
+      "range": "{{first}}–{{last}} av {{total}}",
+      "previous": "Forrige",
+      "next": "Neste",
+      "updateFailed": "Kunne ikke oppdatere brukeren.",
+      "disableDialog": {
+        "title": "Deaktivere {{name}}?",
+        "body": "Personen logges ut overalt med en gang og kan ikke logge på igjen før du aktiverer kontoen. Arbeidet blir liggende på serveren.",
+        "cancel": "Avbryt"
+      }
+    },
+    "quotas": {
+      "editDefault": "Rediger standardgrenser",
+      "editLimits": "Grenser",
+      "defaultTitle": "Standardgrenser",
+      "userTitle": "Grenser for {{name}}",
+      "defaultNone": "Ingen standardgrenser. Alle kan bruke serverens nøkler uten tak.",
+      "defaultSummaryDay": "Standard for alle: {{tokens}} modelltokens og {{media}} til medier per dag.",
+      "defaultSummaryMonth": "Standard for alle: {{tokens}} modelltokens og {{media}} til medier per måned.",
+      "unlimited": "ingen grense",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Medier:",
+      "usedOf": "{{used}} av {{limit}}",
+      "usedNoLimit": "{{used}}, ingen grense",
+      "ownLimits": "Egne grenser",
+      "period": {
+        "label": "Periode",
+        "day": "Per dag",
+        "month": "Per måned"
+      },
+      "tokenLimit": "Modelltokens",
+      "mediaLimit": "Mediebudsjett (USD)",
+      "noLimit": "Ingen grense",
+      "invalid": "Skriv inn et tall fra 0 og oppover, eller la feltet stå tomt for ingen grense.",
+      "useDefault": "Bruk serverens standard",
+      "useDefaultDescription": "Slå av for å gi denne personen egne grenser.",
+      "ownKeysNote": "Bare arbeid med serverens leverandørnøkler teller. Arbeid med en nøkkel personen har lagret i Innstillinger teller aldri.",
+      "save": "Lagre",
+      "cancel": "Avbryt",
+      "saveFailed": "Kunne ikke lagre grensene."
+    },
+    "permissions": {
+      "edit": "Tillatelser",
+      "editDefault": "Rediger standardtillatelser",
+      "defaultTitle": "Standardtillatelser",
+      "userTitle": "Tillatelser for {{name}}",
+      "defaultAll": "Standardtillatelser: alt er tillatt.",
+      "defaultBlockedCount": "Standardtillatelser: {{count}} blokkert.",
+      "blockedCount": "Blokkerte tillatelser: {{count}}",
+      "defaultIntro": "Hva alle brukere kan gjøre, med mindre du setter en egen tillatelse for dem.",
+      "userIntro": "Hver tillatelse følger standarden til du tillater eller blokkerer den her.",
+      "allow": "Tillat",
+      "block": "Blokker",
+      "defaultAllowed": "Standard: tillatt",
+      "defaultBlocked": "Standard: blokkert",
+      "adminNote": "Administratorer har alltid alle tillatelser.",
+      "save": "Lagre",
+      "cancel": "Avbryt",
+      "saveFailed": "Kunne ikke lagre tillatelsene.",
+      "flags": {
+        "use_llm": {
+          "label": "Bruke språkmodeller",
+          "description": "Chat, agenter og tekstgenerering."
+        },
+        "generate_media": {
+          "label": "Generere medier",
+          "description": "Bilder, video, lyd og 3D."
+        },
+        "use_server_keys": {
+          "label": "Bruke serverens leverandørnøkler",
+          "description": "Når dette er blokkert, kan personen bare arbeide med nøkler de legger til i Innstillinger."
+        },
+        "manage_own_keys": {
+          "label": "Administrere egne leverandørnøkler",
+          "description": "Legge til, endre eller fjerne leverandørnøkler og egne leverandører."
+        },
+        "share_links": {
+          "label": "Lage delingslenker",
+          "description": "Lenker som lar påloggede personer se eller redigere en arbeidsflyt eller et dokument."
+        },
+        "share_public": {
+          "label": "Dele offentlig",
+          "description": "Gjøre en arbeidsflyt offentlig eller lage en offentlig lenke alle kan åpne."
+        },
+        "publish_apps": {
+          "label": "Publisere apper",
+          "description": "Publisere, frigi og distribuere miniapper."
+        },
+        "install_packs": {
+          "label": "Endre nodepakker",
+          "description": "Endre pakketillit, slå innebygde pakker av eller på og laste inn pakker på nytt. Dette gjelder alle brukere."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Deling",
+      "title": "Deling for {{name}}",
+      "links": "Delingslenker",
+      "noLinks": "Ingen aktive delingslenker.",
+      "granted": "Ga tilgang til",
+      "noGranted": "Har ikke gitt noen tilgang.",
+      "received": "Har tilgang til",
+      "noReceived": "Ingen har gitt tilgang.",
+      "public": "Offentlige arbeidsflyter",
+      "noPublic": "Ingen offentlige arbeidsflyter.",
+      "revoke": "Tilbakekall",
+      "removeAccess": "Fjern tilgang",
+      "makePrivate": "Gjør privat",
+      "untitled": "Uten tittel",
+      "loadFailed": "Kunne ikke laste deling.",
+      "actionFailed": "Kunne ikke gjøre endringen.",
+      "types": {
+        "workflow": "Arbeidsflyt",
+        "storyboard": "Storyboard",
+        "script": "Manus",
+        "timeline": "Tidslinje",
+        "sketch": "Skisse",
+        "application": "App",
+        "jsscript": "JS-skript"
+      },
+      "roles": {
+        "viewer": "Kan se",
+        "editor": "Kan redigere",
+        "public": "Offentlig"
+      }
+    }
   }
 }

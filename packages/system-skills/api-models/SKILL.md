@@ -18,6 +18,7 @@ then pass it on. Credentials and provider setup are
 | `find(capability, {query, task, provider_hint, model_hint, prefer_local, limit})` | Ranks candidates. `limit` defaults to 5. | `{results, ref, note?, query_matched?}` |
 | `list({provider, model_type, downloaded_only, limit})` | Browses every configured model. | `{results}` |
 | `forProvider(provider)` | Lists one provider's language models. | The provider catalog |
+| `providers({capability})` | Lists configured providers and what each can do. | `{providers: [{id, local, available, unavailable_reason?, capabilities, tools}]}` |
 | `generate(prompt, model, {system, images, max_tokens, temperature})` | One language-model call, with optional images. No asset is made. | `{provider, model, text}` |
 
 `capability` is one of `text_to_image`, `image_to_image`, `segment_image`,

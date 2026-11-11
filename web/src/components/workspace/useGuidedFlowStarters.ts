@@ -27,11 +27,7 @@ import { GUIDED_FLOW_ICONS } from "./menuIcons";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { openPageTab } from "./openPageTab";
-import {
-  openImageChat,
-  openSpeechChat,
-  openVideoChat
-} from "../chat/openSpeechChat";
+import { openCreateSession } from "../create/openCreateSession";
 
 export interface GuidedFlowStarter {
   id: EntryFlowId;
@@ -46,8 +42,9 @@ export interface GuidedFlowStarter {
 }
 
 /**
- * What the menu names one of the cards. Both "Image" and "Video" keep their
- * entry-card titles across the Home card, `+ New` menu, and generation tab;
+ * What the menu names one of the cards. "Image", "Video" and "Read aloud"
+ * keep their entry-card titles across the Home card and the `+ New` menu, and
+ * each opens a new Create tab in that mode;
  * "New sketch" and "New timeline" in the blank-document column open those
  * editors directly.
  */
@@ -125,7 +122,7 @@ export const useGuidedFlowStarters = (
     (projectIdOverride?: string) =>
       runStart("video", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        await openVideoChat(projectId);
+        await openCreateSession(projectId, { mode: "video" });
       }),
     [runStart]
   );
@@ -152,9 +149,9 @@ export const useGuidedFlowStarters = (
 
   const startSpeech = useCallback(
     (projectIdOverride?: string) =>
-      runStart("speech", () =>
-        openSpeechChat(projectIdOverride ?? creationProjectId())
-      ),
+      runStart("speech", async () => {
+        await openCreateSession(projectIdOverride ?? creationProjectId(), { mode: "audio" });
+      }),
     [runStart]
   );
 
@@ -162,7 +159,7 @@ export const useGuidedFlowStarters = (
     (projectIdOverride?: string) =>
       runStart("image", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        await openImageChat(projectId);
+        await openCreateSession(projectId, { mode: "image" });
       }),
     [runStart]
   );

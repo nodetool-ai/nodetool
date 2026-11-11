@@ -12,7 +12,7 @@ import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 export const metadata: Metadata = {
   title: "NodeTool FAQ — the agent-first creative workspace",
   description:
-    "Answers about NodeTool: how pricing with your own API keys works, Studio compared with Cloud, which models are supported, how it compares with other tools, and a short glossary of common terms.",
+    "Answers about getting started, costs, provider accounts, local models, and the differences between Studio and Cloud.",
   alternates: { canonical: "/faq" },
   openGraph: {
     images: DEFAULT_OG_IMAGES,
@@ -37,11 +37,12 @@ const faqPage = faqPageSchema(
 
 /** Mirrors the "Studio or Cloud" answer, in the shape answer engines quote. */
 const editionRows: { label: string; studio: string; cloud: string }[] = [
-  { label: "Price", studio: "Free, open source", cloud: "Subscription (alpha)" },
+  { label: "Price", studio: "Free, open source", cloud: "Free during alpha" },
   { label: "Where it runs", studio: "Your machine", cloud: "Your browser" },
-  { label: "Local models", studio: "MLX, Ollama, llama.cpp", cloud: "Cloud providers" },
+  { label: "Model access", studio: "Online providers and supported local models", cloud: "Supported online providers" },
   { label: "Your own API keys", studio: "Yes", cloud: "Yes" },
   { label: "Setup", studio: "Download and install", cloud: "Nothing to install" },
+  { label: "Project storage", studio: "On your computer", cloud: "Hosted storage" },
 ];
 
 export default function FaqHubPage() {
@@ -63,11 +64,8 @@ export default function FaqHubPage() {
             Frequently asked questions
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            NodeTool is the open-source agent-first creative workspace: one
-            canvas for image, video, audio, and text, where every editor is a
-            tool an agent can drive. You bring your own API keys and pay each
-            provider directly. Studio runs on your machine; Cloud runs the same
-            code in the browser.
+            Find answers about getting started, costs, provider accounts and local
+            models. Compare Studio and Cloud below, or browse the questions by topic.
           </p>
         </section>
 
@@ -93,7 +91,7 @@ export default function FaqHubPage() {
                     Studio
                   </th>
                   <th scope="col" className="px-5 py-3 font-semibold text-white">
-                    Cloud
+                    Cloud (alpha)
                   </th>
                 </tr>
               </thead>
@@ -116,6 +114,11 @@ export default function FaqHubPage() {
               </tbody>
             </table>
           </div>
+          <p className="mt-4 text-sm leading-relaxed text-slate-400">
+            Provider charges and subscription limits are separate from NodeTool’s
+            price. Cloud is in alpha, and moving projects between editions may
+            not preserve every feature.
+          </p>
         </section>
 
         <div className="mt-16 space-y-14 pb-8">
@@ -131,7 +134,7 @@ export default function FaqHubPage() {
 
         <section className="mx-auto my-20 max-w-2xl px-6 text-center">
           <p className="text-lg text-slate-300">
-            Still curious? Explore{" "}
+            For examples, explore{" "}
             <Link href="/ideas" className="text-blue-300 hover:text-blue-200">
               workflow ideas
             </Link>{" "}

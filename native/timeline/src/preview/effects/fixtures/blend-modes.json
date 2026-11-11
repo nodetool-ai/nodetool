@@ -1,0 +1,1330 @@
+{
+  "id": "seq-blend-modes",
+  "projectId": "native-prototype",
+  "name": "blend-modes",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 24000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "background-0",
+      "trackId": "t4",
+      "name": "background-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "multiply-0",
+      "trackId": "t0",
+      "name": "multiply-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "multiply",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-1",
+      "trackId": "t4",
+      "name": "background-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "multiply-1",
+      "trackId": "t0",
+      "name": "multiply-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "multiply",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-2",
+      "trackId": "t4",
+      "name": "background-2",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "screen-0",
+      "trackId": "t0",
+      "name": "screen-0",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "screen",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-3",
+      "trackId": "t4",
+      "name": "background-3",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "screen-1",
+      "trackId": "t0",
+      "name": "screen-1",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "screen",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-4",
+      "trackId": "t4",
+      "name": "background-4",
+      "startMs": 4000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "overlay-0",
+      "trackId": "t0",
+      "name": "overlay-0",
+      "startMs": 4000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "overlay",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-5",
+      "trackId": "t4",
+      "name": "background-5",
+      "startMs": 5000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "overlay-1",
+      "trackId": "t0",
+      "name": "overlay-1",
+      "startMs": 5000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "overlay",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-6",
+      "trackId": "t4",
+      "name": "background-6",
+      "startMs": 6000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "darken-0",
+      "trackId": "t0",
+      "name": "darken-0",
+      "startMs": 6000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "darken",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-7",
+      "trackId": "t4",
+      "name": "background-7",
+      "startMs": 7000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "darken-1",
+      "trackId": "t0",
+      "name": "darken-1",
+      "startMs": 7000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "darken",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-8",
+      "trackId": "t4",
+      "name": "background-8",
+      "startMs": 8000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "lighten-0",
+      "trackId": "t0",
+      "name": "lighten-0",
+      "startMs": 8000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "lighten",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-9",
+      "trackId": "t4",
+      "name": "background-9",
+      "startMs": 9000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "lighten-1",
+      "trackId": "t0",
+      "name": "lighten-1",
+      "startMs": 9000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "lighten",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-10",
+      "trackId": "t4",
+      "name": "background-10",
+      "startMs": 10000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "color-dodge-0",
+      "trackId": "t0",
+      "name": "color-dodge-0",
+      "startMs": 10000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "color-dodge",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-11",
+      "trackId": "t4",
+      "name": "background-11",
+      "startMs": 11000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "color-dodge-1",
+      "trackId": "t0",
+      "name": "color-dodge-1",
+      "startMs": 11000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "color-dodge",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-12",
+      "trackId": "t4",
+      "name": "background-12",
+      "startMs": 12000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "color-burn-0",
+      "trackId": "t0",
+      "name": "color-burn-0",
+      "startMs": 12000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "color-burn",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-13",
+      "trackId": "t4",
+      "name": "background-13",
+      "startMs": 13000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "color-burn-1",
+      "trackId": "t0",
+      "name": "color-burn-1",
+      "startMs": 13000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "color-burn",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-14",
+      "trackId": "t4",
+      "name": "background-14",
+      "startMs": 14000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "hard-light-0",
+      "trackId": "t0",
+      "name": "hard-light-0",
+      "startMs": 14000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "hard-light",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-15",
+      "trackId": "t4",
+      "name": "background-15",
+      "startMs": 15000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "hard-light-1",
+      "trackId": "t0",
+      "name": "hard-light-1",
+      "startMs": 15000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "hard-light",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-16",
+      "trackId": "t4",
+      "name": "background-16",
+      "startMs": 16000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "soft-light-0",
+      "trackId": "t0",
+      "name": "soft-light-0",
+      "startMs": 16000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "soft-light",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-17",
+      "trackId": "t4",
+      "name": "background-17",
+      "startMs": 17000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "soft-light-1",
+      "trackId": "t0",
+      "name": "soft-light-1",
+      "startMs": 17000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "soft-light",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-18",
+      "trackId": "t4",
+      "name": "background-18",
+      "startMs": 18000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "difference-0",
+      "trackId": "t0",
+      "name": "difference-0",
+      "startMs": 18000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "difference",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-19",
+      "trackId": "t4",
+      "name": "background-19",
+      "startMs": 19000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "difference-1",
+      "trackId": "t0",
+      "name": "difference-1",
+      "startMs": 19000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "difference",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-20",
+      "trackId": "t4",
+      "name": "background-20",
+      "startMs": 20000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "exclusion-0",
+      "trackId": "t0",
+      "name": "exclusion-0",
+      "startMs": 20000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "exclusion",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-21",
+      "trackId": "t4",
+      "name": "background-21",
+      "startMs": 21000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "exclusion-1",
+      "trackId": "t0",
+      "name": "exclusion-1",
+      "startMs": 21000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "exclusion",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-22",
+      "trackId": "t4",
+      "name": "background-22",
+      "startMs": 22000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "add-0",
+      "trackId": "t0",
+      "name": "add-0",
+      "startMs": 22000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "add",
+      "opacity": 1,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "background-23",
+      "trackId": "t4",
+      "name": "background-23",
+      "startMs": 23000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4"
+    },
+    {
+      "id": "add-1",
+      "trackId": "t0",
+      "name": "add-1",
+      "startMs": 23000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "blendMode": "add",
+      "opacity": 0.5,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.96,
+          "y": 0.96
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 15,
+      "criterion": "J1 blend multiply, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 45,
+      "criterion": "J1 blend multiply, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 75,
+      "criterion": "J1 blend screen, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 105,
+      "criterion": "J1 blend screen, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 135,
+      "criterion": "J1 blend overlay, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 165,
+      "criterion": "J1 blend overlay, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 195,
+      "criterion": "J1 blend darken, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 225,
+      "criterion": "J1 blend darken, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 255,
+      "criterion": "J1 blend lighten, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 285,
+      "criterion": "J1 blend lighten, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 315,
+      "criterion": "J1 blend color-dodge, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 345,
+      "criterion": "J1 blend color-dodge, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 375,
+      "criterion": "J1 blend color-burn, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 405,
+      "criterion": "J1 blend color-burn, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 435,
+      "criterion": "J1 blend hard-light, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 465,
+      "criterion": "J1 blend hard-light, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 495,
+      "criterion": "J1 blend soft-light, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 525,
+      "criterion": "J1 blend soft-light, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 555,
+      "criterion": "J1 blend difference, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 585,
+      "criterion": "J1 blend difference, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 615,
+      "criterion": "J1 blend exclusion, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 645,
+      "criterion": "J1 blend exclusion, opacity 0.5, PSNR >= 40 dB"
+    },
+    {
+      "frame": 675,
+      "criterion": "J1 blend add, opacity 1, PSNR >= 40 dB"
+    },
+    {
+      "frame": 705,
+      "criterion": "J1 blend add, opacity 0.5, PSNR >= 40 dB"
+    }
+  ]
+}

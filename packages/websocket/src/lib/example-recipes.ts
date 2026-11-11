@@ -170,7 +170,9 @@ function buildRecipe(
   for (const entry of bundle.apps) {
     const app = getExampleAppSummary(options, entry.app);
     if (!app) return null;
-    apps.push({ ...app, role: entry.role });
+    const recipeApp: ExampleRecipeApp = { ...app, role: entry.role };
+    if (entry.runsAgent === true) recipeApp.runsAgent = true;
+    apps.push(recipeApp);
   }
   const steps: ExampleRecipeStep[] = [];
   for (const step of bundle.steps) {

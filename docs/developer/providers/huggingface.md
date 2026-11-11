@@ -4,19 +4,16 @@ title: "HuggingFace: Add Models & Nodes"
 description: "How to add new HuggingFace Inference Providers models and hand-written nodes to NodeTool."
 ---
 
-> **Audience:** coding agents and contributors who need to add new HuggingFace models or node types to NodeTool.
-
 For user-facing docs (setup, authentication, example workflows) see [docs/huggingface.md](../../huggingface.md).
 
----
+> **Runs:** cloud (Hugging Face Inference Providers). **Needs:** `HF_TOKEN`. The provider constructor throws `HF_TOKEN is required` without it.
+{: .callout-note}
 
 ## TL;DR
 
 **New model in an existing task** — nothing to do. Models are discovered live from the HF Hub API; any warm inference model for a given pipeline tag appears automatically.
 
 **New node type** — add a `BaseNode` subclass to `packages/huggingface-nodes/src/nodes/<modality>.ts`, export it in the modality's array and `src/index.ts`, add its type to `registration.test.ts`, run `npm run build:packages && npm run test --workspace=packages/huggingface-nodes`.
-
----
 
 ## Where things live
 
@@ -32,8 +29,6 @@ For user-facing docs (setup, authentication, example workflows) see [docs/huggin
 | Node implementations — video | `packages/huggingface-nodes/src/nodes/video.ts` |
 | Package entry + registration helper | `packages/huggingface-nodes/src/index.ts` |
 | Node tests (unit, registration) | `packages/huggingface-nodes/tests/` |
-
----
 
 ## How HuggingFace models and nodes work
 
@@ -78,15 +73,11 @@ Helpers in `huggingface-base.ts`:
 - `imageRefFromBytes(bytes, mimeType)` / `videoRefFromBytes(bytes, mimeType)` — wrap output bytes into a `MediaRef`-shaped object
 - `cleanParams(params)` — strip `null`/`undefined` entries from a parameters object
 
----
-
 ## Add a new model
 
 If the model runs a pipeline task that already has a node (or that the provider already supports), nothing needs changing. The model can be typed into the node's `model` field directly, or it will appear in provider model lists once it goes warm on the Hub.
 
 If the model needs a **new node type** (new task or new output shape), follow the steps below.
-
----
 
 ## Add a new node
 
@@ -198,8 +189,6 @@ const EXPECTED_NODE_TYPES = [
 
 Add a `describe` block in `packages/huggingface-nodes/tests/nodes.test.ts`. Mock `fetch` to return a fixture, construct the node via `new MySentenceSimilarityNode({...})`, call `process()`, and assert on the output. See existing tests in that file for the pattern.
 
----
-
 ## Verify
 
 ```bash
@@ -224,11 +213,3 @@ npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 If the smoke-test hits a real HF endpoint (i.e., `HF_TOKEN` is set), it calls the router at `https://router.huggingface.co/hf-inference/models/<model>`. For a hermetic run, pass `--no-secrets` and mock the network in tests.
-
----
-
-## Contributing
-
-PRs are welcome at <https://github.com/nodetool-ai/nodetool>.
-
-Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

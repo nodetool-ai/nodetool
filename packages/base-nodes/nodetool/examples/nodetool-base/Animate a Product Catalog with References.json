@@ -1,0 +1,721 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-06T12:00:00.000Z",
+  "updated_at": "2026-11-06T12:00:00.000Z",
+  "name": "Animate a Product Catalog with References",
+  "tool_name": null,
+  "description": "Turn a product catalog into product videos made from reference images. Each row's own photo is image 1, and an optional background and decoration image follow it for the whole range. The prompt is filled from that row's columns, and its role placeholders become image 1, image 2 and image 3.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": "Animate a Product Catalog with References.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro-comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Animate a Product Catalog with References\n\nAnimates a range of rows from a product catalog CSV with Reference To Video. Every product's own photo is image 1. \"Background image\" and \"Decoration image\" are optional and follow it in that order.\n\n**How it works:** \"Read the rows to animate\" fills \"Prompt template\" for each row and keeps `{{product_image}}`, `{{background_image}}` and `{{decoration_image}}`. \"References and prompt\" builds the image list and turns each placeholder into `image N` by its place in the list. A placeholder for an image you leave out is removed. \"Animate\" runs the chosen reference-to-video model, and \"Videos\" streams the clips in as they finish.\n\n**Try this:** Leave out the background. The decoration becomes image 2."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "catalog",
+        "type": "nodetool.input.DocumentInput",
+        "data": {
+          "name": "catalog",
+          "value": {
+            "type": "document",
+            "uri": "package://nodetool-base/recipe-inputs/catalog/products.csv",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The product catalog as a CSV file, one product per row with a header row"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Catalog CSV"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt_template",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "prompt_template",
+          "value": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props from {{decoration_image}}. Slow three-quarter orbit around the product, soft key light, gentle reflections. The product stays centred, sharp and unchanged. No text, no hands.",
+          "description": "The video prompt. {{column}} inserts that product's value",
+          "line_mode": "multi_line"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Prompt template"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "image_column",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "image_column",
+          "value": "",
+          "description": "The column with each product's image URL. Blank finds it"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 760
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Image column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "name_column",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "name_column",
+          "value": "",
+          "description": "The column with each product's name. Blank finds it"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Name column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "first_row",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "first_row",
+          "value": 1,
+          "min": 1,
+          "max": 100000,
+          "description": "The first catalog row to animate, counting from 1"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1040
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  First row"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "last_row",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "last_row",
+          "value": 0,
+          "min": 0,
+          "max": 100000,
+          "description": "The last catalog row to animate. 0 means the end of the catalog"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1180
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "6  Last row"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "video_model",
+        "type": "nodetool.input.VideoModelInput",
+        "data": {
+          "name": "video_model",
+          "value": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null,
+            "supported_tasks": []
+          },
+          "description": "The reference-to-video model every product is animated with"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 1040
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "8  Video model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "aspect_ratio",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "aspect_ratio",
+          "value": "1:1",
+          "options": [
+            "1:1",
+            "3:4",
+            "9:16",
+            "16:9",
+            "4:3",
+            "21:9"
+          ],
+          "enum_type_name": "",
+          "description": "The frame every clip is rendered in"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 1200
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "9  Aspect ratio"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "resolution",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "resolution",
+          "value": "720p",
+          "options": [
+            "720p",
+            "1080p",
+            "1440p",
+            "4K"
+          ],
+          "enum_type_name": "",
+          "description": "The resolution every clip is rendered at"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 1360
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "10  Resolution"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "duration",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "duration",
+          "value": 5,
+          "min": 2,
+          "max": 15,
+          "description": "Seconds per clip"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 1520
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "11  Seconds per clip"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "negative_prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "negative_prompt",
+          "value": "text, changing logos, warped product, extra objects, hands",
+          "description": "What every clip should avoid"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 1660
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "12  Avoid"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "each",
+        "type": "nodetool.control.ForEach",
+        "data": {
+          "input_list": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "13  For each product"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "background_image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "background_image",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Optional. The scene or backdrop every clip uses"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1320
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "18  Background image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "decoration_image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "decoration_image",
+          "value": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Optional. Props or decoration every clip uses"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1500
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "19  Decoration image"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "read",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const PREVIEW_ROWS = 500;\nconst catalog = inputs.catalog;\nconst hasCatalog = catalog && (catalog.uri || catalog.asset_id || catalog.data);\nif (!hasCatalog) throw new Error(\"Upload your product catalog as a CSV file.\");\nconst text = String(await media.text(catalog)).replace(/^﻿/, \"\");\nif (!text.trim()) throw new Error(\"The catalog file is empty.\");\n\n// Comma, semicolon or tab: whichever the header row uses most.\nconst headerLine = text.split(/\\r?\\n/, 1)[0];\nconst countOf = (ch) => headerLine.split(ch).length - 1;\nconst delimiter = [\";\", \"\\t\"].reduce((best, ch) => (countOf(ch) > countOf(best) ? ch : best), \",\");\n\n// RFC 4180: quoted fields may hold the delimiter, line breaks and \"\" quotes.\nconst records = [];\nlet record = [];\nlet field = \"\";\nlet quoted = false;\nfor (let i = 0; i < text.length; i++) {\n  const ch = text[i];\n  if (quoted) {\n    if (ch === '\"') {\n      if (text[i + 1] === '\"') {\n        field += '\"';\n        i++;\n      } else quoted = false;\n    } else field += ch;\n  } else if (ch === '\"' && field === \"\") quoted = true;\n  else if (ch === delimiter) {\n    record.push(field);\n    field = \"\";\n  } else if (ch === \"\\n\" || ch === \"\\r\") {\n    if (ch === \"\\r\" && text[i + 1] === \"\\n\") i++;\n    record.push(field);\n    records.push(record);\n    record = [];\n    field = \"\";\n  } else field += ch;\n}\nif (field !== \"\" || record.length > 0) {\n  record.push(field);\n  records.push(record);\n}\nconst lines = records.filter((r) => r.some((cell) => cell.trim() !== \"\"));\nif (lines.length < 2) throw new Error(\"The catalog needs a header row and at least one product row.\");\n\nconst headers = lines[0].map((h) => h.trim());\nconst keyOf = (name) => String(name).toLowerCase().replace(/[^a-z0-9]+/g, \"_\").replace(/^_+|_+$/g, \"\");\nconst byKey = new Map(headers.map((h) => [keyOf(h), h]));\nconst columnList = headers.map((h) => '\"' + h + '\"').join(\", \");\nconst products = lines.slice(1).map((cells) => {\n  const product = {};\n  headers.forEach((h, i) => (product[h] = String(cells[i] ?? \"\").trim()));\n  return product;\n});\n\n// A blank column field means \"find it\": the first header that looks right.\nconst findColumn = (asked, patterns) => {\n  const wanted = String(asked ?? \"\").trim();\n  if (wanted) {\n    const hit = byKey.get(keyOf(wanted));\n    if (!hit) throw new Error('The catalog has no \"' + wanted + '\" column. Its columns are ' + columnList + \".\");\n    return hit;\n  }\n  for (const pattern of patterns) {\n    const hit = headers.find((h) => pattern.test(keyOf(h)));\n    if (hit) return hit;\n  }\n  return null;\n};\nconst imageColumn = findColumn(inputs.image_column, [\n  /^(image|image_src|image_url|image_link|img|photo|packshot)$/,\n  /image|img|photo|picture|packshot/\n]);\nif (!imageColumn) {\n  throw new Error(\"No column looks like an image link. Name the column that holds each product's image URL. The columns are \" + columnList + \".\");\n}\nconst nameColumn = findColumn(inputs.name_column, [/^(title|name|product|product_name)$/, /title|name/]) ?? headers[0];\n\nconst template = String(inputs.prompt_template ?? \"\").trim();\nif (!template) throw new Error(\"Write the prompt template. Use {{column}} to insert a product's value.\");\nconst PLACEHOLDER = /\\{\\{\\s*([^{}]+?)\\s*\\}\\}/g;\n// With reference_roles on, the image role placeholders stay in the prompt for\n// the animate graph to number.\nconst ROLES = inputs.reference_roles ? [\"product_image\", \"background_image\", \"decoration_image\"] : [];\nconst isRole = (name) => ROLES.includes(keyOf(name));\nconst missing = [...new Set([...template.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((name) => !byKey.has(keyOf(name)) && !isRole(name)))];\n// Reading still succeeds, so the new catalog shows. Rendering refuses below.\nconst missingText = missing.length > 0\n  ? \"The template uses \" + missing.map((name) => \"{{\" + name + \"}}\").join(\", \") +\n    \", which the catalog has no column for. The columns are \" + columnList + \".\"\n  : \"\";\nconst fill = (product) =>\n  template.replace(PLACEHOLDER, (_, name) => (isRole(name) ? \"{{\" + keyOf(name) + \"}}\" : product[byKey.get(keyOf(name))] ?? \"\")).replace(/\\s+/g, \" \").trim();\n\n// A Shopify export writes \"//cdn.shopify.com/…\"; a bare file name is not a link.\nconst imageOf = (product) => {\n  let value = String(product[imageColumn] ?? \"\").trim();\n  if (value.startsWith(\"//\")) value = \"https:\" + value;\n  if (/^(https?|package|asset|data):/i.test(value) || value.startsWith(\"/api/storage/\")) {\n    return { type: \"image\", uri: value };\n  }\n  return null;\n};\n\nconst total = products.length;\nconst first = Math.max(1, Math.floor(Number(inputs.first_row) || 1));\nconst askedLast = Math.floor(Number(inputs.last_row) || 0);\nconst last = askedLast <= 0 ? total : Math.min(total, askedLast);\nif (first > total) throw new Error(\"Row \" + first + \" is past the end. The catalog has \" + total + \" products.\");\nif (last < first) throw new Error(\"The last row (\" + last + \") comes before the first row (\" + first + \").\");\n\nconst items = [];\nconst skipped = [];\nfor (let row = first; row <= last; row++) {\n  const product = products[row - 1];\n  const image = imageOf(product);\n  if (!image) {\n    skipped.push(row);\n    continue;\n  }\n  items.push({ row, product: product[nameColumn] || \"Row \" + row, image, prompt: fill(product) });\n}\n\nconst seconds = Math.max(0, Number(inputs.duration) || 0);\nconst placeholders = headers.map((h) => \"{{\" + keyOf(h) + \"}}\").join(\" \");\nconst summary = [\n  missingText ? \"⚠️ \" + missingText + \" Those placeholders stay blank until you change the template.\" : \"\",\n  \"**\" + total + (total === 1 ? \" product\" : \" products\") + \"** in the catalog. Images come from **\" + imageColumn + \"**, names from **\" + nameColumn + \"**.\",\n  \"Placeholders for the prompt: \" + placeholders,\n  first === 1 && last === total\n    ? \"All \" + total + (total === 1 ? \" row: \" : \" rows: \") + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\")\n    : \"Rows \" + first + \" to \" + last + \": \" + items.length + (items.length === 1 ? \" clip\" : \" clips\") + (seconds ? \", \" + items.length * seconds + \" seconds of video.\" : \".\"),\n  skipped.length > 0\n    ? \"Skipped for a missing or unusable image link: \" + (skipped.length === 1 ? \"row \" : \"rows \") + skipped.join(\", \") + \".\"\n    : \"\"\n].filter(Boolean).join(\"\\n\\n\");\n\nconst table = products.slice(0, PREVIEW_ROWS).map((product, i) => ({\n  Row: i + 1,\n  Product: product[nameColumn],\n  Prompt: fill(product),\n  // The file name, not the whole link: the table has a narrow column for it.\n  Image: imageOf(product) ? String(product[imageColumn]).split(/[?#]/)[0].split(\"/\").pop() : \"missing\"\n}));\n\nawait output(\"summary\", summary);\nawait output(\"products\", table);\nawait output(\"fields\", [...new Set([...headers.map(keyOf).filter(Boolean), ...ROLES])]);\nif (missingText) throw new Error(missingText);\nif (items.length === 0) throw new Error(\"None of rows \" + first + \" to \" + last + \" has an image link to animate.\");\nawait output(\"rows\", items);",
+          "timeout": 60,
+          "max_response_mb": 4,
+          "allow_local_network": false,
+          "allow_host_filesystem": false,
+          "secrets": [],
+          "script": {}
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "7  Read the rows to animate"
+        },
+        "dynamic_properties": {
+          "catalog": null,
+          "prompt_template": "",
+          "image_column": "",
+          "name_column": "",
+          "first_row": 1,
+          "last_row": 0,
+          "duration": 0,
+          "reference_roles": true
+        },
+        "dynamic_outputs": {
+          "summary": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "products": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "any",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          },
+          "fields": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          },
+          "rows": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "any",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "unpack",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const item = inputs.item ?? {};\nif (!item.image) throw new Error(\"This catalog row has no image to animate.\");\nconst isSet = (image) => Boolean(image && (image.uri || image.asset_id || image.data));\nconst references = [];\nconst numbers = {};\nfor (const [role, image] of [\n  [\"product_image\", item.image],\n  [\"background_image\", inputs.background_image],\n  [\"decoration_image\", inputs.decoration_image]\n]) {\n  if (!isSet(image)) continue;\n  references.push(image);\n  numbers[role] = references.length;\n}\nconst prompt = String(item.prompt ?? \"\")\n  .replace(/\\{\\{\\s*(product_image|background_image|decoration_image)\\s*\\}\\}/g, (_, role) => (numbers[role] ? \"image \" + numbers[role] : \"\"))\n  .replace(/[ \\t]+/g, \" \")\n  .replace(/ +([,.;:!?])/g, \"$1\")\n  .trim();\nawait output(\"images\", references);\nawait output(\"prompt\", prompt);",
+          "timeout": 10,
+          "max_response_mb": 1,
+          "allow_local_network": false,
+          "allow_host_filesystem": false,
+          "secrets": [],
+          "script": {}
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1100,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "14  References and prompt"
+        },
+        "dynamic_properties": {
+          "item": null,
+          "background_image": null,
+          "decoration_image": null
+        },
+        "dynamic_outputs": {
+          "images": {
+            "type": "list",
+            "type_args": [
+              {
+                "type": "image",
+                "type_args": [],
+                "optional": false
+              }
+            ],
+            "optional": false
+          },
+          "prompt": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "animate",
+        "type": "nodetool.video.ReferenceToVideo",
+        "data": {
+          "reference_images": [],
+          "reference_videos": [],
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null,
+            "supported_tasks": []
+          },
+          "prompt": "",
+          "use_reference_video_audio": false,
+          "negative_prompt": "",
+          "entities": [],
+          "aspect_ratio": "1:1",
+          "resolution": "720p",
+          "duration": 5,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1450,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "15  Animate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "videos",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "videos",
+          "description": "One clip per product, saved as an asset"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1850,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "16  Videos"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "summary",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "summary",
+          "description": "How many clips the range produces and which rows were skipped"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 800,
+            "y": 900
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "17  Summary"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-catalog",
+        "source": "catalog",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "catalog"
+      },
+      {
+        "id": "e-template",
+        "source": "prompt_template",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "prompt_template"
+      },
+      {
+        "id": "e-image-column",
+        "source": "image_column",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "image_column"
+      },
+      {
+        "id": "e-name-column",
+        "source": "name_column",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "name_column"
+      },
+      {
+        "id": "e-first",
+        "source": "first_row",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "first_row"
+      },
+      {
+        "id": "e-last",
+        "source": "last_row",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "last_row"
+      },
+      {
+        "id": "e-duration-read",
+        "source": "duration",
+        "sourceHandle": "output",
+        "target": "read",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "e-rows",
+        "source": "read",
+        "sourceHandle": "rows",
+        "target": "each",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "e-item",
+        "source": "each",
+        "sourceHandle": "output",
+        "target": "unpack",
+        "targetHandle": "item"
+      },
+      {
+        "id": "e-prompt",
+        "source": "unpack",
+        "sourceHandle": "prompt",
+        "target": "animate",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e-model",
+        "source": "video_model",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "model"
+      },
+      {
+        "id": "e-aspect",
+        "source": "aspect_ratio",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "aspect_ratio"
+      },
+      {
+        "id": "e-resolution",
+        "source": "resolution",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "resolution"
+      },
+      {
+        "id": "e-duration",
+        "source": "duration",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "e-negative",
+        "source": "negative_prompt",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "negative_prompt"
+      },
+      {
+        "id": "e-videos",
+        "source": "animate",
+        "sourceHandle": "output",
+        "target": "videos",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e-summary",
+        "source": "read",
+        "sourceHandle": "summary",
+        "target": "summary",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e-images",
+        "source": "unpack",
+        "sourceHandle": "images",
+        "target": "animate",
+        "targetHandle": "reference_images"
+      },
+      {
+        "id": "e-background",
+        "source": "background_image",
+        "sourceHandle": "output",
+        "target": "unpack",
+        "targetHandle": "background_image"
+      },
+      {
+        "id": "e-decoration",
+        "source": "decoration_image",
+        "sourceHandle": "output",
+        "target": "unpack",
+        "targetHandle": "decoration_image"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

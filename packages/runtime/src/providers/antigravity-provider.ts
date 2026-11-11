@@ -9,8 +9,11 @@
  * stream (`init`, `step_update`, `result`). See
  * https://antigravity.google/docs/cli/headless/.
  *
- * The CLI runs its own agent with its own tools, so NodeTool tools are not
- * offered to it. It runs in a dedicated empty scratch directory, never the
+ * The CLI runs its own agent with its own tools. A turn that offers NodeTool
+ * tools runs on `agy acp` instead, where the tools are served to the CLI as an
+ * MCP server (see acp-session.ts). Every other turn uses `stream-json`,
+ * which cannot add tools. Images also go through `agy acp`, by way of the
+ * CLI's `image-generator` subagent (see `generateImageViaAcp`). It runs in a dedicated empty scratch directory, never the
  * server's working directory, because headless runs auto-allow file reads and
  * writes inside the active workspace. Shell commands stay soft-denied: the
  * provider never passes `--dangerously-skip-permissions`.
@@ -22,26 +25,42 @@ import {
 } from "@nodetool-ai/config";
 import { PROVIDER_IDS, isString } from "@nodetool-ai/protocol";
 import { z } from "zod";
-import { BaseProvider } from "./base-provider.js";
+import type { AcpProcess, AcpSpawner } from "./acp-session.js";
+import {
+  AcpCliProvider,
+  assertTextOnly,
+  buildFreshPrompt,
+  extractSystemPrompt,
+  scratchWorkspace,
+  textOf
+} from "./acp-cli-provider.js";
+import type { ProviderCapability } from "./base-provider.js";
+import { generateImageViaAcp } from "./antigravity-image.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
   isProviderStop,
+  type ImageModel,
   type LanguageModel,
   type Message,
-  type MessageTextContent,
   type ProviderEffort,
   type ProviderSession,
   type ProviderStreamItem,
   type ProviderTool,
+  type TextToImageParams,
   type ToolCall
 } from "./types.js";
+
+export { buildFreshPrompt };
 
 const log = createLogger("nodetool.runtime.providers.antigravity");
 
 /** Where the official installer places `agy` on macOS and Linux. */
 const INSTALLER_BIN_DIR = [".local", "bin"];
+
+/** The one image model. The CLI picks the underlying model itself. */
+export const IMAGE_MODEL_ID = "image-generator";
 
 /** How long a finished run may take to exit before it is stopped. */
 const RESULT_EXIT_GRACE_MS = 30_000;
@@ -83,17 +102,35 @@ export interface AntigravityCliRun {
   exit: Promise<{ code: number | null; stderr: string }>;
   /** Stop the process. Safe to call after it exited. */
   kill(): void;
+  /** Writes one more stdin line. Present only on an `interactive` run. */
+  write?(line: string): void;
 }
 
 /** Spawns `agy` with `args`, writing `stdin` and then closing it. */
 export type AntigravityCliRunner = (
   args: string[],
-  options: { stdin: string; cwd: string | null; signal?: AbortSignal }
+  options: {
+    stdin: string;
+    cwd: string | null;
+    signal?: AbortSignal;
+    /** Keep stdin open after `stdin`, for a protocol that needs replies. */
+    interactive?: boolean;
+  }
 ) => Promise<AntigravityCliRun>;
 
 export interface AntigravityProviderOptions {
   /** Replaces the real subprocess, for tests. */
   runCli?: AntigravityCliRunner;
+  /** Replaces the `agy acp` subprocess, for tests. */
+  spawnAcp?: AcpSpawner;
+  /** Where `agy` saves generated images. Defaults to the CLI's own directory. */
+  imageBrainDir?: string;
+  /** How long to wait for a generated image, in milliseconds. */
+  imageTimeoutMs?: number;
+  /** How often to look for the generated file, in milliseconds. */
+  imagePollMs?: number;
+  /** How long the file must stop growing before it is read, in milliseconds. */
+  imageSettleMs?: number;
 }
 
 /** A failed `agy` run. Its message names the remedy. */
@@ -104,13 +141,22 @@ class AntigravityCliError extends Error {
   }
 }
 
-export class AntigravityProvider extends BaseProvider {
+export class AntigravityProvider extends AcpCliProvider {
   static requiredSecrets(): string[] {
     // Auth lives in the CLI's own credential cache, not in a NodeTool secret.
     return [];
   }
 
   private readonly runCli: AntigravityCliRunner;
+  protected readonly spawnAcp: AcpSpawner;
+  protected readonly cliName = "Antigravity CLI";
+  protected readonly cliLabel = "agy";
+  protected readonly acpArgs = ["acp"];
+  protected readonly scratchName = "nodetool-antigravity";
+  private readonly imageOptions: Pick<
+    AntigravityProviderOptions,
+    "imageBrainDir" | "imageTimeoutMs" | "imagePollMs" | "imageSettleMs"
+  >;
   /**
    * Within-process cache of the active conversation per thread. The persisted
    * `provider_session` column is the source of truth; this only covers callers
@@ -125,6 +171,25 @@ export class AntigravityProvider extends BaseProvider {
   ) {
     super(PROVIDER_IDS.ANTIGRAVITY);
     this.runCli = options.runCli ?? spawnAgy;
+    this.imageOptions = {
+      imageBrainDir: options.imageBrainDir,
+      imageTimeoutMs: options.imageTimeoutMs,
+      imagePollMs: options.imagePollMs,
+      imageSettleMs: options.imageSettleMs
+    };
+    this.spawnAcp =
+      options.spawnAcp ??
+      (async ({ cwd, signal }) => {
+        const run = await this.runCli(["acp"], {
+          stdin: "",
+          cwd,
+          signal,
+          interactive: true
+        });
+        const write = run.write;
+        if (!write) throw new AntigravityCliError("The runner cannot keep stdin open");
+        return { lines: run.lines, exit: run.exit, kill: run.kill, write } satisfies AcpProcess;
+      });
   }
 
   /** The CLI's credentials never leave this process. */
@@ -132,9 +197,14 @@ export class AntigravityProvider extends BaseProvider {
     return {};
   }
 
-  /** `agy` runs its own tools. NodeTool tools are not forwarded to it. */
+  /** Images come from the CLI's `image-generator` subagent over ACP. */
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
+    return ["text_to_image"];
+  }
+
+  /** Tools reach `agy` through `generateLoop`, over its ACP server. */
   override async hasToolSupport(): Promise<boolean> {
-    return false;
+    return true;
   }
 
   override async unavailableReason(): Promise<string | null> {
@@ -248,6 +318,45 @@ export class AntigravityProvider extends BaseProvider {
       conversation: null,
       emitted
     });
+  }
+
+  /**
+   * One model: the CLI's own image generator. It is listed only when the CLI
+   * is installed and signed in, which `agy models` reports.
+   */
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    const models = await this.getAvailableLanguageModels();
+    if (models.length === 0) return [];
+    return [
+      {
+        id: IMAGE_MODEL_ID,
+        name: "Antigravity Image Generator",
+        provider: PROVIDER_IDS.ANTIGRAVITY,
+        supportedTasks: ["text_to_image"]
+      }
+    ];
+  }
+
+  /**
+   * Generate one image through `agy acp`. The CLI exposes no size or seed
+   * controls, so only the prompt, negative prompt and aspect ratio are passed.
+   */
+  override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
+    const prompt = params.prompt.trim();
+    if (!prompt) throw new AntigravityCliError("The input prompt cannot be empty.");
+    const negative = params.negativePrompt?.trim();
+    const run = await generateImageViaAcp({
+      spawn: this.spawnAcp,
+      cwd: await scratchWorkspace(),
+      prompt: negative ? `${prompt}\nAvoid: ${negative}` : prompt,
+      aspectRatio: params.aspectRatio,
+      signal: params.signal,
+      brainDir: this.imageOptions.imageBrainDir,
+      timeoutMs: this.imageOptions.imageTimeoutMs,
+      pollMs: this.imageOptions.imagePollMs,
+      settleMs: this.imageOptions.imageSettleMs
+    });
+    return run.bytes;
   }
 
   /** Run one `agy` turn and translate its event stream into stream items. */
@@ -480,8 +589,24 @@ function parseEvent(line: string): CliEvent | null {
     log.debug("Skipping non-JSON agy output line");
     return null;
   }
-  const parsed = cliEventSchema.safeParse(json);
+  const parsed = cliEventSchema.safeParse(flattenEvent(json));
   return parsed.success ? parsed.data : null;
+}
+
+/**
+ * `agy` 1.5.3 nests a step update or result under a key named after the event
+ * (`{"event":"result","result":{...}}`). Earlier versions put the fields on
+ * the event itself. Hoist the nested fields so both shapes parse the same.
+ */
+function flattenEvent(json: unknown): unknown {
+  if (typeof json !== "object" || json === null) return json;
+  const record = json as Record<string, unknown>;
+  const name = record.event;
+  const nested = typeof name === "string" ? record[name] : undefined;
+  if (typeof nested !== "object" || nested === null || Array.isArray(nested)) {
+    return json;
+  }
+  return { ...record, ...nested };
 }
 
 /**
@@ -498,36 +623,6 @@ function cliFailure(summary: string, detail: string): AntigravityCliError {
   return new AntigravityCliError(text ? `${summary}: ${text}` : summary);
 }
 
-/** Flatten a message's content to plain text (text blocks only). */
-function textOf(content: Message["content"]): string {
-  if (content == null) return "";
-  if (isString(content)) return content;
-  return content
-    .filter((c): c is MessageTextContent => c.type === "text")
-    .map((c) => c.text)
-    .join("");
-}
-
-/** `agy` accepts only text prompts. Refuse images rather than drop them. */
-function assertTextOnly(messages: readonly Message[]): void {
-  const withMedia = messages.some(
-    (m) => Array.isArray(m.content) && m.content.some((c) => c.type !== "text")
-  );
-  if (withMedia) {
-    throw new AntigravityCliError(
-      "The Antigravity CLI accepts text prompts only. Remove the attached images or media, or pick another provider."
-    );
-  }
-}
-
-function extractSystemPrompt(messages: readonly Message[]): string {
-  return messages
-    .filter((m) => m.role === "system")
-    .map((m) => textOf(m.content))
-    .filter(Boolean)
-    .join("\n\n");
-}
-
 /**
  * The user messages added since the checkpoint. Assistant turns in the slice
  * came from the resumed conversation itself, so they are not replayed.
@@ -542,52 +637,6 @@ export function buildResumeDelta(
     .map((m) => textOf(m.content))
     .filter(Boolean)
     .join("\n\n");
-}
-
-/**
- * The prompt for a fresh conversation. `agy` has no system-prompt flag and
- * cannot import earlier turns, so instructions and prior history are sent as
- * delimited blocks ahead of the new user turn.
- */
-export function buildFreshPrompt(
-  messages: readonly Message[],
-  systemPrompt: string
-): string {
-  const convo = messages.filter((m) => m.role === "user" || m.role === "assistant");
-  assertTextOnly(convo);
-  const last = convo[convo.length - 1];
-  const newTurn = last?.role === "user" ? textOf(last.content) : "";
-  const prior = last?.role === "user" ? convo.slice(0, -1) : convo;
-  const transcript = prior
-    .map((m) => {
-      const text = textOf(m.content);
-      return text ? `${m.role === "assistant" ? "Assistant" : "User"}: ${text}` : "";
-    })
-    .filter(Boolean)
-    .join("\n\n");
-  return [
-    systemPrompt ? `<instructions>\n${systemPrompt}\n</instructions>` : "",
-    transcript ? `<conversation_so_far>\n${transcript}\n</conversation_so_far>` : "",
-    newTurn
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-/**
- * The empty directory `agy` runs in. Headless runs may read and write inside
- * their workspace, so it must never be the server's own working directory.
- */
-async function scratchWorkspace(): Promise<string | null> {
-  const [fs, os, path] = await Promise.all([
-    importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises"),
-    importNodeBuiltin<typeof import("node:os")>("node:os"),
-    importNodeBuiltin<typeof import("node:path")>("node:path")
-  ]);
-  if (!fs || !os || !path) return null;
-  const dir = path.join(os.tmpdir(), "nodetool-antigravity");
-  await fs.mkdir(dir, { recursive: true });
-  return dir;
 }
 
 /** The real runner: spawns `agy` with `~/.local/bin` appended to PATH. */
@@ -645,7 +694,11 @@ const spawnAgy: AntigravityCliRunner = async (args, options) => {
   child.stdin.on("error", () => {
     // The process may exit before reading stdin; its exit code reports why.
   });
-  child.stdin.end(options.signal?.aborted ? undefined : options.stdin);
+  if (options.interactive) {
+    if (options.stdin) child.stdin.write(options.stdin);
+  } else {
+    child.stdin.end(options.signal?.aborted ? undefined : options.stdin);
+  }
   const lines = readline.createInterface({
     input: child.stdout,
     crlfDelay: Infinity
@@ -655,6 +708,9 @@ const spawnAgy: AntigravityCliRunner = async (args, options) => {
     exit,
     kill: () => {
       if (child.exitCode === null && child.signalCode === null) child.kill();
+    },
+    write: (line) => {
+      if (!child.stdin.destroyed && child.stdin.writable) child.stdin.write(line);
     }
   };
 };

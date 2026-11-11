@@ -510,6 +510,12 @@ export interface PromptAssetInputField {
   kind: AssetMediaKind;
   /** True for `list[...]` fields that accept multiple refs. */
   list?: boolean;
+  /**
+   * Token for the list item at `index` among the routed mentions, replacing
+   * the default `${label}[index]`. A node that appends mentions after its
+   * wired items uses it to number them in the model's own terms.
+   */
+  labelAt?: (index: number) => string;
   /** True when the field already holds a real source (wired/set upstream). */
   hasSource: boolean;
 }
@@ -893,7 +899,7 @@ export async function mapPromptAssetsToInputs(
       cursor[field.kind] = queue.length;
       const resolved: InjectedAssetRef[] = [];
       for (let i = 0; i < remaining.length; i++) {
-        labelByRef.set(remaining[i], `${label}[${i}]`);
+        labelByRef.set(remaining[i], field.labelAt ? field.labelAt(i) : `${label}[${i}]`);
         resolved.push(await resolveRef(remaining[i]));
       }
       if (resolved.length > 0) overrides[field.name] = resolved;

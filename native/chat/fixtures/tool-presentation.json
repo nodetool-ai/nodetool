@@ -1,0 +1,598 @@
+{
+  "phrases": [
+    {
+      "name": "browser",
+      "args": {
+        "url": "https://finance.yahoo.com/quote/META/"
+      },
+      "label": "Opened page finance.yahoo.com/quote/META/"
+    },
+    {
+      "name": "web_search",
+      "args": {
+        "query": "meta stock"
+      },
+      "label": "Searched meta stock"
+    },
+    {
+      "name": "web_search",
+      "args": {},
+      "label": "Ran 1 search"
+    },
+    {
+      "name": "frobnicate",
+      "args": {
+        "target": "x"
+      },
+      "label": "Frobnicate x"
+    },
+    {
+      "name": "create_plan",
+      "args": {
+        "objective": "add caching to the api"
+      },
+      "label": "Planned add caching to the api"
+    },
+    {
+      "name": "read_file",
+      "args": {
+        "path": "src/index.ts"
+      },
+      "label": "Read src/index.ts"
+    },
+    {
+      "name": "write_file",
+      "args": {
+        "path": "src/index.ts"
+      },
+      "label": "Edited src/index.ts"
+    },
+    {
+      "name": "browser",
+      "args": {
+        "url": "https://www.example.com/a/b?c=1"
+      },
+      "label": "Opened page example.com/a/b?c=1"
+    },
+    {
+      "name": "browser",
+      "args": {
+        "url": "https://example.com/"
+      },
+      "label": "Opened page example.com"
+    },
+    {
+      "name": "mcp__my_server__tool_frobnicate",
+      "args": {},
+      "label": "Frobnicate"
+    },
+    {
+      "name": "run_workflow",
+      "args": {},
+      "label": "Run Workflow"
+    },
+    {
+      "name": "create_plan",
+      "args": {},
+      "label": "Wrote a plan"
+    },
+    {
+      "name": "",
+      "args": {},
+      "label": ""
+    }
+  ],
+  "groups": [
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {}
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Ran 1 search"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "web_search",
+          "args": {}
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Ran 3 searches"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "execute_code",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "execute_code",
+          "args": {}
+        }
+      ],
+      "rows": 2,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "run_subtask",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "run_subtask",
+          "args": {}
+        }
+      ],
+      "rows": 2,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "run_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "run_search",
+          "args": {}
+        }
+      ],
+      "rows": 2,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "ask_user",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "ask_user",
+          "args": {}
+        }
+      ],
+      "rows": 2,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "request_secret",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "request_secret",
+          "args": {}
+        }
+      ],
+      "rows": 2,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "create_plan",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "create_plan",
+          "args": {}
+        }
+      ],
+      "rows": 2,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "execute_code",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000004",
+          "name": "browser",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000005",
+          "name": "browser",
+          "args": {}
+        }
+      ],
+      "rows": 3,
+      "labels": [
+        "Ran 2 searches",
+        "Execute Code",
+        "Opened 2 pages"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "execute_code",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000004",
+          "name": "web_search",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000005",
+          "name": "web_search",
+          "args": {}
+        }
+      ],
+      "rows": 3,
+      "labels": []
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "write_file",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "write_file",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "write_file",
+          "args": {}
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Made 3 edits"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "frobnicate",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "frobnicate",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "frobnicate",
+          "args": {}
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Frobnicate 3 times"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "run_workflow",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "run_workflow",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "run_workflow",
+          "args": {}
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Ran Run Workflow 3 times"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "read_file",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "read_file",
+          "args": {}
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "read_file",
+          "args": {}
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Read 3 items"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {},
+          "message": "Searching the web"
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {},
+          "message": "Searching the web"
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Searching the web"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "browser",
+          "args": {},
+          "message": "Fetching a"
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "browser",
+          "args": {},
+          "message": "Fetching b"
+        }
+      ],
+      "rows": 1,
+      "labels": [
+        "Opened 2 pages"
+      ]
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000000",
+          "name": "browser",
+          "args": {
+            "url": "https://www.facebook.com/business/news/one"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "browser",
+          "args": {
+            "url": "https://ads.tiktok.com/business/en-US/creative-codes"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "browser",
+          "args": {
+            "url": "https://ads.tiktok.com/help/article/split-test"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "browser",
+          "args": {
+            "url": "https://business.linkedin.com/advertise/ads/testing"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000004",
+          "name": "browser",
+          "args": {
+            "url": "https://example.com/other"
+          }
+        }
+      ],
+      "rows": 1,
+      "preview": "facebook.com \u00b7 ads.tiktok.com \u00b7 business.linkedin.com +1"
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000000",
+          "name": "web_search",
+          "args": {
+            "query": "facebook ads"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {
+            "query": "tiktok creative"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {
+            "query": "linkedin tests"
+          }
+        }
+      ],
+      "rows": 1,
+      "preview": "facebook ads \u00b7 tiktok creative \u00b7 linkedin tests"
+    },
+    {
+      "calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "browser",
+          "args": {
+            "url": "https://a.example/one"
+          }
+        },
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "browser",
+          "args": {
+            "url": "https://b.example/two"
+          }
+        }
+      ],
+      "rows": 2
+    }
+  ],
+  "messages": [
+    {
+      "id": "00000000000000000000000000000064",
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {
+            "query": "facebook ads"
+          }
+        }
+      ]
+    },
+    {
+      "id": "00000000000000000000000000000065",
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {
+            "query": "tiktok creative"
+          }
+        }
+      ]
+    },
+    {
+      "id": "00000000000000000000000000000066",
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "web_search",
+          "args": {
+            "query": "linkedin tests"
+          }
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "type": "message",
+      "thread_id": "a",
+      "id": "00000000000000000000000000000064",
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {
+            "query": "facebook ads"
+          }
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "thread_id": "a",
+      "id": "00000000000000000000000000000065",
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {
+            "query": "tiktok creative"
+          }
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "thread_id": "a",
+      "id": "00000000000000000000000000000066",
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "web_search",
+          "args": {
+            "query": "linkedin tests"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,9 +4,9 @@
  * Generates node classes from `atlascloud-manifest.json` at runtime, mirroring
  * the topaz-nodes and kie-nodes factories. Each manifest entry declares a
  * model id, modality, output type, and the input fields exposed in the node
- * UI. The generated class extends `BaseNode`, so `BaseNode._injectSecrets`
- * resolves `ATLASCLOUD_API_KEY` from `context.getSecret(...)` and surfaces it
- * as `this._secrets.ATLASCLOUD_API_KEY` inside `process()`.
+ * UI. The generated class submits through `context.callProviderEndpoint`, so
+ * `AtlasCloudProvider` holds `ATLASCLOUD_API_KEY` and the transport, and every
+ * run writes a generation record.
  */
 
 import {
@@ -22,21 +22,18 @@ import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import {
   fetchExternalMedia,
   loadMediaRefBytes,
-  mapPromptAssetsToInputs
+  mapPromptAssetsToInputs,
+  pickOutputUrl
 } from "@nodetool-ai/runtime";
 import type {
+  AtlasModality,
+  AtlasPollResult,
+  ProcessingContext,
   PromptAssetInputField,
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
-import {
-  atlasAwaitResult,
-  atlasDownload,
-  atlasUploadMedia,
-  atlasSubmit,
-  getApiKey,
-  pickOutputUrl,
-  type AtlasModality
-} from "./atlascloud-base.js";
+
+const ATLASCLOUD_PROVIDER = "atlascloud";
 
 export type AtlasFieldType =
   | "str"
@@ -534,7 +531,7 @@ export async function resolveAssetForAtlas(
 }
 
 async function uploadVideoInput(
-  apiKey: string,
+  context: ProcessingContext,
   resolved: string
 ): Promise<string> {
   if (!resolved.startsWith("data:")) return resolved;
@@ -549,12 +546,12 @@ async function uploadVideoInput(
   if (!mimeType || !encoded) {
     throw new Error("AtlasCloud video input data URI is empty");
   }
-  return atlasUploadMedia(
-    apiKey,
-    new Uint8Array(Buffer.from(encoded, "base64")),
+  return context.uploadProviderMedia({
+    provider: ATLASCLOUD_PROVIDER,
+    bytes: new Uint8Array(Buffer.from(encoded, "base64")),
     mimeType,
-    "input-video"
-  );
+    filename: "input-video"
+  });
 }
 
 /**
@@ -680,7 +677,9 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
 
   const AtlasNodeClass = class extends BaseNode {
     async process(context?: ProcessContext): Promise<AtlasNodeOutput> {
-      const apiKey = getApiKey(this._secrets);
+      if (!context) {
+        throw new Error(`${title}: a processing context is required`);
+      }
       const input: AtlasRequestInput = {};
 
       const overrides = await promptAssetOverrides(this, specRef, context);
@@ -697,7 +696,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
           if (resolved !== null) {
             const inputUrl =
               inner === "video"
-                ? await uploadVideoInput(apiKey, resolved)
+                ? await uploadVideoInput(context, resolved)
                 : resolved;
             if (f.wrapInto) {
               appendWrapped(input, f.wrapInto, [inputUrl], inner);
@@ -723,7 +722,7 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
             const r = await resolveAssetForAtlas(item, context, inner);
             if (r !== null) {
               resolved.push(
-                inner === "video" ? await uploadVideoInput(apiKey, r) : r
+                inner === "video" ? await uploadVideoInput(context, r) : r
               );
             }
           }
@@ -813,21 +812,25 @@ export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
         );
       }
 
-      const predictionId = await atlasSubmit(
-        apiKey,
-        specRef.modality,
-        specRef.modelId,
+      const call: Parameters<ProcessingContext["callProviderEndpoint"]>[0] = {
+        provider: ATLASCLOUD_PROVIDER,
+        capability:
+          specRef.outputType === "video" ? "text_to_video" : "text_to_image",
+        model: specRef.modelId,
+        route: specRef.modality,
         input
-      );
-      const result = await atlasAwaitResult(apiKey, predictionId, {
-        pollInterval: specRef.pollInterval ?? 3000,
-        maxAttempts: specRef.maxAttempts ?? 600
-      });
-      const url = pickOutputUrl(result);
+      };
+      if (this.__node_id) call.nodeId = this.__node_id;
+      const result = await context.callProviderEndpoint(call);
+      // SAFETY: AtlasCloudProvider.callEndpoint returns the finished prediction body.
+      const url = pickOutputUrl(result.output as AtlasPollResult);
 
-      // Retries 429/5xx — the job is already generated and billed by now, so a
-      // transient CDN blip must not throw the paid-for result away.
-      const bytes = await atlasDownload(url);
+      // The provider retries 429/5xx: the job is already generated and billed
+      // by now, so a transient CDN blip must not throw the paid-for result away.
+      const bytes = await context.downloadProviderMedia({
+        provider: ATLASCLOUD_PROVIDER,
+        url
+      });
 
       // Preferred path: hand bytes to NodeTool storage so the result becomes a
       // proper local asset. Falls back to base64 embed if storage is missing

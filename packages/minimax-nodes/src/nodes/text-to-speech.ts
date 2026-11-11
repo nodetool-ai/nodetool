@@ -1,19 +1,16 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   audioRefFromBytes,
-  assertBaseResp,
+  callMinimax,
   DEFAULT_VOICE,
-  getMinimaxApiKey,
-  MINIMAX_BASE_URL,
   MINIMAX_EMOTIONS,
   MINIMAX_LANGUAGE_BOOST,
   MINIMAX_TTS_MODELS,
   MINIMAX_VOICES,
-  minimaxHeaders,
   resolveAudioPayload
 } from "../minimax-base.js";
-import type { MinimaxResponse } from "../minimax-base.js";
 
 const TTS_FORMATS = ["mp3", "wav", "flac"];
 
@@ -41,13 +38,6 @@ interface MinimaxTtsRequest {
     channel: number;
   };
   language_boost?: string;
-}
-
-/** `/v1/t2a_v2` reply: hex-encoded audio, or a download URL. */
-interface MinimaxTtsResponse extends MinimaxResponse {
-  data?: {
-    audio?: string;
-  };
 }
 
 /** Output handles MinimaxTextToSpeechNode.process() emits. */
@@ -161,9 +151,9 @@ export class MinimaxTextToSpeechNode extends BaseNode {
   })
   declare format: any;
 
-  async process(): Promise<MinimaxTextToSpeechNodeOutputs> {
-    const apiKey = getMinimaxApiKey(this._secrets);
-
+  async process(
+    context?: ProcessingContext
+  ): Promise<MinimaxTextToSpeechNodeOutputs> {
     const text = String(this.text ?? "");
     if (!text) throw new Error("Text is required");
 
@@ -201,25 +191,24 @@ export class MinimaxTextToSpeechNode extends BaseNode {
       body.language_boost = languageBoost;
     }
 
-    const res = await fetch(`${MINIMAX_BASE_URL}/v1/t2a_v2`, {
-      method: "POST",
-      headers: minimaxHeaders(apiKey),
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      throw new Error(`MiniMax t2a_v2 failed: ${res.status} ${await res.text()}`);
+    if (!context) {
+      throw new Error("MiniMax Text to Speech requires a processing context");
     }
-    const data: MinimaxTtsResponse = await res.json();
-    assertBaseResp(data, "t2a_v2");
-
-    const audio = data.data?.audio;
-    if (!audio) {
+    // `/v1/t2a_v2` replies with hex-encoded audio, or a download URL.
+    const reply = await callMinimax(context, {
+      route: "tts",
+      capability: "text_to_speech",
+      model,
+      input: { ...body },
+      nodeId: this.__node_id || undefined
+    });
+    if (!reply.audio) {
       throw new Error(
-        `MiniMax t2a_v2 returned no audio data: ${JSON.stringify(data)}`
+        `MiniMax t2a_v2 returned no audio data: ${reply.describe()}`
       );
     }
 
-    const bytes = await resolveAudioPayload(audio);
+    const bytes = await resolveAudioPayload(context, reply.audio);
     return { output: audioRefFromBytes(bytes, format) };
   }
 }

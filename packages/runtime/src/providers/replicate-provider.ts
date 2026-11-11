@@ -1,7 +1,14 @@
-import Replicate from "replicate";
+import Replicate, { type Prediction } from "replicate";
 import { createLogger } from "@nodetool-ai/config";
 import { isCallable, isObjectLike, isString } from "@nodetool-ai/protocol";
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type MediaUpload,
+  type ProviderCapability
+} from "./base-provider.js";
+import { recordGenerationReceipt } from "../generation-receipt.js";
 import { safeFetch } from "./safe-url.js";
 import { withReplicateRetry } from "./replicate-retry.js";
 import { sniffAudioMime } from "./audio-mime.js";
@@ -209,6 +216,12 @@ export class ReplicateProvider extends BaseProvider {
 
   readonly apiKey: string;
   private _client: Replicate;
+  /**
+   * Endpoint calls return the vendor JSON, so this client keeps output URLs as
+   * strings. The default client wraps each one in a `FileOutput`, which starts
+   * downloading the file as soon as it is created.
+   */
+  private _endpointClient: Replicate;
 
   constructor(
     secrets: { REPLICATE_API_TOKEN?: string },
@@ -229,6 +242,9 @@ export class ReplicateProvider extends BaseProvider {
       replicateOptions.fetch = options.fetchFn;
     }
     this._client = options.client ?? new Replicate(replicateOptions);
+    this._endpointClient =
+      options.client ??
+      new Replicate({ ...replicateOptions, useFileOutput: false });
   }
 
   getContainerEnv() {
@@ -244,15 +260,72 @@ export class ReplicateProvider extends BaseProvider {
   private runModel(
     modelId: string,
     input: Record<string, unknown>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    client: Replicate = this._client,
+    progress?: (prediction: Prediction) => void
   ): Promise<unknown> {
     signal?.throwIfAborted();
     const options: { input: Record<string, unknown>; signal?: AbortSignal } = { input };
     if (signal) options.signal = signal;
+    const model = modelId as `${string}/${string}`;
     return withReplicateRetry(modelId, () =>
-      this._client.run(modelId as `${string}/${string}`, options),
+      progress ? client.run(model, options, progress) : client.run(model, options),
       signal
     );
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Run one model with vendor-shaped input. `model` is `owner/name` or
+   * `owner/name:version`. Replicate has one endpoint family, so a `route` is
+   * rejected. The output is the prediction's JSON with file URLs as strings.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    if (req.route !== undefined) {
+      throw new Error(`replicate does not accept an endpoint route: ${req.route}`);
+    }
+    let requestId: string | null = null;
+    const onPrediction = (prediction: Prediction): void => {
+      if (requestId === null && prediction.id) {
+        requestId = prediction.id;
+        recordGenerationReceipt({ provider_request_id: prediction.id });
+      }
+      req.onProgress?.({ message: prediction.status });
+    };
+    const output = await this.runModel(
+      req.model,
+      req.input,
+      req.signal,
+      this._endpointClient,
+      onPrediction
+    );
+    // The SDK cancels the prediction on abort and resolves with its partial
+    // output instead of throwing.
+    req.signal?.throwIfAborted();
+    return { output, requestId };
+  }
+
+  /**
+   * Upload bytes to the Replicate files API and return the URL a prediction
+   * reads them from. The filename travels as file metadata, as the node pack
+   * sent it.
+   */
+  override async uploadMedia(upload: MediaUpload): Promise<string> {
+    upload.signal?.throwIfAborted();
+    const blob = new Blob([upload.bytes.slice().buffer], {
+      type: upload.mimeType
+    });
+    const metadata = upload.filename ? { filename: upload.filename } : {};
+    const options = upload.signal ? { signal: upload.signal } : {};
+    const file = await this._client.files.create(blob, metadata, options);
+    const url = file.urls?.get;
+    if (!url) throw new Error("No URL in upload response");
+    return url;
   }
 
   // ---------------------------------------------------------------------------

@@ -125,11 +125,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-clean",
-                        "binding": "op:clean/exec#progress",
-                        "label": "Removing room noise…"
+                        "operationId": "clean",
+                        "label": "Removing room noise…",
+                        "steps": []
                       }
                     },
                     {
@@ -163,11 +164,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-master",
-                        "binding": "op:master/exec#progress",
-                        "label": "Balancing the voice…"
+                        "operationId": "master",
+                        "label": "Balancing the voice…",
+                        "steps": []
                       }
                     },
                     {
@@ -379,11 +381,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-publish",
-                        "binding": "op:publish/exec#progress",
-                        "label": "Transcribing and drafting…"
+                        "operationId": "publish",
+                        "label": "Transcribing and drafting…",
+                        "steps": []
                       }
                     },
                     {

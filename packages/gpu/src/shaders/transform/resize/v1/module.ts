@@ -32,27 +32,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
   addressModeV: "clamp-to-edge"
 };
 
-export const transformResizeV1 = defineModule({
-  id: "transform.resize",
-  version: 1,
-  surface: "internal",
-  category: "transform",
-  linearity: "linear-in-rgb",
-  kind: "fragment",
-  params: ResizeParams,
-  paramDefaults: { mode: 1 },
-  paramUi: {
-    mode: {
-      min: 0,
-      max: 2,
-      step: 1,
-      label: "Mode",
-      notes: "0 nearest / 1 bilinear / 2 bicubic"
-    }
-  },
-  layout,
-  samplers: { samp: samplerDescriptor },
-  wgsl: /* wgsl */ `
+const wgsl = /* wgsl */ `
 fn cubicWeight(x: f32) -> f32 {
   // Catmull–Rom (a = -0.5). Symmetric in x.
   let ax = abs(x);
@@ -100,17 +80,43 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   }
   return textureSample(layout.$.source, layout.$.samp, uv);
 }
-`,
+`;
+
+export const transformResizeV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
+  id: "transform.resize",
+  version: 1,
+  surface: "internal",
+  category: "transform",
+  linearity: "linear-in-rgb",
+  kind: "fragment",
+  params: ResizeParams,
+  paramDefaults: { mode: 1 },
+  paramUi: {
+    mode: {
+      min: 0,
+      max: 2,
+      step: 1,
+      label: "Mode",
+      notes: "0 nearest / 1 bilinear / 2 bicubic"
+    }
+  },
+  layout,
+  samplers: { samp: samplerDescriptor },
+  wgsl,
+  // Catmull-Rom has negative lobes. Preserve the byte target's saturation
+  // before downstream effects, without restoring byte quantization.
+  workingWgsl: wgsl.replace("return sampleBicubic(uv, dims);", "return clamp(sampleBicubic(uv, dims), vec4f(0.0), vec4f(1.0));"),
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "host-specified"

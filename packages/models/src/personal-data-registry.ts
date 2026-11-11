@@ -120,6 +120,33 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "API tokens the person minted. Deleted so no credential outlives the account. The hash is a credential verifier, not information about the person, so the export lists the token and withholds the hash."
   },
   {
+    table: "nodetool_user_accounts",
+    schemaExport: "userAccounts",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The directory row a self-hosted server keeps for each person who signed in: email, display name, identity-provider groups, role, status and sign-in times. Deleted with the account. A later sign-in creates a fresh row."
+  },
+  {
+    table: "nodetool_user_quotas",
+    schemaExport: "userQuotas",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The token and media limits an admin of a self-hosted server set for this person. Deleted with the account, so a later sign-in gets the server default."
+  },
+  {
+    table: "nodetool_user_permissions",
+    schemaExport: "userPermissions",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "The permission flags an admin of a self-hosted server set for this person. Deleted with the account, so a later sign-in gets the server default."
+  },
+  {
     table: "external_identities",
     schemaExport: "externalIdentities",
     disposition: "delete",

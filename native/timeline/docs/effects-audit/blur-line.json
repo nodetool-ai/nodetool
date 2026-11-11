@@ -1,0 +1,70 @@
+{
+  "id": "audit-blur-line",
+  "projectId": "native-prototype",
+  "name": "blur-line",
+  "fps": 30,
+  "width": 256,
+  "height": 144,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "effect-0",
+      "trackId": "t0",
+      "name": "effect-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "line.png",
+      "effects": [
+        {
+          "type": "blur",
+          "id": "fx-effect-0-0",
+          "radius": 20,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "id": "effect-1",
+      "trackId": "t0",
+      "name": "effect-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 256,
+      "height": 144,
+      "mediaPath": "line.png",
+      "effects": [
+        {
+          "type": "blur",
+          "id": "fx-effect-1-0",
+          "radius": 40,
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "markers": []
+}

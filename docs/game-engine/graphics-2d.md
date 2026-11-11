@@ -5,7 +5,16 @@ permalink: /game-engine/graphics-2d
 description: "Prepare 2D art, layer backgrounds, animate sprites, and apply lighting and GPU effects."
 ---
 
-Use image asset bindings for sprites, tilemaps, and background layers. Each binding connects a logical slot in the game to prepared image bytes. Replacing the slot can update the art without replacing gameplay entities.
+Sprites, tilemaps, and background layers draw from image asset bindings, each a logical slot that points at prepared image bytes. Replacing the slot updates the art without replacing gameplay entities.
+
+```json
+{
+  "sprite": { "assetId": "hero-sheet", "width": 1, "height": 2, "layer": 1,
+              "frame": { "x": 0, "y": 0, "width": 32, "height": 64 }, "faceMotion": "right" },
+  "tilemap": { "assetId": "ground", "layer": 0,
+               "tiles": [{ "x": 0, "y": 0, "width": 1, "height": 1, "solid": true }] }
+}
+```
 
 ![Kindle title scene with layered temple art, a character sprite, a tiled floor, and animated water](/assets/game-engine/kindle.png)
 

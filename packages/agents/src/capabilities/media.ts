@@ -29,6 +29,7 @@ import { mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import { missingRuntimeDetailsOf, missingRuntimePackageError } from "@nodetool-ai/protocol";
+import { generateBatch } from "./generate-batch.js";
 import type {
   GenerationRequest,
   BaseProvider,
@@ -2819,6 +2820,7 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   videoFromReferences,
   generateSpeech,
   generateMusic,
+  generateBatch,
   transcribeAudio,
   embedText,
   readMediaBytes,

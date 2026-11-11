@@ -3909,7 +3909,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1052,
+    "total": 1055,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7172,10 +7172,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         "provider": "codex",
         "models": [
           {
-            "id": "gpt-image-1",
-            "name": "GPT Image 1"
-          },
-          {
             "id": "gpt-image-1-mini",
             "name": "GPT Image 1 Mini"
           },
@@ -7186,6 +7182,39 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "gpt-image-2",
             "name": "GPT Image 2"
+          },
+          {
+            "id": "gpt-image-2.6-flare",
+            "name": "GPT Image 2.6 Flare"
+          },
+          {
+            "id": "gpt-image-2.6-sunburst",
+            "name": "GPT Image 2.6 Sunburst"
+          }
+        ]
+      },
+      {
+        "provider": "openai",
+        "models": [
+          {
+            "id": "gpt-image-1-mini",
+            "name": "GPT Image 1 Mini"
+          },
+          {
+            "id": "gpt-image-2.5-flare",
+            "name": "GPT Image 2.5 Flare"
+          },
+          {
+            "id": "gpt-image-2.5-sunburst",
+            "name": "GPT Image 2.5 Sunburst"
+          },
+          {
+            "id": "gpt-image-2.6-flare",
+            "name": "GPT Image 2.6 Flare"
+          },
+          {
+            "id": "gpt-image-2.6-sunburst",
+            "name": "GPT Image 2.6 Sunburst"
           }
         ]
       },
@@ -7207,27 +7236,6 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "gpt-image-2",
             "name": "GPT Image 2"
-          }
-        ]
-      },
-      {
-        "provider": "openai",
-        "models": [
-          {
-            "id": "gpt-image-1",
-            "name": "GPT Image 1"
-          },
-          {
-            "id": "gpt-image-1-mini",
-            "name": "GPT Image 1 Mini"
-          },
-          {
-            "id": "gpt-image-2.5-flare",
-            "name": "GPT Image 2.5 Flare"
-          },
-          {
-            "id": "gpt-image-2.5-sunburst",
-            "name": "GPT Image 2.5 Sunburst"
           }
         ]
       },
@@ -7322,6 +7330,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "reve-edit",
             "name": "Reve Edit"
+          }
+        ]
+      },
+      {
+        "provider": "antigravity",
+        "models": [
+          {
+            "id": "image-generator",
+            "name": "Antigravity Image Generator"
           }
         ]
       },

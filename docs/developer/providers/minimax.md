@@ -4,7 +4,8 @@ title: "MiniMax: Add Models & Nodes"
 description: "How to add new MiniMax models or workflow nodes to the NodeTool repo."
 ---
 
-> **Audience:** contributors and coding agents adding new MiniMax models or workflow nodes.
+> **Runs:** cloud. **Needs:** `MINIMAX_API_KEY`. The provider constructor throws `MINIMAX_API_KEY is required` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -13,13 +14,11 @@ description: "How to add new MiniMax models or workflow nodes to the NodeTool re
 3. Build: `npm run build:packages`.
 4. Verify: `npm run typecheck`, then `npm run dev:nodetool -- node run minimax.<YourNodeType> --props '{...}'`.
 
----
-
 ## Where things live
 
 | What | Path |
 |---|---|
-| Provider class (chat/image/video/TTS/music) | `packages/runtime/src/providers/minimax-provider.ts` |
+| Provider class (chat/image/video/TTS/music, and the endpoint calls the nodes use) | `packages/runtime/src/providers/minimax-provider.ts` |
 | Shared node constants and helpers | `packages/minimax-nodes/src/minimax-base.ts` |
 | Node implementations | `packages/minimax-nodes/src/nodes/*.ts` |
 | Node pack entry point | `packages/minimax-nodes/src/index.ts` |
@@ -27,8 +26,6 @@ description: "How to add new MiniMax models or workflow nodes to the NodeTool re
 | Provider ID constant | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS.MINIMAX`) |
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.MINIMAX, ...)`) |
 | API docs | <https://platform.minimax.io/docs/api-reference/api-overview> |
-
----
 
 ## How MiniMax models and nodes are defined
 
@@ -60,13 +57,11 @@ export const MINIMAX_T2V_MODELS: string[] = [
 ];
 ```
 
-**Why two places?** Nodes call MiniMax's REST API directly (not through the provider) so they can expose MiniMax-specific fields (emotion, volume, pitch, camera direction, lyrics) that the generic `BaseProvider` interface does not carry.
+**Why two places?** Nodes build MiniMax's own request body so they can expose MiniMax-specific fields (emotion, volume, pitch, camera direction, lyrics) that the generic capability methods do not carry. They send it with `callMinimax` from `minimax-base.ts`, which calls `context.callProviderEndpoint`. `MinimaxProvider.callEndpoint` holds the API key, posts to the endpoint family named by `route` (`tts`, `music`, `image` or `video`), checks `base_resp`, and writes the generation record. Result URLs download through `context.downloadProviderMedia`. Nodes never read the API key.
 
 **Node registration**
 
 `src/index.ts` exports `MINIMAX_NODES` (the full array) and `registerMinimaxNodes` (the registry helper). Every new node class must be imported and added to both.
-
----
 
 ## Add a new model or node
 
@@ -95,19 +90,15 @@ export const MINIMAX_T2V_MODELS: string[] = [
 
 ### Case B: new node type
 
-Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D node below is an illustrative sketch. The pack has no 3D node today.
+Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D node below is an illustrative sketch. The pack has no 3D node today. A new endpoint family first needs a `route` in `MINIMAX_ENDPOINT_PATHS` in `minimax-provider.ts` (here `text_to_3d: "text_to_3d"`), and its name added to `MinimaxRoute` and the capability list of `callMinimax` in `minimax-base.ts`.
 
 1. **Create `packages/minimax-nodes/src/nodes/text-to-3d.ts`**, modelled on an existing node:
 
    ```ts
    import { BaseNode, prop } from "@nodetool-ai/node-sdk";
    import type { NodeClass } from "@nodetool-ai/node-sdk";
-   import {
-     assertBaseResp,
-     getMinimaxApiKey,
-     MINIMAX_BASE_URL,
-     minimaxHeaders
-   } from "../minimax-base.js";
+   import type { ProcessingContext } from "@nodetool-ai/runtime";
+   import { callMinimax } from "../minimax-base.js";
 
    const TEXT_TO_3D_MODELS = ["3d-01"];
 
@@ -144,22 +135,24 @@ Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D n
      })
      declare prompt: any;
 
-     async process(): Promise<Record<string, unknown>> {
-       const apiKey = getMinimaxApiKey(this._secrets);
+     async process(
+       context?: ProcessingContext
+     ): Promise<Record<string, unknown>> {
        const prompt = String(this.prompt ?? "");
        if (!prompt) throw new Error("Prompt is required");
-
-       const res = await fetch(`${MINIMAX_BASE_URL}/v1/text_to_3d`, {
-         method: "POST",
-         headers: minimaxHeaders(apiKey),
-         body: JSON.stringify({ model: String(this.model ?? "3d-01"), prompt })
-       });
-       if (!res.ok) {
-         throw new Error(`MiniMax text_to_3d failed: ${res.status} ${await res.text()}`);
+       if (!context) {
+         throw new Error("MiniMax Text to 3D requires a processing context");
        }
-       const data = (await res.json()) as Record<string, unknown>;
-       assertBaseResp(data, "text_to_3d");
-       // parse response and return output ref
+
+       const model = String(this.model ?? "3d-01");
+       const data = await callMinimax(context, {
+         route: "text_to_3d",
+         capability: "text_to_3d",
+         model,
+         input: { model, prompt },
+         nodeId: this.__node_id || undefined
+       });
+       // parse `data` and return output ref
        return { output: { type: "model3d", data: "" } };
      }
    }
@@ -184,11 +177,9 @@ Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D n
    ];
    ```
 
-3. **Add a test** in `packages/minimax-nodes/tests/text-to-3d.test.ts`. Stub `fetch` with `vi.stubGlobal` (see any existing test for the pattern). At minimum assert the node calls the right endpoint and returns an output.
+3. **Add a test** in `packages/minimax-nodes/tests/text-to-3d.test.ts`. Use `scriptedMinimax` from `tests/scripted.ts`, which answers the provider from scripted replies (see any existing test for the pattern). At minimum assert the recorded endpoint call's `route`, `model` and `input`, the node output, and the `prediction` message.
 
 4. **Update `tests/registration.test.ts`** — add `"minimax.TextTo3D"` to both `registry.has(...)` checks and the `types` array.
-
----
 
 ## Verify
 
@@ -214,23 +205,5 @@ npm run dev:nodetool -- validate workflow.json
 ```
 
 The `--no-secrets` flag lets the node runner skip the database. The node will
-fail at the network call (no real API key), but a type error or missing-field
-panic surfaces before that.
-
----
-
-## Contributing
-
-Source: <https://github.com/nodetool-ai/nodetool>  
-Discord: <https://discord.gg/WmQTWZRcYE>
-
-Before opening a PR:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-npm run dev:nodetool -- harness gate --base origin/main
-```
-
-All four must pass.
+fail when the provider is built (no real API key), but a type error or
+missing-field panic surfaces before that.

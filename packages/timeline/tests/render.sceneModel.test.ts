@@ -3,6 +3,7 @@ import { makeClip, makeTrack } from "../src/index.js";
 import type { TimelineClip, TimelineTrack } from "../src/index.js";
 
 import {
+  captionCues,
   clipSourceTimeSec,
   computeActiveLayers,
   computeActiveLayersWithHorizon,
@@ -496,6 +497,34 @@ describe("resolveCaptionAtTime", () => {
       { text: "a", active: false },
       { text: "b", active: true }
     ]);
+  });
+});
+
+describe("captionCues", () => {
+  const word = (text: string, startMs: number, cue?: "start" | "continue") => ({
+    word: text,
+    startMs,
+    endMs: startMs + 100,
+    ...(cue ? { cue } : {})
+  });
+  const cues = (words: ReturnType<typeof word>[]) =>
+    captionCues({ caption: { words }, durationMs: 60000 }).map((run) =>
+      run.map((w) => w.word).join(" ")
+    );
+
+  it("ends a cue at a long pause or after ten words when no word has a mark", () => {
+    const many = Array.from({ length: 12 }, (_, i) => word(`w${i}`, i * 100));
+    expect(cues([...many, word("far", 2000)])).toEqual([
+      "w0 w1 w2 w3 w4 w5 w6 w7 w8 w9",
+      "w10 w11",
+      "far"
+    ]);
+  });
+
+  it("lets a start mark begin a cue and a continue mark keep one going", () => {
+    expect(
+      cues([word("a", 0), word("b", 100, "start"), word("c", 200), word("d", 5000, "continue")])
+    ).toEqual(["a", "b c d"]);
   });
 });
 

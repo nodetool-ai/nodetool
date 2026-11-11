@@ -1,0 +1,127 @@
+{
+  "id": "crop-reframe",
+  "projectId": "native-prototype",
+  "name": "Reframe crops",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 3000,
+  "tracks": [
+    {
+      "id": "v",
+      "name": "Crop",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "reframe-0",
+      "trackId": "v",
+      "name": "Reframe 0",
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "versions": [],
+      "startMs": 0,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4",
+      "locked": false,
+      "reframe": {
+        "mode": "center",
+        "keyframes": [
+          {
+            "sourceMs": 0,
+            "x": 0.5,
+            "y": 0.5,
+            "zoom": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "reframe-1",
+      "trackId": "v",
+      "name": "Reframe 1",
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "versions": [],
+      "startMs": 1000,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/rgb-bars-png.mov",
+      "locked": false,
+      "reframe": {
+        "mode": "center",
+        "keyframes": [
+          {
+            "sourceMs": 0,
+            "x": 0.75,
+            "y": 0.25,
+            "zoom": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "reframe-2",
+      "trackId": "v",
+      "name": "Reframe 2",
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "versions": [],
+      "startMs": 2000,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "width": 1920,
+      "height": 1080,
+      "mediaPath": "../../../../fixtures/media/colorbars-bt709-limited.mp4",
+      "transform": {
+        "position": {
+          "x": 80,
+          "y": 40
+        },
+        "scale": {
+          "x": 0.75,
+          "y": 0.75
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "locked": false,
+      "reframe": {
+        "mode": "center",
+        "keyframes": [
+          {
+            "sourceMs": 0,
+            "x": 0.25,
+            "y": 0.75,
+            "zoom": 2
+          },
+          {
+            "sourceMs": 1000,
+            "x": 0.5,
+            "y": 0.5,
+            "zoom": 2
+          }
+        ]
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

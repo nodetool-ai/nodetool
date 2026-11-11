@@ -1,34 +1,22 @@
-# SerpAPI: every search engine as one discovered capability
+# SerpAPI: search any engine
 
-SerpAPI is one HTTP endpoint. `GET /search.json?engine=…` answers for Google and
-its verticals (news, images, scholar, maps, jobs, flights, hotels, trends, lens,
-shopping, local), Bing, Baidu, DuckDuckGo, Yandex, Naver, Brave, YouTube,
-Amazon, eBay, Walmart, Home Depot, Yelp, TripAdvisor, the app stores, and about
-a hundred more — each with its own parameters.
+The `serpapi` capability calls SerpAPI's `GET /search.json?engine=...` endpoint for any engine it ships: Google and its verticals, Bing, YouTube, Amazon, Yelp, the app stores, and others, each with its own parameters. There is one generic `serpapi_search` tool plus two discovery calls. There are no per-engine tools.
 
-NodeTool exposes that endpoint as it is, rather than as a shelf of wrappers.
-There is no `GoogleScholarSearch` node and no `walmart_search` tool. There is
-`serpapi_search`, plus the two discovery calls an agent needs to find an engine
-it has not seen and read that engine's contract before spending a search on it.
+> **Runs:** cloud, on SerpAPI. **Needs:** the `SERPAPI_API_KEY` secret. **Cost:** each search counts against your SerpAPI plan. `get_serpapi_account` reports searches left this month.
+{: .callout-note}
 
-**Nothing here hard-codes the engine list.** `list_serpapi_engines` and
-`get_serpapi_engine_schema` read SerpAPI's own engine table — the same table
-that drives its playground — so an engine SerpAPI ships tomorrow is callable
-tomorrow, with no diff in this repo.
+`list_serpapi_engines` and `get_serpapi_engine_schema` read SerpAPI's own engine table, so a new engine is callable without a change to NodeTool.
 
-## Setting it up
+## Set up
 
-1. Get a key at <https://serpapi.com/manage-api-key>.
-2. Settings → Secrets → `SERPAPI_API_KEY`.
+1. Create a key at <https://serpapi.com/manage-api-key>.
+2. Store it as the `SERPAPI_API_KEY` secret in **Settings → Secrets**.
 
-This is the same secret the `web_search` capability's SerpAPI backend reads, so
-an install that already has search configured needs nothing further.
+The `web_search` capability's SerpAPI backend reads the same secret.
 
 ## What an agent gets
 
-Five capabilities in the `serpapi` namespace. They are agent tools and sandbox
-imports at the same time — one spec behind both — so nothing can drift between
-what a model is told and what guest code can call.
+Five capabilities in the `serpapi` namespace, each both an agent tool and a sandbox import.
 
 | Capability | Does | Class |
 |---|---|---|

@@ -88,16 +88,16 @@ const seeds: FaqSeed[] = [
     slug: "what-is-nodetool",
     question: "What is NodeTool?",
     answerMd:
-      "NodeTool is an open-source app for making images, video, audio, and text with AI. You describe what you want, and a built-in AI agent does the work: it writes, generates, and edits inside NodeTool's editors. Then you can change any part yourself. You get an editable project, not just a finished file, so your steps, media, and edits stay together. Run supported AI models on your own computer, or connect online AI providers such as OpenAI, Google, and fal.ai with your own accounts.",
+      "NodeTool is an open-source AI video editor with tools for images, audio, text and node workflows. Ask the agent to create or edit a project, then make changes yourself. Sign in with your ChatGPT or Claude plan, use your own provider keys, or run supported models locally.",
     category: "general",
     relatedRoute: "/",
-    surfaces: ["landing", "agents", "comparison"],
+    surfaces: ["landing", "comparison"],
   },
   {
     slug: "is-nodetool-open-source",
     question: "Is NodeTool open source?",
     answerMd:
-      "Yes. The whole project is **AGPL-3.0** on [GitHub](https://github.com/nodetool-ai/nodetool). Studio and Cloud are built from the same source, and nothing is held back for a paid tier. You can host it yourself at any time.",
+      "Yes. NodeTool’s source is available under **AGPL-3.0** on [GitHub](https://github.com/nodetool-ai/nodetool). Studio and Cloud share the same source, and you can host NodeTool yourself.",
     category: "general",
     relatedRoute: "/studio",
     surfaces: ["comparison", "developers", "landing"],
@@ -106,10 +106,10 @@ const seeds: FaqSeed[] = [
     slug: "what-is-byok",
     question: "What does \"bring your own keys\" mean for me?",
     answerMd:
-      "It means you connect your own provider accounts and pay each provider directly at its published price. NodeTool does not add a credit system or a provider-price markup. The provider still receives the requests you send to its models. You will sometimes see this written as **BYOK**.",
+      "**BYOK** means you connect your own provider API keys. Requests go to those providers, and you pay them directly at their published rates. NodeTool adds no markup or credit system.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["agents", "cloud", "comparison", "developers", "models", "pricing", "studio"],
+    surfaces: ["cloud", "comparison", "models", "pricing"],
   },
   {
     slug: "use-chatgpt-claude-gemini-subscription",
@@ -118,13 +118,13 @@ const seeds: FaqSeed[] = [
       "Yes, in Studio. Sign in with ChatGPT or Claude, and the agent runs on that subscription instead of an API key. With the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension), NodeTool also uses the ChatGPT or Gemini tab you are signed in to: ChatGPT generates images, and Gemini runs chat, images, and video. Those runs count against your plan's limits, so you get no pay-per-call bill for them. Every run shows up in your ChatGPT or Gemini history.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["landing", "agents", "pricing", "studio"],
+    surfaces: ["landing", "pricing"],
   },
   {
     slug: "how-much-does-nodetool-cost",
     question: "How much does NodeTool cost?",
     answerMd:
-      "NodeTool Studio, the desktop app, is free and open source. Cloud pricing and access can change during alpha, so check the Cloud page before use. In both editions, provider charges are separate: you connect your own provider account and pay that provider directly. Supported local models in Studio have no provider charge per call, but they use your hardware and electricity.",
+      "Studio is free and open source. Cloud is free during alpha; future Cloud pricing has not been announced. Provider API charges are separate, and subscription-based use counts against your plan’s limits. Local models use your hardware and electricity without a provider fee per call. See [pricing](/pricing) for details.",
     category: "byok",
     relatedRoute: "/pricing",
     surfaces: ["landing", "pricing", "comparison"],
@@ -133,7 +133,7 @@ const seeds: FaqSeed[] = [
     slug: "does-nodetool-mark-up-model-pricing",
     question: "Does NodeTool mark up model pricing?",
     answerMd:
-      "No. There are no credits and no markup. You bring your own API keys and pay each provider their list price directly. You can also run local models with Ollama, MLX, or llama.cpp in the desktop app for no per-call cost at all.",
+      "No. When you connect your own API keys, you pay the provider directly at its published rates. NodeTool adds no markup.",
     category: "byok",
     relatedRoute: "/pricing",
     surfaces: ["comparison", "models", "pricing"],
@@ -142,7 +142,7 @@ const seeds: FaqSeed[] = [
     slug: "studio-or-cloud",
     question: "Studio or Cloud — which should I use?",
     answerMd:
-      "Use Studio for real projects. It is the desktop app for macOS, Windows, and Linux. It works with online AI providers without a graphics card, and it can run supported AI models on your own computer if the hardware is strong enough. Cloud runs in your web browser and is in alpha, an early test version, so use it to try NodeTool. Moving projects between Cloud and Studio may not cover everything during the alpha, so check that the move you need works before you rely on it.",
+      "Choose **Studio** for ongoing work: it saves projects on your computer and supports online providers and local models on macOS, Windows and Linux. Choose **Cloud** to try NodeTool in your browser without installing it. Cloud is in alpha, and project transfer between editions is not yet complete. Check that the files and features you need transfer correctly.",
     category: "editions",
     relatedRoute: "/cloud",
     surfaces: ["cloud", "pricing", "studio"],
@@ -163,13 +163,13 @@ const seeds: FaqSeed[] = [
       "The leading models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, reached through providers such as FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Models can also run on your own computer through MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
     category: "models",
     relatedRoute: "/studio",
-    surfaces: ["landing", "agents", "models"],
+    surfaces: ["landing", "models"],
   },
   {
     slug: "can-i-run-models-locally",
     question: "Can I run models locally?",
     answerMd:
-      "Yes. NodeTool Studio runs open-weight models on your own hardware through MLX (Apple Silicon), Ollama, llama.cpp, vLLM, and LM Studio. Nothing leaves your machine unless you call a cloud provider yourself.",
+      "Yes. Studio supports local models through Ollama, MLX (Apple Silicon), llama.cpp, vLLM and LM Studio. Model availability and speed depend on your hardware. Local model requests run on your computer; online providers still receive any requests you send to them.",
     category: "models",
     relatedRoute: "/studio",
     surfaces: ["models", "pricing"],
@@ -216,7 +216,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-a-node-based-workflow",
     question: "What is a node-based workflow?",
     answerMd:
-      "A node-based workflow is one you build by connecting boxes on a canvas instead of writing code. Each box does one thing, such as loading an image, running a model, or cropping a video, and the lines between them carry the result of one step into the next. The whole thing runs from start to finish, so you can watch every step and rearrange it whenever you like.",
+      "A node workflow connects steps such as loading an image, running a model and cropping a video. Connections pass results between steps. You can inspect outputs, change settings and run the workflow again with new inputs.",
     category: "glossary",
     relatedRoute: "/",
     surfaces: [],
@@ -243,7 +243,7 @@ const seeds: FaqSeed[] = [
     slug: "what-does-agent-first-mean",
     question: "What does it mean that NodeTool is agent-first?",
     answerMd:
-      "It means the AI agent works in the same editors you do. The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, game editor, and app builder each give the agent the actions you have, so it can change your project the way you would. A log records every action the agent took, its result, and any error. Coding agents outside NodeTool, such as Claude Code, can use the same actions through **MCP**, the standard way AI agents connect to outside tools.",
+      "The agent edits the same projects you open in NodeTool, including storyboards, timelines and workflows. You can inspect its tool calls, results and errors, then take over yourself. External coding agents can also use NodeTool through **MCP**.",
     category: "general",
     relatedRoute: "/agents",
     surfaces: ["landing", "agents"],
@@ -254,14 +254,14 @@ const seeds: FaqSeed[] = [
     answerMd:
       "Yes. NodeTool runs as an MCP server. Run `npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install` and restart the agent. The command registers NodeTool with Claude Code, Codex, and OpenCode, and `nodetool-mcp config` prints a config block for Cursor, Claude Desktop, and other clients. The agent gets workflows, image, video, and audio generation, and your asset library as tools. Studio is optional. When Studio runs, the agent's changes appear in the open editor.",
     category: "general",
-    relatedRoute: "/agents",
-    surfaces: ["agents", "developers"],
+    relatedRoute: "/developers",
+    surfaces: ["developers"],
   },
   {
     slug: "what-is-a-creative-harness",
     question: "What is a creative harness?",
     answerMd:
-      "A harness is what an AI agent works inside: the tools it can call, the documents it can change, the models and keys it may use, and the record of what it did. NodeTool is a creative harness. It gives the built-in agent, or a coding agent such as Claude Code over **MCP**, image, video, and audio generation and the same editors you use. The agent runs on your provider accounts, every tool call is logged, and the work stays as editable workflows and projects. NodeTool is open source under AGPL-3.0.",
+      "A creative harness gives an AI agent tools, editors, model access and a record of its actions. NodeTool provides these to its built-in agent and coding agents connected through **MCP**. Their work is saved as projects and workflows you can edit.",
     category: "general",
     relatedRoute: "/agents",
     surfaces: ["agents"],
@@ -288,7 +288,7 @@ const seeds: FaqSeed[] = [
     slug: "what-should-i-expect-from-cloud-alpha",
     question: "What should I expect from the Cloud alpha?",
     answerMd:
-      "Cloud is for evaluation and lightweight access while the hosted edition is in alpha. Enabled models, storage behavior, import and export coverage, and availability can change. Check the Cloud page, the in-product notices, and the current [terms](/terms) before depending on a particular capability. Use Studio for paid production work.",
+      "Cloud is an early version for trying NodeTool in a browser. Features, storage and availability may change, and project transfer is not yet complete. Use Studio for client work. Check the [Cloud page](/cloud) and [terms](/terms) before relying on a feature.",
     category: "editions",
     relatedRoute: "/cloud",
     surfaces: ["cloud"],
@@ -339,6 +339,33 @@ function stripMarkdown(md: string): string {
 /** Every FAQ row, authored order preserved. */
 export const faqEntries: FaqEntry[] = seeds.map(toPageEntry);
 
+/** Short homepage answers link to the full FAQ entries. */
+const HOMEPAGE_FAQ_COPY: Record<string, { question: string; answerMd: string }> = {
+  "how-much-does-nodetool-cost": {
+    question: "How much does NodeTool cost?",
+    answerMd: "Studio is free and open source. Cloud is free during alpha, with future pricing still unannounced. Provider API charges are separate, and subscription use counts against your plan’s limits. [Pricing details](/pricing).",
+  },
+  "studio-or-cloud": {
+    question: "Studio or Cloud — which should I use?",
+    answerMd: "Choose Studio to save projects on your computer and use online or local models. Choose Cloud to try NodeTool in your browser without installing it. Cloud is in alpha, and project transfer between editions is not yet complete. [Compare Studio and Cloud](/faq#editions-title).",
+  },
+  "do-i-need-a-gpu": {
+    question: "Do I need a powerful computer?",
+    answerMd: "No dedicated GPU is needed when you use online AI providers. Running models locally depends on the model and your hardware. [Local model setup](/solutions/local-first).",
+  },
+  "use-chatgpt-claude-gemini-subscription": {
+    question: "Which accounts can I use?",
+    answerMd: "In Studio, connect supported provider API keys or use supported ChatGPT, Claude and Gemini sign-in options. Available features and setup differ by provider, and provider charges or plan limits apply. [Accounts and pricing](/pricing).",
+  },
+  "what-does-agent-first-mean": {
+    question: "Can I edit what the agent creates?",
+    answerMd: "Yes. The agent works in the same storyboards, timelines and workflows you can open yourself. Change a shot, trim a clip or adjust a node, then continue with or without the agent. [How the agent works](/agents).",
+  },
+};
+const homepageFaq = seeds
+  .filter((entry) => entry.slug in HOMEPAGE_FAQ_COPY)
+  .map((entry) => toPageEntry({ ...entry, ...HOMEPAGE_FAQ_COPY[entry.slug] }));
+
 /** FAQ rows grouped by category, in display order (empty groups dropped). */
 export const faqByCategory: { category: FaqCategory; label: string; items: FaqEntry[] }[] =
   CATEGORY_ORDER.map((category) => ({
@@ -353,7 +380,9 @@ export function getFaq(slug: string): FaqEntry | undefined {
 
 /** Rows pinned to a given inline surface (landing, comparison, model pages). */
 export function faqForSurface(surface: FaqSurface): FaqEntry[] {
-  return faqEntries.filter((e) => e.surfaces.includes(surface));
+  return surface === "landing"
+    ? homepageFaq
+    : faqEntries.filter((e) => e.surfaces.includes(surface));
 }
 
 /**

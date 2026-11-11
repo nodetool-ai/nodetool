@@ -114,7 +114,10 @@ claude.ai and other OAuth MCP clients need `NODETOOL_ENABLE_MCP=1` and
 `NODETOOL_PUBLIC_URL=https://api.nodetool.ai` on both replicas. Without the
 public URL, `/.well-known/oauth-authorization-server` answers `404` and `/mcp`
 sends a `401` with no `WWW-Authenticate` challenge, so Claude cannot discover
-the authorization server. See [Connect claude.ai](mcp-production.md#connect-claudeai).
+the authorization server. Set `NODETOOL_WEB_URL=https://app.nodetool.ai` too.
+The web app is served from that origin, so consent must open there for the
+browser to keep its session and return to Claude after sign-in. See
+[Connect claude.ai](mcp-production.md#connect-claudeai).
 
 ## Run history retention
 

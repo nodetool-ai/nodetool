@@ -41,7 +41,7 @@ change.
 
 The pitch above is the general-purpose one — README, docs, conference blurb,
 app store listing. The marketing homepage uses the same tagline, and its `<h1>`
-states the contrast: "Stop prompting slot machines. Direct the agent."
+reads: "Create with AI. Make it your own."
 [marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns the page narrative,
 the [shared lines](../marketing/NARRATIVE.md#shared-copy) and where each one
 appears, and [where "creative harness" belongs](../marketing/NARRATIVE.md#the-harness-line).

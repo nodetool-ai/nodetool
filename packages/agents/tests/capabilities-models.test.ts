@@ -27,8 +27,11 @@ import {
   MODEL_CAPABILITIES,
   findModel,
   listModels,
-  listProviderModels
+  listProviderModels,
+  listProviders
 } from "../src/capabilities/models.js";
+import { PROVIDER_CAPABILITY_TOOLS } from "../src/capabilities/models.specs.js";
+import { capabilitySpec } from "../src/capabilities/metadata.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
 import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
@@ -141,7 +144,8 @@ describe("models capability module", () => {
     expect(mod.exports.map((e) => e.spec.name)).toEqual([
       "find_model",
       "list_models",
-      "list_provider_models"
+      "list_provider_models",
+      "list_providers"
     ]);
   });
 
@@ -156,7 +160,8 @@ describe("wire identity: a Tool built from the spec", () => {
   const pairs: [CapabilityExport, Tool][] = [
     [findModel, toolForCapabilityName("find_model")],
     [listModels, toolForCapabilityName("list_models")],
-    [listProviderModels, toolForCapabilityName("list_provider_models")]
+    [listProviderModels, toolForCapabilityName("list_provider_models")],
+    [listProviders, toolForCapabilityName("list_providers")]
   ];
 
   it.each(
@@ -628,5 +633,84 @@ describe("list_provider_models through the adapter", () => {
     expect(
       await asTool(listProviderModels).process(ctx, { provider: "nope" })
     ).toEqual({ success: false, error: "Unknown provider: nope" });
+  });
+});
+
+describe("list_providers through the adapter", () => {
+  it("names each provider's capabilities and the tool that runs each", async () => {
+    const result = (await asTool(listProviders, {
+      openai: new FakeLanguageProvider("openai" as ProviderId, []),
+      fal_ai: new FakeImageProvider("fal_ai" as ProviderId, []),
+      ollama: new FakeLanguageProvider("ollama" as ProviderId, [])
+    }).process(ctx, {})) as {
+      total: number;
+      providers: {
+        id: string;
+        local: boolean;
+        available: boolean;
+        capabilities: string[];
+        tools: Record<string, string>;
+      }[];
+    };
+    expect(result.total).toBe(3);
+    expect(result.providers.map((p) => p.id)).toEqual([
+      "fal_ai",
+      "ollama",
+      "openai"
+    ]);
+    const fal = result.providers[0];
+    expect(fal.capabilities).toEqual(
+      expect.arrayContaining(["generate_message", "text_to_image", "image_to_image"])
+    );
+    expect(fal.tools).toEqual({
+      generate_message: "generate_text",
+      text_to_image: "generate_image",
+      image_to_image: "edit_image"
+    });
+    expect(fal.available).toBe(true);
+    expect(result.providers[1].local).toBe(true);
+    expect(result.providers[2].local).toBe(false);
+  });
+
+  it("filters by capability", async () => {
+    const result = (await asTool(listProviders, {
+      openai: new FakeLanguageProvider("openai" as ProviderId, []),
+      fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [])
+    }).process(ctx, { capability: "text_to_image" })) as {
+      providers: { id: string }[];
+    };
+    expect(result.providers.map((p) => p.id)).toEqual(["fal_ai"]);
+  });
+
+  it("keeps a provider that cannot run here, with the reason", async () => {
+    class BrokenLanguageProvider extends FakeLanguageProvider {
+      override async unavailableReason(): Promise<string | null> {
+        return "missing SDK";
+      }
+    }
+    const result = (await asTool(listProviders, {
+      huggingface: new BrokenLanguageProvider("huggingface" as ProviderId, [])
+    }).process(ctx, {})) as {
+      providers: { available: boolean; unavailable_reason?: string }[];
+    };
+    expect(result.providers[0]).toMatchObject({
+      available: false,
+      unavailable_reason: "missing SDK"
+    });
+  });
+
+  it("says when nothing is configured", async () => {
+    const result = (await asTool(listProviders).process(ctx, {})) as {
+      total: number;
+      note: string;
+    };
+    expect(result.total).toBe(0);
+    expect(result.note).toMatch(/No providers are configured/);
+  });
+
+  it("maps every capability to a registered tool", () => {
+    for (const tool of Object.values(PROVIDER_CAPABILITY_TOOLS)) {
+      expect(capabilitySpec(tool)?.name).toBe(tool);
+    }
   });
 });

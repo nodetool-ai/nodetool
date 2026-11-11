@@ -85,6 +85,8 @@ import { SketchPadWidget } from "./SketchPadWidget";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
 import { ImageComparerWidget } from "./ImageComparerWidget";
 import { WorkflowFormWidget } from "./WorkflowFormWidget";
+import { workflowStepsField } from "./WorkflowStepsField";
+import { WorkflowStepsWidget } from "./WorkflowStepsWidget";
 import {
   AudioRecorderWidget,
   CameraCaptureWidget
@@ -411,7 +413,7 @@ export const appConfig: Config = {
     },
     ai: {
       title: "Chat & AI",
-      components: ["ChatThread", "ChatComposer", "ModelSelect", "AgentActivity"]
+      components: ["ChatThread", "ChatComposer", "ModelSelect", "AgentActivity", "WorkflowSteps"]
     },
     actions: { title: "Actions", components: ["Button", "Approval"] },
     display: {
@@ -717,6 +719,17 @@ export const appConfig: Config = {
       defaultProps: { label: "" },
       render: withConditions((props) => <ProgressWidget {...props} />)
     },
+    WorkflowSteps: {
+      label: "Workflow Steps",
+      fields: {
+        label: { type: "text", label: "Label" },
+        operationId: operationField("Operation"),
+        steps: workflowStepsField("Steps"),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", steps: [] },
+      render: withConditions((props) => <WorkflowStepsWidget {...props} />)
+    },
     AgentActivity: {
       label: "Agent Activity",
       fields: {
@@ -942,6 +955,8 @@ export const appConfig: Config = {
         label: { type: "text", label: "Label" },
         placeholder: { type: "text", label: "Placeholder" },
         hint: { type: "text", label: "Hint" },
+        placeholderFieldsBinding: bindingField("read", "Placeholder fields"),
+        cameraPresets: { type: "radio", label: "Camera presets", options: [{ label: "No", value: false }, { label: "Yes", value: true }] },
         multiline: {
           type: "radio",
           label: "Multiline",

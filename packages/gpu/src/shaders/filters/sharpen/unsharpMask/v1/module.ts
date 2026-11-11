@@ -22,6 +22,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sharpenUnsharpMaskV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "filters.sharpen.unsharpMask",
   version: 1,
   // Promoted in Phase 3 alongside the rest of the Phase 2 timeline-effect
@@ -80,13 +81,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   io: {
     inputs: {
       source: {
-        colorSpace: "srgb",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "srgb",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

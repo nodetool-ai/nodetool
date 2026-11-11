@@ -4,18 +4,26 @@ title: "Python Bridge Protocol"
 description: "How NodeTool talks to the Python worker over stdio using length-prefixed MessagePack frames."
 ---
 
-NodeTool runs Python nodes and local-compute providers in a separate Python worker process. The TypeScript runtime talks to it over a **stdio RPC protocol** (a locally spawned worker) or the same frames over a **WebSocket** (a worker that is already running, such as a Docker container).
+Python nodes and local-compute providers run in a separate worker process. The TypeScript runtime sends MessagePack frames to it over stdio (a spawned worker) or over a WebSocket (a worker that is already running, such as a Docker container). Every frame is `{ "type", "request_id", "data" }`.
 
-## Why this protocol exists
+One node execution, shown as JSON (from `tests/worker/test_websocket_server.py` in nodetool-core, where the test pack defines `fake.Echo`):
 
-NodeTool uses Python for:
+```json
+{ "type": "execute", "request_id": "e-ok",
+  "data": { "node_type": "fake.Echo", "fields": { "text": "hello" } } }
 
-- Python node execution
-- local ML providers such as MLX and HuggingFace
-- ComfyUI and Blender jobs on workers that front them
-- media processing and model-specific dependencies
+{ "type": "result", "request_id": "e-ok",
+  "data": { "outputs": { "output": "hello" } } }
+```
 
-The TypeScript runtime uses stdio instead of a localhost socket for the worker because it is simpler to supervise, avoids port-management issues, and keeps the worker strictly parent-scoped.
+An unknown node type returns an `error` frame instead, with `data.error` and `data.traceback`:
+
+```json
+{ "type": "error", "request_id": "e-err",
+  "data": { "error": "Unknown node type: fake.DoesNotExist", "traceback": "..." } }
+```
+
+A message type the worker does not implement also returns `error`, with `Unknown message type: <type>`. The worker is used for Python nodes, local ML providers such as MLX and HuggingFace, ComfyUI and Blender jobs on workers that front them, and model-specific dependencies. The runtime uses stdio for a local worker because it is parent-scoped and needs no port.
 
 ## Transport
 
@@ -370,14 +378,14 @@ The bridge reassembles the blob and checks it against the final size and SHA-256
 
 ## Diagnostics and failure handling
 
-The bridge now surfaces worker problems in-band:
+Worker problems surface in-band:
 
 - `discover.load_errors` lists node import and metadata extraction failures
 - `worker.status.load_errors` provides the same information on demand
 - `error.traceback` is returned for failed requests
 - recent `stderr` lines are still retained on the TS side for debugging startup failures
 
-This matters because metadata may exist for a Python node even if its module failed to import in the worker. In that case the worker is connected, but the node is unavailable. `load_errors` is the authoritative signal for that situation.
+Metadata can exist for a Python node whose module failed to import in the worker. The worker is then connected but the node is unavailable, and `load_errors` is the authoritative signal.
 
 ## Limits and timeouts
 
@@ -425,12 +433,7 @@ Compatibility rules:
 
 ## Notes for contributors
 
-If you change the protocol:
-
-1. update the JS and Python protocol version constants together
-2. document the schema change here
-3. add or update end-to-end tests in `nodetool-core/tests/`
-4. keep `discover` and `worker.status` authoritative for diagnostics
+When you change the protocol, update the JS and Python version constants together, document the schema change here, and add end-to-end tests in `nodetool-core/tests/`. Keep `discover` and `worker.status` authoritative for diagnostics.
 
 ## Related
 

@@ -1,8 +1,26 @@
-export function getElevenLabsApiKey(secrets: Record<string, string>): string {
-  const key =
-    secrets?.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY || "";
-  if (!key) throw new Error("ELEVENLABS_API_KEY is not configured");
-  return key;
+import type { EndpointCallResult, ProcessingContext } from "@nodetool-ai/runtime";
+
+/** The PROVIDER_IDS value of the runtime ElevenLabs provider. */
+export const ELEVENLABS_PROVIDER_ID = "elevenlabs";
+
+type EndpointCall = Parameters<ProcessingContext["callProviderEndpoint"]>[0];
+
+/**
+ * Call an ElevenLabs REST endpoint through the runtime provider, inside the
+ * generation seam. The provider holds the API key. See
+ * `ElevenLabsProvider.callEndpoint` for the routes and their input shapes.
+ */
+export async function callElevenLabs(
+  context: ProcessingContext | undefined,
+  call: Omit<EndpointCall, "provider">
+): Promise<EndpointCallResult> {
+  if (!context) {
+    throw new Error("ElevenLabs nodes need a processing context to run");
+  }
+  const request: EndpointCall = { ...call, provider: ELEVENLABS_PROVIDER_ID };
+  // A node outside a graph run has no id. Record none rather than "".
+  if (!request.nodeId) delete request.nodeId;
+  return context.callProviderEndpoint(request);
 }
 
 export const VOICE_ID_MAP = {

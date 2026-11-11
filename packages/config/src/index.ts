@@ -17,7 +17,11 @@ export {
 
 export { getByteLimitEnv } from "./byte-limits.js";
 
-export { isAuthEnforced } from "./deployment.js";
+export {
+  isAuthEnforced,
+  isSupabaseAuthConfigured,
+  isOidcAuthConfigured
+} from "./deployment.js";
 
 export {
   CREDIT_MODELS_ENV,
@@ -57,6 +61,7 @@ export {
   runtimeBinPath,
   applyRuntimeEnv,
   isNodetoolHost,
+  nodetoolSettingsFile,
   type NodetoolHost,
   type RuntimeLocations,
   type RuntimeLocationOptions
@@ -152,3 +157,15 @@ export {
 } from "./storage-config.js";
 
 export { createTraceTextRedactor, redactPrivateKeys, redactTraceText } from "./trace-redaction.js";
+export {
+  fetchPackageMedia,
+  findPackageMedia,
+  packageMediaCacheDir,
+  packageMediaKey,
+  readPackageMedia,
+  readPackageMediaManifest,
+  readMissingPackageMedia,
+  resetPackageMediaManifests,
+  type PackageMediaEntry,
+  type PackageMediaManifest
+} from "./package-media.js";

@@ -217,7 +217,10 @@ ephemeral port per session: Claude Code's metadata document lists
 scope ⊆ {`mcp`}), then hands off to the web UI: a redirect to
 `/oauth/consent?request_id=…` inside the SPA, with the pending request parked
 server-side (same in-memory TTL-swept store pattern as `oauthStateStore` in
-`packages/websocket/src/oauth-api.ts`, 10-minute TTL).
+`packages/websocket/src/oauth-api.ts`, 10-minute TTL). When
+`NODETOOL_WEB_URL` names a separate web app origin, the redirect goes to
+`/oauth/consent` on that origin, because the browser's session and the
+post-login return path live in that origin's storage.
 
 The consent page runs inside the normal web app, so user authentication is
 whatever the install already enforces: Supabase session in cloud mode, the
@@ -253,8 +256,15 @@ redirect_uri) render in-page and never redirect — open-redirect rule.
 - **`grant_type=refresh_token`** — rotate: verify the `ntr_` token, issue a
   new access + refresh pair, invalidate the old refresh token. A rotated-out
   refresh token presented again is reuse-detection: revoke the whole grant.
-  The rotation runs in one transaction, and only the unique-index violation on
-  `rotated_from` counts as reuse — a transient write failure rolls the whole
+  The exception is a retry within 60 seconds of the rotation
+  (`MCP_OAUTH_REFRESH_REUSE_GRACE_MS`). A client whose refresh response was
+  lost, or that refreshed from two requests at once, gets a fresh pair instead
+  of a revoked grant. The rotation records its time in the old row's
+  `last_used_at`. The retry's refresh row has no `rotated_from`, because the
+  first successor holds that slot, and it keeps the chain's absolute expiry.
+  The rotation runs in one transaction. A unique-index violation on
+  `rotated_from` means a concurrent presentation won, so the rotation runs once
+  more and the grace rule decides. A transient write failure rolls the whole
   attempt back and propagates, rather than revoking a working grant.
 
 Response: `access_token` (`nta_…`, `expires_in: 3600`), `token_type:

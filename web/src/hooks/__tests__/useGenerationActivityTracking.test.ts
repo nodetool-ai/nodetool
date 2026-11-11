@@ -81,6 +81,23 @@ describe("generationFromCommand", () => {
     });
   });
 
+  it("files a Create tab's take under the tab's thread", () => {
+    const generation = generationFromCommand(
+      {
+        command: "generate_media",
+        request_id: "req-2",
+        data: { mode: "image", prompt: "a lighthouse", thread_id: "session-1" }
+      },
+      null
+    );
+    expect(generation).toMatchObject({ channel: "rpc", threadId: "session-1" });
+    const untagged = generationFromCommand(
+      { command: "generate_media", request_id: "req-3", data: { mode: "image", prompt: "x" } },
+      null
+    );
+    expect(untagged?.threadId).toBeNull();
+  });
+
   it("keeps the request's settings and presets for a retake", () => {
     const generation = generationFromCommand(
       {

@@ -57,6 +57,8 @@ import CompactionCard, { isCompactionMessage } from "./CompactionCard";
 import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
 import { ToolResult } from "./toolResults/ToolResult";
+import { inlineToolWidgetFor, userTurnRendererFor } from "./messageExtensions";
+import { GenerationBatchProgress } from "./GenerationBatchProgress";
 import PlanDocument from "./PlanDocument";
 import { parsePlanDocument } from "./parsePlanDocument";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
@@ -401,6 +403,9 @@ const ToolCallRow: React.FC<{
             />
           )}
         </FlexRow>
+        {tc.name === "generate_batch" && tc.id && (
+          <GenerationBatchProgress toolCallId={tc.id} resultContent={resultContent} />
+        )}
         {isRunning &&
           isCodeAction &&
           activePredictions.map((prediction) => (
@@ -1056,6 +1061,13 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
       return <CompactionCard content={message.content} />;
     }
 
+    // A turn a surface wrote for the user (an app event) renders as its chip.
+    const UserTurn =
+      message.role === "user" ? userTurnRendererFor(copyText) : null;
+    if (UserTurn) {
+      return <UserTurn message={message} text={copyText} />;
+    }
+
     if (message.role === "agent_execution") {
       const key = message.agent_execution_id || "__ungrouped__";
       const executionMessages = executionMessagesById?.get(key) ?? [];
@@ -1064,6 +1076,20 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
       }
       return null;
     }
+
+    // Calls a surface renders as widgets (a chat app's step card) leave the
+    // timeline and render after the message text.
+    const allToolCalls: ToolCall[] =
+      message.role === "assistant" && Array.isArray(message.tool_calls)
+        ? message.tool_calls
+        : [];
+    const widgetToolCalls = allToolCalls.filter((tc) =>
+      Boolean(inlineToolWidgetFor(tc.name))
+    );
+    const timelineToolCalls =
+      widgetToolCalls.length === 0
+        ? allToolCalls
+        : allToolCalls.filter((tc) => !inlineToolWidgetFor(tc.name));
 
     const baseClass = getMessageClass(message.role);
     const hasToolCalls =
@@ -1138,10 +1164,10 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
         <div className="message-body">
           <div className="message-content">
             {message.role === "assistant" &&
-              Array.isArray(message.tool_calls) &&
+              timelineToolCalls.length > 0 &&
               !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
                 <ToolCallTimeline
-                  toolCalls={message.tool_calls}
+                  toolCalls={timelineToolCalls}
                   toolResultsByCallId={toolResultsByCallId}
                   messageCreatedAt={message.created_at}
                   threadId={threadId ?? message.thread_id}
@@ -1175,6 +1201,21 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   ))}
               </>
             )}
+            {!message.agent_execution_id &&
+              widgetToolCalls.map((tc, index) => {
+                const Widget = inlineToolWidgetFor(tc.name);
+                if (!Widget) return null;
+                return (
+                  <Widget
+                    key={tc.id ?? `${tc.name}-${index}`}
+                    toolCall={tc}
+                    result={
+                      tc.id ? toolResultsByCallId?.[String(tc.id)]?.content : undefined
+                    }
+                    threadId={threadId ?? message.thread_id}
+                  />
+                );
+              })}
           </div>
           {hasNonEmptyContent && !hideActions && (
             <div className="message-actions">

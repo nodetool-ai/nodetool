@@ -755,12 +755,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       params.set("api_key", appSession);
     } else {
       try {
-        const { supabase } = await import("../supabaseClient");
-        const {
-          data: { session }
-        } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          params.set("api_key", session.access_token);
+        const { getAccessSession } = await import("../auth");
+        const session = await getAccessSession();
+        if (session?.token) {
+          params.set("api_key", session.token);
         }
       } catch (error) {
         console.error(

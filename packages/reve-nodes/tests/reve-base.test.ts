@@ -1,34 +1,11 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 import {
-  getReveApiKey,
   postprocessingArray,
   refToBase64,
   refToBytes,
   reveGenerate
 } from "../src/reve-base.js";
-
-describe("getReveApiKey", () => {
-  const originalEnv = process.env.REVE_API_KEY;
-  afterEach(() => {
-    if (originalEnv !== undefined) process.env.REVE_API_KEY = originalEnv;
-    else delete process.env.REVE_API_KEY;
-    vi.restoreAllMocks();
-  });
-
-  it("returns key from secrets object", () => {
-    expect(getReveApiKey({ REVE_API_KEY: "from-secrets" })).toBe("from-secrets");
-  });
-
-  it("falls back to process.env", () => {
-    process.env.REVE_API_KEY = "env-key";
-    expect(getReveApiKey({})).toBe("env-key");
-  });
-
-  it("throws when key is not configured", () => {
-    delete process.env.REVE_API_KEY;
-    expect(() => getReveApiKey({})).toThrow("REVE_API_KEY is not configured");
-  });
-});
 
 describe("refToBytes / refToBase64", () => {
   it("decodes base64 string data", async () => {
@@ -115,49 +92,80 @@ describe("postprocessingArray", () => {
 });
 
 describe("reveGenerate", () => {
-  afterEach(() => vi.restoreAllMocks());
+  function scripted(output: unknown): {
+    provider: ScriptedProvider;
+    context: ProcessingContext;
+  } {
+    const provider = new ScriptedProvider([], {
+      providerId: "reve",
+      endpoints: { "*": { output, requestId: "req_1" } }
+    });
+    const context = new ProcessingContext({ jobId: "job-1" });
+    context.setProviderResolver(() => provider);
+    return { provider, context };
+  }
 
-  it("posts to the endpoint with bearer auth and returns the response", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({ image: "QkFTRTY0", request_id: "req_1" }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      )
-    );
-
-    const res = await reveGenerate("secret-key", "create", {
-      prompt: "a cat",
-      aspect_ratio: "3:2",
-      postprocessing: [],
-      bogus: ""
+  it("calls the provider endpoint for the model and strips empty fields", async () => {
+    const { provider, context } = scripted({
+      image: "QkFTRTY0",
+      request_id: "req_1"
     });
 
+    const res = await reveGenerate(
+      context,
+      "create",
+      // SAFETY: an untyped graph value reaches the body the same way.
+      {
+        prompt: "a cat",
+        aspect_ratio: "3:2",
+        postprocessing: [],
+        bogus: ""
+      } as never,
+      "node-1"
+    );
+
     expect(res.image).toBe("QkFTRTY0");
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://api.reve.com/v1/image/create");
-    expect((init as RequestInit).method).toBe("POST");
-    const headers = (init as RequestInit).headers as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer secret-key");
-    // Empty / empty-array fields are stripped from the body.
-    const body = JSON.parse((init as RequestInit).body as string);
-    expect(body).toEqual({ prompt: "a cat", aspect_ratio: "3:2" });
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "reve-create",
+      input: { prompt: "a cat", aspect_ratio: "3:2" }
+    });
+    expect(provider.endpointCalls[0].input).toEqual({
+      prompt: "a cat",
+      aspect_ratio: "3:2"
+    });
+    const prediction = context
+      .getMessages()
+      .filter((m) => m.type === "prediction")
+      .at(-1);
+    expect(prediction).toMatchObject({
+      status: "completed",
+      provider: "reve",
+      capability: "text_to_image",
+      model: "reve-create",
+      node_id: "node-1"
+    });
   });
 
-  it("throws on a non-2xx response", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("nope", { status: 402 })
-    );
-    await expect(reveGenerate("k", "create", { prompt: "x" })).rejects.toThrow(
-      "Reve API error (402)"
+  it("throws when the reply has no image", async () => {
+    const { context } = scripted({ image: "" });
+    await expect(reveGenerate(context, "edit", { edit_instruction: "x" })).rejects.toThrow(
+      "Reve returned no image"
     );
   });
 
-  it("throws on a flagged content violation", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ content_violation: true }), { status: 200 })
+  it("forwards the run's cancellation to the provider", async () => {
+    const provider = new ScriptedProvider([], {
+      providerId: "reve",
+      endpoints: { "*": { output: { image: "QkFTRTY0" } } }
+    });
+    const controller = new AbortController();
+    const context = new ProcessingContext({ jobId: "job-1" });
+    context.signal = controller.signal;
+    context.setProviderResolver(() => provider);
+    controller.abort(new Error("cancelled"));
+    await expect(reveGenerate(context, "remix", { prompt: "x" })).rejects.toThrow(
+      "cancelled"
     );
-    await expect(reveGenerate("k", "create", { prompt: "x" })).rejects.toThrow(
-      "content policy violation"
-    );
+    expect(provider.endpointCalls[0].signal?.aborted).toBe(true);
   });
 });

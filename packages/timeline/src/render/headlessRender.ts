@@ -52,6 +52,7 @@ export type HeadlessRenderEncoding =
   | { kind: "png" };
 
 export interface HeadlessRenderRequest {
+  workingColorSpaceVersion?: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   mediaTracks?: MediaTrack[];

@@ -16,7 +16,8 @@
   "apps": [
     {
       "app": "trailer-room",
-      "role": "The whole chain on one page: rewrite the beats and the shot list for the price of a text call, then shoot once and score the cut it produced."
+      "runsAgent": true,
+      "role": "The whole chain as one agent run: it writes the beats and shots, renders and cuts the teaser, and scores the cut while you watch each step."
     },
     {
       "app": "film-studio",

@@ -120,6 +120,33 @@ describe("AntigravityProvider", () => {
     }
   });
 
+  it("reads the nested event shape of agy 1.5.3", async () => {
+    const conversation_id = "conv-n";
+    const { runCli } = fakeRunner(() => ({
+      stdout: [
+        line({ event: "init", init: { cwd: "/tmp" } }),
+        line({
+          event: "step_update",
+          step_update: { conversation_id, step_type: "agent_response", text_delta: "Hi" }
+        }),
+        line({
+          event: "result",
+          result: { conversation_id, status: "SUCCESS", response: "Hi" }
+        })
+      ]
+    }));
+    const provider = new AntigravityProvider({}, { runCli });
+
+    const items = await collect(
+      provider.generateMessages({ messages: [user("hi")], model: "gemini-3.8-flash-low" })
+    );
+
+    expect(items).toEqual([
+      { type: "chunk", content: "Hi", done: false },
+      { type: "chunk", content: "", done: true }
+    ]);
+  });
+
   it("streams text deltas and ends with one done chunk", async () => {
     const { runCli, calls } = fakeRunner(() => ({
       stdout: successTurn("conv-1", ["Hel", "lo"])
@@ -368,9 +395,9 @@ describe("AntigravityProvider", () => {
     );
   });
 
-  it("offers no NodeTool tools and needs no secrets", async () => {
+  it("needs no secrets and takes tools through generateLoop", async () => {
     expect(AntigravityProvider.requiredSecrets()).toEqual([]);
-    await expect(new AntigravityProvider().hasToolSupport()).resolves.toBe(false);
+    await expect(new AntigravityProvider().hasToolSupport()).resolves.toBe(true);
   });
 });
 

@@ -1799,6 +1799,12 @@
       "localTitle": "Föredrar du lokala modeller?",
       "localDescription": "Installera Ollama och ladda ner en modell som ska köras på din maskin.",
       "getOllama": "Skaffa Ollama",
+      "ollamaChecking": "Kontrollerar anslutningen till Ollama…",
+      "ollamaCheckFailed": "Kunde inte kontrollera Ollama. Försök igen.",
+      "ollamaConnected": "Ollama är anslutet. Välj eller ladda ner en modell i modellhanteraren.",
+      "ollamaUnavailable": "Använd NodeTools skrivbordsapp för att ansluta till Ollama på din dator.",
+      "ollamaUnreachable": "Det går inte att nå Ollama. Öppna det om det är installerat. Annars kan du ladda ner det för att komma igång.",
+      "checkOllamaAgain": "Kontrollera igen",
       "encryptedKeys": "API-nycklar är krypterade. Du kan hantera eller ta bort dem i Inställningar.",
       "signInAgain": "Logga in på {{provider}} igen",
       "waitingSignIn": "Väntar på inloggning...",
@@ -2272,7 +2278,10 @@
       "title": "Logga in på NodeTool Cloud",
       "description": "Beskriv vad du vill. Agenten bygger den, och du kan ta över när som helst.",
       "ownKeys": "Använd dina egna API-nycklar och betala leverantörer till deras listpriser.",
-      "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd"
+      "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd",
+      "ssoTitle": "Logga in på NodeTool",
+      "ssoSignIn": "Logga in med {{provider}}",
+      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst."
     },
     "inspector": {
       "params": "Params",
@@ -6171,7 +6180,6 @@
         "checkingModels": "Kontrollerar fortfarande dina språkmodeller. Försök igen om ett ögonblick.",
         "chatNeedsModel": "Nästan där - chatten behöver en modell för att köra.",
         "pickModelToStartChat": "Välj en språkmodell och chatten startar.",
-        "pickMediaModel": "Välj en modell och generationen börjar.",
         "openChatError": "Kunde inte öppna chatten: {{error}}",
         "startFlowError": "Kunde inte starta {{flow}}: {{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "Arbetsflödesexempel",
             "description": "Automationer, flersteg"
           }
+        },
+        "goals": {
+          "label": "Vad som startas",
+          "chat": "Chatt",
+          "image": "Bild",
+          "video": "Video",
+          "audio": "Ljud"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "Alla",
       "categories": {
         "workflows": "Arbetsflöden",
+        "comfy": "ComfyUI",
         "apps": "Appar",
         "storyboards": "Storyboards",
         "timelines": "Tidslinjer",
@@ -8788,8 +8804,6 @@
       "studio": "Studio",
       "switchToProject": "Byt till projekt {{name}}",
       "personal": "Personligt",
-      "newChatInMode": "Ny chatt: {{mode}}",
-      "newChatInModeValue": "Ny chatt {{mode}}",
       "newTextFileValue": "Ny textfil {{label}}",
       "newTextFile": "Ny textfil: {{label}}",
       "newStoryboard": "Ny storyboard",
@@ -8821,8 +8835,7 @@
         "script": "Nytt manus",
         "jsscript": "Nytt JS-skript",
         "skill": "Ny färdighet",
-        "model3d": "Ny 3D-modell",
-        "create": "Skapa bilder och videor"
+        "model3d": "Ny 3D-modell"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Oformaterad text (.txt)"
+      },
+      "createSession": {
+        "image": "Ny bild",
+        "video": "Ny video",
+        "audio": "Läs upp",
+        "music": "Generera musik"
       }
     },
     "googleWorkspace": {
@@ -9040,6 +9059,18 @@
         "CHEAPER_INFERENCE_API_KEY": {
           "button": "Hämta Cheaper Inference API-nyckel",
           "tooltip": "Gå till Cheaper Inference-plattformen för att få din API-nyckel"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Hämta Runcrate API-nyckel",
+          "tooltip": "Gå till Runcrate-plattformen för att få din API-nyckel"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Hämta Standard Compute API-nyckel",
+          "tooltip": "Gå till Standard Compute-plattformen för att få din API-nyckel"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Hämta UberLLM API-nyckel",
+          "tooltip": "Gå till UberLLM-plattformen för att få din API-nyckel"
         },
         "API_ROUTE_API_KEY": {
           "button": "Hämta API-ruttnyckel",
@@ -12166,6 +12197,31 @@
         "undo": "Ångra",
         "redo": "Gör om",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12729,7 +12785,6 @@
       "debuggingNotice": "Chrome visar fältet \"Nodetool felsöker den här webbläsaren\" medan en begäran körs. Tillägget gör ingenting på andra flikar.",
       "setup": "Ställ in det",
       "step1": "Låt Chrome starta NodeTools webbläsarbrygga.",
-      "windowsUnsupported": "Detta stöds inte på Windows ännu. Mediegenerering genom tillägget fungerar på macOS och Linux.",
       "bridgeRegistered": "Klart. NodeTool registrerade sin brygga med dina webbläsare.",
       "registering": "Registrerar med dina webbläsare...",
       "registrationFailed": "Registrering av webbläsarbryggan misslyckades",
@@ -12756,7 +12811,7 @@
       "disableAll": "Inaktivera alla noder",
       "color": "Gruppfärg",
       "removeNodesHeading": "BORT NODER FRÅN GRUPPEN",
-      "dragOutModifier": "Dra ut medan du håller CTRL | ⌘ nyckel",
+      "dragOutModifier": "Dra ut medan du håller Alt (Alternativ ⌥ på Mac)",
       "shakeToRemove": "Skaka snabbt och dra sedan ut"
     }
   },
@@ -15942,7 +15997,8 @@
         "memory": "Minne",
         "settings": "Inställningar",
         "effects": "Effekter",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Administration"
       }
     },
     "script": {
@@ -18896,6 +18952,12 @@
     "refreshModels": "Uppdatera modeller",
     "statusUnavailable": "Status inte tillgänglig"
   },
+  "copilot": {
+    "description": "Använd ditt GitHub Copilot-konto för språkmodeller. Ingen API-nyckel behövs.",
+    "install": "Installera GitHub Copilot CLI i en terminal på den här datorn.",
+    "signIn": "Logga sedan in och uppdatera modellerna. Modeller som din Copilot-plan inte innehåller visas inte.",
+    "refreshModels": "Uppdatera modeller"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Dra en bild till ett videospår eller tryck på Enter för att placera den vid uppspelningshuvudet.",
@@ -18954,6 +19016,15 @@
       "invalidLink": "Denna delningslänk är ogiltig eller har återkallats. Be dokumentägaren om ett nytt.",
       "goToWorkspace": "Gå till arbetsytan",
       "opening": "Öppnar delat dokument"
+    },
+    "invite": {
+      "label": "Bjud in personer",
+      "placeholder": "Namn eller e-post",
+      "role": "Roll",
+      "submit": "Bjud in",
+      "typeMore": "Skriv minst 2 tecken",
+      "noMatches": "Ingen träff",
+      "failed": "Kunde inte ge åtkomst."
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19055,6 @@
     "missingTarget": "Borttagen enhet",
     "laneLabel": "Automationsfil: {{name}}",
     "deletePoint": "Ta bort punkt"
-  },
-  "generationFeed": {
-    "recent": "Nyligen",
-    "imageEmptyTitle": "Skapa bilder",
-    "imageEmptyDescription": "Beskriv en scen nedan och välj en modell och bildförhållande. Bifoga en bild för att redigera den.",
-    "videoEmptyTitle": "Skapa videor",
-    "videoEmptyDescription": "Beskriv bilden, kamerarörelserna och belysningen nedan. Fäst en ram för att animera den.",
-    "audioEmptyTitle": "Skapa tal och musik",
-    "audioEmptyDescription": "Skriv en rad för att höra den läsas upp. Växla till Skapa musik för att komponera ett spår.",
-    "editImage": "Redigera den här bilden",
-    "openInSketch": "Öppna i Sketch",
-    "addToCanvas": "Lägg till på duk",
-    "rerun": "Kör igen",
-    "copyPrompt": "Kopiera uppmaning",
-    "removeFromThread": "Ta bort från tråden",
-    "history": "Historik ({{total}})",
-    "tileSize": "Kakelstorlek",
-    "viewMode": "Visa läge",
-    "list": "Lista",
-    "grid": "Grid",
-    "video": "Video",
-    "speech": "Tal",
-    "music": "Musik",
-    "noVideoOutput": "Ingen video returnerades.",
-    "noAudioOutput": "Inget ljud returnerades.",
-    "untitledTrack": "Ljudspår",
-    "extendClip": "Förläng det här klippet",
-    "referenceAlt": "Referens {{index}}",
-    "sketchTitle": "Skiss",
-    "audio": "Ljud"
   },
   "preset_chip": {
     "label": "Förinställningar",
@@ -19480,13 +19521,34 @@
     "takes_other": "{{count}} tar",
     "placeholder": {
       "image": "En fyr i skymningen, film stilla",
-      "video": "Slow dolly in på en fyr i skymningen"
+      "video": "Slow dolly in på en fyr i skymningen",
+      "image_edit": "Gör det till natt och lägg till regn",
+      "image_to_video": "Vågorna bryter och ljuset börjar vrida sig",
+      "reference_to_video": "Figuren från referenserna går längs bryggan",
+      "retake": "Byt himlen mot en storm",
+      "extend": "Kameran fortsätter att dra sig bakåt",
+      "audio": "Skriv orden som ska läsas upp",
+      "music": "Lugnt ambient-piano med stilla regn"
     },
     "blocker": {
       "noPrompt": "Skriv en uppmaning att generera.",
       "noModel": {
         "image": "Välj en bildmodell att generera.",
-        "video": "Välj en videomodell att generera."
+        "video": "Välj en videomodell att generera.",
+        "image_edit": "Välj en bildredigeringsmodell för att generera.",
+        "image_to_video": "Välj en bild-till-video-modell för att generera.",
+        "reference_to_video": "Välj en referens-till-video-modell för att generera.",
+        "retake": "Välj en videoredigeringsmodell för att generera.",
+        "extend": "Välj en modell för videoförlängning för att generera.",
+        "audio": "Välj en talmodell för att generera.",
+        "music": "Välj en musikmodell för att generera."
+      },
+      "needsInput": {
+        "image_edit": "Lägg till bilden som ska redigeras.",
+        "image_to_video": "Lägg till bilden som ska animeras.",
+        "reference_to_video": "Lägg till minst en referensbild eller ett referensklipp.",
+        "retake": "Lägg till klippet som ska ändras.",
+        "extend": "Lägg till klippet som ska förlängas."
       }
     },
     "sendFailed": "Startade {{sent}} av {{count}} tar. Resten nådde inte NodeTool. Kontrollera din anslutning och försök igen.",
@@ -19495,8 +19557,9 @@
     "gridLabel": "Generationer",
     "empty": {
       "title": "Inget skapat ännu",
-      "description": "Skriv en uppmaning ovan och tryck på Generera. Dina bilder och videor visas här, de senaste först.",
-      "action": "Skriv en uppmaning"
+      "description": "Skriv en prompt ovan och tryck på Generera. Dina bilder, videor och ljud visas här, nyaste först.",
+      "action": "Skriv en uppmaning",
+      "sessionTitle": "Inget i den här fliken än"
     },
     "item": {
       "open": "Öppna {{title}}",
@@ -19512,8 +19575,75 @@
       "downloaded": "Nedladdat {{name}}",
       "downloadFailed": "Kunde inte ladda ner: {{reason}}",
       "workflowName": "Skapa arbetsflöde",
-      "workflowFailed": "Kunde inte bygga ett arbetsflöde: {{reason}}"
-    }
+      "workflowFailed": "Kunde inte bygga ett arbetsflöde: {{reason}}",
+      "more": "Fler åtgärder",
+      "moreLabel": "Fler åtgärder för {{title}}",
+      "useAsReference": "Använd som referens",
+      "startFrom": {
+        "image_edit": "Redigera den här bilden",
+        "image_to_video": "Animera den här bilden",
+        "retake": "Ändra det här klippet",
+        "extend": "Förläng det här klippet"
+      },
+      "openInSketch": "Öppna i skiss",
+      "reusePrompt": "Återanvänd prompten",
+      "sketchTitle": "Skapad bild"
+    },
+    "kindLabel": "Vad du vill skapa",
+    "modeLabel": "Hur det skapas",
+    "kinds": {
+      "image": "Bild",
+      "video": "Video",
+      "audio": "Ljud"
+    },
+    "modes": {
+      "image": "Från text",
+      "image_edit": "Redigera",
+      "video": "Från text",
+      "image_to_video": "Animera",
+      "reference_to_video": "Från referenser",
+      "retake": "Ändra",
+      "extend": "Förläng",
+      "audio": "Tal",
+      "music": "Musik"
+    },
+    "references": {
+      "label": "Referenser",
+      "remove": "Ta bort",
+      "removeLabel": "Ta bort {{name}}",
+      "role": {
+        "source": "Källbild",
+        "startFrame": "Startbild",
+        "sourceClip": "Källklipp",
+        "reference": "Referens",
+        "unused": "Används inte här"
+      },
+      "add": {
+        "image": "Lägg till bild",
+        "video": "Lägg till klipp",
+        "image-or-video": "Lägg till referens"
+      },
+      "hint": {
+        "image_edit": "Lägg till eller släpp bilden som ska redigeras. Fler bilder styr utseendet.",
+        "image_to_video": "Lägg till eller släpp bilden som klippet börjar med.",
+        "reference_to_video": "Lägg till eller släpp bilder och klipp på personerna, platserna och stilen som ska behållas.",
+        "retake": "Lägg till eller släpp klippet som ska ändras. Bilder du lägger till styr utseendet.",
+        "extend": "Lägg till eller släpp klippet som ska förlängas."
+      },
+      "uploadFailed": "Kunde inte ladda upp {{name}}: {{reason}}"
+    },
+    "switched": "Bytte till {{mode}} eftersom du lade till en bild.",
+    "undoSwitch": "Tillbaka till {{from}}",
+    "scope": {
+      "label": "Vilka tagningar som visas",
+      "session": "Den här fliken",
+      "all": "Alla tagningar"
+    },
+    "renameFailed": "Fliken kunde inte byta namn: {{reason}}",
+    "sessionFailed": "Tagningarna i den här fliken kunde inte läsas in.",
+    "sessionKind": "Create-session",
+    "openInCreate": "Öppna i Create",
+    "openInCreateFailed": "Create kunde inte öppnas: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effekter",
@@ -19628,5 +19758,209 @@
     "showAssistant": "Visa assistent",
     "hideAssistant": "Göm assistent",
     "resizeAssistant": "Ändra storlek på tidslinjeassistent"
+  },
+  "generationBatch": {
+    "summary": "{{done}} av {{total}} klara",
+    "remaining": "Cirka {{time}} kvar",
+    "finishing": "Slutför",
+    "failedCount": "Misslyckades: {{count}}",
+    "status": {
+      "queued": "I kö",
+      "running": "Körs",
+      "completed": "Klar",
+      "failed": "Misslyckades"
+    },
+    "showRequests": "Visa förfrågningar",
+    "hideRequests": "Dölj förfrågningar",
+    "expected": "Förväntat {{time}}",
+    "took": "Tog {{time}}",
+    "progressLabel": "Förlopp för generering"
+  },
+  "workflowSteps": {
+    "stepOf": "Steg {{current}} av {{total}}",
+    "allDone": "Alla {{total}} steg klara",
+    "waiting": "Väntar",
+    "running": "Körs",
+    "done": "Klar",
+    "failed": "Misslyckades",
+    "progressLabel": "Arbetsflödets förlopp",
+    "steps": "Steg",
+    "addStep": "Lägg till steg",
+    "removeStep": "Ta bort steg",
+    "node": "Nod",
+    "title": "Titel",
+    "description": "Beskrivning",
+    "autoHint": "Inga steg angivna. Widgeten visar varje generativ nod.",
+    "chooseNode": "Välj en nod"
+  },
+  "admin": {
+    "page": {
+      "title": "Administration",
+      "subtitle": "Hantera personerna som loggar in på den här servern.",
+      "deniedTitle": "Administratörsbehörighet krävs",
+      "deniedDescription": "Bara administratörer för den här servern kan öppna sidan."
+    },
+    "users": {
+      "searchPlaceholder": "Sök på namn, e-post eller användar-ID",
+      "filter": {
+        "label": "Status",
+        "all": "Alla",
+        "active": "Aktiva",
+        "disabled": "Inaktiverade"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Roll",
+        "status": "Status",
+        "usage": "Användning",
+        "lastSeen": "Senast sedd",
+        "actions": "Åtgärder"
+      },
+      "role": {
+        "admin": "Administratör",
+        "member": "Medlem",
+        "viaGroup": "Via en grupp eller serverinställning"
+      },
+      "status": {
+        "active": "Aktiv",
+        "disabled": "Inaktiverad"
+      },
+      "never": "Aldrig",
+      "actions": {
+        "makeAdmin": "Gör till administratör",
+        "removeAdmin": "Ta bort administratör",
+        "disable": "Inaktivera",
+        "enable": "Aktivera"
+      },
+      "loadFailed": "Det gick inte att läsa in användare",
+      "retry": "Försök igen",
+      "noMatches": "Inga användare matchar sökningen",
+      "emptyTitle": "Inga användare än",
+      "emptyDescription": "Personer visas här efter sin första inloggning med enkel inloggning.",
+      "range": "{{first}}–{{last}} av {{total}}",
+      "previous": "Föregående",
+      "next": "Nästa",
+      "updateFailed": "Det gick inte att uppdatera användaren.",
+      "disableDialog": {
+        "title": "Inaktivera {{name}}?",
+        "body": "Personen loggas ut överallt direkt och kan inte logga in igen förrän du aktiverar kontot. Arbetet finns kvar på servern.",
+        "cancel": "Avbryt"
+      }
+    },
+    "quotas": {
+      "editDefault": "Redigera standardgränser",
+      "editLimits": "Gränser",
+      "defaultTitle": "Standardgränser",
+      "userTitle": "Gränser för {{name}}",
+      "defaultNone": "Inga standardgränser. Alla kan använda serverns nycklar utan tak.",
+      "defaultSummaryDay": "Standard för alla: {{tokens}} modelltokens och {{media}} för media per dag.",
+      "defaultSummaryMonth": "Standard för alla: {{tokens}} modelltokens och {{media}} för media per månad.",
+      "unlimited": "ingen gräns",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} av {{limit}}",
+      "usedNoLimit": "{{used}}, ingen gräns",
+      "ownLimits": "Egna gränser",
+      "period": {
+        "label": "Period",
+        "day": "Per dag",
+        "month": "Per månad"
+      },
+      "tokenLimit": "Modelltokens",
+      "mediaLimit": "Mediebudget (USD)",
+      "noLimit": "Ingen gräns",
+      "invalid": "Ange ett tal från 0 och uppåt, eller lämna fältet tomt för ingen gräns.",
+      "useDefault": "Använd serverns standard",
+      "useDefaultDescription": "Stäng av för att ge den här personen egna gränser.",
+      "ownKeysNote": "Bara arbete med serverns leverantörsnycklar räknas. Arbete med en nyckel som personen sparat i Inställningar räknas aldrig.",
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "saveFailed": "Det gick inte att spara gränserna."
+    },
+    "permissions": {
+      "edit": "Behörigheter",
+      "editDefault": "Redigera standardbehörigheter",
+      "defaultTitle": "Standardbehörigheter",
+      "userTitle": "Behörigheter för {{name}}",
+      "defaultAll": "Standardbehörigheter: allt är tillåtet.",
+      "defaultBlockedCount": "Standardbehörigheter: {{count}} blockerade.",
+      "blockedCount": "Blockerade behörigheter: {{count}}",
+      "defaultIntro": "Vad alla användare får göra, om du inte anger en egen behörighet för dem.",
+      "userIntro": "Varje behörighet följer standarden tills du tillåter eller blockerar den här.",
+      "allow": "Tillåt",
+      "block": "Blockera",
+      "defaultAllowed": "Standard: tillåten",
+      "defaultBlocked": "Standard: blockerad",
+      "adminNote": "Administratörer har alltid alla behörigheter.",
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "saveFailed": "Det gick inte att spara behörigheterna.",
+      "flags": {
+        "use_llm": {
+          "label": "Använda språkmodeller",
+          "description": "Chatt, agenter och textgenerering."
+        },
+        "generate_media": {
+          "label": "Generera media",
+          "description": "Bilder, video, ljud och 3D."
+        },
+        "use_server_keys": {
+          "label": "Använda serverns leverantörsnycklar",
+          "description": "När det är blockerat kan personen bara arbeta med nycklar som de lägger till i Inställningar."
+        },
+        "manage_own_keys": {
+          "label": "Hantera egna leverantörsnycklar",
+          "description": "Lägga till, ändra eller ta bort leverantörsnycklar och egna leverantörer."
+        },
+        "share_links": {
+          "label": "Skapa delningslänkar",
+          "description": "Länkar som låter inloggade personer visa eller redigera ett arbetsflöde eller dokument."
+        },
+        "share_public": {
+          "label": "Dela offentligt",
+          "description": "Göra ett arbetsflöde offentligt eller skapa en offentlig länk som vem som helst kan öppna."
+        },
+        "publish_apps": {
+          "label": "Publicera appar",
+          "description": "Publicera, släppa och driftsätta miniappar."
+        },
+        "install_packs": {
+          "label": "Ändra nodpaket",
+          "description": "Ändra pakettillit, slå på eller av inbyggda paket och läsa in paket på nytt. Det påverkar alla användare."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Delning",
+      "title": "Delning för {{name}}",
+      "links": "Delningslänkar",
+      "noLinks": "Inga aktiva delningslänkar.",
+      "granted": "Gav åtkomst till",
+      "noGranted": "Har inte gett någon åtkomst.",
+      "received": "Har åtkomst till",
+      "noReceived": "Ingen har gett åtkomst.",
+      "public": "Offentliga arbetsflöden",
+      "noPublic": "Inga offentliga arbetsflöden.",
+      "revoke": "Återkalla",
+      "removeAccess": "Ta bort åtkomst",
+      "makePrivate": "Gör privat",
+      "untitled": "Namnlös",
+      "loadFailed": "Kunde inte läsa in delning.",
+      "actionFailed": "Kunde inte göra ändringen.",
+      "types": {
+        "workflow": "Arbetsflöde",
+        "storyboard": "Storyboard",
+        "script": "Manus",
+        "timeline": "Tidslinje",
+        "sketch": "Skiss",
+        "application": "App",
+        "jsscript": "JS-skript"
+      },
+      "roles": {
+        "viewer": "Kan visa",
+        "editor": "Kan redigera",
+        "public": "Offentlig"
+      }
+    }
   }
 }

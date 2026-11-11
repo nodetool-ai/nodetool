@@ -4,12 +4,11 @@ title: "OpenAI-Compatible Providers: Add a Provider or Models"
 description: "How to add a new OpenAI-compatible cloud provider (Groq, Mistral, DeepSeek, etc.) or adjust an existing one's model list."
 ---
 
-> **Audience:** Coding agents and contributors who want to add a new OpenAI-compatible cloud provider or change how an existing one exposes models.
-
 This guide covers twelve providers that share one implementation pattern:
-**Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Alibaba Cloud (Qwen)**, **Cohere**, **OpenRouter**, **Requesty**, **Opper**, **API Route**, and **Cheaper Inference**.
+**Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Alibaba Cloud (Qwen)**, **Cohere**, **OpenRouter**, **Requesty**, **Opper**, **API Route**, **Cheaper Inference**, **Runcrate**, **Standard Compute**, and **UberLLM**.
 
----
+> **Runs:** cloud. **Needs:** one key per provider, for example `GROQ_API_KEY`, `MISTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `KIMI_API_KEY` (Moonshot), `CEREBRAS_API_KEY`, `DASHSCOPE_API_KEY` (Alibaba Cloud), `COHERE_API_KEY`, `OPENROUTER_API_KEY`, `REQUESTY_API_KEY`, `OPPER_API_KEY`, `API_ROUTE_API_KEY`, `CHEAPER_INFERENCE_API_KEY`, `RUNCRATE_API_KEY`, `STANDARDCOMPUTE_API_KEY`, `UBERLLM_API_KEY`. Each provider's `requiredSecrets()` names its key.
+{: .callout-note}
 
 ## No code needed: add an endpoint from Settings
 
@@ -74,16 +73,12 @@ routes over a base URL: its own media API, non-standard request fields,
 per-model tool support or size limits, or a curated model list that ships
 with NodeTool. That is the rest of this guide.
 
----
-
 ## TL;DR
 
 - Models appear automatically: each provider fetches its `/models` endpoint at runtime, so new upstream models show up in the model picker without a code change.
 - Adding a whole new provider is three small edits: one constant in `@nodetool-ai/protocol`, one file of about 45 lines in `packages/runtime/src/providers/`, one `registerBuiltinProvider` call in the runtime index.
 - Cohere is the only exception: it subclasses `BaseProvider` directly (embeddings only, no chat).
 - Every other provider here subclasses `OpenAICompatProvider`, which owns the chat path. Moonshot (Kimi) uses the same pattern against its OpenAI-compatible endpoint, with its own `/models` fetch.
-
----
 
 ## Where things live
 
@@ -96,8 +91,6 @@ with NodeTool. That is the rest of this guide.
 | OpenAI base class (images, ASR, TTS, embeddings) | `packages/runtime/src/providers/openai-provider.ts` |
 | Base class for all providers | `packages/runtime/src/providers/base-provider.ts` |
 | Provider types (`LanguageModel`, etc.) | `packages/runtime/src/providers/types.ts` |
-
----
 
 ## The shared pattern
 
@@ -166,8 +159,9 @@ Groq, Mistral, Cerebras, Moonshot, and Alibaba Cloud follow this pattern. Differ
 - **Opper** builds its model list from `/models?type=pool` followed by `/models`, keeping only rows whose `opper.type` is `"llm"`. It reads `opper.capabilities` per model, and only a listed model without `tools` disables tools.
 - **API Route** reads `/models` once and keeps rows whose `supported_endpoint_types` include `openai`, plus rows without endpoint metadata. The shared `classifyListedModel` helper excludes image/video entries by metadata or ID, even when their endpoint types also include `openai`. Bare chat IDs are preserved.
 - **Cheaper Inference** reads `/models` once and keeps rows whose `type` is `"text"`, which drops the image and video rows the same listing returns. It returns `true` for tool support on every model.
-
----
+- **Runcrate** reads `/models` once and keeps rows whose `input_modalities` and `output_modalities` both include `text`; a row without modality metadata goes through `classifyListedModel`. It reads `supported_features` per model, and only a listed model without `tools` disables tools. `getContextWindow` answers the row's `context_length`.
+- **Standard Compute** reads `/models` once and keeps the rows the shared `classifyListedModel` helper judges to be language models, using `architecture.output_modalities` when a row has it. The routed `StandardCompute` row has no modality metadata and stays. It reads `supported_parameters` per model, and only a listed model without `tools` disables tools. `getContextWindow` answers the row's `context_length`, and the picker shows `display_name` when present.
+- **UberLLM** reads `/models` once and keeps the rows the shared `classifyListedModel` helper judges to be language models, using `architecture.output_modalities`. It reads `supported_parameters` per model, and only a listed model without `tools` disables tools. `getContextWindow` answers the row's `context_length`, and the picker shows `display_name` when present. It also declares `text_to_image`: image models come from `/models?type=image` (rows whose `endpoints` include `/v1/images/generations`), and `textToImage` posts to `/images/generations` with `response_format: "b64_json"`.
 
 ## Add a brand-new OpenAI-compatible provider
 
@@ -227,17 +221,15 @@ registerBuiltinProvider(PROVIDER_IDS.ACME, AcmeProvider, { ACME_API_KEY: "" });
 
 The empty string for `ACME_API_KEY` is intentional — it forces the registry to resolve the key from the DB or env on every `getProvider()` call rather than baking a stale value at module load.
 
----
-
 ## Adjust an existing provider's models
 
 ### Chat models are fetched dynamically — no change needed
 
-If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, Requesty, Opper, API Route, or Cheaper Inference adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
+If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, Standard Compute, or UberLLM adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
 
 ### Tool-support overrides
 
-`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, Moonshot, and Cheaper Inference return `true` unconditionally. API Route does not override it and inherits `OpenAIProvider`, which returns `false` for ids starting with `o1` or `o3`. OpenRouter, Alibaba Cloud, Requesty, and Opper decide per model. OpenRouter checks the model id:
+`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, Moonshot, and Cheaper Inference return `true` unconditionally. API Route does not override it and inherits `OpenAIProvider`, which returns `false` for ids starting with `o1` or `o3`. OpenRouter, Alibaba Cloud, Requesty, Opper, Runcrate, Standard Compute, and UberLLM decide per model. OpenRouter checks the model id:
 
 ```ts
 // packages/runtime/src/providers/openrouter-provider.ts
@@ -261,8 +253,6 @@ Cohere subclasses `BaseProvider` directly, not `OpenAICompatProvider`. It has no
 ### Moonshot
 
 Moonshot fetches `GET https://api.moonshot.ai/v1/models` live, so new Kimi models need no code change.
-
----
 
 ## Verify
 
@@ -306,12 +296,3 @@ npm run test:affected
 npm run lint
 npm run dev:nodetool -- harness gate --base origin/main
 ```
-
----
-
-## Contributing
-
-- Repository: <https://github.com/nodetool-ai/nodetool>
-- Discord: <https://discord.gg/WmQTWZRcYE>
-- Run the Verify steps above before opening a PR.
-- Follow [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.

@@ -49,6 +49,7 @@ import HandleColumn, { handleColumnHeight } from "../node/HandleColumn";
 import NodeModelChips from "../node/NodeModelChips";
 import KeyframeTimingStrip from "../node/KeyframeTimingStrip";
 import ImageView from "../node/ImageView";
+import ImageRefPreview from "../node/ImageRefPreview";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
@@ -428,6 +429,27 @@ const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined =>
   return undefined;
 };
 
+/**
+ * A stored image that only the asset record can resolve: an `asset://` uri, or
+ * a ref with an `asset_id` and no inline bytes.
+ */
+const isAssetImageLocator = (value: unknown): boolean => {
+  if (isString(value)) {
+    return value.startsWith("asset://");
+  }
+  if (!isRecord(value) || value.mimeType === RAW_RGBA_MIME) {
+    return false;
+  }
+  if (isString(value.uri) && value.uri) {
+    return value.uri.startsWith("asset://");
+  }
+  return (
+    value.data === undefined &&
+    isString(value.asset_id) &&
+    value.asset_id !== ""
+  );
+};
+
 const extractImagePreviewValues = (value: unknown): unknown[] => {
   if (isArray(value)) {
     if (isNumberArray(value)) {
@@ -443,7 +465,9 @@ const extractImagePreviewValues = (value: unknown): unknown[] => {
       return value.data.flatMap((item) => extractImagePreviewValues(item));
     }
   }
-  return imageSourceFromValue(value) ? [value] : [];
+  return imageSourceFromValue(value) || isAssetImageLocator(value)
+    ? [value]
+    : [];
 };
 
 const SingleImagePreview: React.FC<{ value: unknown }> = memo(
@@ -451,6 +475,11 @@ const SingleImagePreview: React.FC<{ value: unknown }> = memo(
     const source = imageSourceFromValue(value);
     if (source) {
       return <ImageView source={source} />;
+    }
+    // A card a few hundred pixels wide paints the 512px thumbnail; copy,
+    // download and the viewer still use the original.
+    if (isAssetImageLocator(value)) {
+      return <ImageRefPreview value={value} preferThumbnail />;
     }
     return <OutputRenderer value={value} showTextActions={false} />;
   }

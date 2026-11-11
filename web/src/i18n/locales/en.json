@@ -1797,8 +1797,14 @@
       "capabilityPrompt": "Connect a provider for {{capability}} to continue.",
       "billing": "Your API usage is billed directly to your provider account.",
       "localTitle": "Prefer local models?",
-      "localDescription": "Install Ollama and download a model to run on your machine.",
-      "getOllama": "Get Ollama",
+      "localDescription": "Run models on your computer with Ollama. Already installed? Open Ollama to get started.",
+      "getOllama": "Download Ollama",
+      "ollamaChecking": "Checking the Ollama connection…",
+      "ollamaCheckFailed": "Could not check Ollama. Try again.",
+      "ollamaConnected": "Ollama is connected. Choose or download a model in the model manager.",
+      "ollamaUnavailable": "Use the NodeTool desktop app to connect to Ollama on your computer.",
+      "ollamaUnreachable": "Cannot reach Ollama. If it’s installed, open it. Otherwise, download it to get started.",
+      "checkOllamaAgain": "Check again",
       "encryptedKeys": "API keys are encrypted. You can manage or remove them in Settings.",
       "signInAgain": "Sign in to {{provider}} again",
       "waitingSignIn": "Waiting for sign-in…",
@@ -2272,7 +2278,10 @@
       "title": "Sign in to NodeTool Cloud",
       "description": "Describe what you want. The agent builds it, and you can take over at any step.",
       "ownKeys": "Use your own API keys and pay providers at their list prices.",
-      "cloudAlphaNotice": "Cloud is in alpha. For production work, use"
+      "cloudAlphaNotice": "Cloud is in alpha. For production work, use",
+      "ssoTitle": "Sign in to NodeTool",
+      "ssoSignIn": "Sign in with {{provider}}",
+      "ssoFailed": "Sign-in failed ({{reason}}). Try again, or ask your administrator for access."
     },
     "inspector": {
       "params": "Params",
@@ -6171,7 +6180,6 @@
         "checkingModels": "Still checking your language models. Try again in a moment.",
         "chatNeedsModel": "Almost there — chat needs a model to run.",
         "pickModelToStartChat": "Pick a language model and the chat starts.",
-        "pickMediaModel": "Pick a model and the generation starts.",
         "openChatError": "Could not open chat: {{error}}",
         "startFlowError": "Could not start the {{flow}}: {{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "Workflow examples",
             "description": "Automations, multi-step"
           }
+        },
+        "goals": {
+          "label": "What to start",
+          "chat": "Chat",
+          "image": "Image",
+          "video": "Video",
+          "audio": "Audio"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "All",
       "categories": {
         "workflows": "Workflows",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Timelines",
@@ -7584,10 +7600,10 @@
       "checking": "Checking…",
       "connected": "Extension connected",
       "notConnected": "Not connected",
-      "installHint": "Install and attach the extension to see it here.",
+      "installHint": "Follow the steps below to connect the extension. If it is already installed, reload it in chrome://extensions and attach it to your tab again.",
       "steps": {
         "1": "Click “Connect to Chrome” below once, so Chrome can start NodeTool’s browser bridge.",
-        "2": "Download the extension (or use the build folder below).",
+        "2": "Download and unzip the extension, or use Reveal build folder below.",
         "3": "Open chrome://extensions in the Chrome you use for the target sites.",
         "4": "Enable “Developer mode” (top-right).",
         "5": "Click “Load unpacked” and select the extension folder.",
@@ -8788,8 +8804,6 @@
       "studio": "Studio",
       "switchToProject": "Switch to project {{name}}",
       "personal": "Personal",
-      "newChatInMode": "New chat: {{mode}}",
-      "newChatInModeValue": "New chat {{mode}}",
       "newTextFileValue": "New text file {{label}}",
       "newTextFile": "New text file: {{label}}",
       "newStoryboard": "New storyboard",
@@ -8821,8 +8835,7 @@
         "script": "New script",
         "jsscript": "New JS script",
         "skill": "New skill",
-        "model3d": "New 3D model",
-        "create": "Create images and videos"
+        "model3d": "New 3D model"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Plain text (.txt)"
+      },
+      "createSession": {
+        "image": "New image",
+        "video": "New video",
+        "audio": "Read aloud",
+        "music": "Generate music"
       }
     },
     "googleWorkspace": {
@@ -9044,6 +9063,18 @@
         "API_ROUTE_API_KEY": {
           "button": "Get API Route key",
           "tooltip": "Go to API Route API keys page"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Get Runcrate API key",
+          "tooltip": "Go to Runcrate API keys page"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Get Standard Compute API key",
+          "tooltip": "Go to Standard Compute API keys page"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Get UberLLM API key",
+          "tooltip": "Go to UberLLM API keys page"
         },
         "HF_TOKEN": {
           "button": "Get Hugging Face token",
@@ -12166,6 +12197,31 @@
         "undo": "Undo",
         "redo": "Redo",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12727,9 +12783,8 @@
       "howItWorks": "How it works",
       "workflow": "When a workflow or the chat asks ChatGPT or Gemini for an image or a video, NodeTool finds your open chatgpt.com or gemini.google.com tab and submits the prompt through the site's own page. The finished file comes back to NodeTool. Your password and cookies stay in Chrome, and each request appears in your ChatGPT or Gemini history.",
       "debuggingNotice": "Chrome shows a “Nodetool is debugging this browser” bar while a request runs. The extension does nothing on other tabs.",
-      "setup": "Set it up",
+      "setup": "Set it up here or in Settings → Integrations → Browser extension",
       "step1": "Let Chrome start NodeTool's browser bridge.",
-      "windowsUnsupported": "This is not supported on Windows yet. Media generation through the extension works on macOS and Linux.",
       "bridgeRegistered": "Done. NodeTool registered its bridge with your browsers.",
       "registering": "Registering with your browsers…",
       "registrationFailed": "Browser bridge registration failed",
@@ -12756,7 +12811,7 @@
       "disableAll": "Disable all nodes",
       "color": "Group color",
       "removeNodesHeading": "REMOVE NODES FROM GROUP",
-      "dragOutModifier": "Drag out while holding CTRL | ⌘ key",
+      "dragOutModifier": "Drag out while holding Alt (Option ⌥ on Mac)",
       "shakeToRemove": "Shake rapidly, then drag out"
     }
   },
@@ -15942,7 +15997,8 @@
         "memory": "Memory",
         "settings": "Settings",
         "effects": "Effects",
-        "lipsync": "Lipsync"
+        "lipsync": "Lipsync",
+        "admin": "Admin"
       }
     },
     "script": {
@@ -18896,6 +18952,12 @@
     "refreshModels": "Refresh models",
     "statusUnavailable": "Status unavailable"
   },
+  "copilot": {
+    "description": "Use your GitHub Copilot account for language models. No API key needed.",
+    "install": "Install the GitHub Copilot CLI in a terminal on this computer.",
+    "signIn": "Then sign in and refresh models. Models your Copilot plan does not include do not appear.",
+    "refreshModels": "Refresh models"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Drag a shot onto a video track, or press Enter to place it at the playhead.",
@@ -18954,6 +19016,15 @@
       "invalidLink": "This share link is invalid or has been revoked. Ask the document owner for a new one.",
       "goToWorkspace": "Go to workspace",
       "opening": "Opening shared document"
+    },
+    "invite": {
+      "label": "Invite people",
+      "placeholder": "Name or email",
+      "role": "Role",
+      "submit": "Invite",
+      "typeMore": "Type at least 2 characters",
+      "noMatches": "No one matches",
+      "failed": "Could not give access."
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19055,6 @@
     "missingTarget": "Removed device",
     "laneLabel": "Automation lane: {{name}}",
     "deletePoint": "Delete point"
-  },
-  "generationFeed": {
-    "recent": "Recent",
-    "imageEmptyTitle": "Create images",
-    "imageEmptyDescription": "Describe a scene below and pick a model and aspect ratio. Attach an image to edit it.",
-    "videoEmptyTitle": "Create videos",
-    "videoEmptyDescription": "Describe the shot, camera motion and lighting below. Attach a frame to animate it.",
-    "audioEmptyTitle": "Generate speech and music",
-    "audioEmptyDescription": "Type a line to hear it read aloud. Switch to Generate music to compose a track.",
-    "editImage": "Edit this image",
-    "openInSketch": "Open in Sketch",
-    "addToCanvas": "Add to canvas",
-    "rerun": "Rerun",
-    "copyPrompt": "Copy prompt",
-    "removeFromThread": "Remove from thread",
-    "history": "History ({{total}})",
-    "tileSize": "Tile size",
-    "viewMode": "View mode",
-    "list": "List",
-    "grid": "Grid",
-    "video": "Video",
-    "speech": "Speech",
-    "music": "Music",
-    "noVideoOutput": "No video was returned.",
-    "noAudioOutput": "No audio was returned.",
-    "untitledTrack": "Audio track",
-    "extendClip": "Extend this clip",
-    "referenceAlt": "Reference {{index}}",
-    "sketchTitle": "Sketch",
-    "audio": "Audio"
   },
   "preset_chip": {
     "label": "Presets",
@@ -19480,13 +19521,34 @@
     "takes_other": "{{count}} takes",
     "placeholder": {
       "image": "A lighthouse at dusk, film still",
-      "video": "Slow dolly in on a lighthouse at dusk"
+      "image_edit": "Make it night and add rain",
+      "video": "Slow dolly in on a lighthouse at dusk",
+      "image_to_video": "The waves crash and the light starts to turn",
+      "reference_to_video": "The character from the references walks along the pier",
+      "retake": "Change the sky to a storm",
+      "extend": "The camera keeps pulling back",
+      "audio": "Type the words to speak",
+      "music": "Slow ambient piano with soft rain"
     },
     "blocker": {
       "noPrompt": "Write a prompt to generate.",
       "noModel": {
         "image": "Pick an image model to generate.",
-        "video": "Pick a video model to generate."
+        "image_edit": "Pick an image editing model to generate.",
+        "video": "Pick a video model to generate.",
+        "image_to_video": "Pick an image-to-video model to generate.",
+        "reference_to_video": "Pick a reference-to-video model to generate.",
+        "retake": "Pick a video editing model to generate.",
+        "extend": "Pick a video extension model to generate.",
+        "audio": "Pick a speech model to generate.",
+        "music": "Pick a music model to generate."
+      },
+      "needsInput": {
+        "image_edit": "Add the picture to edit.",
+        "image_to_video": "Add the picture to animate.",
+        "reference_to_video": "Add at least one reference picture or clip.",
+        "retake": "Add the clip to change.",
+        "extend": "Add the clip to extend."
       }
     },
     "sendFailed": "Started {{sent}} of {{count}} takes. The rest did not reach NodeTool. Check your connection and try again.",
@@ -19495,8 +19557,9 @@
     "gridLabel": "Generations",
     "empty": {
       "title": "Nothing created yet",
-      "description": "Write a prompt above and press Generate. Your images and videos appear here, newest first.",
-      "action": "Write a prompt"
+      "description": "Write a prompt above and press Generate. Your images, videos and audio appear here, newest first.",
+      "action": "Write a prompt",
+      "sessionTitle": "Nothing in this tab yet"
     },
     "item": {
       "open": "Open {{title}}",
@@ -19512,8 +19575,75 @@
       "downloaded": "Downloaded {{name}}",
       "downloadFailed": "Could not download: {{reason}}",
       "workflowName": "Create workflow",
-      "workflowFailed": "Could not build a workflow: {{reason}}"
-    }
+      "workflowFailed": "Could not build a workflow: {{reason}}",
+      "more": "More actions",
+      "moreLabel": "More actions for {{title}}",
+      "useAsReference": "Use as reference",
+      "startFrom": {
+        "image_edit": "Edit this picture",
+        "image_to_video": "Animate this picture",
+        "retake": "Change this clip",
+        "extend": "Extend this clip"
+      },
+      "openInSketch": "Open in sketch",
+      "reusePrompt": "Reuse prompt",
+      "sketchTitle": "Created picture"
+    },
+    "kindLabel": "What to create",
+    "modeLabel": "How to create it",
+    "kinds": {
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio"
+    },
+    "modes": {
+      "image": "From text",
+      "image_edit": "Edit",
+      "video": "From text",
+      "image_to_video": "Animate",
+      "reference_to_video": "From references",
+      "retake": "Change",
+      "extend": "Extend",
+      "audio": "Speech",
+      "music": "Music"
+    },
+    "references": {
+      "label": "References",
+      "remove": "Remove",
+      "removeLabel": "Remove {{name}}",
+      "role": {
+        "source": "Source image",
+        "startFrame": "Start frame",
+        "sourceClip": "Source clip",
+        "reference": "Reference",
+        "unused": "Not used here"
+      },
+      "add": {
+        "image": "Add picture",
+        "video": "Add clip",
+        "image-or-video": "Add reference"
+      },
+      "hint": {
+        "image_edit": "Add or drop the picture to edit. Extra pictures guide the look.",
+        "image_to_video": "Add or drop the picture that starts the clip.",
+        "reference_to_video": "Add or drop pictures and clips of the people, places and style to keep.",
+        "retake": "Add or drop the clip to change. Pictures you add guide the look.",
+        "extend": "Add or drop the clip to extend."
+      },
+      "uploadFailed": "Could not upload {{name}}: {{reason}}"
+    },
+    "switched": "Switched to {{mode}} because you added a picture.",
+    "undoSwitch": "Back to {{from}}",
+    "scope": {
+      "label": "Which takes to show",
+      "session": "This tab",
+      "all": "All takes"
+    },
+    "renameFailed": "The tab could not be renamed: {{reason}}",
+    "sessionFailed": "This tab's takes could not be loaded.",
+    "sessionKind": "Create session",
+    "openInCreate": "Open in Create",
+    "openInCreateFailed": "Create could not open: {{reason}}"
   },
   "effectsGallery": {
     "title": "Effects",
@@ -19628,5 +19758,209 @@
     "showAssistant": "Show assistant",
     "hideAssistant": "Hide assistant",
     "resizeAssistant": "Resize timeline assistant"
+  },
+  "generationBatch": {
+    "summary": "{{done}} of {{total}} done",
+    "remaining": "About {{time}} left",
+    "finishing": "Finishing",
+    "failedCount": "Failed: {{count}}",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "showRequests": "Show requests",
+    "hideRequests": "Hide requests",
+    "expected": "Expected {{time}}",
+    "took": "Took {{time}}",
+    "progressLabel": "Generation progress"
+  },
+  "workflowSteps": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "allDone": "All {{total}} steps done",
+    "waiting": "Waiting",
+    "running": "Running",
+    "done": "Done",
+    "failed": "Failed",
+    "progressLabel": "Workflow progress",
+    "steps": "Steps",
+    "addStep": "Add step",
+    "removeStep": "Remove step",
+    "node": "Node",
+    "title": "Title",
+    "description": "Description",
+    "autoHint": "No steps set. The widget shows every generative node.",
+    "chooseNode": "Choose a node"
+  },
+  "admin": {
+    "page": {
+      "title": "Admin",
+      "subtitle": "Manage the people who sign in to this server.",
+      "deniedTitle": "Admin access required",
+      "deniedDescription": "Only admins of this server can open this page."
+    },
+    "users": {
+      "searchPlaceholder": "Search by name, email or user ID",
+      "filter": {
+        "label": "Status",
+        "all": "All",
+        "active": "Active",
+        "disabled": "Disabled"
+      },
+      "columns": {
+        "person": "Person",
+        "role": "Role",
+        "status": "Status",
+        "usage": "Usage",
+        "lastSeen": "Last seen",
+        "actions": "Actions"
+      },
+      "role": {
+        "admin": "Admin",
+        "member": "Member",
+        "viaGroup": "Through a group or server setting"
+      },
+      "status": {
+        "active": "Active",
+        "disabled": "Disabled"
+      },
+      "never": "Never",
+      "actions": {
+        "makeAdmin": "Make admin",
+        "removeAdmin": "Remove admin",
+        "disable": "Disable",
+        "enable": "Enable"
+      },
+      "loadFailed": "Could not load users",
+      "retry": "Try again",
+      "noMatches": "No users match this search",
+      "emptyTitle": "No users yet",
+      "emptyDescription": "People appear here after they first sign in with single sign-on.",
+      "range": "{{first}}–{{last}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next",
+      "updateFailed": "Could not update the user.",
+      "disableDialog": {
+        "title": "Disable {{name}}?",
+        "body": "They are signed out everywhere at once and cannot sign in again until you enable the account. Their work stays on the server.",
+        "cancel": "Cancel"
+      }
+    },
+    "quotas": {
+      "editDefault": "Edit default limits",
+      "editLimits": "Limits",
+      "defaultTitle": "Default limits",
+      "userTitle": "Limits for {{name}}",
+      "defaultNone": "No default limits. Everyone can spend without a cap on this server's keys.",
+      "defaultSummaryDay": "Default for everyone: {{tokens}} model tokens and {{media}} for media per day.",
+      "defaultSummaryMonth": "Default for everyone: {{tokens}} model tokens and {{media}} for media per month.",
+      "unlimited": "no limit",
+      "tokensLabel": "Tokens:",
+      "mediaLabel": "Media:",
+      "usedOf": "{{used}} of {{limit}}",
+      "usedNoLimit": "{{used}}, no limit",
+      "ownLimits": "Own limits",
+      "period": {
+        "label": "Period",
+        "day": "Per day",
+        "month": "Per month"
+      },
+      "tokenLimit": "Model tokens",
+      "mediaLimit": "Media budget (USD)",
+      "noLimit": "No limit",
+      "invalid": "Enter a number of 0 or more, or leave the field empty for no limit.",
+      "useDefault": "Use the server default",
+      "useDefaultDescription": "Turn off to give this person limits of their own.",
+      "ownKeysNote": "Only work on this server's provider keys counts. Work on a key the person saved in Settings never does.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saveFailed": "Could not save the limits."
+    },
+    "permissions": {
+      "edit": "Permissions",
+      "editDefault": "Edit default permissions",
+      "defaultTitle": "Default permissions",
+      "userTitle": "Permissions for {{name}}",
+      "defaultAll": "Default permissions: everything is allowed.",
+      "defaultBlockedCount": "Default permissions: {{count}} blocked.",
+      "blockedCount": "Blocked permissions: {{count}}",
+      "defaultIntro": "What every user may do unless you set a permission for them.",
+      "userIntro": "Each permission follows the default until you allow or block it here.",
+      "allow": "Allow",
+      "block": "Block",
+      "defaultAllowed": "Default: allowed",
+      "defaultBlocked": "Default: blocked",
+      "adminNote": "Admins always have every permission.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saveFailed": "Could not save the permissions.",
+      "flags": {
+        "use_llm": {
+          "label": "Use language models",
+          "description": "Chat, agents and text generation."
+        },
+        "generate_media": {
+          "label": "Generate media",
+          "description": "Images, video, audio and 3D."
+        },
+        "use_server_keys": {
+          "label": "Use the server's provider keys",
+          "description": "When blocked, the person can only work with keys they add in Settings."
+        },
+        "manage_own_keys": {
+          "label": "Manage own provider keys",
+          "description": "Add, change or remove provider keys and custom providers."
+        },
+        "share_links": {
+          "label": "Create share links",
+          "description": "Links that let signed-in people view or edit a workflow or document."
+        },
+        "share_public": {
+          "label": "Share publicly",
+          "description": "Make a workflow public or create a public link anyone can open."
+        },
+        "publish_apps": {
+          "label": "Publish apps",
+          "description": "Publish, release and deploy mini apps."
+        },
+        "install_packs": {
+          "label": "Change node packs",
+          "description": "Change pack trust, turn built-in packs on or off, and reload packs. This affects every user."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Sharing",
+      "title": "Sharing for {{name}}",
+      "links": "Share links",
+      "noLinks": "No active share links.",
+      "granted": "Gave access to",
+      "noGranted": "Has not given anyone access.",
+      "received": "Has access to",
+      "noReceived": "No one has given them access.",
+      "public": "Public workflows",
+      "noPublic": "No public workflows.",
+      "revoke": "Revoke",
+      "removeAccess": "Remove access",
+      "makePrivate": "Make private",
+      "untitled": "Untitled",
+      "loadFailed": "Could not load sharing.",
+      "actionFailed": "Could not make the change.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "timeline": "Timeline",
+        "sketch": "Sketch",
+        "application": "App",
+        "jsscript": "JS script"
+      },
+      "roles": {
+        "viewer": "Can view",
+        "editor": "Can edit",
+        "public": "Public"
+      }
+    }
   }
 }

@@ -9,16 +9,16 @@ description: "How NodeTool runs untrusted JavaScript in a QuickJS WebAssembly gu
 
 For the saved script document editor that runs in this sandbox, see [JS Scripts](js-scripts.md).
 
-Every piece of JavaScript NodeTool did not write itself runs in one place: a
-QuickJS WebAssembly guest built by `runInSandbox`
-(`packages/agents/src/js-sandbox.ts`). A workflow's Code node, an agent's code
-action and a planner's graph program all enter through that function, and they all get the same engine, the same limits, and the same
-marshaling rules.
+Every piece of JavaScript NodeTool did not write itself runs in one QuickJS WebAssembly guest, built by `runInSandbox` (`packages/agents/src/js-sandbox.ts`). A Code node body, an agent code action and a planner graph program all enter through that function and share the engine, limits, and marshaling rules. A Code node body is the smallest example:
 
-The guest has its own heap inside the WASM instance, so a runaway or hostile
-program cannot corrupt the host V8 heap the way it could under `node:vm`. What
-it can reach is a curated set of host bridges, and each one is a capability the
-caller granted for that run.
+```js
+// inputs: { rows: [...], threshold: 10 }
+const kept = inputs.rows.filter((r) => r.score > inputs.threshold);
+for (const row of kept) await emit("row", row);   // streams as it goes
+await output("count", kept.length);               // final value, posted when the body ends
+```
+
+The guest has its own heap inside the WASM instance, so a runaway program cannot corrupt the host V8 heap. It reaches only the host bridges the caller granted for that run.
 
 ## Where it runs
 
@@ -45,21 +45,8 @@ process and shared. Each invocation gets a fresh runtime and context.
    the body of a top-level-awaited async IIFE, so `return value` becomes the
    module's default export. Code acorn cannot parse falls through to `wrapCode`
    unchanged, so a syntax error reaches the user as they wrote it.
-4. **Install the module loader** — always, because it is also what the wrapper's
-   own Node-compat preamble resolves through. That preamble compiles ~12KB of
-   polyfills into every fresh runtime, and the prelude below deletes most of what
-   they install, so `BOOTSTRAP_MODULE_SOURCES` (`sandbox-bootstrap-modules.ts`)
-   serves four of them as empty modules and `node:util` as the two classes the
-   guest keeps. `node:url` still comes from the wrapper: `URL` and
-   `URLSearchParams` are guest capabilities. Measured: 5.96ms → 3.28ms of setup
-   per run. Guest specifiers resolve only what the run declares; without
-   `modules`, every guest `import` resolves nothing.
-5. **Init prelude.** `eval`, `Function` and the wrapper's unconditional stubs
-   (`Buffer`, `process`, `env`, `Headers`, `Request`, `Response`, `performance`)
-   are deleted. Four of those no longer exist to delete — the bootstrap above
-   never installs them — and the deletions stay as the guard for a wrapper
-   release that puts them back some other way. The entry module additionally deletes the timer globals, which
-   the wrapper library re-installs on every evaluation.
+4. **Install the module loader**, always, because the wrapper's Node-compat preamble also resolves through it. `BOOTSTRAP_MODULE_SOURCES` (`sandbox-bootstrap-modules.ts`) serves four polyfills as empty modules and `node:util` as the two classes the guest keeps, which cut setup from 5.96 ms to 3.28 ms per run. `node:url` still comes from the wrapper because `URL` and `URLSearchParams` are guest capabilities. Guest specifiers resolve only what the run declares. Without `modules`, every guest `import` resolves nothing.
+5. **Init prelude.** `eval`, `Function` and the wrapper's stubs (`Buffer`, `process`, `env`, `Headers`, `Request`, `Response`, `performance`) are deleted. Four of them are never installed by the bootstrap, and the deletions guard against a wrapper release that installs them again. The entry module also deletes the timer globals, which the wrapper re-installs on every evaluation.
 6. **Run**, under an interrupt handler on a CPU deadline and a wall-clock race.
 7. **Serialize.** The guest encodes its result with the JSON transport (see
    [Marshaling rules](#marshaling-rules)) and the host decodes it, then
@@ -70,8 +57,7 @@ process and shared. Each invocation gets a fresh runtime and context.
 
 ## The guest surface
 
-Two kinds of thing, and the difference matters: **capabilities are globals,
-libraries are imports.**
+Capabilities are globals. Libraries are imports.
 
 ### Capabilities (globals)
 
@@ -424,10 +410,7 @@ await output("count", kept.length);               // final, posted at the end
 // outputs: row, count
 ```
 
-- **Inputs** arrive on the `inputs` object, never as globals of their own name.
-  Sharing the global namespace let an input called `env` shadow a bridge and
-  made every undeclared identifier ambiguous between a typo and a missing slot.
-  Values are deep-copied through JSON before entering the guest.
+- **Inputs** arrive on the `inputs` object, never as globals of their own name, so an input called `env` cannot shadow a bridge. Values are deep-copied through JSON before entering the guest.
 - **Outputs** leave the body through two awaitable calls, and nothing else.
   `await output(name, value)` records a handle's final value; all final values
   post together as one bag when the body completes, and a second `output` on the

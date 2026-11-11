@@ -5,7 +5,13 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import CreateSurface from "../CreateSurface";
 import useMediaGenerationStore from "../../../stores/MediaGenerationStore";
-import { useCreateViewStore } from "../../../stores/CreateViewStore";
+import {
+  EMPTY_CREATE_DRAFT,
+  GLOBAL_CREATE_SESSION,
+  createDraftOf,
+  useCreateViewStore,
+  type CreateDraft
+} from "../../../stores/CreateViewStore";
 import {
   useGenerationActivityStore,
   type GenerationActivity
@@ -17,8 +23,32 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 }));
 
 let assetListData: { assets: unknown[] } | undefined = { assets: [] };
+let sessionRecords: unknown[] = [];
+const mockNameSession = jest.fn(async (..._args: [string, string]) => undefined);
+// Only a media thread's messages are read, and these tabs have none.
+jest.mock("../../../stores/GlobalChatStore", () => {
+  const { create } = jest.requireActual("zustand");
+  return { __esModule: true, default: create(() => ({ messageCache: {} })) };
+});
+jest.mock("../openCreateSession", () => ({
+  nameSessionAfterPrompt: (...args: [string, string]) => mockNameSession(...args)
+}));
 jest.mock("../../../trpc/client", () => ({
   trpc: {
+    generations: {
+      list: {
+        useQuery: ({ thread_id }: { thread_id: string }) => ({
+          data: {
+            generations: sessionRecords.filter(
+              (record) => (record as { thread_id: string }).thread_id === thread_id
+            )
+          },
+          isLoading: false,
+          error: null,
+          refetch: jest.fn()
+        })
+      }
+    },
     assets: {
       list: {
         useQuery: ({ content_type }: { content_type: string }) => ({
@@ -41,10 +71,6 @@ jest.mock("../../../trpc/client", () => ({
 jest.mock("../../chat/composer/ModeChips", () => ({
   __esModule: true,
   default: () => <div data-testid="mode-chips" />
-}));
-jest.mock("../../chat/composer/ModeSelectChip", () => ({
-  __esModule: true,
-  default: () => <div data-testid="mode-select-chip" />
 }));
 jest.mock("../../chat/composer/MediaCostEstimate", () => ({
   __esModule: true,
@@ -87,21 +113,32 @@ const seedGenerations = (...items: GenerationActivity[]) =>
     generations: Object.fromEntries(items.map((item) => [item.id, item]))
   });
 
-const renderSurface = () =>
+const renderSurface = (props: { sessionId?: string; projectId?: string } = {}) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
-        <CreateSurface />
+        <CreateSurface {...props} />
       </ThemeProvider>
     </QueryClientProvider>
   );
 
+/** Set the draft of the Create view that has no session. */
+const setDraft = (patch: Partial<CreateDraft>, sessionId: string = GLOBAL_CREATE_SESSION) =>
+  useCreateViewStore.setState((state) => ({
+    drafts: { ...state.drafts, [sessionId]: { ...createDraftOf(state, sessionId), ...patch } }
+  }));
+
+const draft = (sessionId: string = GLOBAL_CREATE_SESSION) =>
+  createDraftOf(useCreateViewStore.getState(), sessionId);
+
 describe("CreateSurface", () => {
   beforeEach(() => {
     send.mockClear();
+    mockNameSession.mockClear();
     assetListData = { assets: [] };
+    sessionRecords = [];
     seedGenerations();
-    useCreateViewStore.setState({ mode: "image", prompt: "", batch: 1 });
+    useCreateViewStore.setState({ drafts: {} });
     useMediaGenerationStore.setState({
       image: {
         ...useMediaGenerationStore.getState().image,
@@ -113,7 +150,7 @@ describe("CreateSurface", () => {
   describe("submission", () => {
     it("sends one generate_media request per take with distinct seeds, and no chat turn", async () => {
       const user = userEvent.setup();
-      useCreateViewStore.setState({ batch: 3 });
+      setDraft({ batch: 3 });
       renderSurface();
       await user.type(screen.getByRole("textbox"), "a lighthouse at dusk");
       await user.click(screen.getByRole("button", { name: "Generate" }));
@@ -148,10 +185,59 @@ describe("CreateSurface", () => {
     it("reports a take that never reached the server", async () => {
       const user = userEvent.setup();
       send.mockRejectedValueOnce(new Error("socket closed"));
-      useCreateViewStore.setState({ batch: 2, prompt: "x" });
+      setDraft({ batch: 2, prompt: "x" });
       renderSurface();
       await user.click(screen.getByRole("button", { name: "Generate" }));
       expect(await screen.findByText(/Started 0 of 2 takes/)).toBeInTheDocument();
+    });
+  });
+
+  describe("modes", () => {
+    it("switches kind and keeps each kind's last mode", async () => {
+      const user = userEvent.setup();
+      renderSurface();
+      const kinds = screen.getByRole("group", { name: "What to create" });
+      await user.click(within(kinds).getByRole("button", { name: "Video" }));
+      const modes = screen.getByRole("group", { name: "How to create it" });
+      await user.click(within(modes).getByRole("button", { name: "Extend" }));
+      await user.click(within(kinds).getByRole("button", { name: "Audio" }));
+      expect(draft().mode).toBe("audio");
+      await user.click(within(kinds).getByRole("button", { name: "Video" }));
+      expect(draft().mode).toBe("extend");
+    });
+
+    it("asks for the picture to edit instead of sending an edit without one", async () => {
+      const user = userEvent.setup();
+      setDraft({ mode: "image_edit", prompt: "make it night" });
+      renderSurface();
+      await user.click(screen.getByRole("button", { name: "Generate" }));
+      expect(send).not.toHaveBeenCalled();
+      expect(screen.getByText("Add the picture to edit.")).toBeInTheDocument();
+    });
+
+    it("sends an edit of the attached picture", async () => {
+      const user = userEvent.setup();
+      useMediaGenerationStore.setState({
+        imageEdit: {
+          ...useMediaGenerationStore.getState().imageEdit,
+          model: { type: "image_model", id: "kontext", provider: "fake" as never, name: "Kontext", path: "" }
+        }
+      });
+      setDraft({
+        mode: "image_edit",
+        prompt: "make it night",
+        references: [{ assetId: "pic", contentType: "image/png", name: "pic" }]
+      });
+      renderSurface();
+      expect(screen.getByText("Source image")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Generate" }));
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][0].data).toMatchObject({
+        mode: "image_edit",
+        model: "kontext",
+        source_asset_id: "pic",
+        prompt: "make it night"
+      });
     });
   });
 
@@ -233,6 +319,92 @@ describe("CreateSurface", () => {
       renderSurface();
       expect(screen.getByRole("button", { name: /Send prompt v to a timeline/ })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Open prompt v as a workflow/ })).toBeInTheDocument();
+    });
+
+    it("animates a picture from its More menu", async () => {
+      const user = userEvent.setup();
+      seedGenerations(generation("a"));
+      renderSurface();
+      await user.click(screen.getByRole("button", { name: "More actions for prompt a" }));
+      await user.click(screen.getByRole("menuitem", { name: "Animate this picture" }));
+      const state = draft();
+      expect(state.mode).toBe("image_to_video");
+      expect(state.references).toEqual([
+        { assetId: "asset-a", contentType: "image/png", name: "prompt a" }
+      ]);
+      expect(screen.getByText("Start frame")).toBeInTheDocument();
+    });
+
+    it("plays an audio take in place rather than opening it", () => {
+      seedGenerations(
+        generation("s", { kind: "audio", request: { mode: "audio", provider: "fake", model: "tts" } })
+      );
+      renderSurface();
+      expect(screen.queryByRole("button", { name: "Open prompt s" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /^Retake prompt s/ })).toBeInTheDocument();
+    });
+  });
+  describe("session tab", () => {
+    const record = (id: string, overrides: Record<string, unknown> = {}) => ({
+      generation_id: id,
+      thread_id: "s1",
+      request_id: null,
+      status: "completed",
+      model: "flux",
+      capability: "text_to_image",
+      prompt: `prompt ${id}`,
+      asset_ids: [`asset-${id}`],
+      started_at: new Date(50).toISOString(),
+      generation_error: null,
+      provider_error: null,
+      submission_error: null,
+      output_error: null,
+      ...overrides
+    });
+
+    it("tags every take with its thread and project, and names the tab after the prompt", async () => {
+      const user = userEvent.setup();
+      setDraft({ batch: 2 }, "s1");
+      renderSurface({ sessionId: "s1", projectId: "p1" });
+      await user.type(screen.getByRole("textbox"), "a lighthouse");
+      await user.click(screen.getByRole("button", { name: "Generate" }));
+      expect(send).toHaveBeenCalledTimes(2);
+      for (const [message] of send.mock.calls) {
+        expect(message.data).toMatchObject({ thread_id: "s1", project_id: "p1" });
+      }
+      expect(mockNameSession).toHaveBeenCalledWith("s1", "a lighthouse");
+      // The view without a session kept its own empty draft.
+      expect(draft()).toBe(EMPTY_CREATE_DRAFT);
+    });
+
+    it("lists only its own takes, from the tracker and the server, until All takes is chosen", async () => {
+      const user = userEvent.setup();
+      seedGenerations(
+        generation("mine", { threadId: "s1", startedAt: 100 }),
+        generation("other", { threadId: "s2", startedAt: 200 }),
+        // Recorded by the server too: listed once, as the tracked take.
+        generation("tracked", { threadId: "s1", startedAt: 300 })
+      );
+      sessionRecords = [record("reloaded"), record("dupe", { request_id: "tracked" })];
+      renderSurface({ sessionId: "s1" });
+      const list = () => within(screen.getByRole("list", { name: "Generations" })).getAllByRole("listitem");
+      expect(list().map((item) => item.textContent)).toEqual([
+        expect.stringContaining("prompt tracked"),
+        expect.stringContaining("prompt mine"),
+        expect.stringContaining("prompt reloaded")
+      ]);
+      await user.click(screen.getByRole("button", { name: "All takes" }));
+      expect(draft("s1").scope).toBe("all");
+      expect(list().map((item) => item.textContent)).toEqual([
+        expect.stringContaining("prompt tracked"),
+        expect.stringContaining("prompt other"),
+        expect.stringContaining("prompt mine")
+      ]);
+    });
+
+    it("has no scope choice in the Create view without a session", () => {
+      renderSurface();
+      expect(screen.queryByRole("group", { name: "Which takes to show" })).not.toBeInTheDocument();
     });
   });
 });

@@ -10,9 +10,8 @@ For local speech recognition, `whisper_cpp` runs GGML models in the backend
 and `whisper_cpp_server` calls a user-run whisper-server. See
 [provider configuration](../../providers.md) for their settings.
 
-> **Audience:** coding agents and contributors adding local models to NodeTool, or changing these providers' code.
-
----
+> **Runs:** locally, on a server you start. **Needs:** no API key. LM Studio reads its URL from `LMSTUDIO_API_URL` (default set in `defaults.ts`), llama.cpp requires `LLAMA_CPP_URL`, vLLM requires `VLLM_BASE_URL`. `node_llama_cpp` runs in process and needs no URL.
+{: .callout-note}
 
 ## TL;DR
 
@@ -21,8 +20,6 @@ and `whisper_cpp_server` calls a user-run whisper-server. See
 3. Models appear in NodeTool automatically — no code change needed.
 
 The only time you touch code is when you are changing provider behavior (URL resolution, message normalization, tool-call handling) — see [Provider-level changes](#provider-level-changes-dev-path).
-
----
 
 ## Where things live
 
@@ -33,8 +30,6 @@ The only time you touch code is when you are changing provider behavior (URL res
 | vLLM provider | `packages/runtime/src/providers/vllm-provider.ts` |
 | Default base URLs | `packages/runtime/src/providers/defaults.ts` |
 | Provider registration block | `packages/runtime/src/providers/index.ts`, the local-only `if (!_cloudProfile)` block |
-
----
 
 ## How models are discovered
 
@@ -61,8 +56,6 @@ Trailing slashes and a trailing `/v1` are stripped (`localServerRoot()`) before 
 | LM Studio | `http://127.0.0.1:1234` (defined in `defaults.ts`) |
 | llama.cpp | none — must be set |
 | vLLM | none — must be set |
-
----
 
 ## Registration
 
@@ -102,8 +95,6 @@ if (!_cloudProfile) {
 ```
 
 The third argument is the required kwargs. An empty value for a required key (`LLAMA_CPP_URL`, `VLLM_BASE_URL`) keeps the provider unavailable until the user sets it. The fourth argument is `optionalKwargs`, settings re-resolved from the secret store and then the environment on every `getProvider()` call without blocking `isProviderConfigured()`. That is why LM Studio works by default (the URL has a fallback). The fifth argument sets the provider's access kind and display name.
-
----
 
 ## Per-server setup
 
@@ -181,8 +172,6 @@ export VLLM_API_KEY=your-key
 
 `VLLMProvider` extends `OpenAICompatProvider` and reports tool support as `true`.
 
----
-
 ## Provider-level changes (dev path)
 
 You need to edit source only when changing how a provider works, not when adding models.
@@ -196,8 +185,6 @@ You need to edit source only when changing how a provider works, not when adding
 | Container env propagation | `getContainerEnv()` in the provider class |
 
 These providers do not load from `dist/` (unlike `base-nodes`, `node-sdk`), so no build step is needed — changes take effect on the next `npm run dev`.
-
----
 
 ## Verify
 
@@ -223,17 +210,3 @@ npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 For LM Studio and vLLM, substitute the provider name (`lmstudio`, `vllm`) and the corresponding env var.
-
----
-
-## Contributing
-
-PRs are welcome at <https://github.com/nodetool-ai/nodetool>. Before pushing:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-```
-
-Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

@@ -1,0 +1,86 @@
+{
+  "id": "seq-mask-rect",
+  "projectId": "native-prototype",
+  "name": "mask-rect",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "picture",
+      "trackId": "t0",
+      "name": "picture",
+      "startMs": 0,
+      "durationMs": 2000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [],
+      "mask": {
+        "kind": "rect",
+        "x": 0.12,
+        "y": 0.13,
+        "width": 0.58,
+        "height": 0.65
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J4 shape mask rect, PSNR >= 40 dB"
+    }
+  ]
+}

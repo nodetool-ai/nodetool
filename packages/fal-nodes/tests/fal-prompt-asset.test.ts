@@ -1,30 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const falSubmit = vi.fn();
+const endpointCall = vi.fn();
 
 vi.mock("../src/fal-base.js", () => ({
-  assetToFalUrl: vi.fn(async (_key: string, ref: Record<string, unknown>) =>
+  assetToFalUrl: vi.fn(async (ref: Record<string, unknown>, _context?: unknown) =>
     ref?.data ? `falcdn:${ref.data as string}` : "https://fal.media/uploaded"
   ),
   falImageToRef: (image: Record<string, unknown>) => ({
     type: "image",
     uri: image.url
   }),
-  falSubmit,
-  falSubmitWithMeta: async (...args) => ({
-    data: await falSubmit(...args),
-    requestId: "req-test"
-  }),
-  falSubmitWithGeneration: async (
-    apiKey: string,
-    endpoint: string,
-    args: Record<string, unknown>
+  callFalEndpoint: async (
+    _context: unknown,
+    request: { endpoint: string; args: Record<string, unknown> }
   ) => ({
-    data: await falSubmit(apiKey, endpoint, args),
+    data: await endpointCall(request.endpoint, request.args),
     requestId: "req-test"
   }),
   falCapabilityForOutputType: () => "text_to_image",
-  getFalApiKey: () => "test-key",
   imageToDataUrl: vi.fn(async (ref: Record<string, unknown> | undefined) =>
     ref?.data ? `data:image/png;base64,${ref.data as string}` : null
   ),
@@ -90,8 +83,8 @@ const ctx = { resolveAssetBytes: async () => ({ bytes: assetBytes }) };
 
 describe("FAL prompt asset mapping", () => {
   beforeEach(() => {
-    falSubmit.mockReset();
-    falSubmit.mockResolvedValue({ images: [{ url: "out" }] });
+    endpointCall.mockReset();
+    endpointCall.mockResolvedValue({ images: [{ url: "out" }] });
   });
 
   it("routes an asset:// mention into the empty image input and strips it", async () => {
@@ -101,7 +94,7 @@ describe("FAL prompt asset mapping", () => {
 
     await node.process(ctx as never);
 
-    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = endpointCall.mock.calls[0][1] as Record<string, unknown>;
     expect(args.image_url).toBe(`data:image/png;base64,${b64}`);
     expect(args.prompt).toBe("make it pop image_url please");
   });
@@ -122,7 +115,7 @@ describe("FAL prompt asset mapping", () => {
 
     await node.process(ctx as never);
 
-    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = endpointCall.mock.calls[0][1] as Record<string, unknown>;
     expect(args.image_url).toBe("data:image/png;base64,WIRED");
     expect(args.prompt).toBe("enhance now");
   });
@@ -181,8 +174,8 @@ function makeMultiFrameVideoNode() {
 
 describe("FAL multi-image video mapping", () => {
   beforeEach(() => {
-    falSubmit.mockReset();
-    falSubmit.mockResolvedValue({ video: { url: "out.mp4" } });
+    endpointCall.mockReset();
+    endpointCall.mockResolvedValue({ video: { url: "out.mp4" } });
   });
 
   it("maps as many prompt mentions as there are image inputs", async () => {
@@ -194,7 +187,7 @@ describe("FAL multi-image video mapping", () => {
 
     await node.process(ctx as never);
 
-    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = endpointCall.mock.calls[0][1] as Record<string, unknown>;
     // First two single frame inputs take the first two mentions...
     expect(args.image_url).toBe(`data:image/png;base64,${b64}`);
     expect(args.tail_image_url).toBe(`data:image/png;base64,${b64}`);
@@ -213,7 +206,7 @@ describe("FAL multi-image video mapping", () => {
 
     await node.process(ctx as never);
 
-    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = endpointCall.mock.calls[0][1] as Record<string, unknown>;
     expect(args.image_url).toBe(`data:image/png;base64,${b64}`);
     // No second mention → tail frame and reference list stay empty (dropped by removeNulls).
     expect(args.tail_image_url).toBeUndefined();
@@ -283,8 +276,8 @@ function makeOmniReferenceNode() {
 
 describe("FAL omni reference-to-video mapping", () => {
   beforeEach(() => {
-    falSubmit.mockReset();
-    falSubmit.mockResolvedValue({ video: { url: "out.mp4" } });
+    endpointCall.mockReset();
+    endpointCall.mockResolvedValue({ video: { url: "out.mp4" } });
   });
 
   it("routes image, audio and video mentions to their typed inputs", async () => {
@@ -297,7 +290,7 @@ describe("FAL omni reference-to-video mapping", () => {
 
     await node.process(ctx as never);
 
-    const args = falSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = endpointCall.mock.calls[0][1] as Record<string, unknown>;
     // Image takes the data-URL path; audio and video upload via the CDN path.
     expect(args.image_url).toBe(`data:image/png;base64,${b64}`);
     expect(args.audio_url).toBe(`falcdn:${b64}`);

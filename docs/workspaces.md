@@ -1,18 +1,15 @@
 ---
 layout: page
 title: "Workspaces"
-description: "Configure workspace folders that NodeTool can access."
+description: "Workspace folders that runs, agents, and the Code node read and write through relative paths, with production limits and error messages."
 ---
 
-A **workspace** is a folder that NodeTool can safely access for reading and writing files during workflow runs, agent tasks, and chat sessions.
+A workspace is a folder root that workflow runs, agent tasks, and chat sessions read and write through relative paths. Nodes and tools confine file operations to it.
 
-## Why workspaces exist
-
-Workspaces make local file access explicit and controlled:
-
-- Keep project files organized under known roots
-- Limit file operations to approved directories
-- Share the same folder roots across workflows and agent tools
+```
+<data dir>/workspaces/        # NODETOOL_WORKSPACES_DIR, the default workspace for each user
+~/projects/campaign           # a workspace you added in the app
+```
 
 ## Manage workspaces in the app
 
@@ -25,37 +22,36 @@ Workspaces have their own full-screen page at `/workspaces` (not a Settings tab)
 
 ![Workspaces page](assets/screenshots/workspaces-page.png)
 
-After adding a workspace, NodeTool can browse files, list folders, and read/write files inside the configured root. A row marked **Inaccessible** points at a folder the server can no longer reach.
-
-Workspaces also appear in the **Workspace** view of the left panel, which
-browses the current one as a file tree, and under **Advanced** in the workflow
-form, which pins a workflow to one. Every user gets a default workspace the first time the list loads.
+A row marked **Inaccessible** points at a folder the server can no longer reach. Workspaces also appear in the **Workspace** view of the left panel (a file tree of the current one) and under **Advanced** in the workflow form, which pins a workflow to one. Every user gets a default workspace the first time the list loads.
 
 ## What a cloud deployment allows
 
-Pointing a workspace at a host folder browses the server's filesystem, so
-`NODETOOL_ENV=production` refuses create, update, and delete
-(`packages/websocket/src/trpc/routers/workspace.ts`). Reading stays open: every
-user gets a server-managed workspace under the data dir, and listing and
-downloading from it reach nothing the deployment did not create itself.
+A workspace pointing at a host folder browses the server's filesystem, so `NODETOOL_ENV=production` refuses create, update, and delete (`packages/websocket/src/trpc/routers/workspace.ts`). Each user's server-managed workspace under the data dir stays readable. `NODETOOL_WORKSPACE_STORAGE=cloud` (the production default) keeps it in the asset bucket instead of on disk. See [Configuration](configuration.md#environment-variables-index).
 
-The server says which of the two applies in `can_manage` on `workspace.list`,
-and the UI reads it through `useWorkspaces()`. So every workspace surface is
-present on a cloud deployment, and the only missing control is **Add
-Workspace**, which would open a folder picker with nothing to browse.
+`workspace.list` returns `can_manage`, which the UI reads through `useWorkspaces()`. On a cloud deployment every workspace surface is present and only **Add Workspace** is missing.
 
 ## Where workspaces are used
 
-- **Agents and chat tools** for file operations
-- **The Code node**, whose `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the workspace unless **Allow Host Filesystem** is on (the cloud profile ignores that switch)
+- Agent and chat file tools.
+- The Code node. Its `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the workspace unless **Allow Host Filesystem** is on. The cloud profile ignores that switch.
 
 ## API
 
 The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).
 
+## If it fails
+
+| Message | Cause |
+|---|---|
+| `Managing workspace folders is disabled in production` | Create, update, or delete with `NODETOOL_ENV=production` |
+| `This workspace is not readable in production` | Reading a workspace row that points at a host folder, in production |
+| `Path must be absolute`, `Path does not exist`, `Path is not a directory`, `Path is not writable` | Folder validation when adding a workspace |
+| `Absolute paths not allowed, use relative paths` | A file procedure got a path starting with `/` |
+| `Path traversal not allowed` (`403`) | A relative path escaped the workspace root |
+| `Cannot delete the default workspace`, `Cannot delete workspace with linked workflows` | Delete refused |
+
 ## Related docs
 
 - [Workflow Editor](workflow-editor.md)
 - [Storage Guide](storage.md)
-- [Node Reference: `nodetool.code`](nodes/nodetool/code/) — workspace file
-  access now goes through the Code node's `workspace.*` API
+- [Node Reference: `nodetool.code`](nodes/nodetool/code/)

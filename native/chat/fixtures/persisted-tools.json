@@ -1,0 +1,169 @@
+{
+  "messages": [
+    {
+      "id": "00000000000000000000000000000065",
+      "role": "assistant",
+      "content": "",
+      "created_at": "2026-01-01T10:00:00.000Z",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {
+            "query": "native chat"
+          }
+        }
+      ]
+    },
+    {
+      "id": "000000000000000000000000000000c9",
+      "role": "tool",
+      "tool_call_id": "00000000000000000000000000000001",
+      "content": "{\"items\": [\"notes\"]}",
+      "is_error": false,
+      "created_at": "2026-01-01T10:00:01.200Z",
+      "unknown_payload": {
+        "resource_id": "000000000000000000000000000003e7"
+      }
+    },
+    {
+      "id": "00000000000000000000000000000066",
+      "role": "assistant",
+      "content": "",
+      "created_at": "2026-01-01T10:00:00.000Z",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {
+            "query": "failed search"
+          }
+        }
+      ]
+    },
+    {
+      "id": "000000000000000000000000000000ca",
+      "role": "tool",
+      "tool_call_id": "00000000000000000000000000000002",
+      "content": "{\"error\": \"Search unavailable\"}",
+      "is_error": true,
+      "created_at": "2026-01-01T10:00:01.200Z",
+      "unknown_payload": {
+        "resource_id": "000000000000000000000000000003e7"
+      }
+    },
+    {
+      "id": "00000000000000000000000000000067",
+      "role": "assistant",
+      "content": "",
+      "created_at": "2026-01-01T10:00:00.000Z",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "execute_code",
+          "args": {
+            "title": "Count scenes",
+            "code": "console.log(2);"
+          }
+        }
+      ]
+    },
+    {
+      "id": "000000000000000000000000000000cb",
+      "role": "tool",
+      "tool_call_id": "00000000000000000000000000000003",
+      "content": "{\"stdout\": \"2\\n\"}",
+      "is_error": false,
+      "created_at": "2026-01-01T10:00:01.200Z",
+      "unknown_payload": {
+        "resource_id": "000000000000000000000000000003e7"
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "message",
+      "thread_id": "a",
+      "id": "00000000000000000000000000000065",
+      "role": "assistant",
+      "content": "",
+      "created_at": "2026-01-01T10:00:00.000Z",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000001",
+          "name": "web_search",
+          "args": {
+            "query": "native chat"
+          }
+        }
+      ]
+    },
+    {
+      "type": "tool_result_update",
+      "thread_id": "a",
+      "tool_call_id": "00000000000000000000000000000001",
+      "result": {
+        "items": [
+          "notes"
+        ]
+      },
+      "is_error": false,
+      "created_at": "2026-01-01T10:00:01.200Z"
+    },
+    {
+      "type": "message",
+      "thread_id": "a",
+      "id": "00000000000000000000000000000066",
+      "role": "assistant",
+      "content": "",
+      "created_at": "2026-01-01T10:00:00.000Z",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000002",
+          "name": "web_search",
+          "args": {
+            "query": "failed search"
+          }
+        }
+      ]
+    },
+    {
+      "type": "tool_result_update",
+      "thread_id": "a",
+      "tool_call_id": "00000000000000000000000000000002",
+      "result": {
+        "error": "Search unavailable"
+      },
+      "is_error": true,
+      "created_at": "2026-01-01T10:00:01.200Z"
+    },
+    {
+      "type": "message",
+      "thread_id": "a",
+      "id": "00000000000000000000000000000067",
+      "role": "assistant",
+      "content": "",
+      "created_at": "2026-01-01T10:00:00.000Z",
+      "tool_calls": [
+        {
+          "id": "00000000000000000000000000000003",
+          "name": "execute_code",
+          "args": {
+            "title": "Count scenes",
+            "code": "console.log(2);"
+          }
+        }
+      ]
+    },
+    {
+      "type": "tool_result_update",
+      "thread_id": "a",
+      "tool_call_id": "00000000000000000000000000000003",
+      "result": {
+        "stdout": "2\n"
+      },
+      "is_error": false,
+      "created_at": "2026-01-01T10:00:01.200Z"
+    }
+  ]
+}

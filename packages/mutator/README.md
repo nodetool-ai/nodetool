@@ -135,8 +135,11 @@ deterministically. Each shard reports only its own sites and outcomes. Give
 each shard a separate `--metrics-dir` and run concurrent shards in separate
 checkouts. Startup cleanup removes old worker overlays within a checkout.
 
-The changed-function CI workflow freezes the source commit and base before
-running source-file partitions on separate machines. Each partition runs one
+The daily merged-changes CI workflow (`.github/workflows/mutation-changed.yml`)
+diffs against the head of its last successful scheduled run, or the last `main`
+commit from before the previous 24 hours when there is none. It freezes the
+source commit and base before running source-file partitions on separate
+machines. Each partition runs one
 file with the full baseline and canonical test command. The plan splits each
 file by mutation ID hash until its partitions fit the execution capacity,
 including empty buckets that own unchanged form metrics.

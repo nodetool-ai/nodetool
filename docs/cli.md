@@ -6,7 +6,11 @@ description: "The `nodetool` command-line interface — manage servers, workflow
 
 
 
-The `nodetool` CLI is the TypeScript command-line interface for the NodeTool platform. It manages servers, workflows, jobs, assets, and secrets. Run `nodetool --help` to see the top-level command list. Every sub-command exposes its own `--help` flag with detailed usage.
+```bash
+npx --package=@nodetool-ai/cli nodetool --help
+```
+
+The `nodetool` CLI runs servers, workflows, jobs, assets, and secrets from a terminal. Every sub-command has its own `--help`.
 
 ## Installation
 
@@ -59,16 +63,11 @@ For MCP alone, the standalone `nodetool-mcp` executable is also available from
 
 ## Getting Help
 
-- `nodetool --help` — list all top-level commands.
-- `nodetool <command> --help` — show command-specific options (e.g. `nodetool serve --help`).
-- `nodetool <group> --help` — list sub-commands for grouped tooling (e.g. `nodetool workflows --help`).
-- `nodetool help [command]` — the same output as `--help`, as a command (e.g. `nodetool help serve`). With no argument it lists the top-level commands.
+`nodetool --help` lists top-level commands. `nodetool <command> --help` and `nodetool <group> --help` show options and sub-commands. `nodetool help [command]` prints the same output.
 
 ## Authoring tools and guides
 
-Use the installed tool catalog and guides to start a document from the terminal.
-No agent session or MCP client is needed. These commands run locally against the
-same tool implementations as CLI agent sessions.
+These commands run the agent tool implementations and guides locally, without an agent session or MCP client.
 
 ```bash
 nodetool tools list timeline
@@ -461,9 +460,11 @@ nodetool db rollback --direct-url "$DIRECT_URL" --steps 1
 
 ### `nodetool chat`
 
-Starts fullscreen terminal chat with a scrollable transcript, multiline composer,
-tool details, task progress, and approval prompts. The previous terminal screen
-is restored on exit. Piped input keeps its line-based interface.
+```bash
+nodetool chat --provider anthropic --model claude-sonnet-5
+```
+
+Fullscreen terminal chat with a scrollable transcript, multiline composer, tool details, and approval prompts. The previous screen is restored on exit. Piped input keeps a line-based interface. Slash commands, key bindings, and sessions are in [Chat CLI](chat-cli.md).
 
 **Options:**
 
@@ -484,49 +485,20 @@ is restored on exit. Piped input keeps its line-based interface.
   ID, resume the most recently saved session.
 - `--cost-cap <usd>` — ceiling on provider spend for one turn; `0` lifts it.
   Default: the `NODETOOL_AGENT_TURN_COST_CAP_USD` setting.
-- `--timeout <s>` — wall-clock bound on one turn, in seconds; `0` leaves it no
-  time at all. Default: the `NODETOOL_AGENT_TURN_DEADLINE_MS` setting.
+- `--timeout <s>` — wall-clock bound on one turn, in seconds; `0` gives it no
+  time, so the turn stops before its first model call. Default: the `NODETOOL_AGENT_TURN_DEADLINE_MS` setting.
 
-Both flags override two of the five `NODETOOL_AGENT_*` settings; the other
-three — concurrency, total turns, unpriced-token ceiling — come from the
-settings alone. The budget is one object per turn, shared by every loop the
-turn starts, so a ceiling bounds the turn rather than each loop separately. A
-turn a ceiling refuses prints the reason: `[stopped] turn budget of $5 reached`
-piped, or a `Stopped:` line in the TUI. The terminal also displays the local
-turn's provider spend. Connected servers manage their own run budgets.
+`--cost-cap` and `--timeout` override two of the five `NODETOOL_AGENT_*` settings. See [Run budget](#run-budget). A turn a ceiling refuses prints the reason: `[stopped] turn budget of $5 reached` piped, or a `Stopped:` line in the TUI. Connected servers manage their own run budgets.
 
-Fullscreen chat reserves stdout for its screen. Use `--trace-file <path>` for
-tracing and `--no-trace-stdout` when stdout tracing is enabled in the environment.
+Fullscreen chat reserves stdout for its screen. Use `--trace-file <path>` for tracing and `--no-trace-stdout` when stdout tracing is enabled in the environment.
 
-Enter sends a message. Alt+Enter, Shift+Enter in supported terminals, or Ctrl+J
-inserts a newline. Pasted lines stay in the composer. Up/Down recalls prompts,
-Tab completes commands. Page Up/Page Down and the mouse wheel scroll the
-transcript. Drag across transcript text to select and copy it to the clipboard
-on release. Ctrl+G returns to the latest output. Ctrl+O toggles tool details
-and edit diffs.
-Escape stops a running turn or dismisses input. Ctrl+C stops a turn, clears a
-draft, or saves and quits when idle with an empty composer.
+Sessions are saved under `~/.nodetool/chat-sessions/` and model selections in `~/.nodetool/chat-settings.json`. Remote `/model <id>` accepts a server model ID without a local API key.
 
-Use `/sessions` and `/resume <id>` to continue a conversation, `/export <path.md>`
-to save a transcript, and `/mode` to change permissions. `/clear` clears the
-screen while retaining context. `/new` starts a fresh conversation. Local
-`/compact [instructions]` retains a summary. Remote context is managed by the
-server. `/help` lists all commands.
-
-Sessions are saved under `~/.nodetool/chat-sessions/` after turns and on exit.
-They include conversation context and provider continuation state. The session
-picker filters by workspace and server. Model and provider selections persist
-in `~/.nodetool/chat-settings.json`. Remote `/model <id>` accepts a server model
-ID without requiring a local API key.
-
-**Examples:**
+**More examples:**
 
 ```bash
 # Start interactive chat
 nodetool chat
-
-# Chat with a specific provider and model
-nodetool chat --provider anthropic --model claude-sonnet-5
 
 # Connect to a running server
 nodetool chat --url ws://localhost:7777/ws
@@ -1716,6 +1688,27 @@ scanned 0, would move 0, already migrated 0, absent 0, failed 0
 Dry run — nothing was written. Re-run without --dry-run.
 ```
 
+### `nodetool storage refresh-cache-control`
+
+Give asset objects stored before uploads set `Cache-Control` the header new
+uploads carry, `max-age=` the signed URL lifetime. Supabase Storage stored
+`no-cache` on those objects, and a signed URL cannot be revalidated, so a
+browser downloaded the whole object again every time an image or video
+mounted. Each stale asset file and thumbnail is read and written back under
+the same key with its content type. The rewrite downloads every stale object
+once, so run `--dry-run` first to see the total.
+
+**Options:**
+
+- `--dry-run` — report what would be rewritten and its size without writing anything.
+- `--user-id <id>` — refresh only this user's objects.
+- `--json` — output the report as JSON.
+
+```bash
+nodetool storage refresh-cache-control --dry-run
+nodetool storage refresh-cache-control
+```
+
 ## Vector Collections
 
 ### `nodetool collections`
@@ -2285,6 +2278,10 @@ browser tools:
   absolute path on the local NodeTool server. It returns the asset ID and URI.
 - **`download_asset`** — return an owned asset's bytes as base64, or write them
   to an absolute path on the local NodeTool server. Remote MCP sessions use base64.
+- **`open_app`** — open a mini app. It links to the `ui://nodetool/mini-app.html`
+  renderer, so an MCP Apps host shows the app's screen. The page runs operations
+  through the app-only `run_app_operation` and `poll_app_run` tools. See
+  [Mini apps in the host](mcp-server.md#mini-apps-in-the-host).
 
 Inside `execute_code`, `import_asset` accepts an HTTP(S) URL or an absolute
 server-local path on a local MCP connection. It returns an `asset://` URI,
@@ -2317,11 +2314,7 @@ mount, or an authenticated session). File tools read and write under a per-user 
 
 ### `nodetool agent`
 
-Run one CodeAct turn from the command line, over the default toolbelt. The
-objective becomes the user message and the model acts by writing sandboxed
-JavaScript — the same loop the chat runs. `create_plan` and `execute_plan` are
-on the belt, so an objective that wants decomposing gets a task DAG and the
-`planning_update` / `task_update` events stream with the rest of the trace.
+Runs one CodeAct turn over the default toolbelt. `create_plan` and `execute_plan` are on the belt, so an objective that wants decomposing gets a task DAG and `planning_update` / `task_update` events stream with the trace.
 
 **Subcommands:** `run`, `diagnose`
 
@@ -2353,9 +2346,7 @@ nodetool agent run -p openai -m gpt-5.4-mini -o "Research AI trends" \
 nodetool agent diagnose <job_id>
 ```
 
-`--max-steps` is gone with the planner→compiler pipeline the command used to
-run, along with plan approval, checkpoints, the planning/reasoning model split,
-and skill auto-select. See [Agent CLI](agent-cli.md).
+`--max-steps` no longer exists. See [Agent CLI](agent-cli.md).
 
 ### Run budget
 
@@ -2436,7 +2427,7 @@ than guessing the path.
 
 **Subcommands:** `init`, `add`, `edit`, `list`, `show`, `plan`, `apply`,
 `status`, `logs`, `destroy`, plus the remote group `workflows` and the
-`users-*` verbs below.
+`users-*` and `accounts-*` verbs below.
 
 **Options:**
 
@@ -2445,7 +2436,7 @@ than guessing the path.
 - `-f, --follow` / `--tail <n>` / `--service <service>` — for `logs`; `--tail`
   defaults to `100`.
 - `--force` — skip the confirmation on `destroy`, `workflows delete`, and `users-remove`.
-- `--json` — machine-readable output on `list`, `workflows list`, and `users-list`.
+- `--json` — machine-readable output on `list`, `workflows list`, `users-list`, and `accounts-list`.
 
 ```bash
 # Scaffold, describe, and review before touching the remote host
@@ -2514,8 +2505,26 @@ nodetool deploy users-reset-token my-server alice
 nodetool deploy users-remove my-server alice
 ```
 
-Every subcommand that touches a live deployment — the `users-*` verbs and the
-`workflows` group above — sends an admin bearer token. `--token <token>`
+#### SSO accounts on the deployment
+
+A server with single sign-on keeps a directory of everyone who has signed in.
+`accounts-list` searches it, and `accounts-set` disables, enables, promotes, or
+demotes one account. A disabled user is refused at once, including their open
+connections and access tokens. See
+[Users, sessions, and admins](authentication.md#users-sessions-and-admins).
+
+```bash
+nodetool deploy accounts-list my-server --query ada
+nodetool deploy accounts-list my-server --status disabled --json
+nodetool deploy accounts-set my-server <user_id> --status disabled
+nodetool deploy accounts-set my-server <user_id> --role admin
+```
+
+`accounts-list` takes `--query`, `--status <active|disabled>`,
+`--role <admin|member>`, `--limit` (default `50`, at most `200`) and `--offset`.
+
+Every subcommand that touches a live deployment — the `users-*` and
+`accounts-*` verbs and the `workflows` group above — sends an admin bearer token. `--token <token>`
 passes it explicitly and wins over `NODETOOL_ADMIN_TOKEN`; with neither, an
 interactive shell prompts and a non-interactive one exits `1`.
 
@@ -2984,8 +2993,8 @@ install the recorded pack and runtime set for the new version.
 `run`, `debug`, `node run` and `workflows run` accept `--install-missing`.
 `NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing
 npm requirements and re-execute once, forwarding the child exit code. Serve,
-MCP and agent tools do not install packages automatically. External runtimes
-such as yt-dlp and Python require their own setup.
+MCP and agent tools do not install packages automatically. Install external
+runtimes such as yt-dlp and Python with [`nodetool runtime add`](#nodetool-runtime).
 
 See the [pack-system design](cli-pack-system-design.md#15-command-surface)
 for installation boundaries and the platform matrix.
@@ -3028,6 +3037,31 @@ Everything that stops a module short of admission is a named skip, not an
 error: `npm-module-builtin-import` (the dependency needs `node:*`),
 `npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
 `npm-module-forbidden-global`, and `npm-module-probe-failed`.
+
+### `nodetool runtime`
+
+Install the optional software that features load by id. The `cli-admin`
+command feature provides it. The installer is
+[`@nodetool-ai/runtime-install`](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime-install/README.md), the
+one the desktop Package Manager uses, so both hosts apply the same pins and
+install policy.
+
+| Command | Behavior |
+|---|---|
+| `runtime list [--json]` | Show every runtime package, whether it is installed, and the conda environment path. |
+| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `wan2gp`, and the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`). Dependencies install first. `--reinstall` installs an installed conda or uv package again. |
+| `runtime remove <ids...>` | Uninstall the packages. |
+| `runtime path` | Print the npm root runtime libraries install into. |
+| `runtime python-packs list [--json]` | Show the Python node packs in the Python runtime. |
+| `runtime python-packs add <packs...>` | Install the newest release of each pack, such as `nodetool-huggingface`. Installs Python first when it is missing. |
+| `runtime python-packs update <packs...>` | Reinstall each pack at its newest release. |
+| `runtime python-packs remove <packs...>` | Uninstall each pack. |
+
+`python`, `yt-dlp` and `rust` install into the conda environment that
+`settings.yaml` records as `CONDA_ENV`, which the desktop app shares. The CLI
+downloads micromamba into its data directory to create it. Python pack
+installs keep every installed pack in each resolve and take torch from the
+detected PyTorch index, with a CPU fallback.
 
 ### `nodetool reliability`
 
@@ -3243,9 +3277,7 @@ again, and a person can read the transcript before any model proposes anything.
 
 ## Tips
 
-- Use `--json` flags for machine-readable output suitable for scripting.
-- Set `NODETOOL_API_URL` environment variable to avoid specifying `--api-url` on every command.
-- Use `nodetool serve` to start the local backend server before running API commands.
+- Set `NODETOOL_API_URL` to avoid passing `--api-url` on every command.
 - See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
 
 ## Generation presets

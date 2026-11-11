@@ -133,7 +133,7 @@ function titleClip() {
   return { track, clip };
 }
 
-describe("renderTimeline GPU failure", () => {
+describe("renderTimeline with WebGPU", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     reportFailure = undefined;
@@ -180,6 +180,42 @@ describe("renderTimeline GPU failure", () => {
     });
     expect(reportFailure).toBeInstanceOf(Function);
     expect(mockAddFrame).toHaveBeenCalledTimes(3);
+  });
+
+  it("passes the decoded VideoFrame directly to the compositor", async () => {
+    class DecodedFrame {
+      constructor(readonly displayWidth: number, readonly displayHeight: number) {}
+    }
+    Object.defineProperty(globalThis, "VideoFrame", { configurable: true, value: DecodedFrame });
+    const frame = new DecodedFrame(64, 32);
+    const closed = new DecodedFrame(0, 0);
+    mockSeekVideo.mockResolvedValueOnce(frame).mockResolvedValueOnce(closed);
+    const track = makeTrack({ id: "picture", type: "video", index: 0 });
+    const clip = makeClip({
+      id: "video",
+      trackId: track.id,
+      currentAssetId: "video-asset",
+      mediaType: "video",
+      sourceType: "imported",
+      status: "generated",
+      startMs: 0,
+      durationMs: 1000
+    });
+    try {
+      await renderTimeline({
+        tracks: [track],
+        clips: [clip],
+        width: 64,
+        height: 32,
+        fps: 2,
+        durationMs: 1000,
+        resolveUrl: async () => "blob:clip"
+      });
+      expect(mockSetLayers.mock.calls[0][0][0].source).toBe(frame);
+      expect(mockSetLayers.mock.calls[1][0]).toEqual([]);
+    } finally {
+      Reflect.deleteProperty(globalThis, "VideoFrame");
+    }
   });
 
   it("rasterizes text into a window of the frame", async () => {

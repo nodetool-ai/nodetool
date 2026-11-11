@@ -1,38 +1,29 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 import { FalRawNode, FalDynamicNode } from "../src/fal-dynamic.js";
 
 /* ------------------------------------------------------------------ */
-/*  Mock @fal-ai/client SDK                                            */
-/* ------------------------------------------------------------------ */
-
-const mockSubscribe = vi.fn();
-const mockStorageUpload = vi.fn();
-
-vi.mock("@fal-ai/client", () => ({
-  createFalClient: vi.fn(() => ({
-    subscribe: mockSubscribe,
-    storage: { upload: mockStorageUpload }
-  }))
-}));
-
-/* ------------------------------------------------------------------ */
-/*  Fetch mock                                                          */
+/*  Scripted fal_ai provider and fetch mock                             */
 /* ------------------------------------------------------------------ */
 
 const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof vi.fn>;
+let provider: ScriptedProvider;
+let ctx: ProcessingContext;
 
 beforeEach(() => {
   mockFetch = vi.fn();
   globalThis.fetch = mockFetch;
-  mockSubscribe.mockReset();
-  mockStorageUpload.mockReset();
-  delete process.env.FAL_API_KEY;
+  provider = new ScriptedProvider([], {
+    providerId: "fal_ai",
+    uploadUrl: () => "https://fal.media/uploaded.mp4"
+  });
+  ctx = new ProcessingContext({ jobId: "job-fal-dynamic" });
+  ctx.setProviderResolver(async () => provider);
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  delete process.env.FAL_API_KEY;
 });
 
 /* ================================================================== */
@@ -118,37 +109,31 @@ describe("FalRawNode static metadata", () => {
 describe("FalRawNode.process", () => {
   it("calls the specified endpoint with parsed args and returns result", async () => {
     const response = { images: [{ url: "https://fal.media/img.png" }] };
-    mockSubscribe.mockResolvedValue({ data: response });
+    provider.scriptEndpoint("*", { output: response });
 
     const node = new FalRawNode();
     const executor = node.toExecutor();
     const result = await executor.process({
-      _secrets: { FAL_API_KEY: "test-key" },
       endpoint_id: "fal-ai/flux/dev",
       arguments: JSON.stringify({ prompt: "a cat" })
-    });
+    }, ctx);
 
     expect(result).toEqual({ result: response });
-    expect(mockSubscribe).toHaveBeenCalledOnce();
-    const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
-      string,
-      { input: Record<string, unknown> }
-    ];
+    expect(provider.endpointCalls).toHaveLength(1);
+    const { model: endpoint, input } = provider.endpointCalls[0];
     expect(endpoint).toBe("fal-ai/flux/dev");
-    expect(opts.input).toEqual({ prompt: "a cat" });
+    expect(input).toEqual({ prompt: "a cat" });
   });
 
   it("uses node property defaults when inputs are absent", async () => {
-    mockSubscribe.mockResolvedValue({ data: { ok: true } });
+    provider.scriptEndpoint("*", { output: { ok: true } });
     const node = new FalRawNode();
     // Set properties via default mechanism
     (node as Record<string, unknown>).endpoint_id = "fal-ai/test";
     (node as Record<string, unknown>).arguments = '{"x": 1}';
 
     const executor = node.toExecutor();
-    const result = await executor.process({
-      _secrets: { FAL_API_KEY: "k" }
-    });
+    const result = await executor.process({}, ctx);
     expect(result).toEqual({ result: { ok: true } });
   });
 
@@ -157,10 +142,9 @@ describe("FalRawNode.process", () => {
     const executor = node.toExecutor();
     await expect(
       executor.process({
-        _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "",
         arguments: "{}"
-      })
+      }, ctx)
     ).rejects.toThrow("endpoint_id is required");
   });
 
@@ -169,23 +153,21 @@ describe("FalRawNode.process", () => {
     const executor = node.toExecutor();
     await expect(
       executor.process({
-        _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "fal-ai/test",
         arguments: "not json"
-      })
+      }, ctx)
     ).rejects.toThrow("arguments must be valid JSON");
   });
 
   it("propagates FAL SDK errors", async () => {
-    mockSubscribe.mockRejectedValue(new Error("FAL queue error"));
+    provider.scriptEndpoint("*", new Error("FAL queue error"));
     const node = new FalRawNode();
     const executor = node.toExecutor();
     await expect(
       executor.process({
-        _secrets: { FAL_API_KEY: "k" },
         endpoint_id: "fal-ai/test",
         arguments: "{}"
-      })
+      }, ctx)
     ).rejects.toThrow("FAL queue error");
   });
 });
@@ -221,7 +203,7 @@ describe("FalDynamicNode.process — model_info validation", () => {
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     await expect(
-      executor.process({ _secrets: { FAL_API_KEY: "k" }, model_info: "" })
+      executor.process({ model_info: "" }, ctx)
     ).rejects.toThrow("model_info is required");
   });
 
@@ -231,9 +213,8 @@ describe("FalDynamicNode.process — model_info validation", () => {
     // A URL that is not fal.ai and not parseable as endpoint id
     await expect(
       executor.process({
-        _secrets: { FAL_API_KEY: "k" },
         model_info: "https://evil.com/some/path"
-      })
+      }, ctx)
     ).rejects.toThrow();
   });
 });
@@ -266,23 +247,19 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
     const apiResponse = {
       images: [{ url: "https://fal.media/img.png", width: 512, height: 512 }]
     };
-    mockSubscribe.mockResolvedValue({ data: apiResponse });
+    provider.scriptEndpoint("*", { output: apiResponse });
 
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     const result = await executor.process({
-      _secrets: { FAL_API_KEY: "test-key" },
       model_info: "fal-ai/flux/dev",
       prompt: "a dog"
-    });
+    }, ctx);
 
-    expect(mockSubscribe).toHaveBeenCalledOnce();
-    const [endpoint, opts] = mockSubscribe.mock.calls[0] as [
-      string,
-      { input: Record<string, unknown> }
-    ];
+    expect(provider.endpointCalls).toHaveLength(1);
+    const { model: endpoint, input } = provider.endpointCalls[0];
     expect(endpoint).toBe("fal-ai/flux/dev");
-    expect(opts.input.prompt).toBe("a dog");
+    expect(input.prompt).toBe("a dog");
     // Output should be mapped: images array → [{type: "image", uri: ...}]
     expect(result).toBeDefined();
   });
@@ -327,15 +304,14 @@ describe("FalDynamicNode.process — endpoint ID resolution", () => {
     });
 
     const apiResponse = { raw: "value" };
-    mockSubscribe.mockResolvedValue({ data: apiResponse });
+    provider.scriptEndpoint("*", { output: apiResponse });
 
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     const result = await executor.process({
-      _secrets: { FAL_API_KEY: "key" },
       model_info: "fal-ai/flux/dev",
       prompt: "test"
-    });
+    }, ctx);
     expect(result).toEqual({ result: apiResponse });
   });
 });
@@ -350,8 +326,8 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
       ok: true,
       json: () => Promise.resolve(minimalOpenApi)
     });
-    mockSubscribe.mockResolvedValue({
-      data: {
+    provider.scriptEndpoint("*", {
+      output: {
         images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }]
       }
     });
@@ -359,11 +335,10 @@ describe("FalDynamicNode.process — direct OpenAPI URL", () => {
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     const result = await executor.process({
-      _secrets: { FAL_API_KEY: "k" },
       model_info:
         "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/flux/dev",
       prompt: "hello"
-    });
+    }, ctx);
     // The schema behind the URL is what maps the response, so a mapped output
     // is the evidence the URL resolved to a schema at all.
     expect(result).toEqual({
@@ -404,9 +379,8 @@ describe("FalDynamicNode.process — domain validation", () => {
 
     await expect(
       executor.process({
-        _secrets: { FAL_API_KEY: "k" },
         model_info: "fal-ai/test"
-      })
+      }, ctx)
     ).rejects.toThrow();
   });
 });
@@ -439,10 +413,9 @@ describe("FalDynamicNode.process — required input validation", () => {
     // "prompt" is required in minimalOpenApi but we do not provide it
     await expect(
       executor.process({
-        _secrets: { FAL_API_KEY: "k" },
         model_info: "fal-ai/flux/dev"
         // no "prompt" key
-      })
+      }, ctx)
     ).rejects.toThrow("Missing required input: prompt");
   });
 });
@@ -504,27 +477,23 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
       });
     });
 
-    mockSubscribe.mockResolvedValue({ data: { result: "done" } });
+    provider.scriptEndpoint("*", { output: { result: "done" } });
 
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     await executor.process({
-      _secrets: { FAL_API_KEY: "k" },
       model_info: "fal-ai/img2img",
       image_url: {
         type: "image",
         data: "aGVsbG8=", // base64 "hello"
         uri: "test.png"
       }
-    });
+    }, ctx);
 
-    const [, opts] = mockSubscribe.mock.calls[0] as [
-      string,
-      { input: Record<string, unknown> }
-    ];
+    const { input } = provider.endpointCalls[0];
     // Should be converted to a data URI string
-    expect(typeof opts.input.image_url).toBe("string");
-    expect((opts.input.image_url as string).startsWith("data:")).toBe(true);
+    expect(typeof input.image_url).toBe("string");
+    expect((input.image_url as string).startsWith("data:")).toBe(true);
   });
 
   it("uploads a video data ref with a video MIME type (not as image)", async () => {
@@ -577,27 +546,21 @@ describe("FalDynamicNode.process — asset ref coercion", () => {
       });
     });
 
-    mockStorageUpload.mockResolvedValue("https://fal.media/uploaded.mp4");
-    mockSubscribe.mockResolvedValue({ data: { result: "done" } });
+    provider.scriptEndpoint("*", { output: { result: "done" } });
 
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     await executor.process({
-      _secrets: { FAL_API_KEY: "k" },
       model_info: "fal-ai/vid",
       video_url: { type: "video", data: "aGVsbG8=" } // no uri → must upload
-    });
+    }, ctx);
 
     // The uploaded blob must carry a video content type, never image/*.
-    expect(mockStorageUpload).toHaveBeenCalledOnce();
-    const blob = mockStorageUpload.mock.calls[0][0] as Blob;
-    expect(blob.type).toBe("video/mp4");
+    expect(provider.uploadCalls).toHaveLength(1);
+    expect(provider.uploadCalls[0].mimeType).toBe("video/mp4");
 
-    const [, opts] = mockSubscribe.mock.calls[0] as [
-      string,
-      { input: Record<string, unknown> }
-    ];
-    expect(opts.input.video_url).toBe("https://fal.media/uploaded.mp4");
+    const { input } = provider.endpointCalls[0];
+    expect(input.video_url).toBe("https://fal.media/uploaded.mp4");
   });
 });
 
@@ -627,8 +590,8 @@ describe("FalDynamicNode.process — fal.ai model URL", () => {
       });
     });
 
-    mockSubscribe.mockResolvedValue({
-      data: {
+    provider.scriptEndpoint("*", {
+      output: {
         images: [{ url: "https://fal.media/x.png", width: 1, height: 1 }]
       }
     });
@@ -636,10 +599,9 @@ describe("FalDynamicNode.process — fal.ai model URL", () => {
     const node = new FalDynamicNode();
     const executor = node.toExecutor();
     await executor.process({
-      _secrets: { FAL_API_KEY: "k" },
       model_info: "https://fal.ai/models/fal-ai/flux/dev",
       prompt: "test"
-    });
+    }, ctx);
 
     // Should have fetched llms.txt
     expect(callOrder.some((u) => u.endsWith("llms.txt"))).toBe(true);

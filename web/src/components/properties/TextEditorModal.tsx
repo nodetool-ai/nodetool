@@ -1645,7 +1645,6 @@ const TextEditorModal = ({
                           }
                         }
                         onModelChange={setSelectedModel}
-                        workflowAssistant={true}
                         chatSource="text_editor"
                         onStop={stopGeneration}
                         currentPlanningUpdate={runtime.planningUpdate}

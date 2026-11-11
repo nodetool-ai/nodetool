@@ -252,7 +252,7 @@ describe("DreaminaProvider", () => {
   });
 
   it("explains the missing extension", async () => {
-    await expect(new DreaminaProvider().textToImage({ model: { id: "m", name: "m", provider: "dreamina" }, prompt: "x" })).rejects.toThrow("browser bridge is not running");
+    await expect(new DreaminaProvider().textToImage({ model: { id: "m", name: "m", provider: "dreamina" }, prompt: "x" })).rejects.toThrow("Settings → Integrations → Browser extension");
   });
 
   describe("video", () => {

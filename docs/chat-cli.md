@@ -6,16 +6,9 @@ description: "Use `nodetool chat`, the interactive terminal for conversing with 
 
 
 
-The `nodetool chat` command starts an interactive terminal interface for conversing with language models and running
-tools. Every chat session runs the unified agent loop — the assistant can call tools and decompose work on its own; there
-is no separate mode to toggle.
+`nodetool chat` starts an interactive terminal chat that runs the agent loop with tools. `nodetool chat` forwards its flags to the `nodetool-chat` binary, so both names start the same interface.
 
 ## Starting the Interface
-
-Run `nodetool chat` from your shell. The header shows the current provider and model, and the line under it shows the
-workspace, the connection, and the permission mode. Type `/help` at any time to list the commands and key bindings.
-
-`nodetool chat` forwards its flags to the `nodetool-chat` binary, so both names start the same interface.
 
 ```bash
 # Start with saved / auto-detected settings
@@ -31,7 +24,7 @@ nodetool chat --workspace /path/to/project
 nodetool chat --url ws://localhost:7777/ws
 ```
 
-Other flags:
+The header shows the provider and model. The line under it shows the workspace, the connection, and the permission mode. Other flags:
 
 - `--resume [id]` — resume a saved conversation in this workspace. Without an ID, resume the most recent one.
 - `--permission-mode <default|auto|plan>` — how tool calls are gated. Interactive chat defaults to `default`, piped input to `auto`.
@@ -62,7 +55,7 @@ Commands use a `/` prefix. Tab completes commands and arguments (provider names,
 - **/details** — Toggle tool arguments, code, and diffs.
 - **/exit**, **/quit** — Save and exit.
 
-There is no `/provider` command. Pick a provider with `/model provider/model-id` or `--provider`.
+There is no `/provider` command. Use `/model provider/model-id` or `--provider`.
 
 Enter sends. Alt+Enter, Shift+Enter in supported terminals, or Ctrl+J inserts a newline. Up and Down recall earlier prompts, Tab completes, and Page Up, Page Down, or the mouse wheel scroll the transcript. Ctrl+G jumps to the latest output and Ctrl+O toggles tool details. Esc or Ctrl+C stops a running turn. When idle, either one clears a draft, and Ctrl+C on an empty composer saves and quits.
 
@@ -82,9 +75,7 @@ provider's continuation state. `/sessions` and `--resume` list only sessions tha
 
 ## Tools
 
-The assistant runs with a set of enabled tools (file operations, web search, browser, NodeTool MCP
-tools, and more). Tools are auto-enabled based on the API keys available in your environment or the encrypted secret
-store. Use `--tools` to override the set explicitly, or `/tools` to see what is currently enabled. Local interactive chat also enables `bash` for host commands in the chat workspace. It is not available in piped stdin chat or server-connected chat (`--url`). Bash commands are not sandboxed: default permission mode asks before running one, plan mode blocks it, and auto mode permits it without a prompt.
+Tools (file operations, web search, browser, NodeTool MCP tools) are enabled from the API keys in your environment or the secret store. Use `--tools` to override the set and `/tools` to list it. Local interactive chat also enables `bash` for host commands in the chat workspace. It is not available in piped stdin chat or server-connected chat (`--url`). Bash commands are not sandboxed: default permission mode asks before running one, plan mode blocks it, and auto mode permits it without a prompt.
 
 ```bash
 nodetool chat --tools read_file,write_file,grep,web_search
@@ -92,11 +83,8 @@ nodetool chat --tools read_file,write_file,grep,web_search
 
 ## Workspace
 
-File operations run against a workspace directory. The workspace defaults to the **current working directory**; override
-it with `--workspace <path>`.
+File operations run against the workspace, which defaults to the current directory. Override it with `--workspace <path>`.
 
 ## Settings and Logs
 
-Persisted settings (`provider`, `model`, `enabledTools`) are stored in `~/.nodetool/chat-settings.json`. A log file is written
-to `~/.nodetool/chat.log` so logging does not interfere with the terminal UI. Your provider and model choices are saved
-automatically as you change them, so they carry over between runs.
+Persisted settings (`provider`, `model`, `enabledTools`) are stored in `~/.nodetool/chat-settings.json`. Logs go to `~/.nodetool/chat.log` so they do not disturb the terminal UI. Provider and model changes are saved automatically.

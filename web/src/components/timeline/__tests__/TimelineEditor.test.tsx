@@ -1,3 +1,4 @@
+import { useLoadTimelineIntoStore } from "../../../hooks/timeline/useLoadTimelineIntoStore";
 /**
  * TimelineEditor shell tests.
  *
@@ -223,6 +224,19 @@ afterEach(() => {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("TimelineEditor", () => {
+  it.each([2, 3])("opens version %s as metadata only without loading or autosaving", (workingColorSpaceVersion) => {
+    const sequence = makeSequence({ workingColorSpaceVersion, name: "Future cut" });
+    const saved = JSON.stringify(sequence);
+    (useTimeline as jest.Mock).mockReturnValue({ data: sequence, isLoading: false, isError: false });
+    renderEditor();
+    expect(screen.getByText("Future cut")).toBeInTheDocument();
+    expect(screen.getByText(`This timeline uses color version ${workingColorSpaceVersion}. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it.`)).toBeInTheDocument();
+    expect(screen.queryByTestId("tracks-region")).not.toBeInTheDocument();
+    expect(useLoadTimelineIntoStore).not.toHaveBeenCalled();
+    expect(useTimelineAutosave).not.toHaveBeenCalled();
+    expect(JSON.stringify(sequence)).toBe(saved);
+  });
+
   describe("loading state", () => {
     it("shows a loading spinner in the preview region", () => {
       (useTimeline as jest.Mock).mockReturnValue({

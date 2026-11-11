@@ -22,9 +22,13 @@ import ReportBugButton from "../support/ReportBugButton";
 
 interface ExampleAppUseViewProps {
   slug: string;
+  runActionsHost?: HTMLElement | null;
 }
 
-export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
+export default function ExampleAppUseView({
+  slug,
+  runActionsHost
+}: ExampleAppUseViewProps) {
   const { t } = useTranslation();
   const query = useQuery({
     queryKey: ["example-app-bundle", slug],
@@ -135,6 +139,7 @@ export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
       workflowOverrides={workflows}
       scriptOverrides={scripts}
       scriptRunner={scriptRunner}
+      runActionsHost={runActionsHost}
     />
   );
 }

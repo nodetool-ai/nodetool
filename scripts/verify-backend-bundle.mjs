@@ -156,6 +156,27 @@ function listShippedSandboxPackNames() {
 }
 
 /**
+ * True when a `package://` file is staged in the bundle, or listed in the
+ * package media manifest beside it (`assets/<package>.media.json`), which the
+ * server downloads on first use.
+ */
+const mediaManifests = new Map();
+function packageFileAvailable(bundleDir, packageName, relative) {
+  if (existsSync(path.join(bundleDir, "assets", packageName, ...relative.split("/")))) return true;
+  const file = path.join(bundleDir, "assets", `${packageName}.media.json`);
+  if (!mediaManifests.has(file)) {
+    let manifest = null;
+    try {
+      manifest = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      // No manifest: only staged files count.
+    }
+    mediaManifests.set(file, manifest);
+  }
+  return Boolean(mediaManifests.get(file)?.files?.[relative]);
+}
+
+/**
  * Verify the staged bundle layout. Returns human-readable summary lines on
  * success; throws an Error listing every failed check otherwise. Every check
  * applies to both profiles — the server renders timelines on the same GPU
@@ -312,8 +333,7 @@ export function verifyBackendBundle(bundleDir) {
             missingMedia.push(`${file}: shot ${shot?.id} has no package:// media`);
             continue;
           }
-          const staged = path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
-          if (!existsSync(staged)) {
+          if (!packageFileAvailable(bundleDir, match[1], match[2])) {
             missingMedia.push(`${file}: ${uri}`);
           }
         }
@@ -349,8 +369,7 @@ export function verifyBackendBundle(bundleDir) {
         .filter((id) => typeof id === "string" && id.startsWith("package://"));
       for (const uri of [bundle.videoUri, bundle.posterUri, ...new Set(clipMedia)]) {
         const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
-        const asset = match && path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
-        if (!asset || !existsSync(asset)) {
+        if (!match || !packageFileAvailable(bundleDir, match[1], match[2])) {
           errors.push(`examples/timelines/${file} has missing media: ${uri}`);
         }
       }
@@ -371,8 +390,7 @@ export function verifyBackendBundle(bundleDir) {
     const media = Object.values(bundle.document?.assets ?? {}).map((binding) => binding.assetId);
     for (const uri of [bundle.posterUri, ...media]) {
       const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");
-      const asset = match && path.join(bundleDir, "assets", match[1], ...match[2].split("/"));
-      if (!asset || !existsSync(asset)) {
+      if (!match || !packageFileAvailable(bundleDir, match[1], match[2])) {
         errors.push(`examples/games/${file} has missing media: ${uri}`);
       }
     }

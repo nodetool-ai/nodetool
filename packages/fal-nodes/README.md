@@ -32,7 +32,7 @@ Remaining categories: `audio_to_audio`, `audio_to_video`, `video_to_audio`, `vid
 
 ## Configuration
 
-Set `FAL_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable.
+Set `FAL_API_KEY` in NodeTool's secret store (Settings → API Keys) or as the `FAL_API_KEY` or `FAL_KEY` environment variable. The nodes call fal.ai through NodeTool's `fal_ai` provider, which holds the key.
 
 ## Links
 

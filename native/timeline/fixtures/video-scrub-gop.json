@@ -1,0 +1,57 @@
+{
+  "id": "seq-scrub-gop",
+  "projectId": "native-prototype",
+  "name": "Scrub 1080p 2 s GOP",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 20000,
+  "tracks": [
+    {
+      "id": "track-scrub",
+      "name": "Scrub",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "scrub",
+      "trackId": "track-scrub",
+      "name": "Scrub 1080p 2 s GOP",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1,
+      "mediaPath": "media/numbered-a-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

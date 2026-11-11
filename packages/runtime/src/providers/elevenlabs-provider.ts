@@ -11,7 +11,14 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type MediaUpload,
+  type ProviderCapability
+} from "./base-provider.js";
+import { recordGenerationReceipt } from "../generation-receipt.js";
 import type {
   EncodedAudioResult,
   Message,
@@ -64,6 +71,21 @@ const SAMPLE_RATE = 24000;
 
 interface ElevenLabsProviderOptions {
   fetchFn?: typeof fetch;
+}
+
+/** A multipart file field: the bytes with their type and file name. */
+type MediaPart = Pick<MediaUpload, "bytes" | "mimeType" | "filename">;
+
+/** Put a synchronous call's vendor request id on the generation receipt. */
+function recordRequestId(requestId: string | null): string | null {
+  if (requestId) recordGenerationReceipt({ provider_request_id: requestId });
+  return requestId;
+}
+
+function isMediaPart(value: unknown): value is MediaPart {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return record.bytes instanceof Uint8Array && typeof record.mimeType === "string";
 }
 
 export class ElevenLabsProvider extends BaseProvider {
@@ -156,6 +178,134 @@ export class ElevenLabsProvider extends BaseProvider {
       throw new Error(`ElevenLabs TTS failed: ${response.status} ${detail}`);
     }
     return new Uint8Array(await response.arrayBuffer());
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Call one ElevenLabs REST endpoint. `route` selects the family:
+   *
+   * - `text-to-speech`: POST `/text-to-speech/{voice_id}`. `input.voice_id`
+   *   fills the path and an optional `input.output_format` the query. The
+   *   rest of `input` is the JSON body, with `model_id` defaulting to
+   *   `model`. The output is the audio as `{ data, mimeType }`.
+   * - `speech-to-text`: POST `/speech-to-text` as multipart form data. Each
+   *   `input` entry is one form field in order. A `{ bytes, mimeType,
+   *   filename }` value is sent as a file part, any other scalar as its
+   *   string. The output is the transcription JSON.
+   *
+   * ElevenLabs reads media from the request itself, so there is no upload
+   * step: `uploadMedia` keeps the base default.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    if (req.route === "text-to-speech") {
+      return this.callTextToSpeech(req);
+    }
+    if (req.route === "speech-to-text") {
+      return this.callSpeechToText(req);
+    }
+    throw new Error(
+      `elevenlabs endpoint route must be "text-to-speech" or "speech-to-text", got ${req.route === undefined ? "none" : `"${req.route}"`}`
+    );
+  }
+
+  private async callTextToSpeech(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const { voice_id: voiceId, output_format: outputFormat, ...rest } =
+      req.input;
+    if (typeof voiceId !== "string" || !voiceId) {
+      throw new Error("elevenlabs text-to-speech needs input.voice_id");
+    }
+    const body = { ...rest };
+    if (body.model_id === undefined) body.model_id = req.model;
+    let url = `${ELEVENLABS_API_BASE}/text-to-speech/${encodeURIComponent(voiceId)}`;
+    if (outputFormat !== undefined) {
+      url += `?output_format=${encodeURIComponent(String(outputFormat))}`;
+    }
+    const response = await this.postEndpoint(
+      url,
+      {
+        "xi-api-key": this.apiKey,
+        "Content-Type": "application/json"
+      },
+      JSON.stringify(body),
+      req.signal
+    );
+    const data = new Uint8Array(await response.arrayBuffer());
+    return {
+      output: {
+        data,
+        mimeType: response.headers.get("content-type") || "audio/mpeg"
+      },
+      requestId: recordRequestId(response.headers.get("request-id"))
+    };
+  }
+
+  private async callSpeechToText(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(req.input)) {
+      if (value === undefined || value === null) continue;
+      if (isMediaPart(value)) {
+        form.append(
+          name,
+          new Blob([new Uint8Array(value.bytes)], { type: value.mimeType }),
+          value.filename ?? name
+        );
+      } else if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        form.append(name, String(value));
+      } else {
+        throw new Error(
+          `elevenlabs speech-to-text field "${name}" must be a string, number, boolean or file part`
+        );
+      }
+    }
+    const response = await this.postEndpoint(
+      `${ELEVENLABS_API_BASE}/speech-to-text`,
+      { "xi-api-key": this.apiKey },
+      form,
+      req.signal
+    );
+    const output: unknown = await response.json();
+    const transcriptionId =
+      output !== null && typeof output === "object"
+        ? (output as Record<string, unknown>).transcription_id
+        : undefined;
+    return {
+      output,
+      requestId: recordRequestId(
+        typeof transcriptionId === "string"
+          ? transcriptionId
+          : response.headers.get("request-id")
+      )
+    };
+  }
+
+  /** POST and return the response, or throw with the vendor's error text. */
+  private async postEndpoint(
+    url: string,
+    headers: Record<string, string>,
+    body: string | FormData,
+    signal: AbortSignal | undefined
+  ): Promise<Response> {
+    const init: RequestInit = { method: "POST", headers, body };
+    if (signal) init.signal = signal;
+    const response = await this._fetch(url, init);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API error: ${errorText}`);
+    }
+    return response;
   }
 
   override async *textToSpeech(args: {

@@ -18,7 +18,11 @@ import { BASE_URL } from "../stores/BASE_URL";
 import { getBuildEnv } from "./buildEnv";
 import { isObjectLike } from "../utils/typePredicates";
 
-export type AuthMode = "local" | "supabase";
+/**
+ * `supabase`: the hosted login. `oidc`: single sign-on through the operator's
+ * own identity provider (self-hosted). `local`: no login, single local user.
+ */
+export type AuthMode = "local" | "supabase" | "oidc";
 
 export interface RuntimeConfig {
   /** Whether the backend enforces authentication. */
@@ -29,6 +33,8 @@ export interface RuntimeConfig {
   supabaseAnonKey: string | null;
   /** Optional OAuth redirect override. */
   authRedirectUrl: string | null;
+  /** Label for the SSO sign-in button (SSO mode only), such as "Okta". */
+  ssoProviderName: string | null;
   /**
    * Whether the backend offers the Google Workspace integration (Drive, Gmail,
    * Docs, Sheets, Calendar). It runs on the token from the Google login, so it
@@ -61,6 +67,7 @@ const fallbackConfig = (): RuntimeConfig => {
     supabaseUrl,
     supabaseAnonKey,
     authRedirectUrl: getBuildEnv("VITE_AUTH_REDIRECT_URL") ?? null,
+    ssoProviderName: null,
     googleWorkspace: false,
     googleScopes: [],
     version: null,
@@ -87,17 +94,22 @@ export const getRuntimeConfig = (): RuntimeConfig => current;
  */
 export const isRuntimeConfigFromBackend = (): boolean => fromBackend;
 
-/** True when the backend enforces authentication (Supabase mode). */
-export const isAuthRequired = (): boolean => current.authMode === "supabase";
+/** True when the backend enforces authentication (Supabase or SSO mode). */
+export const isAuthRequired = (): boolean => current.authMode !== "local";
+
+/** True when sign-in goes through the backend's OIDC single sign-on. */
+export const isSsoMode = (): boolean => current.authMode === "oidc";
 
 const coerce = (data: unknown): RuntimeConfig => {
   if (!data || !isObjectLike(data)) return fallbackConfig();
   const d = data as Partial<RuntimeConfig>;
   return {
-    authMode: d.authMode === "supabase" ? "supabase" : "local",
+    authMode:
+      d.authMode === "supabase" || d.authMode === "oidc" ? d.authMode : "local",
     supabaseUrl: d.supabaseUrl ?? null,
     supabaseAnonKey: d.supabaseAnonKey ?? null,
     authRedirectUrl: d.authRedirectUrl ?? null,
+    ssoProviderName: d.ssoProviderName ?? null,
     googleWorkspace: d.googleWorkspace === true,
     googleScopes: Array.isArray(d.googleScopes) ? d.googleScopes : [],
     version: d.version ?? null,

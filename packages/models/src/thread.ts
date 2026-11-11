@@ -10,6 +10,9 @@ import { getPortableDb } from "./db.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { threads } from "./schema/threads.js";
 
+/** A conversation, or a Create session whose takes are generations. */
+export type ThreadKind = "chat" | "create";
+
 export class Thread extends DBModel {
   static override table = threads;
 
@@ -18,6 +21,7 @@ export class Thread extends DBModel {
   declare workflow_id: string | null;
   declare project_id: string;
   declare title: string;
+  declare kind: ThreadKind;
   declare created_at: string;
   declare updated_at: string;
 
@@ -34,6 +38,7 @@ export class Thread extends DBModel {
     this.workflow_id ??= null;
     this.project_id ??= "default";
     this.title ??= "";
+    this.kind ??= "chat";
     this.created_at ??= now;
     this.updated_at ??= now;
   }

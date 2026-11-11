@@ -40,9 +40,9 @@ describe("Phase 3 Batch 2 source modules", () => {
         expect(module.io.rod).toBe("explicit");
       });
 
-      it("output format is rgba8unorm, linear+premultiplied", () => {
+      it("output format is rgba8unorm, srgb+premultiplied", () => {
         expect(module.io.output.format).toBe("rgba8unorm");
-        expect(module.io.output.colorSpace).toBe("linear");
+        expect(module.io.output.colorSpace).toBe("srgb");
         expect(module.io.output.alpha).toBe("premultiplied");
       });
 

@@ -5,7 +5,17 @@ permalink: /game-engine/audio
 description: "Route game audio through buses, scene music, spatial emitters, and mix snapshots."
 ---
 
-Bind prepared audio to logical slots, then use scene music or entity audio sources to play it. Audio is presentation state. It does not change simulation results or deterministic replay.
+Bind prepared audio to logical slots, then play it through scene music or entity audio sources. Audio is presentation state and does not change simulation results or replay.
+
+```json
+{
+  "music": { "assetId": "theme", "volume": 0.6, "fadeInTicks": 60 },
+  "audioSource": { "assetId": "pickup", "onEvent": "collected", "volume": 1, "spatial": true,
+                   "minDistance": 1, "maxDistance": 50 }
+}
+```
+
+`music` belongs to the scene and `audioSource` to an entity. `maxDistance` must be greater than `minDistance`, and a cone's `outerAngle` must be at least its `innerAngle`. Validation rejects both otherwise.
 
 ![Audio routing diagram from scene music and entity effects through mixer buses to output](/assets/game-engine/audio-routing.svg)
 

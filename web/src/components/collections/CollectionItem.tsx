@@ -179,7 +179,6 @@ const CollectionItem = ({
           tooltip={t("i18n-next30.collections.deleteTooltip")}
           disabled={isDeleting}
           loading={deletingCollection === collection.name}
-          sx={{ mt: -10 }}
           nodrag={false}
         />
       </FlexRow>

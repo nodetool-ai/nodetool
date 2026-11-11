@@ -1152,6 +1152,24 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "list_providers",
+      "Configured providers and the capabilities each serves.",
+      { capability: s },
+      (params) => {
+        const capability = str(params["capability"]);
+        const byProvider = new Map<string, Set<string>>();
+        for (const m of MODEL_CATALOG) {
+          const caps = byProvider.get(m.provider) ?? new Set<string>();
+          for (const c of m.capabilities) caps.add(c);
+          byProvider.set(m.provider, caps);
+        }
+        const providers = [...byProvider.entries()]
+          .filter(([, caps]) => capability === "" || caps.has(capability))
+          .map(([id, caps]) => ({ id, capabilities: [...caps].sort() }));
+        return { total: providers.length, providers };
+      }
+    ),
+    tool(
       "generate_text",
       "Run one language-model roundtrip.",
       {

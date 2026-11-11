@@ -5,7 +5,6 @@ import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
   bytesToBase64,
   generateVideo,
-  getMinimaxApiKey,
   inferImageMime,
   MINIMAX_I2V_MODELS,
   MINIMAX_VIDEO_DURATIONS,
@@ -89,8 +88,6 @@ export class MinimaxImageToVideoNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<MinimaxImageToVideoNodeOutputs> {
-    const apiKey = getMinimaxApiKey(this._secrets);
-
     const imageBytes = await loadMediaRefBytes(this.image, context);
     if (!imageBytes || imageBytes.length === 0) {
       throw new Error("An input image is required");
@@ -117,9 +114,15 @@ export class MinimaxImageToVideoNode extends BaseNode {
     const prompt = String(this.prompt ?? "");
     if (prompt) body.prompt = prompt;
 
-    const bytes = await generateVideo(apiKey, body, {
-      signal: context?.signal
-    });
+    if (!context) {
+      throw new Error("MiniMax Image to Video requires a processing context");
+    }
+    const bytes = await generateVideo(
+      context,
+      body,
+      "image_to_video",
+      this.__node_id || undefined
+    );
     return { output: videoRefFromBytes(bytes) };
   }
 }

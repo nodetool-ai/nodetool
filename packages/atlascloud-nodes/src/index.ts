@@ -15,19 +15,6 @@ export type {
   AtlasFieldType
 } from "./atlascloud-factory.js";
 
-export {
-  ATLAS_BASE,
-  SUBMIT_PATH,
-  atlasAwaitResult,
-  atlasDownload,
-  atlasPoll,
-  atlasSubmit,
-  getApiKey,
-  pickOutputUrl,
-  pollPath
-} from "./atlascloud-base.js";
-export type { AtlasModality } from "./atlascloud-base.js";
-
 function loadManifest(): AtlasManifestEntry[] {
   return loadPackageAssetJson<AtlasManifestEntry[]>(
     { pkg: "@nodetool-ai/atlascloud-nodes", path: "atlascloud-manifest.json" },

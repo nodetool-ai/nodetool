@@ -1,0 +1,336 @@
+{
+  "id": "seq-synthetic-8",
+  "projectId": "native-prototype",
+  "name": "Eight synthetic layers",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 20000,
+  "tracks": [
+    {
+      "id": "track-1",
+      "name": "Layer 1",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-2",
+      "name": "Layer 2",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-3",
+      "name": "Layer 3",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-4",
+      "name": "Layer 4",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-5",
+      "name": "Layer 5",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-6",
+      "name": "Layer 6",
+      "type": "video",
+      "index": 5,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-7",
+      "name": "Layer 7",
+      "type": "video",
+      "index": 6,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-8",
+      "name": "Layer 8",
+      "type": "video",
+      "index": 7,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip-1",
+      "trackId": "track-1",
+      "name": "Layer 1",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.95,
+      "transform": {
+        "position": {
+          "x": -620,
+          "y": -300
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": -0.24,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-2",
+      "trackId": "track-2",
+      "name": "Layer 2",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 250,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.9,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": -300
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": -0.16,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-3",
+      "trackId": "track-3",
+      "name": "Layer 3",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 500,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.85,
+      "transform": {
+        "position": {
+          "x": 620,
+          "y": -300
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": -0.08,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-4",
+      "trackId": "track-4",
+      "name": "Layer 4",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 750,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.8,
+      "transform": {
+        "position": {
+          "x": -620,
+          "y": 30
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-5",
+      "trackId": "track-5",
+      "name": "Layer 5",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.75,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 30
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0.08,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-6",
+      "trackId": "track-6",
+      "name": "Layer 6",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 1250,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.7,
+      "transform": {
+        "position": {
+          "x": 620,
+          "y": 30
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0.16,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-7",
+      "trackId": "track-7",
+      "name": "Layer 7",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 1500,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 0.65,
+      "transform": {
+        "position": {
+          "x": -310,
+          "y": 330
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0.24,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "clip-8",
+      "trackId": "track-8",
+      "name": "Background",
+      "startMs": 0,
+      "durationMs": 20000,
+      "inPointMs": 1750,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0.0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

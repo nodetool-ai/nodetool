@@ -36,6 +36,9 @@ import {
 export interface PremiereMediaInfo {
   durationMs?: number;
   hasAudio?: boolean;
+  /** Picture size after rotation. */
+  width?: number;
+  height?: number;
 }
 
 export interface PremiereFetchedAsset extends FetchedTimelineAsset {
@@ -101,6 +104,10 @@ export async function planPremiereExport(
     const durationMs = fetched.durationMs ?? info.durationMs;
     if (durationMs !== undefined) asset.durationMs = durationMs;
     if (info.hasAudio !== undefined) asset.hasAudio = info.hasAudio;
+    if (info.width !== undefined && info.height !== undefined) {
+      asset.width = info.width;
+      asset.height = info.height;
+    }
     assets.set(assetId, asset);
     media.push({ file, source: fetched.source });
   }
@@ -109,6 +116,32 @@ export async function planPremiereExport(
     resolveAsset: (assetId) => assets.get(assetId)
   });
   return { xmlName: `${safeName(sequence.name)}.xml`, xml, report, media };
+}
+
+/** Header budget for the report. Node refuses a header block over 16 KiB. */
+const REPORT_HEADER_BYTES = 6000;
+
+/**
+ * The export report for the `x-nodetool-export-report` response header: a
+ * percent-encoded JSON object. A client reads it without opening the zip.
+ * Warnings that do not fit are counted in `omitted` and stay in the zip's
+ * `export-report.txt`.
+ */
+export function premiereReportHeader(
+  report: Pick<InterchangeReport, "clipsExported" | "warnings">
+): string {
+  const messages: string[] = [];
+  let omitted = 0;
+  const encode = () => encodeURIComponent(JSON.stringify({ clipsExported: report.clipsExported, warnings: messages, omitted }));
+  for (const warning of report.warnings) {
+    messages.push(warning.message);
+    if (encode().length > REPORT_HEADER_BYTES) {
+      messages.pop();
+      omitted = report.warnings.length - messages.length;
+      break;
+    }
+  }
+  return encode();
 }
 
 /** The plain-text note that travels in the zip next to the sequence. */

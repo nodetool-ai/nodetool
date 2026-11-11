@@ -16,6 +16,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { openPageTab } from "../workspace/openPageTab";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceExplorer } from "../../hooks/useWorkspaceExplorer";
 import WorkspaceSelect from "./WorkspaceSelect";
 
@@ -287,6 +288,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   expandedItemsRef.current = expandedItems;
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setPanelVisibility = usePanelStore((state) => state.setVisibility);
 
   const {
     workspaceId,
@@ -412,8 +414,9 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         title: item?.label ?? itemId.split("/").pop() ?? itemId,
         projectId
       });
+      setPanelVisibility(false);
     },
-    [loadItemChildren, openTab, projectId]
+    [loadItemChildren, openTab, projectId, setPanelVisibility]
   );
 
   const handleOpenExternally = useCallback(async () => {

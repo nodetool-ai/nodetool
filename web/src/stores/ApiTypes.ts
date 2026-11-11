@@ -75,6 +75,7 @@ import {
   TaskUpdate,
   TodoItem,
   TodoUpdate,
+  GenerationBatchUpdate,
   Thread,
   ToolCall,
   ToolCallUpdate,
@@ -176,6 +177,7 @@ export type { TaskPlan };
 export type { TaskUpdate };
 export type { TodoItem };
 export type { TodoUpdate };
+export type { GenerationBatchUpdate };
 export type { Thread };
 export type { ToolCall };
 export type { ToolCallUpdate };

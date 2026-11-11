@@ -8,7 +8,9 @@
  *
  * The canvas is the still's natural size and is scaled down to fit, so the
  * brush size is converted from screen pixels to still pixels on every stroke:
- * a 40 px brush covers the same area whatever the dialog's width.
+ * a 40 px brush covers the same area whatever the dialog's width. An SVG
+ * still has no pixels of its own, so its canvas is the size the server renders
+ * it at before the model reads it.
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -28,6 +30,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
+import { stillPixelSize } from "./svgStill";
 
 interface ShotMaskPainterProps {
   /** The resolved URL of the still being masked. */
@@ -135,13 +138,14 @@ const ShotMaskPainterInner: React.FC<ShotMaskPainterProps> = ({
     if (!image || !canvas) {
       return;
     }
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
+    const size = stillPixelSize(image, stillUrl);
+    canvas.width = size.width;
+    canvas.height = size.height;
     if (initialMask) {
       canvas.getContext("2d")?.drawImage(initialMask, 0, 0);
     }
     setReady(true);
-  }, [initialMask]);
+  }, [initialMask, stillUrl]);
 
   useEffect(() => {
     if (imageRef.current?.complete && imageRef.current.naturalWidth > 0) {

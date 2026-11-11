@@ -127,11 +127,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-transcribe",
-                        "binding": "op:transcribe/exec#progress",
-                        "label": "Transcribing…"
+                        "operationId": "transcribe",
+                        "label": "Transcribing…",
+                        "steps": []
                       }
                     },
                     {
@@ -311,11 +312,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-translate",
-                        "binding": "op:translate/exec#progress",
-                        "label": "Translating…"
+                        "operationId": "translate",
+                        "label": "Translating…",
+                        "steps": []
                       }
                     },
                     {
@@ -473,11 +475,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-voice",
-                        "binding": "op:voice/exec#progress",
-                        "label": "Voicing…"
+                        "operationId": "voice",
+                        "label": "Voicing…",
+                        "steps": []
                       }
                     },
                     {
@@ -511,11 +514,12 @@
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-subtitles",
-                        "binding": "op:subtitles/exec#progress",
-                        "label": "Writing subtitles…"
+                        "operationId": "subtitles",
+                        "label": "Writing subtitles…",
+                        "steps": []
                       }
                     },
                     {
@@ -672,11 +676,12 @@
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-spokesperson",
-                        "binding": "op:spokesperson/exec#progress",
-                        "label": "Redrawing the mouth…"
+                        "operationId": "spokesperson",
+                        "label": "Redrawing the mouth…",
+                        "steps": []
                       }
                     },
                     {

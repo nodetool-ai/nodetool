@@ -32,7 +32,7 @@ export interface CreateLabeledTextureOptions {
 }
 
 const DEFAULT_META: LabeledTextureMeta = {
-  colorSpace: "linear",
+  colorSpace: "encoded-sdr",
   alpha: "premultiplied",
   bindingKind: "texture_2d"
 };

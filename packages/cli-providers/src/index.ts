@@ -78,6 +78,7 @@ export const KNOWN_PROVIDERS = [
   "anthropic",
   "claude_agent_sdk",
   "antigravity",
+  "copilot",
   "openai",
   "codex",
   "gemini",
@@ -97,6 +98,9 @@ export const KNOWN_PROVIDERS = [
   "opper",
   "cheaperinference",
   "api_route",
+  "runcrate",
+  "standardcompute",
+  "uberllm",
   "huggingface",
   "replicate",
   "kie",
@@ -110,8 +114,8 @@ export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
 /**
  * Providers reachable without an API key: the local servers plus the Claude
- * Agent SDK and Antigravity (which authenticate with the machine's logged-in
- * `claude` or `agy` CLI instead of a key).
+ * Agent SDK, Antigravity and Copilot (which authenticate with the machine's
+ * logged-in `claude`, `agy` or `copilot` CLI instead of a key).
  */
 const LOCAL_PROVIDERS: readonly string[] = [
   "whisper_cpp",
@@ -121,6 +125,7 @@ const LOCAL_PROVIDERS: readonly string[] = [
   "mlx",
   "claude_agent_sdk",
   "antigravity",
+  "copilot",
   "node_llama_cpp",
   "stable_diffusion_cpp",
   "wangp"
@@ -143,6 +148,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
   claude_agent_sdk: "sonnet",
   antigravity: "gemini-3.1-pro-high",
+  copilot: "auto",
   openai: "gpt-5.4",
   codex: "gpt-5.5",
   gemini: "gemini-2.5-flash",
@@ -162,6 +168,9 @@ export const DEFAULT_MODELS: Record<string, string> = {
   opper: "gpt-5.4-mini",
   cheaperinference: "gpt-5.4-mini",
   api_route: "claude-haiku-4-5",
+  runcrate: "deepseek-ai/DeepSeek-V4.1-Flash",
+  standardcompute: "StandardCompute",
+  uberllm: "deepseek/deepseek-v4.1-flash",
   huggingface: "meta-llama/Llama-3.3-70B-Instruct",
   replicate: "anthropic/claude-4.5-sonnet",
   kie: "gpt-5-5",

@@ -1,17 +1,18 @@
 /**
  * Opens a studio's target with its presets chosen. A studio adds no surface of
- * its own: the Create view opens in the studio's mode with its camera and look
- * presets on the preset chip, the Effects gallery shows only the studio's
+ * its own: a new Create tab opens in the studio's mode with its camera and
+ * look presets on the preset chip, the Effects gallery shows only the studio's
  * effects, and the rest open the Lipsync studio, an example app, a starter
  * skill or a guided flow as they open from anywhere else.
  */
 
 import type { Studio } from "@nodetool-ai/presets";
 
-import { useCreateViewStore } from "../../stores/CreateViewStore";
 import { useEffectsGalleryStore } from "../../stores/EffectsGalleryStore";
 import useMediaGenerationStore from "../../stores/MediaGenerationStore";
-import { CREATE_REF, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { creationProjectId, useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { openCreateSession } from "../create/openCreateSession";
 import { navigateTo } from "../../lib/appNavigation";
 import { openPageTab } from "../workspace/openPageTab";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
@@ -34,10 +35,16 @@ export const openStudio = (studio: Studio, title: string, hosts: StudioHosts): v
   const tabs = useWorkspaceTabsStore.getState();
   switch (target.type) {
     case "create":
-      useCreateViewStore.getState().setMode(target.mode);
       useMediaGenerationStore.getState().setPresetIds(target.mode, studio.preset_ids);
-      tabs.openTab({ type: "create", ref: CREATE_REF, mode: "view", title: "Create" });
       navigateTo("/workspace");
+      void openCreateSession(creationProjectId(), { mode: target.mode, title }).catch(
+        (error: unknown) =>
+          useNotificationStore.getState().addNotification({
+            type: "error",
+            alert: true,
+            content: `Could not open ${title}: ${error instanceof Error ? error.message : String(error)}`
+          })
+      );
       return;
     case "effects":
       useEffectsGalleryStore.getState().openStudio(studio.id, studio.preset_ids);

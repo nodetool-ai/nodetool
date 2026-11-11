@@ -172,7 +172,7 @@ const ExampleSection = ({
   const { t } = useTranslation();
   const label = t(`pass3_40.examples.categories.${group.kind}`);
   const dropHintKey =
-    group.kind === "workflows"
+    group.kind === "workflows" || group.kind === "comfy"
       ? "pass3_40.examples.dropHints.workflows"
       : group.kind === "models"
         ? "pass3_40.examples.dropHints.models"

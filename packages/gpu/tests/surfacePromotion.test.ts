@@ -29,6 +29,7 @@ const EXPECTED_PUBLISHED: ReadonlyArray<{ id: string; version: number }> = [
   { id: "filters.blur.gaussian", version: 1 },
   { id: "filters.sharpen.unsharpMask", version: 1 },
   { id: "filters.vignette", version: 1 },
+  { id: "filters.vignette", version: 2 },
   { id: "keyer.chromaKey", version: 1 },
   // Phase 3 Batch 1 high-confidence subset.
   { id: "color.invert", version: 1 },

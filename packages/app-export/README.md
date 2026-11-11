@@ -7,6 +7,15 @@ The CLI (`nodetool apps export-project`), the server
 (`GET /api/applications/:id/export-project`) and the web command menu
 ("Export App as Standalone Project") all build the project here.
 
+The same widgets also render mini apps inside MCP hosts. `mcp-app/` replaces
+the project's `src/runtime/server.ts` with calls to NodeTool MCP tools, and
+`npm run build-mcp-app` bundles it with the template's widgets into one HTML
+page, `src/mcp-app-renderer.generated.ts`. The package exports that page as
+`@nodetool-ai/app-export/mcp-app`, and the MCP server serves it as
+`ui://nodetool/mini-app.html`. A test fails when the generated page is stale,
+so rebuild it after editing `mcp-app/` or `template/src/`. See
+[Mini apps in the host](../../docs/mcp-server.md#mini-apps-in-the-host).
+
 ## What the project contains
 
 | Path | Role |

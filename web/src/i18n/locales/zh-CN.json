@@ -1799,6 +1799,12 @@
       "localTitle": "更喜欢本地模型？",
       "localDescription": "安装 Ollama 并下载模型，即可在你的设备上运行。",
       "getOllama": "获取 Ollama",
+      "ollamaChecking": "正在检查 Ollama 连接…",
+      "ollamaCheckFailed": "无法检查 Ollama。请重试。",
+      "ollamaConnected": "Ollama 已连接。请在模型管理器中选择或下载模型。",
+      "ollamaUnavailable": "请使用 NodeTool 桌面应用连接到电脑上的 Ollama。",
+      "ollamaUnreachable": "无法连接到 Ollama。如果已安装，请打开它；否则，请先下载。",
+      "checkOllamaAgain": "重新检查",
       "encryptedKeys": "API 密钥已加密。你可以在设置中管理或移除密钥。",
       "signInAgain": "重新登录{{provider}}",
       "waitingSignIn": "正在等待登录…",
@@ -2272,7 +2278,10 @@
       "title": "登录 NodeTool Cloud",
       "description": "描述你的需求。智能体会为你构建，你可以随时接手。",
       "ownKeys": "使用你自己的 API 密钥，并按服务商标价付费。",
-      "cloudAlphaNotice": "Cloud 尚处于测试阶段。生产工作请使用"
+      "cloudAlphaNotice": "Cloud 尚处于测试阶段。生产工作请使用",
+      "ssoTitle": "登录 NodeTool",
+      "ssoSignIn": "使用 {{provider}} 登录",
+      "ssoFailed": "登录失败（{{reason}}）。请重试，或向管理员申请访问权限。"
     },
     "inspector": {
       "params": "参数",
@@ -6171,7 +6180,6 @@
         "checkingModels": "正在检查语言模型，请稍后重试。",
         "chatNeedsModel": "快好了，聊天需要模型才能运行。",
         "pickModelToStartChat": "选择语言模型即可开始聊天。",
-        "pickMediaModel": "选择一个模型，生成随即开始。",
         "openChatError": "无法打开聊天：{{error}}",
         "startFlowError": "无法启动{{flow}}：{{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "工作流示例",
             "description": "自动化、多步骤"
           }
+        },
+        "goals": {
+          "label": "要开始什么",
+          "chat": "聊天",
+          "image": "图像",
+          "video": "视频",
+          "audio": "音频"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "全部",
       "categories": {
         "workflows": "工作流",
+        "comfy": "ComfyUI",
         "apps": "应用",
         "storyboards": "分镜",
         "timelines": "时间线",
@@ -8788,8 +8804,6 @@
       "studio": "工作室",
       "switchToProject": "切换到项目{{name}}",
       "personal": "个人",
-      "newChatInMode": "新建聊天：{{mode}}",
-      "newChatInModeValue": "新建聊天{{mode}}",
       "newTextFileValue": "新建文本文件{{label}}",
       "newTextFile": "新建文本文件：{{label}}",
       "newStoryboard": "新建分镜脚本",
@@ -8821,8 +8835,7 @@
         "script": "新建脚本",
         "jsscript": "新建 JS 脚本",
         "skill": "新建技能",
-        "model3d": "新建 3D 模型",
-        "create": "创作图像和视频"
+        "model3d": "新建 3D 模型"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "纯文本 (.txt)"
+      },
+      "createSession": {
+        "image": "新建图像",
+        "video": "新建视频",
+        "audio": "朗读",
+        "music": "生成音乐"
       }
     },
     "googleWorkspace": {
@@ -9044,6 +9063,18 @@
         "API_ROUTE_API_KEY": {
           "button": "获取 API Route 密钥",
           "tooltip": "前往 API Route API 密钥页面"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "获取 Runcrate API 密钥",
+          "tooltip": "前往 Runcrate API 密钥页面"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "获取 Standard Compute API 密钥",
+          "tooltip": "前往 Standard Compute API 密钥页面"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "获取 UberLLM API 密钥",
+          "tooltip": "前往 UberLLM API 密钥页面"
         },
         "HF_TOKEN": {
           "button": "获取 Hugging Face 令牌",
@@ -12166,6 +12197,31 @@
         "undo": "撤销",
         "redo": "重做",
         "agent": "智能体"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12729,7 +12785,6 @@
       "debuggingNotice": "请求运行时，Chrome 会显示“NodeTool 正在调试此浏览器”提示栏。扩展不会操作其他标签页。",
       "setup": "设置步骤",
       "step1": "允许 Chrome 启动 NodeTool 浏览器桥接程序。",
-      "windowsUnsupported": "目前尚不支持 Windows。通过扩展生成媒体需要使用 macOS 或 Linux。",
       "bridgeRegistered": "完成。NodeTool 已向你的浏览器注册桥接程序。",
       "registering": "正在向浏览器注册…",
       "registrationFailed": "浏览器桥接程序注册失败",
@@ -12756,7 +12811,7 @@
       "disableAll": "禁用所有节点",
       "color": "分组颜色",
       "removeNodesHeading": "从分组中移除节点",
-      "dragOutModifier": "按住 CTRL | ⌘ 键并拖出",
+      "dragOutModifier": "按住 Alt（Mac 上的 Option ⌥）并拖出",
       "shakeToRemove": "快速晃动，然后拖出"
     }
   },
@@ -15942,7 +15997,8 @@
         "memory": "记忆",
         "settings": "设置",
         "effects": "特效",
-        "lipsync": "口型同步"
+        "lipsync": "口型同步",
+        "admin": "管理"
       }
     },
     "script": {
@@ -18896,6 +18952,12 @@
     "refreshModels": "刷新模型",
     "statusUnavailable": "状态不可用"
   },
+  "copilot": {
+    "description": "使用你的 GitHub Copilot 账户调用语言模型，无需 API 密钥。",
+    "install": "在这台计算机的终端中安装 GitHub Copilot CLI。",
+    "signIn": "然后登录并刷新模型。你的 Copilot 套餐未包含的模型不会显示。",
+    "refreshModels": "刷新模型"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "将镜头拖到视频轨道上，或按 Enter 将其放在播放头处。",
@@ -18954,6 +19016,15 @@
       "invalidLink": "此共享链接无效或已被撤销。请向文档所有者索取新链接。",
       "goToWorkspace": "前往工作区",
       "opening": "正在打开共享文档"
+    },
+    "invite": {
+      "label": "邀请成员",
+      "placeholder": "姓名或邮箱",
+      "role": "角色",
+      "submit": "邀请",
+      "typeMore": "至少输入 2 个字符",
+      "noMatches": "没有匹配的人",
+      "failed": "无法授予访问权限。"
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19055,6 @@
     "missingTarget": "已移除的设备",
     "laneLabel": "自动化轨道：{{name}}",
     "deletePoint": "删除点"
-  },
-  "generationFeed": {
-    "recent": "最近",
-    "imageEmptyTitle": "生成图像",
-    "imageEmptyDescription": "在下方描述场景，并选择模型和宽高比。附加图像即可对其进行编辑。",
-    "videoEmptyTitle": "生成视频",
-    "videoEmptyDescription": "在下方描述镜头、运镜和光线。附加一帧画面即可将其制作成动画。",
-    "audioEmptyTitle": "生成语音和音乐",
-    "audioEmptyDescription": "输入一句话即可朗读。切换到“生成音乐”可创作一段曲目。",
-    "editImage": "编辑此图像",
-    "openInSketch": "在 Sketch 中打开",
-    "addToCanvas": "添加到画布",
-    "rerun": "重新运行",
-    "copyPrompt": "复制提示词",
-    "removeFromThread": "从对话中移除",
-    "history": "历史（{{total}}）",
-    "tileSize": "图块大小",
-    "viewMode": "视图",
-    "list": "列表",
-    "grid": "网格",
-    "video": "视频",
-    "speech": "语音",
-    "music": "音乐",
-    "noVideoOutput": "未返回视频。",
-    "noAudioOutput": "未返回音频。",
-    "untitledTrack": "音轨",
-    "extendClip": "延长此片段",
-    "referenceAlt": "参考图 {{index}}",
-    "sketchTitle": "Sketch",
-    "audio": "音频"
   },
   "preset_chip": {
     "label": "预设",
@@ -19480,13 +19521,34 @@
     "takes_other": "{{count}} 条",
     "placeholder": {
       "image": "黄昏中的灯塔，电影剧照",
-      "video": "镜头缓缓推向黄昏中的灯塔"
+      "video": "镜头缓缓推向黄昏中的灯塔",
+      "image_edit": "改成夜晚并加上雨",
+      "image_to_video": "海浪拍岸，灯光开始转动",
+      "reference_to_video": "参考中的角色沿着码头行走",
+      "retake": "把天空改成暴风雨",
+      "extend": "镜头继续向后拉远",
+      "audio": "输入要朗读的文字",
+      "music": "带着细雨声的舒缓氛围钢琴"
     },
     "blocker": {
       "noPrompt": "请先写下提示词再生成。",
       "noModel": {
         "image": "请先选择图像模型再生成。",
-        "video": "请先选择视频模型再生成。"
+        "video": "请先选择视频模型再生成。",
+        "image_edit": "请选择图片编辑模型以生成。",
+        "image_to_video": "请选择图生视频模型以生成。",
+        "reference_to_video": "请选择参考生视频模型以生成。",
+        "retake": "请选择视频编辑模型以生成。",
+        "extend": "请选择视频延长模型以生成。",
+        "audio": "请选择语音模型以生成。",
+        "music": "请选择音乐模型以生成。"
+      },
+      "needsInput": {
+        "image_edit": "请添加要编辑的图片。",
+        "image_to_video": "请添加要动起来的图片。",
+        "reference_to_video": "请至少添加一张参考图片或一段参考片段。",
+        "retake": "请添加要修改的片段。",
+        "extend": "请添加要延长的片段。"
       }
     },
     "sendFailed": "已启动 {{count}} 条中的 {{sent}} 条，其余未能送达 NodeTool。请检查网络连接后重试。",
@@ -19495,8 +19557,9 @@
     "gridLabel": "生成记录",
     "empty": {
       "title": "还没有创作内容",
-      "description": "在上方写下提示词并点击“生成”。图像和视频会显示在这里，最新的在前。",
-      "action": "写提示词"
+      "description": "在上方输入提示词并点击生成。你的图片、视频和音频会显示在这里，最新的在前。",
+      "action": "写提示词",
+      "sessionTitle": "此标签页中还没有内容"
     },
     "item": {
       "open": "打开 {{title}}",
@@ -19512,8 +19575,75 @@
       "downloaded": "已下载 {{name}}",
       "downloadFailed": "无法下载：{{reason}}",
       "workflowName": "创作工作流",
-      "workflowFailed": "无法生成工作流：{{reason}}"
-    }
+      "workflowFailed": "无法生成工作流：{{reason}}",
+      "more": "更多操作",
+      "moreLabel": "{{title}} 的更多操作",
+      "useAsReference": "用作参考",
+      "startFrom": {
+        "image_edit": "编辑这张图片",
+        "image_to_video": "让这张图片动起来",
+        "retake": "修改这个片段",
+        "extend": "延长这个片段"
+      },
+      "openInSketch": "在草图中打开",
+      "reusePrompt": "重用提示词",
+      "sketchTitle": "创建的图片"
+    },
+    "kindLabel": "要创建什么",
+    "modeLabel": "如何创建",
+    "kinds": {
+      "image": "图片",
+      "video": "视频",
+      "audio": "音频"
+    },
+    "modes": {
+      "image": "从文本",
+      "image_edit": "编辑",
+      "video": "从文本",
+      "image_to_video": "动起来",
+      "reference_to_video": "从参考",
+      "retake": "修改",
+      "extend": "延长",
+      "audio": "朗读",
+      "music": "音乐"
+    },
+    "references": {
+      "label": "参考",
+      "remove": "移除",
+      "removeLabel": "移除 {{name}}",
+      "role": {
+        "source": "源图片",
+        "startFrame": "起始帧",
+        "sourceClip": "源片段",
+        "reference": "参考",
+        "unused": "此模式不使用"
+      },
+      "add": {
+        "image": "添加图片",
+        "video": "添加片段",
+        "image-or-video": "添加参考"
+      },
+      "hint": {
+        "image_edit": "添加或拖入要编辑的图片。其他图片用于引导风格。",
+        "image_to_video": "添加或拖入片段开头的图片。",
+        "reference_to_video": "添加或拖入要保留的人物、场景和风格的图片与片段。",
+        "retake": "添加或拖入要修改的片段。添加的图片用于引导风格。",
+        "extend": "添加或拖入要延长的片段。"
+      },
+      "uploadFailed": "无法上传 {{name}}：{{reason}}"
+    },
+    "switched": "你添加了图片，已切换到{{mode}}。",
+    "undoSwitch": "返回{{from}}",
+    "scope": {
+      "label": "显示哪些作品",
+      "session": "此标签页",
+      "all": "全部作品"
+    },
+    "renameFailed": "无法重命名标签页：{{reason}}",
+    "sessionFailed": "无法加载此标签页的作品。",
+    "sessionKind": "Create 会话",
+    "openInCreate": "在 Create 中打开",
+    "openInCreateFailed": "无法打开 Create：{{reason}}"
   },
   "effectsGallery": {
     "title": "特效",
@@ -19628,5 +19758,209 @@
     "showAssistant": "显示助手",
     "hideAssistant": "隐藏助手",
     "resizeAssistant": "调整时间线助手大小"
+  },
+  "generationBatch": {
+    "summary": "已完成 {{done}}/{{total}}",
+    "remaining": "剩余约 {{time}}",
+    "finishing": "正在收尾",
+    "failedCount": "失败：{{count}}",
+    "status": {
+      "queued": "排队中",
+      "running": "运行中",
+      "completed": "完成",
+      "failed": "失败"
+    },
+    "showRequests": "显示请求",
+    "hideRequests": "隐藏请求",
+    "expected": "预计 {{time}}",
+    "took": "用时 {{time}}",
+    "progressLabel": "生成进度"
+  },
+  "workflowSteps": {
+    "stepOf": "第 {{current}} 步，共 {{total}} 步",
+    "allDone": "全部 {{total}} 步已完成",
+    "waiting": "等待中",
+    "running": "运行中",
+    "done": "完成",
+    "failed": "失败",
+    "progressLabel": "工作流进度",
+    "steps": "步骤",
+    "addStep": "添加步骤",
+    "removeStep": "移除步骤",
+    "node": "节点",
+    "title": "标题",
+    "description": "描述",
+    "autoHint": "未设置步骤。组件会显示每个生成节点。",
+    "chooseNode": "选择节点"
+  },
+  "admin": {
+    "page": {
+      "title": "管理",
+      "subtitle": "管理登录此服务器的用户。",
+      "deniedTitle": "需要管理员权限",
+      "deniedDescription": "只有此服务器的管理员可以打开此页面。"
+    },
+    "users": {
+      "searchPlaceholder": "按姓名、邮箱或用户 ID 搜索",
+      "filter": {
+        "label": "状态",
+        "all": "全部",
+        "active": "活跃",
+        "disabled": "已停用"
+      },
+      "columns": {
+        "person": "用户",
+        "role": "角色",
+        "status": "状态",
+        "usage": "用量",
+        "lastSeen": "最近活动",
+        "actions": "操作"
+      },
+      "role": {
+        "admin": "管理员",
+        "member": "成员",
+        "viaGroup": "通过组或服务器设置"
+      },
+      "status": {
+        "active": "活跃",
+        "disabled": "已停用"
+      },
+      "never": "从未",
+      "actions": {
+        "makeAdmin": "设为管理员",
+        "removeAdmin": "取消管理员",
+        "disable": "停用",
+        "enable": "启用"
+      },
+      "loadFailed": "无法加载用户",
+      "retry": "重试",
+      "noMatches": "没有符合搜索的用户",
+      "emptyTitle": "暂无用户",
+      "emptyDescription": "用户首次通过单点登录登录后会显示在这里。",
+      "range": "第 {{first}}–{{last}} 个，共 {{total}} 个",
+      "previous": "上一页",
+      "next": "下一页",
+      "updateFailed": "无法更新该用户。",
+      "disableDialog": {
+        "title": "停用 {{name}}？",
+        "body": "该用户会立即在所有地方退出登录，在你重新启用账户之前无法再次登录。其作品仍保留在服务器上。",
+        "cancel": "取消"
+      }
+    },
+    "quotas": {
+      "editDefault": "编辑默认限额",
+      "editLimits": "限额",
+      "defaultTitle": "默认限额",
+      "userTitle": "{{name}} 的限额",
+      "defaultNone": "没有默认限额。所有人都可以不受限制地使用此服务器的密钥。",
+      "defaultSummaryDay": "所有人默认：每天 {{tokens}} 个模型 token，媒体 {{media}}。",
+      "defaultSummaryMonth": "所有人默认：每月 {{tokens}} 个模型 token，媒体 {{media}}。",
+      "unlimited": "无限额",
+      "tokensLabel": "Token：",
+      "mediaLabel": "媒体：",
+      "usedOf": "{{used}} / {{limit}}",
+      "usedNoLimit": "{{used}}，无限额",
+      "ownLimits": "单独限额",
+      "period": {
+        "label": "周期",
+        "day": "每天",
+        "month": "每月"
+      },
+      "tokenLimit": "模型 token",
+      "mediaLimit": "媒体预算（美元）",
+      "noLimit": "无限额",
+      "invalid": "请输入 0 或更大的数字，留空表示无限额。",
+      "useDefault": "使用服务器默认值",
+      "useDefaultDescription": "关闭后可为此用户设置单独限额。",
+      "ownKeysNote": "只统计使用此服务器提供商密钥的工作。使用此人在设置中保存的密钥的工作从不计入。",
+      "save": "保存",
+      "cancel": "取消",
+      "saveFailed": "无法保存限额。"
+    },
+    "permissions": {
+      "edit": "权限",
+      "editDefault": "编辑默认权限",
+      "defaultTitle": "默认权限",
+      "userTitle": "{{name}} 的权限",
+      "defaultAll": "默认权限：全部允许。",
+      "defaultBlockedCount": "默认权限：已阻止 {{count}} 项。",
+      "blockedCount": "已阻止的权限：{{count}}",
+      "defaultIntro": "除非你为某个用户单独设置，否则所有用户都可以做这些事。",
+      "userIntro": "每项权限都遵循默认值，直到你在这里允许或阻止它。",
+      "allow": "允许",
+      "block": "阻止",
+      "defaultAllowed": "默认：允许",
+      "defaultBlocked": "默认：阻止",
+      "adminNote": "管理员始终拥有所有权限。",
+      "save": "保存",
+      "cancel": "取消",
+      "saveFailed": "无法保存权限。",
+      "flags": {
+        "use_llm": {
+          "label": "使用语言模型",
+          "description": "聊天、智能体和文本生成。"
+        },
+        "generate_media": {
+          "label": "生成媒体",
+          "description": "图片、视频、音频和 3D。"
+        },
+        "use_server_keys": {
+          "label": "使用服务器的提供商密钥",
+          "description": "阻止后，此人只能使用自己在设置中添加的密钥。"
+        },
+        "manage_own_keys": {
+          "label": "管理自己的提供商密钥",
+          "description": "添加、修改或删除提供商密钥和自定义提供商。"
+        },
+        "share_links": {
+          "label": "创建分享链接",
+          "description": "让已登录的人查看或编辑工作流或文档的链接。"
+        },
+        "share_public": {
+          "label": "公开分享",
+          "description": "公开工作流，或创建任何人都能打开的公开链接。"
+        },
+        "publish_apps": {
+          "label": "发布应用",
+          "description": "发布、上线和部署小应用。"
+        },
+        "install_packs": {
+          "label": "更改节点包",
+          "description": "更改节点包信任设置、开关内置节点包并重新加载节点包。这会影响所有用户。"
+        }
+      }
+    },
+    "sharing": {
+      "open": "共享",
+      "title": "{{name}} 的共享",
+      "links": "共享链接",
+      "noLinks": "没有有效的共享链接。",
+      "granted": "已授权给",
+      "noGranted": "尚未授权给任何人。",
+      "received": "可访问",
+      "noReceived": "没有人授予其访问权限。",
+      "public": "公开工作流",
+      "noPublic": "没有公开工作流。",
+      "revoke": "撤销",
+      "removeAccess": "移除访问权限",
+      "makePrivate": "设为私有",
+      "untitled": "未命名",
+      "loadFailed": "无法加载共享信息。",
+      "actionFailed": "无法完成更改。",
+      "types": {
+        "workflow": "工作流",
+        "storyboard": "故事板",
+        "script": "脚本",
+        "timeline": "时间线",
+        "sketch": "草图",
+        "application": "应用",
+        "jsscript": "JS 脚本"
+      },
+      "roles": {
+        "viewer": "可查看",
+        "editor": "可编辑",
+        "public": "公开"
+      }
+    }
   }
 }

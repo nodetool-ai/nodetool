@@ -51,17 +51,24 @@ describe("host-aware missing runtime details", () => {
     expect(details.bringYourOwn).toBe("Mount a node_modules directory holding @llamaindex/liteparse@1.5.3 pdf-parse@2.4.5 pdf-lib@1.17.1, and set NODETOOL_OPTIONAL_NODE_MODULES to it.");
   });
 
-  it("uses the existing Python install.sh command and server restart instruction", () => {
+  it("names runtime add python on the CLI hosts and install.sh on npx", () => {
     const details = missingRuntimePackageDetails("Python worker", "python", {}, { NODETOOL_HOST: "source", NODETOOL_SERVER_PROCESS: "1" });
-    expect(details.managed).toBe("curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash");
+    expect(details.managed).toBe("npm run dev:nodetool -- runtime add python");
+    expect(missingRuntimePackageDetails("Python worker", "python", {}, { NODETOOL_HOST: "cli" }).managed)
+      .toBe("nodetool runtime add python");
+    expect(missingRuntimePackageDetails("Python worker", "python", {}, { NODETOOL_HOST: "npx" }).managed)
+      .toBe("curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash");
     expect(details.restart).toBe("Restart nodetool serve.");
     expect(details.bringYourOwn).toBe("Or set NODETOOL_PYTHON to a Python 3.11+ that has nodetool-core installed.");
     expect(missingRuntimePackageDetails("Python worker", "python", {}, { NODETOOL_HOST: "docker" }).restart).toBe("Restart the container.");
   });
 
-  it("names only bring-your-own commands for unmanaged CLI install kinds", () => {
+  it("names runtime add for conda and uv packages on the CLI, and bring-your-own elsewhere", () => {
     const details = missingRuntimePackageDetails("yt-dlp", "yt-dlp", {}, { NODETOOL_HOST: "cli" });
-    expect(details.managed).toBeNull();
+    expect(details.managed).toBe("nodetool runtime add yt-dlp");
+    expect(missingRuntimePackageDetails("cargo", "rust", {}, { NODETOOL_HOST: "source" }).managed)
+      .toBe("npm run dev:nodetool -- runtime add rust");
+    expect(missingRuntimePackageDetails("manimgx", "manimgx", {}, { NODETOOL_HOST: "npx" }).managed).toBeNull();
     expect(details.bringYourOwn).toBe("Or put yt-dlp on PATH (brew install yt-dlp, apt install yt-dlp).");
     expect(missingRuntimePackageDetails("manimgx", "manimgx", {}, { NODETOOL_HOST: "cli" }).bringYourOwn)
       .toBe("Or put manimgx on PATH (uv tool install manimgx).");

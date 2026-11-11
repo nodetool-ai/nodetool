@@ -1,13 +1,17 @@
-/** Together node auth, media adaptation, and video/transcription executors. */
+/**
+ * Together node media adaptation and request building. The requests go
+ * through `context.callProviderEndpoint` to the runtime `TogetherProvider`,
+ * which holds the API key and writes the generation record. Result URLs
+ * download through `context.downloadProviderMedia`.
+ */
 
 import { fetchExternalMedia, loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { isBlockedIpLiteral } from "@nodetool-ai/runtime/safe-url";
 import {
-  togetherImage,
-  togetherSpeech,
-  type TogetherTransport
+  togetherImageBody,
+  togetherSpeechBody
 } from "@nodetool-ai/runtime/together-operations";
-import { sleep } from "@nodetool-ai/runtime/provider-transport";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -15,24 +19,6 @@ import {
   isString
 } from "@nodetool-ai/node-sdk";
 import type { NodeValue } from "@nodetool-ai/node-sdk";
-
-const TOGETHER_BASE = "https://api.together.xyz";
-
-export function getApiKey(secrets: Record<string, string> | undefined): string {
-  const key =
-    (secrets && secrets.TOGETHER_API_KEY) || process.env.TOGETHER_API_KEY || "";
-  if (!key.trim()) {
-    throw new Error("TOGETHER_API_KEY is not configured");
-  }
-  return key.trim();
-}
-
-function authHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json"
-  };
-}
 
 /**
  * Validate an http(s) URL for outbound fetching from the workflow runtime.
@@ -147,6 +133,18 @@ function bytesToDataUri(bytes: Uint8Array, mime: string): string {
   return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
+/** Download a result URL Together returned, through the provider. */
+function downloadResult(
+  context: ProcessingContext,
+  url: string
+): Promise<Uint8Array> {
+  return context.downloadProviderMedia({
+    provider: "together",
+    url,
+    signal: context.signal
+  });
+}
+
 // Image generation / editing — POST /v1/images/generations (synchronous)
 interface ImageParams {
   prompt: string;
@@ -161,16 +159,34 @@ interface ImageParams {
 }
 
 export async function togetherGenerateImage(
-  apiKey: string,
+  context: ProcessingContext,
   modelId: string,
   params: ImageParams,
-  options: TogetherTransport = {}
+  capability: "text_to_image" | "image_to_image",
+  nodeId?: string
 ): Promise<Uint8Array> {
-  return togetherImage(apiKey, modelId, params, {
-    ...options,
-    label: "generation",
-    download: fetchBytes
+  const result = await context.callProviderEndpoint({
+    provider: "together",
+    capability,
+    model: modelId,
+    route: "images",
+    input: togetherImageBody(modelId, params),
+    nodeId,
+    signal: context.signal
   });
+  const output = result.output;
+  const item =
+    isRecord(output) && Array.isArray(output.data) ? output.data[0] : undefined;
+  if (!isRecord(item)) {
+    throw new Error("Together image generation returned no data.");
+  }
+  if (isNonEmptyString(item.b64_json)) {
+    return Uint8Array.from(Buffer.from(item.b64_json, "base64"));
+  }
+  if (isNonEmptyString(item.url)) {
+    return downloadResult(context, item.url);
+  }
+  throw new Error("Together image generation returned no image data.");
 }
 
 export function imageBytesToDataUri(bytes: Uint8Array): string {
@@ -198,59 +214,69 @@ function isSpeechFormat(format: string): format is SpeechFormat {
 }
 
 export async function togetherTextToSpeech(
-  apiKey: string,
+  context: ProcessingContext,
   modelId: string,
   params: SpeechParams,
-  options: TogetherTransport = {}
+  nodeId?: string
 ): Promise<{ data: Uint8Array; mimeType: string }> {
   const fmt = (params.format ?? "mp3").toLowerCase();
   const mimeType = isSpeechFormat(fmt) ? SPEECH_FORMAT_MIME[fmt] : "audio/mpeg";
-  const data = await togetherSpeech(
-    apiKey,
-    modelId,
-    { ...params, format: fmt },
-    options
-  );
-  return { data, mimeType };
+  const result = await context.callProviderEndpoint({
+    provider: "together",
+    capability: "text_to_speech",
+    model: modelId,
+    route: "audio/speech",
+    input: togetherSpeechBody(modelId, { ...params, format: fmt }),
+    nodeId,
+    signal: context.signal
+  });
+  if (!(result.output instanceof Uint8Array)) {
+    throw new Error("Together TTS returned no audio.");
+  }
+  return { data: result.output, mimeType };
 }
 
 // Transcription — POST /v1/audio/transcriptions (multipart, OpenAI-compatible)
 interface TranscribeParams {
   audio: Uint8Array;
   language?: string | null;
-  filename?: string;
 }
 
+/**
+ * The multipart fields of POST /v1/audio/transcriptions, besides `model`. A
+ * type alias, not an interface, so it stays assignable to endpoint input.
+ */
+type TranscriptionInput = {
+  file: Uint8Array;
+  response_format: string;
+  language?: string;
+};
+
 export async function togetherTranscribe(
-  apiKey: string,
+  context: ProcessingContext,
   modelId: string,
-  params: TranscribeParams
+  params: TranscribeParams,
+  nodeId?: string
 ): Promise<string> {
   if (!params.audio || params.audio.byteLength === 0) {
     throw new Error("audio must not be empty");
   }
-
-  const form = new FormData();
-  // SAFETY: a Uint8Array is a BlobPart at runtime; the lib types disagree only
-  // over whether its buffer could be a SharedArrayBuffer, which this one — read
-  // from a node property — never is.
-  const blob = new Blob([params.audio as BlobPart], {
-    type: "application/octet-stream"
+  // The provider sends `file` and `model` first, then these as form fields.
+  const input: TranscriptionInput = {
+    file: params.audio,
+    response_format: "json"
+  };
+  if (params.language) input.language = params.language;
+  const result = await context.callProviderEndpoint({
+    provider: "together",
+    capability: "automatic_speech_recognition",
+    model: modelId,
+    route: "audio/transcriptions",
+    input,
+    nodeId,
+    signal: context.signal
   });
-  form.append("file", blob, params.filename ?? "audio.wav");
-  form.append("model", modelId);
-  form.append("response_format", "json");
-  if (params.language) form.append("language", params.language);
-
-  const response = await fetch(`${TOGETHER_BASE}/v1/audio/transcriptions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` }, // let fetch set multipart boundary
-    body: form
-  });
-  if (!response.ok) {
-    throw new Error(`Together transcription failed: ${await response.text()}`);
-  }
-  const payload = await response.json();
+  const payload = result.output;
   return isObjectLike(payload) ? String(payload.text ?? "") : "";
 }
 
@@ -266,13 +292,6 @@ interface VideoParams {
   negativePrompt?: string | null;
   /** Base64 data URI of the first frame for image-to-video. */
   firstFrameDataUri?: string | null;
-}
-
-interface VideoPollOptions {
-  pollIntervalMs?: number;
-  timeoutMs?: number;
-  /** The run's cancellation: a cancelled run stops polling the paid job. */
-  signal?: AbortSignal;
 }
 
 /** Pixel dimensions for a generated video. */
@@ -310,63 +329,6 @@ export function resolveVideoDimensions(
   );
 }
 
-/** The terminal state of a /v2/videos job, decoded from its poll response. */
-interface VideoJobResult {
-  status: string;
-  videoUrl: string | null;
-  errorMessage: string | null;
-}
-
-async function pollVideoJob(
-  apiKey: string,
-  jobId: string,
-  opts: VideoPollOptions
-): Promise<VideoJobResult> {
-  const timeoutMs = opts.timeoutMs ?? 10 * 60 * 1000;
-  const intervalMs = opts.pollIntervalMs ?? 5_000;
-  const start = nowMs();
-
-  for (;;) {
-    opts.signal?.throwIfAborted();
-    if (nowMs() - start > timeoutMs) {
-      throw new Error(
-        `Together video generation timed out after ${Math.round(timeoutMs / 1000)}s for job ${jobId}`
-      );
-    }
-    await sleep(intervalMs, opts.signal);
-    opts.signal?.throwIfAborted();
-
-    const res = await fetch(`${TOGETHER_BASE}/v2/videos/${jobId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: opts.signal
-    });
-    if (!res.ok) {
-      throw new Error(`Together video status check failed: ${await res.text()}`);
-    }
-    const payload = await res.json();
-    if (!isObjectLike(payload)) continue;
-    const status = isString(payload.status) ? payload.status : "";
-    if (
-      status !== "completed" &&
-      status !== "failed" &&
-      status !== "cancelled"
-    ) {
-      continue;
-    }
-    const outputs = payload.outputs;
-    const error = payload.error;
-    return {
-      status,
-      videoUrl:
-        isObjectLike(outputs) && isString(outputs.video_url)
-          ? outputs.video_url
-          : null,
-      errorMessage:
-        isObjectLike(error) && isString(error.message) ? error.message : null
-    };
-  }
-}
-
 /** POST /v2/videos — the fields these nodes send. */
 interface VideoRequestBody {
   model: string;
@@ -381,11 +343,16 @@ interface VideoRequestBody {
   frame_images?: Array<{ input_image: string; frame: "first" }>;
 }
 
+/**
+ * Generate a video through the provider's `videos` route, which creates the
+ * job and polls it to a terminal status, then download the result.
+ */
 export async function togetherGenerateVideo(
-  apiKey: string,
+  context: ProcessingContext,
   modelId: string,
   params: VideoParams,
-  opts: VideoPollOptions = {}
+  capability: "text_to_video" | "image_to_video",
+  nodeId?: string
 ): Promise<Uint8Array> {
   const { width, height } = resolveVideoDimensions(
     params.aspectRatio,
@@ -408,35 +375,20 @@ export async function togetherGenerateVideo(
     body.frame_images = [{ input_image: params.firstFrameDataUri, frame: "first" }];
   }
 
-  const createResponse = await fetch(`${TOGETHER_BASE}/v2/videos`, {
-    method: "POST",
-    headers: authHeaders(apiKey),
-    body: JSON.stringify(body),
-    signal: opts.signal
+  const result = await context.callProviderEndpoint({
+    provider: "together",
+    capability,
+    model: modelId,
+    route: "videos",
+    input: { ...body },
+    nodeId,
+    signal: context.signal
   });
-  if (!createResponse.ok) {
-    throw new Error(`Together video creation failed: ${await createResponse.text()}`);
-  }
-
-  const created = await createResponse.json();
-  const jobId = isObjectLike(created) && isString(created.id) ? created.id : "";
-  if (!jobId) {
-    throw new Error("Together video creation returned no job id.");
-  }
-
-  const finalStatus = await pollVideoJob(apiKey, jobId, opts);
-  if (finalStatus.status !== "completed") {
-    const reason =
-      finalStatus.errorMessage ??
-      `job ended with status '${finalStatus.status}'`;
-    throw new Error(`Together video generation failed: ${reason}`);
-  }
-  if (!finalStatus.videoUrl) {
+  const output = result.output;
+  const outputs =
+    isRecord(output) && isRecord(output.outputs) ? output.outputs : undefined;
+  if (!isNonEmptyString(outputs?.video_url)) {
     throw new Error("Together video generation returned no video URL.");
   }
-  return fetchBytes(finalStatus.videoUrl);
-}
-
-function nowMs(): number {
-  return Date.now();
+  return downloadResult(context, outputs.video_url);
 }

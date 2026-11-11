@@ -1,0 +1,240 @@
+{
+  "id": "seq-clip-denoise-many",
+  "projectId": "native-prototype",
+  "name": "clip-denoise-many",
+  "fps": 30,
+  "width": 160,
+  "height": 96,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "Video",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "noise-0",
+      "trackId": "t0",
+      "name": "Noise reduction",
+      "startMs": 0,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 160,
+      "height": 96,
+      "mediaPath": "source-noise.mp4",
+      "effects": [
+        {
+          "id": "denoise",
+          "type": "denoise",
+          "enabled": true,
+          "lumaStrength": 0.7,
+          "chromaStrength": 0.8,
+          "temporalStrength": 1,
+          "radius": 2
+        }
+      ],
+      "transform": {
+        "position": {
+          "x": -64,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "noise-1",
+      "trackId": "t0",
+      "name": "Noise reduction",
+      "startMs": 0,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 160,
+      "height": 96,
+      "mediaPath": "source-noise.mp4",
+      "effects": [
+        {
+          "id": "denoise",
+          "type": "denoise",
+          "enabled": true,
+          "lumaStrength": 0.7,
+          "chromaStrength": 0.8,
+          "temporalStrength": 1,
+          "radius": 2
+        }
+      ],
+      "transform": {
+        "position": {
+          "x": -32,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "noise-2",
+      "trackId": "t0",
+      "name": "Noise reduction",
+      "startMs": 0,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 160,
+      "height": 96,
+      "mediaPath": "source-noise.mp4",
+      "effects": [
+        {
+          "id": "denoise",
+          "type": "denoise",
+          "enabled": true,
+          "lumaStrength": 0.7,
+          "chromaStrength": 0.8,
+          "temporalStrength": 1,
+          "radius": 2
+        }
+      ],
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "noise-3",
+      "trackId": "t0",
+      "name": "Noise reduction",
+      "startMs": 0,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 160,
+      "height": 96,
+      "mediaPath": "source-noise.mp4",
+      "effects": [
+        {
+          "id": "denoise",
+          "type": "denoise",
+          "enabled": true,
+          "lumaStrength": 0.7,
+          "chromaStrength": 0.8,
+          "temporalStrength": 1,
+          "radius": 2
+        }
+      ],
+      "transform": {
+        "position": {
+          "x": 32,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "noise-4",
+      "trackId": "t0",
+      "name": "Noise reduction",
+      "startMs": 0,
+      "durationMs": 2000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 160,
+      "height": 96,
+      "mediaPath": "source-noise.mp4",
+      "effects": [
+        {
+          "id": "denoise",
+          "type": "denoise",
+          "enabled": true,
+          "lumaStrength": 0.7,
+          "chromaStrength": 0.8,
+          "temporalStrength": 1,
+          "radius": 2
+        }
+      ],
+      "transform": {
+        "position": {
+          "x": 64,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 10,
+      "criterion": "F52 five visible video layers retain all fifteen required source decoders, PSNR >= 40 dB"
+    }
+  ]
+}

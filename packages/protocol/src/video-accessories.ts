@@ -165,3 +165,78 @@ export function tagElementMentions(
   }
   return result;
 }
+
+/**
+ * How a model family writes a reference marker in the prompt.
+ * `plain` is `image 1`, `bracket` is `[Image 1]`, `at` is `@image1`,
+ * `at_underscore` is `@image_1`, `at_title` is `@Image1`, `character` is
+ * `character1` (images only, video numbers stay plain).
+ */
+export type ReferenceMarkerStyle = "plain" | "bracket" | "at" | "at_underscore" | "at_title" | "character";
+
+interface MarkerRule {
+  /** Matches when the model id starts with one of these. Omit to match all. */
+  readonly modelIdPrefix?: readonly string[];
+  /** Matches when the model id contains one of these. Omit to match all. */
+  readonly modelIdContains?: readonly string[];
+  readonly style: ReferenceMarkerStyle;
+}
+
+/** Rules per provider. The first matching rule wins. No match is `plain`. */
+const MARKER_RULES: Readonly<Record<string, readonly MarkerRule[]>> = {
+  dreamina: [{ style: "bracket" }],
+  // HappyHorse names reference images `character1`, `character2`
+  // (kie-codegen/fixtures/docs/market_happyhorse_reference-to-video.md:133).
+  // Kie configs: only kling-4.0 documents `@image_1`, only grok-imagine
+  // documents `@image1`. Every other kie id documents no marker.
+  kie: [
+    { modelIdPrefix: ["happyhorse"], style: "character" },
+    { modelIdPrefix: ["kling-4.0/"], style: "at_underscore" },
+    { modelIdPrefix: ["grok-imagine/"], style: "at" }
+  ],
+  // fal-manifest.json: cite inputs as `@Image1`, `@Video1`.
+  fal: [
+    { modelIdContains: ["happy-horse"], style: "character" },
+    { modelIdContains: ["kling", "seedance"], style: "at_title" }
+  ],
+  comfy_cloud: [{ modelIdPrefix: ["wan/happyhorse"], style: "character" }]
+};
+
+/** The marker style a provider and model read in a reference-to-video prompt. */
+export function referenceMarkerStyle(
+  provider: string,
+  modelId: string
+): ReferenceMarkerStyle {
+  const id = modelId.toLowerCase();
+  for (const rule of MARKER_RULES[provider.toLowerCase()] ?? []) {
+    const prefixOk =
+      !rule.modelIdPrefix || rule.modelIdPrefix.some((p) => id.startsWith(p));
+    const containsOk =
+      !rule.modelIdContains || rule.modelIdContains.some((p) => id.includes(p));
+    if (prefixOk && containsOk) return rule.style;
+  }
+  return "plain";
+}
+
+/**
+ * Rewrite whole-word `image N` and `video N` tokens into a marker style.
+ * Markers already in a style (`[Image 2]`, `@image2`, `@image_2`) stay as they are.
+ */
+export function tagReferenceNumbers(
+  prompt: string,
+  style: ReferenceMarkerStyle
+): string {
+  if (style === "plain") return prompt;
+  return prompt.replace(
+    /(?<![\w@[])\b(image|video)\s+(\d+)\b/gi,
+    (match: string, kind: string, n: string) => {
+      const lower = kind.toLowerCase();
+      if (style === "character") return lower === "image" ? `character${n}` : match;
+      const title = lower === "image" ? "Image" : "Video";
+      if (style === "at_title") return `@${title}${n}`;
+      if (style === "at") return `@${lower}${n}`;
+      if (style === "at_underscore") return `@${lower}_${n}`;
+      return `[${title} ${n}]`;
+    }
+  );
+}

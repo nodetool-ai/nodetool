@@ -2,7 +2,7 @@ import {
   generationsForNode,
   linkGenerationAssets
 } from "@nodetool-ai/execution";
-import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
+import { createLogger } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
 import {
   buildAssetGenerationMetadata,
@@ -19,10 +19,6 @@ import {
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.websocket.runner");
-
-export function getAssetStoragePath(): string {
-  return getDefaultAssetsPath();
-}
 
 // ---------------------------------------------------------------------------
 // Auto-save assets — persists generated media as Asset records

@@ -7,12 +7,12 @@ product: NodeTool
 ---
 # NodeTool
 
-NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Every editor is exposed to [agents](https://nodetool.ai/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
+NodeTool turns one sentence into a short film you can edit. The agent writes the story, draws a still for every shot, and cuts the clips on a timeline. Approve each still before you pay for its clip, reshoot any shot on its own, and save what works as a workflow you can run again. Underneath every project is a node graph: run it on the next episode or twenty ad variants, bring a ComfyUI workflow you already have, or ask the agent to build the graph. In Studio, sign in with your ChatGPT or Claude plan and the agent runs on it, or add your own provider keys and pay list price. Studio saves projects on your computer.
 
 ## Editions
 
-- [NodeTool Studio](https://nodetool.ai/studio.md) is the free desktop application for macOS, Windows, and Linux.
-- [NodeTool Cloud](https://nodetool.ai/cloud.md) is the hosted browser application.
+- [NodeTool Studio](https://nodetool.ai/studio.md) is the free, open-source desktop application for macOS, Windows, and Linux. Connect a supported provider account or run supported models locally. Provider charges may apply.
+- [NodeTool Cloud](https://nodetool.ai/cloud.md) is the hosted browser application, currently in alpha.
 
 ## Start here
 

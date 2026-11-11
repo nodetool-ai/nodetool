@@ -31,6 +31,10 @@ set(VSTHOST_LIBS
 
 juce_add_console_app(NodeToolVstHost PRODUCT_NAME "NodeToolVstHost")
 target_sources(NodeToolVstHost PRIVATE source/VstHostMain.cpp source/VstHost.cpp)
+if(APPLE)
+    enable_language(OBJCXX)
+    target_sources(NodeToolVstHost PRIVATE source/MacApplication.mm)
+endif()
 target_compile_definitions(NodeToolVstHost PRIVATE ${VSTHOST_DEFS})
 target_link_libraries(NodeToolVstHost PRIVATE ${VSTHOST_LIBS})
 
@@ -46,6 +50,7 @@ if(VSTHOST_BUILD_TESTS)
         IS_SYNTH TRUE
         NEEDS_MIDI_INPUT TRUE
         COPY_PLUGIN_AFTER_BUILD FALSE)
+    set_target_properties(ToneInstrument PROPERTIES OBJCXX_VISIBILITY_PRESET hidden)
     target_sources(ToneInstrument PRIVATE test/tone/ToneInstrument.cpp)
     target_compile_definitions(ToneInstrument PUBLIC
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
@@ -59,6 +64,14 @@ if(VSTHOST_BUILD_TESTS)
     target_compile_definitions(vst_host_test PRIVATE ${VSTHOST_DEFS})
     target_link_libraries(vst_host_test PRIVATE ${VSTHOST_LIBS})
     add_dependencies(vst_host_test ToneInstrument_VST3)
+    set(VSTHOST_TEST_PLUGIN "${CMAKE_BINARY_DIR}/ToneInstrument_artefacts/$<CONFIG>/VST3/NodeTool Test Tone.vst3")
+    set(VSTHOST_TEST_STATE "${CMAKE_BINARY_DIR}/nondefault-state.txt")
     add_test(NAME vst_host_test
-        COMMAND vst_host_test "${CMAKE_BINARY_DIR}/ToneInstrument_artefacts/$<CONFIG>/VST3/NodeTool Test Tone.vst3")
+        COMMAND vst_host_test "${VSTHOST_TEST_PLUGIN}" "${VSTHOST_TEST_STATE}")
+    set_tests_properties(vst_host_test PROPERTIES FIXTURES_SETUP vst_nondefault_state)
+    find_program(NODE_EXECUTABLE node REQUIRED)
+    add_test(NAME vst_editor_state
+        COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/editor-state.test.mjs"
+            "$<TARGET_FILE:NodeToolVstHost>" "${VSTHOST_TEST_PLUGIN}" "${VSTHOST_TEST_STATE}")
+    set_tests_properties(vst_editor_state PROPERTIES FIXTURES_REQUIRED vst_nondefault_state TIMEOUT 40)
 endif()

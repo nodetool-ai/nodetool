@@ -83,9 +83,15 @@ field. None names the product or its features.
 | `podcaster` | You host a weekly interview podcast and write its show notes and social posts yourself. You have not used this product before. |
 | `online-seller` | You sell handmade lamps and home goods through an online shop you run from your kitchen table. You have not used this product before. |
 | `marketing-lead` | You lead marketing at a ten-person software company and brief freelancers on ads and launch material. You have not used this product before. |
+| `comfy-hobbyist` | You make character and fantasy art at home with ComfyUI on a Windows PC with a 16 GB graphics card, using SDXL and Flux checkpoints and LoRAs you download from Civitai. You are wary of anything that might break your ComfyUI install. You have not used this product before. |
+| `comfy-video` | You make short AI video clips for your social channels with ComfyUI on your own PC, mostly Wan 2.2 image-to-video workflows you got from Discord and YouTube. You have not used this product before. |
+| `comfy-pro` | You are a freelance designer who uses ComfyUI every day for client product shots and portraits, with your own saved workflows for upscaling and inpainting. You want a simpler way to run those workflows. You have not used this product before. |
+| `comfy-beginner` | You installed ComfyUI Desktop a month ago and mostly use its built-in templates, because workflows you downloaded kept failing with missing nodes. You have not used this product before. |
 
 A persona changes how the participant reads the screen, not what it knows
-about NodeTool. Never put product knowledge in a persona.
+about NodeTool. Never put product knowledge in a persona. The `comfy-*`
+personas know ComfyUI, which is another product, and pair with the fake
+ComfyUI in [runtime.md](../../agentic-qa/references/runtime.md#a-fake-local-comfyui).
 
 ## Sample size
 

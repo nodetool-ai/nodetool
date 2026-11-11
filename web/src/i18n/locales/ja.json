@@ -1799,6 +1799,12 @@
       "localTitle": "ローカルモデルがお好みですか？",
       "localDescription": "Ollama をインストールし、マシン上で実行するモデルをダウンロードします。",
       "getOllama": "オラマを入手",
+      "ollamaChecking": "Ollamaへの接続を確認中…",
+      "ollamaCheckFailed": "Ollamaを確認できませんでした。もう一度お試しください。",
+      "ollamaConnected": "Ollamaに接続しています。モデルマネージャーでモデルを選択またはダウンロードしてください。",
+      "ollamaUnavailable": "コンピューター上のOllamaに接続するには、NodeToolデスクトップアプリを使用してください。",
+      "ollamaUnreachable": "Ollamaに接続できません。インストール済みの場合は起動してください。まだの場合はダウンロードしてください。",
+      "checkOllamaAgain": "再確認",
       "encryptedKeys": "API キーは暗号化されます。設定でそれらを管理または削除できます。",
       "signInAgain": "{{provider}} に再度サインインします",
       "waitingSignIn": "サインインを待っています…",
@@ -2272,7 +2278,10 @@
       "title": "NodeTool クラウドにサインインする",
       "description": "何が欲しいのか説明してください。エージェントがそれを構築し、いつでも引き継ぐことができます。",
       "ownKeys": "独自の API キーを使用し、プロバイダーに定価で支払います。",
-      "cloudAlphaNotice": "クラウドはアルファ版です。制作作業の場合は、"
+      "cloudAlphaNotice": "クラウドはアルファ版です。制作作業の場合は、",
+      "ssoTitle": "NodeTool にサインイン",
+      "ssoSignIn": "{{provider}} でサインイン",
+      "ssoFailed": "サインインに失敗しました ({{reason}})。もう一度試すか、管理者にアクセスを依頼してください。"
     },
     "inspector": {
       "params": "パラメータ",
@@ -6171,7 +6180,6 @@
         "checkingModels": "言語モデルをまだチェックしています。しばらくしてからもう一度試してください。",
         "chatNeedsModel": "もうすぐ完成します。チャットを実行するにはモデルが必要です。",
         "pickModelToStartChat": "言語モデルを選択すると、チャットが始まります。",
-        "pickMediaModel": "モデルを選択すると、生成が開始されます。",
         "openChatError": "チャットを開けませんでした: {{error}}",
         "startFlowError": "{{flow}} を開始できませんでした: {{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "ワークフローの例",
             "description": "自動化、マルチステップ"
           }
+        },
+        "goals": {
+          "label": "始めるもの",
+          "chat": "チャット",
+          "image": "画像",
+          "video": "動画",
+          "audio": "音声"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "すべて",
       "categories": {
         "workflows": "ワークフロー",
+        "comfy": "ComfyUI",
         "apps": "アプリ",
         "storyboards": "絵コンテ",
         "timelines": "タイムライン",
@@ -8788,8 +8804,6 @@
       "studio": "スタジオ",
       "switchToProject": "プロジェクト {{name}} に切り替えます",
       "personal": "個人的な",
-      "newChatInMode": "新しいチャット: {{mode}}",
-      "newChatInModeValue": "新しいチャット {{mode}}",
       "newTextFileValue": "新しいテキスト ファイル {{label}}",
       "newTextFile": "新しいテキスト ファイル: {{label}}",
       "newStoryboard": "新しい絵コンテ",
@@ -8821,8 +8835,7 @@
         "script": "新しいスクリプト",
         "jsscript": "新しいJSスクリプト",
         "skill": "新しいスキル",
-        "model3d": "新しい3Dモデル",
-        "create": "画像とビデオを作成する"
+        "model3d": "新しい3Dモデル"
       },
       "templates": {
         "markdown": "マークダウン (.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "プレーンテキスト (.txt)"
+      },
+      "createSession": {
+        "image": "新しい画像",
+        "video": "新しい動画",
+        "audio": "読み上げ",
+        "music": "音楽を生成"
       }
     },
     "googleWorkspace": {
@@ -9040,6 +9059,18 @@
         "CHEAPER_INFERENCE_API_KEY": {
           "button": "Cheaper Inference API キーを取得する",
           "tooltip": "Cheaper Inference プラットフォームに移動して API キーを取得します"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API キーを取得する",
+          "tooltip": "Runcrate プラットフォームに移動して API キーを取得します"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API キーを取得する",
+          "tooltip": "Standard Compute プラットフォームに移動して API キーを取得します"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API キーを取得する",
+          "tooltip": "UberLLM プラットフォームに移動して API キーを取得します"
         },
         "API_ROUTE_API_KEY": {
           "button": "APIルートキーの取得",
@@ -12166,6 +12197,31 @@
         "undo": "元に戻す",
         "redo": "やり直し",
         "agent": "エージェント"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12729,7 +12785,6 @@
       "debuggingNotice": "Chrome では、リクエストの実行中に「Nodetool がこのブラウザをデバッグしています」バーが表示されます。この拡張機能は他のタブでは何も行いません。",
       "setup": "設定してください",
       "step1": "Chrome で NodeTool のブラウザ ブリッジを開始させます。",
-      "windowsUnsupported": "これは Windows ではまだサポートされていません。拡張機能によるメディア生成は、macOS と Linux で動作します。",
       "bridgeRegistered": "完了しました。 NodeTool はそのブリッジをブラウザに登録しました。",
       "registering": "ブラウザに登録中…",
       "registrationFailed": "ブラウザブリッジの登録に失敗しました",
@@ -12756,7 +12811,7 @@
       "disableAll": "すべてのノードを無効にする",
       "color": "グループカラー",
       "removeNodesHeading": "グループからノードを削除",
-      "dragOutModifier": "CTRL | を押しながらドラッグします。 ⌘キー",
+      "dragOutModifier": "Alt（MacではOption ⌥）を押しながら外にドラッグ",
       "shakeToRemove": "素早く振ってから引きずり出します"
     }
   },
@@ -15942,7 +15997,8 @@
         "memory": "記憶",
         "settings": "設定",
         "effects": "効果",
-        "lipsync": "リップシンク"
+        "lipsync": "リップシンク",
+        "admin": "管理"
       }
     },
     "script": {
@@ -18896,6 +18952,12 @@
     "refreshModels": "モデルを更新する",
     "statusUnavailable": "ステータスが利用不可"
   },
+  "copilot": {
+    "description": "GitHub Copilot アカウントで言語モデルを利用できます。API キーは不要です。",
+    "install": "このコンピューターのターミナルで GitHub Copilot CLI をインストールしてください。",
+    "signIn": "その後サインインしてモデルを更新してください。Copilot プランに含まれないモデルは表示されません。",
+    "refreshModels": "モデルを更新"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "ショットをビデオ トラックにドラッグするか、Enter キーを押して再生ヘッドに配置します。",
@@ -18954,6 +19016,15 @@
       "invalidLink": "この共有リンクは無効であるか、取り消されています。ドキュメントの所有者に新しいドキュメントを要求してください。",
       "goToWorkspace": "ワークスペースに移動",
       "opening": "共有ドキュメントを開く"
+    },
+    "invite": {
+      "label": "ユーザーを招待",
+      "placeholder": "名前またはメール",
+      "role": "ロール",
+      "submit": "招待",
+      "typeMore": "2文字以上入力してください",
+      "noMatches": "一致するユーザーがいません",
+      "failed": "アクセスを付与できませんでした。"
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19055,6 @@
     "missingTarget": "削除されたデバイス",
     "laneLabel": "オートメーションレーン: {{name}}",
     "deletePoint": "ポイントの削除"
-  },
-  "generationFeed": {
-    "recent": "最近の",
-    "imageEmptyTitle": "画像の作成",
-    "imageEmptyDescription": "以下のシーンについて説明し、モデルとアスペクト比を選択してください。画像を添付して編集します。",
-    "videoEmptyTitle": "ビデオを作成する",
-    "videoEmptyDescription": "以下にショット、カメラの動き、照明について説明します。フレームを取り付けてアニメーション化します。",
-    "audioEmptyTitle": "音声と音楽を生成する",
-    "audioEmptyDescription": "行を入力すると読み上げられます。 [音楽の生成] に切り替えてトラックを作成します。",
-    "editImage": "この画像を編集する",
-    "openInSketch": "スケッチで開く",
-    "addToCanvas": "キャンバスに追加",
-    "rerun": "再実行",
-    "copyPrompt": "プロンプトのコピー",
-    "removeFromThread": "スレッドから削除する",
-    "history": "履歴 ({{total}})",
-    "tileSize": "タイルのサイズ",
-    "viewMode": "ビューモード",
-    "list": "リスト",
-    "grid": "グリッド",
-    "video": "ビデオ",
-    "speech": "スピーチ",
-    "music": "音楽",
-    "noVideoOutput": "ビデオは返却されませんでした。",
-    "noAudioOutput": "音声は返されませんでした。",
-    "untitledTrack": "オーディオトラック",
-    "extendClip": "このクリップを延長します",
-    "referenceAlt": "参照 {{index}}",
-    "sketchTitle": "スケッチ",
-    "audio": "オーディオ"
   },
   "preset_chip": {
     "label": "プリセット",
@@ -19480,13 +19521,34 @@
     "takes_other": "{{count}} はかかります",
     "placeholder": {
       "image": "夕暮れの灯台、フィルム静止画",
-      "video": "夕暮れの灯台にゆっくりと乗り込む"
+      "video": "夕暮れの灯台にゆっくりと乗り込む",
+      "image_edit": "夜にして雨を加える",
+      "image_to_video": "波が砕け、灯りが回り始める",
+      "reference_to_video": "参照のキャラクターが桟橋を歩く",
+      "retake": "空を嵐に変える",
+      "extend": "カメラがさらに引いていく",
+      "audio": "読み上げる文章を入力",
+      "music": "やさしい雨とゆったりしたアンビエントピアノ"
     },
     "blocker": {
       "noPrompt": "生成するプロンプトを記述します。",
       "noModel": {
         "image": "生成する画像モデルを選択します。",
-        "video": "生成するビデオ モデルを選択します。"
+        "video": "生成するビデオ モデルを選択します。",
+        "image_edit": "生成するには画像編集モデルを選んでください。",
+        "image_to_video": "生成するには画像から動画のモデルを選んでください。",
+        "reference_to_video": "生成するには参照から動画のモデルを選んでください。",
+        "retake": "生成するには動画編集モデルを選んでください。",
+        "extend": "生成するには動画延長モデルを選んでください。",
+        "audio": "生成するには音声モデルを選んでください。",
+        "music": "生成するには音楽モデルを選んでください。"
+      },
+      "needsInput": {
+        "image_edit": "編集する画像を追加してください。",
+        "image_to_video": "アニメーションにする画像を追加してください。",
+        "reference_to_video": "参照画像か参照クリップを1つ以上追加してください。",
+        "retake": "変更するクリップを追加してください。",
+        "extend": "延長するクリップを追加してください。"
       }
     },
     "sendFailed": "{{count}} テイクの {{sent}} を開始しました。残りは NodeTool に到達しませんでした。接続を確認して、もう一度試してください。",
@@ -19495,8 +19557,9 @@
     "gridLabel": "世代",
     "empty": {
       "title": "まだ何も作成されていません",
-      "description": "上にプロンプトを記述し、「生成」を押します。画像とビデオが最新のものから順にここに表示されます。",
-      "action": "プロンプトを書く"
+      "description": "上にプロンプトを書いて「生成」を押してください。画像、動画、音声が新しい順にここに表示されます。",
+      "action": "プロンプトを書く",
+      "sessionTitle": "このタブにはまだ何もありません"
     },
     "item": {
       "open": "{{title}} を開く",
@@ -19512,8 +19575,75 @@
       "downloaded": "{{name}} をダウンロードしました",
       "downloadFailed": "ダウンロードできませんでした: {{reason}}",
       "workflowName": "ワークフローの作成",
-      "workflowFailed": "ワークフローを構築できませんでした: {{reason}}"
-    }
+      "workflowFailed": "ワークフローを構築できませんでした: {{reason}}",
+      "more": "その他の操作",
+      "moreLabel": "{{title}} のその他の操作",
+      "useAsReference": "参照として使う",
+      "startFrom": {
+        "image_edit": "この画像を編集",
+        "image_to_video": "この画像をアニメーションにする",
+        "retake": "このクリップを変更",
+        "extend": "このクリップを延長"
+      },
+      "openInSketch": "スケッチで開く",
+      "reusePrompt": "プロンプトを再利用",
+      "sketchTitle": "作成した画像"
+    },
+    "kindLabel": "作るもの",
+    "modeLabel": "作り方",
+    "kinds": {
+      "image": "画像",
+      "video": "動画",
+      "audio": "音声"
+    },
+    "modes": {
+      "image": "テキストから",
+      "image_edit": "編集",
+      "video": "テキストから",
+      "image_to_video": "アニメーション",
+      "reference_to_video": "参照から",
+      "retake": "変更",
+      "extend": "延長",
+      "audio": "読み上げ",
+      "music": "音楽"
+    },
+    "references": {
+      "label": "参照",
+      "remove": "削除",
+      "removeLabel": "{{name}} を削除",
+      "role": {
+        "source": "元画像",
+        "startFrame": "開始フレーム",
+        "sourceClip": "元クリップ",
+        "reference": "参照",
+        "unused": "このモードでは使いません"
+      },
+      "add": {
+        "image": "画像を追加",
+        "video": "クリップを追加",
+        "image-or-video": "参照を追加"
+      },
+      "hint": {
+        "image_edit": "編集する画像を追加するか、ここにドロップします。ほかの画像は見た目の参考になります。",
+        "image_to_video": "クリップの最初の画像を追加するか、ここにドロップします。",
+        "reference_to_video": "残したい人物、場所、スタイルの画像やクリップを追加するか、ここにドロップします。",
+        "retake": "変更するクリップを追加するか、ここにドロップします。追加した画像は見た目の参考になります。",
+        "extend": "延長するクリップを追加するか、ここにドロップします。"
+      },
+      "uploadFailed": "{{name}} をアップロードできませんでした: {{reason}}"
+    },
+    "switched": "画像を追加したため {{mode}} に切り替えました。",
+    "undoSwitch": "{{from}} に戻す",
+    "scope": {
+      "label": "表示するテイク",
+      "session": "このタブ",
+      "all": "すべてのテイク"
+    },
+    "renameFailed": "タブの名前を変更できませんでした: {{reason}}",
+    "sessionFailed": "このタブのテイクを読み込めませんでした。",
+    "sessionKind": "Create セッション",
+    "openInCreate": "Create で開く",
+    "openInCreateFailed": "Create を開けませんでした: {{reason}}"
   },
   "effectsGallery": {
     "title": "効果",
@@ -19628,5 +19758,209 @@
     "showAssistant": "番組アシスタント",
     "hideAssistant": "アシスタントを隠す",
     "resizeAssistant": "タイムラインのサイズ変更アシスタント"
+  },
+  "generationBatch": {
+    "summary": "{{total}} 件中 {{done}} 件完了",
+    "remaining": "残り約 {{time}}",
+    "finishing": "仕上げ中",
+    "failedCount": "失敗: {{count}}",
+    "status": {
+      "queued": "待機中",
+      "running": "実行中",
+      "completed": "完了",
+      "failed": "失敗"
+    },
+    "showRequests": "リクエストを表示",
+    "hideRequests": "リクエストを隠す",
+    "expected": "予想 {{time}}",
+    "took": "所要 {{time}}",
+    "progressLabel": "生成の進行状況"
+  },
+  "workflowSteps": {
+    "stepOf": "ステップ {{current}}/{{total}}",
+    "allDone": "全 {{total}} ステップ完了",
+    "waiting": "待機中",
+    "running": "実行中",
+    "done": "完了",
+    "failed": "失敗",
+    "progressLabel": "ワークフローの進行状況",
+    "steps": "ステップ",
+    "addStep": "ステップを追加",
+    "removeStep": "ステップを削除",
+    "node": "ノード",
+    "title": "タイトル",
+    "description": "説明",
+    "autoHint": "ステップが未設定です。ウィジェットはすべての生成ノードを表示します。",
+    "chooseNode": "ノードを選択"
+  },
+  "admin": {
+    "page": {
+      "title": "管理",
+      "subtitle": "このサーバーにサインインするユーザーを管理します。",
+      "deniedTitle": "管理者権限が必要です",
+      "deniedDescription": "このページを開けるのはこのサーバーの管理者だけです。"
+    },
+    "users": {
+      "searchPlaceholder": "名前、メール、ユーザー ID で検索",
+      "filter": {
+        "label": "状態",
+        "all": "すべて",
+        "active": "有効",
+        "disabled": "無効"
+      },
+      "columns": {
+        "person": "ユーザー",
+        "role": "ロール",
+        "status": "状態",
+        "usage": "使用量",
+        "lastSeen": "最終アクセス",
+        "actions": "操作"
+      },
+      "role": {
+        "admin": "管理者",
+        "member": "メンバー",
+        "viaGroup": "グループまたはサーバー設定による"
+      },
+      "status": {
+        "active": "有効",
+        "disabled": "無効"
+      },
+      "never": "なし",
+      "actions": {
+        "makeAdmin": "管理者にする",
+        "removeAdmin": "管理者を解除",
+        "disable": "無効にする",
+        "enable": "有効にする"
+      },
+      "loadFailed": "ユーザーを読み込めませんでした",
+      "retry": "再試行",
+      "noMatches": "検索に一致するユーザーはいません",
+      "emptyTitle": "まだユーザーはいません",
+      "emptyDescription": "シングルサインオンで初めてサインインすると、ここに表示されます。",
+      "range": "{{total}} 件中 {{first}}–{{last}} 件",
+      "previous": "前へ",
+      "next": "次へ",
+      "updateFailed": "ユーザーを更新できませんでした。",
+      "disableDialog": {
+        "title": "{{name}} を無効にしますか？",
+        "body": "すべての場所ですぐにサインアウトされ、アカウントを再び有効にするまでサインインできません。作業内容はサーバーに残ります。",
+        "cancel": "キャンセル"
+      }
+    },
+    "quotas": {
+      "editDefault": "既定の上限を編集",
+      "editLimits": "上限",
+      "defaultTitle": "既定の上限",
+      "userTitle": "{{name}} の上限",
+      "defaultNone": "既定の上限はありません。誰でもこのサーバーのキーを無制限に使えます。",
+      "defaultSummaryDay": "全員の既定値: 1 日あたりモデルトークン {{tokens}}、メディア {{media}}。",
+      "defaultSummaryMonth": "全員の既定値: 1 か月あたりモデルトークン {{tokens}}、メディア {{media}}。",
+      "unlimited": "上限なし",
+      "tokensLabel": "トークン:",
+      "mediaLabel": "メディア:",
+      "usedOf": "{{used}} / {{limit}}",
+      "usedNoLimit": "{{used}}、上限なし",
+      "ownLimits": "個別の上限",
+      "period": {
+        "label": "期間",
+        "day": "1 日あたり",
+        "month": "1 か月あたり"
+      },
+      "tokenLimit": "モデルトークン",
+      "mediaLimit": "メディア予算 (USD)",
+      "noLimit": "上限なし",
+      "invalid": "0 以上の数値を入力してください。上限なしにするには空欄のままにします。",
+      "useDefault": "サーバーの既定値を使う",
+      "useDefaultDescription": "オフにすると、このユーザーに個別の上限を設定できます。",
+      "ownKeysNote": "このサーバーのプロバイダーキーを使った作業だけが集計されます。本人が設定に保存したキーでの作業は集計されません。",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saveFailed": "上限を保存できませんでした。"
+    },
+    "permissions": {
+      "edit": "権限",
+      "editDefault": "既定の権限を編集",
+      "defaultTitle": "既定の権限",
+      "userTitle": "{{name}} の権限",
+      "defaultAll": "既定の権限: すべて許可。",
+      "defaultBlockedCount": "既定の権限: {{count}} 件をブロック。",
+      "blockedCount": "ブロック中の権限: {{count}}",
+      "defaultIntro": "個別に設定しない限り、すべてのユーザーができること。",
+      "userIntro": "各権限は、ここで許可またはブロックするまで既定値に従います。",
+      "allow": "許可",
+      "block": "ブロック",
+      "defaultAllowed": "既定: 許可",
+      "defaultBlocked": "既定: ブロック",
+      "adminNote": "管理者は常にすべての権限を持ちます。",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "saveFailed": "権限を保存できませんでした。",
+      "flags": {
+        "use_llm": {
+          "label": "言語モデルを使う",
+          "description": "チャット、エージェント、テキスト生成。"
+        },
+        "generate_media": {
+          "label": "メディアを生成する",
+          "description": "画像、動画、音声、3D。"
+        },
+        "use_server_keys": {
+          "label": "サーバーのプロバイダーキーを使う",
+          "description": "ブロックすると、本人が設定で追加したキーでのみ作業できます。"
+        },
+        "manage_own_keys": {
+          "label": "自分のプロバイダーキーを管理する",
+          "description": "プロバイダーキーとカスタムプロバイダーの追加、変更、削除。"
+        },
+        "share_links": {
+          "label": "共有リンクを作成する",
+          "description": "サインインした人がワークフローやドキュメントを閲覧・編集できるリンク。"
+        },
+        "share_public": {
+          "label": "公開共有する",
+          "description": "ワークフローを公開する、または誰でも開ける公開リンクを作成する。"
+        },
+        "publish_apps": {
+          "label": "アプリを公開する",
+          "description": "ミニアプリの公開、リリース、デプロイ。"
+        },
+        "install_packs": {
+          "label": "ノードパックを変更する",
+          "description": "パックの信頼設定の変更、組み込みパックのオン・オフ、パックの再読み込み。すべてのユーザーに影響します。"
+        }
+      }
+    },
+    "sharing": {
+      "open": "共有",
+      "title": "{{name}} の共有",
+      "links": "共有リンク",
+      "noLinks": "有効な共有リンクはありません。",
+      "granted": "アクセスを付与した相手",
+      "noGranted": "誰にもアクセスを付与していません。",
+      "received": "アクセスできるもの",
+      "noReceived": "誰からもアクセスを付与されていません。",
+      "public": "公開ワークフロー",
+      "noPublic": "公開ワークフローはありません。",
+      "revoke": "取り消す",
+      "removeAccess": "アクセスを削除",
+      "makePrivate": "非公開にする",
+      "untitled": "無題",
+      "loadFailed": "共有情報を読み込めませんでした。",
+      "actionFailed": "変更できませんでした。",
+      "types": {
+        "workflow": "ワークフロー",
+        "storyboard": "ストーリーボード",
+        "script": "スクリプト",
+        "timeline": "タイムライン",
+        "sketch": "スケッチ",
+        "application": "アプリ",
+        "jsscript": "JSスクリプト"
+      },
+      "roles": {
+        "viewer": "閲覧可",
+        "editor": "編集可",
+        "public": "公開"
+      }
+    }
   }
 }

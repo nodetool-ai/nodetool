@@ -151,7 +151,6 @@ describe("direct video extension dispatch", () => {
       { extensionMode: undefined },
       { durationSeconds: 0 },
       { durationSeconds: NaN },
-      { sourceContext: undefined },
       { variations: 2 }
     ]) {
       await expect(
@@ -163,6 +162,23 @@ describe("direct video extension dispatch", () => {
     }
     expect(trim).not.toHaveBeenCalled();
     expect(generation).not.toHaveBeenCalled();
+  });
+
+  it("extends the whole clip when no source window is given", async () => {
+    const provider = new ExtensionProvider();
+    await expect(
+      handler(provider).runDirectMediaGeneration({
+        ...request("end"),
+        sourceContext: undefined
+      })
+    ).resolves.toEqual({ asset_ids: ["extended-asset"] });
+    expect(trim).not.toHaveBeenCalled();
+    expect(provider.calls).toEqual([
+      expect.objectContaining({
+        source: new Uint8Array([1, 2, 3]),
+        params: expect.objectContaining({ mode: "end", durationSeconds: 3 })
+      })
+    ]);
   });
 
   it("rejects a source context that is not a valid constant-speed window", async () => {

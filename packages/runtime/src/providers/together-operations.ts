@@ -1,4 +1,8 @@
-/** Together wire operations shared by runtime and node adapters. */
+/**
+ * Together wire operations shared by the provider's capability methods and
+ * its endpoint calls. The body builders are also what `together-nodes` sends
+ * as endpoint input, so both paths build the same JSON.
+ */
 export interface TogetherTransport {
   readonly fetchFn?: typeof fetch;
   readonly signal?: AbortSignal;
@@ -23,18 +27,29 @@ function authHeaders(apiKey: string): Record<string, string> {
   };
 }
 
-export async function togetherImage(
+/** POST a JSON body to a path under https://api.together.xyz. */
+export function postTogetherJson(
   apiKey: string,
+  path: string,
+  body: Record<string, unknown>,
+  options: TogetherTransport = {}
+): Promise<Response> {
+  return (options.fetchFn ?? globalThis.fetch)(
+    `https://api.together.xyz${path}`,
+    {
+      method: "POST",
+      headers: authHeaders(apiKey),
+      body: JSON.stringify(body),
+      signal: options.signal
+    }
+  );
+}
+
+/** The JSON body of POST /v1/images/generations. Throws on an empty prompt. */
+export function togetherImageBody(
   model: string,
-  params: TogetherImageParams,
-  options: TogetherTransport & {
-    readonly label: "generation" | "editing";
-    readonly download: (
-      url: string,
-      signal?: AbortSignal
-    ) => Promise<Uint8Array>;
-  }
-): Promise<Uint8Array> {
+  params: TogetherImageParams
+): Record<string, unknown> {
   if (!params.prompt) {
     throw new Error("The input prompt cannot be empty.");
   }
@@ -68,14 +83,26 @@ export async function togetherImage(
   if (params.negativePrompt) {
     body.negative_prompt = params.negativePrompt;
   }
-  const response = await (options.fetchFn ?? globalThis.fetch)(
-    "https://api.together.xyz/v1/images/generations",
-    {
-      method: "POST",
-      headers: authHeaders(apiKey),
-      body: JSON.stringify(body),
-      signal: options.signal
-    }
+  return body;
+}
+
+export async function togetherImage(
+  apiKey: string,
+  model: string,
+  params: TogetherImageParams,
+  options: TogetherTransport & {
+    readonly label: "generation" | "editing";
+    readonly download: (
+      url: string,
+      signal?: AbortSignal
+    ) => Promise<Uint8Array>;
+  }
+): Promise<Uint8Array> {
+  const response = await postTogetherJson(
+    apiKey,
+    "/v1/images/generations",
+    togetherImageBody(model, params),
+    options
   );
   const label = `Together image ${options.label}`;
   if (!response.ok) {
@@ -105,17 +132,18 @@ export async function togetherImage(
   throw new Error(`${label} returned no image data.`);
 }
 
-export async function togetherSpeech(
-  apiKey: string,
+export interface TogetherSpeechParams {
+  readonly text: string;
+  readonly voice?: string;
+  readonly speed?: number | null;
+  readonly format: string;
+}
+
+/** The JSON body of POST /v1/audio/speech. Throws on empty text. */
+export function togetherSpeechBody(
   model: string,
-  params: {
-    readonly text: string;
-    readonly voice?: string;
-    readonly speed?: number | null;
-    readonly format: string;
-  },
-  options: TogetherTransport = {}
-): Promise<Uint8Array> {
+  params: TogetherSpeechParams
+): Record<string, unknown> {
   if (!params.text) {
     throw new Error("text must not be empty");
   }
@@ -128,14 +156,20 @@ export async function togetherSpeech(
   if (params.speed != null) {
     body.speed = params.speed;
   }
-  const response = await (options.fetchFn ?? globalThis.fetch)(
-    "https://api.together.xyz/v1/audio/speech",
-    {
-      method: "POST",
-      headers: authHeaders(apiKey),
-      body: JSON.stringify(body),
-      signal: options.signal
-    }
+  return body;
+}
+
+export async function togetherSpeech(
+  apiKey: string,
+  model: string,
+  params: TogetherSpeechParams,
+  options: TogetherTransport = {}
+): Promise<Uint8Array> {
+  const response = await postTogetherJson(
+    apiKey,
+    "/v1/audio/speech",
+    togetherSpeechBody(model, params),
+    options
   );
   if (!response.ok) {
     throw new Error(`Together TTS failed: ${await response.text()}`);

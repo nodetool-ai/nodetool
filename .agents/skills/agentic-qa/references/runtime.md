@@ -208,6 +208,23 @@ the `serveApp.ts` process by its PID. `pkill -f` with a pattern that also
 appears in your own command line kills the calling shell. A public-website session can run beside an app session because
 it shares no state.
 
+### A fake local ComfyUI
+
+For sessions where the participant brings their own ComfyUI, start a stand-in
+on ComfyUI's default address before the sessions:
+
+```bash
+cd web
+npx tsx tests/agentic-qa/fakeComfyServer.ts --log <run>/comfy-requests.jsonl
+```
+
+It serves ComfyUI's native API on `127.0.0.1:8188` (`--port` to move it): a
+node catalog of core nodes plus Video Helper Suite, a lived-in model list
+(`fakeComfyCatalog.ts`, no FLUX.1 schnell), ComfyUI's own validation errors,
+its WebSocket progress events, painted pictures and push-in clips. Give the
+address to the participant as a credential. The request log shows whether the
+app ever contacted the server. Every lane can share one fake ComfyUI.
+
 ### What the fake runtime shows a participant
 
 The fakes in `packages/websocket/src/fake-runtime.ts` make every generation

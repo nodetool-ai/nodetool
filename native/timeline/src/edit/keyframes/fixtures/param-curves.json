@@ -1,0 +1,34 @@
+{
+  "name": "Param curves",
+  "width": 640,
+  "height": 360,
+  "fps": 30,
+  "durationMs": 2000,
+  "tracks": [{"id": "v", "type": "video", "name": "Video", "index": 0, "visible": true, "locked": false}],
+  "markers": [],
+  "transcript": [],
+  "clips": [
+    {
+      "id": "c",
+      "trackId": "v",
+      "mediaType": "video",
+      "name": "Picture",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "startMs": 0,
+      "durationMs": 2000,
+      "volumeDb": -6,
+      "effects": [{"id": "blur1", "type": "blur", "enabled": true, "radius": 4}],
+      "paramCurves": [
+        {"property": "volumeDb", "keyframes": [{"t": 0, "value": 0}, {"t": 0.5, "value": -12}]},
+        {"property": "cropLeft", "keyframes": [{"t": 0, "value": 0}, {"t": 0.5, "value": 0.25}]},
+        {"property": "borderRadius", "keyframes": [{"t": 0, "value": 0}, {"t": 0.5, "value": 24}]},
+        {"property": "perspective", "keyframes": [{"t": 0, "value": 1000}, {"t": 0.5, "value": 400}]},
+        {"property": "depthPx", "keyframes": [{"t": 0, "value": 0}, {"t": 0.5, "value": 40}]},
+        {"property": "effect:blur1:radius", "keyframes": [{"t": 0, "value": 4}, {"t": 0.5, "value": 12}]}
+      ]
+    }
+  ]
+}

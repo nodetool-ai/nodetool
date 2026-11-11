@@ -99,9 +99,10 @@ describe("CodexProvider", () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableImageModels();
     expect(models.map((m) => m.id)).toEqual([
+      "gpt-image-2.6-flare",
+      "gpt-image-2.6-sunburst",
       "gpt-image-2",
       "gpt-image-1.5",
-      "gpt-image-1",
       "gpt-image-1-mini"
     ]);
     expect(models.every((m) => m.supportedTasks?.includes("text_to_image"))).toBe(
@@ -346,12 +347,13 @@ describe("CodexProvider", () => {
       );
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const [model] = await provider.getAvailableImageModels();
-    await provider.textToImage({ model, prompt: "a dot" });
+    await provider.textToImage({ model, prompt: "a dot", width: 2048, height: 1152 });
     const call = fetchSpy.mock.calls.find(([u]) =>
       String(u).endsWith("/responses")
     );
-    const sent = JSON.parse(String(call?.[1]?.body)) as { model: string };
+    const sent = JSON.parse(String(call?.[1]?.body)) as { model: string; tools: Array<{ model: string; size: string }> };
     expect(sent.model).toBe("gpt-6.1-sol");
+    expect(sent.tools[0]).toMatchObject({ model: "gpt-image-2.6-flare", size: "2048x1152" });
   });
 
   it("classifies an expired sign-in as a credential failure", async () => {

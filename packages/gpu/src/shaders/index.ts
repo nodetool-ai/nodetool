@@ -1,3 +1,7 @@
+import { filtersDenoiseSpatialV1, filtersDenoiseTemporalV1 } from "./filters/denoise/v1/module.js";
+import { transformStabilizeV1 } from "./transform/stabilize/v1/module.js";
+import { filterDebandV1 } from "./filters/deband/v1/module.js";
+import { colorSecondaryV1 } from "./color/secondary/v1/module.js";
 /**
  * Explicit shader barrel. The registry is populated from `ALL_SHADERS` (not
  * `import.meta.glob`) so the catalog is Node-bundling-safe, grep-able, and
@@ -26,10 +30,12 @@ import { colorChannelMergeV1 } from "./color/channelMerge/v1/module.js";
 import { colorGrayscaleV1 } from "./color/grayscale/v1/module.js";
 import { colorSolarizeV1 } from "./color/solarize/v1/module.js";
 import { colorColorBalanceV1 } from "./color/colorBalance/v1/module.js";
+import { colorExposureLinearV1 } from "./color/exposureLinear/v1/module.js";
 import { colorExposureToneV1 } from "./color/exposureTone/v1/module.js";
 import { colorLiftGammaGainV1 } from "./color/liftGammaGain/v1/module.js";
 import { colorCdlV1 } from "./color/cdl/v1/module.js";
 import { colorCurvesV1 } from "./color/curves/v1/module.js";
+import { colorCurveTransferV1 } from "./color/curveTransfer/v1/module.js";
 import { colorHslAdjustV1 } from "./color/hslAdjust/v1/module.js";
 import { colorSplitToningV1 } from "./color/splitToning/v1/module.js";
 import { colorFilmLookV1 } from "./color/filmLook/v1/module.js";
@@ -37,7 +43,10 @@ import { colorLevelsV1 } from "./color/levels/v1/module.js";
 
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
+import { sharpenGaussianV1 } from "./filters/sharpen/gaussian/v1/module.js";
+import { sharpenCombineV1 } from "./filters/sharpen/combine/v1/module.js";
 import { vignetteV1 } from "./filters/vignette/v1/module.js";
+import { vignetteV2 } from "./filters/vignette/v2/module.js";
 import { filtersGrainV1 } from "./filters/grain/v1/module.js";
 import { filtersGrainV2 } from "./filters/grain/v2/module.js";
 import { filtersPixelateV1 } from "./filters/pixelate/v1/module.js";
@@ -101,16 +110,25 @@ export {
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1,
+  transformStabilizeV1,
+  filterDebandV1,
+  colorSecondaryV1,
+  colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,
+  colorCurveTransferV1,
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,
   colorLevelsV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
+  sharpenGaussianV1,
+  sharpenCombineV1,
   vignetteV1,
+  vignetteV2,
   filtersGrainV1,
   filtersGrainV2,
   filtersPixelateV1,
@@ -174,9 +192,15 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorSolarizeV1,
   colorColorBalanceV1,
   colorExposureToneV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1,
+  transformStabilizeV1,
+  filterDebandV1,
+  colorSecondaryV1,
+  colorExposureLinearV1,
   colorLiftGammaGainV1,
   colorCdlV1,
   colorCurvesV1,
+  colorCurveTransferV1,
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,
@@ -184,7 +208,9 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   // filters
   blurGaussianV1,
   sharpenUnsharpMaskV1,
+  sharpenCombineV1,
   vignetteV1,
+  vignetteV2,
   filtersGrainV1,
   filtersGrainV2,
   filtersPixelateV1,
@@ -232,6 +258,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
 
 /** Every recipe module registered by default. */
 export const ALL_RECIPES: readonly RecipeModule[] = [
+  sharpenGaussianV1,
   filtersGlowV1,
   filtersBlurSeparableV1,
   mixerDropShadowV1

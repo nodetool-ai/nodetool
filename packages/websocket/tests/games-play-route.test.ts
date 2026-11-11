@@ -104,7 +104,8 @@ describe("mobile game play delivery", () => {
     const buildPath = JSON.parse(Buffer.from(token.split(".")[0]!, "base64url").toString("utf8")).b as string;
     const app = await buildServer();
     try {
-      const forged = `${token.slice(0, -2)}AA`;
+      // Always differs: a fixed suffix matched the real signature 1 time in 4,096.
+      const forged = `${token.slice(0, -1)}${token.endsWith("A") ? "B" : "A"}`;
       expect((await app.inject({ method: "GET", url: `/api/game-play/${forged}/index.html` })).statusCode).toBe(404);
       const expired = createGamePlayToken({ userId: USER_ID, gameId: created.game.id, buildPath }, { now: Date.now() - 60 * 60 * 1000 });
       const response = await app.inject({ method: "GET", url: `/api/game-play/${expired.token}/index.html` });

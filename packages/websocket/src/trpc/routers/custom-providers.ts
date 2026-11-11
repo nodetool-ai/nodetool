@@ -17,6 +17,7 @@ import {
   syncCustomProviderRegistry,
   type CustomProviderView
 } from "../../custom-providers.js";
+import { requirePermission } from "../../lib/permissions.js";
 
 const customProviderOutput = z.object({
   slug: z.string(),
@@ -98,6 +99,8 @@ export const customProvidersRouter = router({
     .input(saveInput)
     .output(customProviderOutput)
     .mutation(async ({ ctx, input }) => {
+      // A custom provider carries its own key, so it is a provider key too.
+      await requirePermission(ctx.userId, "manage_own_keys");
       try {
         return withProviderId(await saveCustomProvider(ctx.userId, input));
       } catch (err) {

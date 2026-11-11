@@ -28,17 +28,22 @@ import {
   ToolbarIconButton
 } from "../ui_primitives";
 
-/** Opens a thread as a chat tab, leaving the rest of the workspace in place. */
+/**
+ * Opens a thread as a chat tab, leaving the rest of the workspace in place,
+ * and hides the left panel so the chat gets the room.
+ */
 const useOpenThreadTab = () => {
   const { t } = useTranslation();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setVisibility = usePanelStore((state) => state.setVisibility);
   const navigate = useNavigate();
   const location = useLocation();
 
   return useCallback(
-    (threadId: string, title?: string, projectId?: string) => {
+    (threadId: string, title?: string, projectId?: string, kind?: "chat" | "create") => {
       openTab({
-        type: "chat",
+        // A Create session opens as Create, not as an empty chat.
+        type: kind === "create" ? "create" : "chat",
         ref: threadId,
         mode: "view",
         title: title || t("i18n-next11.chat.newChat"),
@@ -47,8 +52,9 @@ const useOpenThreadTab = () => {
       if (!location.pathname.startsWith("/workspace")) {
         navigate("/workspace");
       }
+      setVisibility(false);
     },
-    [location.pathname, navigate, openTab, t]
+    [location.pathname, navigate, openTab, setVisibility, t]
   );
 };
 
@@ -135,7 +141,6 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const setVisibility = usePanelStore((state) => state.setVisibility);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const openThreadTab = useOpenThreadTab();
 
@@ -165,6 +170,7 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
       result[id] = {
         id: thread.id,
         title: thread.title ?? undefined,
+        kind: thread.kind,
         updatedAt: thread.updated_at,
         messages: messageCache[id] ?? []
       };
@@ -177,11 +183,11 @@ const ChatListPanel = ({ projectId }: ChatListPanelProps) => {
       openThreadTab(
         id,
         threads[id]?.title ?? undefined,
-        threads[id]?.project_id ?? "default"
+        threads[id]?.project_id ?? "default",
+        threads[id]?.kind
       );
-      setVisibility(false);
     },
-    [openThreadTab, threads, setVisibility]
+    [openThreadTab, threads]
   );
 
   const handleDeleteThread = useCallback(

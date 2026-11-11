@@ -137,11 +137,12 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Progress",
+                      "type": "WorkflowSteps",
                       "props": {
                         "id": "progress-compare",
-                        "binding": "op:compare/exec#progress",
-                        "label": "Asking three models, then the judge…"
+                        "operationId": "compare",
+                        "label": "Asking three models, then the judge…",
+                        "steps": []
                       }
                     },
                     {

@@ -1,0 +1,142 @@
+{
+  "id": "seq-clip-liftGammaGain",
+  "projectId": "native-prototype",
+  "name": "clip-liftGammaGain",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "liftGammaGain-0",
+      "trackId": "t0",
+      "name": "liftGammaGain-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [
+        {
+          "id": "liftGammaGain-0",
+          "type": "liftGammaGain",
+          "enabled": true,
+          "lift": [
+            0.05,
+            -0.02,
+            0.08
+          ],
+          "gamma": [
+            1.3,
+            0.8,
+            1.8
+          ],
+          "gain": [
+            0.8,
+            1.2,
+            1.1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "liftGammaGain-1",
+      "trackId": "t0",
+      "name": "liftGammaGain-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [
+        {
+          "id": "liftGammaGain-1",
+          "type": "liftGammaGain",
+          "enabled": true,
+          "lift": [
+            -0.1,
+            0.08,
+            0.03
+          ],
+          "gamma": [
+            0.8,
+            1.7,
+            0.7
+          ],
+          "gain": [
+            1.2,
+            0.7,
+            1.3
+          ]
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 liftGammaGain two parameter settings, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 liftGammaGain two parameter settings, PSNR >= 40 dB"
+    }
+  ]
+}

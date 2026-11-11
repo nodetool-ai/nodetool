@@ -29,7 +29,7 @@ import { useNotificationStore, Notification } from "./NotificationStore";
 import useMetadataStore from "./MetadataStore";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
-import { supabase } from "../lib/supabaseClient";
+import { getAccessSession } from "../lib/auth";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -533,11 +533,9 @@ export const createWorkflowRunnerStore = (
       let user = "1";
       if (isAuthRequired()) {
         try {
-          const {
-            data: { session }
-          } = await supabase.auth.getSession();
-          auth_token = session?.access_token || "";
-          user = session?.user?.id || "";
+          const session = await getAccessSession();
+          auth_token = session?.token || "";
+          user = session?.userId || "";
         } catch (error) {
           if (!queueRun && stillOwnsStartup()) {
             set({

@@ -66,7 +66,9 @@ export const operationBinding = z.object({
   inputs: z.record(z.string(), inputMapping).default({}),
   outputs: z.record(z.string(), outputMapping).default({}),
   policy: z.enum(["parallel", "replace", "queue"]).default("replace"),
-  timeoutMs: z.number().optional()
+  timeoutMs: z.number().optional(),
+  /** In the chat presentation, the app agent does this operation itself. */
+  agentTask: z.string().optional()
 });
 
 export const resourceKind = z.enum([
@@ -204,6 +206,7 @@ export const applicationDocument = z.object({
   resources: z.array(resourceBinding).default([]),
   variables: z.array(variableDeclaration).default([]),
   theme: z.object({ id: z.string() }).optional(),
+  presentation: z.enum(["page", "chat"]).optional(),
   recipe: recipeManifest.optional()
 }).superRefine((document, context) => {
   if (!document.recipe) return;

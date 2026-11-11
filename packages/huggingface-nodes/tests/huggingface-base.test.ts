@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  ProcessingContext,
+  ScriptedProvider,
+  type ScriptedEndpointReply
+} from "@nodetool-ai/runtime";
+import {
   cleanParams,
-  getHfToken,
   hfChatCompletion,
   hfPipelineBinary,
   hfPipelineJson,
@@ -15,22 +19,6 @@ import {
 
 afterEach(() => {
   vi.restoreAllMocks();
-});
-
-describe("getHfToken", () => {
-  it("reads HF_TOKEN from secrets", () => {
-    expect(getHfToken({ HF_TOKEN: "hf_abc" })).toBe("hf_abc");
-  });
-
-  it("throws a helpful error when missing", () => {
-    const prev = process.env.HF_TOKEN;
-    delete process.env.HF_TOKEN;
-    try {
-      expect(() => getHfToken({})).toThrow(/HF_TOKEN is not configured/);
-    } finally {
-      if (prev !== undefined) process.env.HF_TOKEN = prev;
-    }
-  });
 });
 
 describe("media ref helpers", () => {
@@ -139,84 +127,116 @@ describe("cleanParams", () => {
   });
 });
 
-describe("HTTP helpers", () => {
-  it("hfPipelineJson posts to the hf-inference route and parses JSON", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(JSON.stringify([{ label: "POSITIVE", score: 0.9 }]), {
-          status: 200,
-          headers: { "content-type": "application/json" }
-        })
-      );
+function scripted(reply: ScriptedEndpointReply): { provider: ScriptedProvider; context: ProcessingContext } {
+  const provider = new ScriptedProvider([], {
+    providerId: "huggingface",
+    endpoints: { "*": reply }
+  });
+  const context = new ProcessingContext({ jobId: "job-1" });
+  context.setProviderResolver(async () => provider);
+  return { provider, context };
+}
 
-    const out = await hfPipelineJson("hf_tok", "some/model", { inputs: "hi" });
+describe("provider call helpers", () => {
+  it("hfPipelineJson calls the task route and returns the JSON output", async () => {
+    const { provider, context } = scripted({
+      output: [{ label: "POSITIVE", score: 0.9 }]
+    });
+
+    const out = await hfPipelineJson({
+      context,
+      nodeId: "node-1",
+      task: "text-classification",
+      model: "some/model",
+      body: { inputs: "hi" }
+    });
+
     expect(out).toEqual([{ label: "POSITIVE", score: 0.9 }]);
-
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://router.huggingface.co/hf-inference/models/some/model");
-    expect((init as RequestInit).method).toBe("POST");
-    expect(
-      (init as RequestInit).headers as Record<string, string>
-    ).toMatchObject({ Authorization: "Bearer hf_tok" });
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "some/model",
+      route: "text-classification",
+      input: { inputs: "hi" }
+    });
+    const prediction = context
+      .getMessages()
+      .filter((message) => message.type === "prediction")
+      .at(-1);
+    expect(prediction).toMatchObject({
+      status: "completed",
+      provider: "huggingface",
+      capability: "generate_message",
+      model: "some/model",
+      node_id: "node-1"
+    });
   });
 
-  it("hfPipelineJson surfaces API errors", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("model not found", { status: 404 })
+  it("hfPipelineJson surfaces provider errors", async () => {
+    const { context } = scripted(
+      new Error('Hugging Face inference failed for "bad/model" (404): model not found')
     );
     await expect(
-      hfPipelineJson("hf_tok", "bad/model", { inputs: "hi" })
+      hfPipelineJson({
+        context,
+        task: "text-classification",
+        model: "bad/model",
+        body: { inputs: "hi" }
+      })
     ).rejects.toThrow(/bad\/model.*404/);
   });
 
-  it("hfPipelineBinary returns bytes and mime type", async () => {
-    const bytes = new Uint8Array([137, 80, 78, 71]);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(bytes, {
-        status: 200,
-        headers: { "content-type": "image/png" }
+  it("the helpers need a processing context", async () => {
+    await expect(
+      hfPipelineJson({
+        context: undefined,
+        task: "fill-mask",
+        model: "m",
+        body: { inputs: "hi" }
       })
-    );
-    const result = await hfPipelineBinary("hf_tok", "img/model", {
-      inputs: "a cat"
+    ).rejects.toThrow(/processing context/);
+  });
+
+  it("hfPipelineBinary returns the provider's bytes and mime type", async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71]);
+    const { context } = scripted({ output: { data: bytes, mimeType: "image/png" } });
+    const result = await hfPipelineBinary({
+      context,
+      task: "text-to-image",
+      model: "img/model",
+      body: { inputs: "a cat" }
     });
     expect(result.mimeType).toBe("image/png");
     expect(Array.from(result.bytes)).toEqual([137, 80, 78, 71]);
   });
 
-  it("hfPipelineBinary decodes a base64 JSON envelope", async () => {
-    const payload = { image: Buffer.from("PNGDATA").toString("base64") };
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: { "content-type": "application/json" }
+  it("hfPipelineBinary rejects an output without bytes", async () => {
+    const { context } = scripted({ output: { image: "base64" } });
+    await expect(
+      hfPipelineBinary({
+        context,
+        task: "text-to-image",
+        model: "img/model",
+        body: { inputs: "a cat" }
       })
-    );
-    const result = await hfPipelineBinary("hf_tok", "img/model", {
-      inputs: "a cat"
-    });
-    expect(Buffer.from(result.bytes).toString()).toBe("PNGDATA");
+    ).rejects.toThrow(/no media for "img\/model"/);
   });
 
-  it("hfChatCompletion posts to the OpenAI-compatible route", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          choices: [{ message: { content: "Hello there" } }],
-          usage: { prompt_tokens: 3, completion_tokens: 2 }
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      )
-    );
-    const result = await hfChatCompletion("hf_tok", {
-      model: "m",
-      messages: [{ role: "user", content: "hi" }]
+  it("hfChatCompletion calls the chat-completion route with the body's model", async () => {
+    const { provider, context } = scripted({
+      output: {
+        choices: [{ message: { content: "Hello there" } }],
+        usage: { prompt_tokens: 3, completion_tokens: 2 }
+      }
+    });
+    const result = await hfChatCompletion({
+      context,
+      body: { model: "m", messages: [{ role: "user", content: "hi" }] }
     });
     expect(result.content).toBe("Hello there");
     expect(result.usage?.prompt_tokens).toBe(3);
-    expect(fetchMock.mock.calls[0][0]).toBe(
-      "https://router.huggingface.co/v1/chat/completions"
-    );
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "m",
+      route: "chat-completion",
+      input: { model: "m", messages: [{ role: "user", content: "hi" }] }
+    });
   });
 });

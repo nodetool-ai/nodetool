@@ -1,28 +1,25 @@
 ---
 layout: page
 title: "Worker Deployment"
-description: "Rent a GPU on RunPod, Vast.ai or Verda, attach it to NodeTool, and run Python nodes remotely — with a cost guard that tears it down."
+description: "Provision a RunPod, Vast.ai or Verda GPU worker, attach it to NodeTool to run Python nodes remotely, and stop or terminate it with the cost guard."
 ---
 
-NodeTool runs most graphs on your machine. When a node needs a GPU you don't
-have — large image/video models, HuggingFace pipelines — you can **rent one for
-the duration of the work** instead of buying hardware. A worker is a remote box
-running the lean NodeTool Python worker image; your local NodeTool instance
-**attaches** to it, runs the Python nodes there, and tears it down when you're
-done.
+A worker is a rented GPU box running the NodeTool Python worker image. Your local NodeTool instance attaches to it, runs Python nodes there, and tears it down afterward.
 
-This is a different subsystem from [server deployment](self-hosted-deployment.md).
-A *server* is long-lived infrastructure that humans connect *into*. A *worker* is
-an ephemeral, billing-sensitive box that one NodeTool instance connects *out* to.
-Because a rented GPU bills while it exists, **teardown is the headline feature**.
-Read the [cost guard](#cost-guard) below, including the difference between
-stopping and terminating a worker.
+```bash
+nodetool secrets store RUNPOD_API_KEY
+nodetool worker profile add hf-a40 --target runpod --image ghcr.io/nodetool-ai/nodetool-worker:latest --gpu "NVIDIA A40" --idle-timeout 15
+nodetool worker create --profile hf-a40 --attach
+```
+
+> **Runs:** on a RunPod pod, a Vast.ai instance, or a Verda VM. **Needs:** `RUNPOD_API_KEY`, `VAST_API_KEY`, or `VERDA_CLIENT_ID` and `VERDA_CLIENT_SECRET`, and a worker image that serves `python -m nodetool.worker` on port 7777. **Bills** while the worker exists. **Hardware:** the worker image needs NVIDIA driver 580 or newer on the host (see [Worker images](#worker-images)).
+{: .callout-note}
+
+Workers differ from a [server](self-hosted-deployment.md): a server is long-lived and people connect into it, while a worker is ephemeral and one instance connects out. Because a rented GPU bills while it exists, read the [cost guard](#cost-guard) first, including the difference between stopping and terminating.
 
 ---
 
 ## The model: profiles → instances
-
-Two concepts, deliberately split:
 
 | | **Worker profile** | **Worker instance** |
 |---|---|---|
@@ -31,24 +28,14 @@ Two concepts, deliberately split:
 | Holds | target, image, GPU, vCPU, volume size, optional SSH public key, token policy, idle timeout, max lifetime | the provider's pod/instance id, the `ws://` or `wss://` URL, the bearer token, status, estimated cost |
 | Stored | `worker_profiles` table (DB) | `worker_instances` table (DB) |
 
-A **profile** is the recipe ("an A40 RunPod pod running the HuggingFace worker
-image, idle-stop after 15 minutes"). **Provisioning** a profile launches an
-**instance**. Instances are never written to `deployment.yaml` — nothing should
-ever be able to resurrect a torn-down GPU pod from declarative config. Both
-tables live in NodeTool's SQLite DB so the UI and CLI share one source of truth.
+**Provisioning** a profile launches an instance. Instances are never written to `deployment.yaml`, so declarative config cannot resurrect a torn-down pod. Both tables live in NodeTool's database, shared by the UI and CLI.
 
 ---
 
 ## Prerequisites
 
-- A **RunPod** account and API key ([runpod.io console → settings](https://www.runpod.io/console/user/settings)),
-  a **Vast.ai** account and API key, or a **Verda** cloud API client id and
-  secret ([API credentials](https://docs.verda.com/welcome-to-verda/api-credentials/)).
-  Verda's cloud credentials are separate from its inference key, and are deleted
-  when the team member who created them is removed from the project.
-- A worker container image — the published NodeTool worker image, or your own
-  built from a NodeTool Python package. It must run `python -m nodetool.worker`
-  on port 7777 (msgpack RPC, bearer-token auth).
+- A **RunPod** API key ([console settings](https://www.runpod.io/console/user/settings)), a **Vast.ai** API key, or a **Verda** cloud API client id and secret ([API credentials](https://docs.verda.com/welcome-to-verda/api-credentials/)). Verda's cloud credentials are separate from its inference key and are deleted when the team member who created them leaves the project.
+- A worker image that runs `python -m nodetool.worker` on port 7777 (msgpack RPC, bearer-token auth), either published or built from a NodeTool Python package.
 
 ### Worker images
 
@@ -57,21 +44,11 @@ tables live in NodeTool's SQLite DB so the UI and CLI share one source of truth.
 | `ghcr.io/nodetool-ai/nodetool-worker:latest` | The lean Python worker | Python nodes, HuggingFace pipelines, LLM providers |
 | `ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` | Worker + a co-located, loopback-only ComfyUI | Everything above **plus** the **Run ComfyUI Workflow (Worker)** node |
 
-The worker image installs PyTorch 2.14 from PyPI, whose Linux build uses CUDA
-13.0. A GPU host therefore needs NVIDIA driver 580 or newer. On an older driver
-the HuggingFace nodes run on the CPU or fail their VRAM checks. NodeTool does
-not filter hosts by CUDA version, so check the driver of the host you rent.
+The worker image installs PyTorch 2.14 from PyPI, whose Linux build uses CUDA 13.0, so the GPU host needs NVIDIA driver 580 or newer. On an older driver the HuggingFace nodes run on the CPU or fail their VRAM checks. NodeTool does not filter hosts by CUDA version, so check the driver of the host you rent.
 
-A worker started from the ComfyUI image fronts ComfyUI over the worker bridge
-(ComfyUI itself is never exposed outside the container) and reports
-`worker.status.comfy.enabled: true`. The **Run ComfyUI Workflow (Worker)** node
-runs an API-format ComfyUI workflow on such a worker. Pick the ComfyUI image
-from the **Worker image preset** dropdown in the Profiles editor, or pass
-`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` on the CLI. See
-[ComfyUI](comfyui.md) for the node's properties, input handles, and the
-`comfy.*` bridge surface.
+The ComfyUI image fronts ComfyUI over the worker bridge (it is never exposed outside the container) and reports `worker.status.comfy.enabled: true`. The **Run ComfyUI Workflow (Worker)** node runs an API-format ComfyUI workflow on it. Pick it from the **Worker image preset** dropdown in the Profiles editor or pass `--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest`. See [ComfyUI](comfyui.md).
 
-Store the API key in the secret store so the manager can read it:
+Store the API key in the secret store:
 
 ```bash
 nodetool secrets store RUNPOD_API_KEY      # prompts for the value
@@ -80,8 +57,7 @@ nodetool secrets store VERDA_CLIENT_ID     # for Verda (both are required)
 nodetool secrets store VERDA_CLIENT_SECRET
 ```
 
-If the secret store is unreachable (headless/sandboxed), the manager falls back
-to the environment variables of the same names.
+If the secret store is unreachable, the manager falls back to environment variables of the same names.
 
 ---
 
@@ -93,47 +69,18 @@ to the environment variables of the same names.
 | `vast` | Vast.ai instance (`console.vast.ai/api/v0`) | `ws://<ip>:<port>` | destroys the instance and its disk |
 | `verda` | Verda **VM** (REST `api.verda.com/v1`) | `ws://<ip>:7777` | deletes the instance and permanently deletes its OS volume |
 
-The target column shows what **terminate** does. Each target also has a cheaper
-**stop** (pause), described under [Cost guard](#cost-guard).
-
-All three run the **same worker image** — there is no per-provider image work. Local
-or LAN workers are also supported, but unmanaged: run the worker container
-yourself and point `NODETOOL_WORKER_URL` (and `NODETOOL_WORKER_TOKEN`) at it.
-There is no provisioning provider for local Docker — you start and stop it.
+The teardown column is what **terminate** does. Each target also has a cheaper **stop** (pause), see [Cost guard](#cost-guard). All three run the same worker image. Local or LAN workers are unmanaged: run the container yourself and point `NODETOOL_WORKER_URL` and `NODETOOL_WORKER_TOKEN` at it. There is no provisioning provider for local Docker.
 
 ### Verda
 
-Verda rents **virtual machines**, not containers, so a Verda profile needs two
-images: the guest OS (`osImage`, a CUDA + Docker image from `GET /v1/images`)
-and the worker container (`image`, as on every target). Leave `osImage` unset
-and the provider picks a CUDA+Docker image from the live catalog.
+Verda rents virtual machines, so a profile needs two images: the guest OS (`osImage`, a CUDA + Docker image from `GET /v1/images`, picked from the live catalog when unset) and the worker container (`image`). Its `gpu` field is a Verda **instance type** such as `1H100.80S.30V`, not a GPU name. List ids with `GET /v1/instance-types`. A type absent from every location has no capacity right now.
 
-Its `gpu` field is a Verda **instance type** — `1H100.80S.30V`, not a GPU name.
-List the live ids with `GET /v1/instance-types`; availability is per-location,
-and a type absent from every location has no capacity right now.
+Cost-relevant differences from RunPod and Vast:
 
-Three behaviours differ from RunPod and Vast, all of them cost-relevant:
-
-- **Verda bills a shut-down instance at the full rate**, and removed its
-  hibernate action for that reason. So NodeTool's pause does **not** shut the
-  machine down: it deletes the instance and retains the OS volume, which ends
-  the GPU charge while keeping the model cache. Resuming boots a **new machine**
-  from that volume, so its IP — and its provider handle — change.
-- **Terminate deletes the OS volume permanently.** A trashed volume still holds
-  storage quota and can be restored for a charge covering the deleted interval,
-  which is not what teardown promises. The cached models are gone for good.
-- **Only Pay As You Go is used.** Long-term contracts are prepaid, and spot
-  instances can be discontinued mid-workflow; neither is chosen for you.
-
-A Verda worker publishes port 7777 on a public IP, and Verda's own [security
-guide](https://docs.verda.com/cpu-and-gpu-instances/securing-your-instance/)
-warns that a UFW rule does not block a Docker-published port. The provider
-therefore refuses to launch a worker with no bearer token — keep
-`token_policy` on `generate` unless you have a specific reason not to.
-
-Pay As You Go bills in prepaid ten-minute increments, and running out of balance
-can discontinue instances and delete volumes. A low balance is not harmless
-billing metadata.
+- **Verda bills a shut-down instance at the full rate**, so NodeTool's pause does not shut the machine down. It deletes the instance and retains the OS volume, which ends the GPU charge and keeps the model cache. Resuming boots a **new machine** from that volume, so its IP and provider handle change.
+- **Terminate deletes the OS volume permanently.** A trashed volume still holds storage quota and can be restored only for a charge, so NodeTool does not use it. Cached models are gone.
+- **Only Pay As You Go is used**, in prepaid ten-minute increments. Running out of balance can discontinue instances and delete volumes. Long-term contracts and spot instances are never chosen for you.
+- **A bearer token is required.** The worker publishes port 7777 on a public IP, and Verda's [security guide](https://docs.verda.com/cpu-and-gpu-instances/securing-your-instance/) notes that a UFW rule does not block a Docker-published port. The provider refuses a worker with no token, so keep `token_policy` on `generate`.
 
 ---
 
@@ -168,10 +115,7 @@ nodetool worker stop --all
 its volume, use **Terminate** in the Workers panel, or let `--max-lifetime`
 destroy it.
 
-`worker create` prints the new instance id, its `wsUrl`, a **redacted** bearer
-token, and its status. With `--attach` it also points your bridge at the worker
-and prints `export NODETOOL_WORKER_URL=…`, followed by a commented hint for the
-token (the raw token is never printed to stdout):
+`worker create` prints the instance id, its `wsUrl`, a **redacted** bearer token, and its status. With `--attach` it also points your bridge at the worker and prints the export line, with a commented hint for the token (the raw token is never printed):
 
 ```bash
 export NODETOOL_WORKER_URL=wss://…
@@ -179,8 +123,7 @@ export NODETOOL_WORKER_URL=wss://…
 #   export NODETOOL_WORKER_TOKEN=$(nodetool worker token <instance-id>)
 ```
 
-Retrieve the full token on demand with `nodetool worker token <id>`, which prints
-only the token so it pipes cleanly into `NODETOOL_WORKER_TOKEN`.
+`nodetool worker token <id>` prints only the token, so it pipes into `NODETOOL_WORKER_TOKEN`.
 
 ### CLI reference
 
@@ -208,75 +151,41 @@ nodetool worker models download [worker-id] --repo-id <owner/name> \
 nodetool worker models delete [worker-id] --repo-id <owner/name>
 ```
 
-The inline form of `create` synthesises a throwaway profile named
-`inline-<target>-<timestamp>` from the flags, so you don't have to define one
-first.
+The inline form of `create` makes a throwaway profile named `inline-<target>-<timestamp>`.
 
-Flag notes:
-
-- `--disk <gb>` sizes the persistent volume. The worker's `HF_HOME` is
-  `/workspace/huggingface`, so the Hugging Face cache lives there and survives
-  pause and resume. The default is 100.
-- `--ssh-key <file>` takes an OpenSSH **public** key file. It exposes port 22
-  and passes the key to the worker as `PUBLIC_KEY`, so you can log in to debug.
-  Without it, the bridge is the only way in.
-- `--token-policy generate` (the default) mints a random bearer token for each
-  instance. `fixed` mints none.
+- `--disk <gb>` sizes the persistent volume (default 100). The worker's `HF_HOME` is `/workspace/huggingface`, so the Hugging Face cache survives pause and resume.
+- `--ssh-key <file>` takes an OpenSSH **public** key file, exposes port 22, and passes the key to the worker as `PUBLIC_KEY`. Without it the bridge is the only way in.
+- `--token-policy generate` (default) mints a random bearer token per instance. `fixed` mints none.
 - `--idle-timeout` and `--max-lifetime` take positive whole minutes.
 
-`worker models` manages the Hugging Face cache on a worker over its bridge. Pass
-a worker id, or omit it to use the attached worker. `download` sends your
-`HF_TOKEN` (from the secret store, then the environment) because the worker has
-no Hugging Face credential of its own, and `-a` and `-i` filter files by glob.
-The worker image must report bridge protocol version 2 or later.
+`worker models` manages the Hugging Face cache on a worker over its bridge, for the given worker id or the attached worker. `download` sends your `HF_TOKEN` (secret store, then environment) because the worker has no credential of its own. `-a` and `-i` filter files by glob. The worker image must report bridge protocol version 2 or later.
 
 ---
 
 ## Attaching from the UI
 
-The **Workers** tab in the bottom panel is the main surface:
+Open the **Workers** tab in the bottom panel.
 
-1. **Set up a worker** — with no profile yet, the empty panel and **Start
-   Worker** open the setup form. When the provider's API key is missing, the
-   form asks for it inline, checks it against the provider (RunPod) and stores
-   it. Verda needs two credentials, so the form links to Settings. A blank
-   name becomes the provider and GPU, such as "RunPod A40". **Create and
-   start** saves the profile and launches a worker in one step. **Manage
-   Profiles** opens the same form with the existing profiles listed.
-2. **Start Worker** — choose a profile and launch an instance. Progress runs
-   `provisioning → running → attached`. A worker started from the panel
-   attaches on its own once it answers a health probe, unless another worker
-   is attached by then. **Attach** stays disabled until the probe answers.
-3. **Instance rows** — each live or paused worker shows its status, uptime, and
-   **estimated cost**, with **Attach**, **Detach**, **Resume**, **Stop** (pause),
-   and **Terminate** (destroy) actions.
-4. **Reconcile** and **Stop All** — Reconcile runs the orphan check on demand.
-   Stop All pauses every listed worker.
-5. **Status-bar indicator** — when a worker is attached, a badge shows it and
-   offers **Stop attached worker**, which pauses it.
+1. **Set up a worker.** With no profile, the empty panel and **Start Worker** open the setup form. A missing provider key is requested inline, checked against the provider (RunPod), and stored. Verda needs two credentials, so the form links to Settings. A blank name becomes the provider and GPU, such as "RunPod A40". **Create and start** saves the profile and launches a worker. **Manage Profiles** opens the same form with existing profiles listed.
+2. **Start Worker.** Choose a profile. Progress runs `provisioning → running → attached`. A worker started from the panel attaches once it answers a health probe, unless another worker is attached by then. **Attach** stays disabled until the probe answers.
+3. **Instance rows** show status, uptime, and **estimated cost**, with **Attach**, **Detach**, **Resume**, **Stop** (pause), and **Terminate** (destroy).
+4. **Reconcile** runs the orphan check on demand. **Stop All** pauses every listed worker.
+5. A status-bar badge shows an attached worker and offers **Stop attached worker**, which pauses it.
 
-Attaching re-points NodeTool's Python bridge at the worker's `wss://` URL and
-bearer token **without a restart**; detaching reverts to the local stdio worker.
-The active worker is a single DB pointer (`active_worker_instance_id` in the
-`settings` table) that any NodeTool instance reads — which is why a self-hosted
-Docker server can adopt a worker by the same mechanism.
+Attaching re-points NodeTool's Python bridge at the worker's `wss://` URL and token without a restart. Detaching reverts to the local stdio worker. The active worker is one database pointer (`active_worker_instance_id` in the `settings` table) that any NodeTool instance reads, so a self-hosted Docker server can adopt a worker the same way.
 
 ---
 
 ## Cost guard
 
-GPU pods and Vast instances bill **continuously** — there's no scale-to-zero in
-pod mode. The laptop sleeps, the app crashes, a tab gets forgotten. Two
-operations release a worker, and they differ in what keeps billing:
+GPU pods and Vast instances bill continuously, with no scale-to-zero in pod mode. Two operations release a worker, and they differ in what keeps billing:
 
 | Operation | Effect | Still billing |
 |-----------|--------|---------------|
 | **Stop** (pause) | Releases the GPU, keeps the volume and cached models. The instance is marked `stopped` and can be resumed. | The volume, at a lower rate |
 | **Terminate** | Destroys the worker and its volume. The instance is marked `terminated`. | Nothing |
 
-`worker stop`, **Stop**, **Stop All**, and the status-bar quick-stop all pause.
-Only **Terminate** and the hard TTL destroy. Four mechanisms keep a stray worker
-from quietly billing for days:
+`worker stop`, **Stop**, **Stop All**, and the status-bar quick-stop all pause. Only **Terminate** and the hard TTL destroy. Four guards catch a stray worker:
 
 | Guard | What it does |
 |-------|--------------|
@@ -285,14 +194,9 @@ from quietly billing for days:
 | **Hard TTL** | Optional `max_lifetime_minutes`. The reaper **terminates** an instance older than this regardless of activity. If both limits fire, the TTL wins. |
 | **Orphan reconcile** | At server startup and on **Reconcile**, NodeTool diffs the DB's `running` and `attached` instances against the provider's live list. Workers killed out-of-band are marked `stopped`. Running provider workers the DB doesn't track are reported as **orphans** with a live count and estimated cost. The panel banner tells you to stop them in your provider console, because NodeTool holds no record to act on. |
 
-The reaper runs inside the NodeTool server and checks every 60 seconds. If you
-provision from the CLI with no server running, nothing enforces the idle timeout
-or TTL, so terminate by hand. A failed database write during `provision` also
-terminates the new worker, so no untracked resource is left billing.
+The reaper runs inside the NodeTool server and checks every 60 seconds. If you provision from the CLI with no server running, nothing enforces the idle timeout or TTL, so terminate by hand. A failed database write during `provision` terminates the new worker so nothing untracked keeps billing.
 
-Set both `--idle-timeout` and `--max-lifetime` on every profile you provision
-from. A profile that sets neither opts its instances out of the reaper entirely
-— do that only deliberately.
+A profile that sets neither `--idle-timeout` nor `--max-lifetime` opts its instances out of the reaper. Set both on every profile unless that is deliberate.
 
 ---
 
@@ -302,22 +206,27 @@ from. A profile that sets neither opts its instances out of the reaper entirely
    target's provider (RunPod, Vast or Verda).
 2. If the profile's `token_policy` is `generate`, it mints a high-entropy bearer
    token for the worker.
-3. The provider launches the image on the chosen GPU/spec with persistent
-   storage for the model cache (`HF_HOME=/workspace/huggingface`), polls until the box is running, and derives the
-   WebSocket URL.
+3. The provider launches the image on the chosen GPU and spec with persistent storage for the model cache (`HF_HOME=/workspace/huggingface`), polls until the box is running, and derives the WebSocket URL.
 4. A `worker_instances` row is written and transitioned `provisioning → running`.
 5. On `attach`, the manager writes the active-worker pointer, marks the instance
    `attached`, and hands the `{ wsUrl, token }` to the bridge.
 
-All state is persisted through the DB — the manager never holds instance state
-only in memory, so a forgotten pod is always recoverable from the registry.
+All state is persisted in the database, so a forgotten pod is recoverable from the registry.
 
 ---
 
+## If it fails
+
+- **`<NAME> not found in the secret store or environment. Store with: nodetool secrets store <NAME>`**: the provider key is missing (`RUNPOD_API_KEY`, `VAST_API_KEY`, or both `VERDA_*` names).
+- **`Worker profile not found: <name>`** or **`Unsupported worker target: <target>`**: the profile name or `--target` is wrong. Targets are `runpod`, `vast`, `verda`.
+- **`Verda workers publish port 7777 on a public IP, so a bearer token is required.`**: use `token_policy` `generate`.
+- **`Worker instance '<id>' runs a ComfyUI server with no worker bridge, so it cannot attach.`**: use its endpoint in `lib.comfy.RunWorkflow`. A plain ComfyUI image is supported on `runpod` only (`Target '<target>' does not support an unmodified ComfyUI image. Use runpod.`).
+- **Orphan banner after Reconcile**: the provider has running workers NodeTool has no record of. Stop them in the provider console.
+
 ## Related
 
-- [Self-Hosted Deployment](self-hosted-deployment.md) — run the NodeTool **server** on your own infra with Docker.
-- [Deployment Guide](deployment.md) — overview of server self-hosting and GPU workers.
-- [CLI Reference](cli.md) — full `nodetool` command reference.
+- [Self-Hosted Deployment](self-hosted-deployment.md)
+- [Deployment Guide](deployment.md)
+- [CLI Reference](cli.md)
 </content>
 </invoke>

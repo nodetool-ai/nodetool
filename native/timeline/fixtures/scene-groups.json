@@ -1,0 +1,807 @@
+{
+  "id": "seq-scene-groups",
+  "projectId": "native-prototype",
+  "name": "Scene groups",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 8000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t5",
+      "name": "t5",
+      "type": "video",
+      "index": 5,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "ta",
+      "name": "ta",
+      "type": "audio",
+      "index": 6,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "g_root",
+      "trackId": "t0",
+      "name": "g_root",
+      "startMs": 0,
+      "durationMs": 8000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "transform": {
+        "position": {
+          "x": 200,
+          "y": -100
+        },
+        "scale": {
+          "x": 0.8,
+          "y": 0.8
+        },
+        "rotation": 0.2,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "opacity": 0.9,
+      "animations": [
+        {
+          "id": "g_root_in",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": [
+              {
+                "property": "offsetX",
+                "keyframes": [
+                  {
+                    "t": 0,
+                    "value": -300
+                  },
+                  {
+                    "t": 1,
+                    "value": 0,
+                    "easing": "easeOutBack"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "g_mid",
+      "trackId": "t0",
+      "name": "g_mid",
+      "startMs": 500,
+      "durationMs": 6500,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "parentId": "g_root",
+      "transform": {
+        "position": {
+          "x": -150,
+          "y": 80
+        },
+        "scale": {
+          "x": 1.2,
+          "y": 0.9
+        },
+        "rotation": -0.3,
+        "anchor": {
+          "x": 0.25,
+          "y": 0.75
+        }
+      },
+      "animations": [
+        {
+          "id": "g_mid_spin",
+          "role": "loop",
+          "preset": "rotate",
+          "durationMs": 2000
+        }
+      ]
+    },
+    {
+      "id": "g_leaf",
+      "trackId": "t1",
+      "name": "g_leaf",
+      "startMs": 1000,
+      "durationMs": 5000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "parentId": "g_mid",
+      "blendMode": "multiply",
+      "opacity": 0.7,
+      "transform": {
+        "position": {
+          "x": 60,
+          "y": 40
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "g_cut",
+      "trackId": "t1",
+      "name": "g_cut",
+      "startMs": 2000,
+      "durationMs": 4000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "parentId": "g_root",
+      "transitionIn": {
+        "type": "crossfade",
+        "durationMs": 800,
+        "easing": "easeInOut"
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "g_3d",
+      "trackId": "t2",
+      "name": "g_3d",
+      "startMs": 0,
+      "durationMs": 8000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "transform": {
+        "position": {
+          "x": -300,
+          "y": 120
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depthPx": 300,
+        "rotationY": 25,
+        "perspective": 1200
+      }
+    },
+    {
+      "id": "g_a",
+      "trackId": "t2",
+      "name": "g_a",
+      "startMs": 0,
+      "durationMs": 8000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "parentId": "g_b",
+      "transform": {
+        "position": {
+          "x": 10,
+          "y": 10
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "g_b",
+      "trackId": "t2",
+      "name": "g_b",
+      "startMs": 0,
+      "durationMs": 8000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "parentId": "g_a",
+      "transform": {
+        "position": {
+          "x": -10,
+          "y": -10
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "c_leaf",
+      "trackId": "t3",
+      "name": "c_leaf",
+      "startMs": 1000,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "g_leaf",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotation": 0.1,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "c_mid_video",
+      "trackId": "t3",
+      "name": "c_mid_video",
+      "startMs": 2000,
+      "durationMs": 5000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "g_mid",
+      "width": 1280,
+      "height": 720,
+      "transform": {
+        "position": {
+          "x": -200,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.6,
+          "y": 0.6
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      },
+      "fadeInMs": 400,
+      "fadeOutMs": 600,
+      "fadeOutShape": "sCurve"
+    },
+    {
+      "id": "c_cut_a",
+      "trackId": "t4",
+      "name": "c_cut_a",
+      "startMs": 2000,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "g_cut",
+      "animations": [
+        {
+          "id": "c_cut_a_pop",
+          "role": "in",
+          "preset": "pop",
+          "durationMs": 600
+        }
+      ]
+    },
+    {
+      "id": "c_cut_b",
+      "trackId": "t5",
+      "name": "c_cut_b",
+      "startMs": 2500,
+      "durationMs": 3000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "g_cut",
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": 200
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "c_3d",
+      "trackId": "t4",
+      "name": "c_3d",
+      "startMs": 0,
+      "durationMs": 8000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "g_3d",
+      "transform": {
+        "position": {
+          "x": 100,
+          "y": 50
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depthPx": -200
+      }
+    },
+    {
+      "id": "c_camera",
+      "trackId": "t5",
+      "name": "c_camera",
+      "startMs": 0,
+      "durationMs": 2400,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "transform": {
+        "position": {
+          "x": 400,
+          "y": -200
+        },
+        "scale": {
+          "x": 0.3,
+          "y": 0.3
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "depthPx": 150,
+        "rotationX": 30,
+        "perspective": 900
+      }
+    },
+    {
+      "id": "c_no_transform",
+      "trackId": "t5",
+      "name": "c_no_transform",
+      "startMs": 6000,
+      "durationMs": 2000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      }
+    },
+    {
+      "id": "c_cycle",
+      "trackId": "t3",
+      "name": "c_cycle",
+      "startMs": 6000,
+      "durationMs": 2000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "g_a"
+    },
+    {
+      "id": "c_missing_parent",
+      "trackId": "t4",
+      "name": "c_missing_parent",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "no_such_group"
+    },
+    {
+      "id": "c_matted",
+      "trackId": "t2",
+      "name": "c_matted",
+      "startMs": 2000,
+      "durationMs": 4000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "matte": {
+        "sourceClipId": "m_source",
+        "mode": "alpha"
+      }
+    },
+    {
+      "id": "m_source",
+      "trackId": "t1",
+      "name": "m_source",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "hidden": true
+    },
+    {
+      "id": "z_tie",
+      "trackId": "t5",
+      "name": "z_tie",
+      "startMs": 2400,
+      "durationMs": 1000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "blendMode": "screen"
+    },
+    {
+      "id": "a_tie",
+      "trackId": "t5",
+      "name": "a_tie",
+      "startMs": 2400,
+      "durationMs": 1000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "blendMode": "screen"
+    },
+    {
+      "id": "z_tie_child",
+      "trackId": "t0",
+      "name": "z_tie_child",
+      "startMs": 2400,
+      "durationMs": 1000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "z_tie",
+      "transform": {
+        "position": {
+          "x": -500,
+          "y": 300
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 0.2
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "a_tie_child",
+      "trackId": "t3",
+      "name": "a_tie_child",
+      "startMs": 2400,
+      "durationMs": 1000,
+      "mediaType": "shape",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "parentId": "a_tie",
+      "transform": {
+        "position": {
+          "x": 500,
+          "y": 300
+        },
+        "scale": {
+          "x": 0.2,
+          "y": 0.2
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "c_caption",
+      "trackId": "ta",
+      "name": "c_caption",
+      "startMs": 0,
+      "durationMs": 8000,
+      "mediaType": "audio",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "shapeStyle": {
+        "kind": "rect",
+        "x": 0.25,
+        "y": 0.25,
+        "width": 0.5,
+        "height": 0.5,
+        "fill": "#4a90d9"
+      },
+      "caption": {
+        "words": [
+          {
+            "word": "one",
+            "startMs": 100,
+            "endMs": 500
+          },
+          {
+            "word": "two",
+            "startMs": 600,
+            "endMs": 900
+          },
+          {
+            "word": "three",
+            "startMs": 3000,
+            "endMs": 3500
+          }
+        ]
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "camera2d": {
+    "position": {
+      "x": 50,
+      "y": -20
+    },
+    "depthPx": 0,
+    "focalLengthPx": 1000,
+    "keyframes": [
+      {
+        "timeMs": 0,
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "depthPx": 0
+      },
+      {
+        "timeMs": 4000,
+        "position": {
+          "x": 120,
+          "y": 60
+        },
+        "depthPx": 150,
+        "aperturePx": 20
+      },
+      {
+        "timeMs": 8000,
+        "position": {
+          "x": 200,
+          "y": 100
+        },
+        "depthPx": 300
+      }
+    ]
+  }
+}

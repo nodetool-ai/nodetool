@@ -1,3 +1,4 @@
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { loadCanvas } from "@nodetool-ai/runtime";
 import {
   loadMediaRefBytes,
@@ -14,6 +15,7 @@ export async function inspectTimelineClipFrames(
   clip: TimelineClip,
   options: { timesMs?: number[]; count?: number; width?: number }
 ) {
+  assertTimelineColorSpaceSupported(sequence);
   const width = Math.max(1, Math.min(1024, Math.round(options.width ?? 512)));
   const count = Math.max(1, Math.min(8, Math.round(options.count ?? 3)));
   const times = options.timesMs?.length
@@ -49,6 +51,7 @@ export async function inspectTimelineClipFrames(
     clip.mediaType === "model3d"
   ) {
     const rendered = await renderTimelineFrames({
+      signal: context.signal,
       sequence,
       onlyClipIds: [clip.id],
       timesMs,

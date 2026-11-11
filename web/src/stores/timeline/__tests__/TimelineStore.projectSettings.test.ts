@@ -141,3 +141,15 @@ describe("TimelineStore — project settings", () => {
     });
   });
 });
+
+it.each([2, 3])("does not load or migrate unsupported version %s over other work", (workingColorSpaceVersion) => {
+  const store = createTimelineStore();
+  store.getState().loadSequence(makeSequence());
+  store.getState().setProjectSettings({ width: 1280 });
+  const previous = store.getState();
+  const sequence = makeSequence({ workingColorSpaceVersion });
+  const saved = JSON.stringify(sequence);
+  expect(() => store.getState().loadSequence(sequence)).toThrow(`Document workingColorSpaceVersion is ${workingColorSpaceVersion}. This build supports versions up to 1. Open it with a build that supports this value.`);
+  expect(store.getState()).toBe(previous);
+  expect(JSON.stringify(sequence)).toBe(saved);
+});
