@@ -352,6 +352,42 @@ describe("MinimaxProvider", () => {
     ]);
   });
 
+  it("sends last_frame_image on Hailuo-02 and refuses an end frame elsewhere", async () => {
+    const submitBodies: Array<Record<string, unknown>> = [];
+    const mockFetch = vi.fn(async (url: string, init?: { body?: string }) => {
+      if (url.endsWith("/v1/video_generation")) {
+        submitBodies.push(JSON.parse(init!.body!));
+        return { ok: true, json: async () => ({ task_id: "t", base_resp: { status_code: 0 } }) };
+      }
+      if (url.includes("/v1/query/")) {
+        return { ok: true, json: async () => ({ status: "Success", file_id: "f" }) };
+      }
+      if (url.includes("/v1/files/retrieve")) {
+        return { ok: true, json: async () => ({ file: { download_url: "https://cdn.minimax.io/v.mp4" }, base_resp: { status_code: 0 } }) };
+      }
+      return { ok: true, headers: { get: () => null }, arrayBuffer: async () => new Uint8Array([1]).buffer };
+    });
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    await provider.imageToVideo(png, {
+      model: { id: "MiniMax-Hailuo-02", name: "Hailuo 02", provider: "minimax" },
+      prompt: "transition",
+      endImage: png
+    });
+    expect(submitBodies[0].first_frame_image).toMatch(/^data:image\/png;base64,/);
+    expect(submitBodies[0].last_frame_image).toMatch(/^data:image\/png;base64,/);
+
+    await expect(provider.imageToVideo(png, {
+      model: { id: "MiniMax-Hailuo-2.3", name: "Hailuo 2.3", provider: "minimax" },
+      prompt: "transition",
+      endImage: png
+    })).rejects.toThrow("MiniMax model MiniMax-Hailuo-2.3 takes no end frame");
+    expect(submitBodies).toHaveLength(1);
+  });
+
   it("omits duration/resolution for 01-series models and clamps Hailuo combos", async () => {
     const submitBodies: Array<Record<string, unknown>> = [];
     const mockFetch = vi.fn(async (url: string, init?: { body?: string }) => {

@@ -28,6 +28,7 @@ export function textToVideo(inputs: TextToVideoInputs): Promise<TextToVideoOutpu
 // Image To Video — nodetool.video.ImageToVideo
 export type ImageToVideoInputs = {
   image?: ImageRef[];
+  end_image?: ImageRef;
   model?: unknown;
   prompt?: string;
   negative_prompt?: string;

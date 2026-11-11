@@ -51,3 +51,30 @@ describe("ImageToVideoNode — inline asset prompt mapping", () => {
     expect(params.seed).toBe(20261031);
   });
 });
+
+describe("ImageToVideoNode — end image", () => {
+  it("sends a wired end image as end_image", async () => {
+    const node = new ImageToVideoNode();
+    node.assign({
+      prompt: "transition",
+      image: { type: "image", data: Buffer.from([5, 5, 5]).toString("base64"), uri: "" },
+      end_image: { type: "image", data: Buffer.from([7, 7, 7]).toString("base64"), uri: "" }
+    });
+    const { context, captured } = makeContext();
+    await node.process(context as never);
+    const params = (captured.req as { params: Record<string, unknown> }).params;
+    expect(Array.from(params.end_image as Uint8Array)).toEqual([7, 7, 7]);
+  });
+
+  it("sends no end image when none is wired", async () => {
+    const node = new ImageToVideoNode();
+    node.assign({
+      prompt: "animate",
+      image: { type: "image", data: Buffer.from([5, 5, 5]).toString("base64"), uri: "" }
+    });
+    const { context, captured } = makeContext();
+    await node.process(context as never);
+    const params = (captured.req as { params: Record<string, unknown> }).params;
+    expect(params.end_image).toBeUndefined();
+  });
+});

@@ -52,6 +52,7 @@ import type {
   TextToVideoParams,
   VideoModel
 } from "./types.js";
+import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.gemini-web");
 
@@ -774,6 +775,7 @@ export class GeminiWebProvider extends BaseProvider {
   }
 
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+    if (params.endImage?.length) throw endFrameUnsupportedError("Gemini Web", params.model.id);
     return this.generateVideo(params.prompt ?? "", image, params);
   }
 
