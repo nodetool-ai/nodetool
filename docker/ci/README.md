@@ -18,7 +18,7 @@ this directory changes, it builds and pushes it. Then the jobs run in it:
 needs: ci-image
 container:
   image: ${{ needs.ci-image.outputs.image }}
-  options: --user 1001          # add --privileged for sandboxed Chromium
+  options: --init --user 1001   # add --privileged for sandboxed Chromium
 ```
 
 The `ci-image` job needs `packages: write`. The jobs that pull the image need
@@ -28,6 +28,9 @@ for the same content.
 
 ## Container options
 
+- `--init` runs an init process as PID 1. Without it PID 1 is the runner's
+  `tail -f /dev/null`, which never reaps orphaned processes, so a test that
+  waits for a detached child to exit sees a zombie that never goes away.
 - `--user 1001` runs steps as the hosted runner's user, which owns the mounted
   workspace, tool cache and home. Chromium refuses its sandbox as root.
   Passwordless `sudo` works as it does on the runner.
@@ -35,7 +38,9 @@ for the same content.
   `chromiumSandbox: true` (the game and 3D capture suites). Docker's seccomp
   profile blocks the user namespace the sandbox needs.
   [`chromium-sandbox`](../../.github/actions/chromium-sandbox/action.yml) also
-  lifts Ubuntu's AppArmor user-namespace restriction on the runner VM.
+  lifts Ubuntu's AppArmor user-namespace restriction on the runner VM, and
+  sets `CHROME_PATH` to Playwright's Chromium for chrome-launcher, since the
+  image has no system Chrome.
 - The `volumes` that mount the runner's unused SDKs under `/reclaim` let
   [`setup-build`](../../.github/actions/setup-build/action.yml) free their
   disk space from inside the container.

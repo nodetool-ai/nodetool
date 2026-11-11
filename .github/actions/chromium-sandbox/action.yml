@@ -1,8 +1,10 @@
 name: Chromium sandbox
 description: >-
   Let Playwright's Chromium keep its sandbox inside the CI image, and prove it
-  launches. The job must run in the CI image with `--user 1001 --privileged`
-  and have installed the browser (`npx playwright install chromium`).
+  launches. The job must run in the CI image with `--init --user 1001 --privileged`
+  and have installed the browser (`npx playwright install chromium`). Later
+  steps get `CHROME_PATH` set to that browser, because the image has no
+  system Chrome for chrome-launcher to find.
 
 runs:
   using: composite
@@ -29,3 +31,12 @@ runs:
         const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
         await browser.close();
         JS
+
+    # The value is the path Playwright reports for the browser it installed,
+    # not input from a pull request.
+    - name: Point CHROME_PATH at Playwright's Chromium
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        path=$(node --input-type=module -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')
+        test -x "$path"
+        echo "CHROME_PATH=$path" >> "$GITHUB_ENV"
