@@ -297,6 +297,18 @@ export class RouterArgsBuilder {
     return this;
   }
 
+  /** Remove a field the body carries, at its path. */
+  unset(name: string): this {
+    const path = this.pathOf(name);
+    let cur: unknown = this.body;
+    for (const key of path.slice(0, -1)) {
+      if (!isRecord(cur)) return this;
+      cur = cur[key];
+    }
+    if (isRecord(cur)) delete cur[path[path.length - 1]];
+    return this;
+  }
+
   set(name: string, value: unknown): this {
     if (value === undefined || value === null || value === "") return this;
     if (!this.has(name)) return this;

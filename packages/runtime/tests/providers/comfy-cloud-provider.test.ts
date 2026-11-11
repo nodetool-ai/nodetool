@@ -191,8 +191,23 @@ describe("ComfyCloudProvider — catalog", () => {
     expect(tasks["runway/aleph2"]).toEqual(["video_to_video"]);
     expect(tasks["runway/gen4_turbo"]).toEqual(["image_to_video"]);
     expect(tasks["bfl/flux-2-pro"]).toEqual(["text_to_image", "image_to_image"]);
-    // Text-only input: no image-to-image.
-    expect(tasks["luma/photon-flash-1"]).toEqual(["text_to_image"]);
+    // Text-only modalities, but ComfyUI's partner nodes send these models images.
+    expect(tasks["luma/photon-flash-1"]).toEqual(["text_to_image", "image_to_image"]);
+    expect(tasks["kling/kling-v3"]).toEqual(["text_to_video", "image_to_video"]);
+    expect(tasks["kling/kling-v3-omni"]).toEqual(["text_to_video", "image_to_video", "reference_to_video"]);
+    expect(tasks["fal/h3-max"]).toEqual(["text_to_video", "image_to_video", "reference_to_video"]);
+    expect(tasks["ltx/ltx-2-5-pro"]).toEqual(["text_to_video", "image_to_video"]);
+    expect(tasks["luma_2/ray-3.2"]).toEqual(["text_to_video", "image_to_video", "video_to_video"]);
+    expect(tasks["xai/grok-imagine-image-2.0"]).toEqual(["text_to_image", "image_to_image"]);
+    expect(tasks["krea/krea-2"]).toEqual(["text_to_image", "image_to_image"]);
+    // Mask-only image editors stay text-to-image only (IdeogramV3 edits with a mask).
+    expect(tasks["ideogram/ideogram-v3"]).toEqual(["text_to_image"]);
+    // A mask or a driving audio NodeTool's call cannot carry: no task at all.
+    expect(tasks["bfl/flux-pro-1.0-fill"]).toBeUndefined();
+    expect(tasks["kling/videos-avatar-image2video"]).toBeUndefined();
+    // Gemini Omni serves both kinds, as GeminiImage2 and GeminiVideoOmniV2 use it.
+    const omni = COMFY_ROUTER_CATALOG.filter((e) => e.id === "gemini-interactions/gemini-omni-1.1-flash");
+    expect(omni.map((e) => e.kind)).toEqual(["image", "video"]);
     // 3D output and mask-only editors have no NodeTool task.
     expect(tasks["meshy/meshy-6"]).toBeUndefined();
     expect(tasks["bria/image-edit-erase"]).toBeUndefined();
@@ -676,6 +691,232 @@ describe("ComfyCloudProvider — real Router schemas", () => {
     expect(audio?.mimeType).toBe("audio/mpeg");
     const submit = calls.find((c) => c.method === "POST" && c.url.endsWith("/requests"));
     expect((submit?.body as Record<string, unknown>).inputs).toEqual([{ text: "hello", voice_id: expect.any(String) }]);
+  });
+});
+
+describe("ComfyCloudProvider — request shapes from ComfyUI's partner nodes", () => {
+  const B64 = Buffer.from(PNG).toString("base64");
+  const VIDEO_RESULT = { image: "https://cdn.test/out.png", video: "https://cdn.test/out.mp4" };
+  const model = (id: string) => ({ id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD });
+
+  /** Run one call against a hand-written schema and return the submitted body. */
+  async function bodyFor(
+    id: string,
+    properties: Record<string, unknown>,
+    call: (p: TestProvider, m: ReturnType<typeof model>) => Promise<unknown>
+  ): Promise<Record<string, unknown>> {
+    const { fetchFn, calls } = fakeRouter({ [id]: { schema: openapi(properties), result: VIDEO_RESULT } });
+    await call(new TestProvider(fetchFn), model(id));
+    return calls.find((c) => c.method === "POST" && c.url.endsWith("/requests"))?.body as Record<string, unknown>;
+  }
+
+  async function refused(id: string, properties: Record<string, unknown>, call: (p: TestProvider, m: ReturnType<typeof model>) => Promise<unknown>, message: string): Promise<void> {
+    const { fetchFn, calls } = fakeRouter({ [id]: { schema: openapi(properties), result: VIDEO_RESULT } });
+    await expect(call(new TestProvider(fetchFn), model(id))).rejects.toThrow(message);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  }
+
+  // The Kling image2video body (KlingImage2VideoRequest, ImageToVideoWithAudioRequest).
+  const KLING_I2V = {
+    model_name: { type: "string" },
+    prompt: { type: "string" },
+    image: { type: "string" },
+    image_tail: { type: "string" },
+    mode: { type: "string", enum: ["std", "pro", "4k"] },
+    duration: { type: "string", enum: ["5", "10"] },
+    aspect_ratio: { type: "string", enum: ["16:9", "9:16", "1:1"] }
+  };
+
+  it("Kling v3: raw base64 image and image_tail, mode from the resolution, no aspect ratio (KlingFirstLastFrameNode)", async () => {
+    const body = await bodyFor("kling/kling-v3", KLING_I2V, (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "walk", endImage: PNG, resolution: "1080p", aspectRatio: "16:9", durationSeconds: 5 })
+    );
+    expect(body).toEqual({ prompt: "walk", image: B64, image_tail: B64, mode: "pro", duration: "5" });
+  });
+
+  it("Kling 2.6: mode pro, 5 or 10 s, and no end frame, which ComfyUI never sends it", async () => {
+    const body = await bodyFor("kling/kling-v2-6", KLING_I2V, (p, m) => p.imageToVideo(PNG, { model: m, prompt: "x", durationSeconds: 8 }));
+    expect(body).toMatchObject({ image: B64, mode: "pro", duration: "10" });
+    await refused("kling/kling-v2-6", KLING_I2V, (p, m) => p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG }), "takes no end frame");
+  });
+
+  it("Kling 3.0 Turbo: typed contents with a base64 first frame and no aspect ratio (execute_kling_turbo)", async () => {
+    const body = await bodyFor(
+      "kling/kling-3.0-turbo",
+      { prompt: { type: "string" }, contents: { type: "array" }, aspect_ratio: { type: "string" }, resolution: { type: "string" } },
+      (p, m) => p.imageToVideo(PNG, { model: m, prompt: "run", aspectRatio: "16:9", resolution: "720p" })
+    );
+    expect(body).toEqual({ contents: [{ type: "prompt", text: "run" }, { type: "first_frame", url: B64 }], resolution: "720p" });
+  });
+
+  const KLING_OMNI = { prompt: { type: "string" }, image_list: { type: "array" }, mode: { type: "string" }, aspect_ratio: { type: "string" } };
+
+  it("Kling omni: image_list typed first_frame and end_frame (KlingOmniProFirstLastFrameNode)", async () => {
+    const body = await bodyFor("kling/kling-v3-omni", KLING_OMNI, (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG, resolution: "4k", aspectRatio: "16:9" })
+    );
+    expect(body).toEqual({
+      prompt: "x",
+      mode: "4k",
+      image_list: [{ image_url: B64, type: "first_frame" }, { image_url: B64, type: "end_frame" }]
+    });
+  });
+
+  it("Kling omni references: untyped image_list items, at most 7 (OmniProReferences2VideoNode)", async () => {
+    const body = await bodyFor("kling/kling-video-o1", KLING_OMNI, (p, m) =>
+      p.referenceToVideo({ images: [PNG, PNG], videos: [] }, { model: m, prompt: "x" })
+    );
+    expect(body.image_list).toEqual([{ image_url: B64 }, { image_url: B64 }]);
+    await refused("kling/kling-video-o1", KLING_OMNI, (p, m) =>
+      p.referenceToVideo({ images: Array(8).fill(PNG), videos: [] }, { model: m, prompt: "x" }), "at most 7 reference images, not 8");
+  });
+
+  const SEEDANCE = "byteplus/dreamina-seedance-2-0-260128";
+
+  it("Seedance 1.x: parameters as --flags after the prompt, a lone first frame without a role (ByteDanceImageToVideoNode)", async () => {
+    const body = await submittedBody("byteplus/seedance-1-0-pro-250528", (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "dolly in", resolution: "720p", aspectRatio: "16:9", durationSeconds: 5, seed: 7 })
+    , SEEDANCE);
+    expect(body.content).toEqual([
+      { type: "text", text: "dolly in --resolution 720p --ratio 16:9 --duration 5 --seed 7 --camerafixed false --watermark false" },
+      { type: "image_url", image_url: { url: DATA_PNG } }
+    ]);
+    for (const key of ["resolution", "ratio", "duration", "seed", "watermark"]) expect(body).not.toHaveProperty(key);
+  });
+
+  it("Seedance 1.x: keeps both frame roles, and refuses a prompt that already carries a flag", async () => {
+    const id = "byteplus/seedance-1-5-pro-251215";
+    const body = await submittedBody(id, (p, m) => p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG }), SEEDANCE);
+    expect((body.content as Array<{ role?: string; text?: string }>).map((part) => part.role ?? part.text)).toEqual([
+      "x --camerafixed false --watermark false", "first_frame", "last_frame"
+    ]);
+    const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema(SEEDANCE), result: VIDEO_RESULT } });
+    await expect(new TestProvider(fetchFn).textToVideo({ model: model(id), prompt: "x --duration 9 now" })).rejects.toThrow(
+      "--duration is not allowed in the prompt"
+    );
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("Seedance 2.0 keeps 1080p and 4k, which ByteDance2 nodes offer, and drops 9:21, which none do", async () => {
+    for (const resolution of ["1080p", "4k"]) {
+      const body = await submittedBody(SEEDANCE, (p, m) => p.textToVideo({ model: m, prompt: "x", resolution, aspectRatio: "9:21" }));
+      expect(body.resolution).toBe(resolution);
+      expect(body).not.toHaveProperty("ratio");
+    }
+  });
+
+  it("Veo 3.1 lite: refuses 4k, as Veo3VideoGenerationNode does", async () => {
+    const id = "veo/veo-3.1-lite-generate-001";
+    const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema("veo/veo-3.1-generate-001"), result: VIDEO_RESULT } });
+    await expect(new TestProvider(fetchFn).textToVideo({ model: model(id), prompt: "x", resolution: "4K" })).rejects.toThrow(
+      "4K resolution is not supported by the veo-3.1-lite model."
+    );
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  const OMNI = "gemini-interactions/gemini-omni-1.1-flash";
+
+  it("Gemini Omni video: media parts before the prompt, the task and the output format (GeminiVideoOmniV2)", async () => {
+    const i2v = await submittedBody(OMNI, (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "a 6-second clip", endImage: PNG, aspectRatio: "9:16", resolution: "1080p" })
+    );
+    const image = { type: "image", data: B64, mime_type: "image/png" };
+    expect(i2v).toEqual({
+      input: [image, image, { type: "text", text: "a 6-second clip" }],
+      generation_config: { video_config: { task: "image_to_video" } },
+      response_format: { type: "video", resolution: "1080p", delivery: "uri", aspect_ratio: "9:16" }
+    });
+    const edit = await submittedBody(OMNI, (p, m) => p.videoToVideo(MP4, { model: m, prompt: "make it night", aspectRatio: "16:9" }));
+    expect(edit).toEqual({
+      input: [{ type: "video", data: Buffer.from(MP4).toString("base64"), mime_type: "video/mp4" }, { type: "text", text: "make it night" }],
+      generation_config: { video_config: { task: "edit" } },
+      response_format: { type: "video" }
+    });
+  });
+
+  const RAY = { prompt: { type: "string" }, model: { type: "string" }, type: { type: "string" }, video: { type: "object" }, source: { type: "object" }, aspect_ratio: { type: "string" } };
+
+  it("Ray 3.2: frames under video, always 5 s with an image, an edit's source inline (LumaRay32 nodes)", async () => {
+    const ref = { data: B64, media_type: "image/png" };
+    const i2v = await bodyFor("luma_2/ray-3.2", RAY, (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG, durationSeconds: 10, resolution: "720p", aspectRatio: "16:9" })
+    );
+    expect(i2v).toEqual({
+      prompt: "x", model: "ray-3.2", type: "video",
+      video: { resolution: "720p", duration: "5s", start_frame: ref, end_frame: ref }
+    });
+    const t2v = await bodyFor("luma_2/ray-3.2", RAY, (p, m) => p.textToVideo({ model: m, prompt: "x", durationSeconds: 10, aspectRatio: "21:9" }));
+    expect(t2v).toEqual({ prompt: "x", model: "ray-3.2", type: "video", aspect_ratio: "21:9", video: { duration: "10s" } });
+    const edit = await bodyFor("luma_2/ray-3.2", RAY, (p, m) => p.videoToVideo(MP4, { model: m, prompt: "x" }));
+    expect(edit).toEqual({
+      prompt: "x", model: "ray-3.2", type: "video_edit",
+      source: { data: Buffer.from(MP4).toString("base64"), media_type: "video/mp4" },
+      video: { duration: "10s", edit: { auto_controls: true } }
+    });
+  });
+
+  const GROK_IMAGE = { prompt: { type: "string" }, image: {}, images: { type: "array" }, aspect_ratio: { type: "string" } };
+
+  it("Grok image edit: images as {url} data URIs, at most 3, 1 for -pro (GrokImageEditNodeV2)", async () => {
+    const body = await bodyFor("xai/grok-imagine-image-2.0", GROK_IMAGE, (p, m) =>
+      p.imageToImage([PNG, PNG], { model: m, prompt: "x", aspectRatio: "1:1" })
+    );
+    expect(body).toEqual({ prompt: "x", aspect_ratio: "1:1", images: [{ url: DATA_PNG }, { url: DATA_PNG }] });
+    await refused("xai/grok-imagine-image-pro", GROK_IMAGE, (p, m) => p.imageToImage([PNG, PNG], { model: m, prompt: "x" }), "at most 1 input image, not 2");
+    await refused("xai/grok-imagine-image", GROK_IMAGE, (p, m) => p.imageToImage([PNG], { model: m, prompt: "x", aspectRatio: "16:9" }), "custom aspect ratio only with several");
+  });
+
+  it("Grok references: reference_images as {url} objects, at most 7 (GrokVideoReferenceNode)", async () => {
+    const body = await bodyFor("xai/grok-imagine-video-1.5", { prompt: { type: "string" }, reference_images: { type: "array" } }, (p, m) =>
+      p.referenceToVideo({ images: [PNG], videos: [] }, { model: m, prompt: "x" })
+    );
+    expect(body).toEqual({ prompt: "x", reference_images: [{ url: DATA_PNG }] });
+  });
+
+  it("Luma Photon: modify_image_ref with weight 0.9 by default and at most 0.98 (LumaImageModifyNode)", async () => {
+    const props = { prompt: { type: "string" }, modify_image_ref: { type: "object" }, aspect_ratio: { type: "string" } };
+    const body = await bodyFor("luma/photon-1", props, (p, m) => p.imageToImage([PNG], { model: m, prompt: "x", aspectRatio: "16:9" }));
+    expect(body).toEqual({ prompt: "x", modify_image_ref: { url: DATA_PNG, weight: 0.9 } });
+    const strong = await bodyFor("luma/photon-flash-1", props, (p, m) => p.imageToImage([PNG], { model: m, prompt: "x", strength: 1 }));
+    expect(strong.modify_image_ref).toEqual({ url: DATA_PNG, weight: 0.98 });
+  });
+
+  it("Krea 2: images as image_style_references with strength 1 (Krea 2 Style Reference node)", async () => {
+    const body = await bodyFor("krea/krea-2-medium", { prompt: { type: "string" }, image_style_references: { type: "array" } }, (p, m) =>
+      p.imageToImage([PNG, PNG], { model: m, prompt: "x" })
+    );
+    expect(body.image_style_references).toEqual([{ url: DATA_PNG, strength: 1 }, { url: DATA_PNG, strength: 1 }]);
+  });
+
+  it("H3 Max: image_url and end_image_url, and references in reference_image_urls and reference_audio_urls", async () => {
+    const props = {
+      prompt: { type: "string" }, image_url: { type: "string" }, end_image_url: { type: "string" },
+      reference_image_urls: { type: "array" }, reference_audio_urls: { type: "array" }, prompt_expansion_mode: { type: "string" }
+    };
+    const i2v = await bodyFor("fal/h3-max-turbo", props, (p, m) => p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG }));
+    expect(i2v).toMatchObject({ image_url: DATA_PNG, end_image_url: DATA_PNG });
+    const WAV = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45]);
+    const r2v = await bodyFor("fal/h3-max", props, (p, m) =>
+      p.referenceToVideo({ images: [PNG], videos: [], audios: [WAV] }, { model: m, prompt: "x" })
+    );
+    expect(r2v).toMatchObject({
+      reference_image_urls: [DATA_PNG],
+      reference_audio_urls: [expect.stringMatching(/^data:audio\/wav;base64,/)]
+    });
+  });
+
+  it("LTX 2.5: image_uri and last_frame_uri (LtxApi25ImageToVideo)", async () => {
+    const body = await bodyFor("ltx/ltx-2-5-fast", { prompt: { type: "string" }, image_uri: { type: "string" }, last_frame_uri: { type: "string" } }, (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG })
+    );
+    expect(body).toEqual({ prompt: "x", image_uri: DATA_PNG, last_frame_uri: DATA_PNG });
+  });
+
+  it("FLUX 3 Max: image_url and end_image_url (Flux3MaxImageToVideoNode with two keyframes)", async () => {
+    const body = await bodyFor("fal/flux-3-max", { prompt: { type: "string" }, image_url: { type: "string" }, end_image_url: { type: "string" } }, (p, m) =>
+      p.imageToVideo(PNG, { model: m, prompt: "x", endImage: PNG })
+    );
+    expect(body).toEqual({ prompt: "x", image_url: DATA_PNG, end_image_url: DATA_PNG });
   });
 });
 
