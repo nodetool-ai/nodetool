@@ -46,11 +46,12 @@ function(nt_sanitizer_test_checks)
             "ASAN_OPTIONS=string_append::fast_unwind_on_malloc=0"
             "LSAN_OPTIONS=string_append::fast_unwind_on_malloc=0")
     endif()
-    # Diagnostic: Qt has no frame pointers either, so the fast unwinder cuts
-    # the stacks of the leak assistant_capture reports one frame into Qt.
+    # Qt has no frame pointers either. V-EXT-7 (lsan.supp) matches the test
+    # frame below a deep Qt Quick polish stack, so this test needs the slow
+    # unwinder and a longer stack.
     if(NT_SANITIZE STREQUAL "address,undefined" AND TEST assistant_capture)
         set_property(TEST assistant_capture APPEND PROPERTY ENVIRONMENT_MODIFICATION
-            "ASAN_OPTIONS=string_append::fast_unwind_on_malloc=0"
-            "LSAN_OPTIONS=string_append::fast_unwind_on_malloc=0:report_objects=1")
+            "ASAN_OPTIONS=string_append::fast_unwind_on_malloc=0:malloc_context_size=96"
+            "LSAN_OPTIONS=string_append::fast_unwind_on_malloc=0:malloc_context_size=96")
     endif()
 endfunction()
