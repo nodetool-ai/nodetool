@@ -2,6 +2,7 @@
 import { useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { categoryLabel, isVertical } from "@/data/storyboards";
+import { useNearViewport } from "@/lib/useNearViewport";
 import type { Storyboard } from "@/data/storyboards";
 
 interface StoryboardCardProps {
@@ -17,6 +18,10 @@ interface StoryboardCardProps {
  */
 export function StoryboardCard({ board, showBrief = false }: StoryboardCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // A <video poster> downloads with the page wherever the card sits, so the
+  // homepage films fetched three posters before a phone reader scrolled.
+  const posterNear = useNearViewport(videoRef);
+  const poster = posterNear ? board.video.poster.src : undefined;
   const fit =
     board.aspectRatio === "16:9" ? "object-cover" : "object-contain";
 
@@ -47,17 +52,17 @@ export function StoryboardCard({ board, showBrief = false }: StoryboardCardProps
       className="focus-ring group flex flex-col rounded-2xl"
     >
       <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-900 ring-1 ring-white/10 transition-shadow duration-300 group-hover:shadow-[0_24px_60px_-20px_rgba(251,191,36,0.35)] group-hover:ring-amber-300/50 motion-reduce:transition-none">
-        {fit === "object-contain" && (
+        {fit === "object-contain" && poster && (
           <div
             aria-hidden="true"
             className="absolute inset-0 scale-125 bg-cover bg-center opacity-60 blur-2xl"
-            style={{ backgroundImage: `url(${board.video.poster.src})` }}
+            style={{ backgroundImage: `url(${poster})` }}
           />
         )}
         <video
           ref={videoRef}
           src={board.video.src}
-          poster={board.video.poster.src}
+          poster={poster}
           muted
           loop
           playsInline
