@@ -58,7 +58,8 @@ private slots:
     }
     void init() {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
-        open(300);
+        // The monitors' controls sit under the pictures, so the timeline needs room to show the audio track.
+        open(400);
         view->resize(1800, 1200);
         state = view->engine()->singletonInstance<SourceViewerState*>("NodeTool.Timeline", "SourceViewerState");
         QVERIFY(state);

@@ -866,6 +866,8 @@ private slots:
         auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
         QVERIFY(dock);
         for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
+        // The Trim Monitor's controls sit under its pictures, so the timeline leaves them room.
+        dock->resizeRegion("bottom", 320, view->width(), view->height());
         QTest::qWait(100);
         auto* lanes = item("lanesViewport");
         auto* cut = edge("l", "end");

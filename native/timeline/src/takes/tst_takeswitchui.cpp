@@ -35,7 +35,8 @@ class TakeSwitchUi : public WiringFixture {
     QUndoStack* undo() { return model.undoStack(); }
     QString assetOf(const QString& id) const { return clip(id).value("currentAssetId").toString(); }
     void mount(const QJsonArray& versions = fourTakes()) {
-        open();
+        // The monitor's controls sit under the take grid, so the timeline leaves them room.
+        open(320);
         QVERIFY(!QTest::currentTestFailed());
         QJsonObject shot{{"id", "shot"}, {"trackId", "v"}, {"name", "Shot"}, {"mediaType", "video"}, {"sourceType", "generated"},
                          {"startMs", 1000}, {"durationMs", 4000}, {"inPointMs", 0}, {"outPointMs", 4000}, {"status", "generated"},
