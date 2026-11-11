@@ -458,16 +458,23 @@ void closedRunningJobsCount() {
 // 6. Completions run once and outside the job mutex: each one calls back
 // into the same job, which would deadlock under the mutex.
 void completionsRunOutsideTheLock() {
-  std::latch go(1);
-  std::latch produced(1);
-  Fixture fixture([&](const ProviderJobs::Call &call) -> std::string {
+  // Shared with the workers, which can still be running, or not yet started,
+  // when the test returns: stop() cancels a job without joining its worker.
+  struct Latches {
+    std::latch go{1};
+    std::latch produced{1};
+  };
+  const auto latches = std::make_shared<Latches>();
+  std::latch &go = latches->go;
+  std::latch &produced = latches->produced;
+  Fixture fixture([latches](const ProviderJobs::Call &call) -> std::string {
     const auto mode = Json::parse(call.argsJson).at("mode").get<std::string>();
     if (mode == "queued") {
       call.progress(R"({"n":0})");
-      produced.count_down();
+      latches->produced.count_down();
       return blockUntilCancelled(call);
     }
-    go.wait();
+    latches->go.wait();
     if (mode == "progress")
       call.progress(R"({"n":1})");
     if (mode == "finish")

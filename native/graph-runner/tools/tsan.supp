@@ -21,9 +21,19 @@ called_from_lib:libgobject-2.0.so
 # of it as an unlock of an unlocked mutex. Ignore every Pango library too.
 called_from_lib:libpango-1.0.so
 called_from_lib:libpangocairo-1.0.so
+# GIO takes GLib mutexes for libvips' file loaders, so it needs the same
+# treatment, and libvips encodes WebP on its GLib worker threads with
+# libwebp, then muxes the result on the caller's thread with libwebpmux.
+called_from_lib:libgio-2.0.so
+called_from_lib:libwebp.so
+called_from_lib:libwebpmux.so
 called_from_lib:libvips.so
 called_from_lib:libpng16.so
 called_from_lib:libz.so
 # Mesa lavapipe (the CI Vulkan driver) destroys a queue mutex while its
 # llvmpipe threads finish, synchronized through uninstrumented code.
 called_from_lib:libvulkan_lvp.so
+# Lavapipe's LLVM JIT takes LLVM's own mutexes while Device::acquire holds the
+# device mutex. LLVM is uninstrumented, so TSan sees only some of its lock
+# calls and reports a lock-order inversion with the device mutex.
+called_from_lib:libLLVM.so
