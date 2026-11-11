@@ -91,6 +91,7 @@ import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
+import { toAssetResponse } from "./lib/asset-response.js";
 import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
@@ -124,6 +125,17 @@ const MCP_SANDBOX_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
   "http_request",
   "browser",
   "todo_write"
+]);
+
+/**
+ * Direct on this mount only. MCP has no system prompt, so the skill catalog a
+ * chat turn carries never reaches a client. These two let the client's model
+ * find and read NodeTool's skills, shipped and the user's own, without
+ * writing an action first.
+ */
+export const MCP_SKILL_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "list_skills",
+  "load_skill"
 ]);
 
 /**
@@ -305,6 +317,48 @@ export function toToolResponse(result: unknown) {
   return isObject && !isError
     ? { ...withError, structuredContent: result as Record<string, unknown> }
     : withError;
+}
+
+const MCP_VIEW_IMAGE_DESCRIPTION =
+  "Load the pixels of an image so you can inspect it. Returns MCP image " +
+  "content and, for a stored asset or a public https:// URL, a `url` the " +
+  "chat can display. To show the image to the user, embed that url as a " +
+  "Markdown image: ![description](url). An asset url is signed and expires, " +
+  "so call view_image again for a fresh one instead of reusing an old url. " +
+  "On local MCP connections, image_id also accepts an absolute disk path or " +
+  "file:// URI.";
+
+/**
+ * A URL a chat client can load without NodeTool credentials, for the image
+ * `view_image` answered with. A stored asset gets the signed URL its asset
+ * listing carries. A public https:// URL is already one. Anything else (an
+ * inline image, a disk file, a local server's relative `/api/storage` route)
+ * has none.
+ */
+async function publicImageUrl(
+  result: Record<string, unknown>,
+  imageId: string,
+  userId: string
+): Promise<string | null> {
+  if (/^https:\/\//i.test(imageId)) {
+    return imageId;
+  }
+  const assetId = result["asset_id"];
+  if (!isString(assetId)) {
+    return null;
+  }
+  const asset = await Asset.find(userId, assetId);
+  return asset ? signedAssetUrl(asset) : null;
+}
+
+/**
+ * The signed https URL an asset listing carries for this asset, or null on a
+ * server whose storage serves assets only through its own `/api/storage`
+ * route, which a chat client cannot load without NodeTool credentials.
+ */
+async function signedAssetUrl(asset: Asset): Promise<string | null> {
+  const { get_url: url } = await toAssetResponse(asset);
+  return url && /^https:\/\//i.test(url) ? url : null;
 }
 
 const STORAGE_ROUTE_PREFIX = "/api/storage/";
@@ -973,6 +1027,11 @@ export function registerAgentMcpTools(
     const isImageTool = tool.name === "view_image";
     const schema = { ...jsonSchemaToZodShape(tool.inputSchema) };
     if (isImageTool) {
+      // The MCP mount shows the stored image as it is. Crops and downscales
+      // are stored copies with no asset row, so they had no public URL to
+      // hand a chat client, and the client can scale the original itself.
+      delete schema["region"];
+      delete schema["detail"];
       schema["image_id"] = z
         .string()
         .describe(
@@ -982,14 +1041,15 @@ export function registerAgentMcpTools(
     }
     server.tool(
       tool.name,
-      tool.description +
-        (isImageTool
-          ? " Returns MCP image content so you can see the pixels. On local MCP connections, image_id also accepts an absolute disk path or file:// URI."
-          : ""),
+      isImageTool ? MCP_VIEW_IMAGE_DESCRIPTION : tool.description,
       schema,
       async (args) => {
         try {
-          const input = { ...args };
+          const input: Record<string, unknown> = { ...args };
+          if (isImageTool) {
+            delete input["region"];
+            delete input["detail"];
+          }
           const imageId =
             isImageTool && isString(input["image_id"])
               ? input["image_id"].trim()
@@ -1031,6 +1091,10 @@ export function registerAgentMcpTools(
             result["image_id"] = imageId.startsWith("data:")
               ? "inline image"
               : imageId;
+            const url = await publicImageUrl(result, imageId, scope.userId);
+            if (url) {
+              result["url"] = url;
+            }
           }
           return await toImageToolResponse(result, context);
         } catch (err) {
@@ -1201,7 +1265,8 @@ export function registerAgentMcpTools(
       !MCP_SANDBOX_ONLY_TOOL_NAMES.has(tool.name) &&
       ((DIRECT_TOOL_NAMES.has(tool.name) &&
         !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)) ||
-        PROVIDER_TOOL_NAMES.has(tool.name))
+        PROVIDER_TOOL_NAMES.has(tool.name) ||
+        MCP_SKILL_TOOL_NAMES.has(tool.name))
   );
   // They stay on the belt: an action still calls them from code. Listing them
   // as direct only moves where the prompt documents them.
@@ -1356,9 +1421,12 @@ export function registerAgentMcpTools(
 
   server.tool(
     "download_asset",
-    "Download an asset owned by this user. Returns content_base64, or writes " +
-      "to an absolute output_path on a local connection. The path is on the " +
-      "NodeTool server, not on a remote MCP client's machine.",
+    "Get an asset owned by this user, of any type. Returns a signed public " +
+      "`url` that needs no NodeTool credentials, or on a local connection " +
+      "writes the bytes to an absolute output_path on the NodeTool server. It " +
+      "never returns the bytes inline. To show the asset in the chat, embed an " +
+      "image as a Markdown image (![name](url)) and link any other type " +
+      "([name](url)). The url expires, so call this again for a fresh one.",
     {
       asset_id: z
         .string()
@@ -1380,18 +1448,24 @@ export function registerAgentMcpTools(
         }
         const asset = await Asset.find(scope.userId, asset_id);
         if (!asset || asset.isFolder) throw new Error("Asset not found.");
-        const bytes = await loadMediaRefBytes({ asset_id: asset.id }, context);
-        if (!bytes) throw new Error("Asset bytes not found.");
-        if (output_path) await writeFile(output_path, bytes);
-        return toToolResponse({
+        const described = {
           asset_id: asset.id,
           name: asset.name,
-          content_type: asset.content_type,
-          size: bytes.length,
-          ...(output_path
-            ? { output_path }
-            : { content_base64: Buffer.from(bytes).toString("base64") })
-        });
+          content_type: asset.content_type
+        };
+        if (!output_path) {
+          const url = await signedAssetUrl(asset);
+          if (!url) {
+            throw new Error(
+              "This server has no public URL for its assets. On a local MCP connection, pass output_path to write the file."
+            );
+          }
+          return toToolResponse({ ...described, url });
+        }
+        const bytes = await loadMediaRefBytes({ asset_id: asset.id }, context);
+        if (!bytes) throw new Error("Asset bytes not found.");
+        await writeFile(output_path, bytes);
+        return toToolResponse({ ...described, size: bytes.length, output_path });
       } catch (err) {
         return errorResponse(err);
       }
