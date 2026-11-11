@@ -46,4 +46,11 @@ function(nt_sanitizer_test_checks)
             "ASAN_OPTIONS=string_append::fast_unwind_on_malloc=0"
             "LSAN_OPTIONS=string_append::fast_unwind_on_malloc=0")
     endif()
+    # Diagnostic: Qt has no frame pointers either, so the fast unwinder cuts
+    # the stacks of the leak assistant_capture reports one frame into Qt.
+    if(NT_SANITIZE STREQUAL "address,undefined" AND TEST assistant_capture)
+        set_property(TEST assistant_capture APPEND PROPERTY ENVIRONMENT_MODIFICATION
+            "ASAN_OPTIONS=string_append::fast_unwind_on_malloc=0"
+            "LSAN_OPTIONS=string_append::fast_unwind_on_malloc=0:report_objects=1")
+    endif()
 endfunction()
