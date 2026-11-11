@@ -16,8 +16,8 @@ import { track } from "../lib/analytics";
 
 /** Bump the id when the message changes so a past dismissal does not hide it. */
 const ANNOUNCEMENT = {
-  id: "cloud-alpha-2026-08",
-  text: "NodeTool Cloud is in alpha — run workflows in the browser, on your own keys.",
+  id: "cloud-alpha-2026-11",
+  text: "NodeTool Cloud is in alpha. Direct films and run workflows in the browser, on your own keys.",
   short: "NodeTool Cloud is in alpha.",
   href: "/cloud",
   cta: "Try it",

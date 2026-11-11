@@ -7,13 +7,13 @@ import { useGridParallax } from "../lib/useGridParallax";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
-import ProjectSection from "../components/ProjectSection";
+import HeroDemoPlayer from "../components/HeroDemoPlayer";
 import SurfaceShowcase, {
   STORYBOARD_COST_COPY,
 } from "../components/SurfaceShowcase";
-import SpecStrip from "../components/SpecStrip";
+import StoryboardTeaser from "../components/storyboards/StoryboardTeaser";
 import FaqBlock from "../components/FaqBlock";
-import { Download } from "lucide-react";
+import { ArrowRight, Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
 import { track } from "../lib/analytics";
 
@@ -23,13 +23,16 @@ const sectionNarrow = "mx-auto max-w-2xl px-6";
 
 /*
  * Five blocks, in this order (marketing/site-editorial.spec.md § Homepage):
- * the overview, the mechanism, the cost behaviour, plans and costs, and the
- * way in.
+ * the overview, the workflow payoff, finished films, the cost behaviour, and
+ * the way in.
  * Detail lives on the page that owns it: the ad library on /marketing, models
  * on /models, plans and keys on /pricing, the node canvas on
- * /node-based-workflows, editions on /studio and /cloud. Add a section here
- * only by removing one.
+ * /node-based-workflows, editions on /studio and /cloud, the API, CLI and MCP
+ * on /developers. Add a section here only by removing one.
  */
+
+/** One film, one commercial, one animation, each with its storyboard page. */
+const HOME_FILMS = ["mars-greenhouse", "bowl-time", "clay-monday"] as const;
 /** Stable across renders, so SurfaceShowcase does not rebuild its panels. */
 const HOME_SURFACE_COPY = { storyboard: STORYBOARD_COST_COPY };
 
@@ -110,18 +113,61 @@ export default function Home() {
         id="content"
         className="relative isolate overflow-clip-safe pt-24 sm:pt-36 md:pt-24"
       >
-        {/* 1. The overview: the product, six linked selling points, and the reel */}
+        {/* 1. The overview: the promise, the plan sign-in by Download, the
+            reel, and three linked cards */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
           <div className={sectionContainer}>
             <NodeToolHero />
           </div>
         </section>
 
-        {/* 2. The mechanism: one note sends one shot back, and the cut keeps
-            every other shot */}
-        <ProjectSection />
+        {/* 2. The workflow payoff: the pipeline behind a film is a node graph
+            you run again. The node reel loads lazily below the fold. */}
+        <section aria-labelledby="run-again-title" className="relative py-16 sm:py-24">
+          <div className={sectionContainer}>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2
+                id="run-again-title"
+                className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
+              >
+                Made it once? Run it again.
+              </h2>
+              <p className="mt-5 text-pretty text-lg leading-relaxed text-slate-300">
+                Underneath every project is a node graph. Save the pipeline
+                that worked and run it on the next episode, twenty ad variants,
+                or the same character in a new scene. Bring a ComfyUI workflow
+                you already have, wire nodes by hand, or ask the agent to build
+                the graph and check it before a paid run.
+              </p>
+              <a
+                href="/node-based-workflows"
+                className="mt-6 inline-flex items-center gap-2 rounded text-sm font-medium text-blue-300 hover:text-blue-200 focus-ring"
+              >
+                Explore node workflows
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+            <div className="mx-auto mt-10 max-w-5xl rounded-2xl border border-white/10 bg-slate-950/60 p-2 shadow-2xl shadow-black/70">
+              <HeroDemoPlayer
+                mediaBase="/hero-nodes"
+                priority={false}
+                alt="A NodeTool workflow is wired, a mismatched wire is refused, five shots run through For Each, Text To Image, Image To Video, Collect, and Concatenate Video into one cut, and the image model is swapped"
+              />
+            </div>
+          </div>
+        </section>
 
-        {/* 3. The cost behaviour: settle shots on stills before paying for
+        {/* 3. Finished films, each with the brief it started from. The cards
+            open the storyboard page, which leads with the film. */}
+        <StoryboardTeaser
+          slugs={HOME_FILMS}
+          kicker="Made in NodeTool"
+          heading="Finished films, with the brief behind each."
+          body="Each film started as a short brief. Open one to watch it and see every shot with its camera and direction."
+          showBrief
+        />
+
+        {/* 4. The cost behaviour: settle shots on stills before paying for
             video. Prices come from the calculator catalog (stageCosts.ts). */}
         <SurfaceShowcase
           surfaceIds={["storyboard"]}
@@ -129,10 +175,6 @@ export default function Home() {
           intro="The storyboard holds one still per shot. Only the shots you approve become video."
           copy={HOME_SURFACE_COPY}
         />
-
-        {/* 4. The shared facts, one line each, linked to the page that owns
-            each one */}
-        <SpecStrip items={["plan", "cost"]} heading="Plans and costs" className="mt-8 sm:mt-12" />
 
         {/* 5. The way in. The FAQ rows also emit the page's FAQPage schema. */}
         <FaqBlock
@@ -158,9 +200,9 @@ export default function Home() {
             </h2>
             <p className="mt-4 text-lg text-slate-300">
               Download Studio, the free desktop app for macOS, Windows, and
-              Linux. Connect a supported provider account or run supported models
-              locally. Provider charges may apply. Or try Cloud in your browser.
-              Cloud is in alpha.
+              Linux. Sign in with your ChatGPT or Claude plan, add your own
+              provider keys, or run supported models locally. Or try NodeTool
+              in your browser, where it is still in alpha.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
@@ -174,7 +216,7 @@ export default function Home() {
                 onClick={() => track("Try Cloud", { placement: "closing" })}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
               >
-                Try Cloud in your browser (alpha)
+                Try it in your browser
               </a>
             </div>
             <p className="mt-8 text-sm leading-relaxed text-slate-400">
