@@ -3,6 +3,8 @@
 Status: draft, revision 3. Nothing in this document is implemented. Sections 4
 to 17 specify proposed behavior. Revisions 2 and 3 answer two design reviews.
 Sections 3.5 and 3.6 list their findings and the section that resolves each one.
+Section 12.1 adds two decisions for batch nodes and for a WebAssembly build of
+the runner (D16, D17). Its citations refer to `5c6bf19efa`.
 
 Cross-plan references use `RT-`, for example `RT-D4`. Local IDs stay unchanged.
 
@@ -227,6 +229,26 @@ A second review checked revision 2 against the graph runner and timeline code:
 | F50 | The lifetime order and thread affinity between `GraphRunner` and `LiveSession` were not stated against the [native rules][native-rules] | 7, 14.1 |
 | F51 | Advancing the visual clock by `k` refresh periods after a pause or an idle frame skip counts the pause as stream time or missed frames | D7c, 9.4, 9.7 |
 
+### 3.7 Batch node bodies and the guest engine
+
+- F52. The kernel reaches JavaScript only through
+  [`src/js/engine.h`][gr-engine], an interface of 49 virtual functions shaped
+  after React Native's JSI. `quickjs_engine.cpp` is the only file that
+  includes QuickJS headers. The header names V8, Hermes and JSC as possible
+  second backends.
+- F53. The web app already runs a graph in the page when every node declares
+  browser support ([`browserWorkflowRunner.ts`][web-browser-runner]). The
+  TypeScript kernel and the node bodies then run on the browser's JIT.
+- F54. Several batch node bodies loop over each sample, pixel or vertex in
+  JavaScript. Examples are the nine effect nodes of
+  [`lib-audio-effects.ts`][audio-effects], `synthesis.ts`, `lib-audio-dsp.ts`,
+  the six [`lib.image.enhance`][image-enhance] nodes that decode to RGBA with
+  `decodeRgba`, `model3d/mesh-ops.ts` and `game-nodes/atlas-preparation.ts`.
+  In the runner these loops run in QuickJS at the cost of F28.
+- F55. N2 (section 12) covers the built-in kernels of a live session only. A
+  batch node has one implementation, in TypeScript, and the server, the
+  browser and the runner all run it.
+
 ## 4. Decision
 
 ```
@@ -282,6 +304,15 @@ A second review checked revision 2 against the graph runner and timeline code:
   quantum of stream time. One that reaches the audio plan runs on the audio
   thread when an audio plan is active. One that reaches the render plan only
   runs on the render thread (section 5.4).
+- D16. A WebAssembly build of the runner binds `engine.h` to the JavaScript
+  engine of its worker. QuickJS is not compiled to WebAssembly. The guest
+  bundle runs on the browser's JIT, and the host capabilities stay C++ in the
+  same worker (section 12.1).
+- D17. A batch node whose cost is a loop over samples, pixels or vertices
+  computes in one C++ kernel library, `native/kernels`. The library builds as
+  native code for the runner and as WebAssembly for the server and the
+  browser. The TypeScript class stays the node definition and calls the
+  library (section 12.1).
 
 Rejected alternatives:
 
@@ -295,6 +326,8 @@ Rejected alternatives:
 | O6. Load native plug-ins for user kernels | A fault ends the host process. The VST host already runs as a child process for that reason. |
 | O7. Crossfade the old and the new audio plan at a swap | Each node downstream of the edit needs a second state block, and both paths cost CPU in the quantum of the edit (F31). Section 11.3 removes the click with one plan. |
 | O8. Guard the audio deadline with epoch interruption | The trap needs a second thread and can arrive after the deadline. A browser has no such call (F34). |
+| O9. Compile QuickJS to WebAssembly for the browser build of the runner | An interpreter then runs inside WebAssembly beside a JIT engine. Each node body pays F28 and the WebAssembly overhead, and the web app already runs these bodies on the JIT (F53). |
+| O10. Keep each loop in TypeScript and add a C++ copy for the runner only | Each node then has two implementations that drift, and the server and the browser keep the slow loop (F55). |
 
 ## 5. Execution model
 
@@ -1182,6 +1215,11 @@ Rules:
   contraction. Both are needed for equal results on two hosts, and they are
   not enough (F30, F40). Section 15.1 gives the full conditions and the
   kernels that they cover.
+- N7. A batch node that loops over samples, pixels or vertices computes in the
+  kernel library (D17). Its JavaScript reads properties, calls kernels,
+  providers or host capabilities, and builds the result.
+- N8. The browser build of the runner runs guest JavaScript on the engine of
+  its worker. No interpreter runs inside WebAssembly (D16).
 
 | Component | Desktop | Browser | Reason |
 |---|---|---|---|
@@ -1196,9 +1234,72 @@ Rules:
 | Media decode | libav on decode workers | WebCodecs | Exists on both hosts |
 | Models, network, scripts | The finite kernel | The existing runners | D1 |
 | Export encode | libav job | Out of scope | Exists |
+| Batch node bodies | TypeScript in the QuickJS guest | TypeScript on the worker's engine, through `engine.h` (D16) | One implementation. The cost is in the kernels |
+| Batch kernels | Native C++ from `native/kernels`, called through a host function | The same source as WebAssembly, also on the server | N7, D17 |
 
 WebAssembly on the desktop is an optional feature of the build. A build without
 Wasmtime runs every built-in kernel and rejects a plan with a user kernel.
+
+### 12.1 Batch nodes and a WebAssembly build of the runner
+
+D16 and D17 apply outside a live session too. They concern the finite kernel
+and the batch nodes it runs.
+
+**D16, the guest engine in a WebAssembly build.** A `wasm32` build of the
+runner gets a second `engine.h` backend beside `quickjs_engine.cpp`. The
+backend calls the JavaScript engine of the worker that loads the module,
+through Emscripten's `emscripten::val`. The guest bundle (`guest.js`, never
+`guest.bin`) runs in that worker as a module. Each `__host.*` capability stays
+C++ in the same WebAssembly module. A call between the guest and a host
+capability crosses one JavaScript-to-WebAssembly boundary per call, not per
+sample or pixel, so its cost is small next to the work of the call.
+
+The scheduler needs one change for this backend. On the desktop, the kernel
+drains the QuickJS job queue after each resumed step (F2). A browser engine
+runs its microtasks only when the call stack is empty, and WebAssembly code
+cannot drain them on demand. The run loop therefore returns to the worker's
+event loop after each step and resumes from a callback, or suspends through
+JavaScript Promise Integration (R15, Q12).
+
+The QuickJS limits of the desktop have no direct equivalent there. The browser
+engine has no heap limit and no interrupt handler that the host can set. The
+kernel checks for a cancel each time the run loop resumes. A run that does not
+stop ends with `terminate()` on the worker, which also ends the C++ host of
+that worker (R14).
+
+**D17, the kernel library.** `native/kernels` holds the computation of batch
+nodes: pure functions over buffers, with a C ABI and no dependency beyond the
+standard library. The realtime kernels of section 10 use it too, so a batch
+audio node and its live counterpart run the same code. A batch audio node
+runs its kernel in quanta of 128 frames, so a batch render equals an offline
+session render (D11).
+
+| Host | How the kernel runs | How the node reaches it |
+|---|---|---|
+| Graph runner, desktop | Linked native code | The TypeScript `process()` calls a host function of a `kernels` capability, which runs the call on the CPU lane ([native jobs and lanes](../../native/graph-runner/README.md#native-jobs-and-lanes)) |
+| Server, Node | WebAssembly, loaded by the node package | The same `process()` calls the module through `WebAssembly.instantiate` |
+| Browser | The same WebAssembly module | As on the server |
+
+The TypeScript class keeps the node type, the properties, the metadata and the
+validation. Only the loop moves. The server and the web editor therefore see
+no change of node type or metadata. The module ships as a package runtime
+asset (`PACKAGE_RUNTIME_ASSETS`), so the packaged Electron backend finds it.
+N6 applies to the library: no fast-math option and no fused multiply-add
+contraction.
+
+Each move compares the TypeScript loop with the new kernel once, on the
+parity cases of the node, within a stated tolerance. The TypeScript loop is
+then deleted. Nodes that do no per-element work stay in TypeScript: providers,
+text, control, agents and documents.
+
+The first candidates come from F54:
+
+| Family | Nodes | Reason |
+|---|---|---|
+| Image enhance | `lib.image.enhance.*`: Equalize, AutoContrast, AdaptiveContrast, RankFilter, Detail, EdgeEnhance | Histogram and rank operations do not fit one shader pass. Parity cases exist. A small first move |
+| Audio effects and synthesis | `lib-audio-effects.ts`, `synthesis.ts`, `lib-audio-dsp.ts` | The largest gain (F28). The kernels are shared with the audio plan |
+| Mesh operations | `model3d/mesh-ops.ts`, `boolean-ops.ts` | CPU geometry. C++ libraries for it compile to WebAssembly |
+| Game asset preparation | `game-nodes/atlas-preparation.ts`, `image-preparation.ts` | Pixel loops |
 
 ## 13. Performance budgets
 
@@ -1326,8 +1427,9 @@ CI. A `live bench` mode reports the frame and quantum statistics of section 13.
 | Project | Content | Depends on |
 |---|---|---|
 | `native/audio-io` (extracted) | The miniaudio device wrapper, the null backend, `AudioClockFeed`, `OutputLatency`, `PcmRing` | Standard library, miniaudio |
-| `native/realtime` (new) | IR loader, control executor, render executor, audio executor, kernels, drivers, session | `audio-io`, `webgpu.h`, optional Wasmtime |
-| `native/graph-runner` | The session API, slot-write node, compiler call | `realtime` |
+| `native/kernels` (new) | Pure buffer kernels with a C ABI, built as native code and as WebAssembly (D17) | Standard library |
+| `native/realtime` (new) | IR loader, control executor, render executor, audio executor, kernels, drivers, session | `audio-io`, `kernels`, `webgpu.h`, optional Wasmtime |
+| `native/graph-runner` | The session API, slot-write node, compiler call, the `kernels` capability | `realtime`, `kernels` |
 | `native/timeline` | Uses `audio-io` in place of its own device code | `audio-io` |
 
 ### 14.5 Browser
@@ -1436,6 +1538,15 @@ P0 decides R1 and R2 before P1 starts. It also replaces the targets of D7h and
 section 13 with measured values. The built-in kernels and the WGSL path
 deliver phases P1 to P6 without the kernel contracts of section 10.6.
 
+D17 does not depend on P0 to P7 and can start first. Its pilot moves the six
+`lib.image.enhance` nodes to `native/kernels`. Exit evidence: the parity suite
+passes for them in the runner, the node package tests pass with the
+WebAssembly build on the server, and a bench records the time per megapixel
+for the TypeScript loop, the module in Node and the native build. D16 waits
+for Q11. Its test builds the runner for `wasm32` with the new backend and runs
+the fixtures of `tests/graphs/` in a browser worker. The `wasm32` toolchain of
+R6 serves both.
+
 ## 17. Failure handling
 
 | Failure | Detection | Behavior |
@@ -1490,6 +1601,16 @@ deliver phases P1 to P6 without the kernel contracts of section 10.6.
 - R13. Level 3 forbids a flush-to-zero mode on the native audio threads. A
   kernel that does not clear subnormal state runs slowly on x86. A test feeds
   each kernel silence after a signal and checks its render time.
+- R14. The browser backend of D16 has no heap limit and no interrupt. A guest
+  that loops without a host call cannot be cancelled, and `terminate()` ends
+  the whole worker with its C++ host and its GPU resources.
+- R15. The run loop of D16 must yield to the event loop after each step. A
+  callback design changes the scheduler's control flow on one backend only.
+  JavaScript Promise Integration keeps the control flow but is not available
+  in every browser that the web app supports.
+- R16. A moved node depends on its WebAssembly module on the server. A module
+  that fails to load breaks a node that worked in TypeScript. The packaged
+  backend smoke test (`npm run backend:smoke`) must load each module.
 
 ## 19. Open questions
 
@@ -1513,6 +1634,12 @@ deliver phases P1 to P6 without the kernel contracts of section 10.6.
   isolated mode with its latency enough?
 - Q10. Does the sync policy of a param need a control in the editor, or is the
   compiler's default enough?
+- Q11. Does the web app run the C++ finite kernel as WebAssembly at all? The
+  alternative keeps the TypeScript kernel of the in-browser runner (F53) and
+  takes only the kernel library of D17. D16 applies only to the first answer.
+- Q12. Does the D16 run loop yield through callbacks or through JavaScript
+  Promise Integration? The answer depends on the browsers the web app must
+  support (R15).
 
 ## 20. Related documents
 
@@ -1592,3 +1719,7 @@ folder. P1 replaces it with `live bench`.
 [rs-plan]: reactive-sessions-events.md
 [sv-plan]: shared-variables-input-bindings.md
 [harness]: ../HARNESS_FIRST.md
+[gr-engine]: ../../native/graph-runner/src/js/engine.h
+[web-browser-runner]: ../../web/src/lib/workflow/browserWorkflowRunner.ts
+[audio-effects]: ../../packages/audio-nodes/src/nodes/lib-audio-effects.ts
+[image-enhance]: ../../packages/image-nodes/src/nodes/lib-image-enhance.ts
