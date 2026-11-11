@@ -27,6 +27,23 @@
     "corrupted output",
     "empty output"
   ],
-  "offlineRunWallMs": 7462.396,
-  "limits": "Offline wall time includes setup and transfer. It is not per-quantum render time or live-device evidence."
+  "offlineRunWallMs": 7233.0317,
+  "workletTiming": {
+    "source": "Chrome disabled-by-default-audio-worklet complete duration events (microseconds)",
+    "process": {
+      "count": 512,
+      "meanUs": 49.109375,
+      "standardDeviationUs": 34.7946508045328,
+      "p999Us": 658,
+      "worstUs": 658
+    },
+    "script": {
+      "count": 512,
+      "meanUs": 35.8984375,
+      "standardDeviationUs": 30.832736722655575,
+      "p999Us": 540,
+      "worstUs": 540
+    }
+  },
+  "limits": "Quantum durations include tracing overhead and startup. Offline wall time includes setup/transfer. Neither establishes live-device deadlines."
 }

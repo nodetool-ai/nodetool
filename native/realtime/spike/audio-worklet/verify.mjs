@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { chromium } from "@playwright/test";
+import { quantumTiming } from "./timing.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const blocks = 512;
@@ -81,6 +82,12 @@ try {
   const endpoint = server.address();
   assert.ok(endpoint && typeof endpoint !== "string");
   await page.goto(`http://127.0.0.1:${endpoint.port}`);
+  const trace = [];
+  const cdp = await browser.newBrowserCDPSession();
+  cdp.on("Tracing.dataCollected", data => trace.push(...data.value));
+  await cdp.send("Tracing.start", {
+    categories: "disabled-by-default-audio-worklet", transferMode: "ReportEvents"
+  });
   const started = performance.now();
   const bytes = await page.evaluate(async ({ frames, blocks }) => {
     const context = new OfflineAudioContext(2, frames, 44100);
@@ -126,6 +133,9 @@ try {
     return Array.from(new Uint8Array(interleaved.buffer));
   }, { frames, blocks });
   compare(Buffer.from(bytes), "Chrome AudioWorklet");
+  const tracingComplete = new Promise(resolve => cdp.once("Tracing.tracingComplete", resolve));
+  await cdp.send("Tracing.end");
+  await tracingComplete;
   const result = {
     build: JSON.parse(readFileSync(join(root, "build/build.json"), "utf8")),
     platform: process.platform, architecture: process.arch, browser: browser.version(),
@@ -134,7 +144,12 @@ try {
     nativeRepeatable: true, nodeWasmEqual: true, audioWorkletEqual: true,
     negativeControls: ["truncated input", "corrupted output", "empty output"],
     offlineRunWallMs: performance.now() - started,
-    limits: "Offline wall time includes setup and transfer. It is not per-quantum render time or live-device evidence."
+    workletTiming: {
+      source: "Chrome disabled-by-default-audio-worklet complete duration events (microseconds)",
+      process: quantumTiming(trace, "AudioWorkletProcessor::Process", blocks),
+      script: quantumTiming(trace, "AudioWorkletProcessor::Process (author script execution)", blocks)
+    },
+    limits: "Quantum durations include tracing overhead and startup. Offline wall time includes setup/transfer. Neither establishes live-device deadlines."
   };
   writeFileSync(join(root, "build/result.json"), JSON.stringify(result, null, 2) + "\n");
   console.log(JSON.stringify(result, null, 2));
