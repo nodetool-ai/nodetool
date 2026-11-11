@@ -5,9 +5,9 @@ description: "How to add a new OpenAI-compatible cloud provider (Groq, Mistral, 
 ---
 
 This guide covers twelve providers that share one implementation pattern:
-**Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Alibaba Cloud (Qwen)**, **Cohere**, **OpenRouter**, **Requesty**, **Opper**, **API Route**, **Cheaper Inference**, and **Runcrate**.
+**Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Alibaba Cloud (Qwen)**, **Cohere**, **OpenRouter**, **Requesty**, **Opper**, **API Route**, **Cheaper Inference**, **Runcrate**, **Standard Compute**, and **UberLLM**.
 
-> **Runs:** cloud. **Needs:** one key per provider, for example `GROQ_API_KEY`, `MISTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `KIMI_API_KEY` (Moonshot), `CEREBRAS_API_KEY`, `DASHSCOPE_API_KEY` (Alibaba Cloud), `COHERE_API_KEY`, `OPENROUTER_API_KEY`, `REQUESTY_API_KEY`, `OPPER_API_KEY`, `API_ROUTE_API_KEY`, `CHEAPER_INFERENCE_API_KEY`, `RUNCRATE_API_KEY`. Each provider's `requiredSecrets()` names its key.
+> **Runs:** cloud. **Needs:** one key per provider, for example `GROQ_API_KEY`, `MISTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `KIMI_API_KEY` (Moonshot), `CEREBRAS_API_KEY`, `DASHSCOPE_API_KEY` (Alibaba Cloud), `COHERE_API_KEY`, `OPENROUTER_API_KEY`, `REQUESTY_API_KEY`, `OPPER_API_KEY`, `API_ROUTE_API_KEY`, `CHEAPER_INFERENCE_API_KEY`, `RUNCRATE_API_KEY`, `STANDARDCOMPUTE_API_KEY`, `UBERLLM_API_KEY`. Each provider's `requiredSecrets()` names its key.
 {: .callout-note}
 
 ## No code needed: add an endpoint from Settings
@@ -160,6 +160,8 @@ Groq, Mistral, Cerebras, Moonshot, and Alibaba Cloud follow this pattern. Differ
 - **API Route** reads `/models` once and keeps rows whose `supported_endpoint_types` include `openai`, plus rows without endpoint metadata. The shared `classifyListedModel` helper excludes image/video entries by metadata or ID, even when their endpoint types also include `openai`. Bare chat IDs are preserved.
 - **Cheaper Inference** reads `/models` once and keeps rows whose `type` is `"text"`, which drops the image and video rows the same listing returns. It returns `true` for tool support on every model.
 - **Runcrate** reads `/models` once and keeps rows whose `input_modalities` and `output_modalities` both include `text`; a row without modality metadata goes through `classifyListedModel`. It reads `supported_features` per model, and only a listed model without `tools` disables tools. `getContextWindow` answers the row's `context_length`.
+- **Standard Compute** reads `/models` once and keeps the rows the shared `classifyListedModel` helper judges to be language models, using `architecture.output_modalities` when a row has it. The routed `StandardCompute` row has no modality metadata and stays. It reads `supported_parameters` per model, and only a listed model without `tools` disables tools. `getContextWindow` answers the row's `context_length`, and the picker shows `display_name` when present.
+- **UberLLM** reads `/models` once and keeps the rows the shared `classifyListedModel` helper judges to be language models, using `architecture.output_modalities`. It reads `supported_parameters` per model, and only a listed model without `tools` disables tools. `getContextWindow` answers the row's `context_length`, and the picker shows `display_name` when present. It also declares `text_to_image`: image models come from `/models?type=image` (rows whose `endpoints` include `/v1/images/generations`), and `textToImage` posts to `/images/generations` with `response_format: "b64_json"`.
 
 ## Add a brand-new OpenAI-compatible provider
 
@@ -223,11 +225,11 @@ The empty string for `ACME_API_KEY` is intentional — it forces the registry to
 
 ### Chat models are fetched dynamically — no change needed
 
-If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, or Runcrate adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
+If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, Standard Compute, or UberLLM adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
 
 ### Tool-support overrides
 
-`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, Moonshot, and Cheaper Inference return `true` unconditionally. API Route does not override it and inherits `OpenAIProvider`, which returns `false` for ids starting with `o1` or `o3`. OpenRouter, Alibaba Cloud, Requesty, Opper, and Runcrate decide per model. OpenRouter checks the model id:
+`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, Moonshot, and Cheaper Inference return `true` unconditionally. API Route does not override it and inherits `OpenAIProvider`, which returns `false` for ids starting with `o1` or `o3`. OpenRouter, Alibaba Cloud, Requesty, Opper, Runcrate, Standard Compute, and UberLLM decide per model. OpenRouter checks the model id:
 
 ```ts
 // packages/runtime/src/providers/openrouter-provider.ts

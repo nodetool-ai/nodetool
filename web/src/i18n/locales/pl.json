@@ -7024,6 +7024,7 @@
       "allCategories": "Wszystko",
       "categories": {
         "workflows": "Przepływy pracy",
+        "comfy": "ComfyUI",
         "apps": "Aplikacje",
         "storyboards": "Storyboardy",
         "timelines": "Osie czasu",
@@ -9350,6 +9351,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Zdobądź klucz API Runcrate",
           "tooltip": "Przejdź do platformy Runcrate, aby uzyskać klucz API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Zdobądź klucz API Standard Compute",
+          "tooltip": "Przejdź do platformy Standard Compute, aby uzyskać klucz API"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Zdobądź klucz API UberLLM",
+          "tooltip": "Przejdź do platformy UberLLM, aby uzyskać klucz API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Uzyskaj klucz trasy API",
@@ -13174,7 +13183,6 @@
       "debuggingNotice": "Podczas wykonywania żądania Chrome wyświetla pasek „Nodetool debuguje tę przeglądarkę”. Rozszerzenie nie robi nic na innych kartach.",
       "setup": "Skonfiguruj to",
       "step1": "Pozwól Chrome uruchomić mostek przeglądarki NodeTool.",
-      "windowsUnsupported": "Nie jest to jeszcze obsługiwane w systemie Windows. Generowanie multimediów za pomocą rozszerzenia działa na systemach macOS i Linux.",
       "bridgeRegistered": "Gotowe. NodeTool zarejestrował swój most w Twoich przeglądarkach.",
       "registering": "Rejestrowanie się w przeglądarkach…",
       "registrationFailed": "Rejestracja mostu przeglądarki nie powiodła się",

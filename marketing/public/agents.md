@@ -7,21 +7,21 @@ product: NodeTool
 ---
 # NodeTool, the Open-Source Creative Harness
 
-A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step. NodeTool gives one to the built-in agent, or to Claude Code, Codex, or Cursor over MCP. It checks each graph before a paid run, logs every call, and lets you stop the agent and take over.
+Give the agent tools to create and edit images, video, audio and workflows. Use NodeTool’s built-in agent, or connect Claude Code, Codex or Cursor through MCP. Inspect its work and take over whenever you need to.
 
 ## Build. Validate. Run. Inspect. Repair.
 
 A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step.
 
-- **Build** (`create_workflow`): The agent adds nodes, picks models, and wires the graph. A graph naming a provider or model that does not exist is refused, not saved.
-- **Validate** (`validate_workflow`): A static check in well under a second, before any model is called.
-- **Run** (`run_workflow`): The graph calls your local models and provider accounts. A run whose provider has no key is refused before the first node starts.
+- **Build** (`create_workflow`): The agent adds nodes, picks models, and wires the graph. It checks that the selected providers and models exist before saving the workflow.
+- **Validate** (`validate_workflow`): Check the workflow for errors before calling a model.
+- **Run** (`run_workflow`): Run the workflow with local models or your provider accounts. Missing API keys are flagged before it starts.
 - **Inspect** (`get_job_logs`): Every tool call, output, and error is in the log, with the node that failed.
-- **Repair** (`create_workflow_version`): The fix is a new version. The last good one stays.
+- **Repair** (`create_workflow_version`): The agent saves its changes as a new version, so you can return to the previous one.
 
 ## The graph is checked before it runs
 
-The same check guards the run endpoint. A graph that fails it never reaches the paid half, so the agent does not learn about a typo from a bill. `validate_workflow` reports:
+Validation catches errors before the workflow makes paid model calls. `validate_workflow` reports:
 
 - Unknown node types
 - Required properties left empty, and models never selected
@@ -48,8 +48,8 @@ The agent edits the same documents you open in Studio. When it stops, the work i
 Read what the agent did, and take the work back at any point.
 
 - **A full record**: Read each tool call with its arguments, result, and error. Find the step that went wrong.
-- **Your hands**: Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.
-- **Your keys**: When a graph needs a key this install does not have, the agent in Studio asks you for it in a dialog. A headless run fails instead of guessing.
+- **Take over at any time**: Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.
+- **Your keys**: Studio asks you to add any missing API keys. Runs started without the interface stop with an error if a required key is missing.
 
 ## Permission modes
 
@@ -65,11 +65,11 @@ Connect Claude Code, Codex, or Cursor with one command. The setup, the CLI, and 
 
 ### What does it mean that NodeTool is agent-first?
 
-It means the AI agent works in the same editors you do. The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, game editor, and app builder each give the agent the actions you have, so it can change your project the way you would. A log records every action the agent took, its result, and any error. Coding agents outside NodeTool, such as Claude Code, can use the same actions through **MCP**, the standard way AI agents connect to outside tools.
+The agent edits the same projects you open in NodeTool, including storyboards, timelines and workflows. You can inspect its tool calls, results and errors, then take over yourself. External coding agents can also use NodeTool through **MCP**.
 
 ### What is a creative harness?
 
-A harness is what an AI agent works inside: the tools it can call, the documents it can change, the models and keys it may use, and the record of what it did. NodeTool is a creative harness. It gives the built-in agent, or a coding agent such as Claude Code over **MCP**, image, video, and audio generation and the same editors you use. The agent runs on your provider accounts, every tool call is logged, and the work stays as editable workflows and projects. NodeTool is open source under AGPL-3.0.
+A creative harness gives an AI agent tools, editors, model access and a record of its actions. NodeTool provides these to its built-in agent and coding agents connected through **MCP**. Their work is saved as projects and workflows you can edit.
 
 ### What is a planning agent?
 

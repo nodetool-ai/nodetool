@@ -114,25 +114,25 @@ export default function FeaturesSection({
             {
               title: "Scripting & casting",
               description:
-                "Go from prompt to screenplay in seconds. Draft dialogue, cast character voices, and audition alternate line readings with automatic word-level sync.",
+                "Draft a script, choose a voice for each character and compare different readings of a line.",
               icon: Mic,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
               border: "border-blue-500/20",
             },
             {
-              title: "Any model you can reach",
+              title: "Choose your models",
               description:
-                "Route your shots through Flux, Seedance, Wan, Whisper, ElevenLabs, Suno, and the rest, on your own keys. Studio adds open weights running on your own hardware. No platform lock-in.",
+                "Create images, video, speech and music with models such as Flux, Seedance, Wan, Whisper and Suno, or voices from ElevenLabs. Connect your provider accounts or run supported models locally.",
               icon: Layers,
               color: "text-purple-400",
               bg: "bg-purple-500/10",
               border: "border-purple-500/20",
             },
             {
-              title: "A real timeline, not a black box",
+              title: "Edit your video in the timeline",
               description:
-                "Instead of a single unfixable video file, the agent hands you a fully editable multi-track project. Fine-tune every frame, layer, and audio stem.",
+                "The agent arranges clips and audio in a timeline. Trim shots, adjust timing and change the soundtrack yourself.",
               icon: Film,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",

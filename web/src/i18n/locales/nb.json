@@ -6826,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Arbeidsflyter",
+        "comfy": "ComfyUI",
         "apps": "Apper",
         "storyboards": "Storyboards",
         "timelines": "Tidslinjer",
@@ -9062,6 +9063,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Få Runcrate API-nøkkel",
           "tooltip": "Gå til Runcrate-plattformen for å få API-nøkkelen din"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Få Standard Compute API-nøkkel",
+          "tooltip": "Gå til Standard Compute-plattformen for å få API-nøkkelen din"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Få UberLLM API-nøkkel",
+          "tooltip": "Gå til UberLLM-plattformen for å få API-nøkkelen din"
         },
         "API_ROUTE_API_KEY": {
           "button": "Få API-rutenøkkel",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "Chrome viser en «Nodetool feilsøker denne nettleseren»-linje mens en forespørsel kjøres. Utvidelsen gjør ingenting på andre faner.",
       "setup": "Sett den opp",
       "step1": "La Chrome starte NodeTools nettleserbro.",
-      "windowsUnsupported": "Dette støttes ikke på Windows ennå. Mediegenerering gjennom utvidelsen fungerer på macOS og Linux.",
       "bridgeRegistered": "Ferdig. NodeTool registrerte broen sin med nettleserne dine.",
       "registering": "Registrerer med nettleserne dine …",
       "registrationFailed": "Registrering av nettleserbro mislyktes",

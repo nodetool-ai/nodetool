@@ -180,6 +180,8 @@ const STUB_PROVIDER_SECRET_KEYS: Record<string, string | null> = {
   cheaperinference: "CHEAPER_INFERENCE_API_KEY",
   api_route: "API_ROUTE_API_KEY",
   runcrate: "RUNCRATE_API_KEY",
+  standardcompute: "STANDARDCOMPUTE_API_KEY",
+  uberllm: "UBERLLM_API_KEY",
   huggingface: "HF_TOKEN",
   replicate: "REPLICATE_API_TOKEN",
   kie: "KIE_API_KEY",

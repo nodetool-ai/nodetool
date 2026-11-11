@@ -36,6 +36,8 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Cheaper Inference | ✅ | | | | | | |
 | API Route | ✅ | | | | | | |
 | Runcrate | ✅ | | | | | | |
+| Standard Compute | ✅ | | | | | | |
+| UberLLM | ✅ | ✅ | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
 | Meta AI | ✅ | ✅ | | | ✅ | | |
@@ -162,6 +164,14 @@ API Route serves hosted chat models through `https://global.api-route.com/v1`. S
 ## Runcrate
 
 Runcrate serves open-weight chat models (DeepSeek, Qwen, GLM, Kimi, gpt-oss and others) through one OpenAI-compatible endpoint, `https://api.runcrate.ai/v1`. Text only. Cloud only, keyed by `RUNCRATE_API_KEY`. The model picker reads `/v1/models` and keeps the rows whose `input_modalities` and `output_modalities` both include `text`, so embedding, image, video and speech models stay out. Tool calling follows each row's `supported_features`, and the context window comes from its `context_length`. Get a key at [Runcrate](https://runcrate.ai/dashboard/api-keys). See the [Runcrate docs](https://runcrate.ai/docs/models/overview) and the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## Standard Compute
+
+Standard Compute serves open and frontier chat models through one OpenAI-compatible endpoint, `https://api.stdcmpt.com/v1`. Text only. Cloud only, keyed by `STANDARDCOMPUTE_API_KEY`. The default model, `StandardCompute`, is routed: each request goes to the cheapest enabled model that can handle it, with automatic fallback. The model picker reads `/v1/models`, which also lists model ids a request can pin, and uses the shared model classifier to keep chat rows. Tool calling follows each row's `supported_parameters`, and the context window comes from its `context_length`. Get a key at [Standard Compute](https://standardcompute.com/dashboard/api-keys). See the [Standard Compute docs](https://docs.standardcompute.com) and the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## UberLLM
+
+UberLLM serves chat models (Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi and others) and image models through one OpenAI-compatible endpoint, `https://api.uberllm.dev/v1`, on one key. Cloud only, keyed by `UBERLLM_API_KEY`. The chat picker reads `/v1/models` and uses the shared model classifier to keep chat rows; tool calling follows each row's `supported_parameters`, and the context window comes from its `context_length`. The image picker reads `/v1/models?type=image` and keeps the models served on `/v1/images/generations`, which back the generic text-to-image nodes. Prices are per request from prepaid credit, listed per model at [uberllm.dev/models](https://uberllm.dev/models). Get a key at [UberLLM](https://uberllm.dev/signup). See the [UberLLM docs](https://uberllm.dev/docs) and the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Opper
 

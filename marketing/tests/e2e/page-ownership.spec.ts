@@ -40,7 +40,8 @@ test("the still-versus-clip cost example lives on the homepage only", async ({ p
   await page.goto("/studio");
   await page.locator("#surface-tab-storyboard").dispatchEvent("click");
   const panel = page.locator("#surface-panel-storyboard");
-  await expect(panel).toContainText("marked stale");
+  await expect(panel).toContainText("Edit a shot yourself");
+  await expect(panel).toContainText("Other shots are unchanged.");
   await expect(panel).not.toContainText("$");
 });
 

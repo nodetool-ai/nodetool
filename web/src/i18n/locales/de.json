@@ -6826,6 +6826,7 @@
       "allCategories": "Alle",
       "categories": {
         "workflows": "Workflows",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Timelines",
@@ -9066,6 +9067,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate-API-Schlüssel abrufen",
           "tooltip": "Zur Runcrate-API-Schlüsselseite"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute-API-Schlüssel abrufen",
+          "tooltip": "Zur Standard Compute-API-Schlüsselseite"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM-API-Schlüssel abrufen",
+          "tooltip": "Zur UberLLM-API-Schlüsselseite"
         },
         "HF_TOKEN": {
           "button": "Hugging-Face-Token abrufen",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "Während einer Anfrage zeigt Chrome den Balken „Nodetool debuggt diesen Browser“. Die Erweiterung ist auf anderen Tabs inaktiv.",
       "setup": "Einrichten",
       "step1": "Erlaube Chrome, die Browserbrücke von NodeTool zu starten.",
-      "windowsUnsupported": "Unter Windows wird dies noch nicht unterstützt. Die Mediengenerierung über die Erweiterung funktioniert auf macOS und Linux.",
       "bridgeRegistered": "Fertig. NodeTool hat seine Browserbrücke registriert.",
       "registering": "Registrierung bei deinen Browsern läuft…",
       "registrationFailed": "Registrierung der Browserbrücke fehlgeschlagen",

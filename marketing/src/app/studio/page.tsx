@@ -55,7 +55,7 @@ export default function StudioPage() {
               alt="NodeTool model manager showing locally available models"
               width={1600}
               height={1089}
-              caption="The model manager is optional setup for supported local inference. Studio also works with hosted providers on your own accounts."
+              caption="Use the model manager to download local models, or connect your provider accounts."
             />
           </div>
           <div className="lg:col-span-5">

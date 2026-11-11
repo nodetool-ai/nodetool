@@ -6826,6 +6826,7 @@
       "allCategories": "All",
       "categories": {
         "workflows": "Workflows",
+        "comfy": "ComfyUI",
         "apps": "Apps",
         "storyboards": "Storyboards",
         "timelines": "Timelines",
@@ -9066,6 +9067,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Get Runcrate API key",
           "tooltip": "Go to Runcrate API keys page"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Get Standard Compute API key",
+          "tooltip": "Go to Standard Compute API keys page"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Get UberLLM API key",
+          "tooltip": "Go to UberLLM API keys page"
         },
         "HF_TOKEN": {
           "button": "Get Hugging Face token",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "Chrome shows a “Nodetool is debugging this browser” bar while a request runs. The extension does nothing on other tabs.",
       "setup": "Set it up here or in Settings → Integrations → Browser extension",
       "step1": "Let Chrome start NodeTool's browser bridge.",
-      "windowsUnsupported": "This is not supported on Windows yet. Media generation through the extension works on macOS and Linux.",
       "bridgeRegistered": "Done. NodeTool registered its bridge with your browsers.",
       "registering": "Registering with your browsers…",
       "registrationFailed": "Browser bridge registration failed",

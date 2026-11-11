@@ -47,6 +47,8 @@ describe("cli settings and provider helpers", () => {
       "CHEAPER_INFERENCE_API_KEY",
       "API_ROUTE_API_KEY",
       "RUNCRATE_API_KEY",
+      "STANDARDCOMPUTE_API_KEY",
+      "UBERLLM_API_KEY",
       "HF_TOKEN",
       "REPLICATE_API_TOKEN",
       "KIE_API_KEY",

@@ -22,7 +22,7 @@ One runbook per provider for adding models and nodes. Each guide names the files
 - **[Anthropic (Claude)](anthropic.md)** — models fetched live from the Anthropic API.
 - **[Google Gemini](gemini.md)** — text auto-fetches; image, Veo, Omni, and Lyria models are static lists.
 - **[xAI (Grok)](xai.md)** — a static catalog plus chat, image, and video rows classified from `/v1/models`.
-- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, and how to add a new one.
+- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, Standard Compute, UberLLM, and how to add a new one.
 - **[FAL](fal.md)** — nodes generated from FAL OpenAPI schemas via codegen.
 - **[Replicate](replicate.md)** — nodes generated from Replicate model schemas via codegen.
 - **[KIE](kie.md)** — configs and manifest generated from KIE's published API docs.

@@ -6826,6 +6826,7 @@
       "allCategories": "すべて",
       "categories": {
         "workflows": "ワークフロー",
+        "comfy": "ComfyUI",
         "apps": "アプリ",
         "storyboards": "絵コンテ",
         "timelines": "タイムライン",
@@ -9062,6 +9063,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate API キーを取得する",
           "tooltip": "Runcrate プラットフォームに移動して API キーを取得します"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API キーを取得する",
+          "tooltip": "Standard Compute プラットフォームに移動して API キーを取得します"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API キーを取得する",
+          "tooltip": "UberLLM プラットフォームに移動して API キーを取得します"
         },
         "API_ROUTE_API_KEY": {
           "button": "APIルートキーの取得",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "Chrome では、リクエストの実行中に「Nodetool がこのブラウザをデバッグしています」バーが表示されます。この拡張機能は他のタブでは何も行いません。",
       "setup": "設定してください",
       "step1": "Chrome で NodeTool のブラウザ ブリッジを開始させます。",
-      "windowsUnsupported": "これは Windows ではまだサポートされていません。拡張機能によるメディア生成は、macOS と Linux で動作します。",
       "bridgeRegistered": "完了しました。 NodeTool はそのブリッジをブラウザに登録しました。",
       "registering": "ブラウザに登録中…",
       "registrationFailed": "ブラウザブリッジの登録に失敗しました",

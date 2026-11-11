@@ -20,7 +20,8 @@ import {
   LoadingSpinner,
   Text,
   BORDER_RADIUS,
-  SPACING
+  SPACING,
+  ICON_SIZE
 } from "../ui_primitives";
 import {
   useExtensionStatus,
@@ -29,10 +30,6 @@ import {
 import { BASE_URL } from "../../stores/BASE_URL";
 
 export const CHROME_EXTENSIONS_URL = "chrome://extensions";
-
-/** What the extension makes possible, in the order a new user cares about. */
-const isWindows = (): boolean =>
-  typeof navigator !== "undefined" && navigator.userAgent.includes("Windows");
 
 interface SetupStepProps {
   index: number;
@@ -49,9 +46,9 @@ const SetupStep: React.FC<SetupStepProps> = ({ index, title, children }) => {
         justify="center"
         aria-hidden
         sx={{
-          width: 24,
-          height: 24,
-          minWidth: 24,
+          width: ICON_SIZE.lg,
+          height: ICON_SIZE.lg,
+          minWidth: ICON_SIZE.lg,
           borderRadius: BORDER_RADIUS.circle,
           border: `1px solid ${theme.vars.palette.divider}`
         }}
@@ -88,7 +85,7 @@ const ChromeExtensionStep: React.FC = () => {
   // has nothing to run. Once per visit: a failure waits for "Try again".
   const triedInstall = useRef(false);
   useEffect(() => {
-    if (!status || status.hostInstalled || triedInstall.current || isWindows()) {
+    if (!status || status.hostInstalled || triedInstall.current) {
       return;
     }
     triedInstall.current = true;
@@ -170,13 +167,9 @@ const ChromeExtensionStep: React.FC = () => {
           }}
         >
           <SetupStep index={1} title={t("i18n-next7.chromeExtension.step1")}>
-            {isWindows() ? (
-              <Caption color="warning">
-                {t("i18n-next7.chromeExtension.windowsUnsupported")}
-              </Caption>
-            ) : hostInstalled ? (
+            {hostInstalled ? (
               <FlexRow gap={SPACING.xs} align="center">
-                <CheckCircleRoundedIcon sx={{ fontSize: "1.2em", color: theme.vars.palette.success.main }} />
+                <CheckCircleRoundedIcon sx={{ fontSize: ICON_SIZE.lg, color: theme.vars.palette.success.main }} />
                 <Caption>{t("i18n-next7.chromeExtension.bridgeRegistered")}</Caption>
               </FlexRow>
             ) : host.isInstalling || !status ? (

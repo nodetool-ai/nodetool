@@ -1,5 +1,5 @@
 import React from "react";
-import { Download, Hand, KeyRound, ScrollText } from "lucide-react";
+import { Download, Hand, KeyRound, ScrollText, type LucideIcon } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import FaqBlock from "../../components/FaqBlock";
 import MarketingClosingAction from "../../components/MarketingClosingAction";
@@ -19,10 +19,10 @@ import {
 } from "@/data/agentsPage";
 
 const CONTROL_ICONS = {
-  "A full record": ScrollText,
-  "Your hands": Hand,
-  "Your keys": KeyRound,
-} as const;
+  record: ScrollText,
+  manual: Hand,
+  keys: KeyRound,
+} satisfies Record<(typeof CONTROLS)[number]["id"], LucideIcon>;
 
 const primaryButtonClass =
   "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/40 transition-colors hover:bg-blue-500 focus-ring";
@@ -119,7 +119,7 @@ export default function AgentsPage() {
             id="agent-loop-title"
             eyebrow="Inside the harness"
             title="Build. Validate. Run. Inspect. Repair."
-            body="A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step. The session at the top of this page is that loop, with a failed run in the middle."
+            body="The agent works on a saved workflow. If a step fails, it can inspect the error and revise that step. The example above illustrates this process."
           />
           <div className="mt-12 max-w-3xl">
             <ol className="relative">
@@ -212,7 +212,7 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-surfaces-title"
             eyebrow="What the harness gives the agent"
-            title="Eight editors the agent can work in. No export step."
+            title="You and the agent use the same editors."
             body="The agent edits the same documents you open in Studio. When it stops, the work is already in the editor."
           />
           <div className="mt-12">
@@ -234,11 +234,11 @@ export default function AgentsPage() {
             body="Read what the agent did, and take the work back at any point."
           />
           <ul className="mt-12 grid overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 md:grid-cols-3">
-            {CONTROLS.map(({ title, body }) => {
-              const Icon = CONTROL_ICONS[title as keyof typeof CONTROL_ICONS];
+            {CONTROLS.map(({ id, title, body }) => {
+              const Icon = CONTROL_ICONS[id];
               return (
               <li
-                key={title}
+                key={id}
                 className="border-slate-800 p-7 [&:not(:first-child)]:border-t md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-t-0 lg:p-9"
               >
                 <Icon className="h-5 w-5 text-blue-300" aria-hidden />
@@ -295,7 +295,7 @@ export default function AgentsPage() {
 
       <MarketingClosingAction
         headingId="agents-closing-title"
-        title="Run your first brief through the harness."
+        title="Ask the agent to build your first workflow."
         body="Download Studio and watch the agent build a workflow you can open, change, and run again."
         primaryAction={<AgentsPrimaryAction />}
         secondaryAction={{

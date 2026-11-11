@@ -404,6 +404,16 @@ sec(
   "Runcrate API key for open-weight chat models through an OpenAI-compatible API. Get yours at https://runcrate.ai/dashboard/api-keys"
 );
 sec(
+  "STANDARDCOMPUTE_API_KEY",
+  "Standard Compute",
+  "Standard Compute API key for open and frontier chat models through an OpenAI-compatible gateway. Get yours at https://standardcompute.com/dashboard/api-keys"
+);
+sec(
+  "UBERLLM_API_KEY",
+  "UberLLM",
+  "UberLLM API key for chat and image models through an OpenAI-compatible gateway. Get yours at https://uberllm.dev/signup"
+);
+sec(
   "ANTHROPIC_API_KEY",
   "Anthropic",
   "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"

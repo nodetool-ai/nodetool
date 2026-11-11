@@ -215,6 +215,18 @@ describe("SubscriptionOnboardingDialog", () => {
     expect(screen.getByText("Connect the AI you already use")).toBeInTheDocument();
   });
 
+  it("registers the bridge on Windows instead of showing an unsupported notice", () => {
+    const userAgent = jest.spyOn(window.navigator, "userAgent", "get").mockReturnValue("Windows NT 10.0");
+    try {
+      act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
+      renderDialog();
+      expect(install).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText(/not supported on Windows/)).not.toBeInTheDocument();
+    } finally {
+      userAgent.mockRestore();
+    }
+  });
+
   it("registers the browser bridge itself when it is missing", () => {
     act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
     const { rerender } = renderDialog();

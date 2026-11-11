@@ -40,7 +40,7 @@ test.describe("home page on a phone", () => {
         return { left: Math.round(box.left), right: box.right };
       })
     );
-    expect(boxes.length).toBeGreaterThan(3);
+    expect(boxes).toHaveLength(2);
     expect(new Set(boxes.map((box) => box.left)).size).toBe(1);
     expect(boxes.every((box) => box.right <= 390)).toBe(true);
   });

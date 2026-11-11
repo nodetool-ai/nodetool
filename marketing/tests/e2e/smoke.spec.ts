@@ -93,21 +93,20 @@ test.describe("marketing smoke", () => {
     await expect(page.locator("#content h2")).toHaveText([
       "From an idea to a video you can edit.",
       "Approve the still before you pay for the clip.",
-      "Specs",
+      "Plans and costs",
       "Frequently asked questions",
       "Start making with NodeTool."
     ]);
-    // The hero names the three things the homepage is about, each linked to
-    // its owner page.
+    // Six short selling points link to their detailed pages.
     const pillars = page
-      .getByRole("list", { name: "What NodeTool makes" })
+      .getByRole("list", { name: "What you can do with NodeTool" })
       .locator("a");
-    await expect(pillars).toHaveCount(3);
-    for (const href of ["/studio", "/agents", "/node-based-workflows"]) {
+    await expect(pillars).toHaveCount(6);
+    for (const href of ["/studio", "/studio#surfaces", "/agents", "/node-based-workflows", "/models", "/developers"]) {
       await expect(pillars.and(page.locator(`[href="${href}"]`))).toHaveCount(1);
     }
-    const specs = page.getByRole("region", { name: "Specs" });
-    for (const item of Object.values(SPEC_ITEMS)) {
+    const specs = page.getByRole("region", { name: "Plans and costs" });
+    for (const item of [SPEC_ITEMS.plan, SPEC_ITEMS.cost]) {
       await expect(specs.locator(`a[href="${item.href}"]`)).toHaveText(
         item.value
       );

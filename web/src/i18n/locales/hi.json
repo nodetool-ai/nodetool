@@ -6826,6 +6826,7 @@
       "allCategories": "सभी",
       "categories": {
         "workflows": "वर्कफ़्लो",
+        "comfy": "ComfyUI",
         "apps": "ऐप्स",
         "storyboards": "स्टोरीबोर्ड",
         "timelines": "समयरेखा",
@@ -9062,6 +9063,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate API कुंजी प्राप्त करें",
           "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Runcrate प्लेटफॉर्म पर जाएं"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए Standard Compute प्लेटफॉर्म पर जाएं"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API कुंजी प्राप्त करें",
+          "tooltip": "अपने एपीआई कुंजी प्राप्त करने के लिए UberLLM प्लेटफॉर्म पर जाएं"
         },
         "API_ROUTE_API_KEY": {
           "button": "API रूट कुंजी प्राप्त करें",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "क्रोम एक \"Nodetool इस ब्राउज़र को डीबगिंग है\" बार दिखाता है जबकि एक अनुरोध रन करता है। विस्तार अन्य टैब पर कुछ भी नहीं करता है।",
       "setup": "इसे सेट करें",
       "step1": "क्रोम नोडेटूल के ब्राउज़र पुल को शुरू करते हैं।",
-      "windowsUnsupported": "यह अभी तक विंडोज पर समर्थित नहीं है। मैकओएस और लिनक्स पर एक्सटेंशन कार्यों के माध्यम से मीडिया पीढ़ी।",
       "bridgeRegistered": "डोन. नोडटूल ने अपने ब्राउज़र के साथ अपने पुल को पंजीकृत किया।",
       "registering": "अपने ब्राउज़र के साथ पंजीकरण ...",
       "registrationFailed": "ब्राउज़र ब्रिज पंजीकरण विफल",

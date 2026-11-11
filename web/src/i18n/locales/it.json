@@ -6925,6 +6925,7 @@
       "allCategories": "Tutto",
       "categories": {
         "workflows": "Flussi di lavoro",
+        "comfy": "ComfyUI",
         "apps": "App",
         "storyboards": "Storyboard",
         "timelines": "Cronologia",
@@ -9206,6 +9207,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Ottieni la chiave API Runcrate",
           "tooltip": "Vai alla piattaforma Runcrate per ottenere la tua chiave API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Ottieni la chiave API Standard Compute",
+          "tooltip": "Vai alla piattaforma Standard Compute per ottenere la tua chiave API"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Ottieni la chiave API UberLLM",
+          "tooltip": "Vai alla piattaforma UberLLM per ottenere la tua chiave API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Ottieni la chiave del percorso API",
@@ -12975,7 +12984,6 @@
       "debuggingNotice": "Chrome mostra una barra \"Nodetool sta eseguendo il debug di questo browser\" durante l'esecuzione di una richiesta. L'estensione non fa nulla sulle altre schede.",
       "setup": "Configuralo",
       "step1": "Consenti a Chrome di avviare il bridge del browser di NodeTool.",
-      "windowsUnsupported": "Questo non è ancora supportato su Windows. La generazione multimediale tramite l'estensione funziona su macOS e Linux.",
       "bridgeRegistered": "Fatto. NodeTool ha registrato il suo bridge con i tuoi browser.",
       "registering": "Registrazione con i tuoi browser…",
       "registrationFailed": "La registrazione del bridge del browser non è riuscita",

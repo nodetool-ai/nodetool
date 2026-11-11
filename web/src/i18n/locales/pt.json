@@ -6925,6 +6925,7 @@
       "allCategories": "Todos",
       "categories": {
         "workflows": "Fluxos de trabalho",
+        "comfy": "ComfyUI",
         "apps": "Aplicativos",
         "storyboards": "Storyboards",
         "timelines": "Cronogramas",
@@ -9206,6 +9207,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Obtenha a chave da API Runcrate",
           "tooltip": "Acesse a plataforma Runcrate para obter sua chave API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Obtenha a chave da API Standard Compute",
+          "tooltip": "Acesse a plataforma Standard Compute para obter sua chave API"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Obtenha a chave da API UberLLM",
+          "tooltip": "Acesse a plataforma UberLLM para obter sua chave API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Obtenha a chave de rota da API",
@@ -12975,7 +12984,6 @@
       "debuggingNotice": "O Chrome mostra uma barra “Nodetool está depurando este navegador” enquanto uma solicitação é executada. A extensão não faz nada em outras guias.",
       "setup": "Configure",
       "step1": "Deixe o Chrome iniciar a ponte do navegador do NodeTool.",
-      "windowsUnsupported": "Isso ainda não é compatível com Windows. A geração de mídia por meio da extensão funciona em macOS e Linux.",
       "bridgeRegistered": "Feito. NodeTool registrou sua ponte com seus navegadores.",
       "registering": "Registrando-se em seus navegadores…",
       "registrationFailed": "Falha no registro da ponte do navegador",

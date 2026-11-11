@@ -1,32 +1,52 @@
 import React from "react";
-import { ArrowRight, Bot, Download, Film, Workflow } from "lucide-react";
+import { ArrowRight, Bot, Download, Film, FolderOpen, Layers, Plug, SlidersHorizontal } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
 
-/*
- * The three things the homepage is about, each linked to the page that owns
- * it (site-editorial.spec.md § Homepage). Models, local projects, media types,
- * and integrations are lines in the spec strip, not cards here.
- */
+/** A short overview, with each point linked to its detailed page. */
 const pillars = [
   {
-    title: "Films",
-    body: "One sentence becomes a storyboard, clips, and a cut on a timeline. Change one shot and the rest of the cut stays.",
-    href: "/studio",
+    title: "Edit video, build workflows",
+    body: "Work in the timeline or connect nodes for more control and repeatable tasks.",
+    href: "/node-based-workflows",
+    linkLabel: "Explore node workflows",
     icon: Film,
   },
   {
-    title: "Agents",
-    body: "The built-in agent, or Claude Code over MCP, builds the workflow, checks it before a paid run, and repairs the step that fails.",
+    title: "Create with an agent",
+    body: "Ask the agent to build and edit your project, then adjust it yourself.",
     href: "/agents",
+    linkLabel: "See how the agent works",
     icon: Bot,
   },
   {
-    title: "Node workflows",
-    body: "Underneath every project is a node graph. Swap a model, check the graph, and run it again on new inputs.",
-    href: "/node-based-workflows",
-    icon: Workflow,
+    title: "Work across media",
+    body: "Create images, audio, storyboards and 3D scenes alongside your video.",
+    href: "/studio#surfaces",
+    linkLabel: "Explore the editors",
+    icon: Layers,
+  },
+  {
+    title: "Choose your models",
+    body: "Connect your provider accounts or run supported models locally.",
+    href: "/models",
+    linkLabel: "Browse supported models",
+    icon: SlidersHorizontal,
+  },
+  {
+    title: "Save projects locally",
+    body: "Save your work on your computer with the free, open-source desktop app.",
+    href: "/studio",
+    linkLabel: "About the desktop app",
+    icon: FolderOpen,
+  },
+  {
+    title: "Connect other tools",
+    body: "Run workflows through the API or command line, or connect coding agents through MCP.",
+    href: "/developers",
+    linkLabel: "For developers",
+    icon: Plug,
   },
 ];
 
@@ -49,9 +69,8 @@ export default function NodeToolHero() {
         </h1>
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-          NodeTool combines an AI video editor with node-based workflows.
-          Ask the agent to create a video, refine it in the timeline, or
-          connect nodes to build a process you can reuse.
+          An AI video editor with an agent that helps you create and edit.
+          Work in the timeline, or connect nodes to build reusable workflows.
         </p>
 
         <div className="mt-7 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
@@ -75,7 +94,8 @@ export default function NodeToolHero() {
         <p className="mt-4 text-xs text-slate-400">
           Free and open source,{" "}
           <span className="whitespace-nowrap">AGPL-3.0.</span> macOS, Windows,
-          and Linux.
+          and Linux. Connect a supported provider account or run supported models
+          locally. Provider charges may apply.
         </p>
       </div>
 
@@ -100,7 +120,7 @@ export default function NodeToolHero() {
       </div>
 
       <ul
-        aria-label="What NodeTool makes"
+        aria-label="What you can do with NodeTool"
         className="mx-auto mt-8 grid max-w-5xl grid-cols-1 gap-3 text-sm text-slate-300 sm:mt-10 sm:grid-cols-3"
       >
         {pillars.map((pillar) => (
@@ -118,6 +138,7 @@ export default function NodeToolHero() {
                 />
               </span>
               <span className="mt-2 leading-relaxed text-slate-400">{pillar.body}</span>
+              <span className="mt-3 text-xs font-medium text-blue-300">{pillar.linkLabel}</span>
             </a>
           </li>
         ))}

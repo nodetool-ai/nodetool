@@ -7024,6 +7024,7 @@
       "allCategories": "Все",
       "categories": {
         "workflows": "Рабочие процессы",
+        "comfy": "ComfyUI",
         "apps": "Приложения",
         "storyboards": "Раскадровки",
         "timelines": "Таймлайны",
@@ -9354,6 +9355,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Получить API-ключ Runcrate",
           "tooltip": "Перейти на страницу API-ключей Runcrate"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Получить API-ключ Standard Compute",
+          "tooltip": "Перейти на страницу API-ключей Standard Compute"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Получить API-ключ UberLLM",
+          "tooltip": "Перейти на страницу API-ключей UberLLM"
         },
         "HF_TOKEN": {
           "button": "Получить токен Hugging Face",
@@ -13174,7 +13183,6 @@
       "debuggingNotice": "Во время выполнения запроса Chrome показывает панель «Nodetool отлаживает этот браузер». На других вкладках расширение ничего не делает.",
       "setup": "Настройка",
       "step1": "Разрешите Chrome запускать браузерный мост NodeTool.",
-      "windowsUnsupported": "В Windows это пока не поддерживается. Генерация медиа через расширение работает в macOS и Linux.",
       "bridgeRegistered": "Готово. NodeTool зарегистрировал свой мост в ваших браузерах.",
       "registering": "Регистрация в браузерах…",
       "registrationFailed": "Не удалось зарегистрировать браузерный мост",

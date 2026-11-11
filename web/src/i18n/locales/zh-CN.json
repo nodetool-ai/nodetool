@@ -6826,6 +6826,7 @@
       "allCategories": "全部",
       "categories": {
         "workflows": "工作流",
+        "comfy": "ComfyUI",
         "apps": "应用",
         "storyboards": "分镜",
         "timelines": "时间线",
@@ -9066,6 +9067,14 @@
         "RUNCRATE_API_KEY": {
           "button": "获取 Runcrate API 密钥",
           "tooltip": "前往 Runcrate API 密钥页面"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "获取 Standard Compute API 密钥",
+          "tooltip": "前往 Standard Compute API 密钥页面"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "获取 UberLLM API 密钥",
+          "tooltip": "前往 UberLLM API 密钥页面"
         },
         "HF_TOKEN": {
           "button": "获取 Hugging Face 令牌",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "请求运行时，Chrome 会显示“NodeTool 正在调试此浏览器”提示栏。扩展不会操作其他标签页。",
       "setup": "设置步骤",
       "step1": "允许 Chrome 启动 NodeTool 浏览器桥接程序。",
-      "windowsUnsupported": "目前尚不支持 Windows。通过扩展生成媒体需要使用 macOS 或 Linux。",
       "bridgeRegistered": "完成。NodeTool 已向你的浏览器注册桥接程序。",
       "registering": "正在向浏览器注册…",
       "registrationFailed": "浏览器桥接程序注册失败",

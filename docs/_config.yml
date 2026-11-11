@@ -286,6 +286,7 @@ exclude:
   - app-runs-design.md
   - workflow-loops.md
   # Internal implementation plans & specs (agentic-worker instructions).
+  - plan/video-export.md
   - app-runs-implementation-plan.md
   - timeline-preview-frame-source-design.md
   - COMPONENT_STREAMLINE_PLAN.md

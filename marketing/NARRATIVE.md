@@ -16,9 +16,9 @@ The homepage, README, and docs share the primary tagline and intro in
 `BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
 `<h1>` reads: "Create with AI. Make it your own."
 The hero paragraph introduces the AI video editor and node-based workflows.
-Below the demo, three linked cards name what the homepage is about: films
-(`/studio`), agents (`/agents`), and node workflows (`/node-based-workflows`).
-Models, local projects, other media, and integrations are spec-strip lines.
+Below the demo, six linked cards cover timeline and node workflows, agents,
+media types, model choice, local projects and integrations. Each links to its
+detailed page. The lower strip covers plans and provider costs.
 The homepage editor showcase omits experimental game creation.
 The project section introduces the demo with "From an idea to a video you can edit."
 
@@ -114,8 +114,8 @@ this order of importance:
    strip.
 
 Provider lists, node counts, tool counts, and architecture belong under those
-claims, not next to them. On the homepage they are lines in the spec strip,
-each linked to the page that owns it, not ten sections.
+claims, not next to them. The homepage gives a short overview and links to the
+pages that explain each topic.
 
 ## Order of the page
 
@@ -136,9 +136,10 @@ film out, which every hosted platform can also show. The second block shows
 what they cannot: one note sends one shot back, and the cut keeps every other
 shot.
 
-**One line per shared fact.** The plan, keys, list price, local models, and
-the license each get one line in the spec strip, linked to the page that
-explains it. A reader who wants the detail clicks through.
+**Keep the homepage useful on its own.** The overview cards summarize what
+people can do. The download note explains provider accounts and local models.
+The plans strip and five short FAQ answers cover costs, editions, setup and editing.
+Contextual links lead to detail without requiring another page for the basics.
 
 ## Vertical pages
 

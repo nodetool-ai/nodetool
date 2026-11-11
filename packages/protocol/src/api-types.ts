@@ -1200,6 +1200,8 @@ export const PROVIDER_IDS = {
   CHEAPER_INFERENCE: "cheaperinference",
   API_ROUTE: "api_route",
   RUNCRATE: "runcrate",
+  STANDARD_COMPUTE: "standardcompute",
+  UBERLLM: "uberllm",
   TOGETHER: "together",
   ALIBABA: "alibaba",
   CEREBRAS: "cerebras",

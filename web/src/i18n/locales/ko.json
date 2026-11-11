@@ -6826,6 +6826,7 @@
       "allCategories": "모두",
       "categories": {
         "workflows": "워크플로",
+        "comfy": "ComfyUI",
         "apps": "앱",
         "storyboards": "스토리보드",
         "timelines": "타임라인",
@@ -9062,6 +9063,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Runcrate API 키 받기",
           "tooltip": "API 키를 받으려면 Runcrate 플랫폼으로 이동하세요."
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API 키 받기",
+          "tooltip": "API 키를 받으려면 Standard Compute 플랫폼으로 이동하세요."
+        },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API 키 받기",
+          "tooltip": "API 키를 받으려면 UberLLM 플랫폼으로 이동하세요."
         },
         "API_ROUTE_API_KEY": {
           "button": "API 경로 키 가져오기",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "요청이 실행되는 동안 Chrome에 \"Nodetool이 이 브라우저를 디버깅 중입니다\" 표시줄이 표시됩니다. 확장 프로그램은 다른 탭에서는 아무 작업도 수행하지 않습니다.",
       "setup": "설정하세요",
       "step1": "Chrome이 NodeTool의 브라우저 브리지를 시작하도록 합니다.",
-      "windowsUnsupported": "아직 Windows에서는 지원되지 않습니다. 확장을 통한 미디어 생성은 macOS 및 Linux에서 작동합니다.",
       "bridgeRegistered": "완료. NodeTool은 브라우저에 브리지를 등록했습니다.",
       "registering": "브라우저에 등록하는 중…",
       "registrationFailed": "브라우저 브리지 등록 실패",

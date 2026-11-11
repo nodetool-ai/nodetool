@@ -6826,6 +6826,7 @@
       "allCategories": "Kaikki",
       "categories": {
         "workflows": "Työnkulut",
+        "comfy": "ComfyUI",
         "apps": "Sovellukset",
         "storyboards": "Kuvakäsikirjoitukset",
         "timelines": "Aikajanat",
@@ -9066,6 +9067,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Hanki Runcrate API-avain",
           "tooltip": "Siirry Runcraten API-avainsivulle"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Hanki Standard Compute API-avain",
+          "tooltip": "Siirry Standard Computen API-avainsivulle"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Hanki UberLLM API-avain",
+          "tooltip": "Siirry UberLLM:n API-avainsivulle"
         },
         "HF_TOKEN": {
           "button": "Hanki Hugging Face -tunnus",
@@ -12776,7 +12785,6 @@
       "debuggingNotice": "Chrome näyttää pyynnön aikana palkin ”Nodetool is debugging this browser”. Laajennus ei tee mitään muilla välilehdillä.",
       "setup": "Ota käyttöön",
       "step1": "Anna Chromen käynnistää NodeToolin selainsilta.",
-      "windowsUnsupported": "Tätä ei vielä tueta Windowsissa. Median generointi laajennuksen kautta toimii macOS:ssä ja Linuxissa.",
       "bridgeRegistered": "Valmis. NodeTool rekisteröi siltansa selaimiisi.",
       "registering": "Rekisteröidään selaimiin…",
       "registrationFailed": "Selainsillan rekisteröinti epäonnistui",

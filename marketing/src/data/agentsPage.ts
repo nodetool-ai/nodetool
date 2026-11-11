@@ -5,7 +5,7 @@
  */
 
 export const AGENTS_LEAD =
-  "A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step. NodeTool gives one to the built-in agent, or to Claude Code, Codex, or Cursor over MCP. It checks each graph before a paid run, logs every call, and lets you stop the agent and take over.";
+  "Give the agent tools to create and edit images, video, audio and workflows. Use NodeTool’s built-in agent, or connect Claude Code, Codex or Cursor through MCP. Inspect its work and take over whenever you need to.";
 
 export const APPROVAL_MODES_INTRO =
   "Each chat has a permission mode. Reading and searching run in every mode. The mode decides what happens to the rest.";
@@ -14,17 +14,17 @@ export const LOOP_STAGES = [
   {
     title: "Build",
     tool: "create_workflow",
-    body: "The agent adds nodes, picks models, and wires the graph. A graph naming a provider or model that does not exist is refused, not saved.",
+    body: "The agent adds nodes, picks models, and wires the graph. It checks that the selected providers and models exist before saving the workflow.",
   },
   {
     title: "Validate",
     tool: "validate_workflow",
-    body: "A static check in well under a second, before any model is called.",
+    body: "Check the workflow for errors before calling a model.",
   },
   {
     title: "Run",
     tool: "run_workflow",
-    body: "The graph calls your local models and provider accounts. A run whose provider has no key is refused before the first node starts.",
+    body: "Run the workflow with local models or your provider accounts. Missing API keys are flagged before it starts.",
   },
   {
     title: "Inspect",
@@ -34,7 +34,7 @@ export const LOOP_STAGES = [
   {
     title: "Repair",
     tool: "create_workflow_version",
-    body: "The fix is a new version. The last good one stays.",
+    body: "The agent saves its changes as a new version, so you can return to the previous one.",
   },
 ];
 
@@ -52,23 +52,26 @@ export const VALIDATION_CHECKS = [
 ];
 
 export const VALIDATION_NOTE =
-  "The same check guards the run endpoint. A graph that fails it never reaches the paid half, so the agent does not learn about a typo from a bill.";
+  "Validation catches errors before the workflow makes paid model calls.";
 
 /** Models and keys are on the page once, in its SpecStrip. */
 export const CONTROLS = [
   {
+    id: "record",
     title: "A full record",
     body: "Read each tool call with its arguments, result, and error. Find the step that went wrong.",
   },
   {
-    title: "Your hands",
+    id: "manual",
+    title: "Take over at any time",
     body: "Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.",
   },
   {
+    id: "keys",
     title: "Your keys",
-    body: "When a graph needs a key this install does not have, the agent in Studio asks you for it in a dialog. A headless run fails instead of guessing.",
+    body: "Studio asks you to add any missing API keys. Runs started without the interface stop with an error if a required key is missing.",
   },
-];
+] as const;
 
 export const APPROVAL_MODES = [
   {

@@ -6925,6 +6925,7 @@
       "allCategories": "Tout",
       "categories": {
         "workflows": "Flux de travail",
+        "comfy": "ComfyUI",
         "apps": "Applications",
         "storyboards": "Story-boards",
         "timelines": "Chronologies",
@@ -9206,6 +9207,14 @@
         "RUNCRATE_API_KEY": {
           "button": "Obtenir la clé API Runcrate",
           "tooltip": "Accédez à la plateforme Runcrate pour obtenir votre clé API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Obtenir la clé API Standard Compute",
+          "tooltip": "Accédez à la plateforme Standard Compute pour obtenir votre clé API"
+        },
+        "UBERLLM_API_KEY": {
+          "button": "Obtenir la clé API UberLLM",
+          "tooltip": "Accédez à la plateforme UberLLM pour obtenir votre clé API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Obtenir la clé de route API",
@@ -12975,7 +12984,6 @@
       "debuggingNotice": "Chrome affiche une barre « Nodetool débogue ce navigateur » pendant l'exécution d'une requête. L'extension ne fait rien sur les autres onglets.",
       "setup": "Configurez-le",
       "step1": "Laissez Chrome démarrer le pont de navigateur de NodeTool.",
-      "windowsUnsupported": "Ceci n'est pas encore pris en charge sous Windows. La génération de médias via l'extension fonctionne sur macOS et Linux.",
       "bridgeRegistered": "Terminé. NodeTool a enregistré son pont auprès de vos navigateurs.",
       "registering": "Inscription avec vos navigateurs…",
       "registrationFailed": "L'enregistrement du pont de navigateur a échoué",
