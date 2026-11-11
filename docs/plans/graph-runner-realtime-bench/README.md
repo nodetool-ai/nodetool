@@ -42,3 +42,11 @@ cmake --build /tmp/qjs-build --target qjs_exe
 - The numbers are for one machine at normal thread priority.
 - Equal checksums show agreement for these two kernels on this input only.
 - The timed region of each biquad row includes one copy of the input block.
+
+## WP03 offline spike
+
+The [AudioWorklet spike](../../../native/realtime/spike/audio-worklet/README.md)
+builds one C source for native and WebAssembly execution and compares the
+output bytes through Chrome's AudioWorklet. The
+[Windows offline result](wp03-windows-offline.json) records that fixture's
+agreement. It does not establish live-device deadlines or complete WP03.
