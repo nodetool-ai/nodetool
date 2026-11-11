@@ -49,7 +49,8 @@ import {
 } from "../src/mcp-server.js";
 import {
   MCP_CAPABILITIES_RESOURCE_URI,
-  MCP_SANDBOX_RESOURCE_URI
+  MCP_SANDBOX_RESOURCE_URI,
+  MCP_SKILL_TOOL_NAMES
 } from "../src/mcp-agent-tools.js";
 
 const scope = { userId: "1", source: "stdio-local" as const };
@@ -193,7 +194,9 @@ describe("MCP server surface", () => {
       )
         continue;
       expect(
-        DIRECT_TOOL_NAMES.has(name) || PROVIDER_TOOL_NAMES.has(name)
+        DIRECT_TOOL_NAMES.has(name) ||
+          PROVIDER_TOOL_NAMES.has(name) ||
+          MCP_SKILL_TOOL_NAMES.has(name)
       ).toBe(true);
     }
     // The ones this session can actually build are all there. Node discovery
@@ -209,6 +212,8 @@ describe("MCP server surface", () => {
         "find_model",
         "list_models",
         "list_providers",
+        "list_skills",
+        "load_skill",
         "list_directory",
         "download_file"
       ])
@@ -238,6 +243,34 @@ describe("MCP server surface", () => {
         "embed_text"
       ])
     );
+  });
+
+  it("lists and loads shipped skills through direct MCP tools", async () => {
+    const client = await connectClient();
+    const listed = await client.callTool({
+      name: "list_skills",
+      arguments: { query: "workflow" }
+    });
+    expect(listed.isError).toBeFalsy();
+    const { skills } = JSON.parse(listed.content[0].text as string) as {
+      skills: Array<{ name: string; system: boolean }>;
+    };
+    expect(skills).toContainEqual(
+      expect.objectContaining({
+        name: "nodetool-workflow-builder",
+        system: true
+      })
+    );
+
+    const loaded = await client.callTool({
+      name: "load_skill",
+      arguments: { name: "nodetool-workflow-builder" }
+    });
+    expect(loaded.isError).toBeFalsy();
+    const skill = JSON.parse(loaded.content[0].text as string) as {
+      instructions: string;
+    };
+    expect(skill.instructions.length).toBeGreaterThan(200);
   });
 
   it("uploads and downloads asset bytes through direct MCP tools", async () => {
@@ -622,7 +655,9 @@ describe("MCP server surface", () => {
       )
         continue;
       expect(
-        DIRECT_TOOL_NAMES.has(name) || PROVIDER_TOOL_NAMES.has(name)
+        DIRECT_TOOL_NAMES.has(name) ||
+          PROVIDER_TOOL_NAMES.has(name) ||
+          MCP_SKILL_TOOL_NAMES.has(name)
       ).toBe(true);
     }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");

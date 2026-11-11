@@ -128,6 +128,17 @@ const MCP_SANDBOX_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Direct on this mount only. MCP has no system prompt, so the skill catalog a
+ * chat turn carries never reaches a client. These two let the client's model
+ * find and read NodeTool's skills, shipped and the user's own, without
+ * writing an action first.
+ */
+export const MCP_SKILL_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "list_skills",
+  "load_skill"
+]);
+
+/**
  * Per-user workspace directory the bridged file tools (read_file, write_file,
  * glob, grep, …) are rooted at. Kept under the NodeTool data dir rather than a
  * temp dir because an MCP session is long-lived and spans many calls — a file
@@ -1254,7 +1265,8 @@ export function registerAgentMcpTools(
       !MCP_SANDBOX_ONLY_TOOL_NAMES.has(tool.name) &&
       ((DIRECT_TOOL_NAMES.has(tool.name) &&
         !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)) ||
-        PROVIDER_TOOL_NAMES.has(tool.name))
+        PROVIDER_TOOL_NAMES.has(tool.name) ||
+        MCP_SKILL_TOOL_NAMES.has(tool.name))
   );
   // They stay on the belt: an action still calls them from code. Listing them
   // as direct only moves where the prompt documents them.
