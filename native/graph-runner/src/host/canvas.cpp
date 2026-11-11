@@ -57,6 +57,9 @@ struct Fonts {
     pango_fc_font_map_set_config(PANGO_FC_FONT_MAP(map), config);
   }
   ~Fonts() {
+    // The map keeps its own reference to the config and does not drop it on
+    // finalize, so detach the config before releasing the map.
+    pango_fc_font_map_set_config(PANGO_FC_FONT_MAP(map), nullptr);
     g_object_unref(map);
     FcConfigDestroy(config);
     for (int fd : descriptors) {

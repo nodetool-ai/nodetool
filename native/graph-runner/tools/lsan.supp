@@ -1,0 +1,5 @@
+# Pango's font map runs FcInit on a GLib thread to load the default
+# fontconfig configuration, which fontconfig keeps for the process lifetime
+# and its XML parser allocates without freeing. The canvas host's own FcConfig
+# is freed and stays checked.
+leak:FcInit
