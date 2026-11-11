@@ -322,10 +322,18 @@ jobs:
           path: ${{ runner.temp }}/matte-gdb.log
           if-no-files-found: ignore
 
+      # package-macos.sh configures its own build directory. These variables
+      # route that build through ccache, which already holds the objects of
+      # the Build step. Without them the step compiled for about 18 minutes.
       - name: Package (macOS, unsigned)
         if: github.event_name != 'push' && runner.os == 'macOS'
+        env:
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+          CMAKE_OBJCXX_COMPILER_LAUNCHER: ccache
         run: |
+          ccache --zero-stats
           native/timeline/scripts/package-macos.sh
+          ccache --show-stats
           DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
 
       # Not verified: written for M6 (review F12); no run has checked it.
@@ -370,9 +378,10 @@ jobs:
 
   sanitizers:
     name: Linux ${{ matrix.preset }}
-    # Base branch runs only seed the build job's compiler caches.
+    # Base branch runs only build and seed the compiler caches, as the build
+    # job does. Pull requests restore them and run the checks.
     needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.run == 'true'
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -387,7 +396,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set native temporary paths
-        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+        run: |
+          echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Set up Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -438,6 +449,21 @@ jobs:
         run: |
           node scripts/check-ci-prerequisites.mjs
           scripts/make-fixtures.sh
+      # Without a cache the ASan build takes about 70 minutes and the TSan
+      # build about 50. Only base branch runs save, so the pull request runs
+      # of five jobs do not each add a cache and evict the others.
+      - name: Restore compiler cache
+        id: compiler-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: native-ccache-${{ runner.os }}-${{ matrix.preset }}-qt${{ env.QT_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            native-ccache-${{ runner.os }}-${{ matrix.preset }}-qt${{ env.QT_VERSION }}-
+      - name: Bound restored compiler cache
+        run: |
+          ccache --cleanup
+          ccache --zero-stats
       - name: Configure
         run: |
           # ELF compression keeps line tables without duplicating large debug sections.
@@ -446,18 +472,30 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
       - name: Build
         run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
+      - name: Show compiler cache statistics
+        if: success() || failure()
+        continue-on-error: true
+        run: ccache --show-stats
+      - name: Save compiler cache
+        if: github.event_name == 'push' && steps.compiler-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
       - name: Verify checker fixtures
+        if: github.event_name != 'push'
         run: |
           node tools/sanitizers/check-plants.mjs --self-test
           node tools/sanitizers/check-plants.mjs "${{ matrix.preset }}"
       - name: Test on lavapipe
+        if: github.event_name != 'push'
         env:
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
           QSG_INFO: "1"
         run: xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure
       - name: Upload sanitizer logs
-        if: always()
+        if: github.event_name != 'push' && always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-timeline-${{ matrix.preset }}

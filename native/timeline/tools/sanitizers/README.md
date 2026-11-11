@@ -30,7 +30,9 @@ CTest also rejects sanitizer report text if a wrapper exits zero.
 The TSan preset includes source pool, FFmpeg source, CPU usage, audio engine,
 easing, frame ring, retire queue and frame cache. The last three currently
 exercise their containers synchronously, but remain selected for future
-threaded coverage. Fixture setup is selected automatically by CTest.
+threaded coverage. Fixture setup is selected automatically by CTest. The
+`tsan` build preset builds only these test executables, so keep its `targets`
+list equal to the test preset's name filter.
 Qt and system FFmpeg are uninstrumented. Qt suppressions use `race_top`
 to avoid hiding project accesses merely because Qt appears deeper in a stack.
 The measured exemptions are libdbus teardown, NVIDIA VAAPI list storage,
