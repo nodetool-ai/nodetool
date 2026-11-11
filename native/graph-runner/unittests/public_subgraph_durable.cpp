@@ -176,7 +176,7 @@ void lineageAndOccurrences(const std::string& bundle,const std::filesystem::path
   {gr::GraphRunner runner(bundle,opt);loaded(runner);auto result=run(runner,root,"lineages");check(result.status=="completed"&&result.outputs["parent"]==Json::array({"good","bad"}),"lineage-specific child input replays only its matching invocation");}
   check(pending(dir)==0,"parent and child correlated deliveries acknowledged");
   auto controlled=graph({{{"id","events"},{"type","nodetool.control.RepeatValue"},{"properties",{{"count",3},{"value",Json::object()}}}},sub("parent",leaf("good"))});
-  auto control=edge("control","events","output","parent","__control__");control["edge_type"]="control";controlled["edges"]={control};
+  auto control=edge("control","events","output","parent","__control__");control["edge_type"]="control";controlled["edges"]=Json::array({control});
   {gr::GraphRunner runner(bundle,opt);loaded(runner);auto result=run(runner,controlled,"occurrences");check(result.status=="completed"&&result.parentInvocations==3,"three same-lineage controlled invocations execute");}
   std::vector<int> occurrences;
   for(const auto& row:Database(dir).rows())if(row["address"].size()==4&&row["address"][2]=="occurrences"&&row["node"]=="pick")occurrences.push_back(row["address"][3][0][2]);
