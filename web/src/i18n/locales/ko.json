@@ -9068,6 +9068,10 @@
           "button": "Standard Compute API 키 받기",
           "tooltip": "API 키를 받으려면 Standard Compute 플랫폼으로 이동하세요."
         },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM API 키 받기",
+          "tooltip": "API 키를 받으려면 UberLLM 플랫폼으로 이동하세요."
+        },
         "API_ROUTE_API_KEY": {
           "button": "API 경로 키 가져오기",
           "tooltip": "API Route API 키 페이지로 이동"

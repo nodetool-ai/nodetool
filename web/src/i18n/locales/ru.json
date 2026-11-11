@@ -9360,6 +9360,10 @@
           "button": "Получить API-ключ Standard Compute",
           "tooltip": "Перейти на страницу API-ключей Standard Compute"
         },
+        "UBERLLM_API_KEY": {
+          "button": "Получить API-ключ UberLLM",
+          "tooltip": "Перейти на страницу API-ключей UberLLM"
+        },
         "HF_TOKEN": {
           "button": "Получить токен Hugging Face",
           "tooltip": "Перейти на страницу токенов Hugging Face"

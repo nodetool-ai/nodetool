@@ -9356,6 +9356,10 @@
           "button": "Zdobądź klucz API Standard Compute",
           "tooltip": "Przejdź do platformy Standard Compute, aby uzyskać klucz API"
         },
+        "UBERLLM_API_KEY": {
+          "button": "Zdobądź klucz API UberLLM",
+          "tooltip": "Przejdź do platformy UberLLM, aby uzyskać klucz API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Uzyskaj klucz trasy API",
           "tooltip": "Przejdź do strony kluczy API Route API"

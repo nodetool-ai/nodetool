@@ -9068,6 +9068,10 @@
           "button": "Hämta Standard Compute API-nyckel",
           "tooltip": "Gå till Standard Compute-plattformen för att få din API-nyckel"
         },
+        "UBERLLM_API_KEY": {
+          "button": "Hämta UberLLM API-nyckel",
+          "tooltip": "Gå till UberLLM-plattformen för att få din API-nyckel"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Hämta API-ruttnyckel",
           "tooltip": "Gå till sidan för API Route API-nycklar"
