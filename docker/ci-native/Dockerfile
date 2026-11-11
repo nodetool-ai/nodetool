@@ -12,23 +12,26 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # General tools the jobs call (git, jq, pipx for aqtinstall, zstd for
 # actions/cache) and both toolchains: GCC for the release build, Clang with
-# its runtime libraries for the ASan and TSan presets.
+# its runtime libraries for the ASan and TSan presets. llvm puts
+# llvm-symbolizer on PATH: without it sanitizer stacks have no function names
+# and the name-based suppressions in tools/sanitizers/lsan.supp match nothing.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg git openssh-client sudo \
       jq zstd xz-utils unzip zip file rsync procps psmisc lsof \
-      build-essential clang libclang-rt-dev cmake ninja-build pkg-config nasm ccache gdb \
+      build-essential clang libclang-rt-dev llvm cmake ninja-build pkg-config nasm ccache gdb \
       python3 python3-venv python3-pip pipx \
  && rm -rf /var/lib/apt/lists/*
 
 # Native timeline: FFmpeg (the command line tool for test media, and the codec
-# libraries the LGPL build links), Vulkan on Mesa lavapipe, audio, text, and
-# the X11/xcb libraries Qt's xcb platform loads under Xvfb.
+# libraries the LGPL build links), Vulkan on Mesa lavapipe, audio, text (a
+# color emoji font for tst_render2d's fallback test), and the X11/xcb
+# libraries Qt's xcb platform loads under Xvfb.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev \
       libvulkan-dev mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libegl1 libopengl0 \
-      libxkbcommon-dev libfontconfig1-dev fontconfig fonts-dejavu-core \
+      libxkbcommon-dev libfontconfig1-dev fontconfig fonts-dejavu-core fonts-noto-color-emoji \
       libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
       libglib2.0-0t64 libdbus-1-3 \
       xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
