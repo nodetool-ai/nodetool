@@ -1,3 +1,11 @@
 # Wasmtime is prebuilt Rust without TSan instrumentation, so TSan cannot see
 # the locks of its Cranelift compile threads and reports races between them.
 called_from_lib:libwasmtime.so
+
+# Pango's fontconfig font map loads the default configuration on a GLib
+# thread. GLib, Pango and fontconfig are uninstrumented system libraries, so
+# TSan cannot see the GMutex and GAsyncQueue that hand data between that
+# thread and the caller, and reports their malloc and free calls as races.
+called_from_lib:libglib-2.0.so
+called_from_lib:libpangoft2-1.0.so
+called_from_lib:libfontconfig.so
