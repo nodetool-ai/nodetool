@@ -50,13 +50,13 @@ Row {
         visible: root.group
         iconName: "playArrow"
         // RunGroupButton.tsx: "Group is running" with a spinner while the workflow runs.
-        accessibleName: root.host.runActive ? "Group is running" : "Run group"
-        loading: root.host.runActive
+        accessibleName: root.host.shownRunActive ? "Group is running" : "Run group"
+        loading: root.host.shownRunActive
         variant: Ui.EditorButton.Primary
         circular: true
         iconSize: Ui.Metrics.iconMd
         iconTone: Ui.Text.OnAccent
-        enabled: !root.host.readOnly && !root.host.runActive && root.host.connectionState === "Connected"
+        enabled: !root.host.readOnly && !root.host.shownRunActive && root.host.connectionState === "Connected"
         onClicked: root.dispatch("run")
     }
     Ui.ToolbarIconButton {

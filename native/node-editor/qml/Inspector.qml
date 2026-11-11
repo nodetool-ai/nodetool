@@ -18,7 +18,8 @@ Rectangle {
     // RunSelectedNodesSection.tsx: the run count lives with the open inspector.
     property int runs: 1
     readonly property bool canRun: !!propertyHost && typeof propertyHost.runSelectedNodes === "function"
-    readonly property bool running: !!propertyHost && !!propertyHost.runActive
+    // Debounced, so a burst of preview runs does not flicker the run controls.
+    readonly property bool running: !!propertyHost && !!propertyHost.shownRunActive
     readonly property var runProgress: propertyHost && propertyHost.runProgress ? propertyHost.runProgress : ({})
     readonly property var cost: propertyHost && propertyHost.costEstimate ? propertyHost.costEstimate : ({})
     component TabButton: PanelRow {

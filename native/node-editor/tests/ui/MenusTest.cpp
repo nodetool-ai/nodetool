@@ -539,7 +539,12 @@ private slots:
             QVERIFY2(button, qPrintable(name));
             QTest::mouseClick(quick, Qt::LeftButton, Qt::NoModifier, centre(button));
         };
-        QCOMPARE(root->property("os").toString(), QString("win"));
+        // The panel opens on the host platform. The checks below start from Windows.
+#ifdef Q_OS_MACOS
+        QCOMPARE(root->property("os").toString(), QString("mac"));
+        press("help-platform-win");
+#endif
+        QTRY_COMPARE(root->property("os").toString(), QString("win"));
         QCOMPARE(root->property("layoutName").toString(), QString("english"));
         QCOMPARE(root->property("category").toString(), QString("editor"));
         QVERIFY(key("c") && key("c")->property("lit").toBool());
@@ -581,6 +586,9 @@ private slots:
         QVariant titles;
         QMetaObject::invokeMethod(root->findChild<QQuickItem *>("shortcut-keyboard"), "titlesFor", Q_RETURN_ARG(QVariant, titles), Q_ARG(QVariant, QString("c")));
         QVERIFY(titles.toStringList().contains("Copy: CTRL + C"));
+        // A click does not move focus from the search field to a button on macOS.
+        root->forceActiveFocus();
+        QTRY_VERIFY(root->hasActiveFocus());
         QTest::keyPress(quick, Qt::Key_C);
         QTRY_COMPARE(root->findChild<QQuickItem *>("shortcut-keyboard")->property("pressedKey").toString(), QString("c"));
         QTest::keyRelease(quick, Qt::Key_C);

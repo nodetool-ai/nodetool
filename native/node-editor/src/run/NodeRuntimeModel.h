@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QHash>
 #include <QJsonObject>
+#include <QSet>
 
 namespace nodetool::node_editor {
 class NodeRuntimeModel final : public QObject {
@@ -27,6 +28,8 @@ private:
   struct Run {
     QHash<QString, QJsonObject> nodes;
     QHash<QString, QJsonObject> edges;
+    // Nodes whose outputs came from the previous run and have no output of this one yet.
+    QSet<QString> held;
     double sequence = 0;
     bool terminal = false;
     bool truncated = false;

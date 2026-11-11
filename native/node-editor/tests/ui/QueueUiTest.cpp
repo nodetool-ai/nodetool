@@ -314,8 +314,9 @@ private slots:
                          .toMap()["status"]
                          .toString(),
                      QString("running"));
+        // The overlay shows once the active state holds for the shown queue delay.
+        QTRY_VERIFY(panel(window, "QueueOverlay.qml"));
         auto queue = panel(window, "QueueOverlay.qml");
-        QTRY_VERIFY(queue && queue->isVisible());
         click(queue, "queue-toggle");
         click(queue, "queue-focus-0");
         QCOMPARE(window.runOutput()->selectedRunId(), first);

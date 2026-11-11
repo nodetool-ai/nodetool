@@ -8,6 +8,7 @@
 #include "ModelLabels.h"
 #include "ImageSizePresets.h"
 #include <QFont>
+#include <algorithm>
 #include <cmath>
 #include <QFontMetricsF>
 #include <QJsonArray>
@@ -21,7 +22,12 @@
 #include <tuple>
 using namespace QtNodes;
 namespace nodetool {
-WorkflowGraphModel::WorkflowGraphModel(QObject *p) { setParent(p); }
+WorkflowGraphModel::WorkflowGraphModel(QObject *p) {
+  setParent(p);
+  runningClock_.start();
+  runningTimer_.setSingleShot(true);
+  connect(&runningTimer_, &QTimer::timeout, this, &WorkflowGraphModel::settleRunning);
+}
 NodeId WorkflowGraphModel::newNodeId() { return next_++; }
 QString WorkflowGraphModel::resourceId(NodeId id) const {
   return nodes_.value(id)["id"].toString();
@@ -334,14 +340,14 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   if (runtime_) { disconnect(runtime_, nullptr, this, nullptr); }
   runtime_ = runtime;
   previews_.clear();
-  runtimeJob_ = runtime_ ? runtime_->selectedRunId() : QString{};
+  runningShown_.clear();
+  runningSince_.clear();
+  runningTimer_.stop();
   if (runtime_) {
     connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) { refreshRuntimeNode(id); emit runtimeChanged(); });
+    // Previews stay across a run change. EditorWindow::syncRuntimePreviews
+    // replaces or removes each one, so a card keeps its image until the next loads.
     connect(runtime_, &node_editor::NodeRuntimeModel::projectionChanged, this, [this] {
-      if (runtimeJob_ != runtime_->selectedRunId()) {
-        runtimeJob_ = runtime_->selectedRunId();
-        previews_.clear();
-      }
       for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) { refreshRuntimeNode(it.key()); }
       emit runtimeChanged();
     });
@@ -349,10 +355,44 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   emit runtimeChanged();
 }
 void WorkflowGraphModel::refreshRuntimeNode(const QString &id) {
+  trackRunning(id);
   const auto found = ids_.constFind(id);
   if (found == ids_.cend()) { return; }
   layouts_.remove(*found);
   emit nodeUpdated(*found);
+}
+void WorkflowGraphModel::trackRunning(const QString &id) {
+  const auto found = ids_.constFind(id);
+  const auto status = found == ids_.cend() ? QString() : runtimeState(*found)["status"].toString();
+  const bool live = status == "running" || status == "loading" || status == "queued";
+  if (found == ids_.cend()) { runningShown_.remove(id); }
+  if (live == runningShown_.contains(id)) {
+    runningSince_.remove(id);
+    return;
+  }
+  // A change back and forth restarts the wait, because the entry above is removed.
+  if (!runningSince_.contains(id)) { runningSince_.insert(id, runningClock_.elapsed()); }
+  if (!runningTimer_.isActive()) { runningTimer_.start(runningDelayMs); }
+}
+void WorkflowGraphModel::settleRunning() {
+  const auto now = runningClock_.elapsed();
+  qint64 next = -1;
+  bool changed = false;
+  for (auto it = runningSince_.begin(); it != runningSince_.end();) {
+    const auto wait = runningDelayMs - (now - it.value());
+    if (wait > 0) {
+      next = next < 0 ? wait : std::min(next, wait);
+      ++it;
+      continue;
+    }
+    const auto id = it.key();
+    it = runningSince_.erase(it);
+    if (!runningShown_.remove(id)) { runningShown_.insert(id); }
+    changed = true;
+    if (const auto found = ids_.constFind(id); found != ids_.cend()) { emit nodeUpdated(*found); }
+  }
+  if (next >= 0) { runningTimer_.start(int(next)); }
+  if (changed) { emit runtimeChanged(); }
 }
 void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &image) {
   if (!ids_.contains(nodeId)) { return; }

@@ -38,6 +38,10 @@ public:
   // Completion stamps prefer generations produced by the same job, mirroring
   // computeStampSignature. The graph remains the dispatch-time full graph.
   void preferJob(const QString &jobId);
+  // An edit preview (web buildDownstreamRunGraph) reuses the current generation
+  // of every computed upstream, whatever its cache TTL, so changing a node
+  // reruns only that node and its downstream nodes.
+  void setPreview(bool preview) { preview_ = preview; decisions_.clear(); }
 private:
   enum class Kind { Constant, Generative, Computed };
   enum class Decision { Reuse, Replay, Run, Block };
@@ -54,6 +58,7 @@ private:
   ExecutionGenerations generations_;
   qint64 now_;
   QString preferredJob_;
+  bool preview_ = false;
   QString error_;
   QHash<QString, QString> signatures_;
   QSet<QString> hashing_, deciding_, forced_;

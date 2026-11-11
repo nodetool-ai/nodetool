@@ -260,13 +260,14 @@ private slots:
     QVERIFY(session.runsInProcess(id));
     QTRY_COMPARE_WITH_TIMEOUT(updates.size(), 2, 30000);
     QVERIFY(!updates[0].contains("result"));
-    const QJsonObject outputs{{"Output", QJsonArray{QJsonArray{0, 1, 2}}}};
+    // Final outputs are keyed by the Output node's name, as in the TypeScript runner.
+    const QJsonObject outputs{{"items", QJsonArray{QJsonArray{0, 1, 2}}}};
     QCOMPARE(updates[1]["result"].toObject(), (QJsonObject{{"outputs", outputs}}));
     QCOMPARE(statusOf(session, id), QString("completed"));
     QCOMPARE(output.selectedRunId(), id);
     const auto job = jobEntry(output);
     QCOMPARE(job["status"].toString(), QString("completed"));
-    QCOMPARE(job["text"].toString(), QString(R"({"outputs":{"Output":[[0,1,2]]}})"));
+    QCOMPARE(job["text"].toString(), QString(R"({"outputs":{"items":[[0,1,2]]}})"));
   }
   void unsupportedGraphUsesServer() {
     WorkflowSession session;

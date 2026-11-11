@@ -450,7 +450,7 @@ void RunTraceController::request(Kind kind, const QString &procedure, const QJso
             fail(kind, message.isEmpty() ? tr("Server request failed (HTTP %1)").arg(status) : message);
             return;
         }
-        const auto data = document.object()["result"].toObject()["data"];
+        const QJsonValue data = document.object()["result"].toObject()["data"];
         if (parse.error != QJsonParseError::NoError || !data.isObject()) {
             fail(kind, tr("Server returned an invalid run response"));
             return;
@@ -759,7 +759,7 @@ void RunTraceController::applyFocus(const QJsonObject &result)
         const auto offset = std::max(0.0, (record["start_time_ms"].toDouble() - start) / duration * 100);
         const auto width = std::max(0.5, std::min(100 - offset, record["duration_ms"].toDouble() / duration * 100));
         auto durationLabel = durationText(record["duration_ms"].toDouble());
-        const auto cost = record["attributes"].toObject()["gen_ai.usage.cost_usd"];
+        const QJsonValue cost = record["attributes"].toObject()["gen_ai.usage.cost_usd"];
         if (cost.isDouble()) {
             durationLabel += QStringLiteral(" · ") + usdText(cost.toDouble());
         }

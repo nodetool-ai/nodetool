@@ -12,6 +12,8 @@
 #include <QPointer>
 #include <QImage>
 #include <QSet>
+#include <QElapsedTimer>
+#include <QTimer>
 #include "../run/NodeRuntimeModel.h"
 #include "../run/UntakenBranch.h"
 #include <QtNodes/AbstractGraphModel>
@@ -21,7 +23,7 @@ namespace nodetool {
 // its snapshot. A projection of the same workflow, catalog and read-only state
 // diffs against the previous one and emits the fine-grained QtNodes signals,
 // so unchanged node items and their cached layouts survive. Other projections
-// emit modelReset().
+// emit modelReset(). UI thread only.
 class WorkflowGraphModel final : public QtNodes::AbstractGraphModel {
   Q_OBJECT
 public:
@@ -52,6 +54,11 @@ public:
   QImage runtimePreview(QtNodes::NodeId id) const;
   // A status alone changes no card size. The web shows no status text on a card.
   bool hasRuntimeOutput(QtNodes::NodeId id) const;
+  // Whether the card shows its running ring. A change between running and idle
+  // shows once it holds for runningDelayMs, so a burst of short preview runs
+  // does not flicker the ring.
+  bool runningShown(QtNodes::NodeId id) const { return runningShown_.contains(resourceId(id)); }
+  static constexpr int runningDelayMs = 300;
   void setCanvasMediaNodes(const QSet<QString> &nodes);
   // Thumbnails and load states of the media values cards show, from CardMediaLoader.
   void setCardMedia(const QString &nodeId, const QString &property, int index, const CardMediaItem &item);
@@ -156,8 +163,16 @@ private:
   QHash<QString, QImage> previews_;
   QSet<QString> canvasMediaNodes_;
   CardMediaStore cardMedia_;
-  QString runtimeJob_;
   void refreshRuntimeNode(const QString &id);
+  void trackRunning(const QString &id);
+  void settleRunning();
+  QSet<QString> runningShown_;
+  // The nodes whose live running state differs from the shown one, with the
+  // runningClock_ time of the change.
+  QHash<QString, qint64> runningSince_;
+  QElapsedTimer runningClock_;
+  // A member. It fires when the earliest pending change has held.
+  QTimer runningTimer_;
   QHash<QString, double> dimensionLinks_;
   QHash<QString, QString> previewTabs_;
   // Names Set Variable nodes publish, read by the Prompt and Get Variable bodies.

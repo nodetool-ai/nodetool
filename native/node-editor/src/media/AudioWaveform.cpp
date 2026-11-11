@@ -5,21 +5,26 @@
 #include <cmath>
 namespace nodetool::node_editor {
 AudioWaveform::AudioWaveform(QQuickItem *parent) : QQuickPaintedItem(parent) {
-  connect(&decoder_, &QAudioDecoder::bufferReady, this, &AudioWaveform::consume);
-  connect(&decoder_, &QAudioDecoder::isDecodingChanged, this, &AudioWaveform::loadingChanged);
   connect(this, &AudioWaveform::appearanceChanged, this, [this] { update(); });
 }
 void AudioWaveform::setSource(const QUrl &source) {
   if (source_ == source) { return; }
-  decoder_.stop();
+  const bool wasLoading = loading();
+  decoder_.reset();
   source_ = source;
   peaks_.clear();
   bucketMilliseconds_ = 20;
   update();
   emit peaksChanged();
   emit sourceChanged();
-  decoder_.setSource(source);
-  if (!source.isEmpty()) { decoder_.start(); }
+  if (!source.isEmpty()) {
+    decoder_ = std::make_unique<QAudioDecoder>();
+    connect(decoder_.get(), &QAudioDecoder::bufferReady, this, &AudioWaveform::consume);
+    connect(decoder_.get(), &QAudioDecoder::isDecodingChanged, this, &AudioWaveform::loadingChanged);
+    decoder_->setSource(source);
+    decoder_->start();
+  }
+  if (wasLoading && !loading()) { emit loadingChanged(); }
 }
 const std::vector<float> &AudioWaveform::envelope() const {
   return dataSource_ ? dataSource_->peaks_ : peaks_;
@@ -45,7 +50,8 @@ QVariantList AudioWaveform::peaks() const {
   return result;
 }
 void AudioWaveform::consume() {
-  const auto buffer = decoder_.read();
+  if (!decoder_) { return; }
+  const auto buffer = decoder_->read();
   if (!buffer.isValid()) { return; }
   const auto format = buffer.format();
   const auto *bytes = buffer.constData<char>();

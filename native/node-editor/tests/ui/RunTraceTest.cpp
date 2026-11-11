@@ -365,9 +365,10 @@ private slots:
         QTRY_VERIFY(!controller.logsLoading());
         controller.focusSpan("2222222222222222");
         QTRY_VERIFY(!controller.logsLoading());
+        // The focus request also asks for content. Only a log request has a limit with it.
         const auto logQuery = [&server] {
             for (int i = server.inputs.size() - 1; i >= 0; --i) {
-                if (server.inputs[i].contains("include_content")) { return server.inputs[i]; }
+                if (server.inputs[i].contains("include_content") && server.inputs[i].contains("limit")) { return server.inputs[i]; }
             }
             return QJsonObject{};
         };

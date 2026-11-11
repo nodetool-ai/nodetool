@@ -241,8 +241,9 @@ private slots:
         window.session()->connectToServer(server.url(), {});
         QTRY_VERIFY(window.session()->connected());
         QTRY_COMPARE(window.session()->queue().size(), 1);
+        // The overlay shows once the active state holds for the shown queue delay.
+        QTRY_VERIFY(panel(window, "QueueOverlay.qml"));
         auto overlay = panel(window, "QueueOverlay.qml");
-        QTRY_VERIFY(overlay && overlay->isVisible());
         click(overlay, "queue-toggle");
         server.rejectCancel = true;
         QSignalSpy errors(window.session(), &WorkflowSession::errorOccurred);

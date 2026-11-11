@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const editorSource = fileURLToPath(new URL("..", import.meta.url));
 
-function qtPrefix() {
+export function qtPrefix() {
   if (process.env.CMAKE_PREFIX_PATH) {
     return process.env.CMAKE_PREFIX_PATH;
   }

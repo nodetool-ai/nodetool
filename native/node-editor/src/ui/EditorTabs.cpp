@@ -28,7 +28,7 @@ QVariantList EditorWindow::workflowTabs() const {
         // The web hides the per-run spinner while instant update reruns the graph.
         result.append(QVariantMap{{"title", title},
                                   {"dirty", tab->hasUnsavedChanges()},
-                                  {"running", tab->runActive() && !tab->instantUpdate_},
+                                  {"running", tab->runActive() && !tab->instantUpdate_ && !tab->scrubbing_},
                                   {"renamable", !tab->childParent_}});
     }
     return result;

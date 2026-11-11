@@ -31,6 +31,19 @@ Install CMake, a C++20 compiler, Git, and Qt 6.12 with Widgets, QuickWidgets,
 Quick, Qml, QuickControls2, Svg, Network, WebSockets, Multimedia, and Test. If Qt is outside
 the system prefix, supply `-DCMAKE_PREFIX_PATH=/path/to/Qt/6.12/gcc_64`.
 
+`npm run node-editor` builds the guest bundle when it is missing, builds the
+editor in `native/node-editor/build`, and starts it with that bundle. Put
+editor arguments after `--`, for example `npm run node-editor -- -- --offline`.
+Add `--rebuild-guest` before them to rebuild a stale guest bundle. When no
+server answers on `http://localhost:7777`, the script starts the development
+server (`npm run dev:server`) there and stops it when the editor quits. The
+server log is `server.log` in the build directory. The server uses the
+database in the NodeTool data folder, `nodetool/nodetool.sqlite3`, which holds
+the assets and workspaces that local runs read. A `DB_PATH` or `DATABASE_URL`
+in the shell selects another database. `--no-server`, and the
+editor options `--offline`, `--server`, `--screenshot`, `--dump`, `--save` and
+`--replay`, skip the server.
+
 ```sh
 cmake -S native/node-editor -B /tmp/node-editor-build -DCMAKE_BUILD_TYPE=Debug
 cmake --build /tmp/node-editor-build --parallel 6
@@ -74,8 +87,19 @@ aac, libmp3lame and libopus.
 Image outputs of local runs stay in the editor's process
 (`src/media/LocalMediaStore.h`): the runner hands each one over as pixels and
 run messages carry a `local-media://` URI, which `MediaResolver` resolves
-without a server. A run's images are released when the session drops the run.
-Saving one writes a PNG.
+without a server. A card preview scales these pixels directly. A run's images
+are released when the session drops the run. Saving one writes a PNG.
+
+`node_editor_slider_preview_profile` measures a card slider drag on
+`[Image] → [Color Grade] → [Gaussian Blur]` with a 2560×1440 photo, offscreen.
+It prints the time from each slider value to each card image and the main
+thread stalls. `--sample <file>` also writes a macOS `sample` call tree of the
+drag. The hidden Output panel builds no rows, and the runner keeps the last
+two decoded source images, so a preview run does not decode its input again.
+
+```sh
+native/node-editor/build/node_editor_slider_preview_profile --seconds 4 --sample /tmp/slider.txt
+```
 
 The local runner gets no context operation and no provider endpoint jobs.
 [Grants of the in-repo embedders](../graph-runner/README.md#grants-of-the-in-repo-embedders)
@@ -140,6 +164,17 @@ does not edit the workflow.
 Disabled nodes
 retain their properties and connections in the document, but are omitted with
 attached edges from submitted execution graphs. Enable/disable is one undo step.
+
+More → Instant Update reruns a node and its downstream nodes after each property
+edit. Card body controls preview without it when the in-process runner can run
+the edited node. A card slider drag reruns each draft value and commits one undo
+step on release. A rerun reuses the latest generation of every upstream node, so
+in `[image] → [transform a] → [transform b]` an edit of transform b runs only
+transform b. A node the runner does not support ends the preview, and the nodes
+before it still run. The queue overlay, the Run buttons, the inspector run
+controls and each card's running ring show a change only after it holds for
+300 ms. A preview run leaves the inspector message as it is, except when it
+fails. Cards keep their last result and image until the next run replaces them.
 
 Click a card's text, multiline, numeric, boolean, or choice field to edit it.
 A shared-primitives Quick overlay follows the field through canvas zoom, pan,

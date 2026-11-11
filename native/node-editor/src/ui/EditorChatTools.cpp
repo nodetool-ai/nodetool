@@ -508,7 +508,14 @@ void EditorWindow::initializeChatTools() {
             if (name == "ui_search_nodes") {
                 // web/src/lib/tools/builtin/searchNodes.ts execute.
                 const auto query = input["query"].toString().trimmed();
-                const auto sorted = computeNodeSearchResults(metadata, query, input["input_type"].toString(),
+                // The web tool searches the metadata store, which has no code snippets.
+                QJsonArray nodes;
+                for (const auto &entry : metadata) {
+                    if (!entry.toObject().contains("code_snippet")) {
+                        nodes.append(entry);
+                    }
+                }
+                const auto sorted = computeNodeSearchResults(nodes, query, input["input_type"].toString(),
                                                              input["output_type"].toString(),
                                                              input["strict_match"].toBool());
                 const auto namespaceRank = [](const QString &type) {

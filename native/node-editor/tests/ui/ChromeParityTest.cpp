@@ -752,7 +752,8 @@ private slots:
         auto *progress = find(root, QStringLiteral("inspector-run-progress"));
         QVERIFY(progress);
         QTRY_COMPARE(progress->property("text").toString(), QStringLiteral("Run 1/2"));
-        QVERIFY(!run->isEnabled());
+        // The run controls follow the debounced run state.
+        QTRY_VERIFY(!run->isEnabled());
         const auto first = server->commands.first()["data"].toObject()["job_id"].toString();
         server->update(first, QStringLiteral("running"));
         server->update(first, QStringLiteral("completed"));

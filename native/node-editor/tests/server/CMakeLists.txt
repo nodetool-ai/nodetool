@@ -12,13 +12,13 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/GraphRunner.cmake)
 add_executable(node_editor_server_tests WorkflowSessionTests.cpp
  ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp)
-target_link_libraries(node_editor_server_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test)
+target_link_libraries(node_editor_server_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Gui Qt6::Network Qt6::WebSockets Qt6::Test)
 nodetool_stage_graph_runner_runtime(node_editor_server_tests)
 add_test(NAME node_editor_server_tests COMMAND node_editor_server_tests)
 add_executable(node_editor_autosave_tests WorkflowAutosaveTests.cpp
  ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/document/WorkflowMerge.cpp ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
  ../../src/server/MsgPack.cpp ../../src/run/PartialRunPlanner.cpp ../../src/run/GenerationHistory.cpp)
-target_link_libraries(node_editor_autosave_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test)
+target_link_libraries(node_editor_autosave_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Gui Qt6::Network Qt6::WebSockets Qt6::Test)
 nodetool_stage_graph_runner_runtime(node_editor_autosave_tests)
 add_test(NAME node_editor_autosave_tests COMMAND node_editor_autosave_tests)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia)

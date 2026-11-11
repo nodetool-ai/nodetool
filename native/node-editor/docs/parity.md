@@ -2101,12 +2101,29 @@ in both themes and header center alignment.
 
 More includes Instant Update. Numeric commits immediately run the changed node
 and its downstream targets when connected and idle. Other commits debounce for
-300 milliseconds. Drafts remain local. This follows the server auto-run path in
+300 milliseconds. This follows the server auto-run path in
 `web/src/hooks/nodes/useInputNodeAutoRun.ts`. Both clients freeze canvas execution animation while Instant Update is enabled.
-The web also provides unconditional in-browser image-slider previews through
-`useLiveSliderWriter.ts`. Native has no browser kernel preview host. This gap
-is user-approved scope change SC1 in the
-[parity inventory](parity-inventory.md#user-approved-scope-changes).
+A rerun reuses the current generation of every computed upstream node, as
+`buildDownstreamRunGraph.ts` does, so it runs only the edited node and its
+downstream nodes. Cached `local-media://` images go into the run graph as PNG
+data. A generation whose image was released reruns its node.
+
+Card body controls preview without Instant Update, as the web's
+`useLiveSliderWriter.ts` bodies do. A card slider drag runs each draft value in
+process, one run at a time with the latest value next, and commits one undo step
+on release. Only the downstream prefix the in-process runner supports runs.
+Animations stay still until the last preview settles. The queue overlay, the
+toolbar and group Run buttons, the inspector run controls and each card's running
+ring change only after the new state holds for 300 ms, so short preview runs do
+not show. A preview run leaves the inspector message as it is, except when the
+run fails. A new run starts with the shown
+run's node results, as web results persist across runs, and an image preview
+keeps its last image until the next one is ready. Cards therefore do not blank
+between preview runs. `InstantUpdateLocalTest.cpp` covers the upstream reuse,
+released images, the slider drag, the result JSON and the debounce. `NodeRuntimeModelTests` and
+`MediaUiTest::imagePreviewHoldsTheLastImage` cover the held results. Preview runs
+still appear in output history, where the web marks them silent and reuses one
+job ID.
 
 `QueueDataTest.cpp`, registered as `node_editor_queue_data`, uses real jobs-router
 response envelopes from a local HTTP and MsgPack server. It covers account-wide
@@ -3166,7 +3183,7 @@ viewport fit from the web and use an offline fixture.
 8. A click on the drop zone selects the card and opens a file picker for its
    media kind. The chosen file uploads and sets the value as a drop does, and a
    cancelled picker changes nothing (`dropZoneClickOpensFilePicker`). Editing a
-   slider re-runs nothing, because live previews are scope change SC1.
+   slider previews the downstream nodes in process.
 9. Blur and Resize Image previews are 96 px tall, the `.preview-area`
    `minHeight` in `BlurBody.tsx` and `ResizeImageBody.tsx`, where native drew
    90 px. The Resize Image mode switch follows the body's 2 px gap. The Resize

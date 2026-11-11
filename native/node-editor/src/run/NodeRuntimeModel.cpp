@@ -124,7 +124,20 @@ void NodeRuntimeModel::beginRun(QString jobId) {
       runs_.remove(*old);
       order_.erase(old);
     }
-    runs_.insert(jobId, {});
+    // A new run starts with the shown run's results, so a card keeps its last
+    // result until the new run replaces it. The web keeps node results across
+    // runs too. Statuses, progress and errors start empty.
+    Run run;
+    if (const auto shown = runs_.constFind(selected_); shown != runs_.cend()) {
+      for (auto it = shown->nodes.cbegin(); it != shown->nodes.cend(); ++it) {
+        QJsonObject held;
+        for (const auto *key : {"result", "outputs", "text", "done"}) {
+          if (it.value().contains(QLatin1String(key))) { held[QLatin1String(key)] = it.value()[QLatin1String(key)]; }
+        }
+        if (!held.isEmpty()) { run.nodes.insert(it.key(), held); run.held.insert(it.key()); }
+      }
+    }
+    runs_.insert(jobId, std::move(run));
     order_.append(jobId);
   }
   selectRun(jobId);
@@ -246,6 +259,10 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
   } else {
     const auto name = event["output_name"].toString();
     if (!event.contains("value") || name.size() > 1024) { return; }
+    // The first output of this run replaces the held outputs instead of appending.
+    if (run.held.remove(id)) {
+      for (const auto *key : {"outputs", "text", "done"}) { state.remove(QLatin1String(key)); }
+    }
     auto outputs = state["outputs"].toObject();
     auto value = event["value"];
     if (value.isString() && event["disposition"] != "replace") {

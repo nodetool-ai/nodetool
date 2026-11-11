@@ -143,6 +143,7 @@ int runExitProbe(int argc, char **argv) {
   // temporary directory (tests/support/SettingsIsolation.cpp). The editor
   // writes where the test reads instead.
   qputenv("XDG_CONFIG_HOME", qgetenv("NODETOOL_EXIT_PROBE_CONFIG"));
+  QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, qEnvironmentVariable("NODETOOL_EXIT_PROBE_CONFIG"));
   // argv[1] is --exit-probe. The editor sees the program name and the rest.
   argv[1] = argv[0];
   return nodeEditorMain(argc - 1, argv + 1);
@@ -264,9 +265,10 @@ private slots:
     // this shutdown reached TimedOut.
     QVERIFY2(afterClose < 8000, qPrintable(QString::number(afterClose)));
 
-    // What closing the window persisted (EditorWindow::persistTabs).
+    // What closing the window persisted (EditorWindow::persistTabs). Qt names
+    // INI settings files .conf on Linux and .ini on macOS and Windows.
     QStringList conf;
-    for (QDirIterator it(config, {"*.conf"}, QDir::Files, QDirIterator::Subdirectories); it.hasNext();) {
+    for (QDirIterator it(config, {"*.conf", "*.ini"}, QDir::Files, QDirIterator::Subdirectories); it.hasNext();) {
       conf << it.next();
     }
     QCOMPARE(conf.size(), 1);

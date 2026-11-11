@@ -11,7 +11,9 @@ Ui.Surface {
     property var retained: []
     property var localStarts: ({})
     property double now: Date.now()
-    readonly property var live: (workflowSession.queue || []).map((job, index) => Object.assign({}, job, {
+    // The editor's debounced queue. A host without an editor shows the session queue.
+    readonly property var source: typeof editor !== "undefined" && editor ? editor.shownQueue : (workflowSession.queue || [])
+    readonly property var live: source.map((job, index) => Object.assign({}, job, {
             queueIndex: index
         }))
     readonly property int runningCount: live.filter(job => job.status === "running").length

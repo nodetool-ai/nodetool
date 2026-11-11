@@ -1,6 +1,7 @@
 #pragma once
 #include <QElapsedTimer>
 #include <QHash>
+#include <QSet>
 #include <QTimer>
 #include <optional>
 #include "graph/CatalogSearch.h"
@@ -82,6 +83,11 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
+  // The run queue and run state the queue overlay, the toolbar and the
+  // inspector show. A change shows once the queue holds for shownQueueDelayMs,
+  // so a burst of short preview runs does not flicker them.
+  Q_PROPERTY(QVariantList shownQueue READ shownQueue NOTIFY shownQueueChanged)
+  Q_PROPERTY(bool shownRunActive READ shownRunActive NOTIFY shownQueueChanged)
   Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelChanged)
   Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
@@ -191,6 +197,9 @@ public:
   Q_INVOKABLE void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
+  QVariantList shownQueue() const { return shownQueue_; }
+  bool shownRunActive() const { return shownActivity_.second; }
+  static constexpr int shownQueueDelayMs = 300;
   bool outputVisible() const;
   bool catalogVisible() const;
   bool inspectorVisible() const;
@@ -339,6 +348,7 @@ signals:
   void documentEpochChanged();
   void credentialsEpochChanged();
   void panelChanged();
+  void shownQueueChanged();
   void mediaChanged();
   void zoomChanged();
   void catalogChanged();
@@ -355,8 +365,23 @@ private slots:
 private:
   // The node menu ranking caches. rankCatalog is const for QML, so the cache is mutable.
   mutable CatalogRanker catalogRanker_;
-  // Reruns an edited node and every node downstream of it (Instant Update).
-  void instantRerun(const QString &nodeId);
+  // An edit to rerun: the node, an uncommitted value of one of its properties
+  // ({"name", "value"}, empty for a committed edit), and whether only an
+  // in-process run may serve it.
+  struct InstantEdit {
+    QString node;
+    QJsonObject draft;
+    bool localOnly = false;
+  };
+  // Reruns an edited node and every node downstream of it. Upstream nodes
+  // reuse their current generation (web buildDownstreamRunGraph).
+  void instantRerun(const InstantEdit &edit);
+  // Instant Update reruns every property edit. Without it, an edit from a card
+  // body control still previews when the rerun runs in process, as the web's
+  // live slider bodies do (web hooks/nodes/useLiveSliderWriter.ts).
+  void scheduleInstantRerun(const QString &node, const QJsonObject &draft, bool cardBody, bool immediate);
+  void previewCardEdit(const QJsonArray &commands);
+  void setScrubbing(bool scrubbing);
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
   void showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor);
@@ -566,9 +591,25 @@ private:
   quint64 instantUpdateGeneration_ = 0;
   bool canvasReducedMotion_ = false;
   bool instantUpdate_ = false;
-  // The latest node edited while an in-process run was active. It reruns when
+  // The latest edit made while an in-process run was active. It reruns when
   // that run settles, so the result follows the last edit.
-  QString instantPending_;
+  std::optional<InstantEdit> instantPending_;
+  // True from a card slider preview until its last rerun settles. Running
+  // animations stay still meanwhile, as the web's live-scrubbing class does.
+  bool scrubbing_ = false;
+  // True while instantRerun submits a preview run. runSubmitted fires inside
+  // that call, so it can mark the run as silent.
+  bool submittingPreview_ = false;
+  // Preview runs not yet terminal. Their progress sets no message.
+  QSet<QString> previewRuns_;
+  // Whether any run, and a run of this workflow, is active in a queue.
+  QPair<bool, bool> queueActivity(const QVariantList &queue) const;
+  void updateShownQueue(bool settled);
+  QVariantList shownQueue_;
+  QPair<bool, bool> shownActivity_{false, false};
+  QVariantList pendingQueue_;
+  // Parented to this window. It fires when a queue change has held.
+  QTimer *shownQueueTimer_ = nullptr;
   QQuickWidget *selectionOverlay_ = nullptr;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;
