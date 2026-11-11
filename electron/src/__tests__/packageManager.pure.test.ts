@@ -1,23 +1,7 @@
-import {
-  getRuntimePackageStatuses,
-  needsTorchPlatformDetection,
-  validateRepoId,
-} from "../packageManager";
-import { runtimeRegistry } from "../runtime/packages/registry";
+import { getRuntimePackageStatuses, validateRepoId } from "../packageManager";
+import { getDesktopRuntimeRegistry } from "../runtimeHost";
 
-describe("needsTorchPlatformDetection", () => {
-  it("returns true for known torch-dependent packages", () => {
-    expect(needsTorchPlatformDetection("nodetool-huggingface")).toBe(true);
-  });
-
-  it("returns false for other packages", () => {
-    expect(needsTorchPlatformDetection("nodetool-core")).toBe(false);
-  });
-
-  it("normalises dashes/underscores", () => {
-    expect(needsTorchPlatformDetection("nodetool_huggingface")).toBe(true);
-  });
-});
+const runtimeRegistry = getDesktopRuntimeRegistry();
 
 describe("validateRepoId", () => {
   it("accepts valid owner/project format", () => {

@@ -5,7 +5,13 @@ permalink: /memory
 description: "Durable notes an agent saves about your projects and the assets it makes, how it recalls them, and how to review and delete them on the Memory page."
 ---
 
-Memory is a store of short notes that an agent writes for itself and reads back in later conversations. An agent saves a project fact, a decision you approved, or a reference to an asset it generated. The next time you chat, it can find that note again without you repeating yourself.
+Memory is a store of short notes an agent saves with `memory_save` and reads back in later conversations: a project fact, an approved decision, or a reference to an asset it generated.
+
+```jsonc
+// memory_save arguments
+{ "kind": "decision", "title": "Logo palette", "content": "Use the teal and off-white palette for all brand assets.",
+  "resources": [{ "type": "asset", "id": "<asset_id>" }] }
+```
 
 > **Quick Access:** Open the app menu in the sidebar and choose **Memory** to see everything the agent has saved.
 
@@ -20,11 +26,10 @@ Each memory is one row with these fields.
 | Field | What it holds |
 |-------|---------------|
 | Kind | `note`, `fact`, `preference`, `decision`, or `resource`. An unknown value is saved as `note`. |
-| Title | An optional short label |
+| Title | Optional. |
 | Content | The note itself, required |
-| Resources | Optional typed references to things the note is about |
+| Resources | Optional typed references. |
 | Thread | The conversation the memory was saved in. Empty when it was saved outside a chat. |
-| Created and updated times | Set by the store |
 
 A resource reference has a `type` and an `id`, plus an optional `uri` and `label`. Known types are `asset`, `workflow`, `collection`, `node`, `job`, `timeline`, `script`, `storyboard`, `image_document`, `thread`, `url`, and `other`. Any other type string is also accepted.
 
@@ -74,16 +79,9 @@ Memory belongs to your user account, not to a conversation. A memory saved in on
 
 Memories are rows in the NodeTool database. Deleting a chat thread also deletes the memories that were saved in it. Memories with no thread are not affected.
 
-## How it differs from run memory
+## Run memory
 
-NodeTool has a second, unrelated store also called memory. [Agent Memory System](agent-memory.md) describes `context.memory`, a scratch space shared by the steps of one workflow run through the `list_shared`, `read_shared`, and `share_result` tools. It is cleared when the run ends and is never shown on the Memory page.
-
-| | Durable memory (this page) | Run memory |
-|---|---|---|
-| Lifetime | Until deleted | One run |
-| Scope | Your account, all conversations | One run and its steps |
-| Tools | `memory_save`, `memory_list`, `memory_search`, `memory_update`, `memory_delete` | `list_shared`, `read_shared`, `share_result` |
-| Visible to you | Memory page | Not shown |
+The `list_shared`, `read_shared`, and `share_result` tools use a separate per-run store. See [Agent Memory System](agent-memory.md). It is cleared when the run ends and is not shown on the Memory page.
 
 ## Related
 

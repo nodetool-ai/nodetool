@@ -401,7 +401,7 @@ source propagate. A4.6 replaces both temporary paths with the catalog source.
 **Blocked by:** A1.
 
 **Files:** `packages/node-catalog/src/`, `packages/protocol/src/`
-(the runtime ids), `electron/src/runtime/packages/definitions.ts`,
+(the runtime ids), `packages/runtime-install/src/packages/definitions.ts`,
 `tools/oxlint/` or the lint config, `packages/cli-admin/src/commands/runtime.ts`
 (help text).
 

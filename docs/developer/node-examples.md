@@ -4,13 +4,9 @@ title: "Node Implementation Examples"
 description: "Annotated Python node examples for the Python bridge. TypeScript node guides are linked at the top."
 ---
 
-## Real Examples from Codebase
+Annotated **Python** node examples. For TypeScript nodes see the [Custom Nodes Guide](custom-nodes-guide.md), [Node Patterns](node-patterns.md), and [Node Reference](node-reference.md).
 
-This document provides annotated examples of **Python** nodes. Each example highlights specific patterns and implementation details to help you build your own nodes.
-
-To write a **TypeScript** node, use the [Custom Nodes Guide](custom-nodes-guide.md), [Node Patterns](node-patterns.md), and [Node Reference](node-reference.md) instead.
-
-The Python base classes live in the separate `nodetool-core` repository (`src/nodetool/`), and `HuggingFacePipelineNode` lives in `nodetool-huggingface`. This repository contains neither. This repository runs those nodes through the Python bridge: it reads the metadata the worker reports (`is_dynamic`, `is_streaming_output`, `is_streaming_input`, `required_settings`, properties, outputs) and sends `execute` and `execute.stream` calls. The samples on this page are checked against both repositories.
+The Python base classes live in the separate `nodetool-core` repository (`src/nodetool/`), and `HuggingFacePipelineNode` lives in `nodetool-huggingface`. This repository runs those nodes through the [Python bridge](../python-bridge-protocol.md): it reads the metadata the worker reports (`is_dynamic`, `is_streaming_output`, `is_streaming_input`, `required_settings`, properties, outputs) and sends `execute` and `execute.stream` calls.
 
 Imports used by the samples:
 
@@ -32,11 +28,8 @@ A pack is a Python package under the `nodetool.nodes` namespace, for example `no
 
 `nodetool-pkg scan` (`package_tools/__main__.py`) builds a package's metadata JSON. `--write` saves it to `<package-dir>/src/nodetool/package_metadata/<name>.json`.
 
----
 
 ## 1. Simple Processing Nodes
-
-These nodes take one or more inputs, perform a calculation, and return a single result. They are the building blocks of most workflows.
 
 ### Example: Text Concatenation
 
@@ -69,11 +62,8 @@ class Concat(BaseNode):
 - `BaseNode.return_type()` reads the annotation to build the output slots (`workflows/base_node.py:1819`). A plain type gives one slot named `output`.
 - `get_title()` defaults to the class name without a trailing `Node`, split on camel case (`workflows/base_node.py:949`). The bridge `discover` payload reads a `title` class attribute instead and falls back to the last part of the node type (`worker/node_loader.py:64`).
 
----
 
 ## 2. Structured Output Nodes
-
-Sometimes a node needs to return multiple values (e.g., an audio transcription that returns both the text and the detected language).
 
 ### Example: Automatic Speech Recognition
 
@@ -108,7 +98,6 @@ class AutomaticSpeechRecognition(BaseNode):
 - Annotate `process` with `OutputType` by convention.
 - Return a dictionary matching the structure.
 
----
 
 ## 3. Streaming Nodes
 
@@ -149,7 +138,6 @@ class LoadImageFolder(BaseNode):
 - Yield a dictionary that maps output names to values. `BaseNode.run()` and the worker raise `TypeError` for any other item, even though the `gen_process` docstring mentions yielding a bare value (`workflows/base_node.py:2137`, `2183`, `worker/executor.py:591`, `615`).
 - `yield` results as they become available. This allows downstream nodes to start processing immediately.
 
----
 
 ## 4. Dynamic Nodes
 
@@ -193,7 +181,6 @@ class FormatText(BaseNode):
 - Read the values from `self._dynamic_properties` (a `dict[str, Any]`) or the `dynamic_properties` property. `get_dynamic_properties()` returns a dict of `Property` type descriptions, not the values (`workflows/base_node.py:1711-1726`).
 - `BaseNode.is_dynamic()` reads `_is_dynamic`, and the worker reports it in `discover` (`workflows/base_node.py:665`, `worker/node_loader.py:101`). Assigning an undeclared property on a dynamic node stores it in `_dynamic_properties` (`workflows/base_node.py:1292`).
 
----
 
 ## 5. Working with Assets
 
@@ -235,7 +222,6 @@ class SaveText(BaseNode):
 - `SaveUpdate` has the fields `node_id`, `name`, `value`, `output_type` and `metadata` (`workflows/types.py:199-208`). The bridge worker forwards only `NodeProgress`, `PreviewUpdate`, `LogUpdate` and `BinaryUpdate` messages and drops the rest, so a `SaveUpdate` posted by a bridge node does not reach the UI (`worker/context_stub.py:260-285`).
 - In the bridge, `WorkerContext` overrides the image and audio helpers to return `blob://` references backed by bytes sent over the bridge (`worker/context_stub.py:55-235`).
 
----
 
 ## 6. Control Flow
 
@@ -273,7 +259,6 @@ class If(BaseNode):
 - The TypeScript `nodetool.control.If` returns only the taken branch's key. A key that is absent sends no message, so nodes wired only to the untaken branch do not run.
 - In Python, `BaseNode.run()` skips any yielded value that is `None`, so the untaken branch sends nothing (`workflows/base_node.py:2188`). The bridge worker aggregates the final result the same way, but each streamed chunk carries the raw mapping including `None` placeholders (`worker/executor.py:605-625`). What the TypeScript host does with a `null` chunk value is not checked here.
 
----
 
 ## 7. Model Nodes (HuggingFace / model-backed)
 

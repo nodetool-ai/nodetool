@@ -138,4 +138,6 @@ export interface StorageStat {
   modifiedAt: number;
   /** Content-type if the backend stores it. */
   contentType?: string;
+  /** The `Cache-Control` the backend serves the object with, if it stores one. */
+  cacheControl?: string;
 }

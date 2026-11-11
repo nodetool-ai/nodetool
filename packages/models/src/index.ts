@@ -168,6 +168,11 @@ export {
   removeDocumentSharing,
   type SharedDocumentType
 } from "./document-sharing.js";
+export {
+  getUserSharing,
+  listPublicWorkflows,
+  type UserSharing
+} from "./sharing-admin.js";
 
 export { Asset } from "./asset.js";
 export type { AssetRow, AssetInsert } from "./asset.js";
@@ -180,7 +185,7 @@ export {
   isCompactionMessage
 } from "./message.js";
 
-export { Thread } from "./thread.js";
+export { Thread, type ThreadKind } from "./thread.js";
 
 export { Memory, memorySearchTerms } from "./memory.js";
 export type {
@@ -192,12 +197,15 @@ export type {
 export { Secret } from "./secret.js";
 export {
   getSecret,
+  getSecrets,
   getSecretRequired,
   hasSecret,
   getSecretSync,
   clearSecretCache,
-  clearAllSecretCache
+  clearAllSecretCache,
+  credentialSource
 } from "./secret-helper.js";
+export type { CredentialSource } from "./secret-helper.js";
 export {
   isOnePasswordReference,
   parseOnePasswordReference,
@@ -538,6 +546,7 @@ export {
   McpOauthToken,
   MCP_OAUTH_ACCESS_TTL_MS,
   MCP_OAUTH_REFRESH_TTL_MS,
+  MCP_OAUTH_REFRESH_REUSE_GRACE_MS,
   MCP_OAUTH_CLIENT_ID_PREFIX,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
   MCP_OAUTH_REFRESH_TOKEN_PREFIX
@@ -611,6 +620,68 @@ export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyb
 
 export { storyboards } from "./schema/storyboards.js";
 export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
+
+export {
+  USER_ROLES,
+  USER_STATUSES,
+  getUserAccount,
+  getUserAccounts,
+  isUserRole,
+  isUserStatus,
+  listUserAccounts,
+  recordSignIn,
+  touchUserLastSeen,
+  updateUserAccount
+} from "./user-account.js";
+export type {
+  SignInRecord,
+  UserAccount,
+  UserAccountChanges,
+  UserAccountListOptions,
+  UserAccountPage,
+  UserRole,
+  UserStatus
+} from "./user-account.js";
+export { userAccounts } from "./schema/user-accounts.js";
+
+export {
+  DEFAULT_QUOTA_SUBJECT,
+  QUOTA_PERIODS,
+  clearQuota,
+  getEffectiveQuota,
+  getProviderCredentialKeyResolver,
+  getQuota,
+  isQuotaPeriod,
+  providerKeySource,
+  quotaUsage,
+  setProviderCredentialKeyResolver,
+  setQuota
+} from "./user-quota.js";
+export type {
+  EffectiveQuota,
+  ProviderCredentialKey,
+  QuotaChange,
+  QuotaPeriod,
+  QuotaUsage,
+  UserQuota
+} from "./user-quota.js";
+export { userQuotas } from "./schema/user-quotas.js";
+export {
+  DEFAULT_PERMISSION_SUBJECT,
+  PERMISSION_FLAGS,
+  getEffectivePermissions,
+  getPermissionOverrides,
+  isPermissionFlag,
+  resolvePermissions,
+  setPermissionOverrides
+} from "./user-permissions.js";
+export type {
+  EffectivePermissions,
+  PermissionFlag,
+  PermissionOverrides,
+  Permissions
+} from "./user-permissions.js";
+export { userPermissions } from "./schema/user-permissions.js";
 
 export * from "./app-instance.js";
 

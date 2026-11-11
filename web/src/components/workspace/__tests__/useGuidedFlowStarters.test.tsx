@@ -96,6 +96,11 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: { timeline: { update: { mutate: timelineUpdate } }, games: { create: { mutate: gameCreate } } }
 }));
 
+const openCreateSession = jest.fn(async (..._args: unknown[]) => "session-1");
+jest.mock("../../create/openCreateSession", () => ({
+  openCreateSession: (...args: unknown[]) => openCreateSession(...args)
+}));
+
 const openPageTab = jest.fn();
 jest.mock("../openPageTab", () => ({
   openPageTab: (key: string) => openPageTab(key)
@@ -179,37 +184,26 @@ it("starts the Game flow on a workflow that carries the game setup", async () =>
   expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "workflow", projectId: "p-game" }));
 });
 
-it("names the picture flow Image in the menu and opens an Image generation tab", async () => {
+it("names the picture flow Image in the menu and opens a Create tab for images", async () => {
   const { hook } = renderStarters();
   const image = hook.result.current.starters.find((entry) => entry.id === "image")!;
   expect(image.title).toBe("Image");
   await act(async () => { await image.start("p1"); });
-  expect(createNewThread).toHaveBeenCalledWith("New image", null, {
-    projectId: "p1",
-    mediaMode: "image"
-  });
-  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "chat", title: "New image", projectId: "p1" }));
+  expect(openCreateSession).toHaveBeenCalledWith("p1", { mode: "image" });
+  expect(createNewThread).not.toHaveBeenCalled();
 });
 
-it("names the video flow Video in the menu and opens a Video generation tab", async () => {
+it("names the video flow Video in the menu and opens a Create tab for video", async () => {
   const { hook } = renderStarters();
-  const video = hook.result.current.starters.find(
-    (entry) => entry.id === "video"
-  )!;
+  const video = hook.result.current.starters.find((entry) => entry.id === "video")!;
   expect(video.title).toBe("Video");
-  await act(async () => {
-    await video.start("p1");
-  });
+  await act(async () => { await video.start("p1"); });
+  expect(openCreateSession).toHaveBeenCalledWith("p1", { mode: "video" });
+});
 
-  expect(createNewThread).toHaveBeenCalledWith("New video", null, {
-    projectId: "p1",
-    mediaMode: "video"
-  });
-  expect(openTab).toHaveBeenCalledWith(
-    expect.objectContaining({
-      type: "chat",
-      title: "New video",
-      projectId: "p1"
-    })
-  );
+it("opens Read aloud as a Create tab for speech", async () => {
+  const { hook } = renderStarters();
+  const speech = hook.result.current.starters.find((entry) => entry.id === "speech")!;
+  await act(async () => { await speech.start("p1"); });
+  expect(openCreateSession).toHaveBeenCalledWith("p1", { mode: "audio" });
 });

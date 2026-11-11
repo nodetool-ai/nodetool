@@ -6,7 +6,16 @@ Dynamic node factory generating one node per `replicate-manifest.json` entry.
 
 - `replicate-manifest.json` - Node definitions with model IDs, input/output schemas
 - `replicate-factory.ts` - Runtime node class generator from manifest
-- `replicate-base.ts` - Shared API utilities (submit, upload, asset conversion)
+- `replicate-base.ts` - Input conversion, uploads and output mapping
+
+Nodes reach Replicate only through the runtime `ReplicateProvider`
+(`packages/runtime/src/providers/replicate-provider.ts`). `process()` calls
+`context.callProviderEndpoint({ provider: "replicate", capability, model,
+input })`, which runs the prediction inside the generation seam, so every run
+writes a `prediction` message and a generation record. The capability comes
+from the manifest output type (`replicateCapabilityForOutputType`). Node code
+never reads `REPLICATE_API_TOKEN`. The provider registry resolves it from the
+secret store or the environment.
 
 ## AssetRef Type Rules
 
@@ -38,19 +47,21 @@ All nodes correctly use `metadataOutputTypes` for output type declarations. Dict
 ### Input: AssetRef -> API URL
 1. `assetToUrl()` - Converts AssetRef to Replicate-accessible URL
    - Passes through Replicate-hosted URLs and data URIs
-   - Fetches and uploads external URLs to Replicate files API
+   - Fetches external URLs and uploads them, and asset or local refs, to the
+     Replicate files API through `context.uploadProviderMedia`
+   - Without an upload context, a ref's `uri` passes through unchanged
 2. `isRefSet()` - Checks if an AssetRef has meaningful content
 
 ### Output: API Response -> AssetRef
 1. `outputToImageRef()` / `outputToVideoRef()` / `outputToAudioRef()` - Extracts URL from Replicate output, returns `{type, uri}`
-2. `extractUrl()` - Handles string, FileOutput, array, and object output formats
+2. `extractUrl()` - Handles string, `{url}` object, array, and object output formats
 
 ## Common Pitfalls
 
 - Never default asset inputs to `""` - always use proper AssetRef objects
 - `dict[...]` props default to `null`, **not** `""` (an empty string is an invalid empty default for a dict).
-- Replicate output can be string, array, FileOutput (with .url() method), or object (asset wrapped under a named key) - `extractUrl()` handles all cases. It recursively scans object/array shapes but only accepts a **nested** string when it matches `URL_LIKE = /^(https?:|data:)/` — a bare top-level string is still returned verbatim (model contract). Don't assume the URL sits under a fixed key.
+- The provider returns the prediction's JSON with file URLs as strings, never the SDK's `FileOutput` streams. Output can be a string, an array, a `{url}` object, or an object with the asset under a named key. `extractUrl()` handles all cases. It recursively scans object/array shapes but only accepts a **nested** string when it matches `URL_LIKE = /^(https?:|data:)/` — a bare top-level string is still returned verbatim (model contract). Don't assume the URL sits under a fixed key.
 - `assetToUrl()` returns `null` for an asset it can't turn into a publicly reachable URL or data URI (e.g. an upload failure leaving only a relative path). Returning the original relative `uri` hands Replicate a path it can't fetch; returning `null` lets `removeNulls()` drop the arg.
 - The `removeNulls()` function strips only **top-level** `null`/`undefined`/empty-string keys. It does NOT recurse (so pass-through `dict[...]` inputs keep their shape) and does NOT strip `0`/`false`.
-- An account under $5 of credit is throttled to 6 predictions/minute with a **burst of 1**, so the second node of a chained run 429s. `replicateSubmit` waits it out via `withReplicateRetry` (`@nodetool-ai/runtime`) — do not let a 429 reach the actor, which fails the run and discards the upstream generations it already paid for. The SDK's own `withAutomaticRetries` does not help: its `Retry-After` branch is dead on this path and its delay computes to `NaN`.
+- An account under $5 of credit is throttled to 6 predictions/minute with a **burst of 1**, so the second node of a chained run 429s. `ReplicateProvider.callEndpoint` waits it out via `withReplicateRetry` — do not let a 429 reach the actor, which fails the run and discards the upstream generations it already paid for. The SDK's own `withAutomaticRetries` does not help: its `Retry-After` branch is dead on this path and its delay computes to `NaN`.
 - Numeric enums (e.g. SD `width`/`height`): the manifest stores enum values as strings, so the factory detects all-numeric enums and registers numeric `values`/`default` and coerces the API arg back to a number. A plain `String()` cast would send `"768"` and fail the model's integer schema.

@@ -46,6 +46,8 @@ import {
   denyUnauthorized,
   denyDraining
 } from "./lib/ws-upgrade.js";
+import { enforceAccountStatus } from "./lib/user-directory.js";
+import { installQuotaLedger } from "./quota-gate.js";
 import { getInstanceId } from "./lib/instance-id.js";
 import {
   resourceChangeBus,
@@ -140,6 +142,10 @@ import {
   isDelegatedToken,
   AppSessionTokenProvider,
   isAppSessionToken,
+  OidcSessionTokenProvider,
+  OidcClient,
+  isOidcSessionToken,
+  readOidcConfig,
   FileUserManager
 } from "@nodetool-ai/auth";
 import {
@@ -164,6 +170,7 @@ import {
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
 import configRoute, { describeMissingAnonKey } from "./routes/config.js";
+import oidcAuthRoutes from "./routes/oidc-auth.js";
 import { createAnalyticsRoute } from "./routes/analytics.js";
 import assetsRoutes from "./routes/assets.js";
 import timelineFontRoutes from "./routes/timeline-fonts.js";
@@ -911,7 +918,43 @@ const supabaseProvider = supabaseMode
       supabaseKey: supabaseKey!
     })
   : null;
-const localProvider = supabaseProvider ? null : new LocalAuthProvider();
+
+// OpenID Connect single sign-on: the self-hosted alternative to Supabase.
+// readOidcConfig throws on a partial or invalid configuration, so a server
+// meant to enforce SSO never comes up open.
+const oidcConfig = readOidcConfig(process.env);
+if (oidcConfig && supabaseMode) {
+  throw new Error(
+    "Both Supabase auth (SUPABASE_URL + SUPABASE_KEY) and SSO (OIDC_ISSUER + " +
+      "OIDC_CLIENT_ID) are configured. Configure one identity provider."
+  );
+}
+const oidcMode = oidcConfig !== null;
+const oidcClient = oidcConfig ? new OidcClient(oidcConfig) : null;
+
+// SSO session tokens are signed with a key derived from the master key, so
+// rotating the master key signs everyone out.
+let cachedOidcSessionKey: Buffer | null = null;
+const oidcSessionSigningKey = (): Buffer =>
+  (cachedOidcSessionKey ??= deriveKey(getMasterKey(), "nodetool-oidc-session"));
+let cachedOidcLoginStateKey: Buffer | null = null;
+const oidcLoginStateKey = (): Buffer =>
+  (cachedOidcLoginStateKey ??= deriveKey(
+    getMasterKey(),
+    "nodetool-oidc-login-state"
+  ));
+const oidcSessionProvider = oidcMode
+  ? new OidcSessionTokenProvider(oidcSessionSigningKey)
+  : null;
+if (oidcConfig) {
+  log.info("SSO enabled", {
+    issuer: oidcConfig.issuer,
+    redirectUri: oidcConfig.redirectUri
+  });
+}
+
+const localProvider =
+  supabaseProvider || oidcSessionProvider ? null : new LocalAuthProvider();
 
 // A server that enforces auth but never got an anon key serves a healthy
 // /health and a well-formed /api/config while no user can log in. Say so at
@@ -922,7 +965,7 @@ if (missingAnonKey) {
 }
 
 // Auth is enforced whenever a remote identity provider is configured.
-const enforceAuth = supabaseMode;
+const enforceAuth = supabaseMode || oidcMode;
 
 // Whether loopback connections may bypass auth as user "1". Explicit
 // NODETOOL_TRUST_LOCALHOST wins; otherwise this defaults off when auth is
@@ -962,7 +1005,7 @@ const localClientToken = resolveServerAuthToken(
 let warnedForeignOrigin = false;
 
 // The bearer token `nodetool deploy` starts a container with. Local mode only,
-// like the trusted networks above: Supabase mode needs a real login.
+// like the trusted networks above: Supabase and SSO modes need a real login.
 const serverAuthToken = enforceAuth
   ? null
   : resolveServerAuthToken(process.env["SERVER_AUTH_TOKEN"]);
@@ -973,7 +1016,7 @@ const apiUsers = enforceAuth ? null : new FileUserManager();
 
 if (enforceAuth && process.env["SERVER_AUTH_TOKEN"]) {
   log.warn(
-    "SERVER_AUTH_TOKEN is set while auth is enforced (Supabase mode); it is " +
+    "SERVER_AUTH_TOKEN is set while auth is enforced (Supabase or SSO mode); it is " +
       "ignored. Clients must sign in."
   );
 }
@@ -981,7 +1024,7 @@ if (enforceAuth && process.env["SERVER_AUTH_TOKEN"]) {
 if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
   log.warn(
     "NODETOOL_TRUST_LOCAL_NETWORKS is set while auth is enforced (Supabase " +
-      "mode); it is ignored so every request must present a valid token."
+      "or SSO mode); it is ignored so every request must present a valid token."
   );
 } else if (trustLocalNetworks.length > 0) {
   log.warn(
@@ -1121,7 +1164,7 @@ app.addHook("onRequest", async (req, reply) => {
   // Extract token from the appropriate source
   const isWs = isWebSocketUpgrade(req);
   const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
-  const provider = supabaseProvider ?? localProvider!;
+  const provider = supabaseProvider ?? oidcSessionProvider ?? localProvider!;
   const token = isWs
     ? provider.extractTokenFromWs(
         req.headers as Record<string, string>,
@@ -1251,6 +1294,26 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
 
+  if (oidcMode) {
+    if (!token || !isOidcSessionToken(token)) {
+      denyUnauthorized(req, reply, { error: "Unauthorized" }, challenge);
+      return;
+    }
+    const result = await oidcSessionProvider!.verifyToken(token);
+    if (!result.ok) {
+      denyUnauthorized(
+        req,
+        reply,
+        { error: result.error ?? "Unauthorized" },
+        challenge
+      );
+      return;
+    }
+    req.userId = result.userId ?? null;
+    req.authToken = token;
+    return;
+  }
+
   if (matchesServerAuthToken(token, serverAuthToken)) {
     req.userId = "1";
     req.authToken = token;
@@ -1272,6 +1335,15 @@ app.addHook("onRequest", async (req, reply) => {
     challenge
   );
 });
+
+// An admin can disable an account in the user directory. Sessions are signed
+// tokens that outlive that change, so every request the auth hook above
+// resolved to a user is checked here.
+app.addHook("onRequest", enforceAccountStatus);
+
+// Every prediction row records whose provider key paid, so a user's quota
+// leaves out spend on keys they saved themselves.
+installQuotaLedger();
 
 registerHttpTracing(app, {
   async authorizeTraceParent(request, parent) {
@@ -1694,6 +1766,13 @@ app.get("/api/server/features", {
 
 await app.register(healthRoute);
 await app.register(configRoute);
+if (oidcClient) {
+  await app.register(oidcAuthRoutes, {
+    client: oidcClient,
+    loginStateKey: oidcLoginStateKey,
+    sessionKey: oidcSessionSigningKey
+  });
+}
 // Anonymous product analytics: validate, then relay or ingest. Auth-exempt.
 await app.register(createAnalyticsRoute());
 

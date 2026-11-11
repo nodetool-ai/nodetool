@@ -1107,30 +1107,29 @@ samples one clip's source media in a browser, and neither shows the composited
 picture — the title over the shot, an animation mid-flight, a transition part
 way through, the track order deciding what covers what.
 
-It resolves the scene through `@nodetool-ai/timeline/scene`
-(`computeActiveLayers` → `resolveAnimatedLayerProps`), rasterizes the
-text/shape/caption layers with the shared `draw.ts` rules, decodes media with
-Mediabunny, and composites with the shared `drawTimelineFrame` — so a previewed
-frame follows the same rules the editor's preview and the video export do.
-`rasterize.ts` is `NodeRasterizer`'s twin, differing only in returning the
-`@napi-rs/canvas` surface instead of an RGBA buffer, because Canvas 2D draws it
-rather than uploading it.
+It resolves the scene through `@nodetool-ai/timeline/scene`, rasterizes
+text, shapes and captions with the shared drawing rules, and decodes media
+with Mediabunny. A lazy child uses the headless compositor and shared shaders
+with 8-bit targets. FP16 stays off. The CPU route remains for A92 comparisons.
 
-Three properties worth keeping:
-
-- **No GPU, no ffmpeg, no browser.** It imports `@nodetool-ai/timeline/scene`,
-  not `/render`, so TypeGPU never enters this package's graph. That is what
-  lets the capability run wherever the agent runs — the headless kernel, the
-  CLI, a sandboxed CI box with no Vulkan ICD.
+- **One renderer child per parent.** Concurrent requests wait for the preceding
+  child to exit. Layout checks reuse that child across their same-size frames
+  and release it at the end of the diagnostic batch. Cancelling a waiter rejects without stopping the current pass.
+  A crash rejects the active request and releases ownership for the next pass.
+- **Dawn and an adapter are required only for rendering.** Install the addon
+  with `nodetool packs add webgpu --yes`. A host without hardware can use
+  Mesa lavapipe (`mesa-vulkan-drivers`). For software qualification, unset
+  `DISPLAY` and set both `VK_ICD_FILENAMES` and `VK_DRIVER_FILES` to the
+  lavapipe ICD. Missing runtimes and adapters return actionable errors without
+  CPU fallback. Ordinary tool registration does not initialize Dawn.
 - **Frames are handles, not pixels.** `view_image` is the one mechanism that
   pulls pixels into context, so each frame is persisted with `persistOutput`
   and returned as an `asset_id`. Three inline base64 frames would sit in every
   later turn of the conversation whether or not the model looked at them.
-- **What it cannot draw, it names.** Color and blur adjustments map onto the
-  canvas filter; chroma key, vignette and sharpen have no Canvas 2D form and
-  come back in `effects_not_applied`. A layer that drew nothing carries a
-  `skipped` reason — an unrendered `draft` clip, an unreadable asset, no
-  decodable frame at that source time — rather than vanishing from the report.
+- **What it cannot draw, it names.** Unknown enabled effects appear in
+  `effects_not_applied`. Missing sources and mattes produce skipped-layer
+  diagnostics. Shader-supported treatments do not inherit CPU approximation
+  warnings. Invalid mask uploads and missing precompose groups fail explicitly.
 
 Tests: `tests/capabilities-timeline-preview.test.ts`, which reads pixels off
 the rendered PNGs (layer order, a fade's mid-ramp opacity, text actually drawn)
@@ -1516,9 +1515,11 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   workspace-scoped `read_file` beside the client's own would put two tools of
   one name and two different roots in front of one model. What survives has no
   host equivalent — discovery, the server-side reach that runs behind
-  NodeTool's SSRF guard and secrets (`browser`, `http_request`,
-  `download_file`, `list_directory`), and `run_subtask`, whose child gets the
-  NodeTool belt rather than the client's. It is a `belt.filter`, so a session
+  NodeTool's SSRF guard and secrets (`download_file`, `list_directory`), and
+  `run_subtask`, whose child gets the NodeTool belt rather than the client's.
+  `browser`, `http_request` and `todo_write` are also left off the mount
+  (`MCP_SANDBOX_ONLY_TOOL_NAMES`) and stay reachable inside an action. It is a
+  `belt.filter`, so a session
   missing an injected dependency (no node registry, say) advertises no node
   tools instead of a tool that cannot run. Before this the mount registered
   only `execute_code` and `view_image`: everything was still reachable as

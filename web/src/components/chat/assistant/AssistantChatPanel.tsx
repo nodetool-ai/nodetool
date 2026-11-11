@@ -201,7 +201,6 @@ const AssistantChatPanel = ({
           onStop={stopGeneration}
           onNewChat={handleNewChat}
           requireToolSupport={requireToolSupport}
-          hideModePicker
           noMessagesPlaceholder={
             isLoadingThread ? (
               <LoadingSpinner size="medium" text="Loading chat" />

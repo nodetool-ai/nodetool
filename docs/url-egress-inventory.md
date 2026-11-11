@@ -111,7 +111,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | FAL media upload | `packages/fal-nodes/src/fal-base.ts` | workflow |
 | Replicate files upload | `packages/replicate-nodes/src/replicate-base.ts` | workflow |
 | OpenAI media input | `packages/llm-nodes/src/nodes/openai.ts` | workflow |
-| Together image result downloads | `packages/runtime/src/providers/together-provider.ts` | provider response |
+| Together image and endpoint result downloads | `packages/runtime/src/providers/together-provider.ts` | provider response |
 | Together asset resolution | `packages/together-nodes/src/together-base.ts` | workflow |
 | AtlasCloud media pass-through | `packages/atlascloud-nodes/src/atlascloud-factory.ts` | workflow |
 | AtlasCloud prediction downloads | `packages/runtime/src/providers/atlascloud-transport.ts` | provider response |
@@ -119,11 +119,10 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | useapi.net Google Flow and Dreamina result downloads | `packages/runtime/src/providers/useapi-provider.ts` | provider response |
 | vgenv MiniMax H3 result downloads | `packages/runtime/src/providers/vgenv-provider.ts` | provider response |
 | ToAPIs GPT Image and Seedance 2 result downloads | `packages/runtime/src/providers/toapis-provider.ts` | provider response |
-| KIE result downloads | `packages/kie-nodes/src/kie-base.ts` | provider response |
-| Topaz result downloads | `packages/topaz-nodes/src/topaz-base.ts` | provider response |
-| MiniMax audio / file downloads | `packages/minimax-nodes/src/minimax-base.ts` | provider response |
-| MiniMax image download | `packages/minimax-nodes/src/nodes/text-to-image.ts` | provider response |
+| KIE endpoint result downloads (`downloadMedia`) | `packages/runtime/src/providers/kie-endpoint.ts` | provider response |
+| Topaz result downloads and video part uploads | `packages/runtime/src/providers/topaz-provider.ts` | provider response |
 | Gemini node video download | `packages/llm-nodes/src/nodes/gemini.ts` | provider response |
+| default provider `downloadMedia` for endpoint results | `packages/runtime/src/providers/base-provider.ts` | provider response |
 | provider result downloads | `packages/runtime/src/providers/{fal,replicate,kie,topaz,meshy,rodin,minimax,evolink,gemini,anthropic}-provider.ts` | provider response |
 | durable FAL output recovery | `packages/websocket/src/generation-recovery.ts` | provider response |
 | MCP OAuth Client ID Metadata Document fetch | `packages/websocket/src/oauth/cimd.ts` | model/client (an MCP client's self-hosted `client_id` URL) |
@@ -208,6 +207,12 @@ FAL webhook verification fetches only
 after five seconds, coalesces concurrent refreshes, and caps key-cache freshness
 at 24 hours.
 
+Package media (`packages/config/src/package-media.ts`) downloads example media
+listed in a shipped manifest. It accepts only a manifest base on
+`https://media.nodetool.ai`, names each object by its SHA-256, rejects
+redirects, sends no credentials and checks the bytes against the manifest's
+hash and size.
+
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
 - `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
@@ -235,20 +240,24 @@ at 24 hours.
   server it started on `127.0.0.1`, at a port it picked, until that server
   answers. The cloud profile excludes the `wangp` provider and the
   `lib.wan2gp` nodes that start it.
-- `packages/runtime/src/providers/comfy-gpu-models.ts` and
-  `packages/runtime/src/providers/comfy-template-models.ts` inject retry-aware
-  fetch into the Comfy SDK. The SDK selects request URLs, including output
+- `packages/runtime/src/providers/comfy-gpu-models.ts`,
+  `packages/runtime/src/providers/comfy-template-models.ts` and
+  `packages/runtime/src/providers/comfy-fetch.ts` inject retry-aware fetch
+  into the Comfy SDK. The SDK selects request URLs, including output
   downloads, using its default cloud endpoint or operator configuration. These
-  transports do not screen URLs. Deployment egress controls govern redirects
-  and resolved addresses.
+  transports do not screen URLs. `comfy-fetch.ts` upgrades
+  `http://cloud.comfy.org` job links to https and sends the API key only to
+  `https://cloud.comfy.org`. Deployment egress controls govern redirects and
+  resolved addresses.
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks
   it, and `lib.comfy.RunWorkflow` / `lib.comfy.RunWorkflowOnWorker` are
   allowlisted on the cloud profile.
 - `packages/integration-nodes/src/nodes/comfy-graph-cloud.ts`,
-  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`, and
-  `GET /api/comfy/nodes` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
+  `packages/integration-nodes/src/nodes/comfy-server-transport.ts`,
+  `packages/integration-nodes/src/nodes/comfy-server-status.ts`,
+  `GET /api/comfy/nodes`, and `GET /api/comfy/server-status` — a self-hosted ComfyUI named by the `COMFY_SERVER_URL`
   setting. It is normally localhost or the LAN, the same case as
   `comfy-executor.ts`, and the setting holder picks the address.
 - `packages/integration-nodes/src/nodes/comfy-worker-transport.ts` — a NodeTool

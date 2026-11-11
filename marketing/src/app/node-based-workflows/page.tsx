@@ -7,7 +7,6 @@ import ReadMoreLinks from "@/components/ReadMoreLinks";
 import FaqSection from "../../components/FaqSection";
 import HeroDemoPlayer from "../../components/HeroDemoPlayer";
 import SearchStarter from "../../components/SearchStarter";
-import SubscriptionSection from "../../components/SubscriptionSection";
 import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { competitors } from "../../data/competitorEntries";
@@ -176,21 +175,13 @@ const faq = [
     answer:
       "No. You add nodes from the menu and drag wires between them, or ask the built-in agent to build the graph for you. When you want code, the Code node runs sandboxed JavaScript, and workflows can also be written as TypeScript files.",
   },
-  {
-    question: "Can I run a node-based workflow without opening the app?",
-    answer:
-      "Yes. The same workflow runs from the command line with nodetool run, from an HTTP POST to its run endpoint, and from an MCP client such as Cursor or Claude Code.",
-  },
+
   {
     question: "Which AI models can the nodes use?",
     answer:
       "Hosted models from providers such as fal, Replicate, Kie.ai, Together AI, OpenAI, Google, and ElevenLabs on your own keys at their list price, and local models through Ollama, MLX, or llama.cpp with no key.",
   },
-  {
-    question: "Is NodeTool free?",
-    answer:
-      "NodeTool is open source under AGPL-3.0, and NodeTool Studio is free to run on macOS, Windows, and Linux. You pay hosted providers directly for the generations you run, and local models cost nothing per run.",
-  },
+
 ];
 
 const READ_MORE = [
@@ -243,8 +234,7 @@ export default function NodeBasedWorkflowsPage() {
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300">
             NodeTool is an open-source canvas for node-based AI workflows. Wire
             image, video, audio, and text models into one graph, watch each
-            step run, and run the same graph again on new inputs. It works with
-            the models you choose, on your own keys or on your own machine.
+            step run, and run the same graph again on new inputs.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <SmartDownloadButton
@@ -285,8 +275,6 @@ export default function NodeBasedWorkflowsPage() {
             example that ships with NodeTool.
           </p>
         </div>
-
-        <SubscriptionSection className="mt-24" />
 
         <section
           aria-labelledby="nbw-qualities-title"

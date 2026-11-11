@@ -36,6 +36,10 @@ export function trackEffectsAsClipEffects(
   if (hit) return hit;
   const converted: ClipEffect[] = [];
   for (const effect of effects) {
+    if (effect.type === "colorCorrection" && (effect.exposure || effect.rolloff || effect.whites)) {
+      converted.push({id: effect.id, type: "exposure", enabled: effect.enabled,
+        exposure: effect.exposure ?? 0, rolloff: effect.rolloff ?? 0, whites: effect.whites ?? 0});
+    }
     const clip = asClipEffect(effect);
     if (clip) converted.push(clip);
   }
@@ -85,7 +89,10 @@ function asClipEffect(effect: TrackEffect): ClipEffect | null {
         enabled: effect.enabled,
         amount: effect.intensity,
         radius: effect.radius,
-        softness: effect.softness
+        softness: effect.softness,
+        centerX: effect.centerX,
+        centerY: effect.centerY,
+        roundness: effect.roundness
       } satisfies ClipVignetteEffect;
     case "chromaKey":
       return {

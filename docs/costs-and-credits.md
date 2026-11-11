@@ -4,7 +4,7 @@ title: "Costs and credits"
 description: "How NodeTool estimates what a run will cost, tracks what it did cost, and limits spend, with your own provider keys or on hosted credits."
 ---
 
-NodeTool prices a run before you start it, records what each provider call cost afterward, and lets you cap spend in the places where a run can get expensive. This page covers all three, and the one case where NodeTool itself meters usage: hosted credits.
+NodeTool estimates a run's cost before it starts, records each provider call's cost afterward, and caps spend in agent runs, mini apps, workflow runs, and storyboards. Hosted credits are the one case where NodeTool itself meters usage.
 
 ---
 
@@ -70,7 +70,7 @@ The same price lookup feeds several other surfaces, so a figure shown in one pla
 
 - **Template cards** in the [Templates gallery](templates-gallery.md) show an estimated cost computed from published node prices. A graph with unpriced nodes shows "at least" or "unknown" with the count of unpriced nodes.
 - **New project** in the [user interface](user-interface.md) shows an estimate read from what your own past projects of the same kind cost. It appears once you have two finished projects with fully priced spend.
-- The chat composer's media mode, and the clip inspectors and prompt bar in the timeline, show a single `≈` or `≥` figure for the generation about to run. Hover it for the breakdown. The tooltip notes that the provider bills at its own rates.
+- The Create tab's prompt bar, and the clip inspectors and prompt bar in the timeline, show a single `≈` or `≥` figure for the generation about to run. Hover it for the breakdown. The tooltip notes that the provider bills at its own rates.
 - The server runs the same lookup before a run starts, to apply the limits described below.
 
 ---

@@ -1,5 +1,10 @@
 import { safeFetch } from "./safe-url.js";
-import { togetherImage, togetherSpeech } from "./together-operations.js";
+import {
+  postTogetherJson,
+  togetherImage,
+  togetherSpeech
+} from "./together-operations.js";
+import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
@@ -20,7 +25,44 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
-import type { ProviderCapability } from "./base-provider.js";
+import type {
+  EndpointCallRequest,
+  EndpointCallResult,
+  EndpointProgress,
+  ProviderCapability
+} from "./base-provider.js";
+
+/**
+ * The endpoint families `callEndpoint` accepts as `route`:
+ *
+ *   - `images`               → POST /v1/images/generations (JSON)
+ *   - `audio/speech`         → POST /v1/audio/speech (JSON in, audio bytes out)
+ *   - `audio/transcriptions` → POST /v1/audio/transcriptions (multipart)
+ *   - `videos`               → POST /v2/videos, then poll GET /v2/videos/{id}
+ */
+const TOGETHER_ENDPOINT_ROUTES = [
+  "images",
+  "audio/speech",
+  "audio/transcriptions",
+  "videos"
+] as const;
+
+type TogetherEndpointRoute = (typeof TOGETHER_ENDPOINT_ROUTES)[number];
+
+function isEndpointRoute(route: string): route is TogetherEndpointRoute {
+  return (TOGETHER_ENDPOINT_ROUTES as readonly string[]).includes(route);
+}
+
+/** The `id` of a Together reply, when it carries one. */
+function replyId(payload: unknown): string | null {
+  return typeof payload === "object" &&
+    payload !== null &&
+    "id" in payload &&
+    typeof payload.id === "string" &&
+    payload.id
+    ? payload.id
+    : null;
+}
 
 // ─── Model catalogs ───────────────────────────────────────────────────────────
 
@@ -246,6 +288,168 @@ export class TogetherProvider extends OpenAICompatProvider {
 
   override async hasToolSupport(_model: string): Promise<boolean> {
     return true;
+  }
+
+  // ─── Endpoint calls ─────────────────────────────────────────────────────────
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Call one Together endpoint family with a vendor-shaped body. `route`
+   * selects it (see TOGETHER_ENDPOINT_ROUTES) and other values are rejected.
+   * `model` is sent as the body's `model`.
+   *
+   * For `audio/transcriptions`, `input.file` is the audio as bytes and the
+   * other input fields become form fields after `file` and `model`. The
+   * output is Together's JSON reply, except for `audio/speech`, whose output
+   * is the encoded audio bytes. For `videos` it is the final job status, with
+   * the result URL in `outputs.video_url`. A video job that ends in any
+   * status but `completed` throws.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const route = req.route;
+    if (route === undefined || !isEndpointRoute(route)) {
+      const routes = TOGETHER_ENDPOINT_ROUTES.join(", ");
+      const got = route === undefined ? "none" : `"${route}"`;
+      throw new Error(
+        `together endpoint route must be one of ${routes}, got ${got}`
+      );
+    }
+    const transport = { fetchFn: this._togetherFetch, signal: req.signal };
+    const body = { ...req.input, model: req.model };
+    switch (route) {
+      case "images": {
+        const response = await postTogetherJson(
+          this.apiKey,
+          "/v1/images/generations",
+          body,
+          transport
+        );
+        if (!response.ok) {
+          throw new Error(
+            `Together image generation failed: ${await response.text()}`
+          );
+        }
+        const payload: unknown = await response.json();
+        const requestId = replyId(payload);
+        if (requestId) {
+          await recordGenerationReceiptAsync({
+            provider_request_id: requestId
+          });
+        }
+        return { output: payload, requestId };
+      }
+      case "audio/speech": {
+        const response = await postTogetherJson(
+          this.apiKey,
+          "/v1/audio/speech",
+          body,
+          transport
+        );
+        if (!response.ok) {
+          throw new Error(`Together TTS failed: ${await response.text()}`);
+        }
+        return {
+          output: new Uint8Array(await response.arrayBuffer()),
+          requestId: null
+        };
+      }
+      case "audio/transcriptions":
+        return this.transcribeEndpoint(req);
+      case "videos":
+        return this.videoEndpoint(body, req.signal, req.onProgress);
+    }
+  }
+
+  private async transcribeEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const { file, model: _model, ...fields } = req.input;
+    if (!(file instanceof Uint8Array) || file.byteLength === 0) {
+      throw new Error(
+        "together audio/transcriptions needs input.file as audio bytes"
+      );
+    }
+    const form = new FormData();
+    // SAFETY: a Uint8Array is a BlobPart at runtime; the lib types disagree
+    // only over whether its buffer could be a SharedArrayBuffer.
+    const blob = new Blob([file as BlobPart], {
+      type: "application/octet-stream"
+    });
+    form.append("file", blob, "audio.wav");
+    form.append("model", req.model);
+    for (const [name, value] of Object.entries(fields)) {
+      if (value !== null && value !== undefined) {
+        form.append(name, String(value));
+      }
+    }
+    const response = await this._togetherFetch(
+      "https://api.together.xyz/v1/audio/transcriptions",
+      {
+        method: "POST",
+        // fetch sets the multipart boundary.
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+        body: form,
+        signal: req.signal
+      }
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Together transcription failed: ${await response.text()}`
+      );
+    }
+    const payload: unknown = await response.json();
+    return { output: payload, requestId: replyId(payload) };
+  }
+
+  private async videoEndpoint(
+    body: Record<string, unknown>,
+    signal: AbortSignal | undefined,
+    onProgress: ((event: EndpointProgress) => void) | undefined
+  ): Promise<EndpointCallResult> {
+    const response = await postTogetherJson(this.apiKey, "/v2/videos", body, {
+      fetchFn: this._togetherFetch,
+      signal
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Together video creation failed: ${await response.text()}`
+      );
+    }
+    const jobId = replyId(await response.json());
+    if (!jobId) {
+      throw new Error("Together video creation returned no job id.");
+    }
+    await recordGenerationReceiptAsync({ provider_request_id: jobId });
+    const status = await this.pollVideoJob(jobId, signal, onProgress);
+    if (status.status !== "completed") {
+      const reason =
+        status.error?.message ?? `job ended with status '${status.status}'`;
+      throw new Error(`Together video generation failed: ${reason}`);
+    }
+    return { output: status, requestId: jobId };
+  }
+
+  /**
+   * Download a result URL Together returned: a generated image or video. It
+   * comes from a response body, so it goes through safeFetch over the
+   * provider's fetch.
+   */
+  override async downloadMedia(
+    url: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const response = await safeFetch(url, { signal }, 5, this._togetherFetch);
+    if (!response.ok) {
+      throw new Error(
+        `Together asset fetch failed: HTTP ${response.status} for ${url}`
+      );
+    }
+    return new Uint8Array(await response.arrayBuffer());
   }
 
   // ─── Language models ────────────────────────────────────────────────────────
@@ -541,7 +745,8 @@ export class TogetherProvider extends OpenAICompatProvider {
 
   private async pollVideoJob(
     jobId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onProgress?: (event: EndpointProgress) => void
   ): Promise<{
     status: string;
     outputs?: { video_url?: string };
@@ -575,6 +780,9 @@ export class TogetherProvider extends OpenAICompatProvider {
         outputs?: { video_url?: string };
         error?: { message?: string };
       };
+      if (onProgress && typeof status.status === "string") {
+        onProgress({ message: status.status });
+      }
 
       if (
         status.status === "completed" ||

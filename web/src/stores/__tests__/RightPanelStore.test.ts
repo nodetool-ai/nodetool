@@ -148,6 +148,24 @@ describe("RightPanelStore", () => {
   });
 
   describe("inspector visibility", () => {
+    it("opens after the user hid the inspector and restores auto-reveal", () => {
+      const { toggleInspector, openInspector } = useRightPanelStore.getState();
+
+      act(() => {
+        toggleInspector();
+        toggleInspector();
+      });
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
+      expect(useRightPanelStore.getState().panel.autoReveal).toBe(false);
+
+      act(() => {
+        openInspector();
+      });
+
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
+      expect(useRightPanelStore.getState().panel.autoReveal).toBe(true);
+    });
+
     it("reopens on the next selection after a close", () => {
       const { closeInspector, revealForSelection } =
         useRightPanelStore.getState();

@@ -1,6 +1,6 @@
 import { resliceSourceAnimations } from "./animation/sourceCurves.js";
 import { sourceRate } from "./sourceRate.js";
-import { assertNotTimeRemapped } from "./timeRemap.js";
+import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
 import type { TimelineClip } from "./types.js";
 
 const SOURCE_BOUND_TOLERANCE_MS = 0.000001;
@@ -51,7 +51,7 @@ export function trimClip(
   deltaMs: number,
   maxDurationMs?: number
 ): TimelineClip {
-  // A remap is a curve over this clip's window; moving an edge renormalizes it
+  // A nonconstant remap is a curve over this window; moving an edge renormalizes it
   // and retimes every frame, including the ones the trim did not touch (D13).
   assertNotTimeRemapped(clip, "trimClip");
 
@@ -61,7 +61,9 @@ export function trimClip(
 
   // `deltaMs` is a timeline delta; the source in/out points it reveals or hides
   // move by `deltaMs * rate` source-ms.
-  const sourceDeltaMs = deltaMs * rate;
+  const hold = isHoldRemap(clip);
+  const sourceDeltaMs = hold ? 0 : deltaMs * rate;
+  if (hold) maxDurationMs = undefined;
   const nextStartMs = edge === "start" ? clip.startMs - deltaMs : clip.startMs;
   const nextDurationMs = clip.durationMs + deltaMs;
   const rawInPointMs =
@@ -85,7 +87,7 @@ export function trimClip(
     throw new Error("trimClip would result in a non-positive duration");
   }
 
-  if (nextInPointMs < 0) {
+  if (!hold && nextInPointMs < 0) {
     throw new Error("trimClip cannot extend before source start");
   }
 
@@ -104,10 +106,12 @@ export function trimClip(
   const next: TimelineClip = {
     ...clip,
     startMs: nextStartMs,
-    durationMs: nextDurationMs,
-    inPointMs: nextInPointMs,
-    outPointMs: nextOutPointMs
+    durationMs: nextDurationMs
   };
+  if (!hold) {
+    next.inPointMs = nextInPointMs;
+    next.outPointMs = nextOutPointMs;
+  }
   // A head trim moves the clip's start over still media, so each word keeps
   // its timeline instant: its clip-local time grows by what the head gained.
   // Words that fall outside the window stay stored and are not shown.

@@ -31,6 +31,17 @@ export function plainText(md: string): string {
     .trim();
 }
 
+/**
+ * A `YYYY-MM-DD` day as a full ISO 8601 datetime at midnight UTC.
+ *
+ * Google's video report flags a bare day in `uploadDate` as "missing a
+ * timezone" and "invalid datetime value", so every `VideoObject` goes through
+ * this. A value that already carries a time passes through unchanged.
+ */
+export function videoUploadDate(day: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? `${day}T00:00:00+00:00` : day;
+}
+
 // --- FAQPage -------------------------------------------------------------
 
 /** One visible question and its visible answer. */

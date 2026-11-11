@@ -1,10 +1,11 @@
 /**
- * Journey: generate in the Create view and find the results after a reload.
+ * Journey: generate in a Create tab and find the results after a reload.
  *
- * The view submits through `generate_media`, so no chat thread is made. The
- * hermetic provider answers every image request with the same picture, which
- * is enough: the grid lists a take per request, newest first, and keeps them
- * across a reload because GenerationActivityStore persists them.
+ * New → Image opens a Create tab, a thread of kind "create". Each take goes
+ * through `generate_media` tagged with that thread, so no chat turn is made.
+ * The hermetic provider answers every image request with the same picture,
+ * which is enough: the grid lists a take per request, newest first, and keeps
+ * them across a reload.
  */
 
 import { test, expect } from "./fixtures";
@@ -18,7 +19,7 @@ test("generates twice and finds both takes in the grid after a reload", async ({
   await create.open();
 
   await expect(
-    page.getByText("Nothing created yet")
+    page.getByText("Nothing in this tab yet")
   ).toBeVisible();
 
   await create.generate("a lighthouse at dusk");

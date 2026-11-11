@@ -8,7 +8,7 @@ import {
   parseInputSchema
 } from "../../src/providers/comfy-router.js";
 import { COMFY_ROUTER_CATALOG } from "../../src/providers/comfy-router-catalog.js";
-import { listedComfyGpuTemplates } from "../../src/providers/comfy-gpu-models.js";
+import { comfyGpuTemplateFits, listedComfyGpuTemplates } from "../../src/providers/comfy-gpu-models.js";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 
 const BASE = "https://router.test";
@@ -168,7 +168,18 @@ describe("ComfyCloudProvider — catalog", () => {
     const p = new TestProvider(failing);
     const ids = (await p.getAvailableVideoModels()).map((m) => m.id);
     expect(ids).toContain("veo/veo-3.1-generate-001");
-    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length + 5 + listedComfyGpuTemplates().filter((template) => template.kind === "video").length);
+    expect(ids.length).toBe(COMFY_ROUTER_CATALOG.filter((e) => e.kind === "video").length + 5 + listedComfyGpuTemplates().filter((template) => template.kind === "video" && comfyGpuTemplateFits(template)).length);
+  });
+
+  it("offers GPU video templates only where callers can supply their media", () => {
+    const fits = (task: string, inputs: { image: number; video: number; audio: number }) =>
+      comfyGpuTemplateFits({ task, inputs } as Parameters<typeof comfyGpuTemplateFits>[0]);
+    expect(fits("image_to_video", { image: 1, video: 0, audio: 0 })).toBe(true);
+    expect(fits("image_to_video", { image: 2, video: 0, audio: 0 })).toBe(false);
+    expect(fits("reference_to_video", { image: 3, video: 0, audio: 0 })).toBe(true);
+    expect(fits("reference_to_video", { image: 1, video: 0, audio: 1 })).toBe(false);
+    expect(fits("reference_to_video", { image: 0, video: 0, audio: 0 })).toBe(false);
+    expect(fits("text_to_video", { image: 0, video: 0, audio: 0 })).toBe(true);
   });
 
   it("takes each model's tasks from its schema modalities", () => {
@@ -375,6 +386,31 @@ describe("ComfyCloudProvider — real Router schemas", () => {
       p.textToImage({ model, prompt: "a leaf", aspectRatio: "16:9" })
     );
     expect(fromAspect.parameters).toMatchObject({ size: "1536*864" });
+  });
+
+  it("Qwen image: fits a size into the pixel area the schema documents", async () => {
+    const tooLarge = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", width: 3641, height: 2048 })
+    );
+    expect(tooLarge.parameters).toMatchObject({ size: "3413*1919" });
+    const tooSmall = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", width: 256, height: 256 })
+    );
+    expect(tooSmall.parameters).toMatchObject({ size: "512*512" });
+  });
+
+  it("FLUX 3 image: sends the resolution spelling the schema documents", async () => {
+    const body = await submittedBody("bfl/flux-3-image", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", resolution: "2K", aspectRatio: "16:9" })
+    );
+    expect(body).toMatchObject({ prompt: "a leaf", resolution: "2k", aspect_ratio: "16:9" });
+  });
+
+  it("drops a resolution the model does not accept instead of failing the job", async () => {
+    const body = await submittedBody("bfl/flux-3-image", (p, model) =>
+      p.textToImage({ model, prompt: "a leaf", resolution: "8K" })
+    );
+    expect(body).not.toHaveProperty("resolution");
   });
 
   it("Wan 2.7: the start frame as a typed media item, with a billing resolution", async () => {

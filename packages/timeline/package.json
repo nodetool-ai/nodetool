@@ -42,6 +42,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./frame-compositor": {
+      "nodetool-dev": "./src/render/frameCompositor.ts",
+      "types": "./dist/render/frameCompositor.d.ts",
+      "import": "./dist/render/frameCompositor.js",
+      "default": "./dist/render/frameCompositor.js"
+    },
     "./render": {
       "nodetool-dev": "./src/render/index.ts",
       "types": "./dist/render/index.d.ts",

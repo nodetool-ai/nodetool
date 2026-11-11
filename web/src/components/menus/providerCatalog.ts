@@ -137,6 +137,17 @@ export const PROVIDER_META: ProviderMeta[] = [
     localOnly: true
   },
   {
+    key: "COPILOT_CLI",
+    providerId: PROVIDER_IDS.COPILOT,
+    name: "GitHub Copilot",
+    description: "Use your GitHub Copilot account for language models. No API key needed.",
+    section: "language",
+    docsUrl: "https://docs.github.com/copilot/concepts/agents/about-copilot-cli",
+    icon: githubIcon,
+    mono: true,
+    localOnly: true
+  },
+  {
     key: "OPENAI_API_KEY",
     providerId: PROVIDER_IDS.OPENAI,
     name: "OpenAI",
@@ -567,6 +578,22 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "Use hosted chat models through an OpenAI-compatible API.",
     section: "gateways",
     docsUrl: "https://www.api-route.com/docs/quickstart"
+  },
+  {
+    key: "RUNCRATE_API_KEY",
+    providerId: PROVIDER_IDS.RUNCRATE,
+    name: "Runcrate",
+    description: "Use open-weight chat models through an OpenAI-compatible API.",
+    section: "gateways",
+    docsUrl: "https://runcrate.ai/docs/models/overview"
+  },
+  {
+    key: "STANDARDCOMPUTE_API_KEY",
+    providerId: PROVIDER_IDS.STANDARD_COMPUTE,
+    name: "Standard Compute",
+    description: "Use open and frontier chat models through an OpenAI-compatible gateway.",
+    section: "gateways",
+    docsUrl: "https://docs.standardcompute.com"
   },
   {
     key: "SERPAPI_API_KEY",

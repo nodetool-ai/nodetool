@@ -1,9 +1,7 @@
-import { fetchAvailablePackages, installPackage, needsTorchPlatformDetection } from '../packageManager';
+import { fetchAvailablePackages, installPackage } from '../packageManager';
 import * as config from '../config';
 import * as events from '../events';
 import * as utils from '../utils';
-import * as torchPlatformCache from '../torchPlatformCache';
-import * as torchruntime from '../torchruntime';
 
 jest.mock('electron', () => ({
   app: {
@@ -13,7 +11,7 @@ jest.mock('electron', () => ({
 }));
 
 // Every collaborator below is the real module; only the methods that would
-// reach the filesystem, a Python install, or the GPU probe are stubbed on it.
+// reach the filesystem or a Python install are stubbed on it.
 jest.spyOn(config, 'getProcessEnv').mockReturnValue({});
 jest.spyOn(config, 'getPythonPath').mockReturnValue('/usr/bin/python');
 jest.spyOn(config, 'getCondaEnvPath').mockReturnValue('/test/conda');
@@ -22,15 +20,6 @@ jest.spyOn(events, 'emitServerLog').mockImplementation(() => {});
 jest.spyOn(events, 'emitBootMessage').mockImplementation(() => {});
 
 jest.spyOn(utils, 'fileExists').mockResolvedValue(true);
-
-jest.spyOn(torchPlatformCache, 'getSavedTorchPlatform').mockReturnValue(null);
-jest.spyOn(torchPlatformCache, 'saveTorchPlatform').mockImplementation(() => {});
-
-jest.spyOn(torchruntime, 'detectTorchPlatform').mockResolvedValue({
-  platform: 'cpu',
-  backend: 'cpu',
-  indexUrl: 'https://download.pytorch.org/whl/cpu',
-});
 
 // Electron adds process.getSystemVersion; plain Node in Jest lacks it.
 const proc = process as NodeJS.Process & { getSystemVersion: () => string };
@@ -125,11 +114,5 @@ describe('package catalog', () => {
     } finally {
       proc.getSystemVersion = () => '15.0';
     }
-  });
-
-  test('known torch-dependent packages require torch platform detection', () => {
-    expect(needsTorchPlatformDetection('nodetool-huggingface')).toBe(true);
-    expect(needsTorchPlatformDetection('NodeTool_HuggingFace')).toBe(true);
-    expect(needsTorchPlatformDetection('nodetool-core')).toBe(false);
   });
 });

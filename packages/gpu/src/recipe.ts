@@ -17,6 +17,8 @@
 
 import type { AnyVecInstance } from "typegpu/data";
 
+import { validateWorkingOutput, validatePrecisionSlots } from "./workingFormat.js";
+import type { WorkingFormat, PrecisionSlots } from "./workingFrame.js";
 import type { GPUContext, ScratchSpec } from "./context.js";
 import type { Executor, ExecutorDispatch } from "./executor.js";
 import { createExecutor } from "./executor.js";
@@ -47,6 +49,9 @@ export type RecipeParamValue = ParamRef | RecipeParamLiteral;
 
 /** Intermediate texture specification. Sizes default to the input source. */
 export interface IntermediateSpec {
+  precision?: "working" | "fixed";
+  /** Fixed Gaussian coverage passes must declare their mask role. */
+  role?: "mask";
   format: GPUTextureFormat;
   usage: GPUTextureUsageFlags;
   /** Defaults to the source dimensions if omitted. */
@@ -112,6 +117,7 @@ export interface RecipeModule<Params = RecipeParams> {
   readonly paramDefaults: Params;
   readonly paramUi?: Readonly<Record<string, UiHint>>;
 
+  readonly precision?: PrecisionSlots;
   readonly io: IOContract;
   readonly recipe: Recipe<Params>;
 }
@@ -124,6 +130,7 @@ export function defineRecipe<Params extends RecipeParams>(spec: {
   category: ShaderCategory;
   paramDefaults: Params;
   paramUi?: Record<string, UiHint>;
+  precision?: PrecisionSlots;
   io: IOContract;
   recipe: Recipe<Params>;
 }): RecipeModule<Params> {
@@ -146,6 +153,7 @@ export function defineRecipe<Params extends RecipeParams>(spec: {
     kind: "recipe" as const,
     paramDefaults: spec.paramDefaults,
     paramUi: spec.paramUi,
+    precision: spec.precision,
     io: spec.io,
     recipe: spec.recipe
   });
@@ -164,6 +172,7 @@ export interface RecipeRunner {
     registry?: ShaderRegistry;
     /** Optional executor; default `createExecutor()` is fine for most cases. */
     executor?: Executor;
+    workingFormat?: WorkingFormat;
   }): void;
 }
 
@@ -210,9 +219,35 @@ function resolveOp(
 /** Default {@link RecipeRunner}: scratch-pool intermediates, sequential passes. */
 export function createRecipeRunner(): RecipeRunner {
   return {
-    encode({ ctx, module, encoder, inputs, output, params, registry, executor }) {
-      const ex = executor ?? createExecutor();
+    encode({ ctx, module, encoder, inputs, output, params, registry, executor, workingFormat = "rgba8unorm" }) {
       const recipe = module.recipe;
+      const writers = new Map<string, RecipePass>();
+      for (const pass of recipe.passes) {
+        if (pass.out !== "output" && !writers.has(pass.out.name)) {
+          writers.set(pass.out.name, pass);
+        }
+      }
+      validateWorkingOutput(module, workingFormat, output.format);
+      if (workingFormat === "rgba16float") {
+        // Preflight all passes before allocation or dispatch.
+        for (const pass of module.recipe.passes) {
+          validatePrecisionSlots(resolveOp(pass, module.recipe, registry, module.id));
+        }
+        for (const [name, spec] of Object.entries(module.recipe.intermediates)) {
+          if (!spec.precision) {
+            throw new Error(`${module.id}: unclassified intermediate ${name}`);
+          }
+          if (spec.precision === "fixed") {
+            const writer = writers.get(name);
+            const producer = writer && resolveOp(writer, module.recipe, registry, module.id);
+            if (producer?.precision?.output === "working" ||
+                (producer?.precision?.output === "working-or-mask" && spec.role !== "mask")) {
+              throw new Error(`${module.id}: fixed-byte working slot ${name}`);
+            }
+          }
+        }
+      }
+      const ex = executor ?? createExecutor();
       const key = moduleKey(module.id, module.version);
 
       const source = inputs.source;
@@ -223,28 +258,38 @@ export function createRecipeRunner(): RecipeRunner {
       // Resolve intermediates, defaulting unspecified dimensions to source.
       const intermediates = new Map<string, LabeledTexture>();
       const acquired: LabeledTexture[] = [];
-      for (const [name, spec] of Object.entries(recipe.intermediates)) {
-        const fullSpec: ScratchSpec = {
-          width: spec.width ?? source.width,
-          height: spec.height ?? source.height,
-          // Exact size, not bucketed: passes derive dispatch size and texel
-          // bounds from the texture's physical dimensions, and fragment
-          // passes always cover the whole attachment. A bucketed intermediate
-          // therefore either leaves an unwritten margin that the next pass's
-          // clamped taps blend in (compute) or stretches the image to the
-          // bucket and back, rescaling pixel-unit params like blur radius
-          // (fragment). Physical size must equal logical size.
-          exact: true,
-          format: spec.format,
-          usage: spec.usage,
-          label: spec.label ?? `${key}-${name}`
-        };
-        const tex = ctx.scratch.acquire(fullSpec);
-        intermediates.set(name, tex);
-        acquired.push(tex);
-      }
-
       try {
+        for (const [name, spec] of Object.entries(recipe.intermediates)) {
+          const writer = writers.get(name);
+          const producer = writer ? resolveOp(writer, recipe, registry, key) : undefined;
+          const sourceRef = writer?.in.source;
+          const inputColor = sourceRef === "source" ? source.meta.colorSpace
+            : sourceRef?.kind === "intermediate" ? intermediates.get(sourceRef.name)?.meta.colorSpace
+            : sourceRef?.kind === "input" ? inputs[sourceRef.name]?.meta.colorSpace : undefined;
+          const colorSpace = producer?.id === "filters.blur.gaussian"
+            ? inputColor ?? producer.io.output.colorSpace
+            : producer?.io.output.colorSpace ?? source.meta.colorSpace;
+          const fullSpec: ScratchSpec = {
+            meta: { colorSpace },
+            width: spec.width ?? source.width,
+            height: spec.height ?? source.height,
+            // Exact size, not bucketed: passes derive dispatch size and texel
+            // bounds from the texture's physical dimensions, and fragment
+            // passes always cover the whole attachment. A bucketed intermediate
+            // therefore either leaves an unwritten margin that the next pass's
+            // clamped taps blend in (compute) or stretches the image to the
+            // bucket and back, rescaling pixel-unit params like blur radius
+            // (fragment). Physical size must equal logical size.
+            exact: true,
+            format: spec.precision === "working" ? workingFormat : spec.format,
+            usage: spec.usage,
+            label: spec.label ?? `${key}-${name}`
+          };
+          const tex = ctx.scratch.acquire(fullSpec);
+          intermediates.set(name, tex);
+          acquired.push(tex);
+        }
+
         for (const pass of recipe.passes) {
           const op = resolveOp(pass, recipe, registry, key);
           // Map declared `in` bindings to actual labeled textures.
@@ -299,7 +344,11 @@ export function createRecipeRunner(): RecipeRunner {
             inputs: passInputs,
             output: target,
             params: resolvedParams,
-            dispatch
+            dispatch,
+            workingFormat: workingFormat === "rgba16float" &&
+              !(op.precision?.output === "working-or-mask" && pass.out !== "output" &&
+                recipe.intermediates[pass.out.name].precision === "fixed")
+              ? workingFormat : "rgba8unorm"
           });
         }
       } finally {

@@ -46,6 +46,7 @@ import {
 } from "../animation/index.js";
 import { resolveAnimatedStyleTracks, resolveAnimatedTextContent, resolveAnimationLinks } from "../animation/index.js";
 import { clipSourceMsAt } from "../timeRemap.js";
+import { resolveAnalysisEffects } from "./clipAnalysis.js";
 import { effectiveAssetId } from "../clipAudio.js";
 import { resolveBeatAnimations } from "../animation/beat.js";
 import { textStyleSignature, type ResolvedCaption, type TextRenderStagger } from "./draw.js";
@@ -289,8 +290,9 @@ export const CAPTION_CUE_MAX_WORDS = 10;
 /**
  * Split a clip's words into cues, the runs shown on screen together: a cue
  * ends at a pause of {@link CAPTION_CUE_GAP_MS} or after
- * {@link CAPTION_CUE_MAX_WORDS} words. Words outside the clip's window
- * (`0..durationMs`, clip-local) are left out.
+ * {@link CAPTION_CUE_MAX_WORDS} words, unless the next word's `cue` mark says
+ * otherwise. Words outside the clip's window (`0..durationMs`, clip-local) are
+ * left out.
  */
 export function captionCues(
   clip: Pick<TimelineClip, "caption" | "durationMs">
@@ -300,10 +302,13 @@ export function captionCues(
   for (const word of clip.caption?.words ?? []) {
     if (word.endMs <= 0 || word.startMs >= clip.durationMs) continue;
     const previous = current[current.length - 1];
+    const natural =
+      previous !== undefined &&
+      (word.startMs - previous.endMs >= CAPTION_CUE_GAP_MS ||
+        current.length >= CAPTION_CUE_MAX_WORDS);
     if (
       previous &&
-      (word.startMs - previous.endMs >= CAPTION_CUE_GAP_MS ||
-        current.length >= CAPTION_CUE_MAX_WORDS)
+      (word.cue === "start" || (word.cue !== "continue" && natural))
     ) {
       cues.push(current);
       current = [];
@@ -2148,7 +2153,7 @@ export function resolveAnimatedLayerProps(
       : clamp01(links.opacity * (layer.opacityCoverage ?? 1)),
     mask: s.mask,
     effects: seedAnimatedGrain(
-      composeAnimatedEffects(styles?.effects ?? clip.effects, s),
+      resolveAnalysisEffects(clip, composeAnimatedEffects(styles?.effects ?? clip.effects, s), currentTimeMs),
       currentTimeMs,
       fps,
       sequenceTimeMs
@@ -2211,7 +2216,7 @@ function staticProps(
   return {
     transform,
     opacity: layer.opacity,
-    effects: seedAnimatedGrain(layer.clip.effects, currentTimeMs, fps, sequenceTimeMs),
+    effects: seedAnimatedGrain(resolveAnalysisEffects(layer.clip, layer.clip.effects, currentTimeMs), currentTimeMs, fps, sequenceTimeMs),
     shapeStyle: layer.clip.shapeStyle,
     textStyle: layer.clip.textStyle,
     clipMask: layer.clip.mask,

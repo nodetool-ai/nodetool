@@ -67,7 +67,7 @@ export function getWorkspaceDependencies(workspaceName) {
  * Throws on a dependency cycle — a cycle has no build order, and silently
  * picking one emits against declarations that do not exist yet.
  */
-function buildOrderFrom(rootName) {
+function buildOrderFrom(rootNames) {
   const order = [];
   const state = new Map();
 
@@ -90,8 +90,18 @@ function buildOrderFrom(rootName) {
     order.push(workspaceName);
   }
 
-  visit(rootName, []);
+  for (const rootName of rootNames) {
+    visit(rootName, []);
+  }
   return order;
 }
 
-export const websocketWorkspaces = buildOrderFrom("@nodetool-ai/websocket");
+export const websocketWorkspaces = buildOrderFrom(["@nodetool-ai/websocket"]);
+
+// Electron also imports workspaces used only by its main process. They are
+// build-time dependencies because Vite bundles them into the desktop app.
+const electronPackage = readPackageJson(resolve(rootDir, "electron/package.json"));
+export const electronWorkspaces = buildOrderFrom(
+  Object.keys({ ...electronPackage.dependencies, ...electronPackage.devDependencies })
+    .filter((name) => workspacesByName.has(name))
+);

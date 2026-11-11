@@ -4,25 +4,10 @@ title: "Chat"
 description: "Ask the agent to build workflows and edit your open documents, generate media, and run saved workflows."
 ---
 
-Chat is where you tell NodeTool what to make. The agent behind it plans, calls tools, builds and edits the document you have open, generates images, video, and speech, and runs your saved workflows, all from one composer. It talks to any configured provider.
+Chat is the composer and agent loop: the agent plans, calls tools, builds and edits the document you have open, generates media, and runs saved workflows. Type a request and send it.
 
----
-
-## Overview
-
-- Builds and edits workflows, sketches, timelines, storyboards, scripts, and mini apps
-- Every turn runs the agent loop. The assistant plans and calls tools as a task needs them
-- 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
-- One composer for chat, image, video, speech, and music generation
-- Tools: web search, files, code execution, HTTP, and more
-- Permission modes (Plan / Default / Auto) set how much the agent may do without asking
-- Run saved workflows from chat
-- Multiple threads, persistent history
-- Standalone tray window
-
-Persistent WebSocket connection — reconnects after reloads.
-
----
+> **Runs:** locally or cloud, depending on the model you pick. **Needs:** at least one configured provider (see [Providers](providers.md)). Permission modes (Plan, Default, Auto) set what the agent may do without asking.
+{: .callout-note}
 
 ![Chat Interface](assets/screenshots/global-chat-interface.png)
 
@@ -38,33 +23,34 @@ Persistent WebSocket connection — reconnects after reloads.
 
 ![Chat Model Selector](assets/screenshots/chat-model-selector.png)
 
-Click the model chip in the composer to open the model picker. Available models depend on your configured providers:
-
-- **Cloud models** -- OpenAI GPT, Anthropic Claude, Google Gemini (requires API keys)
-- **Local models** -- Ollama, LM Studio models (requires local installation)
-
-Configure providers in **Settings > Models & Providers**. See [Models & Providers](models-and-providers.md).
+Click the model chip in the composer. The list shows models from your configured providers: cloud models need API keys, local models (Ollama, LM Studio) need the local server. Configure providers in **Settings → Models & Providers**. See [Models & Providers](models-and-providers.md).
 
 ---
 
 ## Composer Modes
 
-![Composer Modes](assets/screenshots/chat-composer-modes.png)
+A message sent from the chat page is always a chat turn. To generate media, start a Create tab from **Image**, **Video**, or **Audio** on the home screen. A picture or clip in a chat reply has **Open in Create**, which opens a Create tab with the reply's prompt and media as references.
 
-The same composer generates more than text. Click the mode chip to switch between:
+The chat panel in the workflow editor keeps a mode chip. Click it to switch:
+
+![The mode menu in the workflow editor's chat panel](assets/screenshots/chat-composer-modes.png)
 
 | Mode | What it does |
 |------|--------------|
 | **Chat** | Talk to the model, run tools, and drive agents |
-| **Generate Images** | Text-to-image with your chosen image model |
-| **Edit Images** | Image-to-image edits on a dropped image |
-| **Generate Videos** | Text-to-video |
-| **Animate Image** | Turn a still image into a clip |
-| **Reference to Video** | One clip from several attached images and videos — a character plus a garment, a product plus a location, a clip whose motion the new shot follows |
-| **Generate Speech** | Text-to-speech with a voice picker |
-| **Generate Music** | Text-to-music with your chosen music model and a duration |
+| **Generate images** | Text-to-image with your chosen image model |
+| **Edit images** | Image-to-image edits on a dropped image |
+| **Generate videos** | Text-to-video |
+| **Animate image** | Turn a still image into a clip |
+| **Reference to video** | One clip from several attached images and videos — a character plus a garment, a product plus a location, a clip whose motion the new shot follows |
+| **Retake** | Change an attached video |
+| **Extend** | Add footage to an attached video |
+| **Read aloud** | Text-to-speech with a voice picker |
+| **Generate music** | Text-to-music with your chosen music model and a duration |
 
-Each mode swaps in its own controls — resolution, aspect ratio, duration, voice — and attaches them to the message so the server routes to the right provider call.
+**Audio to video** and **Motion control** are listed as **Soon** and cannot be picked yet.
+
+Each mode adds its own controls (resolution, aspect ratio, duration, voice) and attaches them to the message so the server routes to the right provider call.
 
 Reference to Video takes every image and video on the message, plus the
 reference image of any `@`-mentioned entity, so the prompt describes the action
@@ -102,15 +88,7 @@ Type `/` at the start of a word in the composer to open a list of your skills an
 
 ## Conversation Threads
 
-Chat organizes conversations into threads:
-
-- **Create threads** -- Click the **New Chat** button to start a fresh conversation
-- **Switch threads** -- Pick a thread from the **Chats** panel in the left rail; it opens as a workspace tab
-- **Delete threads** -- Remove conversations you no longer need
-- **Message history** -- Scroll through past messages with cursor-based pagination
-- **Message caching** -- Recent messages are cached locally for fast loading
-
-Each thread keeps its own model, permission mode, and history.
+**New Chat** starts a thread. Pick one from the **Chats** panel in the left rail to open it as a workspace tab. Each thread keeps its own model, permission mode, and history.
 
 ---
 
@@ -118,7 +96,7 @@ Each thread keeps its own model, permission mode, and history.
 
 ### The Agent Loop
 
-Every turn in Chat runs the same agent loop — there's no separate mode to turn on. The assistant decides for itself, per request, whether to break a task into steps, select tools, and execute a multi-step plan, or just answer directly.
+Every turn runs the agent loop. Per request, the assistant decides whether to break a task into steps and run a plan or answer directly.
 
 1. **Planning** -- The agent analyzes your request and, when the task warrants it, creates a plan with ordered steps
 2. **Tool selection** -- For each step, the agent chooses from the available tools
@@ -130,7 +108,7 @@ Every turn in Chat runs the same agent loop — there's no separate mode to turn
 
 ![Permission Modes](assets/screenshots/chat-permission-modes.png)
 
-The permission chip sets how far the agent may act on its own. It's per-thread, so a scratch thread can run wide open while a production one stays cautious:
+The permission chip sets how far the agent may act on its own, per thread:
 
 | Mode | Behavior |
 |------|----------|
@@ -152,23 +130,6 @@ task") and the amended plan is what runs.
 
 In Auto the agent labels every code action it writes `low` or `high` risk. A `low` action — reading, computing, work you asked for and can undo — runs with no prompt. A `high` one — deleting or overwriting something, publishing or sending anything outside the account, spending real money — asks you first, once, showing the program it wants to run. Unlabeled counts as high. "Allow for this chat" stops the asking for the rest of the thread.
 
-### Agent Capabilities
-
-When a request calls for it, the assistant can:
-
-| Capability | Examples |
-|------------|---------|
-| **Building workflows** | Plan a graph, validate it against the node library, save it, run it, debug what failed |
-| **Editing open documents** | Add a node, rewire an edge, add a timeline track, paint a sketch layer, place an app widget |
-| **Web research** | Search the web, browse pages, extract content |
-| **File operations** | Read, write, and organize files in your workspace |
-| **Code execution** | Run JavaScript in a sandboxed environment |
-| **Data analysis** | Perform calculations, query vector databases |
-| **Document processing** | Extract text from PDFs, process emails |
-| **Asset management** | Create, organize, and index assets |
-| **HTTP requests** | Call external APIs and process responses |
-| **Workflow execution** | Run saved NodeTool workflows with custom inputs |
-
 ### Watching an Agent Work
 
 As the agent runs, the thread shows the task plan, each step's status as it starts, completes, or fails, the tools it calls and their results, and — on models that support it — its reasoning.
@@ -179,16 +140,11 @@ As the agent runs, the thread shows the task plan, each step's status as it star
 
 ### Building a workflow
 
-Describe what the workflow should do and the agent runs its build loop: plan the
-graph, validate it against the node library, save it as a workflow, run it, and
-debug whatever failed. The result is a normal workflow in your library, opened
-in the editor like any other.
+The agent plans the graph, validates it against the node library, saves it as a workflow, runs it, and debugs what failed. The result is a normal workflow in your library.
 
 ### Editing what you have open
 
-The agent reads the document in front of you and edits it with the same actions
-the interface offers. Ask it to add a node, rewire a connection, or explain what
-a branch does, and watch the change land on the canvas.
+The agent reads the open document and edits it with the same actions the interface offers.
 
 ![Workflow assistant panel](assets/screenshots/editor-workflow-assistant.png)
 
@@ -208,9 +164,7 @@ something you don't have open comes back saying which documents are.
 
 ### Running a saved workflow
 
-Choose a workflow in the composer, or ask for it by name. The agent calls it with
-your inputs and streams the results into the thread. Save the workflow in the
-[workflow editor](workflow-editor.md) first.
+Choose a workflow in the composer, or ask for it by name. The agent calls it with your inputs and streams results into the thread. Save the workflow in the [workflow editor](workflow-editor.md) first.
 
 ---
 
@@ -246,24 +200,15 @@ To use NodeTool from another agent instead, see [NodeTool as an MCP Server](mcp-
 
 ## Standalone Chat Window
 
-Access chat in a focused, dedicated window outside the main app:
-
-1. Click the NodeTool icon in your system tray
-2. Select **Chat** from the menu
-3. A new window opens with just the chat interface
-
-The standalone window is useful for:
-- Quick questions without switching to the full app
-- Running agents in the background while doing other work
-- Using chat as a general-purpose AI assistant
+Click the NodeTool system tray icon and select **Chat** to open chat in its own window. It shares threads with the main app.
 
 ---
 
-## Next Steps
+## Related
 
-- [Chat & Agents](global-chat-agents.md) -- Agent CLI and API integration
-- [Chat API](chat-api.md) -- Programmatic access for running chats
-- [Chat CLI](chat-cli.md) -- Command-line chat interface
-- [Agent CLI](agent-cli.md) -- Run the agent loop from the terminal
-- [Models & Providers](models-and-providers.md) -- Configure AI providers
-- [Cookbook](cookbook.md) -- Agent workflow patterns
+- [Chat & Agents](global-chat-agents.md)
+- [Chat API](chat-api.md)
+- [Chat CLI](chat-cli.md)
+- [Agent CLI](agent-cli.md)
+- [Models & Providers](models-and-providers.md)
+- [Cookbook](cookbook.md)

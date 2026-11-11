@@ -28,6 +28,9 @@
 #include <iostream>
 #include <thread>
 #include "VstHost.h"
+#if JUCE_MAC
+#include "MacApplication.h"
+#endif
 
 using namespace juce;
 using namespace vsthost;
@@ -268,6 +271,9 @@ private:
 };
 
 int main(int, char**) {
+   #if JUCE_MAC
+    initialiseMacApplication();
+   #endif
     ScopedJuceInitialiser_GUI init;
     auto host = std::make_unique<Host>();
     auto* hostPtr = host.get();

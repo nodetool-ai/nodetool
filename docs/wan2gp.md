@@ -5,9 +5,8 @@ description: "Generate video, images, audio and 3D models in NodeTool with Wan2G
 ---
 
 [Wan2GP](https://github.com/deepbeepmeep/Wan2GP) runs Wan, LTX-2, MiniMax
-H3, Flux, Qwen and many other models on consumer GPUs. NodeTool talks to its
-MCP server. The models run in Wan2GP's own process and Python environment,
-never inside NodeTool. Two parts use it:
+H3, Flux, Qwen and other models. NodeTool talks to its MCP server, and the
+models run in Wan2GP's own process and Python environment. Two parts use it:
 
 - the `lib.wan2gp` nodes, for workflows;
 - the `wangp` provider, which lists Wan2GP's models in the chat composer,
@@ -20,7 +19,8 @@ never inside NodeTool. Two parts use it:
 | `lib.wan2gp.Generate` | Runs any Wan2GP model with a settings dict on top of that model's defaults. Takes start and end images, reference images, control, mask and source videos, audio, and a custom file, and returns an image, video, audio or 3D model |
 | `lib.wan2gp.ListModels` | Lists the models your server offers and the media each one accepts |
 
-The nodes and the provider are local only. The cloud profile excludes them.
+> **Runs:** locally only (the cloud profile excludes the nodes and the provider). **Needs:** a Wan2GP install or a Wan2GP server you run, and no API key. `WAN2GP_MCP_TOKEN` is needed only for a server behind a bearer token. **Hardware:** a supported GPU (table below) and about 12 GB of disk before any model.
+{: .callout-note}
 
 ## 1. Install Wan2GP
 

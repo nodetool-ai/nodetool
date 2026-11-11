@@ -44,6 +44,8 @@ import "./sketch";
 import "./script";
 import "./jsscript";
 import "./puck";
+// The app agent of a chat app: run, show steps, write values.
+import "./appRun";
 import "./model3d";
 import "./svg";
 import "./audio";

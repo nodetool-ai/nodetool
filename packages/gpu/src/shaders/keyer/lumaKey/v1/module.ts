@@ -33,6 +33,7 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 };
 
 export const keyerLumaKeyV1 = defineModule({
+  precision: { "source": "working", "output": "working" },
   id: "keyer.lumaKey",
   version: 1,
   // Luminance keyer with a stable `(low, high, softness)` schema; the core op
@@ -77,13 +78,13 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

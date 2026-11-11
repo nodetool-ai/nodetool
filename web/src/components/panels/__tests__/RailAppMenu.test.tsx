@@ -15,6 +15,10 @@ import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { tabId } from "../../../stores/WorkspaceTabsStore";
 
 const mockNavigate = jest.fn();
+let mockIsAdmin = false;
+jest.mock("../../../serverState/useAdminUsers", () => ({
+  useIsAdmin: () => mockIsAdmin
+}));
 jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate
 }));
@@ -91,6 +95,30 @@ it("keeps navigational destinations out of the logo menu", async () => {
   expect(screen.getByRole("menuitem", { name: /settings/i })).toBeVisible();
   expect(screen.getByRole("menuitem", { name: /help/i })).toBeVisible();
   expect(screen.getByRole("menuitem", { name: /downloads/i })).toBeVisible();
+});
+
+it("shows Admin to an admin only", async () => {
+  const user = userEvent.setup();
+  renderMenu();
+  await user.click(screen.getByRole("button", { name: /open app menu/i }));
+  expect(screen.queryByRole("menuitem", { name: /^admin$/i })).toBeNull();
+});
+
+it("opens Admin as a page tab for an admin", async () => {
+  mockIsAdmin = true;
+  try {
+    const user = userEvent.setup();
+    renderMenu();
+    await user.click(screen.getByRole("button", { name: /open app menu/i }));
+    await user.click(screen.getByRole("menuitem", { name: /^admin$/i }));
+    expect(useWorkspaceTabsStore.getState().tabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "page", ref: "admin" })
+      ])
+    );
+  } finally {
+    mockIsAdmin = false;
+  }
 });
 
 it("reports the pick to its host so the mobile sheet can dismiss", async () => {

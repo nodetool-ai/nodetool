@@ -8,6 +8,7 @@ import {
   getWorkspaceDependencies,
   getWorkspaceDir,
   websocketWorkspaces,
+  electronWorkspaces,
 } from "./websocket-workspaces.mjs";
 import { buildStampPath } from "./build-typescript-workspace.mjs";
 
@@ -157,13 +158,14 @@ function isWorkspaceStale(workspaceName) {
   return sourceMtime > statSync(stampPath).mtimeMs;
 }
 
-const directStaleWorkspaces = websocketWorkspaces.filter(isWorkspaceStale);
+const workspaces = process.argv.includes("--electron") ? electronWorkspaces : websocketWorkspaces;
+const directStaleWorkspaces = workspaces.filter(isWorkspaceStale);
 
 const dependentsByWorkspace = new Map(
-  websocketWorkspaces.map((workspace) => [workspace, []])
+  workspaces.map((workspace) => [workspace, []])
 );
 
-for (const workspace of websocketWorkspaces) {
+for (const workspace of workspaces) {
   for (const dependency of getWorkspaceDependencies(workspace)) {
     dependentsByWorkspace.get(dependency)?.push(workspace);
   }
@@ -185,10 +187,10 @@ while (workspacesToVisit.length > 0) {
   }
 }
 
-const staleWorkspaces = websocketWorkspaces.filter((workspace) => affectedWorkspaces.has(workspace));
+const staleWorkspaces = workspaces.filter((workspace) => affectedWorkspaces.has(workspace));
 
 if (staleWorkspaces.length === 0) {
-  console.log("All websocket workspaces are up to date.");
+  console.log("All selected workspaces are up to date.");
   process.exit(0);
 }
 

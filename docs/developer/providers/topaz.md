@@ -6,7 +6,8 @@ description: "Runbook for adding new Topaz image/video API endpoints and model v
 
 **Navigation**: [docs/developer/index.md](../index.md) → **Topaz provider guide**
 
-> **Audience**: coding agents and contributors adding new Topaz image or video endpoints, or new model variants within existing endpoints.
+> **Runs:** cloud. **Needs:** `TOPAZ_API_KEY`. Calls throw `TOPAZ_API_KEY is not configured` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -15,22 +16,18 @@ description: "Runbook for adding new Topaz image/video API endpoints and model v
 3. `npm run typecheck && npm run lint` — must pass before committing.
 4. No new TypeScript files needed for standard endpoints; the factory generates the node class at runtime.
 
----
-
 ## Where things live
 
 | What | Path |
 |---|---|
 | Manifest (all nodes) | `packages/topaz-nodes/src/topaz-manifest.json` |
-| API + HTTP utilities | `packages/topaz-nodes/src/topaz-base.ts` |
+| Request building, result mapping, video probing | `packages/topaz-nodes/src/topaz-base.ts` |
 | Runtime node factory | `packages/topaz-nodes/src/topaz-factory.ts` |
 | Package entry point | `packages/topaz-nodes/src/index.ts` |
-| Runtime provider (upscale only) | `packages/runtime/src/providers/topaz-provider.ts` |
+| Runtime provider (the Topaz transport, `upscaleImage` and the endpoint calls every node makes) | `packages/runtime/src/providers/topaz-provider.ts` |
 | Manifest loader (for ImageModel list) | `packages/runtime/src/providers/manifest-models.ts` |
 | Provider registration | `packages/runtime/src/providers/index.ts` |
 | Unit tests | `packages/topaz-nodes/tests/topaz-base.test.ts`, `topaz-factory.test.ts`, `packages/runtime/tests/providers/topaz-provider.test.ts` |
-
----
 
 ## How Topaz models and nodes are defined
 
@@ -38,11 +35,11 @@ description: "Runbook for adding new Topaz image/video API endpoints and model v
 
 The build script (`package.json` `build`) compiles the TypeScript and then copies `src/topaz-manifest.json` to `dist/topaz-manifest.json` so the `package.json` `exports` entry `"./topaz-manifest.json"` resolves correctly. The runtime provider (`topaz-provider.ts`) loads the same file through `loadManifest` in `manifest-models.ts` to build its list of `ImageModel` objects, but only exposes the `enhance` and `enhance-gen` endpoints as upscale-task models. All other endpoints (sharpen, sharpen-gen, denoise, denoise-gen, lighting, matting, restore-gen) live solely as workflow nodes. The manifest holds nine image endpoints and two video endpoints (`EnhanceVideo`, `InterpolateVideo`).
 
-**Image nodes** call a single multipart POST → poll status → download flow implemented in `topazExecuteImageTask` (`topaz-base.ts`).
+Every node calls `context.callProviderEndpoint` with the `topaz` provider id, so `TopazProvider` holds `TOPAZ_API_KEY` and each run writes a generation record.
 
-**Video nodes** drive a multi-step pipeline: create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status → download. The node probes the source video's resolution, frame rate, and duration in process before the job is created.
+**Image nodes** send the image bytes and form fields on the `image` route. `TopazProvider` runs the multipart POST → poll status → download lookup flow, and `topazExecuteImageTask` (`topaz-base.ts`) downloads the result through `context.downloadProviderMedia`.
 
----
+**Video nodes** send the create body and the source bytes on the `video` route. `TopazProvider` runs create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status, and the node downloads the result. The node probes the source video's resolution, frame rate, and duration in process before the job is created.
 
 ## Add a new model or node
 
@@ -134,8 +131,6 @@ Copy either `EnhanceVideo` or `InterpolateVideo` from the manifest. Video entrie
 
 The factory detects `outputType === "video"` and routes through `topazExecuteVideoTask`, which probes the source in process before creating the job.
 
----
-
 ## Verify
 
 After editing the manifest, run these commands in order:
@@ -166,11 +161,4 @@ npm run dev:nodetool -- validate workflow.json
 
 Step 5 will hit a missing-API-key error in `--no-secrets` mode, which is expected — the goal is to confirm the node *type* resolves and all fields load without a panic. A `TOPAZ_API_KEY` not configured error means the node registered correctly.
 
----
-
-## Contributing
-
-Source: <https://github.com/nodetool-ai/nodetool>  
-Discord: <https://discord.gg/WmQTWZRcYE>
-
-Before opening a PR, run `npm run test:affected`, `npm run typecheck`, `npm run lint`, and `npm run dev:nodetool -- harness gate --base origin/main`. The manifest is the right place to document API-level details (endpoint URL, poll interval, field constraints) — keep the description field useful for future readers.
+Document API-level details (endpoint URL, poll interval, field constraints) in the manifest `description` field.

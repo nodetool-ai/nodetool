@@ -3,7 +3,10 @@ import { isBitmapImage } from "@nodetool-ai/protocol";
 import ImageView from "./ImageView";
 import { asImageRef, isRawRgbaRef } from "../../utils/imageRef";
 import { rawRgbaToPngDataUrl } from "../../lib/workflow/materializeBrowserOutputs";
-import { useResolvedMediaUri } from "../../hooks/useResolvedMediaUri";
+import {
+  useResolvedMediaUri,
+  useResolvedThumbnailUri
+} from "../../hooks/useResolvedMediaUri";
 import { isString } from "../../utils/typePredicates";
 import { resolveInlineMediaSource } from "../../utils/resolveMediaUri";
 
@@ -12,6 +15,12 @@ interface ImageRefPreviewProps {
   value: unknown;
   /** Rendered when `value` carries no displayable image (e.g. a dropzone). */
   placeholder?: React.ReactNode;
+  /**
+   * Paint the asset's 512px thumbnail instead of the stored original. Copy,
+   * download and the viewer still use the original. Use it where the preview
+   * is a small tile, such as a node body or an entity card.
+   */
+  preferThumbnail?: boolean;
 }
 
 /**
@@ -25,19 +34,23 @@ interface ImageRefPreviewProps {
  */
 const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
   value,
-  placeholder
+  placeholder,
+  preferThumbnail = false
 }) => {
   const stringSource = isString(value) && value ? value : undefined;
   const ref = asImageRef(value);
   // An `asset://` locator resolves to the asset's signed `get_url`; every other
   // scheme (data:, blob:, http:, package://, file://) comes back unchanged, and
   // is `undefined` only while a lookup is in flight.
-  const resolvedUri = useResolvedMediaUri(
-    stringSource ?? (ref?.uri || ref?.asset_id ? ref : undefined)
+  const locator = stringSource ?? (ref?.uri || ref?.asset_id ? ref : undefined);
+  const resolvedUri = useResolvedMediaUri(locator);
+  const thumbnailUri = useResolvedThumbnailUri(
+    preferThumbnail ? locator : undefined
   );
+  const previewUri = preferThumbnail ? thumbnailUri : undefined;
 
   if (stringSource) {
-    return <ImageView source={resolvedUri} />;
+    return <ImageView source={resolvedUri} previewSource={previewUri} />;
   }
   // Preview-bitmap ref from the in-browser runner (zero-copy transport) —
   // paint it directly. Checked on the raw value: `asImageRef` keeps only the
@@ -58,7 +71,7 @@ const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
     );
   }
   if (ref?.uri) {
-    return <ImageView source={resolvedUri} />;
+    return <ImageView source={resolvedUri} previewSource={previewUri} />;
   }
   if (isString(ref?.data) && ref.data) {
     return <ImageView source={resolveInlineMediaSource(ref.data)} />;
@@ -72,7 +85,7 @@ const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
   // A ref that carries only `asset_id` (no uri, no bytes) — still displayable
   // once the asset record resolves.
   if (ref?.asset_id) {
-    return <ImageView source={resolvedUri} />;
+    return <ImageView source={resolvedUri} previewSource={previewUri} />;
   }
   return <>{placeholder ?? null}</>;
 };

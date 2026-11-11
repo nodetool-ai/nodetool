@@ -60,8 +60,8 @@ describe("certified starter workflows", () => {
 
         expect(result.status).toBe("completed");
         expect(result.error ?? null).toBeNull();
-        expect(Object.keys(result.outputs ?? {})).toEqual(["Output"]);
-        const card = result.outputs?.Output;
+        expect(Object.keys(result.outputs ?? {})).toEqual(["card"]);
+        const card = result.outputs?.card;
         expect(card).toBeDefined();
 
         const output = (Array.isArray(card) ? card[0] : card) as Record<

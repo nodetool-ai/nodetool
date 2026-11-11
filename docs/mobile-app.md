@@ -4,13 +4,12 @@ title: "Mobile App"
 description: "Run Mini-Apps and chat from iOS and Android."
 ---
 
-Run Mini-Apps, chat with models, and follow your jobs from your phone or tablet. The mobile app is a companion to desktop and web: you build and edit workflows there, and run and review them here. It connects to any NodeTool server, whether your desktop, a self-hosted instance, or NodeTool Cloud.
+The mobile app runs Mini-Apps, chats with models, and shows jobs on iOS and Android. It runs on the phone and talks to a NodeTool server you provide: your desktop, a self-hosted instance, or NodeTool Cloud. Workflows run on that server, not on the phone. You build and edit workflows on desktop or web.
 
-> New here? Start on desktop with [Getting Started](getting-started.md).
+> **Runs:** the UI on the phone (iOS, Android, or a browser), the workflows on your server. **Needs:** a reachable server (`http://` or `https://`) and a sign-in. Store releases are not available yet, so install from source (see below). **Hardware:** not measured.
+{: .callout-note}
 
-You must sign in. The app opens on a **Login** screen with **Continue with Google** (Supabase auth). A build without `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` shows a banner saying login is not configured.
-
----
+The app opens on a **Login** screen with **Continue with Google** (Supabase auth). A build without `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` shows a banner saying login is not configured.
 
 ## Overview
 
@@ -24,22 +23,12 @@ You must sign in. The app opens on a **Login** screen with **Continue with Googl
 | **Assets** | Browse, upload from the camera or photo library, and view |
 | **Documents** | Edit storyboards. View timelines and sketches |
 | **Desktop and web only** | Workflow editing, scripts, JS scripts, managing API keys, collections, and triggers, and editing timelines or sketches |
-| **Platforms** | iOS, Android, browser |
-| **Server** | Connect to any NodeTool server |
 
 ---
 
 ## Getting the App
 
-### From App Stores (Coming Soon)
-
-The app will be available on:
-- **iOS**: Apple App Store
-- **Android**: Google Play Store
-
-### For Developers
-
-Build and run from source:
+### Build from source
 
 ```bash
 # Clone the NodeTool repository
@@ -65,8 +54,6 @@ Expo Go does not work. The app uses native modules that Expo Go does not ship (G
 
 ## Connecting to Your Server
 
-The mobile app requires a running NodeTool server.
-
 ### Configure Server URL
 
 1. Open the app
@@ -91,8 +78,6 @@ The default host is `http://localhost:7777`. The URL must start with `http://` o
 
 ## AI Chat
 
-Chat with AI models from your mobile device.
-
 ![Mobile Chat](assets/screenshots/chat-mobile.png)
 
 ### Features
@@ -107,20 +92,9 @@ Chat with AI models from your mobile device.
 - **Options bar** – Toggle **Agent** and **Help** modes, add tools, and choose collections to search
 - **Inline previews** – When a reply names a sketch or a timeline, it draws in the message with a chip that opens it. Other documents show the chip alone
 
-### How to Chat
+### Start a chat
 
-1. Tap the **Chat** button in the Apps header
-2. Select a model (tap model name)
-3. Type your message
-4. Tap the send button (up arrow)
-5. Watch the AI respond in real-time
-
-### Tips
-
-- Use the **+** button to start a new conversation
-- Use the history button to open past conversations. Each thread can be deleted there
-- Tap the stop button to halt a response
-- Switch models mid-conversation if needed
+Tap **Chat** in the Apps header, tap the model name to pick one, and send. Use **+** for a new conversation and the history button to reopen or delete threads. Tap the stop button to halt a response.
 
 ---
 
@@ -217,30 +191,15 @@ The app registers the `nodetool://` scheme. Links work only while signed in. Fin
 | `nodetool://document/<kind>/<id>` | Storyboard editor, timeline viewer, or sketch viewer (`storyboard`, `timeline`, `sketch`) |
 | `nodetool://settings/models` | Model picker |
 
----
+## Server requirements
 
-## Server Requirements
-
-Your NodeTool server must be:
-
-1. **Running** – Start with `nodetool serve --host 0.0.0.0 --port 7777`
-2. **Accessible** – On same network as your device
-3. **Configured** – With the models you want to use
-
-### Starting the Server
+`nodetool serve` binds to `127.0.0.1` on port 7777 by default, which a physical device cannot reach. Start it with:
 
 ```bash
 nodetool serve --host 0.0.0.0 --port 7777
 ```
 
-`nodetool serve` binds to `127.0.0.1` on port 7777 by default. A physical device cannot reach that, so pass `--host 0.0.0.0` to listen on your network. The iOS Simulator and Android Emulator reach the default binding through the addresses in the table above.
-
-### Firewall Settings
-
-If connecting from a physical device, ensure:
-- Port 7777 is open on your computer's firewall
-- Your router allows local network connections
-- Both devices are on the same WiFi network
+The iOS Simulator and Android Emulator reach the default binding through the addresses in the table above. For a physical device, open port 7777 in your firewall and keep both devices on the same network.
 
 ---
 
@@ -248,21 +207,7 @@ If connecting from a physical device, ensure:
 
 ### Cannot Connect to Server
 
-**Symptoms**: "Connection failed" or timeout errors
-
-**Solutions**:
-1. Verify the server is running
-2. Check the server URL in Settings
-3. For physical devices:
-   - Use your computer's IP address (not localhost)
-   - Ensure same WiFi network
-   - Check firewall settings
-
-### Android Emulator Connection Issues
-
-**Problem**: Cannot reach localhost
-
-**Solution**: Use `http://10.0.2.2:7777` instead of `localhost:7777`. This is Android's special IP for the host machine.
+Symptoms are "Connection failed" or a timeout. Check that the server is running and that the URL in Settings is right. On a physical device, use your computer's IP address instead of `localhost`, check the firewall, and stay on the same network. On the Android Emulator, use `http://10.0.2.2:7777`.
 
 ### App Crashes on Startup
 
@@ -280,27 +225,11 @@ If connecting from a physical device, ensure:
 2. Verify server is running current version
 3. Try a different AI model
 
----
+## Platform notes
 
-## Platform Notes
-
-### iOS
-
-- Requires Xcode for development (macOS only)
-- Use iOS Simulator for testing
-- Production builds via EAS Build
-
-### Android
-
-- Requires Android Studio for development
-- Use Android Emulator for testing
-- Use `10.0.2.2` for localhost access
-
-### Web
-
-- Works in any modern browser
-- Good for testing without mobile device
-- Run with `npm run web`
+- iOS development needs Xcode (macOS only) and the iOS Simulator for testing.
+- Android development needs Android Studio and the Android Emulator.
+- Web runs in a modern browser with `npm run web`.
 
 ---
 
@@ -337,11 +266,4 @@ eas build --platform ios --profile production
 
 ---
 
-## Related Topics
-
-- [Getting Started](getting-started.md) – Desktop setup and first workflow
-- [User Interface](user-interface.md) – Full UI guide
-- [Mini Apps](mini-apps.md) – What apps are and how they run
-- [Mini Apps on Mobile](mini-apps-mobile.md) – Opening and running an app on the phone
-- [Chat & Agents](global-chat-agents.md) – Chat features in detail
-- [API Reference](api-reference.md) – Server API documentation
+Related: [Getting Started](getting-started.md), [User Interface](user-interface.md), [Mini Apps](mini-apps.md), [Mini Apps on Mobile](mini-apps-mobile.md), [Chat & Agents](global-chat-agents.md), [API Reference](api-reference.md).

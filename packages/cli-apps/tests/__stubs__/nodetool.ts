@@ -179,6 +179,8 @@ const STUB_PROVIDER_SECRET_KEYS: Record<string, string | null> = {
   opper: "OPPER_API_KEY",
   cheaperinference: "CHEAPER_INFERENCE_API_KEY",
   api_route: "API_ROUTE_API_KEY",
+  runcrate: "RUNCRATE_API_KEY",
+  standardcompute: "STANDARDCOMPUTE_API_KEY",
   huggingface: "HF_TOKEN",
   replicate: "REPLICATE_API_TOKEN",
   kie: "KIE_API_KEY",
@@ -263,6 +265,7 @@ export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 /** Mirrors DISCOVERY_TOOL_NAMES: providers, models, node types. */
 export const DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "list_providers",
   "find_model",
   "list_models",
   "list_provider_models",

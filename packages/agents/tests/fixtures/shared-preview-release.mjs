@@ -1,0 +1,22 @@
+// Isolated diagnostic only: Dawn finalization can crash the process.
+import { create, globals } from 'webgpu';
+import { HeadlessFrameCompositor } from '@nodetool-ai/timeline/render';
+Object.assign(globalThis, globals);
+let gpu = create([]);
+let adapter = await gpu.requestAdapter();
+let device = await adapter.requestDevice();
+let compositor = new HeadlessFrameCompositor(device, 160, 90);
+let pixels = new Uint8Array(160 * 90 * 4).fill(255);
+const rgba = await compositor.renderFrame([{ id: 'white', source: { rgba: pixels, width: 160, height: 90 }, opacity: 1, blendMode: 'normal', zIndex: 0 }]);
+console.log(`rendered ${rgba.length} bytes`);
+compositor.dispose();
+compositor = null;
+pixels = null;
+await device.queue.onSubmittedWorkDone();
+device.destroy();
+device = null;
+adapter = null;
+gpu = null;
+if (!globalThis.gc) throw new Error('Run this diagnostic with --expose-gc');
+globalThis.gc();
+console.log('references released after device.destroy');

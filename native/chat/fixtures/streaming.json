@@ -1,0 +1,27 @@
+{
+  "description": "Sanitized wire frames exercising the web chat reducer. Repeated chunks are distinct deltas.",
+  "threads": [
+    { "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "title": "First" },
+    { "id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "title": "Second" }
+  ],
+  "events": [
+    { "type": "chunk", "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "content": "Hello", "done": false, "chat_seq": 1 },
+    { "type": "chunk", "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "content": " ", "done": false, "chat_seq": 2 },
+    { "type": "chunk", "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "content": " ", "done": false, "chat_seq": 3 },
+    { "type": "chunk", "thread_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "content": "Other", "done": false, "chat_seq": 1 },
+    { "type": "chunk", "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "content": "world", "done": true, "chat_seq": 4 },
+    { "type": "message", "id": "11111111111111111111111111111111", "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "role": "assistant", "content": "Hello  world", "chat_seq": 5 },
+    { "type": "generation_stopped", "thread_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "message": "Stopped", "chat_seq": 2 },
+    { "type": "error", "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "message": "Provider unavailable", "chat_seq": 6 }
+  ],
+  "expected": [
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Hello" }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "idle", "messages": [] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Hello " }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "idle", "messages": [] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Hello  " }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "idle", "messages": [] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Hello  " }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Other" }] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "idle", "messages": [{ "role": "assistant", "text": "Hello  world" }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Other" }] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "idle", "messages": [{ "role": "assistant", "text": "Hello  world" }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "streaming", "messages": [{ "role": "assistant", "text": "Other" }] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "idle", "messages": [{ "role": "assistant", "text": "Hello  world" }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "idle", "messages": [{ "role": "assistant", "text": "Other" }] } },
+    { "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": { "status": "error", "messages": [{ "role": "assistant", "text": "Hello  world" }] }, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": { "status": "idle", "messages": [{ "role": "assistant", "text": "Other" }] } }
+  ]
+}

@@ -1,19 +1,30 @@
 ---
 layout: page
 title: "Architecture & Lifecycle"
-description: "How NodeTool's streaming architecture enables real-time feedback, cancellation, and deployment portability."
+description: "Packages, the actor-based execution engine, run messages, providers, storage, and the Python worker bridge."
 ---
 
-Two core principles:
+A workflow run is a set of actors, one per node, that pass values to each other through inboxes and stream status messages to the client while they work. The same graph JSON runs in the desktop app, a headless server, RunPod, and Cloud Run.
 
-1. **Streaming-first execution** — results stream as they generate; long-running jobs can be cancelled.
-2. **Unified runtime** — the same workflow JSON runs in the desktop app, headless server, RunPod endpoint, or Cloud Run.
+One run, as the client sees it over the WebSocket (`run_job`, then the messages defined in `packages/protocol/src/messages.ts`):
 
----
+```text
+Client                              Server
+  |--- run_job ---------------------->|
+  |<------------- job_update (queued) |   only when the run waits for a slot
+  |<------------ job_update (running) |
+  |<---- node_update (node A running) |
+  |<--- node_progress (node A 1/10)   |
+  |<-- node_update (node A completed) |
+  |<---- node_update (node B running) |
+  |<-------------- output_update (B)  |
+  |<-- node_update (node B completed) |
+  |<-------- job_update (completed)   |
+```
+
+A failing node arrives as `node_update` with `status: "error"`. A client that drops sends `reconnect_job` with the job id to resume the stream, and `cancel_job` stops the run. The full command and message schemas are in the [WebSocket API](websocket-api.md#typical-message-sequence).
 
 ## System Components
-
-NodeTool is organized into distinct packages, each responsible for a specific layer of the system:
 
 ### Core Packages
 
@@ -52,7 +63,6 @@ See [Packages](packages.md) for how node packages are structured and registered.
 | **electron** | Desktop app that runs the backend and the web UI |
 | **mobile** | React Native / Expo app |
 
----
 
 ## Execution Engine
 
@@ -108,18 +118,10 @@ The `ProcessingContext` provides the runtime environment for node execution:
 - **Asset output modes** -- `native` (the default), `data_uri`, `temp_url`, `storage_url`, `workspace`, `raw`
 - **User context** -- Authentication tokens, user data, workspace information
 
----
 
 ## Job Lifecycle (run, stream, reconnect, cancel)
 
-Workflow execution uses the actor model: `WorkflowRunner` validates the graph,
-spawns one `NodeActor` per node, and routes values between actors over inboxes.
-Each actor runs in one of the four modes described above (Buffered, Streaming
-input, Streaming output, Controlled). The editor runs workflows over the
-WebSocket with `run_job`. `POST /api/workflows/{id}/run` is the HTTP route for
-agents and the CLI. There is no separate
-`JobExecutionManager` class or pluggable threaded/subprocess/docker "execution
-strategy" — actors run in-process and stream their results out.
+`WorkflowRunner` validates the graph, spawns one `NodeActor` per node, and routes values between actors over inboxes. The editor runs workflows over the WebSocket with `run_job`. `POST /api/workflows/{id}/run` is the HTTP route for agents and the CLI. Actors run in-process and stream their results out. There is no `JobExecutionManager` class and no threaded, subprocess, or docker execution strategy.
 
 {% mermaid %}
 sequenceDiagram
@@ -160,7 +162,6 @@ The protocol layer (`packages/protocol/src/messages.ts`) defines the messages a 
 
 The file also defines `planning_update`, `chunk`, `notification`, `error`, and more. Each message type has a Zod schema.
 
----
 
 ## Agent System
 
@@ -181,7 +182,6 @@ Each task's result goes to `context.memory` under `task:<id>`. There is no synth
 
 Tools are grouped into capability modules under `packages/agents/src/capabilities/`. Examples: `web`, `browser`, `files`, `assets`, `workflows`, `jobs`, `models`, `collections`, `documents`, `email`, `google`, `memory`, `shared`, `apps`, and `timelines`. The model calls them as imports from `@nodetool-ai/sandbox-nodetool/<namespace>`. External MCP servers add more through the same belt.
 
----
 
 ## Providers
 
@@ -191,28 +191,26 @@ Model providers share one interface (`BaseProvider` in `packages/runtime/src/pro
 |------|-----------|
 | **Cloud text and multimodal** | OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Mistral, Groq, Cerebras, Cohere, Alibaba Cloud, GMI Cloud, Moonshot, MiniMax, Together |
 | **Media and model hosts** | FAL, Replicate, Hugging Face, Kie.ai, AtlasCloud, ElevenLabs, Topaz, Reve, Higgsfield |
-| **Routers** | OpenRouter, Requesty, Opper, API Route, Cheaper Inference |
+| **Routers** | OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, Standard Compute |
 | **Local and self-hosted** | Ollama, LM Studio, vLLM, llama.cpp, and Python-bridge providers such as MLX |
 | **Agent and OAuth backends** | Claude Agent SDK, Codex |
 | **Custom** | OpenAI-compatible endpoints you register |
 
-A built-in cost calculator tracks usage across providers. Credentials resolve from the secret store first, then from environment variables.
+Credentials resolve from the secret store first, then from environment variables.
 
----
 
 ## Storage Architecture
 
-NodeTool uses a pluggable storage system with three backends. An in-memory adapter also exists for tests:
+Storage has three backends. An in-memory adapter also exists for tests.
 
-| Backend | Use Case | Pros | Cons |
-|---------|----------|------|------|
-| **Local filesystem** | Desktop app, development | Zero config, fast, private | Single machine only |
-| **S3-compatible** | Production (AWS, MinIO) | Scalable, durable, multi-region | Requires cloud account, network latency |
-| **Supabase Storage** | Supabase deployments | Integrated auth + storage, managed | Requires Supabase project |
+| Backend | Use case |
+|---------|----------|
+| **Local filesystem** | Desktop app, development. Single machine only |
+| **S3-compatible** | Production (AWS, MinIO) |
+| **Supabase Storage** | Supabase deployments |
 
 `NODETOOL_STORAGE_BACKEND` selects the backend (`file`, `s3`, or `supabase`, default `file`). Assets and temp files use the same backend with separate buckets: `ASSET_BUCKET` for permanent assets and `TEMP_BUCKET` for intermediate results. See [Storage](storage.md) for configuration details.
 
----
 
 ## Python Worker Bridge
 
@@ -227,9 +225,9 @@ See [Python Bridge Protocol](python-bridge-protocol.md) for the full wire protoc
 
 ## Notes
 
-- All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
-- The WebSocket uses MessagePack by default and can switch to JSON. See [Chat API](chat-api.md) for protocol details.
-- Execution strategies are detailed in [Execution Strategies](execution-strategies.md).
+- The server listens on `http://127.0.0.1:7777` by default.
+- The WebSocket uses MessagePack by default and can switch to JSON. See [Chat API](chat-api.md).
+- Execution strategies are in [Execution Strategies](execution-strategies.md).
 
 ## Related
 

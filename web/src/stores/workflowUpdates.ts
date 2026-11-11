@@ -15,6 +15,7 @@ import {
   LLMCallUpdate,
   StepResult,
   TodoUpdate,
+  GenerationBatchUpdate,
   Message,
   Chunk
 } from "./ApiTypes";
@@ -569,6 +570,7 @@ export type MsgpackData =
   | GenerationComplete
   | StepResult
   | TodoUpdate
+  | GenerationBatchUpdate
   | EdgeUpdate
   | LLMCallUpdate
   | Notification;
@@ -1444,6 +1446,7 @@ export const handleUpdate = (
     // driving runtime widgets rather than synthesizing another trace.
     case "step_result":
     case "todo_update":
+    case "generation_batch_update":
     case "llm_call":
       break;
 

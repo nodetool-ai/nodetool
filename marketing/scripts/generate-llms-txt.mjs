@@ -316,11 +316,17 @@ function surfaceFaqMarkdown(surface) {
 function agentsMarkdown() {
   return `${agents.AGENTS_LEAD}
 
-## Build. Run. Inspect. Repair.
+## Build. Validate. Run. Inspect. Repair.
 
 A chat assistant answers once and stops. Inside the harness, the agent works on a saved workflow, so it can see which step failed and fix that step.
 
 ${agents.LOOP_STAGES.map((s) => `- **${s.title}** (\`${s.tool}\`): ${s.body}`).join("\n")}
+
+## The graph is checked before it runs
+
+${agents.VALIDATION_NOTE} \`validate_workflow\` reports:
+
+${agents.VALIDATION_CHECKS.map((c) => `- ${c}`).join("\n")}
 
 ## Eight editors the agent can work in
 
@@ -328,7 +334,9 @@ The agent edits the same documents you open in Studio. When it stops, the work i
 
 ${agents.SURFACES.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
 
-## Your models and your keys
+## Every step is on the record
+
+Read what the agent did, and take the work back at any point.
 
 ${agents.CONTROLS.map((c) => `- **${c.title}**: ${c.body}`).join("\n")}
 
@@ -338,15 +346,7 @@ ${agents.APPROVAL_MODES_INTRO}
 
 ${agents.APPROVAL_MODES.map((m) => `- **${m.title}**: ${m.body}`).join("\n")}
 
-## Connect your coding agent over MCP
-
-\`\`\`bash
-${mcp.MCP_INSTALL}
-\`\`\`
-
-${agents.MCP_STEPS.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
-
-For Cursor, Claude Desktop, or another MCP client, run \`nodetool-mcp config\` and paste the block it prints. See ${BASE_URL}/mcp for every tool.
+Connect Claude Code, Codex, or Cursor with one command. The setup, the CLI, and the HTTP API are at ${BASE_URL}/developers.md.
 
 ## Questions
 
@@ -357,17 +357,19 @@ ${surfaceFaqMarkdown("agents")}`;
 function marketingMarkdown() {
   return `${marketing.MARKETING_LEAD}
 
-## Start from a product page link
+## One brief. Four deliverables.
 
-${marketing.FROM_LINK_INTRO}
+${marketing.CAMPAIGN_CASE.intro}
 
-${marketing.FROM_LINK_ROUTES.map((r) => `- **${r.title}**: ${r.body}`).join("\n")}
+- **Hero, 16:9**: ${marketing.CAMPAIGN_CASE.hero}
+- **Social, 1:1 and story, 9:16**: ${marketing.CAMPAIGN_CASE.formats}
+- **Revision**: ${marketing.CAMPAIGN_CASE.revisionNote} ${marketing.CAMPAIGN_CASE.revision}
 
-## See the work
+${marketing.CAMPAIGN_CASE.limitation} Follow the recipe at ${BASE_URL}/recipes/directed-campaign-kit.
 
-- [Editable video ad templates](${BASE_URL}/ad-library): short vertical ad concepts, each with its beats, timing, copy budget, and a rendered example.
-- [Example AI storyboards](${BASE_URL}/storyboards): finished commercials and films with every shot they were built from.
-- [Guided recipes](${BASE_URL}/recipes): campaign kits, UGC videos, product commercials, and catalogue images, step by step.
+## More for ad teams
+
+${marketing.MORE_FOR_AD_TEAMS.map((m) => `- [${m.title}](${BASE_URL}${m.href}): ${m.body}`).join("\n")}
 - [AI video editor](${BASE_URL}/ai-video-editor.md): the storyboard and timeline the agent builds.`;
 }
 
@@ -376,11 +378,7 @@ function studioMarkdown() {
   const facts = (items) => items.map((f) => `- **${f.term}**: ${f.description}`).join("\n");
   return `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux.
 
-## A brief becomes a project you can reopen
-
-${studio.STUDIO_PROJECT}
-
-## Your files. Your models. Your keys.
+## Your projects stay on your computer
 
 Studio keeps the project on your computer. It only goes online when you use an online AI provider or service.
 
@@ -464,12 +462,12 @@ const MARKDOWN_PAGES = {
   "index.md": {
     title: "NodeTool",
     description: "Open-source agent-first creative workspace.",
-    body: `NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
+    body: `NodeTool is an AI video editor with an agent that helps you create and edit. Work in the timeline, or connect nodes to build reusable workflows. Create images, audio, storyboards and 3D scenes alongside your video. Connect supported provider accounts or run supported models locally. Studio saves projects on your computer. Developers can use the API, command line or MCP to connect other tools.
 
 ## Editions
 
-- [NodeTool Studio](${BASE_URL}/studio.md) is the free desktop application for macOS, Windows, and Linux.
-- [NodeTool Cloud](${BASE_URL}/cloud.md) is the hosted browser application.
+- [NodeTool Studio](${BASE_URL}/studio.md) is the free, open-source desktop application for macOS, Windows, and Linux. Connect a supported provider account or run supported models locally. Provider charges may apply.
+- [NodeTool Cloud](${BASE_URL}/cloud.md) is the hosted browser application, currently in alpha.
 
 ## Start here
 

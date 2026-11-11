@@ -78,3 +78,14 @@ describe("TimelineRenderer", () => {
     });
   });
 });
+
+it.each([2, 3])("shows metadata instead of embedded version %s pixels", (workingColorSpaceVersion) => {
+  mockPaints().length = 0;
+  const document = { ...sequence, workingColorSpaceVersion };
+  const saved = JSON.stringify(document);
+  const view = render(<ThemeProvider theme={mockTheme}><TimelineRenderer sequence={document} /></ThemeProvider>);
+  expect(view.queryByTestId("preview-area-stub")).toBeNull();
+  expect(view.getByText(`This timeline uses color version ${workingColorSpaceVersion}. This version of NodeTool supports up to version 1. Update NodeTool to edit or export it.`)).toBeInTheDocument();
+  expect(mockPaints()).toHaveLength(0);
+  expect(JSON.stringify(document)).toBe(saved);
+});

@@ -993,6 +993,22 @@ describe("set_timeline_document", () => {
     });
   });
 
+  it("preserves a clip's param curves, including names it does not read", async () => {
+    const row = await makeTimeline();
+    const base = replacement();
+    const paramCurves = [
+      { property: "volumeDb", keyframes: [{ t: 0, value: 0 }, { t: 1, value: -6 }] },
+      { property: "future:thing", keyframes: [{ t: 0, value: 1 }] }
+    ];
+    const first = { ...base.clips[0], paramCurves };
+    const result = await run().invoke("set_timeline_document", {
+      timeline_id: row.id,
+      document: { ...base, clips: [first, base.clips[1]] }
+    });
+    expect(result).toMatchObject({ ok: true, written: true });
+    expect((await TimelineSequence.findById(row.id))?.toDocument().clips[0]).toMatchObject({ paramCurves });
+  });
+
   it("stores every asset ref form as the asset's full id", async () => {
     const row = await makeTimeline();
     const asset = (await Asset.create({

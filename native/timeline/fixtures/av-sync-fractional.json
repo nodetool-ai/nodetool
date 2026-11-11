@@ -1,0 +1,42 @@
+{
+  "id": "seq-av-sync-fractional",
+  "projectId": "native-prototype",
+  "name": "Flash and beep, off the sample grid (M3 A/V sync)",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 13000,
+  "tracks": [
+    {
+      "id": "v",
+      "name": "Picture",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "fb",
+      "trackId": "v",
+      "name": "in-point 0.05 frame past the grid: each click edge starts with a sample below the threshold",
+      "startMs": 500,
+      "durationMs": 11000,
+      "inPointMs": 1500.0010416666667,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "mediaPath": "media/flash-beep-720p30.mov",
+      "width": 1280,
+      "height": 720,
+      "opacity": 1.0
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

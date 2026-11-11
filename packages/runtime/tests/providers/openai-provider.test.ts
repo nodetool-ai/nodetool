@@ -269,11 +269,12 @@ describe("OpenAIProvider", () => {
     await expect(provider.getAvailableTTSModels()).resolves.toHaveLength(3);
     const imageModels = await provider.getAvailableImageModels();
     expect(imageModels.map((model) => model.id)).toEqual([
+      "gpt-image-2.6-flare",
+      "gpt-image-2.6-sunburst",
       "gpt-image-2.5-flare",
       "gpt-image-2.5-sunburst",
       "gpt-image-2",
       "gpt-image-1.5",
-      "gpt-image-1",
       "gpt-image-1-mini"
     ]);
     await expect(provider.getAvailableVideoModels()).resolves.toHaveLength(2);

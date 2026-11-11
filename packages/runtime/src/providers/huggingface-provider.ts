@@ -1,5 +1,11 @@
 import { createLogger } from "@nodetool-ai/config";
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type ProviderCapability
+} from "./base-provider.js";
+import { recordGenerationReceipt } from "../generation-receipt.js";
 import { isCallable, isNumber, isString } from "@nodetool-ai/protocol";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
@@ -278,6 +284,81 @@ async function getHfEmbeddingModels(): Promise<EmbeddingModel[]> {
 interface HuggingFaceProviderOptions {
   /** Override for testing — inject a mock HfInference instance. */
   hfClient?: HfClient;
+  /** Override for testing — the fetch endpoint calls use. */
+  fetchFn?: typeof fetch;
+}
+
+// ---------------------------------------------------------------------------
+// Endpoint calls: the Inference Providers router, task by task
+// ---------------------------------------------------------------------------
+
+const HF_ROUTER_BASE = "https://router.huggingface.co";
+
+/**
+ * The task ids `callEndpoint` accepts as `route`. `chat-completion` posts to
+ * the OpenAI-compatible `/v1/chat/completions`. Every other task posts its
+ * `{ inputs, parameters }` body to `/hf-inference/models/{model}`.
+ */
+const HF_ENDPOINT_TASKS: ReadonlySet<string> = new Set([
+  "chat-completion",
+  "text-generation",
+  "summarization",
+  "translation",
+  "fill-mask",
+  "question-answering",
+  "table-question-answering",
+  "feature-extraction",
+  "text-classification",
+  "token-classification",
+  "zero-shot-classification",
+  "text-to-image",
+  "image-to-image",
+  "image-classification",
+  "image-segmentation",
+  "object-detection",
+  "automatic-speech-recognition",
+  "audio-classification",
+  "text-to-video"
+]);
+
+/**
+ * Tasks that answer with media. Their output is `{ data, mimeType }`, the
+ * shape the generation seam keeps out of the prediction message.
+ */
+const HF_BINARY_TASKS: ReadonlySet<string> = new Set([
+  "text-to-image",
+  "image-to-image",
+  "text-to-video"
+]);
+
+/** The base64 payload of a JSON media envelope, or null when it has none. */
+function envelopeBase64(json: unknown): string | null {
+  if (isString(json)) return json;
+  if (Array.isArray(json) && json.length > 0) return envelopeBase64(json[0]);
+  if (json !== null && typeof json === "object") {
+    const record = json as Record<string, unknown>;
+    for (const key of [
+      "image",
+      "video",
+      "audio",
+      "data",
+      "b64_json",
+      "generated_image"
+    ]) {
+      const value = record[key];
+      if (isString(value)) return value.replace(/^data:[^,]+,/, "");
+    }
+  }
+  return null;
+}
+
+function envelopeMime(json: unknown): string | null {
+  if (json !== null && typeof json === "object" && !Array.isArray(json)) {
+    const record = json as Record<string, unknown>;
+    if (isString(record.video)) return "video/mp4";
+    if (isString(record.audio)) return "audio/flac";
+  }
+  return null;
 }
 
 function extractTextContent(
@@ -344,6 +425,7 @@ export class HuggingFaceProvider extends BaseProvider {
 
   private readonly _apiKey: string;
   private _hfClient: HfClient | null = null;
+  private readonly _fetch: typeof fetch;
 
   constructor(
     secrets: { HF_TOKEN?: string },
@@ -358,6 +440,93 @@ export class HuggingFaceProvider extends BaseProvider {
     if (options.hfClient) {
       this._hfClient = options.hfClient;
     }
+    this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * POST one Inference Providers task to the router. `route` is the task id
+   * (see HF_ENDPOINT_TASKS) and `input` the body the task expects. JSON tasks
+   * return the parsed response. Media tasks return `{ data, mimeType }`,
+   * decoding a provider's base64 JSON envelope when it sends one.
+   *
+   * Vendor media inputs travel inline as base64 in `input`, so there is no
+   * upload step: `uploadMedia` keeps the base default.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const task = req.route;
+    if (task === undefined || !HF_ENDPOINT_TASKS.has(task)) {
+      throw new Error(
+        `huggingface endpoint route must be a task id (${[...HF_ENDPOINT_TASKS].join(", ")}), got ${task === undefined ? "none" : `"${task}"`}`
+      );
+    }
+    const chat = task === "chat-completion";
+    const binary = HF_BINARY_TASKS.has(task);
+    const url = chat
+      ? `${HF_ROUTER_BASE}/v1/chat/completions`
+      : `${HF_ROUTER_BASE}/hf-inference/models/${req.model}`;
+    const body = chat ? { model: req.model, ...req.input } : req.input;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this._apiKey}`,
+      "Content-Type": "application/json"
+    };
+    if (binary) {
+      headers.Accept = "image/png, video/mp4, application/octet-stream";
+    }
+    const init: RequestInit = {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    };
+    if (req.signal) init.signal = req.signal;
+
+    const res = await this._fetch(url, init);
+    if (!res.ok) {
+      let detail = "";
+      try {
+        detail = await res.text();
+      } catch {
+        /* response body already consumed or unavailable */
+      }
+      throw new Error(
+        `Hugging Face inference failed for "${req.model}" (${res.status}): ${detail || res.statusText}`
+      );
+    }
+    const requestId = res.headers.get("x-request-id");
+    if (requestId) recordGenerationReceipt({ provider_request_id: requestId });
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!binary) {
+      const output: unknown = await res.json();
+      return { output, requestId };
+    }
+    if (contentType.includes("application/json")) {
+      const json: unknown = await res.json();
+      const base64 = envelopeBase64(json);
+      if (!base64) {
+        throw new Error(
+          `Hugging Face returned JSON without media for "${req.model}": ${JSON.stringify(json).slice(0, 200)}`
+        );
+      }
+      return {
+        output: {
+          data: new Uint8Array(Buffer.from(base64, "base64")),
+          mimeType: envelopeMime(json) ?? "image/png"
+        },
+        requestId
+      };
+    }
+    return {
+      output: {
+        data: new Uint8Array(await res.arrayBuffer()),
+        mimeType: contentType || "application/octet-stream"
+      },
+      requestId
+    };
   }
 
   /**

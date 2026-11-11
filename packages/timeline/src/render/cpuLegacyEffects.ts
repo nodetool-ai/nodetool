@@ -1,10 +1,16 @@
+import { denoiseSpatial, denoiseTemporal, type TemporalSources } from "./denoise.js";
+import { stabilizeImage, stabilizationNeutral } from "./stabilization.js";
+import { debandImage } from "./deband.js";
+import { exposeRgb } from "./exposure.js";
 import {
+  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
   isClipChromaKeyEffect, isClipColorEffect, isClipCurvesEffect, isClipGlowEffect,
   isClipGrainEffect, isClipLevelsEffect, isClipLiftGammaGainEffect,
   isClipSharpenEffect, isClipVignetteEffect, type ClipEffect
 } from "../types.js";
 import { parseCssColorOrBlack } from "./color.js";
-import { channelMidtones, fitCurve } from "./curveFitting.js";
+import { secondaryCurveTransfer, secondaryNeutral, secondaryRgb } from "./secondaryColor.js";
+import { curveTransfer, sampleTransfer } from "./curveTransfer.js";
 import type { PixelBuffer } from "./cpuVisualEffects.js";
 
 const clamp = (v: number): number => Math.max(0, Math.min(1, v));
@@ -12,7 +18,7 @@ const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 
 const byte = (v: number): number => Math.round(clamp(v) * 255);
 
 export function isCpuLegacyEffect(effect: ClipEffect): boolean {
-  return isClipGlowEffect(effect) || isClipVignetteEffect(effect)
+  return isClipDenoiseEffect(effect) || isClipStabilizeEffect(effect) || isClipDebandEffect(effect) || isClipSecondaryColorEffect(effect) || isClipExposureEffect(effect) || isClipGlowEffect(effect) || isClipVignetteEffect(effect)
     || isClipSharpenEffect(effect) || isClipChromaKeyEffect(effect)
     || isClipCurvesEffect(effect) || isClipLevelsEffect(effect)
     || isClipLiftGammaGainEffect(effect) || isClipGrainEffect(effect);
@@ -92,10 +98,9 @@ function coversSurface(bounds: PixelBounds, pixels: PixelBuffer): boolean {
 
 function gaussian(input: Uint8ClampedArray, width: number, height: number, radius: number): Uint8ClampedArray {
   if (radius < 0.5) return input;
-  const taps = Math.floor(Math.min(radius, 20));
-  const step = Math.max(1, radius / 20);
-  const sigma = radius / 3;
-  const weights = Array.from({ length: taps * 2 + 1 }, (_, i) => Math.exp(-Math.pow((i - taps) * step, 2) / (2 * sigma * sigma)));
+  const taps = Math.floor(Math.min(radius, 256));
+  const sigma = Math.min(radius, 256) / 3;
+  const weights = Array.from({ length: taps * 2 + 1 }, (_, i) => Math.exp(-Math.pow(i - taps, 2) / (2 * sigma * sigma)));
   const total = weights.reduce((a, b) => a + b, 0);
   let source = input;
   for (let axis = 0; axis < 2; axis++) {
@@ -105,7 +110,7 @@ function gaussian(input: Uint8ClampedArray, width: number, height: number, radiu
         for (let c = 0; c < 4; c++) {
           let sum = 0;
           for (let tap = -taps; tap <= taps; tap++) {
-            const offset = Math.round(tap * step);
+            const offset = tap;
             const sx = Math.max(0, Math.min(width - 1, x + (axis === 0 ? offset : 0)));
             const sy = Math.max(0, Math.min(height - 1, y + (axis === 1 ? offset : 0)));
             sum += source[(sy * width + sx) * 4 + c]! * weights[tap + taps]!;
@@ -188,12 +193,44 @@ function softLight(base: number, blend: number): number {
 }
 
 /** CPU counterparts of the persisted GPU color, keying and texture effects. */
-export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly ClipEffect[]): void {
+export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly ClipEffect[], neighbors?: TemporalSources<PixelBuffer>): void {
   const { width, height, data } = pixels;
   for (const effect of effects) {
     if (!effect.enabled || !isCpuLegacyEffect(effect)) continue;
+    if (isClipDenoiseEffect(effect) && !(effect.lumaStrength || effect.chromaStrength || effect.temporalStrength)) { continue; }
+    if (isClipStabilizeEffect(effect) && stabilizationNeutral(effect)) { continue; }
+    if (isClipDebandEffect(effect) && (effect.strength ?? 0) <= 0) { continue; }
+    if (isClipSecondaryColorEffect(effect) && secondaryNeutral(effect)) { continue; }
+    if (isClipExposureEffect(effect) && !(effect.exposure || effect.rolloff || effect.whites)) { continue; }
+    const sharpenRadius = isClipSharpenEffect(effect) ? Math.max(0, Math.min(256, effect.radius ?? 1)) : 0;
+    if (isClipSharpenEffect(effect) && (sharpenRadius === 0 || effect.amount === 0)) continue;
     const input = premultiply(data);
+    const sharpenLow = sharpenRadius > 1 ? gaussian(input, width, height, sharpenRadius) : undefined;
     const output = new Uint8ClampedArray(input.length);
+    if (isClipDenoiseEffect(effect)) {
+      let current = input;
+      if ((effect.temporalStrength ?? 0) > 0) {
+        if (!neighbors) { throw new Error("Temporal noise reduction requires neighboring source frames."); }
+        const matching = (frame: PixelBuffer): Uint8ClampedArray | null => frame.width === width && frame.height === height ? frame.data : null;
+        denoiseTemporal(input, output, width, height, {before: matching(neighbors.before), after: matching(neighbors.after)}, effect.temporalStrength!);
+        current = output;
+      }
+      if ((effect.lumaStrength ?? 0) > 0 || (effect.chromaStrength ?? 0) > 0) {
+        const target = current === input ? output : input;
+        denoiseSpatial(current, target, width, height, effect); current = target;
+      }
+      unpremultiply(current, data); continue;
+    }
+    if (isClipStabilizeEffect(effect) && effect._matrix) {
+      stabilizeImage(input, output, width, height, effect._matrix);
+      unpremultiply(output, data);
+      continue;
+    }
+    if (isClipDebandEffect(effect)) {
+      debandImage(input, output, width, height, effect);
+      unpremultiply(output, data);
+      continue;
+    }
     if (isClipGlowEffect(effect)) {
       const bright = new Uint8ClampedArray(input.length);
       for (let i = 0; i < input.length; i += 4) {
@@ -203,20 +240,26 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         for (let c = 0; c < 4; c++) bright[i + c] = Math.round(input[i + c]! * coverage);
       }
       const blurred = gaussian(bright, width, height, effect.radius);
-      for (let i = 0; i < input.length; i++) output[i] = Math.round(input[i]! + blurred[i]! * effect.intensity);
+      const color = parseCssColorOrBlack(effect.color ?? "#ffffff");
+      const tint = [color.r, color.g, color.b, 1];
+      for (let i = 0; i < input.length; i++) output[i] = Math.round(input[i]! + blurred[i]! * effect.intensity * (tint[i % 4] ?? 1));
       unpremultiply(output, data);
       continue;
     }
-    const curve = isClipCurvesEffect(effect) ? fitCurve(effect.master) : undefined;
-    const channelGamma = isClipCurvesEffect(effect)
-      ? [effect.r, effect.g, effect.b].map((points) => 1 / Math.max(0.01, 1 + channelMidtones(points))) : [];
+    const secondary = isClipSecondaryColorEffect(effect) ? secondaryCurveTransfer(effect) : undefined;
+    const curve = isClipCurvesEffect(effect) ? curveTransfer(effect) : undefined;
     const key = isClipChromaKeyEffect(effect) ? parseCssColorOrBlack(effect.color) : undefined;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const i = (y * width + x) * 4;
         let a = input[i + 3]! / 255;
         const rgb = [input[i]!, input[i + 1]!, input[i + 2]!].map((v) => v / Math.max(1, input[i + 3]!));
-        if (isClipChromaKeyEffect(effect) && key) {
+        if (isClipSecondaryColorEffect(effect) && secondary) {
+          rgb.splice(0, 3, ...secondaryRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect, secondary));
+        } else if (isClipExposureEffect(effect)) {
+          const value = exposeRgb([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0], effect.exposure, effect.rolloff, effect.whites);
+          rgb.splice(0, 3, ...value);
+        } else if (isClipChromaKeyEffect(effect) && key) {
           // Keying reads straight pixels, before the premultiplied bridge.
           for (let c = 0; c < 3; c++) rgb[c] = data[i + c]! / 255;
           const dist = Math.hypot(rgb[0]! - key.r, rgb[1]! - key.g, rgb[2]! - key.b);
@@ -232,7 +275,10 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
         } else if (isClipSharpenEffect(effect)) {
           const sums = [0, 0, 0];
           let sumA = 0;
-          for (let dy = -1; dy <= 1; dy++) {
+          if (sharpenLow) {
+            for (let c = 0; c < 3; c++) sums[c] = sharpenLow[i + c]! * 9;
+            sumA = sharpenLow[i + 3]! * 9;
+          } else for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
               const j = (Math.max(0, Math.min(height - 1, y + dy)) * width + Math.max(0, Math.min(width - 1, x + dx))) * 4;
               for (let c = 0; c < 3; c++) sums[c] = sums[c]! + input[j + c]!;
@@ -242,7 +288,7 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
           const diff = rgb.map((v, c) => v - sums[c]! / Math.max(9, sumA));
           const luma = Math.abs(diff[0]! * 0.299 + diff[1]! * 0.587 + diff[2]! * 0.114);
           if (luma >= (effect.threshold ?? 0)) {
-            for (let c = 0; c < 3; c++) rgb[c] = clamp(rgb[c]! + diff[c]! * effect.amount);
+            for (let c = 0; c < 3; c++) rgb[c] = clamp(rgb[c]! + diff[c]! * effect.amount * Math.min(sharpenRadius, 1));
           }
         } else if (isClipGrainEffect(effect)) {
           if (a > 0) {
@@ -279,15 +325,15 @@ export function applyCpuLegacyEffects(pixels: PixelBuffer, effects: readonly Cli
             } else if (isClipLiftGammaGainEffect(effect)) {
               v = Math.pow(Math.max(0, (v + effect.lift[c]!) * effect.gain[c]!), 1 / Math.max(0.01, effect.gamma[c]!));
             } else if (curve) {
-              v = clamp((v - curve.blackPoint) / Math.max(0.001, curve.whitePoint - curve.blackPoint));
-              v += curve.shadows * (1 - v) * v;
-              v = Math.pow(Math.max(0, v), 1 / Math.max(0.01, 1 + curve.midtones));
-              v += curve.highlights * v * (1 - v);
-              v = Math.pow(Math.max(0, v), channelGamma[c]!);
+              v = sampleTransfer(curve, v, c);
             } else if (isClipVignetteEffect(effect)) {
               const radius = effect.radius ?? 0.9;
               const inner = Math.max(0, radius - effect.softness);
-              const distance = Math.hypot((x + 0.5) / width * 2 - 1, (y + 0.5) / height * 2 - 1);
+              const roundness = effect.roundness ?? 0;
+              const shortAxis = Math.min(width, height);
+              const dx = ((x + 0.5) / width * 2 - (effect.centerX ?? 0.5) * 2) * (1 + roundness * (width / shortAxis - 1));
+              const dy = ((y + 0.5) / height * 2 - (effect.centerY ?? 0.5) * 2) * (1 + roundness * (height / shortAxis - 1));
+              const distance = Math.hypot(dx, dy);
               v *= 1 - effect.amount * smooth((distance - inner) / (Math.max(inner + 0.001, radius) - inner));
             }
             rgb[c] = clamp(v);
@@ -316,8 +362,7 @@ export function applyCpuGaussianBlur(pixels: PixelBuffer, radius: number, conten
     unpremultiply(gaussian(premultiply(pixels.data), pixels.width, pixels.height, radius), pixels.data);
     return;
   }
-  const taps = Math.floor(Math.min(radius, 20));
-  const support = Math.round(taps * Math.max(1, radius / 20));
+  const support = Math.floor(Math.min(radius, 256));
   const expanded = {
     x0: Math.max(0, bounds.x0 - support),
     y0: Math.max(0, bounds.y0 - support),

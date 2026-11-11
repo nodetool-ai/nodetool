@@ -45,6 +45,10 @@ describe("tabHasMatches", () => {
     expect(tabHasMatches("integrations", "folders")).toBe(true);
     expect(tabHasMatches("general", "mcp")).toBe(false);
   });
+
+  it("finds the ComfyUI address on Integrations, where its field is", () => {
+    expect(tabHasMatches("integrations", "ComfyUI")).toBe(true);
+  });
 });
 
 describe("otherMatchingTabs", () => {

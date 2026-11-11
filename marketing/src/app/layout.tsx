@@ -63,6 +63,9 @@ const jetBrainsMono = localFont({
     },
   ],
   display: "swap",
+  // Code type sits below the fold on every page. Preloading its three files
+  // spent mobile bandwidth on them before the hero poster, the LCP element.
+  preload: false,
   variable: "--font-jetbrains-mono",
 });
 

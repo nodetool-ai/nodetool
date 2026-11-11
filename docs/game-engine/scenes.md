@@ -5,7 +5,20 @@ permalink: /game-engine/scenes
 description: "Organize a native game with stable entities, components, and reusable prefabs."
 ---
 
-A document declares an entry scene. Each scene owns its entities, active camera, environment, and optional music and HUD. A scene transition changes which scene the session runs.
+A document declares an entry scene. Each scene owns its entities, camera, environment, and optional music and HUD. A 2D entity looks like this:
+
+```json
+{
+  "id": "hero", "name": "Hero",
+  "transform2d": { "x": 4, "y": 2 },
+  "sprite": { "assetId": "hero-sheet", "width": 1, "height": 2, "layer": 1 },
+  "body2d": { "type": "kinematic" },
+  "collider2d": { "width": 0.8, "height": 1.8 },
+  "behaviors": [{ "kind": "health", "maximum": 3 }]
+}
+```
+
+A scene transition changes which scene the session runs.
 
 ![AETHER with repeated platforms and columns arranged into a route](/assets/game-engine/aether.png)
 

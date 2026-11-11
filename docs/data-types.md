@@ -4,13 +4,13 @@ title: "Data Types and Connections"
 description: "What each handle color means, which connections the editor accepts, and how streamed values and running edges look on the canvas."
 ---
 
-Every handle on a node has a **data type**. The editor uses it to color the handle, to decide whether two nodes can connect, and to label what flows along a line. For the canvas itself, see the [Workflow Editor]({{ '/workflow-editor' | relative_url }}). For the ideas behind nodes and connections, see [Key Concepts]({{ '/key-concepts' | relative_url }}).
+Every node handle has a **data type** that sets its color and decides which connections the editor accepts. See also the [Workflow Editor]({{ '/workflow-editor' | relative_url }}) and [Key Concepts]({{ '/key-concepts' | relative_url }}).
 
 ---
 
 ## Data types
 
-The table groups types that share a handle color. Hover a handle to see its type name and description.
+Types that share a handle color share a row.
 
 | Type | What it holds | Handle color | Example nodes |
 |---|---|---|---|
@@ -37,7 +37,7 @@ Other types follow the same scheme. Asset, file, folder, bytes, font, and model 
 
 A type the editor does not know gets a color derived from its name. A handle with no declared type uses grey `#A7B1BF`.
 
-> **Tip:** Hold the pointer over a handle to see its type and a short description. When two ends have different colors, the line between them blends from the source color to the target color.
+> Hover a handle to see its type. When two ends have different colors, the line blends from the source color to the target color.
 {: .callout-tip}
 
 ---
@@ -54,7 +54,7 @@ An input typed `list[T]` is a **collect** input. It accepts several lines at onc
 
 ### Which connections are accepted
 
-The editor checks every connection against these rules. A connection that fails does not attach.
+A connection that fails these checks does not attach.
 
 1. **Same type connects.** An `image` output connects to an `image` input.
 2. **Any connects to anything.** A handle of type `any` on either end is always accepted.
@@ -76,9 +76,7 @@ The editor also refuses a connection that would form a cycle, and it refuses an 
 
 ## Streaming
 
-Some nodes produce their output in pieces. A text model emits **chunks** as it generates, and **For Each** emits one list item at a time. The node keeps running while the pieces travel down the line, so downstream nodes can start before the upstream node finishes.
-
-How a downstream node reacts depends on the node:
+A text model emits **chunks** as it generates, and **For Each** emits one list item at a time. Downstream nodes can start before the upstream node finishes. Their behavior depends on the node:
 
 - **Per-item nodes** run once for each value that arrives. Everything between For Each and the end of its branch runs once per item.
 - **Streaming-input nodes** read values as they arrive instead of waiting for all of them. The LFO is one.
@@ -89,8 +87,6 @@ Use For Each to split a list into items, and Collect to join them back. To repea
 ---
 
 ## Edge states
-
-While a workflow runs, the editor shows what each line is doing.
 
 - **Moving dashes:** a line animates with flowing dashes while its source node is starting or running, and while a message is crossing it.
 - **Item count:** when more than one value has crossed a line, a small badge shows the count. Hover it to see how many items streamed.

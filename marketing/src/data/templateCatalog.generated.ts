@@ -476,6 +476,22 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "animate-a-product-catalog-with-references",
+        "name": "Animate a Product Catalog with References",
+        "description": "Turn a product catalog into product videos made from reference images. Each row's own photo is image 1, and an optional background and decoration image follow it for the whole range. The prompt is filled from that row's columns, and its role placeholders become image 1, image 2 and image 3.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "slug": "animate-a-product-catalog",
+        "name": "Animate a Product Catalog",
+        "description": "Turn a product catalog into product videos. Each row's own photo is animated with image-to-video, and the prompt is filled from that row's columns, so a whole range of products shares one camera move and light while every clip stays true to its product.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "slug": "assemble-a-ugc-product-video",
         "name": "Assemble a UGC Product Video",
         "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
@@ -1323,6 +1339,14 @@ export const templateCatalog: CatalogCategory[] = [
           "ai",
           "flashcards",
           "learning"
+        ]
+      },
+      {
+        "slug": "read-a-product-catalog",
+        "name": "Read a Product Catalog",
+        "description": "Check a product catalog before you render it. Reads a CSV, finds the image and name columns, and fills the video prompt template for every row, so a wrong column or a missing image shows before any video is paid for.",
+        "tags": [
+          "data"
         ]
       },
       {

@@ -1813,6 +1813,12 @@
       "localTitle": "Vous préférez les modèles locaux ?",
       "localDescription": "Installez Ollama et téléchargez un modèle à exécuter sur votre machine.",
       "getOllama": "Obtenez Ollama",
+      "ollamaChecking": "Vérification de la connexion à Ollama…",
+      "ollamaCheckFailed": "Impossible de vérifier Ollama. Réessayez.",
+      "ollamaConnected": "Ollama est connecté. Choisissez ou téléchargez un modèle dans le gestionnaire de modèles.",
+      "ollamaUnavailable": "Utilisez l’application de bureau NodeTool pour vous connecter à Ollama sur votre ordinateur.",
+      "ollamaUnreachable": "Ollama est inaccessible. S’il est installé, ouvrez-le. Sinon, téléchargez-le pour commencer.",
+      "checkOllamaAgain": "Vérifier à nouveau",
       "encryptedKeys": "Les clés API sont cryptées. Vous pouvez les gérer ou les supprimer dans Paramètres.",
       "signInAgain": "Connectez-vous à nouveau à {{provider}}",
       "waitingSignIn": "En attente de connexion…",
@@ -2292,7 +2298,10 @@
       "title": "Connectez-vous à NodeTool Cloud",
       "description": "Décrivez ce que vous voulez. L'agent le construit et vous pouvez prendre le relais à tout moment.",
       "ownKeys": "Utilisez vos propres clés API et payez les fournisseurs aux prix catalogue.",
-      "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez"
+      "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez",
+      "ssoTitle": "Connexion à NodeTool",
+      "ssoSignIn": "Se connecter avec {{provider}}",
+      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur."
     },
     "inspector": {
       "params": "Paramètres",
@@ -6250,7 +6259,6 @@
         "checkingModels": "Je vérifie toujours vos modèles linguistiques. Réessayez dans un instant.",
         "chatNeedsModel": "Nous y sommes presque : le chat a besoin d'un modèle pour fonctionner.",
         "pickModelToStartChat": "Choisissez un modèle de langue et le chat démarre.",
-        "pickMediaModel": "Choisissez un modèle et la génération commence.",
         "openChatError": "Impossible d'ouvrir le chat : {{error}}",
         "startFlowError": "Impossible de démarrer {{flow}} : {{error}}",
         "flowNames": {
@@ -6467,7 +6475,14 @@
         "entityCount_many": "Entités {{count}}",
         "attachedFileCountShort_many": "Fichiers · {{count}}",
         "moreStarters_many": "{{count}} plus",
-        "renderedExampleShots_many": "Plans {{count}}, déjà rendus"
+        "renderedExampleShots_many": "Plans {{count}}, déjà rendus",
+        "goals": {
+          "label": "Quoi commencer",
+          "chat": "Chat",
+          "image": "Image",
+          "video": "Vidéo",
+          "audio": "Audio"
+        }
       }
     }
   },
@@ -6910,6 +6925,7 @@
       "allCategories": "Tout",
       "categories": {
         "workflows": "Flux de travail",
+        "comfy": "ComfyUI",
         "apps": "Applications",
         "storyboards": "Story-boards",
         "timelines": "Chronologies",
@@ -8927,8 +8943,6 @@
       "studio": "Atelier",
       "switchToProject": "Passer au projet {{name}}",
       "personal": "Personnel",
-      "newChatInMode": "Nouveau chat : {{mode}}",
-      "newChatInModeValue": "Nouveau chat {{mode}}",
       "newTextFileValue": "Nouveau fichier texte {{label}}",
       "newTextFile": "Nouveau fichier texte : {{label}}",
       "newStoryboard": "Nouveau story-board",
@@ -8960,8 +8974,7 @@
         "script": "Nouveau scénario",
         "jsscript": "Nouveau script JS",
         "skill": "Nouvelle compétence",
-        "model3d": "Nouveau modèle 3D",
-        "create": "Créer des images et des vidéos"
+        "model3d": "Nouveau modèle 3D"
       },
       "templates": {
         "markdown": "Démarquage (.md)",
@@ -8970,6 +8983,12 @@
         "csv": "CSV (.csv)",
         "tsv": "TSV (.tsv)",
         "plainText": "Texte brut (.txt)"
+      },
+      "createSession": {
+        "image": "Nouvelle image",
+        "video": "Nouvelle vidéo",
+        "audio": "Lire à voix haute",
+        "music": "Générer de la musique"
       }
     },
     "googleWorkspace": {
@@ -9184,6 +9203,14 @@
         "CHEAPER_INFERENCE_API_KEY": {
           "button": "Obtenir la clé API Cheaper Inference",
           "tooltip": "Accédez à la plateforme Cheaper Inference pour obtenir votre clé API"
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Obtenir la clé API Runcrate",
+          "tooltip": "Accédez à la plateforme Runcrate pour obtenir votre clé API"
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Obtenir la clé API Standard Compute",
+          "tooltip": "Accédez à la plateforme Standard Compute pour obtenir votre clé API"
         },
         "API_ROUTE_API_KEY": {
           "button": "Obtenir la clé de route API",
@@ -12349,6 +12376,31 @@
         "undo": "Annuler",
         "redo": "Refaire",
         "agent": "Agent"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12928,7 +12980,6 @@
       "debuggingNotice": "Chrome affiche une barre « Nodetool débogue ce navigateur » pendant l'exécution d'une requête. L'extension ne fait rien sur les autres onglets.",
       "setup": "Configurez-le",
       "step1": "Laissez Chrome démarrer le pont de navigateur de NodeTool.",
-      "windowsUnsupported": "Ceci n'est pas encore pris en charge sous Windows. La génération de médias via l'extension fonctionne sur macOS et Linux.",
       "bridgeRegistered": "Terminé. NodeTool a enregistré son pont auprès de vos navigateurs.",
       "registering": "Inscription avec vos navigateurs…",
       "registrationFailed": "L'enregistrement du pont de navigateur a échoué",
@@ -12955,7 +13006,7 @@
       "disableAll": "Désactiver tous les nœuds",
       "color": "Couleur du groupe",
       "removeNodesHeading": "SUPPRIMER LES NŒUDS DU GROUPE",
-      "dragOutModifier": "Faites glisser tout en maintenant CTRL | ⌘ clé",
+      "dragOutModifier": "Faites glisser hors du groupe en maintenant Alt (Option ⌥ sur Mac)",
       "shakeToRemove": "Secouez rapidement, puis faites glisser"
     }
   },
@@ -16221,7 +16272,8 @@
         "memory": "Mémoire",
         "settings": "Paramètres",
         "effects": "Effets",
-        "lipsync": "Synchronisation labiale"
+        "lipsync": "Synchronisation labiale",
+        "admin": "Administration"
       }
     },
     "script": {
@@ -19206,6 +19258,12 @@
     "refreshModels": "Actualiser les modèles",
     "statusUnavailable": "Statut indisponible"
   },
+  "copilot": {
+    "description": "Utilisez votre compte GitHub Copilot pour les modèles de langage. Aucune clé d’API n’est nécessaire.",
+    "install": "Installez la CLI GitHub Copilot dans un terminal sur cet ordinateur.",
+    "signIn": "Connectez-vous ensuite et actualisez les modèles. Les modèles que votre offre Copilot n’inclut pas n’apparaissent pas.",
+    "refreshModels": "Actualiser les modèles"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "Faites glisser une prise de vue sur une piste vidéo ou appuyez sur Entrée pour la placer sur la tête de lecture.",
@@ -19264,6 +19322,15 @@
       "invalidLink": "Ce lien de partage n'est pas valide ou a été révoqué. Demandez-en un nouveau au propriétaire du document.",
       "goToWorkspace": "Aller à l'espace de travail",
       "opening": "Ouverture d'un document partagé"
+    },
+    "invite": {
+      "label": "Inviter des personnes",
+      "placeholder": "Nom ou e-mail",
+      "role": "Rôle",
+      "submit": "Inviter",
+      "typeMore": "Saisissez au moins 2 caractères",
+      "noMatches": "Aucun résultat",
+      "failed": "Impossible de donner l'accès."
     }
   },
   "timelineAutomation": {
@@ -19294,36 +19361,6 @@
     "missingTarget": "Appareil supprimé",
     "laneLabel": "Voie d'automatisation : {{name}}",
     "deletePoint": "Supprimer un point"
-  },
-  "generationFeed": {
-    "recent": "Récent",
-    "imageEmptyTitle": "Créer des images",
-    "imageEmptyDescription": "Décrivez une scène ci-dessous et choisissez un modèle et un rapport hauteur/largeur. Joindre une image pour la modifier.",
-    "videoEmptyTitle": "Créer des vidéos",
-    "videoEmptyDescription": "Décrivez la prise de vue, le mouvement de la caméra et l'éclairage ci-dessous. Attachez un cadre pour l’animer.",
-    "audioEmptyTitle": "Générer de la parole et de la musique",
-    "audioEmptyDescription": "Tapez une ligne pour l’entendre lire à haute voix. Basculez vers Générer de la musique pour composer une piste.",
-    "editImage": "Modifier cette image",
-    "openInSketch": "Ouvrir dans Sketch",
-    "addToCanvas": "Ajouter à la toile",
-    "rerun": "Réexécuter",
-    "copyPrompt": "Copier l'invite",
-    "removeFromThread": "Supprimer du fil de discussion",
-    "history": "Historique ({{total}})",
-    "tileSize": "Taille des carreaux",
-    "viewMode": "Mode d'affichage",
-    "list": "Liste",
-    "grid": "Grille",
-    "video": "Vidéo",
-    "speech": "Discours",
-    "music": "Musique",
-    "noVideoOutput": "Aucune vidéo n'a été renvoyée.",
-    "noAudioOutput": "Aucun son n'a été renvoyé.",
-    "untitledTrack": "Piste audio",
-    "extendClip": "Prolonger ce clip",
-    "referenceAlt": "Référence {{index}}",
-    "sketchTitle": "Esquisse",
-    "audio": "Audio"
   },
   "preset_chip": {
     "label": "Préréglages",
@@ -19790,13 +19827,34 @@
     "takes_other": "{{count}} prend",
     "placeholder": {
       "image": "Un phare au crépuscule, image fixe",
-      "video": "Chariot lent sur un phare au crépuscule"
+      "video": "Chariot lent sur un phare au crépuscule",
+      "image_edit": "Passe en pleine nuit et ajoute de la pluie",
+      "image_to_video": "Les vagues se brisent et la lumière commence à tourner",
+      "reference_to_video": "Le personnage des références marche le long de la jetée",
+      "retake": "Remplace le ciel par un orage",
+      "extend": "La caméra continue de reculer",
+      "audio": "Saisis les mots à prononcer",
+      "music": "Piano ambient lent avec une pluie douce"
     },
     "blocker": {
       "noPrompt": "Écrivez une invite à générer.",
       "noModel": {
         "image": "Choisissez un modèle d'image à générer.",
-        "video": "Choisissez un modèle vidéo à générer."
+        "video": "Choisissez un modèle vidéo à générer.",
+        "image_edit": "Choisis un modèle de retouche d’image pour générer.",
+        "image_to_video": "Choisis un modèle image vers vidéo pour générer.",
+        "reference_to_video": "Choisis un modèle références vers vidéo pour générer.",
+        "retake": "Choisis un modèle de montage vidéo pour générer.",
+        "extend": "Choisis un modèle de prolongation vidéo pour générer.",
+        "audio": "Choisis un modèle de voix pour générer.",
+        "music": "Choisis un modèle de musique pour générer."
+      },
+      "needsInput": {
+        "image_edit": "Ajoute l’image à modifier.",
+        "image_to_video": "Ajoute l’image à animer.",
+        "reference_to_video": "Ajoute au moins une image ou un clip de référence.",
+        "retake": "Ajoute le clip à changer.",
+        "extend": "Ajoute le clip à prolonger."
       }
     },
     "sendFailed": "Démarrage de {{sent}} sur {{count}} prises. Le reste n'est pas parvenu à NodeTool. Vérifiez votre connexion et réessayez.",
@@ -19805,8 +19863,9 @@
     "gridLabel": "Générations",
     "empty": {
       "title": "Rien de créé pour l'instant",
-      "description": "Écrivez une invite ci-dessus et appuyez sur Générer. Vos images et vidéos apparaissent ici, les plus récentes en premier.",
-      "action": "Écrivez une invite"
+      "description": "Écris un prompt ci-dessus et appuie sur Générer. Tes images, vidéos et audios apparaissent ici, les plus récents en premier.",
+      "action": "Écrivez une invite",
+      "sessionTitle": "Rien dans cet onglet pour l'instant"
     },
     "item": {
       "open": "Ouvrir {{title}}",
@@ -19822,9 +19881,76 @@
       "downloaded": "Téléchargé {{name}}",
       "downloadFailed": "Impossible de télécharger : {{reason}}",
       "workflowName": "Créer un flux de travail",
-      "workflowFailed": "Impossible de créer un flux de travail : {{reason}}"
+      "workflowFailed": "Impossible de créer un flux de travail : {{reason}}",
+      "more": "Plus d’actions",
+      "moreLabel": "Plus d’actions pour {{title}}",
+      "useAsReference": "Utiliser comme référence",
+      "startFrom": {
+        "image_edit": "Modifier cette image",
+        "image_to_video": "Animer cette image",
+        "retake": "Changer ce clip",
+        "extend": "Prolonger ce clip"
+      },
+      "openInSketch": "Ouvrir dans le croquis",
+      "reusePrompt": "Réutiliser le prompt",
+      "sketchTitle": "Image créée"
     },
-    "takes_many": "{{count}} prend"
+    "takes_many": "{{count}} prend",
+    "kindLabel": "Quoi créer",
+    "modeLabel": "Comment le créer",
+    "kinds": {
+      "image": "Image",
+      "video": "Vidéo",
+      "audio": "Audio"
+    },
+    "modes": {
+      "image": "À partir de texte",
+      "image_edit": "Modifier",
+      "video": "À partir de texte",
+      "image_to_video": "Animer",
+      "reference_to_video": "À partir de références",
+      "retake": "Changer",
+      "extend": "Prolonger",
+      "audio": "Voix",
+      "music": "Musique"
+    },
+    "references": {
+      "label": "Références",
+      "remove": "Retirer",
+      "removeLabel": "Retirer {{name}}",
+      "role": {
+        "source": "Image source",
+        "startFrame": "Image de départ",
+        "sourceClip": "Clip source",
+        "reference": "Référence",
+        "unused": "Non utilisé ici"
+      },
+      "add": {
+        "image": "Ajouter une image",
+        "video": "Ajouter un clip",
+        "image-or-video": "Ajouter une référence"
+      },
+      "hint": {
+        "image_edit": "Ajoute ou dépose l’image à modifier. Les images en plus guident le rendu.",
+        "image_to_video": "Ajoute ou dépose l’image qui ouvre le clip.",
+        "reference_to_video": "Ajoute ou dépose des images et des clips des personnes, des lieux et du style à garder.",
+        "retake": "Ajoute ou dépose le clip à changer. Les images ajoutées guident le rendu.",
+        "extend": "Ajoute ou dépose le clip à prolonger."
+      },
+      "uploadFailed": "Impossible d’envoyer {{name}} : {{reason}}"
+    },
+    "switched": "Passé en mode {{mode}} parce que tu as ajouté une image.",
+    "undoSwitch": "Revenir à {{from}}",
+    "scope": {
+      "label": "Prises à afficher",
+      "session": "Cet onglet",
+      "all": "Toutes les prises"
+    },
+    "renameFailed": "Impossible de renommer l'onglet : {{reason}}",
+    "sessionFailed": "Impossible de charger les prises de cet onglet.",
+    "sessionKind": "Session Create",
+    "openInCreate": "Ouvrir dans Create",
+    "openInCreateFailed": "Impossible d'ouvrir Create : {{reason}}"
   },
   "effectsGallery": {
     "title": "Effets",
@@ -19939,5 +20065,209 @@
     "showAssistant": "Afficher l'assistant",
     "hideAssistant": "Masquer l'assistant",
     "resizeAssistant": "Assistant de redimensionnement de la chronologie"
+  },
+  "generationBatch": {
+    "summary": "{{done}} sur {{total}} terminées",
+    "remaining": "Environ {{time}} restantes",
+    "finishing": "Finalisation",
+    "failedCount": "Échecs : {{count}}",
+    "status": {
+      "queued": "En attente",
+      "running": "En cours",
+      "completed": "Terminée",
+      "failed": "Échec"
+    },
+    "showRequests": "Afficher les requêtes",
+    "hideRequests": "Masquer les requêtes",
+    "expected": "Prévu {{time}}",
+    "took": "A pris {{time}}",
+    "progressLabel": "Progression de la génération"
+  },
+  "workflowSteps": {
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "allDone": "Les {{total}} étapes sont terminées",
+    "waiting": "En attente",
+    "running": "En cours",
+    "done": "Terminé",
+    "failed": "Échec",
+    "progressLabel": "Progression du workflow",
+    "steps": "Étapes",
+    "addStep": "Ajouter une étape",
+    "removeStep": "Retirer l’étape",
+    "node": "Nœud",
+    "title": "Titre",
+    "description": "Description",
+    "autoHint": "Aucune étape définie. Le widget montre chaque nœud génératif.",
+    "chooseNode": "Choisir un nœud"
+  },
+  "admin": {
+    "page": {
+      "title": "Administration",
+      "subtitle": "Gérez les personnes qui se connectent à ce serveur.",
+      "deniedTitle": "Accès administrateur requis",
+      "deniedDescription": "Seuls les administrateurs de ce serveur peuvent ouvrir cette page."
+    },
+    "users": {
+      "searchPlaceholder": "Rechercher par nom, e-mail ou ID utilisateur",
+      "filter": {
+        "label": "Statut",
+        "all": "Tous",
+        "active": "Actifs",
+        "disabled": "Désactivés"
+      },
+      "columns": {
+        "person": "Personne",
+        "role": "Rôle",
+        "status": "Statut",
+        "usage": "Consommation",
+        "lastSeen": "Dernière activité",
+        "actions": "Actions"
+      },
+      "role": {
+        "admin": "Administrateur",
+        "member": "Membre",
+        "viaGroup": "Via un groupe ou un réglage du serveur"
+      },
+      "status": {
+        "active": "Actif",
+        "disabled": "Désactivé"
+      },
+      "never": "Jamais",
+      "actions": {
+        "makeAdmin": "Nommer administrateur",
+        "removeAdmin": "Retirer les droits d’administrateur",
+        "disable": "Désactiver",
+        "enable": "Activer"
+      },
+      "loadFailed": "Impossible de charger les utilisateurs",
+      "retry": "Réessayer",
+      "noMatches": "Aucun utilisateur ne correspond à la recherche",
+      "emptyTitle": "Aucun utilisateur pour l’instant",
+      "emptyDescription": "Les personnes apparaissent ici après leur première connexion par authentification unique.",
+      "range": "{{first}}–{{last}} sur {{total}}",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "updateFailed": "Impossible de modifier l’utilisateur.",
+      "disableDialog": {
+        "title": "Désactiver {{name}} ?",
+        "body": "La personne est déconnectée partout immédiatement et ne peut plus se connecter tant que vous n’avez pas réactivé le compte. Son travail reste sur le serveur.",
+        "cancel": "Annuler"
+      }
+    },
+    "quotas": {
+      "editDefault": "Modifier les limites par défaut",
+      "editLimits": "Limites",
+      "defaultTitle": "Limites par défaut",
+      "userTitle": "Limites de {{name}}",
+      "defaultNone": "Aucune limite par défaut. Tout le monde peut dépenser sans plafond avec les clés de ce serveur.",
+      "defaultSummaryDay": "Par défaut pour tous : {{tokens}} jetons de modèle et {{media}} pour les médias par jour.",
+      "defaultSummaryMonth": "Par défaut pour tous : {{tokens}} jetons de modèle et {{media}} pour les médias par mois.",
+      "unlimited": "aucune limite",
+      "tokensLabel": "Jetons :",
+      "mediaLabel": "Médias :",
+      "usedOf": "{{used}} sur {{limit}}",
+      "usedNoLimit": "{{used}}, aucune limite",
+      "ownLimits": "Limites propres",
+      "period": {
+        "label": "Période",
+        "day": "Par jour",
+        "month": "Par mois"
+      },
+      "tokenLimit": "Jetons de modèle",
+      "mediaLimit": "Budget médias (USD)",
+      "noLimit": "Aucune limite",
+      "invalid": "Saisissez un nombre supérieur ou égal à 0, ou laissez le champ vide pour aucune limite.",
+      "useDefault": "Utiliser la valeur par défaut du serveur",
+      "useDefaultDescription": "Désactivez pour donner à cette personne ses propres limites.",
+      "ownKeysNote": "Seul le travail sur les clés de fournisseur de ce serveur compte. Le travail sur une clé que la personne a enregistrée dans les réglages ne compte jamais.",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saveFailed": "Impossible d’enregistrer les limites."
+    },
+    "permissions": {
+      "edit": "Autorisations",
+      "editDefault": "Modifier les autorisations par défaut",
+      "defaultTitle": "Autorisations par défaut",
+      "userTitle": "Autorisations de {{name}}",
+      "defaultAll": "Autorisations par défaut : tout est permis.",
+      "defaultBlockedCount": "Autorisations par défaut : {{count}} bloquées.",
+      "blockedCount": "Autorisations bloquées : {{count}}",
+      "defaultIntro": "Ce que chaque utilisateur peut faire, sauf si vous lui attribuez une autorisation propre.",
+      "userIntro": "Chaque autorisation suit la valeur par défaut tant que vous ne l’autorisez ou ne la bloquez pas ici.",
+      "allow": "Autoriser",
+      "block": "Bloquer",
+      "defaultAllowed": "Par défaut : autorisé",
+      "defaultBlocked": "Par défaut : bloqué",
+      "adminNote": "Les admins ont toujours toutes les autorisations.",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saveFailed": "Impossible d’enregistrer les autorisations.",
+      "flags": {
+        "use_llm": {
+          "label": "Utiliser les modèles de langage",
+          "description": "Chat, agents et génération de texte."
+        },
+        "generate_media": {
+          "label": "Générer des médias",
+          "description": "Images, vidéo, audio et 3D."
+        },
+        "use_server_keys": {
+          "label": "Utiliser les clés de fournisseur du serveur",
+          "description": "Si bloqué, la personne ne peut travailler qu’avec les clés qu’elle ajoute dans les réglages."
+        },
+        "manage_own_keys": {
+          "label": "Gérer ses clés de fournisseur",
+          "description": "Ajouter, modifier ou supprimer des clés de fournisseur et des fournisseurs personnalisés."
+        },
+        "share_links": {
+          "label": "Créer des liens de partage",
+          "description": "Liens qui permettent aux personnes connectées de voir ou de modifier un workflow ou un document."
+        },
+        "share_public": {
+          "label": "Partager publiquement",
+          "description": "Rendre un workflow public ou créer un lien public que tout le monde peut ouvrir."
+        },
+        "publish_apps": {
+          "label": "Publier des apps",
+          "description": "Publier, diffuser et déployer des mini-apps."
+        },
+        "install_packs": {
+          "label": "Modifier les packs de nœuds",
+          "description": "Modifier la confiance des packs, activer ou désactiver les packs intégrés et recharger les packs. Cela concerne tous les utilisateurs."
+        }
+      }
+    },
+    "sharing": {
+      "open": "Partage",
+      "title": "Partages de {{name}}",
+      "links": "Liens de partage",
+      "noLinks": "Aucun lien actif.",
+      "granted": "A donné accès à",
+      "noGranted": "N'a donné accès à personne.",
+      "received": "A accès à",
+      "noReceived": "Personne ne lui a donné accès.",
+      "public": "Workflows publics",
+      "noPublic": "Aucun workflow public.",
+      "revoke": "Révoquer",
+      "removeAccess": "Retirer l'accès",
+      "makePrivate": "Rendre privé",
+      "untitled": "Sans titre",
+      "loadFailed": "Impossible de charger les partages.",
+      "actionFailed": "Impossible d'effectuer la modification.",
+      "types": {
+        "workflow": "Workflow",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "timeline": "Timeline",
+        "sketch": "Croquis",
+        "application": "App",
+        "jsscript": "Script JS"
+      },
+      "roles": {
+        "viewer": "Peut voir",
+        "editor": "Peut modifier",
+        "public": "Public"
+      }
+    }
   }
 }

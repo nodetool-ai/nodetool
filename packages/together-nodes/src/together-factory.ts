@@ -4,9 +4,10 @@
  * Generates node classes from `together-manifest.json` at runtime, mirroring the
  * atlascloud-nodes / fal-nodes / kie-nodes factories. Each manifest entry
  * declares one (model × task) node: its modality, model id, output type, and the
- * input fields exposed in the node UI. The generated class extends `BaseNode`, so
- * `BaseNode._injectSecrets` resolves `TOGETHER_API_KEY` from
- * `context.getSecret(...)` and surfaces it as `this._secrets.TOGETHER_API_KEY`.
+ * input fields exposed in the node UI. The generated class extends `BaseNode`
+ * and declares `TOGETHER_API_KEY` as a required setting. The key itself stays
+ * in the runtime `TogetherProvider`, which the node reaches through
+ * `context.callProviderEndpoint`.
  */
 
 import {
@@ -30,7 +31,6 @@ import type {
   PromptAssetTextField
 } from "@nodetool-ai/runtime";
 import {
-  getApiKey,
   imageBytesToDataUri,
   resolveAssetBytes,
   togetherGenerateImage,
@@ -213,7 +213,12 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
 
   const TogetherNodeClass = class extends BaseNode {
     async process(context?: ProcessContext): Promise<TogetherNodeOutput> {
-      const apiKey = getApiKey(this._secrets);
+      if (!context) {
+        throw new Error(
+          `Together ${spec.className} requires a processing context`
+        );
+      }
+      const nodeId = this.__node_id || undefined;
 
       const overrides = await promptAssetOverrides(this, spec, context);
       const read = (name: string): NodeValue =>
@@ -253,7 +258,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
 
       switch (spec.modality) {
         case "text_to_image": {
-          const bytes = await togetherGenerateImage(apiKey, spec.modelId, {
+          const bytes = await togetherGenerateImage(context, spec.modelId, {
             prompt: str("prompt") ?? "",
             width: num("width"),
             height: num("height"),
@@ -261,12 +266,12 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             guidanceScale: num("guidance_scale"),
             seed: num("seed"),
             negativePrompt: str("negative_prompt")
-          }, { signal: context?.signal });
+          }, spec.modality, nodeId);
           return storeMedia(bytes, "image", undefined, context);
         }
         case "image_to_image": {
           const imageBytes = requireAsset("image", "image");
-          const bytes = await togetherGenerateImage(apiKey, spec.modelId, {
+          const bytes = await togetherGenerateImage(context, spec.modelId, {
             prompt: str("prompt") ?? "",
             imageUrl: imageBytesToDataUri(imageBytes),
             width: num("width"),
@@ -274,13 +279,13 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             steps: num("steps"),
             guidanceScale: num("guidance_scale"),
             seed: num("seed")
-          }, { signal: context?.signal });
+          }, spec.modality, nodeId);
           return storeMedia(bytes, "image", undefined, context);
         }
         case "text_to_speech": {
           const format = str("format") ?? "mp3";
           const { data, mimeType } = await togetherTextToSpeech(
-            apiKey,
+            context,
             spec.modelId,
             {
               text: str("text") ?? "",
@@ -288,20 +293,20 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
               speed: num("speed"),
               format
             },
-            { signal: context?.signal }
+            nodeId
           );
           return storeMedia(data, "audio", mimeType, context);
         }
         case "automatic_speech_recognition": {
           const audioBytes = requireAsset("audio", "audio");
-          const text = await togetherTranscribe(apiKey, spec.modelId, {
+          const text = await togetherTranscribe(context, spec.modelId, {
             audio: audioBytes,
             language: str("language")
-          });
+          }, nodeId);
           return { text };
         }
         case "text_to_video": {
-          const bytes = await togetherGenerateVideo(apiKey, spec.modelId, {
+          const bytes = await togetherGenerateVideo(context, spec.modelId, {
             prompt: str("prompt") ?? "",
             aspectRatio: str("aspect_ratio"),
             resolution: str("resolution"),
@@ -310,12 +315,12 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             guidanceScale: num("guidance_scale"),
             seed: num("seed"),
             negativePrompt: str("negative_prompt")
-          }, { signal: context?.signal });
+          }, spec.modality, nodeId);
           return storeMedia(bytes, "video", undefined, context);
         }
         case "image_to_video": {
           const imageBytes = requireAsset("image", "image");
-          const bytes = await togetherGenerateVideo(apiKey, spec.modelId, {
+          const bytes = await togetherGenerateVideo(context, spec.modelId, {
             prompt: str("prompt") ?? "",
             firstFrameDataUri: imageBytesToDataUri(imageBytes),
             aspectRatio: str("aspect_ratio"),
@@ -325,7 +330,7 @@ export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass 
             guidanceScale: num("guidance_scale"),
             seed: num("seed"),
             negativePrompt: str("negative_prompt")
-          }, { signal: context?.signal });
+          }, spec.modality, nodeId);
           return storeMedia(bytes, "video", undefined, context);
         }
         default: {

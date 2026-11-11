@@ -114,6 +114,15 @@ export function currentGenerationProviderRequestOptions(): GenerationProviderReq
 }
 
 /**
+ * True inside a generation seam, durable or not. A caller that would open its
+ * own seam calls the provider directly instead, so the call records into the
+ * enclosing generation and no second row opens.
+ */
+export function insideGenerationScope(): boolean {
+  return store.getStore() !== undefined;
+}
+
+/**
  * Record a provider id and await the host's durable acceptance hook. Providers
  * use this at the submit boundary; the hook is a no-op for ephemeral hosts.
  */

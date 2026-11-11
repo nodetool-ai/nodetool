@@ -8,7 +8,11 @@
  * this host's own filesystem and network.
  */
 import { describe, it, expect } from "vitest";
-import { rasterizeSvg } from "../src/image-codec.js";
+import {
+  rasterizeSvg,
+  rasterizeSvgInput,
+  SVG_GENERATION_SIDE
+} from "../src/image-codec.js";
 import { isSvgBytes, SVG_MIME } from "../src/providers/image-mime.js";
 
 const bytes = (text: string): Uint8Array => new TextEncoder().encode(text);
@@ -112,5 +116,36 @@ describe("rasterizeSvg", () => {
   it("refuses a document over the size cap", async () => {
     const huge = bytes(svg(`<!--${"x".repeat(9 * 1024 * 1024)}-->`));
     await expect(rasterizeSvg(huge)).rejects.toThrow(/limit for rasterization/);
+  });
+});
+
+describe("rasterizeSvgInput", () => {
+  it("renders an SVG at the generation size, longest side first", async () => {
+    const wide = bytes(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="18"><rect width="32" height="18" fill="red"/></svg>'
+    );
+    const out = await rasterizeSvgInput(wide);
+    expect(Array.from(out.subarray(0, 8))).toEqual(PNG_SIGNATURE);
+    const sharp = (await import("sharp")).default;
+    const meta = await sharp(Buffer.from(out)).metadata();
+    expect(meta.width).toBe(SVG_GENERATION_SIDE);
+    expect(meta.height).toBe(Math.round((SVG_GENERATION_SIDE * 18) / 32));
+  });
+
+  it("scales a large SVG down to the generation size", async () => {
+    const large = bytes(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="3000"><rect width="3000" height="3000"/></svg>'
+    );
+    const sharp = (await import("sharp")).default;
+    const meta = await sharp(Buffer.from(await rasterizeSvgInput(large))).metadata();
+    expect(meta.width).toBe(SVG_GENERATION_SIDE);
+    expect(meta.height).toBe(SVG_GENERATION_SIDE);
+  });
+
+  it("passes raster bytes and non-images through untouched", async () => {
+    const png = new Uint8Array([...PNG_SIGNATURE, 0, 0, 0, 0]);
+    expect(await rasterizeSvgInput(png)).toBe(png);
+    const text = bytes("plain text");
+    expect(await rasterizeSvgInput(text)).toBe(text);
   });
 });

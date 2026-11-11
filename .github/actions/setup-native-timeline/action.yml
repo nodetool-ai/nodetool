@@ -1,0 +1,119 @@
+name: Set up native timeline
+description: Install the shared Qt, codec and compiler dependencies
+runs:
+  using: composite
+  # The github-env ignores below: native-timeline.yml (pull_request, push, schedule) and
+  # native-timeline-release.yml (tag pushes) call this action, never an untrusted
+  # trigger such as pull_request_target, and every value written is a runner or
+  # tool path, not input from a pull request.
+  steps:
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        brew install ninja pkgconf ffmpeg ffmpeg-full harfbuzz freetype lame openh264 opus libvpx ccache
+        # The regular formula omits drawtext, which the numbered fixtures need.
+        echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
+        echo "CMAKE_PREFIX_PATH=$(brew --prefix)" >> "$GITHUB_ENV"
+        # Homebrew's Qt lags behind the Qt version the build requires.
+        pipx run aqtinstall install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
+        echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/macos" >> "$GITHUB_ENV"
+
+    # Hosted runners have run out of disk while building FFmpeg (No space left on device).
+    - name: Free disk space (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        sudo apt-get update
+        sudo apt-get install -y gdb ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
+          mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
+          libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
+          xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+          libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
+          libxcb-xinerama0 libxcb-xkb1
+        # Vulkan on lavapipe only: the loader sees no other driver.
+        icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
+        if [[ -z "$icd" ]]; then
+          echo "::error::mesa-vulkan-drivers installed no lavapipe ICD"
+          exit 1
+        fi
+        echo "VK_DRIVER_FILES=$icd" >> "$GITHUB_ENV"
+        echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
+        VK_DRIVER_FILES=$icd vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo.txt"
+        grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
+        pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
+        echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+        # FFmpeg as LGPL shared libraries, as the packages ship it.
+        bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
+        echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
+        echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+
+    - name: Install dependencies (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        # The Chocolatey feed times out at times, and then choco reports nothing fatal.
+        for attempt in 1 2 3 4 5; do
+          choco install -y ninja pkgconfiglite || true
+          if command -v pkg-config.exe >/dev/null; then break; fi
+          sleep 60
+        done
+        if ! command -v pkg-config.exe >/dev/null; then
+          echo "::error::Chocolatey could not install pkg-config"
+          exit 1
+        fi
+        # HarfBuzz and FreeType for the 2D rasterizer (src/render2d).
+        vcpkg install harfbuzz freetype --triplet x64-windows
+        vcpkg_root="$VCPKG_INSTALLATION_ROOT/installed/x64-windows"
+        echo "CMAKE_PREFIX_PATH=$vcpkg_root" >> "$GITHUB_ENV"
+        echo "$vcpkg_root/bin" >> "$GITHUB_PATH"
+        # ccache caches cl.exe compiles. Release builds pass no /Zi, which ccache cannot cache.
+        ccache=ccache-4.14.2-windows-x86_64
+        curl -fsSL --retry 5 -o "$RUNNER_TEMP/$ccache.zip" \
+          "https://github.com/ccache/ccache/releases/download/v4.14.2/$ccache.zip"
+        echo "6993ce645e53192cec592ee23186200b574ac4c59097ecde8d9cfd681b47ae84  $RUNNER_TEMP/$ccache.zip" | sha256sum -c -
+        7z x -y -o"$RUNNER_TEMP" "$RUNNER_TEMP/$ccache.zip" > /dev/null
+        echo "$RUNNER_TEMP/$ccache" >> "$GITHUB_PATH"
+        # aqtinstall cannot read the per-toolchain repository layout of Qt 6.12.
+        qtv=$(echo "$QT_VERSION" | tr -d .)
+        python native/timeline/scripts/fetch-qt.py \
+          "https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_$qtv/qt6_${qtv}_msvc2022_64" \
+          "$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64" \
+          "qt.qt6.$qtv.win64_msvc2022_64" \
+          "qt.qt6.$qtv.addons.qtshadertools.win64_msvc2022_64" \
+          "qt.qt6.$qtv.addons.qtwebsockets.win64_msvc2022_64"
+        qt="$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64"
+        echo "QT_PREFIX=$qt" >> "$GITHUB_ENV"
+        # Qt's DLLs, for the tests and windeployqt.
+        echo "$qt/bin" >> "$GITHUB_PATH"
+        # FFmpeg 8.0 LGPL shared libraries for linking, and the GPL command
+        # line tool (libx264, drawtext) for the test media only. A pinned,
+        # retained BtbN release, checked against its published checksums.
+        base=https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-02-28-12-59
+        lgpl=ffmpeg-n8.0.1-66-g27b8d1a017-win64-lgpl-shared-8.0
+        gpl=ffmpeg-n8.0.1-66-g27b8d1a017-win64-gpl-8.0
+        curl -sSfL -o "$RUNNER_TEMP/$lgpl.zip" "$base/$lgpl.zip"
+        curl -sSfL -o "$RUNNER_TEMP/$gpl.zip" "$base/$gpl.zip"
+        (cd "$RUNNER_TEMP" && sha256sum -c - <<'SUMS'
+        e7b1087c310cf8b91f5467b8ada6d7e47ce26f2777efa2317c7cc271087e5100  ffmpeg-n8.0.1-66-g27b8d1a017-win64-lgpl-shared-8.0.zip
+        e1f9fc491ef1969e666cfe36ec1d6c02b53baf49df800d5256eda10c942b1251  ffmpeg-n8.0.1-66-g27b8d1a017-win64-gpl-8.0.zip
+        SUMS
+        )
+        7z x -o"$RUNNER_TEMP" "$RUNNER_TEMP/$lgpl.zip" > /dev/null
+        7z x -o"$RUNNER_TEMP" "$RUNNER_TEMP/$gpl.zip" > /dev/null
+        echo "PKG_CONFIG_PATH=$RUNNER_TEMP/$lgpl/lib/pkgconfig" >> "$GITHUB_ENV"
+        echo "FFMPEG_LGPL_BIN=$RUNNER_TEMP/$lgpl/bin" >> "$GITHUB_ENV"
+        echo "$RUNNER_TEMP/$lgpl/bin" >> "$GITHUB_PATH"
+        echo "$RUNNER_TEMP/$gpl/bin" >> "$GITHUB_PATH"
+
+    - name: Set up MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0

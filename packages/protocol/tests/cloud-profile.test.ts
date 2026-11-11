@@ -202,6 +202,8 @@ describe("cloud provider + pack allowlists", () => {
       "opper",
       "cheaperinference",
       "api_route",
+      "runcrate",
+      "standardcompute",
       "fal_ai",
       "kie",
       "replicate",

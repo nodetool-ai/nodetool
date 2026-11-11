@@ -132,6 +132,51 @@ describe("generation tracker", () => {
     expect(await Prediction.find("seam-row")).toMatchObject({ cost: 0.0024, quantity: 0.786 });
   });
 
+  it("books a kie node's reported credits on the seam row its node id opened", async () => {
+    // kie nodes run through callProviderEndpoint (keyed by the graph node id)
+    // and still report their credits through setProviderCost.
+    const state = createTrackerState();
+    const base = {
+      id: "kie-row",
+      node_id: "video-node",
+      provider: "kie",
+      model: "kling-2.6/image-to-video",
+      capability: "text_to_video",
+      receipt: { provider_request_id: "task-1" }
+    };
+    await recordFromMessage(prediction({ ...base, status: "running" }), OPTIONS, state);
+    await recordFromMessage(prediction({ ...base, status: "completed" }), OPTIONS, state);
+    await recordFromMessage(
+      {
+        type: "node_update",
+        node_id: "video-node",
+        node_name: "Kling",
+        node_type: "kie.video.Kling26ImageToVideo",
+        status: "completed",
+        result: null,
+        error: null,
+        provider_cost: {
+          provider: "kie",
+          amount: 0.06,
+          unit: "USD",
+          billing_unit: "credits",
+          quantity: 12,
+          unit_price: 0.005,
+          provider_request_id: "task-1"
+        }
+      },
+      OPTIONS,
+      state
+    );
+    const [rows] = await Prediction.paginate(USER);
+    expect(rows).toHaveLength(1);
+    expect(await Prediction.find("kie-row")).toMatchObject({
+      cost: 0.06,
+      quantity: 12,
+      provider_request_id: "task-1"
+    });
+  });
+
   it("tracks video-to-audio assets and the provider charge through completion", async () => {
     const state = createTrackerState();
     const running = prediction({

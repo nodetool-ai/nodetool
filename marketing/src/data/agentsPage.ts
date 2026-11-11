@@ -5,7 +5,7 @@
  */
 
 export const AGENTS_LEAD =
-  "NodeTool is open-source agentic creative software: an AI agent that operates creative tools and leaves work you can edit. Give a brief to the built-in agent, or connect Claude Code, Codex, or Cursor over MCP. The agent generates images, video, and audio, then builds the storyboard, timeline, sketch, game, or workflow. A harness is everything an agent works inside: tools, editors, models, keys, and a record of each step.";
+  "Give the agent tools to create and edit images, video, audio and workflows. Use NodeTool’s built-in agent, or connect Claude Code, Codex or Cursor through MCP. Inspect its work and take over whenever you need to.";
 
 export const APPROVAL_MODES_INTRO =
   "Each chat has a permission mode. Reading and searching run in every mode. The mode decides what happens to the rest.";
@@ -14,43 +14,64 @@ export const LOOP_STAGES = [
   {
     title: "Build",
     tool: "create_workflow",
-    body: "The agent adds nodes, picks models, and wires the graph.",
+    body: "The agent adds nodes, picks models, and wires the graph. It checks that the selected providers and models exist before saving the workflow.",
+  },
+  {
+    title: "Validate",
+    tool: "validate_workflow",
+    body: "Check the workflow for errors before calling a model.",
   },
   {
     title: "Run",
     tool: "run_workflow",
-    body: "The graph calls your local models and provider accounts.",
+    body: "Run the workflow with local models or your provider accounts. Missing API keys are flagged before it starts.",
   },
   {
     title: "Inspect",
     tool: "get_job_logs",
-    body: "Every tool call, output, and error is in the log.",
+    body: "Every tool call, output, and error is in the log, with the node that failed.",
   },
   {
     title: "Repair",
     tool: "create_workflow_version",
-    body: "The fix is a new version. The last good one stays.",
+    body: "The agent saves its changes as a new version, so you can return to the previous one.",
   },
 ];
 
+/**
+ * What validate_workflow reports, from validateGraph in
+ * @nodetool-ai/node-sdk (docs/harnesses.md § nodetool validate).
+ */
+export const VALIDATION_CHECKS = [
+  "Unknown node types",
+  "Required properties left empty, and models never selected",
+  "A model id the chosen provider does not offer",
+  "Edges that connect the wrong types, or lead nowhere",
+  "Code nodes that do not parse, read an undefined name, or leave an output unset",
+  "Provider keys this install cannot find",
+];
+
+export const VALIDATION_NOTE =
+  "Validation catches errors before the workflow makes paid model calls.";
+
+/** Models and keys are on the page once, in its SpecStrip. */
 export const CONTROLS = [
   {
-    title: "Your models",
-    body: "Run the agent on Claude, GPT, Gemini, or a local model through Ollama. Each node names its own model.",
-  },
-  {
-    title: "Your keys",
-    body: "Each generation is billed to your own provider account at its list price. NodeTool sells no credits.",
-  },
-  {
+    id: "record",
     title: "A full record",
     body: "Read each tool call with its arguments, result, and error. Find the step that went wrong.",
   },
   {
-    title: "Your hands",
+    id: "manual",
+    title: "Take over at any time",
     body: "Stop the agent, change a node yourself, and hand the work back. It reads the graph as you left it.",
   },
-];
+  {
+    id: "keys",
+    title: "Your keys",
+    body: "Studio asks you to add any missing API keys. Runs started without the interface stop with an error if a required key is missing.",
+  },
+] as const;
 
 export const APPROVAL_MODES = [
   {
@@ -64,21 +85,6 @@ export const APPROVAL_MODES = [
   {
     title: "Auto",
     body: "The agent works without asking. Every tool call still goes into the log.",
-  },
-];
-
-export const MCP_STEPS = [
-  {
-    title: "Install",
-    body: "The command finds the coding agents on your computer and adds NodeTool to each one's settings. It needs Node.js 22.",
-  },
-  {
-    title: "Restart the agent",
-    body: "Then ask it: “List my NodeTool workflows.”",
-  },
-  {
-    title: "Store your keys",
-    body: "Run nodetool secrets store once per provider, such as FAL_API_KEY.",
   },
 ];
 

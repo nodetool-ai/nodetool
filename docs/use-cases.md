@@ -5,15 +5,7 @@ description: "What people make with NodeTool, by kind of work: product marketing
 image: /assets/use-cases/poster-singularity-1.png
 ---
 
-NodeTool is an agent-first creative workspace. You describe the result, the
-agent builds it as a project, and you finish it in an editor. This page groups
-what people make by the kind of work. Each section names where to start: a
-shipped skill you type after `/` in chat, a guided flow on **New project**, or
-an app from the [Examples]({{ '/workflows/' | relative_url }}) page.
-
-Every model runs on your own provider keys, on hosted credits, or locally. You
-can switch any model for another one without rebuilding the project. See
-[Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
+Results grouped by kind of work. Each section names where to start: a shipped skill you type after `/` in chat, a guided flow on **New project**, or an app from the [Examples]({{ '/workflows/' | relative_url }}) page. Models run on your provider keys, hosted credits, or locally, and any model can be swapped without rebuilding the project. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
 
 ## Product marketing and e-commerce
 

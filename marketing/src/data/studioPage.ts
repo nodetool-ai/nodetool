@@ -2,9 +2,6 @@ import type { MarketingFact } from "@/components/MarketingFacts";
 
 /** Copy for /studio, shared by the page and its Markdown mirror (scripts/generate-llms-txt.mjs). */
 
-export const STUDIO_PROJECT =
-  "The agent can draft the storyboard and edit the clips into a video. The result is a NodeTool project, so you can make the next change yourself in an editor or ask the agent to make it.";
-
 export const OWNERSHIP_FACTS: MarketingFact[] = [
   {
     term: "Project files",
@@ -14,7 +11,7 @@ export const OWNERSHIP_FACTS: MarketingFact[] = [
   {
     term: "Supported local models",
     description:
-      "Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Local capability depends on the model and your hardware.",
+      "Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Which models you can run locally depends on your computer’s hardware.",
   },
   {
     term: "Online AI providers",
@@ -41,7 +38,7 @@ export const SETUP_FACTS: MarketingFact[] = [
   {
     term: "Model downloads",
     description:
-      "The desktop app does not require a local model collection. Download only the supported models you plan to run on your machine.",
+      "Use Studio with your provider accounts, or download supported models to run locally.",
   },
 ];
 

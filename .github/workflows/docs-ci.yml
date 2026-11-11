@@ -10,6 +10,7 @@ on:
       - "docs/**"
       - "scripts/generate-node-docs.mjs"
       - "scripts/build-node-index.mjs"
+      - "scripts/check-docs-prose.mjs"
       - ".github/workflows/docs-ci.yml"
   workflow_dispatch:
 
@@ -30,6 +31,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check docs prose (banned marketing adjectives)
+        run: node scripts/check-docs-prose.mjs
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
@@ -71,7 +75,7 @@ jobs:
 
           # Internal/engineering pages must be excluded from the build.
           for f in STUDIO_PRD STUDIO_MVP_PROMPT DEVELOPMENT_STANDARDS DESIGN \
-                   AGENTS THEME WRITING_STYLE CLOUD_NODE_CURATION image-editor-prd \
+                   AGENTS THEME WRITING_STYLE docs-editorial.spec CLOUD_NODE_CURATION image-editor-prd \
                    timeline-editor-prd correlation-design runtime-package-interface \
                    COMPONENT_STREAMLINE_PLAN CLAUDE; do
             if [ -e "$site/$f.html" ]; then

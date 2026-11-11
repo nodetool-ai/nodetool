@@ -4,26 +4,19 @@ title: "AI Timeline Editing"
 description: "Compare generated takes, track a subject, adapt framing, repair a shot, and hand a NodeTool sequence to another editor."
 ---
 
-A NodeTool timeline keeps editorial timing separate from generated media. You can
-compare variations, repair a shot, and adapt a cut for another format without
-rebuilding the sequence.
+Takes, subject tracks, reframing, and generative edits all change media or framing on a clip. They never change the clip's start, duration, or track.
 
 ![A trailer cut in the video editor, with rendered clips on V1, voiceover on A1 and music on A2](assets/screenshots/video-editor-timeline.png)
 
 ## Compare takes without moving the edit
 
 Every generated result is a take on its clip. A take records the generated
-asset and its generation context. Selecting another take changes the media in
-the clip, not its start time, duration, track, effects, or linked media.
-
-Use takes when you want to compare alternate performances, prompts, or model
-results in the same cut.
+asset and its generation context. Selecting another take swaps the clip's media
+and leaves its start time, duration, track, effects, and linked media alone.
 
 1. Generate a clip, then create another take with **Regenerate as new clip** or generate again.
 2. Select the clip, open **History** in the Inspector, and choose **Preview Candidate** to audition a take in place.
 3. Choose **Use take** on the take that belongs in the cut.
-4. Keep useful alternatives or remove candidates you no longer need.
-
 The active take is the one used by preview, render, and interchange export.
 If a generated take fails, the previously active take remains in place.
 
@@ -71,28 +64,69 @@ model or change the operation.
 
 ## Hand off a sequence
 
-`exportInterchange` in `@nodetool-ai/timeline` writes an editable project document for another editor. No editor menu, CLI command, or agent tool calls it yet. Use it from code until one does.
+`exportInterchange` in `@nodetool-ai/timeline` writes an editable project document for another editor. The native editor's **File > Export to Premiere Pro** calls it through the server, and **File > Import Premiere XML** reads a sequence back. Both need a timeline opened from a server. No other editor menu, CLI command, or agent tool calls it yet.
 
 | Target | Output | Carries |
 | --- | --- | --- |
 | Final Cut Pro | FCPXML | sequence format, active media, timing, tracks, and markers |
-| Premiere Pro | Legacy FCP XML | sequence format, active media, audio and video tracks, timing, and markers |
+| Premiere Pro | Legacy FCP XML | sequence format, active media, audio and video tracks, timing, markers, Basic Motion (scale, rotation, position, anchor), opacity, constant speed and reverse, clip volume, fades, track fader and pan, with keyframes |
 
 The export report names missing media and edits that need baking, including
-effects, transforms, masks, retimes, fades, captions, and unsupported clip
-types. Resolve or bake those items before delivery. NodeTool never reports an
+effects, masks, 3D transforms, speed ramps and freezes, presets and keyframes
+on other properties, captions, and unsupported clip types. FCPXML also lists
+transforms, opacity, speed, volume, and fades. Resolve or bake those items before delivery. NodeTool never reports an
 incomplete editable export as lossless.
 
 ## Work with the agent
 
-The agent can read each clip's active take id through `ui_timeline_get_state`, select a take with `ui_timeline_apply_take`, create a media track with `track_object`, adapt a sequence format with `ui_timeline_retarget_format`, set framing with `ui_timeline_set_reframe_subject` and `ui_timeline_add_reframe_keyframe`, and request a generative edit with `ui_timeline_generatively_edit_clip`. Give it the
-editorial intent and the target clip. For example: "Track the product in the
-hero shot, attach the price graphic, then make a vertical version of this cut."
+The agent reads each clip's active take id with `ui_timeline_get_state` and edits through `ui_timeline_apply_take`, `track_object`, `ui_timeline_retarget_format`, `ui_timeline_set_reframe_subject`, `ui_timeline_add_reframe_keyframe`, and `ui_timeline_generatively_edit_clip`. Check the resulting takes, tracks, and framing before export.
 
-Check the resulting takes, tracks, and framing before export.
+A repair, as the agent runs it. The prompt is illustrative. The arguments and result fields come from
+`packages/agents/tests/timeline-generative-edit.test.ts`, where `fal` and `video-edit-model` are fixture values.
+
+```text
+User: Make this station deserted at night.
+```
+
+```json
+{
+  "tool": "ui_timeline_generatively_edit_clip",
+  "arguments": {
+    "clip_id": "clip-1",
+    "instruction": "Make this station deserted at night",
+    "provider": "fal",
+    "model": "video-edit-model"
+  }
+}
+```
+
+The result is a candidate take. The clip keeps its active take (`take-1`) and its trimmed source range:
+
+```json
+{
+  "generationId": "<candidate id>",
+  "activeTakeId": "take-1",
+  "candidate": { "id": "<candidate id>", "status": "success", "source": "video_to_video" },
+  "clip": { "currentAssetId": "asset-1", "inPointMs": 40000, "outPointMs": 44000 }
+}
+```
+
+The candidate's `mediaEdit` records the instruction, provider, model, and the source context (sequence, clip, source asset, source range, timeline start and duration). The edit takes effect only after a second call:
+
+```json
+{ "tool": "ui_timeline_apply_take", "arguments": { "clip_id": "clip-1", "take_id": "<candidate id>" } }
+```
+
+The clip then points at a `generative://clip-1/...` asset with `inPointMs` 0 and `outPointMs` 4000.
+
+### If it fails
+
+- Unknown `clip_id`: the tool throws a "clip with id" error. Clip ids must be explicit.
+- `ui_timeline_apply_take` on a take that is not an AI edit candidate throws an "AI edit candidate" error.
+- `provider` without `model` (or the reverse) is rejected before any call.
 
 ## Related features
 
-- [Video Editor](video-editor.md) — timeline, playback, clip editing, and MP4 export
-- [Workflow Editor](workflow-editor.md) — edit a workflow bound to a generated clip
-- [Asset Management](asset-management.md) — organize imported media
+- [Video Editor](video-editor.md): timeline, playback, clip editing, and MP4 export
+- [Workflow Editor](workflow-editor.md): edit a workflow bound to a generated clip
+- [Asset Management](asset-management.md): organize imported media

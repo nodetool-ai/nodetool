@@ -6,17 +6,12 @@ description: "How NodeTool discovers Claude models and how to verify new model b
 
 # Anthropic provider
 
-NodeTool calls Anthropic's Messages API through `AnthropicProvider`. The provider
-supports text, image input, client tools, native web search, streaming, prompt
-cache accounting, and extended thinking. It uses `ANTHROPIC_API_KEY` by default
-through the built-in provider registry. Direct integrations can construct the
-provider with an auth token, structured SDK credentials, or a custom base URL;
-those alternatives are not resolved by the built-in registry.
+`AnthropicProvider` calls Anthropic's Messages API for text, image input, client tools, native web search, streaming, prompt cache accounting, and extended thinking.
 
-Anthropic changes model capabilities independently of the Models API. A model
-appearing in the selector does not prove that every NodeTool request option works
-with it. Check the model's thinking mode, sampling parameters, stop reasons, and
-tool behavior before making it a default or recommendation.
+> **Runs:** cloud. **Needs:** `ANTHROPIC_API_KEY` (the only secret the built-in registry resolves). **Models:** fetched live, no static list.
+{: .callout-note}
+
+Direct integrations can construct the provider with an auth token, structured SDK credentials, or a custom base URL. The built-in registry does not resolve those. A model in the selector does not prove every request option works with it, so check thinking mode, sampling parameters, stop reasons, and tool behavior before making it a default.
 
 ## Files
 

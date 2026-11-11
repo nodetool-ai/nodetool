@@ -1,0 +1,10 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "00000000000000000000000000000051",
+      "role": "assistant",
+      "content": "## Markdown colours\n\n[NodeTool](https://nodetool.ai) with **bold**, *italic* and `inline code`.\n\n> Quoted text\n\n```cpp\nint answer = 42;\n```\n\n| Link | Text |\n| --- | --- |\n| [NodeTool](https://nodetool.ai) | Readable |"
+    }
+  ]
+}

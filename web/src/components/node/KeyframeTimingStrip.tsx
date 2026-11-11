@@ -224,7 +224,7 @@ const KeyframeMarker: React.FC<KeyframeMarkerProps> = memo(
           onPointerCancel={() => setDragTime(null)}
         >
           {image ? (
-            <ResponsiveImage locator={image} alt="" />
+            <ResponsiveImage locator={image} preferThumbnail alt="" />
           ) : (
             <div className="keyframe-marker-empty" />
           )}

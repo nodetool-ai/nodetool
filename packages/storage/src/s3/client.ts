@@ -55,6 +55,7 @@ export interface S3ObjectRef {
 export interface S3PutObjectInput extends S3ObjectRef {
   body: Uint8Array;
   contentType?: string;
+  cacheControl?: string;
 }
 
 export interface S3PutObjectResult {
@@ -72,6 +73,7 @@ export interface S3GetObjectResult {
 export interface S3HeadObjectResult {
   contentLength: number;
   contentType?: string;
+  cacheControl?: string;
   lastModified?: Date;
   etag?: string;
 }
@@ -481,11 +483,14 @@ export class S3Client implements S3Api {
   }
 
   async putObject(input: S3PutObjectInput): Promise<S3PutObjectResult> {
+    const headers: Record<string, string> = {};
+    if (input.contentType) headers["content-type"] = input.contentType;
+    if (input.cacheControl) headers["cache-control"] = input.cacheControl;
     const response = await this.request({
       method: "PUT",
       bucket: input.bucket,
       key: input.key,
-      headers: input.contentType ? { "content-type": input.contentType } : {},
+      headers,
       body: input.body,
       retryable: true
     });
@@ -535,6 +540,7 @@ export class S3Client implements S3Api {
     const contentType = response.headers.get("content-type");
     const lastModified = parseDateHeader(response.headers.get("last-modified"));
     const etag = response.headers.get("etag");
+    const cacheControl = response.headers.get("cache-control");
     const result: S3HeadObjectResult = {
       contentLength: contentLengthHeader
         ? Number.parseInt(contentLengthHeader, 10)
@@ -548,6 +554,9 @@ export class S3Client implements S3Api {
     }
     if (etag) {
       result.etag = etag;
+    }
+    if (cacheControl) {
+      result.cacheControl = cacheControl;
     }
     return result;
   }

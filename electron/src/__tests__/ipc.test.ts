@@ -768,8 +768,16 @@ describe('initializeIpcHandlers', () => {
 
 describe('fileUrlToLocalPath', () => {
   it('decodes a file URL to a local path', () => {
-    expect(fileUrlToLocalPath('file:///tmp/a%20b.txt\r')).toBe('/tmp/a b.txt');
+    const uri = process.platform === 'win32' ? 'file:///C:/tmp/a%20b.txt\r' : 'file:///tmp/a%20b.txt\r';
+    const expected = process.platform === 'win32' ? 'C:\\tmp\\a b.txt' : '/tmp/a b.txt';
+    expect(fileUrlToLocalPath(uri)).toBe(expected);
   });
+
+  if (process.platform === 'win32') {
+    it('preserves the host and share of a Windows UNC URL', () => {
+      expect(fileUrlToLocalPath('file://server/share/a%20b.txt')).toBe('\\\\server\\share\\a b.txt');
+    });
+  }
 
   it('rejects what is not a local file URL', () => {
     expect(fileUrlToLocalPath('https://example.com/a.txt')).toBeNull();

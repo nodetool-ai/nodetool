@@ -1,10 +1,10 @@
 # Color precision: evidence and design limits
 
-Source references describe the main tree at `c09b1b81a9543cbfab05ee5cd4546bdf2f15448e` and native branch at `c5d79c397959666b962c9a7647d89adb5a0dd5fc`. The implementation scope is defined by [P1](high-precision-media-processing.md), [P2](native-timeline-precision.md) and [P3](sketch-precision.md).
+This evidence was first collected at main `c09b1b81a9543cbfab05ee5cd4546bdf2f15448e` and native branch `c5d79c397959666b962c9a7647d89adb5a0dd5fc`. On 2026-11-04 the references moved to main `aad729d293fe930d463f6bc1b008c84305180031` and native branch `33963a5d7111bda52f116392d1b7c34eab7e3430`. At those revisions every pinned path exists, F1 and F3 were rechecked, and F2, F4, F12 and F18 were spot-checked. Recheck other sections before relying on them. The implementation scope is defined by [P1](high-precision-media-processing.md), [P2](native-timeline-precision.md) and [P3](sketch-precision.md).
 
 ## F1: Native integration is independent
 
-The main snapshot lacks the native tree and its workflow. P2 is deferred until its integration is scheduled. P1 can port the small numerical fixture without importing the editor. The pinned native [build configuration](https://github.com/nodetool-ai/nodetool/blob/c5d79c397959666b962c9a7647d89adb5a0dd5fc/native/timeline/CMakeLists.txt) requires Qt 6.12. Its [CI](https://github.com/nodetool-ai/nodetool/blob/c5d79c397959666b962c9a7647d89adb5a0dd5fc/.github/workflows/native-timeline.yml) exercises Metal, Vulkan/lavapipe and D3D11/WARP, with no explicit OpenGL precision job. These tests do not establish hardware speed.
+The main snapshot lacks the native tree and its workflow. P2 is deferred until its integration is scheduled. P1 can reconcile the small numerical fixture with main's code without importing the editor. The pinned native [build configuration](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/native/timeline/CMakeLists.txt) requires Qt 6.12. Its [CI](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/.github/workflows/native-timeline.yml) exercises Metal, Vulkan/lavapipe and D3D11/WARP, with no explicit OpenGL precision job. These tests do not establish hardware speed.
 
 ## F2: FP16 is a runtime improvement, not a document capability
 
@@ -12,11 +12,11 @@ Core WebGPU supports the ordinary `rgba16float` usages needed by this work witho
 
 The [shared context](../../../packages/gpu/src/context.ts) maps `f16Storage` to `shader-f16`, conflating texture storage with shader arithmetic. The [Node factory](../../../packages/gpu/src/node.ts) and editor device creation need consistent capability handling. The shared [compositor](../../../packages/gpu/src/compositor/compositor.ts) composites in its shader without fixed-function blend state, so FP32 work does not automatically require `float32-blendable`.
 
-Keeping existing effect semantics makes timeline FP16 an internal renderer change. No document profile or copy flow is needed. Unsupported operations follow runtime capability checks, not a new document flag. P1 S6 separately schedules linear-light SDR with explicit appearance changes and its own release gate. Do not use browser names or an adapter-survey percentage as a substitute for qualifying actual routes.
+Keeping existing effect semantics makes timeline FP16 an internal renderer change. No document profile or copy flow is needed. Unsupported operations follow runtime capability checks, not a new document flag. P1 S6 separately schedules linear-light SDR, selected by a saved working color space version rather than by FP16, with explicit appearance changes and its own release gate. Do not use browser names or an adapter-survey percentage as a substitute for qualifying actual routes.
 
 ## F3: Native capture precedes presentation
 
-[PreviewCompositor](https://github.com/nodetool-ai/nodetool/blob/c5d79c397959666b962c9a7647d89adb5a0dd5fc/native/timeline/src/preview/PreviewCompositor.cpp#L1609) captures `m_canvas` before its final item blit, interpreting it as byte-premultiplied QImage data. [OffscreenFrames](https://github.com/nodetool-ai/nodetool/blob/c5d79c397959666b962c9a7647d89adb5a0dd5fc/native/timeline/src/export/OffscreenFrames.cpp#L116) returns that capture converted to straight RGBA8. It does not read back the outer Qt scene target.
+[PreviewCompositor](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/native/timeline/src/preview/PreviewCompositor.cpp#L1609) captures `m_canvas` before its final item blit, interpreting it as byte-premultiplied QImage data. [OffscreenFrames](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/native/timeline/src/export/OffscreenFrames.cpp#L116) returns that capture converted to straight RGBA8. It does not read back the outer Qt scene target.
 
 Upgrade internal working resources and typed capture. The presentation target may remain RGBA8. Capture disables monitor alpha/grid modes and uses opaque black, including existing PNG output. Preserve that behavior rather than adding transparent export as a precision prerequisite.
 
@@ -24,9 +24,9 @@ Qt composites the QQuickRhiItem texture into its scene and changing target forma
 
 ## F4: Native preview controls already exist
 
-Native has playback/paused Full/Half/Quarter/Eighth settings. [Canvas selection](https://github.com/nodetool-ai/nodetool/blob/c5d79c397959666b962c9a7647d89adb5a0dd5fc/native/timeline/src/preview/PreviewCompositor.cpp#L552) separates document dimensions from working allocations and forces full-resolution capture. Group effects/backdrop stages retain full canvases across motion-blur samples.
+Native has playback/paused Full/Half/Quarter/Eighth settings. [Canvas selection](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/native/timeline/src/preview/PreviewCompositor.cpp#L552) separates document dimensions from working allocations and forces full-resolution capture. Group effects/backdrop stages retain full canvases across motion-blur samples.
 
-Reuse those safeguards and [monitor tests](https://github.com/nodetool-ai/nodetool/blob/c5d79c397959666b962c9a7647d89adb5a0dd5fc/native/timeline/src/preview/tst_monitorcompositor.cpp) in P2. Web preview-resolution controls are separate, conditional performance work. Neither selector guarantees that every effect allocation shrinks.
+Reuse those safeguards and [monitor tests](https://github.com/nodetool-ai/nodetool/blob/33963a5d7111bda52f116392d1b7c34eab7e3430/native/timeline/src/preview/tst_monitorcompositor.cpp) in P2. Web preview-resolution controls are separate, conditional performance work. Neither selector guarantees that every effect allocation shrinks.
 
 ## F5: Sketch migration needs its own justification
 

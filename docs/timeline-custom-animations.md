@@ -1,32 +1,8 @@
 # Custom timeline animations
 
-Motion written as JavaScript instead of picked from the preset catalog.
+Motion written as JavaScript instead of picked from the preset catalog. See [Timeline motion design](timeline-motion-design.md) for style tracks, text animators, camera, layout, repeaters, effects, and transitions.
 
-For the wider visual authoring surface — style tracks, text animators,
-camera, layout, repeaters, effects, and transitions — see
-[Timeline motion design](timeline-motion-design.md).
-
-The body runs **once**, host-side, and returns keyframes. Those keyframes are
-stored on the clip and compiled exactly like a preset's, so nothing evaluates
-JavaScript at render time.
-
-## Why baking rather than per-frame evaluation
-
-Five surfaces sample animations: the WebGPU preview
-(`PreviewCompositor.tsx`), the web export renderer (`TimelineRenderer.ts`), the
-text rasterizer (`rasterClipFrames.ts`), and the headless compositor
-(`packages/video-nodes/src/nodes/timeline/compositeRender.ts`). They share one
-pure sampler in `packages/timeline`, and there is no JS sandbox in the browser —
-QuickJS runs server-side only (`web/src/components/jsScript/runJsScript.ts`).
-
-Evaluating a body per layer per frame would mean a second engine in the web
-bundle, an async hop inside a loop that already has no headroom
-(`docs/timeline-editor-performance-audit.md`, tier 2), and two implementations
-to keep bit-identical. Baking gives up one thing — a script cannot react to
-playback state — and buys identical output on every surface for free.
-
-Sampling `f(t)` densely is what makes that equivalent: a body emits its function
-at N points and the sampler interpolates, exact to the sampling resolution.
+The body runs **once**, host-side, and returns keyframes. The keyframes are stored on the clip and compiled like a preset's. Nothing evaluates JavaScript at render time, because the preview, web export, text rasterizer, and headless compositor share one sampler in `packages/timeline` and the browser has no JS sandbox (QuickJS runs server-side only). A body cannot react to playback state. It emits `f(t)` at N points and the sampler interpolates.
 
 ## The script contract
 
@@ -194,7 +170,7 @@ end value. `code` is the body above: the host bakes it once through
 `code` beside the curves as provenance. Both paths end at
 `normalizeCustomCurves`, so what is stored is what will render.
 
-Four rules the op enforces, each with the message that says how to fix it:
+Rules the op enforces, each with the message that says how to fix it:
 
 - Both `curves` and `code`, or neither, is refused. One says what the motion
   is; the other says what computes it.
@@ -252,12 +228,7 @@ beat through.
 
 ## Checks
 
-`nodetool timeline validate` and the `validate_timeline` tool report
-`custom_animation_invalid` for curves the compiler would skip (an unknown
-property, a keyframe with no finite value, a `wipeProgress` curve with no mask)
-Curves that are absent or empty are reported by that same code — an animation
-that drives nothing. Inline curves need no script or code behind them: under
-the agent path they are the source, not a bake of one.
+`nodetool timeline validate` and the `validate_timeline` tool report `custom_animation_invalid` for curves the compiler would skip: an unknown property, a keyframe with no finite value, a `wipeProgress` curve with no mask, or absent or empty curves. Inline curves need no script or code behind them.
 
 ## Code
 

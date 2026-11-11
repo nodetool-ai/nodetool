@@ -44,6 +44,7 @@ function toThreadResponse(thread: ThreadModel): ThreadResponse {
     project_id: thread.project_id,
     workflow_id: thread.workflow_id ?? null,
     title: thread.title,
+    kind: thread.kind,
     created_at: thread.created_at,
     updated_at: thread.updated_at,
     etag: thread.getEtag()
@@ -102,7 +103,8 @@ export const threadsRouter = router({
         user_id: ctx.userId,
         project_id: input.project_id,
         workflow_id: input.workflow_id ?? null,
-        title: input.title ?? ""
+        title: input.title ?? "",
+        kind: input.kind
       });
       return toThreadResponse(thread);
     }),

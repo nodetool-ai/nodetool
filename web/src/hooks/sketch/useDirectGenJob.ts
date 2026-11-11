@@ -28,6 +28,7 @@ import {
   canvasToBlob
 } from "../../components/sketch/serialization";
 import { maskInpaintResult } from "../../lib/sketch/maskInpaintResult";
+import { getDirectGenBlocker } from "../../lib/sketch/directGenValidation";
 import { computeLayerDependencyHash } from "../../lib/sketch/dependencyHash";
 import { redactSecretsInText } from "../../utils/bugReportBundle";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
@@ -290,19 +291,11 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     ) {
       return;
     }
-    if (!binding.provider || !binding.model) {
+    const blocker = getDirectGenBlocker(binding);
+    if (blocker) {
       failLayer(session, layerId, {
-        kind: "no-model",
-        message:
-          "No image model is set on this layer. Pick one, then try again.",
-        detail: ""
-      });
-      return;
-    }
-    if (!binding.prompt || !binding.prompt.trim()) {
-      failLayer(session, layerId, {
-        kind: "no-prompt",
-        message: "This layer has no prompt to render.",
+        kind: blocker.kind,
+        message: blocker.message,
         detail: ""
       });
       return;
@@ -313,29 +306,13 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     let maskAssetId: string | undefined;
 
     if (binding.kind === "inpaint") {
-      if (!binding.sourceAssetId || !binding.maskAssetId) {
-        failLayer(session, layerId, {
-          kind: "no-source",
-          message:
-            "The selection this was going to repaint is gone. Make a new one and try again.",
-          detail: ""
-        });
-        return;
-      }
-      sourceAssetId = binding.sourceAssetId;
-      maskAssetId = binding.maskAssetId;
+      sourceAssetId = binding.sourceAssetId ?? undefined;
+      maskAssetId = binding.maskAssetId ?? undefined;
     } else if (binding.kind === "image-to-image") {
       if (binding.sourceAssetId) {
         // Selection-overlay "edit" path: the source composite is already
         // uploaded as a throwaway asset on the binding.
         sourceAssetId = binding.sourceAssetId;
-      } else if (!binding.sourceLayerId) {
-        failLayer(session, layerId, {
-          kind: "no-source",
-          message: "This layer has no source image to work from.",
-          detail: ""
-        });
-        return;
       } else {
         const sourceLayer = sketch.document.layers.find(
           (l) => l.id === binding.sourceLayerId

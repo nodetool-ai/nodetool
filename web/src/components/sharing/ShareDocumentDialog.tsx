@@ -3,7 +3,8 @@
  * sketches, apps and JS scripts.
  *
  * Owner-only. Mints role-scoped share links ("Can view" / "Can edit"),
- * lists collaborators who redeemed a link, and lets the owner change roles,
+ * invites people by name on an SSO server, lists collaborators, and lets the
+ * owner change roles,
  * remove collaborators, or revoke links. Workflows also offer a public link,
  * which shows the workflow to anyone, without an account, and lets them copy
  * it into their own workflows.
@@ -38,7 +39,9 @@ import {
   useDocumentSharing,
   type SharedDocumentType
 } from "../../serverState/useDocumentSharing";
+import { canSearchPeople } from "../../serverState/usePeopleSearch";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import InvitePeople, { personLabel } from "./InvitePeople";
 
 export interface ShareTarget {
   type: "workflow" | SharedDocumentType;
@@ -78,7 +81,7 @@ const ShareDocumentDialog = ({
       ? { type: target.type, id: target.id }
       : null
   );
-  const { query, revokeLink, setRole, removeCollaborator } = isWorkflow
+  const { query, revokeLink, setRole, removeCollaborator, invite } = isWorkflow
     ? workflowSharing
     : documentSharing;
   const createLinkPending = isWorkflow
@@ -104,6 +107,22 @@ const ShareDocumentDialog = ({
       throw new Error("Only workflows have public links");
     }
     return documentSharing.createLink.mutateAsync(role);
+  };
+
+  const handleInvite = async (userId: string, role: CollaboratorRole) => {
+    try {
+      await invite.mutateAsync({ userId, role });
+    } catch (error) {
+      addNotification({
+        type: "error",
+        content:
+          error instanceof Error && error.message
+            ? error.message
+            : t("shareDocument.invite.failed"),
+        alert: true
+      });
+      throw error;
+    }
   };
 
   const handleCreateLink = async (role: ShareRole) => {
@@ -222,6 +241,9 @@ const ShareDocumentDialog = ({
           size="small"
           title={t("pass3_37.shareWorkflow.peopleWithAccess")}
         />
+        {canSearchPeople() && (
+          <InvitePeople inviting={invite.isPending} onInvite={handleInvite} />
+        )}
         {collaborators.length === 0 && !query.isLoading && (
           <EmptyState
             variant="empty"
@@ -236,11 +258,16 @@ const ShareDocumentDialog = ({
             align="center"
             justify="space-between"
           >
-            <TruncatedText>{collaborator.user_id}</TruncatedText>
+            <FlexColumn gap={SPACING.none} sx={{ minWidth: 0 }}>
+              <TruncatedText>{personLabel(collaborator)}</TruncatedText>
+              {collaborator.display_name && collaborator.email ? (
+                <Caption>{collaborator.email}</Caption>
+              ) : null}
+            </FlexColumn>
             <FlexRow gap={SPACING.sm} align="center">
               <SelectField
                 label={t("pass3_37.shareWorkflow.roleFor", {
-                  userId: collaborator.user_id
+                  userId: personLabel(collaborator)
                 })}
                 hideLabel
                 size="small"

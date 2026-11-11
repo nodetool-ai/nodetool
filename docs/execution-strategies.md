@@ -1,21 +1,25 @@
 ---
 layout: page
 title: "Execution Strategies"
-description: "How NodeTool runs workflows — the actor-model kernel — and how the Code node sandboxes untrusted code in a WebAssembly guest."
+description: "The actor-model kernel that runs a workflow, its four node modes, correlation scheduling, and how the Code node sandboxes JavaScript."
 ---
 
-This page covers two distinct mechanisms that are easy to conflate:
+The kernel runs a workflow as one async actor per node, connected by inboxes, all in one event loop. Take a three-node graph, `Input(name) -> Format -> Output`. The runner follows this order. Client messages interleave as the actors run:
 
-1. **Workflow execution** — how the kernel runs a graph of nodes. This is an
-   in-process actor model with message-passing; there are no per-job
-   threads, subprocesses, or containers.
-2. **Code execution** — how the *Code node* runs arbitrary user JavaScript in a
-   QuickJS WebAssembly guest. That sandbox covers the *code inside one node*,
-   not the workflow.
+```text
+job_update        status: running                    (before validation, so failures still report a start)
+validate          bypass rewrite, edge filter, correlation analysis, graph validation
+inboxes           Format.value: 1 upstream source, Output.value: 1 upstream source
+dispatch          Input.process() runs once, its value lands in Format's inbox, EOS follows
+actors            Format and Output start together and block on their inboxes
+node_update       Format running -> completed
+edge_update       Format -> Output message counter (throttled)
+output_update     Output value
+EOS               Format closes Output's inbox
+job_update        status: completed                  (RunResult.status: completed | failed | cancelled)
+```
 
-See also [Architecture](architecture.md) for the system overview and
-[Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the lineage model
-the scheduler relies on.
+Two mechanisms share the word "execution" and are easy to conflate. Workflow execution is the actor model above, with no per-job threads, subprocesses, or containers. Code execution is how the Code node runs user JavaScript in a QuickJS WebAssembly guest, which covers the code inside one node and not the workflow. See [Architecture](architecture.md) for the system overview and [Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the lineage model the scheduler uses.
 
 ## Workflow Execution: the actor model
 
@@ -27,8 +31,7 @@ A workflow is a DAG. The one allowed cycle is a loop that closes on a `Loop` nod
   per handle and tracks how many upstream sources remain open.
 
 There is no `JobExecutionManager` and no pluggable "threaded / subprocess /
-docker" strategy for running a workflow. The whole graph runs concurrently in
-one event loop via async actors that pass messages to each other's inboxes.
+docker" strategy. Async actors pass messages to each other's inboxes in one event loop.
 
 ### What WorkflowRunner does
 
@@ -129,13 +132,7 @@ See [correlation-design.md](https://github.com/nodetool-ai/nodetool/blob/main/do
 as root-id → item-token maps, static scope analysis, and done / dropped-key /
 scope-close propagation.
 
-### Sync modes (legacy framing)
-
-The older `zip_all` / `on_any` / `sticky` sync-mode vocabulary maps onto the
-correlation scheduler: `zip_all`-style "wait for all handles" is the max-scope
-readiness rule, `sticky` is the strict-prefix / empty-scope handle classes, and
-`on_any` is the per-arrival driver behavior. New nodes declare correlation via
-input scope and `output_correlation` rather than a single `sync_mode` flag.
+There is no `sync_mode` flag. The removed `zip_all` rule corresponds to max-scope readiness, `sticky` to the strict-prefix and empty-scope classes, and `on_any` to the per-arrival driver. Nodes declare correlation through input scope and `output_correlation`.
 
 ### Control events
 
@@ -175,7 +172,7 @@ security model.
 
 ## Related
 
-- [Architecture](architecture.md) — system components, message types, job lifecycle.
-- [Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) — lineage, scopes, and the scheduler design.
-- `packages/kernel/` — `runner.ts`, `actor.ts`, `inbox.ts`, `correlation-analysis.ts`.
-- `packages/code-nodes/` — the sandboxed Code node.
+- [Architecture](architecture.md): system components, message types, job lifecycle.
+- [Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md): lineage, scopes, and the scheduler design.
+- `packages/kernel/`: `runner.ts`, `actor.ts`, `inbox.ts`, `correlation-analysis.ts`.
+- `packages/code-nodes/`: the sandboxed Code node.

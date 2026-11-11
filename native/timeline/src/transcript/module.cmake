@@ -1,0 +1,28 @@
+nt_sources(core src/transcript/TranscriptDocument.h src/transcript/TranscriptDocument.cpp)
+function(nt_transcript_tests)
+    qt_add_executable(tst_transcript src/transcript/tst_transcript.cpp
+        src/edit/targeting/TargetingEditRegistrations.cpp src/app/BuiltinEdits.cpp)
+    target_link_libraries(tst_transcript PRIVATE timeline_core Qt6::Test)
+    set_target_properties(tst_transcript PROPERTIES MACOSX_BUNDLE FALSE)
+    add_test(NAME tst_transcript COMMAND tst_transcript)
+    set_tests_properties(tst_transcript PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endfunction()
+nt_tests(nt_transcript_tests)
+nt_qml_sources(src/transcript/TranscriptSession.h src/transcript/TranscriptSession.cpp
+    src/transcript/TranscriptWords.h src/transcript/TranscriptWords.cpp src/transcript/TranscriptEdits.cpp)
+function(nt_textpanel_tests)
+    qt_add_executable(tst_textpanel src/transcript/tst_textpanel.cpp ${NT_app})
+    set_target_properties(tst_textpanel PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_textpanel PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_textpanel OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_textpanel_qml/NodeTool/Timeline)
+    add_test(NAME tst_textpanel COMMAND tst_textpanel)
+    set_tests_properties(tst_textpanel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endfunction()
+nt_tests(nt_textpanel_tests)
+function(nt_transcript_oracle)
+    add_test(NAME transcript_oracle COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/vitest/vitest.mjs" run --config ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/vitest.store.config.mts)
+    set_tests_properties(transcript_oracle PROPERTIES ENVIRONMENT
+        "NT_CONFORMANCE_TESTS=${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/suites/transcript.test.ts;NT_ASSIST_BINARY=$<TARGET_FILE:nt_assist_oracle>;NT_TARGETING_OPS=$<TARGET_FILE:targeting-ops>" TIMEOUT 300)
+endfunction()
+nt_tests(nt_transcript_oracle)

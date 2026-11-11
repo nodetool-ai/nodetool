@@ -118,8 +118,10 @@ async function assetUrlForKey(key: string): Promise<string> {
 
 /**
  * Resolve a media ref object: if it has an asset_id, derive uri from it.
+ * Exported for the MCP mini app renderer, which shows media larger than it
+ * inlines through the same signed URL.
  */
-async function resolveRef(
+export async function resolveMediaRefUrl(
   ref: Record<string, unknown>,
   fallbackMime?: string,
   userId?: string
@@ -227,7 +229,7 @@ export async function resolveContentUrls(
       ) {
         return {
           ...b,
-          image: await resolveRef(
+          image: await resolveMediaRefUrl(
             b.image as Record<string, unknown>,
             "image/png",
             userId
@@ -238,7 +240,7 @@ export async function resolveContentUrls(
       if (b.type === "video" && isObjectLike(b.video)) {
         return {
           ...b,
-          video: await resolveRef(
+          video: await resolveMediaRefUrl(
             b.video as Record<string, unknown>,
             "video/mp4",
             userId
@@ -249,7 +251,7 @@ export async function resolveContentUrls(
       if (b.type === "audio" && isObjectLike(b.audio)) {
         return {
           ...b,
-          audio: await resolveRef(
+          audio: await resolveMediaRefUrl(
             b.audio as Record<string, unknown>,
             "audio/wav",
             userId

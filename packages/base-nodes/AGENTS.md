@@ -44,3 +44,23 @@ These graphs ship with the package and seed every install's example library. The
   recompute it after a hand edit.
 - **Don't hand-edit `electron/backend-bundle/examples/`** — it's gitignored and
   regenerated from this directory.
+
+## Package media (`nodetool/assets/nodetool-base.media.json`)
+
+Binary media in the `games`, `game-models`, `timelines`, `storyboards`,
+`recipe-inputs` and `ad-library` asset folders lives on media.nodetool.ai,
+not in git. The manifest lists each file by SHA-256. Text files in those
+folders (JSON, README, licences) stay in git.
+[`scripts/package-media.mjs`](../../scripts/package-media.mjs) holds the folder
+and extension rule.
+
+- Run `npm run media:pull` once in a new checkout. Tests, example checks and
+  marketing scripts read the media from disk. `scripts/setup-agent-env.sh` and
+  the CI setup action pull it.
+- After adding or changing a media file, run `npm run media:push` with
+  `CLOUDFLARE_ACCOUNT_ID` set and a wrangler login, then commit the manifest.
+  Git ignores the media itself. `npm run media:check` fails when a local file
+  differs from the manifest.
+- The packaged backend ships the manifest without the media. The server
+  downloads a file on its first request into the package media cache and
+  checks its hash (`@nodetool-ai/config` `fetchPackageMedia`).

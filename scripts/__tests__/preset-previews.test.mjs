@@ -94,7 +94,7 @@ describe('preset preview tooling', () => {
     await publishPlans([plan], { encode: async () => ({ video: Buffer.from('video'), poster: Buffer.from('poster') }),
       upload: async (key, bytes, type) => { uploads.push({ key, bytes, type }); return `https://example.com/${key}`; },
       regenerate: async () => { regenerated = true; } });
-    expect(uploads.map(u => u.type)).toEqual(['video/mp4', 'image/png']);
+    expect(uploads.map(u => u.type)).toEqual(['video/mp4', 'image/jpeg']);
     expect(regenerated).toBe(true);
     expect(JSON.parse(await readFile(plan.path, 'utf8')).preview.run).toBe('runs/camera.arc.json');
   }));
@@ -113,7 +113,7 @@ describe('preset preview tooling', () => {
         regenerate: async () => undefined
       });
       expect(encodes).toEqual([{ latePoster: true }]);
-      expect(keys[1]).toMatch(/-late\.png$/);
+      expect(keys[1]).toMatch(/-late\.jpg$/);
     } finally { await rm(dir, { recursive: true, force: true }); }
   });
   it('both CLI entry points support dry-run without Chrome or credentials', async () => {

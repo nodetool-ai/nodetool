@@ -24,6 +24,8 @@ npm install @nodetool-ai/elevenlabs-nodes
 
 Set `ELEVENLABS_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable.
 
+Text to Speech and Speech to Text call ElevenLabs through the runtime ElevenLabs provider (`context.callProviderEndpoint`). The provider holds the key, and each call writes a generation record. The realtime nodes open their own WebSocket and read the key themselves.
+
 ## Links
 
 - [NodeTool](https://nodetool.ai)

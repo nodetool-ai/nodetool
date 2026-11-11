@@ -21,6 +21,7 @@ import {
   MCP_GUEST_CONTRACT,
   MCP_SANDBOX_ASSET_SNIPPET,
   MCP_SANDBOX_PROBE_SNIPPET,
+  PROVIDER_TOOL_NAMES,
   loadSystemSkills
 } from "@nodetool-ai/agents";
 import { Asset, Skill, initTestDb } from "@nodetool-ai/models";
@@ -32,6 +33,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPError } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { MINI_APP_TOOL_NAMES } from "../src/mcp-apps.js";
 import {
   classifyForwardFailure,
   closeAllMcpHttpSessions,
@@ -42,7 +44,8 @@ import {
   MCP_MAX_SESSIONS,
   MCP_MAX_SESSIONS_PER_USER,
   MCP_SCOPE_REQUIRED_MESSAGE,
-  MCP_SESSION_IDLE_TTL_MS
+  MCP_SESSION_IDLE_TTL_MS,
+  mcpHttpSessionCount
 } from "../src/mcp-server.js";
 import {
   MCP_CAPABILITIES_RESOURCE_URI,
@@ -184,11 +187,14 @@ describe("MCP server surface", () => {
           "execute_code",
           "view_image",
           "upload_asset",
-          "download_asset"
+          "download_asset",
+          ...MINI_APP_TOOL_NAMES
         ].includes(name)
       )
         continue;
-      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+      expect(
+        DIRECT_TOOL_NAMES.has(name) || PROVIDER_TOOL_NAMES.has(name)
+      ).toBe(true);
     }
     // The ones this session can actually build are all there. Node discovery
     // needs an injected registry, which this harness has none of, so the
@@ -202,10 +208,34 @@ describe("MCP server surface", () => {
         "download_asset",
         "find_model",
         "list_models",
+        "list_providers",
         "list_directory",
-        "browser",
-        "http_request",
         "download_file"
+      ])
+    );
+    // Direct elsewhere, sandbox-only on this mount.
+    for (const name of ["http_request", "browser", "todo_write"]) {
+      expect(names).not.toContain(name);
+    }
+  });
+
+  it("offers the provider interface as top-level tools", () => {
+    // One tool per provider capability, so a client sees what this install
+    // can generate in the tool list rather than only inside the sandbox.
+    const names = toolNames(createMcpServer({ agentToolsScope: scope }));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "list_providers",
+        "generate_text",
+        "generate_image",
+        "edit_image",
+        "generate_video",
+        "animate_image",
+        "generate_video_from_references",
+        "generate_speech",
+        "generate_music",
+        "transcribe_audio",
+        "embed_text"
       ])
     );
   });
@@ -590,7 +620,9 @@ describe("MCP server surface", () => {
         ].includes(name)
       )
         continue;
-      expect(DIRECT_TOOL_NAMES.has(name)).toBe(true);
+      expect(
+        DIRECT_TOOL_NAMES.has(name) || PROVIDER_TOOL_NAMES.has(name)
+      ).toBe(true);
     }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");
     const listWorkflows = catalog.tools.find(
@@ -862,10 +894,13 @@ describe("stdio HTTP forwarding", () => {
     await forwarder.stdio.close();
   });
 
-  it("opens a new session when the server lost the old one", async () => {
+  it("opens a new session when the server answers 404 for the old one", async () => {
     const forwarder = await startForwarder();
-    // A server restart or the idle sweep: the session id now answers 404.
-    closeAllMcpHttpSessions();
+    // This server revives a lost session itself; an older one answers 404.
+    forwarder.setFail(async () => {
+      forwarder.setFail(undefined);
+      return new Response("Session not found", { status: 404 });
+    });
 
     forwarder.write({ id: 2, method: "tools/list" });
     const reply = await forwarder.reply(2);
@@ -1079,7 +1114,7 @@ describe("session scope", () => {
 
   it("hides another user's HTTP session behind a 404", async () => {
     const sessionId = await openHttpSession("alice");
-    for (const method of ["POST", "GET", "DELETE"]) {
+    for (const method of ["POST", "DELETE"]) {
       const response = await handleMcpHttpRequest(
         sessionRequest(method, sessionId),
         { agentToolsScope: { userId: "mallory", source: "http-session" } }
@@ -1104,16 +1139,94 @@ describe("session scope", () => {
       (await handleMcpHttpRequest(sessionRequest("POST", sessionId), alice))!
         .status
     ).toBe(200);
+    expect(mcpHttpSessionCount()).toBe(1);
 
     // A client that disappears sends no DELETE. Only `Date` is faked —
-    // faking timers wholesale stalls the transport's own async work.
+    // faking timers wholesale stalls the transport's own async work. Any
+    // request runs the sweep; a fresh initialize from someone else will do.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.now() + MCP_SESSION_IDLE_TTL_MS + 1);
-    const afterIdle = await handleMcpHttpRequest(
+    await openHttpSession("bob");
+    expect(mcpHttpSessionCount()).toBe(1);
+  });
+
+  it("revives a session this process no longer holds under the same id", async () => {
+    const sessionId = await openHttpSession("alice");
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
+    // What a deploy, the other replica, or an eviction looks like from here.
+    closeAllMcpHttpSessions();
+    expect(mcpHttpSessionCount()).toBe(0);
+
+    const response = await handleMcpHttpRequest(
       sessionRequest("POST", sessionId),
       alice
     );
-    expect(afterIdle!.status).toBe(404);
+    expect(response!.status).toBe(200);
+    expect(response!.headers.get("mcp-session-id")).toBe(sessionId);
+    const body = (await response!.json()) as {
+      id: number;
+      result: { tools: Array<{ name: string }> };
+    };
+    expect(body.id).toBe(2);
+    expect(body.result.tools.map((tool) => tool.name)).toContain(
+      "execute_code"
+    );
+
+    // The revived session belongs to the caller who revived it.
+    const stolen = await handleMcpHttpRequest(
+      sessionRequest("POST", sessionId),
+      { agentToolsScope: { userId: "mallory", source: "http-session" } }
+    );
+    expect(stolen!.status).toBe(404);
+  });
+
+  it("shares one revival between concurrent requests on a lost id", async () => {
+    const sessionId = await openHttpSession("alice");
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
+    closeAllMcpHttpSessions();
+    // Distinct JSON-RPC ids, as a real client sends for concurrent calls.
+    const responses = await Promise.all(
+      [10, 11, 12].map((id) =>
+        handleMcpHttpRequest(
+          new Request("http://localhost/mcp", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json, text/event-stream",
+              "mcp-session-id": sessionId
+            },
+            body: JSON.stringify({ jsonrpc: "2.0", id, method: "tools/list" })
+          }),
+          alice
+        )
+      )
+    );
+    expect(responses.map((r) => r!.status)).toEqual([200, 200, 200]);
+    expect(mcpHttpSessionCount()).toBe(1);
+  });
+
+  it("refuses to revive a lost session without an authenticated user", async () => {
+    const sessionId = await openHttpSession("alice");
+    closeAllMcpHttpSessions();
+    const response = await handleMcpHttpRequest(
+      sessionRequest("POST", sessionId)
+    );
+    expect(response!.status).toBe(401);
+    expect(mcpHttpSessionCount()).toBe(0);
+  });
+
+  it("answers GET with 405 because the mount offers no SSE stream", async () => {
+    const sessionId = await openHttpSession("alice");
+    const response = await handleMcpHttpRequest(
+      sessionRequest("GET", sessionId),
+      { agentToolsScope: { userId: "alice", source: "http-session" } }
+    );
+    expect(response!.status).toBe(405);
+    expect(response!.headers.get("allow")).toBe("POST, DELETE");
   });
 
   it("keeps a session alive while it is being used", async () => {
@@ -1141,24 +1254,18 @@ describe("session scope", () => {
       sessions.push(await openHttpSession("alice"));
     }
 
-    // The first one opened is the one that went.
-    const evicted = await handleMcpHttpRequest(
+    // The cap drops one session, not the whole tail.
+    expect(mcpHttpSessionCount()).toBe(MCP_MAX_SESSIONS_PER_USER);
+
+    // The first one opened is the one that went: using it again revives it,
+    // which in turn closes the oldest remaining one, so the user stays at
+    // the cap.
+    const revived = await handleMcpHttpRequest(
       sessionRequest("POST", sessions[0]!),
       alice
     );
-    expect(evicted!.status).toBe(404);
-
-    // Everything after it still answers — the cap drops one session, not the
-    // whole tail.
-    const statuses: number[] = [];
-    for (const sessionId of sessions.slice(1)) {
-      const response = await handleMcpHttpRequest(
-        sessionRequest("POST", sessionId),
-        alice
-      );
-      statuses.push(response!.status);
-    }
-    expect(statuses).toEqual(new Array(MCP_MAX_SESSIONS_PER_USER).fill(200));
+    expect(revived!.status).toBe(200);
+    expect(mcpHttpSessionCount()).toBe(MCP_MAX_SESSIONS_PER_USER);
   });
 
   it("does not evict another user's sessions when one user hits their cap", async () => {

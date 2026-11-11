@@ -31,6 +31,8 @@ export type WorkspaceTabType =
   | "model3d"
   | "audio"
   | "text"
+  // Uploaded or external documents. `ref` is a durable media locator.
+  | "document"
   // Mini apps. `ref` is an application id (trpc.applications.*).
   | "application"
   // A shipped example app, run without installing it. `ref` is its slug.
@@ -54,9 +56,10 @@ export type WorkspaceTabType =
   // The surface a project is started from. One per workspace — `ref` is the
   // constant below, and the tab closes once the project it described exists.
   | "project-new"
-  // The Create view: a prompt bar over a grid of image and video generations.
-  // One per workspace — `ref` is `CREATE_REF`. It holds no document, so it is
-  // global and is not restored with a project.
+  // A Create tab: a prompt bar over a grid of image, video and audio takes.
+  // `ref` is the Create session's thread id (kind "create"), filed in a
+  // project like a chat. The Create view opened before sessions existed has
+  // `ref` `CREATE_REF`, records nothing, and stays global.
   | "create";
 
 export type WorkspaceTabMode = "view" | "edit";
@@ -120,7 +123,7 @@ export const isGlobalWorkspaceTab = (tab: WorkspaceTab): boolean =>
   tab.type === "page" ||
   tab.type === "project-list" ||
   tab.type === "project-new" ||
-  tab.type === "create" ||
+  (tab.type === "create" && tab.ref === CREATE_REF) ||
   tab.type === "example-app" ||
   tab.type === "skill";
 
@@ -252,7 +255,7 @@ export const PROJECT_LIST_REF = "projects";
 /** The new-project surface is one tab, so its `ref` is a constant too. */
 export const PROJECT_NEW_REF = "new";
 
-/** The Create view is one tab, so its `ref` is a constant too. */
+/** The Create view opened before sessions existed. New Create tabs name a thread. */
 export const CREATE_REF = "create";
 
 export const tabId = (type: WorkspaceTabType, ref: string, instanceId?: string): string =>

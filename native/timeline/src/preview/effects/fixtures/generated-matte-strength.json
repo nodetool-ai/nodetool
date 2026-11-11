@@ -1,0 +1,96 @@
+{
+  "id": "seq-generated-matte-strength",
+  "projectId": "native-prototype",
+  "name": "generated-matte-strength",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "picture",
+      "trackId": "t0",
+      "name": "picture",
+      "startMs": 0,
+      "durationMs": 2000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [],
+      "opacity": 0.8,
+      "generatedMatte": {
+        "assetId": "fixture-matte",
+        "sourceAssetId": "fixture-picture",
+        "sourceRange": {
+          "fromMs": 0,
+          "toMs": 2000
+        },
+        "settings": {},
+        "status": "ready",
+        "mediaPath": "moving-matte.mp4",
+        "strength": 0.45
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J4 generated-matte-strength moving video at matched source time, PSNR >= 40 dB"
+    },
+    {
+      "frame": 21,
+      "criterion": "J4 generated-matte-strength moving video at matched source time, PSNR >= 40 dB"
+    }
+  ]
+}

@@ -671,8 +671,12 @@ function renderHost(context: ProcessingContext): StoryboardRenderHost {
       return saved ? { document, updatedAt: saved.updated_at } : null;
     },
     loadMedia: async (ref) => {
-      const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
-      return loadMediaRefBytes(ref, context);
+      const { loadMediaRefBytes, rasterizeSvgInput } = await import(
+        "@nodetool-ai/runtime"
+      );
+      // Video models take raster frames, so an SVG still is rendered to PNG.
+      const bytes = await loadMediaRefBytes(ref, context);
+      return bytes ? rasterizeSvgInput(bytes) : bytes;
     },
     videoDurationSeconds: (bytes) => mp4DurationSeconds(bytes)
   };

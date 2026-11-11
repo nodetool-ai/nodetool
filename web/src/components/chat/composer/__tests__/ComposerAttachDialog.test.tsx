@@ -62,14 +62,17 @@ jest.mock("../../../../serverState/useEntities", () => ({
 
 const useIndexQuery = asMock(trpc.documents.index.useQuery);
 
-const renderDialog = () => {
+const renderDialog = (
+  overrides: Partial<React.ComponentProps<typeof ComposerAttachDialog>> = {}
+) => {
   const props = {
     open: true,
     onClose: jest.fn(),
     onSelectAsset: jest.fn(),
     onSelectEntity: jest.fn(),
     onSelectDocument: jest.fn(),
-    onUploadFiles: jest.fn()
+    onUploadFiles: jest.fn(),
+    ...overrides
   };
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -107,6 +110,15 @@ describe("ComposerAttachDialog", () => {
     for (const name of ["Assets", "Entities", "Documents", "Upload"]) {
       expect(screen.getByRole("tab", { name })).toBeInTheDocument();
     }
+  });
+
+  it("leaves out the tabs its caller cannot take", () => {
+    renderDialog({ onSelectEntity: undefined, onSelectDocument: undefined });
+
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "Assets",
+      "Upload"
+    ]);
   });
 
   it("hands a picked asset to the composer and closes", async () => {

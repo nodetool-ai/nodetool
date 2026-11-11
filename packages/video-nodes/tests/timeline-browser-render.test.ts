@@ -54,7 +54,9 @@ beforeAll(async () => {
       options: { preset: "ultrafast", colorspace: "bt709", color_primaries: "bt709", color_trc: "bt709" }
     }
   });
-});
+  // Encoding the clip in process takes several seconds and runs past the
+  // default 10s hook limit on a loaded CI runner.
+}, 60_000);
 
 afterAll(async () => {
   if (directory) await fs.rm(directory, { recursive: true, force: true });

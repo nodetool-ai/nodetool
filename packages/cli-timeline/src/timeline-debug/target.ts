@@ -13,7 +13,7 @@
  * still readable.
  */
 import { existsSync, readFileSync } from "node:fs";
-import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import { timelineDocument, type TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { TimelineDebugTarget } from "@nodetool-ai/execution/timeline-debug";
 import {
   isBoolean,
@@ -98,8 +98,17 @@ function asDocument(raw: JsonValue): TimelineDocument {
   if (isBoolean(record.scriptEnabled)) {
     document.scriptEnabled = record.scriptEnabled;
   }
+  if (Array.isArray(record.mediaTracks)) {
+    document.mediaTracks = record.mediaTracks as TimelineDocument["mediaTracks"];
+  }
+  if (record.tempo !== undefined) {
+    document.tempo = record.tempo as TimelineDocument["tempo"];
+  }
   if (record.camera2d !== undefined) {
     document.camera2d = record.camera2d as TimelineDocument["camera2d"];
+  }
+  if ("workingColorSpaceVersion" in record) {
+    document.workingColorSpaceVersion = timelineDocument.shape.workingColorSpaceVersion.parse(record.workingColorSpaceVersion);
   }
   return document;
 }

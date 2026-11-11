@@ -1,3 +1,4 @@
+import { withTimelineRenderSlot } from "@nodetool-ai/runtime";
 /**
  * `RenderTimeline` in headless Chromium.
  *
@@ -26,6 +27,7 @@
  * other render path, so the soundtrack does not depend on which path ran.
  */
 
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
 import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open, rename, stat, type FileHandle } from "node:fs/promises";
@@ -317,7 +319,7 @@ interface OutputWriter {
   write(data: Buffer, position: number): Promise<void>;
   frame(index: number, png: Buffer): Promise<void>;
   finish(): Promise<void>;
-  abort(): void;
+  abort(): Promise<void>;
 }
 
 function openOutputWriter(
@@ -366,10 +368,10 @@ function openOutputWriter(
       if (zip) await zip.finish();
       if (pngEncoder) await pngEncoder.finish();
     },
-    abort() {
-      void file?.then((handle) => handle.close()).catch(() => undefined);
+    async abort() {
+      await file?.then((handle) => handle.close()).catch(() => undefined);
       zip?.abort();
-      pngEncoder?.abort();
+      await pngEncoder?.abort();
     }
   };
 }
@@ -397,7 +399,14 @@ const GOOGLE_FONT_CSS = /^\/api\/assets\/packages\/timeline\/fonts\/google\/([^/
 export async function renderTimelineInBrowser(
   opts: BrowserRenderOptions
 ): Promise<BrowserRenderResult> {
+  return withTimelineRenderSlot(() => renderTimelineInBrowserAdmitted(opts), opts.signal);
+}
+
+async function renderTimelineInBrowserAdmitted(
+  opts: BrowserRenderOptions
+): Promise<BrowserRenderResult> {
   const { sequence, output, signal } = opts;
+  assertTimelineColorSpaceSupported(sequence);
   signal?.throwIfAborted();
   const script = await loadTimelineRenderPage();
   const token = randomBytes(16).toString("hex");
@@ -595,6 +604,7 @@ export async function renderTimelineInBrowser(
     sources = openSourceConverter({ workDir: opts.workDir, decodable: new Set(decodable), signal });
 
     const request: HeadlessRenderRequest = {
+      workingColorSpaceVersion: sequence.workingColorSpaceVersion,
       tracks: sequence.tracks,
       clips: sequence.clips,
       mediaTracks: sequence.mediaTracks,
@@ -654,7 +664,9 @@ export async function renderTimelineInBrowser(
       convertedSources: sources.converted
     };
   } catch (error) {
-    writer.abort();
+    await writer.abort().catch(() => {
+      // Preserve the render error if cleanup also fails.
+    });
     throw error;
   } finally {
     signal?.removeEventListener("abort", onAbort);

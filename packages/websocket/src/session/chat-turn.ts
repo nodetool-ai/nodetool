@@ -17,6 +17,7 @@ import {
 import { attachChatPredictionForwarder } from "../chat-prediction-forwarder.js";
 import { dispatchClientTool } from "./client-tool-gate.js";
 import { admitSpend } from "../credit-gate.js";
+import { admitQuota } from "../quota-gate.js";
 import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import {
   isFunctionValue,
@@ -1756,11 +1757,35 @@ export class ChatTurnHandler {
     const mediaGeneration = isObjectLike(data.media_generation)
       ? (data.media_generation as Record<string, unknown>)
       : null;
-    if (
-      mediaGeneration &&
+    const mediaTurn =
+      mediaGeneration !== null &&
       isString(mediaGeneration.mode) &&
-      mediaGeneration.mode !== "chat"
-    ) {
+      mediaGeneration.mode !== "chat";
+
+    // A self-hosted server's admin can cap each user's spend on the server's
+    // keys. A turn on a provider key the user saved never counts.
+    const quota = await admitQuota(
+      userId,
+      mediaTurn && mediaGeneration
+        ? [
+            {
+              kind: "media",
+              provider: String(mediaGeneration.provider ?? providerId)
+            }
+          ]
+        : [{ kind: "tokens", provider: providerId }]
+    );
+    if (!quota.allowed) {
+      await settleRegisteredRunTrace(rootContext, "failed", quota.reason);
+      await this.session.send({
+        type: "error",
+        message: quota.reason,
+        thread_id: threadId
+      });
+      return;
+    }
+
+    if (mediaTurn && mediaGeneration) {
       await this.handleMediaGenerationMessage(
         data,
         mediaGeneration,
@@ -2293,6 +2318,14 @@ export class ChatTurnHandler {
       const directNames = new Set<string>(DIRECT_TOOL_NAMES);
       if (permissionMode === "plan") directNames.add("create_plan");
       else directNames.add("execute_plan");
+      // A chat app's agent drives the app with its `ui_app_run_*` tools on
+      // every turn. Direct calls keep each one a call of its own in the
+      // thread, which the client renders as the step card it shows.
+      if (uiContext?.focused?.type === "app_run") {
+        for (const name of focusedUiToolNames(uiContext, allSchemas.map((s) => s.name))) {
+          directNames.add(name);
+        }
+      }
       const directSchemas = allSchemas.filter(
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );

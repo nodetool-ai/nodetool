@@ -2,13 +2,13 @@
   "slug": "trailer-room",
   "name": "Trailer Room",
   "emoji": "🎞️",
-  "description": "The Storyboard to Trailer chain behind one surface. Rewrite the beat sheet and the shot list while they still cost one text call each, then spend once on the footage and lay a score under the cut.",
-  "tagline": "Premise to beat sheet to shot list to a scored teaser, on one page.",
-  "note": "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation.",
+  "description": "One agent writes the beats and the shot list, renders every shot, cuts them together and lays a score under the cut. You see each decision and tool call as it happens.",
+  "tagline": "Give an agent your premise and watch it direct, cut and score the teaser.",
+  "note": "💸 One run spends one image and one video generation per shot, one music generation, and the agent's own model turns.",
   "featured": false,
-  "image": "/app-preview/img/trailer-room.jpg",
+  "image": null,
   "app": {
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "ui": {
       "root": {
         "props": {}
@@ -20,14 +20,14 @@
             "id": "title",
             "text": "🎞️ Trailer Room",
             "level": "1",
-            "subtitle": "Premise to beat sheet to shot list to a scored teaser, on one page."
+            "subtitle": "Give an agent your premise and watch it direct, cut and score the teaser."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation.",
+            "text": "💸 One run spends one image and one video generation per shot, one music generation, and the agent's own model turns.",
             "tone": "hint"
           }
         },
@@ -38,12 +38,8 @@
             "binding": "var:step",
             "steps": [
               {
-                "value": "the-paperwork",
-                "title": "The paperwork"
-              },
-              {
-                "value": "the-footage",
-                "title": "The footage"
+                "value": "direct-the-teaser",
+                "title": "Direct the teaser"
               }
             ],
             "allowBack": true
@@ -52,26 +48,26 @@
         {
           "type": "Container",
           "props": {
-            "id": "step-the-paperwork",
+            "id": "step-direct-the-teaser",
             "variant": "plain",
             "visibleWhen": {
               "binding": "var:step",
               "op": "eq",
-              "value": "the-paperwork"
+              "value": "direct-the-teaser"
             },
             "content": [
               {
                 "type": "Heading",
                 "props": {
-                  "id": "heading-the-paperwork",
-                  "text": "The paperwork",
+                  "id": "heading-direct-the-teaser",
+                  "text": "Direct the teaser",
                   "level": "2"
                 }
               },
               {
                 "type": "Columns",
                 "props": {
-                  "id": "cols-the-paperwork",
+                  "id": "cols-direct-the-teaser",
                   "gap": 24,
                   "left": [
                     {
@@ -85,209 +81,10 @@
                       }
                     },
                     {
-                      "type": "Accordion",
-                      "props": {
-                        "id": "models-the-paperwork",
-                        "title": "Models (2)",
-                        "defaultOpen": false,
-                        "content": [
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-beats-ag-model",
-                              "binding": "op:beats/prop:ag#model",
-                              "label": "Agent model",
-                              "modelKind": "language_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-shots-ag-model",
-                              "binding": "op:shots/prop:ag#model",
-                              "label": "Agent model",
-                              "modelKind": "language_model",
-                              "events": []
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "btn-beats",
-                        "label": "Write the beats",
-                        "variant": "contained",
-                        "color": "primary",
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "beats",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    },
-                    {
                       "type": "TextInput",
                       "props": {
-                        "id": "in-synopsis",
-                        "binding": "var:synopsis",
-                        "label": "Synopsis to break into shots",
-                        "multiline": true,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "btn-shots",
-                        "label": "Break it into shots",
-                        "variant": "contained",
-                        "color": "primary",
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "shots",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    }
-                  ],
-                  "right": [
-                    {
-                      "type": "Progress",
-                      "props": {
-                        "id": "progress-beats",
-                        "binding": "op:beats/exec#progress",
-                        "label": "Structuring the trailer…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-beats-beats",
-                        "text": "Beat sheet",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-beats-beats",
-                        "binding": "op:beats/out:out",
-                        "text": ""
-                      }
-                    },
-                    {
-                      "type": "Progress",
-                      "props": {
-                        "id": "progress-shots",
-                        "binding": "op:shots/exec#progress",
-                        "label": "Numbering the shots…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-shots-shot-list",
-                        "text": "Shot list",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-shots-shot-list",
-                        "binding": "op:shots/out:out",
-                        "text": ""
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "Divider",
-                "props": {
-                  "id": "divider-the-paperwork"
-                }
-              },
-              {
-                "type": "Columns",
-                "props": {
-                  "id": "nav-the-paperwork",
-                  "gap": 16,
-                  "left": [],
-                  "right": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "next-the-paperwork",
-                        "label": "Next: The footage",
-                        "variant": "contained",
-                        "color": "primary",
-                        "fullWidth": false,
-                        "align": "end",
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "the-footage"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "step-the-footage",
-            "variant": "plain",
-            "visibleWhen": {
-              "binding": "var:step",
-              "op": "eq",
-              "value": "the-footage"
-            },
-            "content": [
-              {
-                "type": "Heading",
-                "props": {
-                  "id": "heading-the-footage",
-                  "text": "The footage",
-                  "level": "2"
-                }
-              },
-              {
-                "type": "Columns",
-                "props": {
-                  "id": "cols-the-footage",
-                  "gap": 24,
-                  "left": [
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note",
-                        "text": "💸 Shooting the teaser runs one video generation per shot."
-                      }
-                    },
-                    {
-                      "type": "TextInput",
-                      "props": {
-                        "id": "in-trailer-visual-style",
-                        "binding": "op:trailer/in:style",
+                        "id": "in-style",
+                        "binding": "var:style",
                         "label": "Visual style",
                         "multiline": true,
                         "events": []
@@ -296,8 +93,8 @@
                     {
                       "type": "NumberInput",
                       "props": {
-                        "id": "in-trailer-shot-count",
-                        "binding": "op:trailer/in:shot_count",
+                        "id": "in-direct-shots",
+                        "binding": "op:direct/in:shots",
                         "label": "Number of shots",
                         "min": 3,
                         "max": 10,
@@ -305,109 +102,82 @@
                       }
                     },
                     {
-                      "type": "Accordion",
+                      "type": "ModelSelect",
                       "props": {
-                        "id": "models-the-footage",
-                        "title": "Models (4)",
-                        "defaultOpen": false,
-                        "content": [
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-trailer-director-model",
-                              "binding": "op:trailer/prop:director#model",
-                              "label": "Direct the storyboard model",
-                              "modelKind": "language_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-trailer-keyframe-model",
-                              "binding": "op:trailer/prop:keyframe#model",
-                              "label": "Render keyframes model",
-                              "modelKind": "image_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-trailer-animate-model",
-                              "binding": "op:trailer/prop:animate#model",
-                              "label": "Animate each keyframe model",
-                              "modelKind": "video_model",
-                              "events": []
-                            }
-                          },
-                          {
-                            "type": "ModelSelect",
-                            "props": {
-                              "id": "model-score-score-model",
-                              "binding": "op:score/prop:score#model",
-                              "label": "Write the score model",
-                              "modelKind": "music_model",
-                              "events": []
-                            }
-                          }
-                        ]
+                        "id": "model-agentmodel",
+                        "binding": "var:agentModel",
+                        "label": "Agent model",
+                        "modelKind": "language_model",
+                        "events": []
                       }
                     },
                     {
-                      "type": "Button",
+                      "type": "ModelSelect",
                       "props": {
-                        "id": "btn-trailer",
-                        "label": "Shoot the teaser",
-                        "variant": "contained",
-                        "color": "primary",
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "trailer",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
+                        "id": "model-imagemodel",
+                        "binding": "var:imageModel",
+                        "label": "Image model",
+                        "modelKind": "image_model",
+                        "task": "text_to_image",
+                        "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "ModelSelect",
                       "props": {
-                        "id": "in-score-mood",
-                        "binding": "op:score/in:in-mood",
-                        "label": "Score mood",
-                        "multiline": true,
+                        "id": "model-videomodel",
+                        "binding": "var:videoModel",
+                        "label": "Video model",
+                        "modelKind": "video_model",
+                        "task": "image_to_video",
                         "events": []
                       }
                     },
                     {
                       "type": "Button",
                       "props": {
-                        "id": "btn-score",
-                        "label": "Score the cut",
+                        "id": "btn-direct",
+                        "label": "Direct the teaser",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
                           {
                             "trigger": "click",
                             "kind": "run",
-                            "operationId": "score",
+                            "operationId": "direct",
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:direct/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ],
                   "right": [
                     {
-                      "type": "Progress",
+                      "type": "AgentActivity",
                       "props": {
-                        "id": "progress-trailer",
-                        "binding": "op:trailer/exec#progress",
-                        "label": "Directing, rendering & cutting…"
+                        "id": "transcript-direct",
+                        "binding": "op:direct/exec#transcript",
+                        "label": "What the agent is doing",
+                        "placeholder": "Beats, shots, renders and the cut appear here."
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-direct",
+                        "binding": "op:direct/exec#error",
+                        "title": "Directing failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:direct/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -428,28 +198,19 @@
                       }
                     },
                     {
-                      "type": "Progress",
-                      "props": {
-                        "id": "progress-score",
-                        "binding": "op:score/exec#progress",
-                        "label": "Writing the bed…"
-                      }
-                    },
-                    {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-score-scored-clip",
-                        "text": "Scored teaser",
+                        "id": "lbl-direct-notes",
+                        "text": "The director's notes",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Video",
+                      "type": "Markdown",
                       "props": {
-                        "id": "out-score-scored-clip",
-                        "binding": "op:score/out:output-scored",
-                        "height": 320,
-                        "placeholder": "Your video appears here"
+                        "id": "out-direct-notes",
+                        "binding": "op:direct/out:notes",
+                        "text": ""
                       }
                     }
                   ]
@@ -458,33 +219,15 @@
               {
                 "type": "Divider",
                 "props": {
-                  "id": "divider-the-footage"
+                  "id": "divider-direct-the-teaser"
                 }
               },
               {
                 "type": "Columns",
                 "props": {
-                  "id": "nav-the-footage",
+                  "id": "nav-direct-the-teaser",
                   "gap": 16,
-                  "left": [
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "back-the-footage",
-                        "label": "Back: The paperwork",
-                        "variant": "outlined",
-                        "fullWidth": false,
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "setVariable",
-                            "key": "var:step",
-                            "value": "the-paperwork"
-                          }
-                        ]
-                      }
-                    }
-                  ],
+                  "left": [],
                   "right": []
                 }
               }
@@ -496,62 +239,44 @@
     },
     "operations": [
       {
-        "id": "beats",
-        "name": "Beats",
-        "workflowId": "beats",
+        "id": "direct",
+        "name": "Direct",
+        "workflowId": "",
         "inputs": {
-          "in": {
+          "premise": {
             "from": "variable",
             "variableId": "premise"
-          }
-        },
-        "outputs": {},
-        "policy": "replace"
-      },
-      {
-        "id": "shots",
-        "name": "Shots",
-        "workflowId": "shots",
-        "inputs": {
-          "in": {
+          },
+          "style": {
             "from": "variable",
-            "variableId": "synopsis"
-          }
-        },
-        "outputs": {},
-        "policy": "replace"
-      },
-      {
-        "id": "trailer",
-        "name": "Shoot",
-        "workflowId": "trailer",
-        "inputs": {
-          "logline": {
+            "variableId": "style"
+          },
+          "model": {
             "from": "variable",
-            "variableId": "premise"
+            "variableId": "agentModel"
+          },
+          "image_model": {
+            "from": "variable",
+            "variableId": "imageModel"
+          },
+          "video_model": {
+            "from": "variable",
+            "variableId": "videoModel"
           }
         },
         "outputs": {
-          "output-trailer": {
+          "trailer": {
             "to": "variable",
             "variableId": "cut"
           }
         },
-        "policy": "queue",
-        "timeoutMs": 1800000
-      },
-      {
-        "id": "score",
-        "name": "Score",
-        "workflowId": "score",
-        "inputs": {
-          "in-video": {
-            "from": "variable",
-            "variableId": "cut"
-          }
-        },
-        "outputs": {},
-        "policy": "queue"
+        "policy": "replace",
+        "timeoutMs": 1800000,
+        "target": {
+          "kind": "script",
+          "scriptId": "direct",
+          "scriptVersion": 1
+        }
       }
     ],
     "resources": [],
@@ -563,7 +288,7 @@
           "type": "str",
           "optional": true
         },
-        "default": "the-paperwork",
+        "default": "direct-the-teaser",
         "scope": "instance",
         "persist": false
       },
@@ -579,13 +304,13 @@
         "persist": false
       },
       {
-        "id": "synopsis",
-        "name": "Synopsis",
+        "id": "style",
+        "name": "Visual style",
         "type": {
           "type": "str",
           "optional": true
         },
-        "default": "",
+        "default": "Anamorphic night photography, wet asphalt, sodium light, heavy grain.",
         "scope": "instance",
         "persist": false
       },
@@ -598,282 +323,99 @@
         },
         "scope": "instance",
         "persist": false
+      },
+      {
+        "id": "agentModel",
+        "name": "Agent model",
+        "type": {
+          "type": "language_model",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "imageModel",
+        "name": "Image model",
+        "type": {
+          "type": "image_model",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "videoModel",
+        "name": "Video model",
+        "type": {
+          "type": "video_model",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
       }
     ]
   },
-  "workflows": [
+  "workflows": [],
+  "scripts": [
     {
-      "key": "beats",
-      "name": "Trailer Beats from a Premise",
-      "graph": {
-        "nodes": [
+      "key": "direct",
+      "name": "Direct a Trailer",
+      "sourceId": "nodetool-base/Direct a Trailer",
+      "document": {
+        "schemaVersion": 1,
+        "description": "Runs one agent that plans, renders, cuts and scores a teaser trailer from a premise.",
+        "code": "\nimport { run_agent } from \"@nodetool-ai/sandbox-nodetool/agents\";\n\nconst premise = String(inputs.premise ?? \"\").trim();\nif (!premise) throw new Error(\"Write the premise before you direct the teaser.\");\nconst style = String(inputs.style ?? \"\").trim();\nconst shots = Math.max(3, Math.min(10, Number(inputs.shots) || 6));\nconst picked = inputs.model?.id ? inputs.model : await nodetool.models.pick(\"generate_message\");\nconst ref = async ([chosen, capability]) => {\n  const hit = chosen?.id ? chosen : await nodetool.models.pick(capability);\n  const { provider, id } = hit.ref || hit;\n  return \"provider \" + provider + \", model \" + id;\n};\nconst [imageModel, videoModel, musicModel] = await Promise.all(\n  [\n    [inputs.image_model, \"text_to_image\"],\n    [inputs.video_model, \"image_to_video\"],\n    [null, \"text_to_music\"]\n  ].map(ref)\n);\n\nconst answer = await run_agent({\n  label: \"director\",\n  model: picked.ref || picked,\n  max_turns: 40,\n  tools: [\"generate_batch\", \"generate_music\", \"media_probe\", \"media_edit\"],\n  system: \"You are a trailer director. Decide, say what you decided in one or two sentences, then act with your tools. Use only the asset URIs your tools return.\",\n  prompt: [\n    \"Direct a teaser trailer from start to finish.\",\n    \"Premise: \" + premise,\n    \"Visual style: \" + (style || \"choose one that fits the premise\"),\n    \"Number of shots: \" + shots,\n    \"\",\n    \"1. Write the beat sheet: hook, escalation, turn and title card, with timings.\",\n    \"2. Write the numbered shot list: subject, framing, camera move and duration. Repeat the visual style in every shot prompt. Allow no on-screen text.\",\n    \"3. Make every still in one generate_batch call: one generate_image request per shot, at 16:9, with \" + imageModel + \". Label each request with its shot.\",\n    \"4. Animate every still in one more generate_batch call: one animate_image request per still, with \" + videoModel + \".\",\n    \"5. Keep each clip to the duration in your shot list.\",\n    \"6. Call media_edit with operation concat, the clip asset URIs in shot order, and output_file cut.mp4. Check it with media_probe.\",\n    \"7. Call generate_music for a bed as long as the cut, with \" + musicModel + \". Then call media_edit with operation add_audio and output_file trailer.mp4.\",\n    \"8. Submit the asset URI of the final file and your notes.\",\n    \"\",\n    \"Retry a failed call once. If a shot fails again, cut without it and say so. Do not regenerate a shot only to improve it.\",\n    \"If you cannot finish, still submit: leave trailer_uri empty and say in the notes which step failed and why.\"\n  ].join(\"\\n\"),\n  output_schema: {\n    type: \"object\",\n    properties: { trailer_uri: { type: \"string\" }, notes: { type: \"string\" } },\n    required: [\"notes\"]\n  }\n});\nif (answer.error) throw new Error(answer.error);\nawait output(\"notes\", answer.result.notes);\nif (!answer.result.trailer_uri) throw new Error(\"The agent made no trailer. Its notes say why.\");\nawait output(\"trailer\", { type: \"video\", uri: answer.result.trailer_uri });\n",
+        "inputs": [
           {
-            "id": "in",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "premise",
-              "value": "",
-              "description": "The premise"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 346
-              },
-              "zIndex": 0,
-              "width": 300,
-              "selectable": true,
-              "title": "1  Input"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "name": "premise",
+            "type": "str"
           },
           {
-            "id": "out",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "beats"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 800,
-                "y": 358
-              },
-              "zIndex": 0,
-              "width": 300,
-              "selectable": true,
-              "title": "3  Output"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "name": "style",
+            "type": "str"
+          },
+          {
+            "name": "shots",
+            "type": "int"
+          },
+          {
+            "name": "model",
+            "type": "language_model"
+          },
+          {
+            "name": "image_model",
+            "type": "image_model"
+          },
+          {
+            "name": "video_model",
+            "type": "video_model"
           }
         ],
-        "edges": []
-      }
-    },
-    {
-      "key": "shots",
-      "name": "Shot List from a Synopsis",
-      "graph": {
-        "nodes": [
+        "outputs": [
           {
-            "id": "in",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "synopsis",
-              "value": "",
-              "description": "The story in a paragraph"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 365
-              },
-              "zIndex": 0,
-              "width": 300,
-              "selectable": true,
-              "title": "1  Input"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "name": "trailer",
+            "type": "video"
           },
           {
-            "id": "out",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "shot_list"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 800,
-                "y": 378
-              },
-              "zIndex": 0,
-              "width": 300,
-              "selectable": true,
-              "title": "3  Output"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "name": "notes",
+            "type": "str"
           }
         ],
-        "edges": []
-      }
-    },
-    {
-      "key": "trailer",
-      "name": "Movie Trailer Generator",
-      "graph": {
-        "nodes": [
-          {
-            "id": "logline",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "Logline",
-              "value": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap."
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 483
-              },
-              "zIndex": 0,
-              "width": 280,
-              "title": "1️⃣ Logline",
-              "selectable": true,
-              "bypassed": false
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "style",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "Visual Style",
-              "value": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, fine film grain, gritty"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 708
-              },
-              "zIndex": 0,
-              "width": 280,
-              "title": "2️⃣ Visual style",
-              "selectable": true,
-              "bypassed": false
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "shot_count",
-            "type": "nodetool.input.IntegerInput",
-            "data": {
-              "name": "Shot Count",
-              "value": 6,
-              "min": 1,
-              "max": 20
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 933
-              },
-              "zIndex": 0,
-              "selectable": true,
-              "bypassed": false,
-              "width": 280,
-              "title": "3️⃣ Shot count"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "output-trailer",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "trailer"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 2792,
-                "y": 714
-              },
-              "title": "8️⃣ Trailer output",
-              "selectable": true
-            }
-          }
-        ],
-        "edges": []
-      }
-    },
-    {
-      "key": "score",
-      "name": "Score a Silent Clip",
-      "graph": {
-        "nodes": [
-          {
-            "id": "in-video",
-            "type": "nodetool.input.VideoInput",
-            "data": {
-              "name": "clip",
-              "value": {
-                "type": "video",
-                "uri": "package://nodetool-base/recipe-inputs/latte.mp4"
-              },
-              "description": "The clip to score"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 442
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "title": "1  Clip"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "in-mood",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "mood",
-              "value": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
-              "description": "The mood of the score"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 808
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "title": "2  Mood"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "output-scored",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "scored_clip"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 3140,
-                "y": 615
-              },
-              "zIndex": 0,
-              "width": 240,
-              "selectable": true,
-              "title": "Scored clip"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          }
-        ],
-        "edges": []
-      }
+        "secrets": [],
+        "timeoutSeconds": 1800,
+        "tests": []
+      },
+      "version": null
     }
   ],
   "values": {
-    "op:beats/out:out": "**Hook (0:00–0:08)** — Headlights on wet asphalt, the bridge ahead already wrong.\n\n**Escalation (0:08–0:24)** — Concrete gives. She does not lift off.\n\n**Turn (0:24–0:36)** — The span behind her is gone. So is the way back.\n\n**Title card (0:36–0:42)** — THE LAST SPAN.",
-    "op:shots/out:out": "1. Close on the speedometer, handheld, 2s\n2. Low wide of the bridge mouth, locked off, 3s\n3. Tracking side profile of the car, dolly right, 4s",
-    "op:trailer/in:style": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, fine film grain, gritty",
-    "op:trailer/in:shot_count": 6,
-    "op:score/in:in-mood": "Soft jazz guitar and brushed drums for a quiet coffee shop, instrumental",
     "var:cut": {
       "$demo": "video"
     },
-    "var:step": "the-paperwork",
+    "op:direct/out:notes": "**Hook (0:00–0:08)** — Headlights on wet asphalt, the bridge ahead already wrong.\n\n**Turn (0:24–0:36)** — The span behind her is gone. So is the way back.",
+    "var:step": "direct-the-teaser",
     "var:premise": "A getaway driver speeds onto a bridge as it starts to collapse behind her.",
-    "var:synopsis": ""
+    "var:style": "Anamorphic night photography, wet asphalt, sodium light, heavy grain."
   }
 }

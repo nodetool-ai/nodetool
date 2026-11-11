@@ -82,10 +82,10 @@ export class OffscreenVideoPool {
   private readonly entries = new Map<string, PoolEntry>();
   private readonly decoded = new Map<string, SequentialVideoSource>();
   private readonly opening = new Map<string, { controller: AbortController; promise: Promise<SequentialVideoSource | null> }>();
-  /** Concurrent different times cannot share a bitmap before both uploads. */
+  /** Concurrent different times cannot share a frame before both uploads. */
   private readonly activeRequests = new Map<string, {
     timeSec: number;
-    promise: Promise<HTMLVideoElement | ImageBitmap>;
+    promise: Promise<HTMLVideoElement | VideoFrame>;
     controller: AbortController;
   }>();
   private readonly unavailable = new Set<string>();
@@ -115,7 +115,7 @@ export class OffscreenVideoPool {
     url: string,
     timeSec: number,
     signal?: AbortSignal
-  ): Promise<HTMLVideoElement | ImageBitmap> {
+  ): Promise<HTMLVideoElement | VideoFrame> {
     const key = `${clipId}\0${url}`;
     if (this.disposed) return Promise.reject(abortError());
     const active = this.activeRequests.get(key);
@@ -144,7 +144,7 @@ export class OffscreenVideoPool {
     url: string,
     timeSec: number,
     signal?: AbortSignal
-  ): Promise<HTMLVideoElement | ImageBitmap> {
+  ): Promise<HTMLVideoElement | VideoFrame> {
     if (typeof VideoDecoder !== "undefined" && !this.unavailable.has(key)) {
       try {
         let source = this.decoded.get(key);

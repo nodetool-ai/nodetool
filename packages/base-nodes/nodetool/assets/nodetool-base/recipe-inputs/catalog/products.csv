@@ -1,0 +1,5 @@
+sku,title,description,color,material,price,image_url
+TT-OLV-500,Trail Tumbler,"insulated tumbler with a flip lid that keeps coffee hot for six hours",olive green,powder-coated steel,34.00,package://nodetool-base/recipe-inputs/catalog/trail-tumbler.jpg
+MW-STL-42,Meridian Watch,"smartwatch with a 42 mm brushed case and a soft sport band",steel and graphite,aluminium and silicone,249.00,package://nodetool-base/recipe-inputs/catalog/meridian-watch.jpg
+TC-OLV-350,Olive Travel Cup,"matte travel cup with a charcoal lid for the morning commute",muted olive,recycled polypropylene,18.00,package://nodetool-base/recipe-inputs/catalog/olive-travel-cup.jpg
+MB-CLR-250,Message Bottle,"clear glass bottle with a cork stopper and a folded paper note inside",clear,glass and cork,12.00,package://nodetool-base/recipe-inputs/catalog/message-bottle.jpg

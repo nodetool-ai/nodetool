@@ -2,9 +2,9 @@
  * Dynamic Topaz node class factory.
  *
  * Generates node classes from `topaz-manifest.json` at runtime, mirroring the
- * kie-nodes factory. Image nodes upload bytes directly to the Topaz image API;
- * the video node probes source metadata locally before driving the
- * multi-step video upload pipeline.
+ * kie-nodes factory. Every node runs its manifest endpoint through
+ * `context.callProviderEndpoint`, so `TopazProvider` holds the API key and the
+ * wire flow. The video nodes probe source metadata locally first.
  */
 
 import {
@@ -18,16 +18,13 @@ import {
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import {
-  getApiKey,
   probeVideoMetadata,
   refToBytes,
   sourceContainerFromRef,
   topazExecuteImageTask,
   topazExecuteVideoTask,
   topazImageRef,
-  type TopazImageSpec,
-  type TopazVideoKind,
-  type TopazVideoSpec
+  type TopazVideoKind
 } from "./topaz-base.js";
 
 export interface TopazFieldDef {
@@ -122,26 +119,22 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
     async process(
       context?: Parameters<BaseNode["process"]>[0]
     ): Promise<Record<string, unknown>> {
-      const apiKey = getApiKey(this._secrets);
+      if (!context) {
+        throw new Error(`${title}: a processing context is required`);
+      }
       const fields = collectScalarFields(this, specRef);
       const asset = propertyOf(this, assetField);
+      const job = this.__node_id
+        ? { modelId: specRef.modelId, nodeId: this.__node_id }
+        : { modelId: specRef.modelId };
 
       if (isVideo) {
         const sourceContainer = sourceContainerFromRef(asset);
         const videoBytes = await refToBytes(asset, context);
         const sourceMeta = await probeVideoMetadata(videoBytes, sourceContainer);
-        const videoSpec: TopazVideoSpec = {
-          submitEndpoint: specRef.submitEndpoint,
-          acceptEndpoint: specRef.acceptEndpoint ?? "",
-          completeEndpoint: specRef.completeEndpoint ?? "",
-          statusEndpoint: specRef.statusEndpoint,
-          pollInterval: specRef.pollInterval,
-          maxAttempts: specRef.maxAttempts,
-          videoKind: specRef.videoKind ?? "upscale"
-        };
         const out = await topazExecuteVideoTask(
-          apiKey,
-          videoSpec,
+          context,
+          { ...job, videoKind: specRef.videoKind ?? "upscale" },
           fields,
           videoBytes,
           sourceMeta
@@ -156,19 +149,7 @@ export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
       }
 
       const imageBytes = await refToBytes(asset, context);
-      const imageSpec: TopazImageSpec = {
-        submitEndpoint: specRef.submitEndpoint,
-        statusEndpoint: specRef.statusEndpoint,
-        downloadEndpoint: specRef.downloadEndpoint ?? "",
-        pollInterval: specRef.pollInterval,
-        maxAttempts: specRef.maxAttempts
-      };
-      const out = await topazExecuteImageTask(
-        apiKey,
-        imageSpec,
-        fields,
-        imageBytes
-      );
+      const out = await topazExecuteImageTask(context, job, fields, imageBytes);
       return { output: await topazImageRef(out) };
     }
   };

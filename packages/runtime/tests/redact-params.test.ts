@@ -4,7 +4,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { redactGenerationParams } from "../src/redact-params.js";
+import {
+  redactGenerationOutput,
+  redactGenerationParams
+} from "../src/redact-params.js";
 
 describe("redactGenerationParams", () => {
   it("replaces bytes with their length", () => {
@@ -48,5 +51,22 @@ describe("redactGenerationParams", () => {
   it("does not throw on a non-object", () => {
     expect(redactGenerationParams(null)).toEqual({});
     expect(redactGenerationParams(undefined)).toEqual({});
+  });
+});
+
+describe("redactGenerationOutput", () => {
+  it("redacts a plain object like a parameter bag", () => {
+    expect(
+      redactGenerationOutput({ url: "https://cdn.example/a.png", raw: new Uint8Array(5) })
+    ).toEqual({ url: "https://cdn.example/a.png", raw: { bytes: 5 } });
+  });
+
+  it("returns strings, arrays and class instances unchanged", () => {
+    const long = "x".repeat(5000);
+    const date = new Date(0);
+    expect(redactGenerationOutput(long)).toBe(long);
+    expect(redactGenerationOutput(["a"])).toEqual(["a"]);
+    expect(redactGenerationOutput(date)).toBe(date);
+    expect(redactGenerationOutput(null)).toBeNull();
   });
 });

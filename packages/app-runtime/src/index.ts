@@ -18,6 +18,7 @@ export * from "./conditions.js";
 export * from "./actions.js";
 export * from "./widgets.js";
 export * from "./chat.js";
+export * from "./chat-app.js";
 export * from "./documents.js";
 export * from "./doc-ops.js";
 export * from "./bundle.js";

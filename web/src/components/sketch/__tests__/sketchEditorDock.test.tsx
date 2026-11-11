@@ -13,6 +13,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import SketchEditor from "../SketchEditor";
 import { SketchProvider } from "../../../stores/sketch/SketchInstance";
+import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { getSketchDockLayoutStore } from "../../../stores/sketch/useSketchDockLayoutStore";
 import { useSketchStore } from "../state/useSketchStore";
 import {
@@ -210,6 +211,63 @@ describe("SketchEditor dock", () => {
         (layer) => layer.id === useSketchStore.getState().document.activeLayerId
       );
       expect(active?.name).toBe(name);
+    });
+
+    it("allows generating from an uploaded source image without a source layer", () => {
+      renderDesktopEditor();
+      const { activeLayerId } = useSketchStore.getState().document;
+      act(() => {
+        useSketchSessionStore.getState().upsertBinding({
+          layerId: activeLayerId!,
+          kind: "image-to-image",
+          provider: "openai",
+          model: "test-image-model",
+          prompt: "Watercolour painting style",
+          sourceAssetId: "0123456789abcdef0123456789abcdef",
+          sourceLayerId: null,
+          status: "draft",
+          versions: []
+        });
+      });
+      expect(screen.getByTestId("sketch-simple-regenerate")).toBeEnabled();
+    });
+
+    it("uses the hovered half of the row to place a layer and records one undo step", () => {
+      renderDesktopEditor();
+      fireEvent.click(screen.getByTestId("sketch-simple-add-layer"));
+      const [bottom, top] = useSketchStore.getState().document.layers;
+      const getLayerOrder = () =>
+        useSketchStore.getState().document.layers.map(({ id }) => id);
+      const source = screen.getByRole("button", { name: bottom.name });
+      const target = screen.getByRole("button", { name: top.name });
+      expect(source).toHaveAttribute("draggable", "true");
+
+      const payload = new Map<string, string>();
+      const dataTransfer = {
+        setData: (type: string, data: string) => payload.set(type, data),
+        getData: (type: string) => payload.get(type) ?? "",
+        get types() { return [...payload.keys()]; }
+      };
+      jest.spyOn(target, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 200, 40));
+      const dragOver = (clientY: number): void => {
+        const event = new MouseEvent("dragover", { bubbles: true, cancelable: true, clientY });
+        Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+        fireEvent(target, event);
+      };
+
+      fireEvent.dragStart(source, { dataTransfer });
+      dragOver(30);
+      fireEvent.drop(target, { dataTransfer });
+      expect(getLayerOrder()).toEqual([bottom.id, top.id]);
+
+      fireEvent.dragStart(source, { dataTransfer });
+      dragOver(10);
+      fireEvent.drop(target, { dataTransfer });
+
+      expect(getLayerOrder()).toEqual([top.id, bottom.id]);
+      expect(screen.getAllByTestId("sketch-simple-layer")[0]).toBe(source);
+      act(() => { useSketchStore.getState().undo(); });
+      expect(getLayerOrder()).toEqual([bottom.id, top.id]);
     });
   });
 });

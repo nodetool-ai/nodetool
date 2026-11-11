@@ -1,3 +1,7 @@
+jest.mock("../../../serverState/useOllamaStatus", () => ({
+  useOllamaStatus: () => ({ data: "unreachable", isPending: false, isError: false, isFetching: false, refetch: jest.fn() })
+}));
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { asMock, stub } from "../../../test-utils/doubles";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -71,6 +75,7 @@ beforeEach(() => {
     connect: jest.fn(),
     disconnect: jest.fn(),
     manualPrompt: null,
+    callbackUrl: null,
     isSubmittingManual: false,
     submitManualCode: jest.fn(),
     cancelManual: jest.fn()
@@ -85,12 +90,15 @@ beforeEach(() => {
   );
 });
 
-const renderDialog = () =>
-  render(
+const queryClient = new QueryClient();
+const dialog = (
+  <QueryClientProvider client={queryClient}>
     <ThemeProvider theme={mockTheme}>
       <SubscriptionOnboardingDialog />
     </ThemeProvider>
-  );
+  </QueryClientProvider>
+);
+const renderDialog = () => render(dialog);
 
 describe("subscriptionProviders", () => {
   it("lists ChatGPT and Claude as sign-ins only", () => {
@@ -138,7 +146,10 @@ describe("SubscriptionOnboardingDialog", () => {
     for (const name of ["OpenAI", "Anthropic", "Google Gemini", "Hugging Face"]) {
       expect(screen.getByRole("article", { name })).toBeInTheDocument();
     }
-    expect(screen.getByRole("link", { name: "Get Ollama" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Download Ollama" })).toBeInTheDocument();
+    // ComfyUI users looked here for their own ComfyUI (study-18-I1).
+    const comfy = screen.getByRole("article", { name: "ComfyUI on this computer" });
+    expect(within(comfy).getByRole("button", { name: "Connect" })).toBeInTheDocument();
   });
 
   it("finds and connects any other provider in place", async () => {
@@ -156,7 +167,9 @@ describe("SubscriptionOnboardingDialog", () => {
     renderDialog();
     await userEvent.click(screen.getByRole("button", { name: /^More providers/ }));
     await userEvent.type(screen.getByRole("textbox", { name: "Search providers" }), "zzzz");
-    expect(screen.getByRole("status")).toHaveTextContent(/providers matches “zzzz”/);
+    expect(
+      screen.getByText(/providers matches “zzzz”/).closest('[role="status"]')
+    ).toBeInTheDocument();
   });
 
   it("sends a multi-field provider to its Settings card", async () => {
@@ -202,15 +215,23 @@ describe("SubscriptionOnboardingDialog", () => {
     expect(screen.getByText("Connect the AI you already use")).toBeInTheDocument();
   });
 
+  it("registers the bridge on Windows instead of showing an unsupported notice", () => {
+    const userAgent = jest.spyOn(window.navigator, "userAgent", "get").mockReturnValue("Windows NT 10.0");
+    try {
+      act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
+      renderDialog();
+      expect(install).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText(/not supported on Windows/)).not.toBeInTheDocument();
+    } finally {
+      userAgent.mockRestore();
+    }
+  });
+
   it("registers the browser bridge itself when it is missing", () => {
     act(() => useSubscriptionOnboardingStore.setState({ step: "extension" }));
     const { rerender } = renderDialog();
     expect(install).toHaveBeenCalledTimes(1);
-    rerender(
-      <ThemeProvider theme={mockTheme}>
-        <SubscriptionOnboardingDialog />
-      </ThemeProvider>
-    );
+    rerender(dialog);
     expect(install).toHaveBeenCalledTimes(1);
   });
 

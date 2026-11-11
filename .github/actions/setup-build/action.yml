@@ -22,10 +22,25 @@ inputs:
       job restores. `off` skips both: use it for jobs that publish or deploy.
     required: false
     default: "read-write"
+  package-media:
+    description: >-
+      Whether to restore the example media that lives on media.nodetool.ai
+      (.github/actions/package-media). Tests and example checks read it.
+    required: false
+    default: "true"
 
 runs:
   using: composite
   steps:
+    # Hosted runners have run out of disk here (No space left on device).
+    - name: Free disk space (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        df -hT / && df -i /
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        df -hT / && df -i /
+
     - name: Set up Node.js
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
@@ -78,6 +93,11 @@ runs:
           examples/*/node_modules
         key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json', '.nvmrc') }}
 
+    - name: Disk usage after dependency cache restore
+      if: always() && runner.os == 'Linux'
+      shell: bash
+      run: df -hT / && df -i /
+
     - name: Install all workspace dependencies
       if: steps.node-modules-cache.outputs.cache-hit != 'true' && steps.node-modules-restore.outputs.cache-hit != 'true'
       shell: bash
@@ -128,6 +148,10 @@ runs:
         restore-keys: |
           ${{ runner.os }}-turbo-v2-
 
+    - name: Restore package media
+      if: inputs.package-media == 'true'
+      uses: ./.github/actions/package-media
+
     - name: Build backend packages
       if: inputs.build-packages == 'true'
       shell: bash
@@ -144,3 +168,8 @@ runs:
       run: |
         find .turbo/cache -maxdepth 1 -type f -mtime +7 -delete
         echo "$(find .turbo/cache -maxdepth 1 -type f | wc -l) entries, $(du -sh .turbo/cache | cut -f1)"
+
+    - name: Disk usage after setup failure
+      if: failure() && runner.os == 'Linux'
+      shell: bash
+      run: df -hT / && df -i /

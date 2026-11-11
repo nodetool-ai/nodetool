@@ -12,10 +12,27 @@
  *     stepScript({ answer: "42" }),                     // call 1: step 1
  *     stepScript({ summary: "done" }),                  // call 2: step 2
  *   ]);
+ *
+ * It also answers endpoint calls, media uploads and media downloads from
+ * scripted replies and records each request, so a node pack test can run
+ * without the network:
+ *   const provider = new ScriptedProvider([], {
+ *     providerId: "fal_ai",
+ *     endpoints: { "fal-ai/flux/dev": { output: { images: [...] } } },
+ *     downloads: { "https://cdn.example/out.png": PNG_BYTES }
+ *   });
+ *   context.setProviderResolver(() => provider);
  */
 
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
-import { BaseProvider } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type EndpointProgress,
+  type MediaUpload
+} from "./base-provider.js";
+import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import { schemaAnswer } from "./fake-schema-answer.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
@@ -31,11 +48,12 @@ const randomUUID = (): string => {
 };
 import type {
   Message,
+  ProviderId,
   ProviderStreamItem,
   ProviderTool,
   ToolCall
 } from "./types.js";
-import { isString } from "@nodetool-ai/protocol";
+import { isCallable, isString } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Script types
@@ -59,6 +77,56 @@ export type ScriptFn = (
   tools: ProviderTool[]
 ) => ScriptItem[];
 
+/** What one scripted endpoint call returns. */
+export interface ScriptedEndpointResponse {
+  output: unknown;
+  /** Defaults to `scripted-request-<n>`, n counting endpoint calls from 1.
+   * `null` returns no id, as a provider that leaves it to the receipt. */
+  requestId?: string | null;
+  metadata?: Record<string, unknown>;
+  /** Reported through `onProgress`, in order, before the call resolves. */
+  progress?: EndpointProgress[];
+}
+
+/**
+ * One scripted endpoint reply: a fixed response, an error to throw, or a
+ * function that builds the response from the request.
+ */
+export type ScriptedEndpointReply =
+  | ScriptedEndpointResponse
+  | Error
+  | ((
+      request: EndpointCallRequest
+    ) => ScriptedEndpointResponse | Promise<ScriptedEndpointResponse>);
+
+export interface ScriptedProviderOptions {
+  /** The provider id the instance reports. Defaults to "fake". */
+  providerId?: ProviderId;
+  /**
+   * Endpoint replies keyed by request model. A list is consumed one reply per
+   * call and its last reply repeats. The key "*" answers any model without
+   * its own key.
+   */
+  endpoints?: Record<string, ScriptedEndpointReply | ScriptedEndpointReply[]>;
+  /** The URL an upload returns. Defaults to
+   * `https://scripted.invalid/uploads/<n>/<filename>`, n counting from 1. */
+  uploadUrl?: (upload: MediaUpload, index: number) => string;
+  /** Bytes a download returns, keyed by URL. URLs this provider returned from
+   * uploadMedia download the uploaded bytes. */
+  downloads?: Record<string, Uint8Array>;
+}
+
+/** A recorded uploadMedia call and the URL it returned. */
+export interface ScriptedUploadCall extends MediaUpload {
+  url: string;
+}
+
+/** A recorded downloadMedia call. */
+export interface ScriptedDownloadCall {
+  url: string;
+  signal?: AbortSignal;
+}
+
 // ---------------------------------------------------------------------------
 // ScriptedProvider
 // ---------------------------------------------------------------------------
@@ -66,21 +134,125 @@ export type ScriptFn = (
 export class ScriptedProvider extends BaseProvider {
   private readonly scripts: ScriptFn[];
   private callIdx = 0;
+  private readonly endpointReplies = new Map<string, ScriptedEndpointReply[]>();
+  private readonly endpointCursor = new Map<string, number>();
+  private readonly downloadBytes = new Map<string, Uint8Array>();
+  private readonly uploadedBytes = new Map<string, Uint8Array>();
+  private readonly uploadUrl: (upload: MediaUpload, index: number) => string;
 
   /** Full log of all generateMessages calls (messages + tools per call). */
   readonly callLog: Array<{ messages: Message[]; tools: ProviderTool[] }> = [];
+  /** Every callEndpoint request, in call order. */
+  readonly endpointCalls: EndpointCallRequest[] = [];
+  /** Every uploadMedia call, in call order. */
+  readonly uploadCalls: ScriptedUploadCall[] = [];
+  /** Every downloadMedia call, in call order. */
+  readonly downloadCalls: ScriptedDownloadCall[] = [];
 
-  constructor(scripts: ScriptFn[]) {
-    super("fake");
-    if (scripts.length === 0)
+  /**
+   * `scripts` answer generateMessages. They may be empty only when `options`
+   * is given, for a provider that serves endpoint calls alone.
+   */
+  constructor(scripts: ScriptFn[], options?: ScriptedProviderOptions) {
+    super(options?.providerId ?? "fake");
+    if (scripts.length === 0 && !options)
       throw new Error("ScriptedProvider requires at least one script");
     this.scripts = scripts;
+    this.uploadUrl =
+      options?.uploadUrl ??
+      ((upload, index) =>
+        `https://scripted.invalid/uploads/${index}/${encodeURIComponent(upload.filename ?? "upload")}`);
+    for (const [model, replies] of Object.entries(options?.endpoints ?? {})) {
+      this.scriptEndpoint(model, ...(Array.isArray(replies) ? replies : [replies]));
+    }
+    for (const [url, bytes] of Object.entries(options?.downloads ?? {})) {
+      this.scriptDownload(url, bytes);
+    }
   }
 
-  /** Reset call index and log (useful between test cases). */
+  /** Reset call indexes and logs (useful between test cases). */
   reset(): void {
     this.callIdx = 0;
     this.callLog.length = 0;
+    this.endpointCursor.clear();
+    this.uploadedBytes.clear();
+    this.endpointCalls.length = 0;
+    this.uploadCalls.length = 0;
+    this.downloadCalls.length = 0;
+  }
+
+  /** Append replies for `model` ("*" for any model without its own key). */
+  scriptEndpoint(model: string, ...replies: ScriptedEndpointReply[]): this {
+    const queue = this.endpointReplies.get(model) ?? [];
+    queue.push(...replies);
+    this.endpointReplies.set(model, queue);
+    return this;
+  }
+
+  /** Answer downloads of `url` with `bytes`. */
+  scriptDownload(url: string, bytes: Uint8Array): this {
+    this.downloadBytes.set(url, bytes);
+    return this;
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return this.endpointReplies.size > 0;
+  }
+
+  override async callEndpoint(
+    request: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    this.endpointCalls.push(request);
+    request.signal?.throwIfAborted();
+    const reply = this.nextEndpointReply(request.model);
+    if (reply instanceof Error) throw reply;
+    const response = isCallable(reply) ? await reply(request) : reply;
+    for (const event of response.progress ?? []) request.onProgress?.(event);
+    const requestId =
+      response.requestId === undefined
+        ? `scripted-request-${this.endpointCalls.length}`
+        : response.requestId;
+    // A real provider records its request id at submit, and so does this one.
+    if (requestId !== null) {
+      await recordGenerationReceiptAsync({ provider_request_id: requestId });
+    }
+    const result: EndpointCallResult = { output: response.output, requestId };
+    if (response.metadata) result.metadata = response.metadata;
+    return result;
+  }
+
+  override async uploadMedia(upload: MediaUpload): Promise<string> {
+    upload.signal?.throwIfAborted();
+    const url = this.uploadUrl(upload, this.uploadCalls.length + 1);
+    this.uploadCalls.push({ ...upload, url });
+    this.uploadedBytes.set(url, upload.bytes);
+    return url;
+  }
+
+  override async downloadMedia(
+    url: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    this.downloadCalls.push(signal ? { url, signal } : { url });
+    signal?.throwIfAborted();
+    const bytes = this.downloadBytes.get(url) ?? this.uploadedBytes.get(url);
+    if (!bytes) {
+      throw new Error(`ScriptedProvider has no scripted download for ${url}`);
+    }
+    return bytes;
+  }
+
+  private nextEndpointReply(model: string): ScriptedEndpointReply {
+    const key = this.endpointReplies.has(model) ? model : "*";
+    const replies = this.endpointReplies.get(key);
+    if (!replies || replies.length === 0) {
+      throw new Error(
+        `ScriptedProvider has no scripted endpoint reply for "${model}"`
+      );
+    }
+    const index = this.endpointCursor.get(key) ?? 0;
+    this.endpointCursor.set(key, index + 1);
+    return replies[Math.min(index, replies.length - 1)];
   }
 
   async generateMessage(args: {
@@ -113,6 +285,9 @@ export class ScriptedProvider extends BaseProvider {
   }): AsyncGenerator<ProviderStreamItem> {
     const tools = args.tools ?? [];
     this.callLog.push({ messages: args.messages, tools });
+    if (this.scripts.length === 0) {
+      throw new Error("ScriptedProvider has no scripts for generateMessages");
+    }
 
     // Use the next script; if exhausted, repeat the last one
     const idx = Math.min(this.callIdx, this.scripts.length - 1);

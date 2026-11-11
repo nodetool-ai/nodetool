@@ -4,22 +4,13 @@ title: "Chain Editor"
 description: "A linear, card-based way to author workflows in NodeTool."
 ---
 
-The **Chain Editor** is a linear alternative to the node graph. Instead of placing nodes on an infinite canvas, you compose an ordered chain of cards — "transcribe → summarize → email", "fetch → parse → index".
+The Chain Editor edits a workflow as an ordered list of cards, one node per card, and reads and writes the same workflow format as the [graph editor]({{ '/workflow-editor' | relative_url }}).
 
-> **Prefer the node graph?** The full [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is always one click away. Both editors read and write the same workflow format.
+![Chain Editor — Steps](assets/screenshots/web-chain-editor-chain.png)
 
----
+## Chain or graph
 
-## When to Use the Chain Editor
-
-| Use the Chain Editor when… | Use the Workflow Editor when… |
-|---------------------------|--------------------------------|
-| Pipeline is mostly linear | Pipeline branches or has loops |
-| You're guiding a non-technical user | You need fine-grained connection control |
-| You want one output per step | You need multi-output nodes |
-| You're sketching a workflow quickly | You're building a production agent |
-
----
+Use the chain for mostly linear pipelines with one output per step. Use the graph for branches, loops, and multi-output nodes.
 
 ## Opening the Chain Editor
 
@@ -41,8 +32,6 @@ A chain is a vertical list of numbered cards, each one a node.
 3. **Output selector.** A card whose node has more than one output shows a **Select output** menu. The chosen output is the one the next step is wired to by default.
 
 A collapsed card still shows its result preview after a run. Input nodes always sit at the top of the chain and output nodes at the bottom.
-
-![Chain Editor — Steps](assets/screenshots/web-chain-editor-chain.png)
 
 ---
 
@@ -104,10 +93,4 @@ A chain is a different view of the workflow graph.
 
 Nodes the chain cannot show, such as comments and groups, are left untouched in the graph. Saving from the standalone `/chain` page writes only the chain's nodes and lays them out in a single column.
 
----
-
-## Next Steps
-
-- [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — the full graph editor
-- [Cookbook]({{ '/cookbook' | relative_url }}) — linear patterns that work great in the chain editor
-- [Mobile App]({{ '/mobile-app' | relative_url }}) — running Mini Apps built from your workflows on iOS and Android
+Related: [Workflow Editor]({{ '/workflow-editor' | relative_url }}), [Cookbook]({{ '/cookbook' | relative_url }}).

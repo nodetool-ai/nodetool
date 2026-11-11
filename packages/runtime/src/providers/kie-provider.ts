@@ -11,7 +11,13 @@
 import { recordGenerationReceipt } from "../generation-receipt.js";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import {
+  BaseProvider,
+  type EndpointCallRequest,
+  type EndpointCallResult,
+  type MediaUpload,
+  type ProviderCapability
+} from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { isString } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
@@ -50,6 +56,20 @@ import {
 } from "./manifest-models.js";
 import { validateReferenceInputs } from "./manifest-models.js";
 import { registerWebhookWait } from "./kie-webhook-registry.js";
+import {
+  KIE_API_BASE,
+  KIE_MANIFEST_PATH,
+  KIE_MANIFEST_PKG,
+  KIE_SUNO_CALLBACK,
+  KIE_UPLOAD_URL,
+  callKieEndpoint,
+  checkKieStatus,
+  downloadKieMedia,
+  fetchKieTaskCredits,
+  getWebhookBaseUrl,
+  kieHeaders,
+  uploadKieMedia
+} from "./kie-endpoint.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { detectImageMime, extForImageMime } from "./image-mime.js";
 import { sniffMediaMime } from "./media-mime.js";
@@ -67,27 +87,12 @@ import {
 
 const log = createLogger("nodetool.runtime.providers.kie");
 
+export { kieEnvelopeError } from "./kie-endpoint.js";
+
 function combineSignals(signal: AbortSignal | undefined, timeout: AbortSignal | undefined): AbortSignal | undefined {
   if (!signal) return timeout;
   if (!timeout) return signal;
   return AbortSignal.any([signal, timeout]);
-}
-
-const KIE_API_BASE = "https://api.kie.ai";
-const KIE_UPLOAD_URL =
-  "https://kieai.redpandaai.co/api/file-stream-upload";
-// The Suno API always requires a callBackUrl. When KIE_WEBHOOK_URL is set we
-// use it; otherwise a placeholder satisfies the requirement (we poll instead).
-const KIE_SUNO_CALLBACK = "https://nodetool.ai/kie-callback";
-
-/**
- * When set, KIE tasks are submitted with a real callBackUrl and the provider
- * waits for the webhook instead of polling. Set to the public base URL of this
- * server (e.g. `https://myserver.example.com`).
- */
-function getWebhookBaseUrl(): string | undefined {
-  const url = process.env.KIE_WEBHOOK_URL;
-  return url && url.trim() ? url.replace(/\/+$/, "") : undefined;
 }
 
 type KieChatApi = "openai" | "anthropic" | "responses";
@@ -321,13 +326,6 @@ function chatModel(model: string): KieChatModel | undefined {
   return KIE_CHAT_MODELS.find((m) => m.id === model);
 }
 
-function headers(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json"
-  };
-}
-
 /** Resolve the abort reason as an Error (mirrors the gemini provider). */
 function abortError(signal?: AbortSignal): Error {
   return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
@@ -352,49 +350,9 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-/**
- * KIE reports API errors inside HTTP-200 bodies as `{code, msg}`. Map the known
- * error codes to a message and throw; code 200 (and any unmapped code) passes
- * through. Mirrors kie-base's `checkStatus` — without this a failed job returns
- * a 200 that the poll loop reads as "not done yet" and runs to full timeout.
- */
-/** The `code` values KIE returns inside an HTTP-200 error envelope. */
-const KIE_ERROR_CODES: Record<number, string> = {
-  401: "Unauthorized",
-  402: "Insufficient Credits",
-  404: "Not Found",
-  422: "Validation Error",
-  429: "Rate Limited",
-  455: "Service Unavailable",
-  500: "Server Error",
-  501: "Generation Failed",
-  505: "Feature Disabled"
-};
-
-/**
- * Classify a KIE response envelope. Returns the error KIE announced inside an
- * otherwise-successful HTTP response, or null when the envelope is not an
- * error. The live contract probe reads this to check that the error envelope
- * still looks the way the provider expects.
- */
-export function kieEnvelopeError(
-  data: Record<string, unknown>
-): { code: number; label: string; message: string } | null {
-  const code = Number(data.code);
-  const label = KIE_ERROR_CODES[code];
-  if (!label) return null;
-  const message = isString(data.msg) ? data.msg : "";
-  return { code, label, message };
-}
-
-function checkStatus(data: Record<string, unknown>): void {
-  const error = kieEnvelopeError(data);
-  if (error) throw new Error(`${error.label}: ${JSON.stringify(data)}`);
-}
-
 /** Decode a `createTask` body into the task id it announces. */
 export function decodeKieTaskSubmission(data: Record<string, unknown>): string {
-  checkStatus(data);
+  checkKieStatus(data);
   const taskId = (data.data as Record<string, unknown>)?.taskId;
   if (!isString(taskId) || taskId.length === 0) {
     throw new Error(`No taskId in Kie response: ${JSON.stringify(data)}`);
@@ -407,7 +365,7 @@ export function decodeKieRecordInfo(data: Record<string, unknown>): {
   state: string;
   failMsg: string;
 } {
-  checkStatus(data);
+  checkKieStatus(data);
   const payload = (data.data as Record<string, unknown>) ?? {};
   const state = payload.state;
   if (!isString(state) || state.length === 0) {
@@ -421,7 +379,7 @@ export function decodeKieRecordInfo(data: Record<string, unknown>): {
  * as a JSON *string* under `data.resultJson`, so this is two decodes.
  */
 export function decodeKieResultUrls(data: Record<string, unknown>): string[] {
-  checkStatus(data);
+  checkKieStatus(data);
   const resultJsonStr = (data.data as Record<string, unknown>)?.resultJson;
   if (!isString(resultJsonStr)) {
     throw new Error("No resultJson in Kie response");
@@ -443,7 +401,7 @@ export function decodeKieResultUrls(data: Record<string, unknown>): string[] {
  * Parse a KIE JSON response defensively: a gateway 502 returns an HTML page, not
  * JSON, so read the text and surface a "Kie <label> failed: <status> …" error
  * with a body snippet rather than a bare SyntaxError. Applies the HTTP-200 error
- * envelope check ({@link checkStatus}) on every parsed body.
+ * envelope check ({@link checkKieStatus}) on every parsed body.
  */
 async function parseKieJson(
   res: Response,
@@ -458,7 +416,7 @@ async function parseKieJson(
       `Kie ${label} failed: ${res.status} ${text.slice(0, 200)}`
     );
   }
-  if (data.code !== undefined) checkStatus(data);
+  if (data.code !== undefined) checkKieStatus(data);
   return data;
 }
 
@@ -595,7 +553,7 @@ async function submitTask(
 ): Promise<string> {
   const res = await fetch(`${KIE_API_BASE}/api/v1/jobs/createTask`, {
     method: "POST",
-    headers: headers(apiKey),
+    headers: kieHeaders(apiKey),
     body: JSON.stringify({ model, input }),
     signal
   });
@@ -639,14 +597,14 @@ async function pollUntilDone(
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
   // KIE reports failures two ways that both look like "still running" to a naive
   // loop: a persistent non-OK poll (429/5xx/revoked key) after createTask
-  // succeeded, and an HTTP-200 body carrying an error `code` (checkStatus). Both
+  // succeeded, and an HTTP-200 body carrying an error `code` (checkKieStatus). Both
   // used to run the full maxAttempts (~20 min) before blaming a slow job. Fail
   // fast: on a bounded run of consecutive HTTP errors, and immediately on a code
   // envelope (via parseKieJson).
   const MAX_CONSECUTIVE_ERRORS = 5;
   let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey), signal });
+    const res = await fetch(url, { headers: kieHeaders(apiKey), signal });
     if (!res.ok) {
       consecutiveErrors += 1;
       if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
@@ -703,7 +661,7 @@ async function downloadResultBytes(
   signal?: AbortSignal
 ): Promise<Uint8Array> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey), signal });
+  const res = await fetch(url, { headers: kieHeaders(apiKey), signal });
   if (!res.ok) throw new Error(`Failed to get Kie result: ${res.status}`);
   const resultUrls = decodeKieResultUrls(
     await parseKieJson(res, "recordInfo")
@@ -731,7 +689,7 @@ async function submitSuno(
   const body = { ...input, callBackUrl };
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
-    headers: headers(apiKey),
+    headers: kieHeaders(apiKey),
     body: JSON.stringify(body),
     signal
   });
@@ -760,7 +718,7 @@ async function pollSuno(
     "SENSITIVE_WORD_ERROR"
   ]);
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey), signal });
+    const res = await fetch(url, { headers: kieHeaders(apiKey), signal });
     const data = await parseKieJson(res, "record-info");
     const status = (data.data as Record<string, unknown>)?.status as string;
     if (status === "SUCCESS") return data;
@@ -775,9 +733,6 @@ async function pollSuno(
       "The job may still complete on KIE — check record-info or the KIE dashboard."
   );
 }
-
-const KIE_MANIFEST_PKG = "@nodetool-ai/kie-nodes";
-const KIE_MANIFEST_PATH = "kie-manifest.json";
 
 export class KieProvider extends BaseProvider {
   private apiKey: string;
@@ -815,6 +770,56 @@ export class KieProvider extends BaseProvider {
       throw new Error("KIE_API_KEY is not configured");
     }
     return this.apiKey;
+  }
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Run a KIE endpoint the way the kie-nodes pack calls it. `route` selects
+   * the endpoint family:
+   *
+   * - no route: the job API (`createTask`, then `recordInfo` polling).
+   *   `model` is the KIE model name and `input` its arguments.
+   * - `suno:<path>`: a Suno endpoint such as `suno:/api/v1/generate`, polled
+   *   through `record-info`. `input` is the request body.
+   * - `direct:<path>`: an endpoint that answers in its submit response, such
+   *   as `direct:/api/v1/omni/audio/create`. `input` is the request body.
+   *
+   * Any other route is rejected. With `KIE_WEBHOOK_URL` set, job and Suno
+   * tasks wait for KIE's callback instead of polling. `metadata.creditsConsumed`
+   * carries the credits KIE reported for the task.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    return callKieEndpoint(this.requireApiKey(), req);
+  }
+
+  /** Upload to KIE's file host. The top-level MIME type picks the folder. */
+  override async uploadMedia(upload: MediaUpload): Promise<string> {
+    return uploadKieMedia(this.requireApiKey(), upload);
+  }
+
+  /** Screened download that retries 429/5xx, since the result is billed. */
+  override async downloadMedia(
+    url: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    return downloadKieMedia(url, signal);
+  }
+
+  /**
+   * The credits KIE billed for a task, for the cost reconciler. Null when no
+   * key is configured or KIE reports no credits for the task.
+   */
+  async fetchBillingCost(
+    requestId: string
+  ): Promise<{ creditsConsumed: number } | null> {
+    if (!this.apiKey || !this.apiKey.trim()) return null;
+    const creditsConsumed = await fetchKieTaskCredits(this.apiKey, requestId);
+    return creditsConsumed === undefined ? null : { creditsConsumed };
   }
 
   private makeOpenAIProvider(basePath: string): OpenAIProvider {
@@ -1072,7 +1077,7 @@ export class KieProvider extends BaseProvider {
         await registerWebhookWait(taskId, timeoutMs, signal);
         // After webhook fires, fetch the record to download audio
         const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
-        const res = await fetch(url, { headers: headers(apiKey), signal });
+        const res = await fetch(url, { headers: kieHeaders(apiKey), signal });
         const record = await parseKieJson(res, "record-info");
         const bytes = await this.downloadSunoAudio(record, signal);
         return { data: bytes, mimeType: sniffAudioMime(bytes) };

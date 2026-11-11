@@ -58,6 +58,24 @@ export function isPublicOAuthRequest(pathname: string): boolean {
 }
 
 /**
+ * The two browser hops of an SSO sign-in (`routes/oidc-auth.ts`). The user has
+ * no session yet on either. `/login` only redirects to the identity provider,
+ * and `/callback` authenticates itself through the signed state cookie and the
+ * provider's signed ID token. Without OIDC configured the routes are not
+ * registered, so the exemption reaches a 404.
+ */
+export function isPublicOidcAuthRequest(
+  pathname: string,
+  method: string
+): boolean {
+  return (
+    method === "GET" &&
+    (pathname === "/api/auth/oidc/login" ||
+      pathname === "/api/auth/oidc/callback")
+  );
+}
+
+/**
  * The MCP OAuth 2.1 authorization-server + resource-metadata surface
  * (`docs/mcp-oauth-design.md`, `routes/oauth-as.ts`). Every one of these
  * paths authenticates on its own terms — well-known documents carry no
@@ -199,6 +217,7 @@ export function isPublicAuthExemptRoute(
     // resolve a user, so it never runs the auth hook.
     (pathname === "/api/analytics/v1/events" && method === "POST") ||
     isPublicOAuthRequest(pathname) ||
+    isPublicOidcAuthRequest(pathname, method) ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||

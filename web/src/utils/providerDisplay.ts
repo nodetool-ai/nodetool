@@ -80,7 +80,8 @@ export const getProviderBaseName = (provider?: string): string => {
 
 const PROVIDER_ALIAS_NAMES: Record<string, string> = {
   openai: "OpenAI",
-  chatgpt: "ChatGPT",
+  chatgpt: "ChatGPT (browser)",
+  codex: "ChatGPT (Codex)",
   claude_agent_sdk: "Claude",
   "claude-agent-sdk": "Claude",
   hunyuan3d: "Hunyuan3D",

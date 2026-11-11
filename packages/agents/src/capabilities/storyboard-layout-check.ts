@@ -6,6 +6,7 @@ import {
   type TimelineClip,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
+import { createRenderChild, type RenderChild } from "../timeline-preview/render-child-client.js";
 import { renderTimelineFrames } from "../timeline-preview/frames.js";
 
 /** A collision between copy and another layer, or between copy and the frame edge. */
@@ -170,6 +171,8 @@ export async function findLayoutDefects(options: {
 }): Promise<LayoutDefect[]> {
   const { sequence, windows, holds } = options;
   const defects: LayoutDefect[] = [];
+  let renderChild: RenderChild | undefined;
+  try {
   for (const window of windows) {
     const timeMs = holds.get(window.shotId);
     if (timeMs === undefined) {
@@ -206,8 +209,11 @@ export async function findLayoutDefects(options: {
       clipId?: string
     ): Promise<Pixels | null> => {
       options.signal?.throwIfAborted();
+      renderChild ??= await createRenderChild(options.signal);
       const frame = (
         await renderTimelineFrames({
+          signal: options.signal,
+          renderChild,
           sequence: backdrop.sequence,
           timesMs: [timeMs],
           width: CHECK_WIDTH,
@@ -306,4 +312,7 @@ export async function findLayoutDefects(options: {
     }
   }
   return defects;
+  } finally {
+    await renderChild?.dispose();
+  }
 }

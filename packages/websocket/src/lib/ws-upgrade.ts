@@ -77,3 +77,34 @@ export function denyDraining(req: FastifyRequest, reply: FastifyReply): void {
   );
   socket.destroy();
 }
+
+const STATUS_LINES: Readonly<Record<403 | 503, string>> = {
+  403: "403 Forbidden",
+  503: "503 Service Unavailable"
+};
+
+/**
+ * Refuse a request with `status`, answering a WebSocket handshake on the
+ * socket and destroying it for the reason {@link denyUnauthorized} documents.
+ */
+export function denyWithStatus(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  status: 403 | 503,
+  body: { error: string }
+): void {
+  if (!isWebSocketUpgrade(req)) {
+    reply.status(status).send(body);
+    return;
+  }
+  reply.hijack();
+  const socket = req.raw.socket;
+  if (!socket || socket.destroyed) return;
+  socket.write(
+    `HTTP/1.1 ${STATUS_LINES[status]}\r\n` +
+      "Connection: close\r\n" +
+      "Content-Length: 0\r\n" +
+      "\r\n"
+  );
+  socket.destroy();
+}

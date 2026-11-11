@@ -27,6 +27,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const blurGaussianV1 = defineModule({
+  precision: { "source": "working-or-mask", "output": "working-or-mask" },
   id: "filters.blur.gaussian",
   version: 1,
   // Promoted in Phase 3: separable gaussian blur with a stable
@@ -46,11 +47,6 @@ export const blurGaussianV1 = defineModule({
   layout,
   workgroupSize: [16, 16, 1],
   wgsl: /* wgsl */ `
-fn gaussianWeight(offset: f32, sigma: f32) -> f32 {
-  let s2 = sigma * sigma;
-  return exp(-(offset * offset) / (2.0 * s2)) / (sqrt(2.0 * 3.14159265) * sigma);
-}
-
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let dims = textureDimensions(layout.$.source);
@@ -63,30 +59,33 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     return;
   }
 
-  let kernelRadius = i32(min(blur.radius, 20.0));
-  // Keep the 41-tap budget, but spread those taps across a wide blur's full
-  // support. Sampling only the central 20 pixels left large glows hard-edged.
-  let sampleStep = max(1.0, blur.radius / 20.0);
+  // Visit every texel in the supported radius. Spaced taps alias thin lines.
+  let kernelRadius = i32(min(blur.radius, 256.0));
   // Honor an explicit positive sigma. Only fall back to radius/3 when the
   // caller leaves sigma unset (<= 0); the previous max(sigma, radius/3)
   // silently raised any explicit sigma smaller than radius/3.
-  let sigma = select(blur.sigma, blur.radius / 3.0, blur.sigma <= 0.0);
+  let sigma = select(blur.sigma, min(blur.radius, 256.0) / 3.0, blur.sigma <= 0.0);
 
-  var colorSum = vec4<f32>(0.0);
-  var weightSum: f32 = 0.0;
-  for (var i = -kernelRadius; i <= kernelRadius; i = i + 1) {
-    let distance = f32(i) * sampleStep;
+  var colorSum = textureLoad(layout.$.source, coords, 0);
+  var weightSum = 1.0;
+  // Center-out recurrence avoids one exponential per tap and stays finite
+  // for narrow sigmas whose outer weights underflow to zero.
+  var weight = 1.0;
+  var ratio = exp(-0.5 / (sigma * sigma));
+  let ratioStep = ratio * ratio;
+  for (var i = 1; i <= kernelRadius; i = i + 1) {
+    weight = weight * ratio;
+    ratio = ratio * ratioStep;
+    let distance = f32(i);
     let offset = vec2<i32>(
       i32(round(blur.direction.x * distance)),
       i32(round(blur.direction.y * distance))
     );
-    let s = vec2<i32>(
-      clamp(coords.x + offset.x, 0, i32(dims.x) - 1),
-      clamp(coords.y + offset.y, 0, i32(dims.y) - 1)
-    );
-    let w = gaussianWeight(distance, sigma);
-    colorSum = colorSum + textureLoad(layout.$.source, s, 0) * w;
-    weightSum = weightSum + w;
+    let hi = vec2<i32>(dims) - vec2<i32>(1);
+    let a = clamp(coords + offset, vec2<i32>(0), hi);
+    let b = clamp(coords - offset, vec2<i32>(0), hi);
+    colorSum = colorSum + (textureLoad(layout.$.source, a, 0) + textureLoad(layout.$.source, b, 0)) * weight;
+    weightSum = weightSum + 2.0 * weight;
   }
   textureStore(layout.$.outputTexture, coords, colorSum / weightSum);
 }
@@ -97,13 +96,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
         // Aligned with the `filters.blur.gaussianSeparable` and `filters.glow`
         // recipes that route through this module; the blur math itself is
         // colour-space agnostic (a normalized weighted sum).
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"

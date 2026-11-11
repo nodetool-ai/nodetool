@@ -7,19 +7,22 @@ product: NodeTool
 ---
 # NodeTool for Advertising and Marketing
 
-NodeTool is open-source AI ad software. Give the agent a product photo and a brief. It storyboards the spot, renders stills and clips on your provider keys, and cuts a timeline you can edit. Adapt format makes 9:16, 4:5, and 1:1 versions, and Recast puts the next product into the same board.
+NodeTool is open-source AI ad software. Give the agent a product photo and a brief, and it storyboards the spot, renders stills and clips on your provider keys, and cuts a timeline you can edit.
 
-## Start from a product page link
+## One brief. Four deliverables.
 
-Paste the link into the chat and say what you need. The agent does the rest. Generated footage, voice, and music are billed to your provider accounts.
+A launch campaign for a fictional olive travel cup, made with the Directed Campaign Kit. One brief asked for a 16:9 hero, a square post, a vertical story, and one controlled revision. The images carry no text, so the headline and call to action stay editable outside the artwork.
 
-- **A finished commercial**: The agent reads the page, writes the storyboard, renders stills and clips, adds voice and music, and assembles a timeline you can edit. It reports the real cost.
-- **A sound-off motion ad**: The agent builds a 15-second animated ad for Facebook, Instagram, or TikTok from the page's real screenshots and photos, and checks every claim against the page.
-- **An ad from a template**: Each ad template in the ad library is a mini app. AI can fill its fields with copy and images from a website. It builds an editable vertical ad without generated video.
+- **Hero, 16:9**: GPT Image 2.5 rendered the hero from the brief: a cobalt platform above water, an amber sunrise, and clean space on the left for copy.
+- **Social, 1:1 and story, 9:16**: The matching edit model recomposed the hero for each format and was told to keep the cup, set, and grade. The square keeps the upper-left copy space and the story keeps its upper third clear.
+- **Revision**: “Reduce the water splash by about half and widen the clean dark-blue copy space on the left.” The one note sent back. The edit model was told to keep the product, set, palette, and camera, so only the splash and the copy space changed.
 
-## See the work
+The cup is a fictional demonstration product. Compare generated product geometry and materials with a real brand reference before you publish. Follow the recipe at https://nodetool.ai/recipes/directed-campaign-kit.
 
-- [Editable video ad templates](https://nodetool.ai/ad-library): short vertical ad concepts, each with its beats, timing, copy budget, and a rendered example.
-- [Example AI storyboards](https://nodetool.ai/storyboards): finished commercials and films with every shot they were built from.
-- [Guided recipes](https://nodetool.ai/recipes): campaign kits, UGC videos, product commercials, and catalogue images, step by step.
+## More for ad teams
+
+- [Ad library](https://nodetool.ai/ad-library): Short vertical ad templates, each with its beats, timing, copy budget, and a rendered example.
+- [Example storyboards](https://nodetool.ai/storyboards): Finished commercials with every shot they were built from.
+- [Guided recipes](https://nodetool.ai/recipes): Campaign kits, UGC videos, product commercials, and catalogue images, step by step.
+- [Product video from one photo](https://nodetool.ai/use-cases/product-video): A brief and a product photo become a 16:9 product video you rerun for the next product.
 - [AI video editor](https://nodetool.ai/ai-video-editor.md): the storyboard and timeline the agent builds.

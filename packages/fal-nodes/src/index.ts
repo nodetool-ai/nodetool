@@ -4,7 +4,6 @@ import { loadFalNodesFromManifest } from "./fal-factory.js";
 import type { FalManifestEntry } from "./fal-factory.js";
 import { registerFalCostReconciler } from "./fal-billing.js";
 
-export { FalProvider } from "./fal-provider.js";
 export { FalRawNode, FalDynamicNode } from "./fal-dynamic.js";
 export { createFalNodeClass, loadFalNodesFromManifest } from "./fal-factory.js";
 export type { FalManifestEntry } from "./fal-factory.js";

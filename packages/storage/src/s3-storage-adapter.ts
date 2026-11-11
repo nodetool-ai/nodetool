@@ -17,6 +17,7 @@ import type {
 import { assertUploadWithinLimit } from "./storage-limits.js";
 import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
+import { objectCacheControl } from "./cache-control.js";
 
 export interface S3StorageAdapterOptions {
   bucket: string;
@@ -101,7 +102,8 @@ export class S3StorageAdapter implements StorageAdapter {
       const put: S3PutObjectInput = {
         bucket: this.bucket,
         key: objectKey,
-        body: data
+        body: data,
+        cacheControl: objectCacheControl()
       };
       if (contentType) {
         put.contentType = contentType;
@@ -246,6 +248,9 @@ export class S3StorageAdapter implements StorageAdapter {
       };
       if (response.contentType) {
         stat.contentType = response.contentType;
+      }
+      if (response.cacheControl) {
+        stat.cacheControl = response.cacheControl;
       }
       return stat;
     } catch {

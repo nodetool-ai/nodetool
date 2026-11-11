@@ -2,7 +2,6 @@ import { existsSync } from "fs";
 import { resolve } from "path";
 import type { Studio } from "@nodetool-ai/presets";
 
-import { useCreateViewStore } from "../../../stores/CreateViewStore";
 import { useEffectsGalleryStore } from "../../../stores/EffectsGalleryStore";
 import useMediaGenerationStore from "../../../stores/MediaGenerationStore";
 import { tabId, useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
@@ -13,6 +12,11 @@ import { EFFECT_PRESETS, STUDIOS, presetCatalog } from "../../../lib/presets/cat
 const mockNavigateTo = jest.fn();
 jest.mock("../../../lib/appNavigation", () => ({
   navigateTo: (to: string) => mockNavigateTo(to)
+}));
+
+const mockOpenCreateSession = jest.fn(async (..._args: unknown[]) => "session-1");
+jest.mock("../../create/openCreateSession", () => ({
+  openCreateSession: (...args: unknown[]) => mockOpenCreateSession(...args)
 }));
 
 const REPO = resolve(__dirname, "../../../../..");
@@ -27,9 +31,9 @@ const studioOf = (type: Studio["target"]["type"]): Studio => {
 
 beforeEach(() => {
   mockNavigateTo.mockClear();
+  mockOpenCreateSession.mockClear();
   useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
   useMediaGenerationStore.setState({ presetIds: {} });
-  useCreateViewStore.setState({ mode: "image" });
   useEffectsGalleryStore.setState({ studio: null, effectId: null });
 });
 
@@ -79,7 +83,7 @@ describe("openStudio", () => {
     hosts.onFlow.mockClear();
   });
 
-  it("opens the Create view in the studio's mode with its presets chosen", () => {
+  it("opens a Create tab in the studio's mode with its presets chosen", () => {
     const studio = STUDIOS.find(
       (entry) => entry.target.type === "create" && entry.target.mode === "video"
     );
@@ -87,9 +91,11 @@ describe("openStudio", () => {
       throw new Error("No video Create studio ships");
     }
     openStudio(studio, "Studio", hosts);
-    expect(useCreateViewStore.getState().mode).toBe("video");
+    expect(mockOpenCreateSession).toHaveBeenCalledWith(expect.any(String), {
+      mode: "video",
+      title: "Studio"
+    });
     expect(useMediaGenerationStore.getState().presetIds.video).toEqual(studio.preset_ids);
-    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(tabId("create", "create"));
     expect(mockNavigateTo).toHaveBeenCalledWith("/workspace");
   });
 

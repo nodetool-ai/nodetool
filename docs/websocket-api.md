@@ -4,11 +4,13 @@ title: "WebSocket API"
 description: "Run workflows, stream results, and receive real-time updates over NodeTool's single WebSocket endpoint (MessagePack or JSON)."
 ---
 
-This document describes the WebSocket API used to run workflows, stream results, and receive real-time updates from the NodeTool backend.
+One WebSocket endpoint carries workflow runs, chat, and live updates. Clients connect once and multiplex many concurrent runs over the connection.
+
+```json
+{ "command": "run_job", "data": { "workflow_id": "<uuid>", "params": {} } }
+```
 
 ## Overview
-
-NodeTool exposes a single WebSocket endpoint for workflow execution and live updates. Clients connect once and multiplex commands and responses for many concurrent workflows over that connection.
 
 - **Endpoint**: `ws(s)://<host>/ws`
 - **Auth**: Send `Authorization: Bearer <token>` on the handshake (preferred) or append `?api_key=<token>` to the URL. Tokens are optional in `local`/`none` auth modes. The connection's identity comes from the handshake. A `run_job` frame needs no token of its own.
@@ -1004,17 +1006,27 @@ Client                              Server
   |                                   |
 ```
 
-## Error Handling
+## Errors
 
-- A command that fails validation or is refused gets an acknowledgement frame
-  with an `error` field. See [Command replies](#command-replies).
-- Run failures arrive as `job_update` with `status: "failed"` and an `error`
-  field, and chat failures arrive as `error` frames with a `thread_id`.
-- Per-node errors arrive via `node_update` with an `error` field set.
-- Reconnection is the client's job. The server never reopens a connection.
-- The reference client in `examples/workflow_runner` applies a 120-second
-  timeout to each `run_job` call and rejects the promise if no terminal
-  `job_update` arrives.
+| Where | What you see | Cause |
+|---|---|---|
+| Handshake | HTTP `401` with no body, then the socket closes | Missing or invalid token on a server that requires auth |
+| Handshake | HTTP `503` with no body | The server is [draining](#draining). Retry reaches another machine |
+| Command ack | `{ "error": "job_id is required" }` | `cancel_job`, `reconnect_job`, `stream_input`, `end_input_stream`, or `update_node_properties` without a `job_id` |
+| Command ack | `{ "error": "No active job/context" }` | `stream_input` or `end_input_stream` for a run this connection does not hold |
+| Command ack | `{ "error": "Unknown command" }` | The `command` name is not implemented |
+| Command ack | `{ "error": "invalid_frame" \| "invalid_message" \| "invalid_command", ... }` | The frame failed validation. See [Command replies](#command-replies) |
+| Command ack | `{ "error": "This command is not available for a published app" }` | A published-app session sent a command outside its allowed set |
+| `job_update` | `status: "failed"`, `error: "Job id already in use"`, `error_code: "ALREADY_EXISTS"` | `run_job` named a `job_id` that belongs to another user |
+| `job_update` | `status: "failed"`, `error_code: "BUDGET_EXCEEDED"` | An app's spend budget refused the run |
+| `job_update` | `status: "failed"` with an `error` string | A run that cannot start, such as a missing provider key, or a node that fails |
+| Socket close | code `1008` | Inbound rate limit or undelivered-frame limit exceeded |
+| Socket close | code `1012` | The server is draining |
+
+- Per-node errors arrive as `node_update` with `status: "error"` and an `error` field.
+- Chat failures arrive as `error` frames with a `thread_id`.
+- The server never reopens a connection. Reconnecting is the client's job.
+- The reference client in `examples/workflow_runner` applies a 120-second timeout to each `run_job` call and rejects the promise if no terminal `job_update` arrives.
 
 ## Other WebSocket Endpoints
 

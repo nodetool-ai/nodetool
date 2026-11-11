@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { FileUserManager } from "@nodetool-ai/auth";
+import { initTestDb } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -20,6 +21,8 @@ function makeCtx(overrides: Partial<Context> = {}): Context {
 
 describe("users router", () => {
   beforeEach(() => {
+    // The admin check reads the user directory.
+    initTestDb();
     vi.clearAllMocks();
     delete process.env.ADMIN_USER_IDS;
   });

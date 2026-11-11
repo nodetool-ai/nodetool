@@ -334,19 +334,21 @@ const layoutSteps = (bundle, concept) => {
   const startStep = {type: "Container", props: {id: "step-start", variant: "plain", visibleWhen: onStep("start"), content: [
     heading("start", "What you will make", `A ${concept.beats.length}-scene vertical ad, ${seconds(concept.duration_ms)} seconds long. You supply images and short lines of copy. The app builds an editable cut, not a generated video.`),
     {type: "Container", props: {id: "start-strip", variant: "plain", columns: concept.beats.length, content: concept.beats.map(beat => frame("start", beat.role))}},
-    // The choice and its Next button come before the model pickers, so Next
-    // is in view at 1280 x 720 once a choice is made.
     {type: "ChoiceCards", props: {id: "fillPath", binding: "var:fillPath", label: "How do you want to start?", columns: 2, options: [
       {value: "web", title: "Fill from a website", description: "Paste a product page. AI suggests the copy and images."},
       {value: "self", title: "Fill in myself", description: `Go through ${content_steps.length} short steps.`}
     ], events: []}},
-    navRow("start-nav", null, button("start-next", `Next: ${first.title}`, [go(first.key)], {align: "end", visibleWhen: {binding: "var:fillPath", op: "notEmpty"}})),
     model,
-    {...modelHelp, props: {...modelHelp.props, text: "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.", tone: "hint"}},
-    imageModel,
-    {...imageModelHelp, props: {...imageModelHelp.props, text: "Optional. Paints backgrounds and decoration for the layout. Saved for next time.", tone: "hint"}},
-    aiFill
+    {...modelHelp, props: {...modelHelp.props, text: "Reads the website, lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.", tone: "hint"}},
+    aiFill,
+    navRow("start-nav", null, button("start-next", `Next: ${first.title}`, [go(first.key)], {align: "end", visibleWhen: {binding: "var:fillPath", op: "notEmpty"}}))
   ]}};
+  // The website suggestion needs the finishing model, so it is on Start. The
+  // image model is used only by the plan, so it sits next to the plan button.
+  const modelFields = [
+    imageModel,
+    {...imageModelHelp, props: {...imageModelHelp.props, text: "Optional. Paints backgrounds and decoration for the layout. Saved for next time.", tone: "hint"}}
+  ];
   const stepContainers = content_steps.map((step, index) => {
     const previous = steps[index];
     const last = index === content_steps.length - 1;
@@ -356,7 +358,7 @@ const layoutSteps = (bundle, concept) => {
     return {type: "Container", props: {id: `step-${step.key}`, variant: "plain", visibleWhen: onStep(step.key), content: [
       heading(step.key, step.title, step.intro),
       ...step.groups.map((spec, groupIndex) => group(step.key, groupIndex, spec)),
-      ...(last ? [planError, planActivity] : []),
+      ...(last ? [...modelFields, planError, planActivity] : []),
       {type: "Divider", props: {id: `${step.key}-divider`}},
       navRow(`${step.key}-nav`, button(`${step.key}-back`, `Back: ${previous.title}`, [go(previous.key)], {variant: "outlined"}), next)
     ]}};
@@ -383,11 +385,71 @@ const layoutSteps = (bundle, concept) => {
   return bundle;
 };
 
+/**
+ * The chat agent's build task: it skips the storyboard and writes the cut
+ * itself as motion graphics, from the concept's own builder in
+ * scripts/example-timelines/ad-library/.
+ */
+const buildAgentTask = (concept, manifest) => {
+  const builder = readFileSync(new URL(`../example-timelines/ad-library/${concept.slug}.mjs`, import.meta.url), "utf8");
+  return [
+    `Make the ${seconds(concept.duration_ms)}-second ${concept.layout_reference_format} ad as a motion-graphics timeline. Do not plan a storyboard.`,
+    "Finish the whole build in this turn: read the values, write and save the timeline, check it and show the result. Do not end the turn after you read the state.",
+    `Objective: ${concept.objective}`,
+    `Visual rule: ${concept.visual_invariant}`,
+    "Beats, in order:",
+    ...concept.beats.map(beat => `- ${seconds(beat.start_ms)}–${seconds(beat.end_ms)} s ${beat.role}: ${beat.composition}. Motion: ${beat.motion}`),
+    "",
+    "Read the values first with ui_app_run_get_state. Use them exactly:",
+    ...manifest.inputs.map(input => `- ${input.id} (${input.label}, ${input.kind})`),
+    "Copy stays word for word. When one copy line holds both a closing line and a call to action (\"Plan and build with Linear. Sign up.\"), split it at the sentence boundary: the closing line is the headline and the last short imperative is the button label. Add no label the values do not hold: the images carry their own labels.",
+    "Copy stays word for word. The brand color and logo decide the palette. Place each image as a real layer: pass the image value's `asset://` uri to s.image() as it is, without looking it up in the asset library. An image you fetch or process yourself must be saved as an asset first (nodetool.media.toImage or save_asset); a file:// path does not play. Never generate or replace an image.",
+    "",
+    "Load the motion-graphics skill and read nodetool.packs.docs(\"@nodetool-ai/sandbox-timeline\") before you write scenes. Then adapt the reference builder below in one execute_code action: keep its motion language, timing and structure, swap in the user's copy, images and colors, and recreate every graphic element the images do not hold (shapes, rings, cards, buttons, glows, backdrops) as timeline layers. It must look like modern motion graphics: layered depth, continuous secondary motion, eased entrances and exits, text animators, transitions between beats and a restrained finish. Save with v.save(nodetool.timelines, {name, showcase: true}).",
+    "Legibility and layout on a 1080×1920 frame:",
+    "- Crop each image to its content before you place it: trim a plain background border with image.crop, then save it with nodetool.media.toImage. Text inside an image must be at least 2.5% of the frame height (48 px) once scaled. Make cards and nodes that show an image at least 400×225.",
+    "- Keep the logo, copy and button inside the safe area: 250 px from the top and 350 px from the bottom. Put the logo above the headline or next to the button.",
+    "- Build the button as a rect and a text label parented to one group at the same y, both centered, with the label at 52 px or more. Do not use s.pill() with a dot for the button.",
+    `- Give scene lengths in frames at the timeline's fps and check that the total, after transitions, is exactly ${seconds(concept.duration_ms)} s.`,
+    "Fix every showcase warning that save returns and save again. Look at preview_timeline_frame frames at each beat. Then render a draft with render_timeline at preview_scale 0.5, and finish when the draft renders.",
+    "Write `import { video as motion } from \"@nodetool-ai/sandbox-timeline\"`, so the builder does not hide the built-in `video` tools. An image fits the frame. Pass \`s\` (for example s: 0.4) to scale it. The options w, h, width, height, size and scale throw.",
+    "Write `timeline` as {\"type\": \"timeline\", \"id\": \"<timeline_id>\"} and `finishStatus` as one sentence, then show the `result` step. Write no other values: the storyboard values (approval, planPreview and the rest) are not used in chat.",
+    "",
+    "Reference builder (fictional brand; replace its copy, images and colors):",
+    "```js",
+    builder.trim(),
+    "```"
+  ].join("\n");
+};
+
+/**
+ * In chat the agent builds the cut, so the plan operation becomes its task
+ * and the Review and Build steps go: the Ending step leads to the Result.
+ */
+const toChatBuild = (bundle, concept, manifest) => {
+  const {app} = bundle;
+  const plan = app.operations.find(operation => operation.id === "plan");
+  plan.name = "Make the video";
+  plan.agentTask = buildAgentTask(concept, manifest);
+  const stepper = app.ui.content.find(item => item.type === "Stepper");
+  stepper.props.steps = stepper.props.steps.filter(step => step.value !== "review" && step.value !== "build");
+  const relabel = (list) => list.forEach(item => {
+    if (item.props?.id === "plan") item.props.label = "Make the video";
+    for (const value of Object.values(item.props ?? {})) if (Array.isArray(value) && value[0]?.type) relabel(value);
+  });
+  relabel(app.ui.content);
+};
+
 /** Catalog entries in the shape scripts/example-apps/apps.mjs expects. */
+
 export const AD_LIBRARY_APPS = CONCEPTS.map(concept => {
   const manifest = adLibraryManifest(concept);
   const description = `${concept.objective} Builds an editable ${seconds(concept.duration_ms)}-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.`;
   const bundle = layoutSteps(addAiAssist(buildRecipeAppBundle(manifest, concept.title, description), manifest, concept), concept);
+  // Ad apps run as a conversation with the app agent, which shows each step
+  // as a card and writes the cut as motion graphics without a storyboard.
+  bundle.app.presentation = "chat";
+  toChatBuild(bundle, concept, manifest);
   // The option cards show once a suggestion returns, which a no-run debug never executes.
   // A no-run debug never executes the suggestion or the plan, so it sets the
   // state they would leave: the website panel open with options, then each

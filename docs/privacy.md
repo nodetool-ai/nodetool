@@ -5,7 +5,7 @@ permalink: /privacy
 description: "Where NodeTool stores your data, how secrets are encrypted, what leaves your machine, and how local, self-hosted, and hosted modes differ."
 ---
 
-This page states what NodeTool does with your data, based on the code. It describes behavior, not contractual terms. For the hosted service at app.nodetool.ai, read any terms that service publishes separately.
+This page describes what the code does with your data. It is not a contract. The hosted service at app.nodetool.ai may publish separate terms.
 
 ## Short version
 
@@ -47,8 +47,6 @@ A database copied to another machine can be decrypted only where the master key 
 
 ## What leaves your machine
 
-NodeTool sends data only for these reasons.
-
 ### Provider calls
 
 When a node or agent uses a cloud model, the server sends the prompt, input media, and the parameters to that provider with your key. This covers chat models, image, video, and audio generation, speech and transcription, embeddings, and web search tools such as SerpAPI. The provider's own policy then applies. NodeTool does not route these calls through a NodeTool server and does not mark up prices. See [Models and Providers](models-and-providers.md#local-vs-cloud).
@@ -85,14 +83,14 @@ Set `NODETOOL_ERROR_TRACES=off` to stop capture. The whole mechanism is describe
 
 ## Local models
 
-Local models keep your prompts and media on the machine. NodeTool can run them through:
+Local models keep prompts and media on the machine. They run through:
 
 - Ollama, llama.cpp, vLLM, and LM Studio servers that you run yourself
 - An in-process llama.cpp provider
 - Transformers.js and whisper.cpp in the server
 - Python nodes that use Hugging Face and MLX models, through a local process connected over stdio
 
-The model files download once, then run offline. Mixing is allowed in one graph, so a single cloud node sends only its own inputs to its provider. Setup is in [Models and Providers](models-and-providers.md) and [Hugging Face](huggingface.md).
+The model files download once, then run offline. In a mixed graph, a cloud node sends only its own inputs to its provider. Setup is in [Models and Providers](models-and-providers.md) and [Hugging Face](huggingface.md).
 
 ## Local, self-hosted, and hosted mode
 

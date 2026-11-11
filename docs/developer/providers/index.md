@@ -4,11 +4,7 @@ title: "Provider Guides: Add Models & Nodes"
 description: "Per-provider runbooks for adding new models and nodes to NodeTool — written for coding agents and contributors."
 ---
 
-One runbook per provider for adding new models and nodes. Each guide names the exact files, the command to run, a copy-pasteable snippet, and how the same change looked in past PRs.
-
-> **Audience:** coding agents and contributors keeping NodeTool current — a new image model shipped, a new endpoint went live, a new provider needs wiring. Start with the provider you're updating; each guide is self-contained.
-
-NodeTool spans many providers but only a few distinct mechanisms. Find your provider's mechanism first — it tells you whether a new model needs zero code, a manifest entry, or a codegen run.
+One runbook per provider for adding models and nodes. Each guide names the files, the command to run, and a snippet. Find the provider's mechanism below first: it decides whether a new model needs zero code, a manifest entry, or a codegen run.
 
 ## How adding a model works, by mechanism
 
@@ -26,7 +22,7 @@ NodeTool spans many providers but only a few distinct mechanisms. Find your prov
 - **[Anthropic (Claude)](anthropic.md)** — models fetched live from the Anthropic API.
 - **[Google Gemini](gemini.md)** — text auto-fetches; image, Veo, Omni, and Lyria models are static lists.
 - **[xAI (Grok)](xai.md)** — a static catalog plus chat, image, and video rows classified from `/v1/models`.
-- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, and how to add a new one.
+- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, Standard Compute, and how to add a new one.
 - **[FAL](fal.md)** — nodes generated from FAL OpenAPI schemas via codegen.
 - **[Replicate](replicate.md)** — nodes generated from Replicate model schemas via codegen.
 - **[KIE](kie.md)** — configs and manifest generated from KIE's published API docs.
@@ -52,5 +48,3 @@ npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 For decorator/codegen packages (FAL, Replicate, KIE, ElevenLabs, and other `dist/`-loaded packs), run `npm run build:packages` after regenerating so the runtime picks up the change. Each guide lists its exact verify commands. `npm run check` is the full aggregate and runs only when explicitly needed.
-
-Contributions are welcome — open a PR on [GitHub](https://github.com/nodetool-ai/nodetool) or say hi on [Discord](https://discord.gg/WmQTWZRcYE).

@@ -108,6 +108,10 @@ export function missingRuntimePackageDetails(
   let managed: string | null = host === "desktop" ? `Install ${name} in Settings › Packages.` : null;
   let bringYourOwn: string | null = null;
   let restart: string | null = options.restart ?? null;
+  // `nodetool runtime add <id>` on the hosts that run the CLI's own installer.
+  const runtimeAdd = host === "cli" ? `nodetool runtime add ${runtimePackage}`
+    : host === "source" ? `npm run dev:nodetool -- runtime add ${runtimePackage}`
+    : null;
   if (isRuntimeNpmPackageId(runtimePackage)) {
     const specs = RUNTIME_NPM_PACKAGES[runtimePackage].npmPackages.join(" ");
     const modules = env["NODETOOL_OPTIONAL_NODE_MODULES"];
@@ -131,22 +135,23 @@ export function missingRuntimePackageDetails(
       bringYourOwn = null;
       restart = "Restart the container.";
     } else if (host !== "desktop") {
-      managed = "curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash";
+      managed = runtimeAdd ?? "curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash";
       if (env["NODETOOL_SERVER_PROCESS"] === "1") { restart = "Restart nodetool serve."; }
     }
   } else if (runtimePackage === "sd-cpp") {
-    if (host === "cli") { managed = "nodetool runtime add sd-cpp"; }
-    if (host === "source") { managed = "npm run dev:nodetool -- runtime add sd-cpp"; }
+    managed = runtimeAdd ?? managed;
     bringYourOwn = "Or set SD_CPP_SERVER_PATH to an sd-server binary from https://github.com/leejet/stable-diffusion.cpp/releases.";
   } else if (runtimePackage === "wan2gp") {
-    if (host === "cli") { managed = "nodetool runtime add wan2gp"; }
-    if (host === "source") { managed = "npm run dev:nodetool -- runtime add wan2gp"; }
+    managed = runtimeAdd ?? managed;
     bringYourOwn = "Or set WAN2GP_MCP_URL to the MCP endpoint of a Wan2GP server you run (python wgp.py --mcp --mcp-async --mcp-transport streamable-http).";
   } else if (runtimePackage === "manimgx") {
+    managed = runtimeAdd ?? managed;
     bringYourOwn = "Or put manimgx on PATH (uv tool install manimgx).";
   } else if (runtimePackage === "rust") {
+    managed = runtimeAdd ?? managed;
     bringYourOwn = "Or put cargo and rustc on PATH (install Rust from https://rustup.rs).";
   } else {
+    if (runtimePackage === "yt-dlp") { managed = runtimeAdd ?? managed; }
     const binary = runtimePackage === "nodejs" ? "node" : runtimePackage;
     bringYourOwn = `Or put ${binary} on PATH (brew install ${binary}, apt install ${binary}).`;
   }

@@ -42,6 +42,7 @@ const oauthState = (overrides: Partial<OAuthConnection>): OAuthConnection => ({
   connect: jest.fn(),
   disconnect: jest.fn(),
   manualPrompt: null,
+  callbackUrl: null,
   isSubmittingManual: false,
   submitManualCode: jest.fn(),
   cancelManual: jest.fn(),
@@ -152,15 +153,23 @@ describe("ProviderCard OAuth variant", () => {
     expect(screen.queryByText(/connected via oauth/i)).not.toBeInTheDocument();
   });
 
-  it("shows a disabled connecting state while an OAuth flow is in progress", () => {
+  it("offers cancellation while an OAuth flow is in progress", async () => {
+    const cancelManual = jest.fn();
     mockUseOAuthConnection.mockReturnValue(
-      oauthState({ label: "OpenAI", isConnecting: true })
+      oauthState({ label: "OpenAI", isConnecting: true, cancelManual, callbackUrl: "http://localhost:1455/auth/callback" })
     );
 
     renderCard(oauthMeta);
 
     const button = screen.getByRole("button", { name: /connecting/i });
     expect(button).toBeDisabled();
+    expect(screen.getByText("http://localhost:1455/auth/callback")).toBeInTheDocument();
+    expect(screen.getByText(/Don’t share the URL/)).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Copy callback URL" }));
+    expect(await navigator.clipboard.readText()).toBe("http://localhost:1455/auth/callback");
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(cancelManual).toHaveBeenCalledTimes(1);
     // The normal sign-in affordance is replaced while connecting.
     expect(
       screen.queryByRole("button", { name: /sign in with openai/i })

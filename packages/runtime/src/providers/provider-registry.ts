@@ -77,11 +77,15 @@ export function unregisterProvider(providerId: string): boolean {
  * A provider's own SDK often reads a different name than NodeTool's registered
  * key, so a machine set up for that SDK looks unconfigured here and the run
  * fails with a 401 that names the wrong thing. Only names the vendor itself
- * documents belong in this list — it is an interop shim, not a guessing game.
+ * documents, or names a NodeTool release already accepted, belong in this
+ * list — it is an interop shim, not a guessing game.
  */
 const CREDENTIAL_ENV_ALIASES: Record<string, readonly string[]> = {
   // fal's own JS and Python clients read FAL_KEY.
-  FAL_API_KEY: ["FAL_KEY"]
+  FAL_API_KEY: ["FAL_KEY"],
+  // The Hugging Face nodes read HUGGINGFACE_API_KEY before they moved onto
+  // the provider, so machines configured with it keep working.
+  HF_TOKEN: ["HUGGINGFACE_API_KEY"]
 };
 
 /** `process.env[key]`, falling back to the names that vendor's SDK uses. */

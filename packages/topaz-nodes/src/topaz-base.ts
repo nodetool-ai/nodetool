@@ -1,51 +1,34 @@
 /**
- * Shared Topaz Labs API utilities.
+ * Topaz request building and result mapping for the node pack.
  *
- * Two execution flows:
- *  - Image: multipart POST → poll status → GET download URL → fetch bytes.
- *  - Video: create job (with probed source metadata) → accept → PUT upload
- *    (single- or multi-part) → complete-upload → poll status → download.
+ * The wire flow lives in `TopazProvider` (`packages/runtime`), which the nodes
+ * reach through `context.callProviderEndpoint`:
+ *  - Image: the multipart fields and the image bytes go in the endpoint input,
+ *    and the output is the download lookup body (`{ download_url, ... }`).
+ *  - Video: the create body (`source`, `output`, `filters`) and the source
+ *    bytes go in the input, and the output is the final status body, whose
+ *    signed result URL lives at `download.url`.
  *
- * Wire spec (from developer.topazlabs.com/reference/api-endpoints):
- *  - Auth: `X-API-Key` header (not Bearer).
- *  - Image status states: Pending | Processing | Completed | Cancelled | Failed.
- *  - Image download response: { download_url, head_url, expiry }.
- *  - Video status states: requested | accepted | initializing | preprocessing
- *    | processing | postprocessing | complete | canceling | canceled | failed.
- *  - Video accept response: { uploadId, urls[] }. The signed download URL on a
- *    completed video request lives at `download.url` (nested).
- *
- * Uses native fetch (Node 18+) and probes source video metadata in process,
- * which Topaz requires at job-creation time.
+ * The video source metadata Topaz requires at job creation is probed here, in
+ * process.
  */
 
-import { loadMediaRefBytes, safeFetch, sniffImageMime } from "@nodetool-ai/runtime";
+import { imageRefFromBytes, loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
 import { packetTimes, probeMedia } from "@nodetool-ai/runtime/media";
-import {
-  fetchWithRetry,
-  imageRefFromBytes,
-  pollUntilTerminal
-} from "@nodetool-ai/runtime/provider-transport";
+
+const TOPAZ_PROVIDER = "topaz";
 
 
 export type TopazVideoKind = "upscale" | "interpolate";
 
-export interface TopazImageSpec {
-  submitEndpoint: string;
-  statusEndpoint: string;
-  downloadEndpoint: string;
-  pollInterval: number;
-  maxAttempts: number;
+/** The manifest model a node runs, and the node id its generation record names. */
+export interface TopazJob {
+  modelId: string;
+  nodeId?: string;
 }
 
-export interface TopazVideoSpec {
-  submitEndpoint: string;
-  acceptEndpoint: string;
-  completeEndpoint: string;
-  statusEndpoint: string;
-  pollInterval: number;
-  maxAttempts: number;
+export interface TopazVideoJob extends TopazJob {
   videoKind: TopazVideoKind;
 }
 
@@ -56,21 +39,6 @@ export interface TopazVideoMetadata {
   duration: number;
   frameRate: number;
   frameCount: number;
-}
-
-const CONTAINER_CONTENT_TYPES: Record<string, string> = {
-  mp4: "video/mp4",
-  m4v: "video/mp4",
-  mov: "video/quicktime",
-  mkv: "video/x-matroska",
-  webm: "video/webm",
-  avi: "video/x-msvideo"
-};
-
-export function containerContentType(container: string | null | undefined): string {
-  if (!container) return "application/octet-stream";
-  const key = container.replace(/^\./, "").toLowerCase();
-  return CONTAINER_CONTENT_TYPES[key] ?? "application/octet-stream";
 }
 
 /**
@@ -86,48 +54,6 @@ export function sourceContainerFromRef(ref: unknown): string {
     if (m) return m[1].toLowerCase();
   }
   return "mp4";
-}
-
-export function getApiKey(secrets: Record<string, string>): string {
-  const key = secrets?.TOPAZ_API_KEY || process.env.TOPAZ_API_KEY || "";
-  if (!key) throw new Error("TOPAZ_API_KEY is not configured");
-  return key;
-}
-
-function authHeaders(
-  apiKey: string,
-  extra: Record<string, string> = {}
-) {
-  return { "X-API-Key": apiKey, ...extra };
-}
-
-// Image API status states (per /reference/api-endpoints/image/status):
-//   Pending | Processing | Completed | Cancelled | Failed
-// Video API status states (per /reference/api-endpoints/video/get-request-status):
-//   requested | accepted | initializing | preprocessing | processing |
-//   postprocessing | complete | canceling | canceled | failed
-// Both vocabularies are covered by the shared terminal-state sets; callers point
-// us at the right endpoint and the status is lowercased before comparison.
-async function pollTopazStatus(
-  url: string,
-  headers: Record<string, string>,
-  pollInterval: number,
-  maxAttempts: number
-): Promise<Record<string, unknown>> {
-  return pollUntilTerminal<Record<string, unknown>>(
-    async () => {
-      const resp = await fetchWithRetry(url, { headers });
-      if (!resp.ok) throw new Error(`Topaz status poll failed: ${resp.status}`);
-      return (await resp.json()) as Record<string, unknown>;
-    },
-    {
-      intervalMs: pollInterval,
-      maxAttempts,
-      onFailure: (data) => new Error(`Topaz job failed: ${JSON.stringify(data)}`),
-      onTimeout: () =>
-        new Error(`Topaz job did not complete within ${maxAttempts} poll attempts`)
-    }
-  );
 }
 
 /**
@@ -179,72 +105,52 @@ export async function probeVideoMetadata(
   };
 }
 
+/**
+ * The multipart fields an image endpoint is sent. Empty values are left out,
+ * and 0 for output_width/output_height means "infer from the other
+ * dimension", so it is left out too.
+ */
+export function topazImageFields(
+  fields: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === null || v === undefined || v === "") continue;
+    if ((k === "output_width" || k === "output_height") && v === 0) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+async function downloadResult(
+  context: ProcessingContext,
+  url: string
+): Promise<Uint8Array> {
+  return context.downloadProviderMedia({ provider: TOPAZ_PROVIDER, url });
+}
+
 export async function topazExecuteImageTask(
-  apiKey: string,
-  spec: TopazImageSpec,
+  context: ProcessingContext,
+  job: TopazJob,
   fields: Record<string, unknown>,
   imageBytes: Uint8Array
 ): Promise<Uint8Array> {
-  const form = new FormData();
-  const blob = new Blob(
-    [new Uint8Array(imageBytes) as Uint8Array<ArrayBuffer>],
-    { type: sniffImageMime(imageBytes) ?? "application/octet-stream" }
-  );
-  form.set("image", blob, "input");
-  for (const [k, v] of Object.entries(fields)) {
-    if (v === null || v === undefined || v === "") continue;
-    // 0 for output_width/output_height means "infer from the other dim" — omit.
-    if ((k === "output_width" || k === "output_height") && v === 0) continue;
-    form.set(k, String(v));
-  }
-
-  const submit = await fetchWithRetry(spec.submitEndpoint, {
-    method: "POST",
-    headers: authHeaders(apiKey),
-    body: form
-  });
-  if (!submit.ok) {
-    throw new Error(
-      `Topaz submit failed: ${submit.status} ${await submit.text()}`
-    );
-  }
-  // Spec returns { process_id, source_id, eta }. The process_id is also
-  // available in the X-Process-ID response header.
-  const submitJson = (await submit.json()) as Record<string, unknown>;
-  const processId =
-    (submitJson.process_id as string | undefined) ??
-    submit.headers?.get("X-Process-ID") ??
-    undefined;
-  if (!processId) {
-    throw new Error(
-      `Topaz did not return a process_id: ${JSON.stringify(submitJson)}`
-    );
-  }
-
-  const statusUrl = spec.statusEndpoint.replace("{process_id}", processId);
-  await pollTopazStatus(
-    statusUrl,
-    authHeaders(apiKey),
-    spec.pollInterval,
-    spec.maxAttempts
-  );
-
+  const call: Parameters<ProcessingContext["callProviderEndpoint"]>[0] = {
+    provider: TOPAZ_PROVIDER,
+    capability: "upscale_image",
+    model: job.modelId,
+    route: "image",
+    input: { image: imageBytes, ...topazImageFields(fields) }
+  };
+  if (job.nodeId) call.nodeId = job.nodeId;
+  const { output } = await context.callProviderEndpoint(call);
   // Spec: { download_url, head_url, expiry }.
-  const downloadUrl = spec.downloadEndpoint.replace("{process_id}", processId);
-  const dl = await fetchWithRetry(downloadUrl, { headers: authHeaders(apiKey) });
-  if (!dl.ok) throw new Error(`Topaz download lookup failed: ${dl.status}`);
-  const dlJson = (await dl.json()) as Record<string, unknown>;
-  const finalUrl = (dlJson.download_url ?? dlJson.url) as string | undefined;
+  const lookup = (output ?? {}) as Record<string, unknown>;
+  const finalUrl = (lookup.download_url ?? lookup.url) as string | undefined;
   if (!finalUrl) {
-    throw new Error(`No download URL in response: ${JSON.stringify(dlJson)}`);
+    throw new Error(`No download URL in response: ${JSON.stringify(lookup)}`);
   }
-
-  // Provider-returned download URL — screened like every other one.
-  const result = await safeFetch(finalUrl);
-  if (!result.ok) {
-    throw new Error(`Failed to fetch Topaz result: ${result.status}`);
-  }
-  return new Uint8Array(await result.arrayBuffer());
+  return downloadResult(context, finalUrl);
 }
 
 const INTERPOLATION_MODELS = new Set([
@@ -312,10 +218,10 @@ function buildInterpolationFilter(
 }
 
 function buildVideoFilters(
-  spec: TopazVideoSpec,
+  videoKind: TopazVideoKind,
   fields: Record<string, unknown>
 ): Array<Record<string, unknown>> {
-  if (spec.videoKind === "interpolate") {
+  if (videoKind === "interpolate") {
     return [buildInterpolationFilter(fields)];
   }
   // Default to upscale when the model code is a known upscale model.
@@ -351,110 +257,37 @@ function buildVideoOutput(
   return output;
 }
 
+/** The create-request body for a video endpoint: `{ source, output, filters }`. */
+export function topazVideoCreateBody(
+  videoKind: TopazVideoKind,
+  fields: Record<string, unknown>,
+  sourceMeta: TopazVideoMetadata
+): Record<string, unknown> {
+  return {
+    source: sourceMeta,
+    output: buildVideoOutput(fields, sourceMeta),
+    filters: buildVideoFilters(videoKind, fields)
+  };
+}
+
 export async function topazExecuteVideoTask(
-  apiKey: string,
-  spec: TopazVideoSpec,
+  context: ProcessingContext,
+  job: TopazVideoJob,
   fields: Record<string, unknown>,
   videoBytes: Uint8Array,
   sourceMeta: TopazVideoMetadata
 ): Promise<Uint8Array> {
-  const filters = buildVideoFilters(spec, fields);
-  const output = buildVideoOutput(fields, sourceMeta);
-  const createBody = { source: sourceMeta, output, filters };
-
-  // 1. Create request
-  const create = await fetchWithRetry(spec.submitEndpoint, {
-    method: "POST",
-    headers: authHeaders(apiKey, { "Content-Type": "application/json" }),
-    body: JSON.stringify(createBody)
-  });
-  if (!create.ok) {
-    throw new Error(
-      `Topaz create failed: ${create.status} ${await create.text()}`
-    );
-  }
-  const createJson = (await create.json()) as Record<string, unknown>;
-  const requestId = (createJson.requestId ?? createJson.id) as
-    | string
-    | undefined;
-  if (!requestId) {
-    throw new Error(`No request ID returned: ${JSON.stringify(createJson)}`);
-  }
-
-  // 2. Accept → get multi-part upload URLs
-  const accept = await fetchWithRetry(
-    spec.acceptEndpoint.replace("{request_id}", requestId),
-    { method: "PATCH", headers: authHeaders(apiKey) }
-  );
-  if (!accept.ok) {
-    throw new Error(
-      `Topaz accept failed: ${accept.status} ${await accept.text()}`
-    );
-  }
-  const acceptJson = (await accept.json()) as Record<string, unknown>;
-  // Spec: { uploadId, urls[] }. Tolerate legacy shapes just in case.
-  const uploadId = (acceptJson.uploadId ?? acceptJson.upload_id) as
-    | string
-    | undefined;
-  const uploadUrls = (acceptJson.urls ??
-    acceptJson.uploadUrls ??
-    (acceptJson.uploadUrl ? [acceptJson.uploadUrl] : [])) as string[];
-  if (!uploadUrls.length) {
-    throw new Error(`No upload URL returned: ${JSON.stringify(acceptJson)}`);
-  }
-
-  // 3. PUT bytes (single- or multi-part)
-  const size = videoBytes.byteLength;
-  const partSize = Math.max(1, Math.ceil(size / uploadUrls.length));
-  const uploadResults: Array<{ partNum: number; eTag: string }> = [];
-  const uploadContentType = containerContentType(sourceMeta.container);
-  for (let i = 0; i < uploadUrls.length; i++) {
-    const start = i * partSize;
-    // Equal ceil-sized chunks can leave trailing presigned URLs with no bytes
-    // (e.g. 9 bytes across 4 URLs → parts 3/3/3/0). Stop once the source is
-    // fully consumed rather than PUT empty parts, which the API rejects.
-    if (start >= size) break;
-    const slice = videoBytes.slice(start, Math.min(start + partSize, size));
-    const put = await fetchWithRetry(uploadUrls[i], {
-      method: "PUT",
-      headers: { "Content-Type": uploadContentType },
-      body: slice
-    });
-    if (!put.ok) {
-      throw new Error(`Topaz upload part ${i + 1} failed: ${put.status}`);
-    }
-    uploadResults.push({
-      partNum: i + 1,
-      eTag: (put.headers.get("ETag") ?? "").replace(/"/g, "")
-    });
-  }
-
-  // 4. Complete upload. Echo back the uploadId from accept when present so the
-  // API can correlate the multipart upload it handed out.
-  const completeBody = uploadId ? { uploadId, uploadResults } : { uploadResults };
-  const complete = await fetchWithRetry(
-    spec.completeEndpoint.replace("{request_id}", requestId),
-    {
-      method: "PATCH",
-      headers: authHeaders(apiKey, { "Content-Type": "application/json" }),
-      body: JSON.stringify(completeBody)
-    }
-  );
-  if (!complete.ok) {
-    throw new Error(
-      `Topaz complete-upload failed: ${complete.status} ${await complete.text()}`
-    );
-  }
-
-  // 5. Poll status
-  const final = await pollTopazStatus(
-    spec.statusEndpoint.replace("{request_id}", requestId),
-    authHeaders(apiKey),
-    spec.pollInterval,
-    spec.maxAttempts
-  );
-
-  // 6. Download result. Spec: { download: { url, expiresIn, expiresAt } }.
+  const call: Parameters<ProcessingContext["callProviderEndpoint"]>[0] = {
+    provider: TOPAZ_PROVIDER,
+    capability: job.videoKind === "interpolate" ? "interpolate_video" : "upscale_video",
+    model: job.modelId,
+    route: "video",
+    input: { ...topazVideoCreateBody(job.videoKind, fields, sourceMeta), video: videoBytes }
+  };
+  if (job.nodeId) call.nodeId = job.nodeId;
+  const { output } = await context.callProviderEndpoint(call);
+  // Spec: { download: { url, expiresIn, expiresAt } }.
+  const final = (output ?? {}) as Record<string, unknown>;
   const download = (final.download ?? {}) as Record<string, unknown>;
   const downloadUrl = (download.url ??
     final.downloadUrl ??
@@ -465,10 +298,5 @@ export async function topazExecuteVideoTask(
       `No download URL in final status: ${JSON.stringify(final)}`
     );
   }
-  // Provider-returned download URL — screened like every other one.
-  const result = await safeFetch(downloadUrl);
-  if (!result.ok) {
-    throw new Error(`Failed to fetch Topaz video result: ${result.status}`);
-  }
-  return new Uint8Array(await result.arrayBuffer());
+  return downloadResult(context, downloadUrl);
 }

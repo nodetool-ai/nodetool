@@ -119,6 +119,54 @@ describe("executeComfy", () => {
     expect(result.error).toContain("Submit failed");
   });
 
+  it("names the node and input ComfyUI rejected, without its whole model list", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: { type: "prompt_outputs_failed_validation", message: "Prompt outputs failed validation", details: "", extra_info: {} },
+          node_errors: {
+            "4": {
+              errors: [
+                {
+                  type: "value_not_in_list",
+                  message: "Value not in list",
+                  details: "ckpt_name: 'flux1-schnell-fp8.safetensors' not in [sd_xl_base_1.0.safetensors, juggernautXL_ragnarokBy.safetensors]"
+                }
+              ],
+              dependent_outputs: ["9"],
+              class_type: "CheckpointLoaderSimple"
+            }
+          }
+        },
+        400
+      )
+    );
+
+    const result = await executeComfy(samplePrompt, "127.0.0.1:8188").result;
+
+    expect(result.error).toBe(
+      "ComfyUI rejected the workflow. CheckpointLoaderSimple (node 4): ckpt_name 'flux1-schnell-fp8.safetensors' is not on this ComfyUI."
+    );
+  });
+
+  it("explains a node class the ComfyUI does not have", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: { type: "invalid_prompt", message: "Cannot execute because node VHS_VideoCombine does not exist.", details: "Node ID '#12'", extra_info: {} },
+          node_errors: {}
+        },
+        400
+      )
+    );
+
+    const result = await executeComfy(samplePrompt, "127.0.0.1:8188").result;
+
+    expect(result.error).toBe(
+      "ComfyUI rejected the workflow: Cannot execute because node VHS_VideoCombine does not exist. (Node ID '#12')"
+    );
+  });
+
   it("does not lose a terminal event emitted during the submit window", async () => {
     // Regression: the message listener used to attach only after the submit
     // round-trip, so a fast/cached prompt whose execution_success fired during

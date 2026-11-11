@@ -33,6 +33,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   return (
     <ImageRefPreview
       value={value}
+      preferThumbnail
       placeholder={
         <CheckerDropzone
           className={placeholderClassName}

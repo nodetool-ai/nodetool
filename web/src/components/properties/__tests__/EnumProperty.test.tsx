@@ -88,4 +88,50 @@ describe("EnumProperty", () => {
     fireEvent.click(screen.getByRole("button", { name: "4" }));
     expect(onChange).toHaveBeenCalledWith(4);
   });
+
+  it("shows ComfyUI model and sampler names exactly as ComfyUI lists them", () => {
+    const comfyEnum = {
+      name: "ckpt_name",
+      type: {
+        type: "enum",
+        optional: false,
+        values: ["juggernautXL_ragnarokBy.safetensors", "dpmpp_2m_sde"],
+        type_args: []
+      },
+      required: true
+    } as unknown as Property;
+    render(
+      <EnumProperty
+        property={comfyEnum}
+        value="juggernautXL_ragnarokBy.safetensors"
+        nodeType="comfy.CheckpointLoaderSimple"
+        nodeId="n1"
+        propertyIndex="0"
+        onChange={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("selected")).toHaveTextContent(
+      "juggernautXL_ragnarokBy.safetensors"
+    );
+    expect(screen.getByRole("button", { name: "dpmpp_2m_sde" })).toBeInTheDocument();
+  });
+
+  it("still words snake_case values of other nodes", () => {
+    const plain = {
+      name: "mode",
+      type: { type: "enum", optional: false, values: ["fast_mode"], type_args: [] },
+      required: true
+    } as unknown as Property;
+    render(
+      <EnumProperty
+        property={plain}
+        value="fast_mode"
+        nodeType="nodetool.image.Upscale"
+        nodeId="n1"
+        propertyIndex="0"
+        onChange={jest.fn()}
+      />
+    );
+    expect(screen.getByTestId("selected")).toHaveTextContent("Fast Mode");
+  });
 });

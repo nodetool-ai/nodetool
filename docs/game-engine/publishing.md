@@ -5,7 +5,7 @@ permalink: /game-engine/publishing
 description: "Publish an accepted draft or export an offline web player and desktop project."
 ---
 
-Publishing creates a revision of the current draft. Exporting packages a game and its assets into a standalone player. Choose export when someone must play without access to your NodeTool project.
+Publishing creates a revision of the current draft. Exporting packages the game and its assets into a standalone player for someone without access to your project.
 
 ![Diagram separating draft editing, preview, apply, and publication](/assets/game-engine/authoring-flow.svg)
 
@@ -26,7 +26,7 @@ nodetool game build game.json --out game-build --assets-dir game-assets
 nodetool game smoke game-build --json
 ```
 
-The build contains the player, document, runtime, and resolved assets. It does not include provider API keys. Preparation, digest checks, and media decoding happen before the output is accepted. Exporting bound images or audio requires FFmpeg on the export host’s PATH. Built-in assets do not require this decoder. Missing FFmpeg or undecodable media stops the build before publication. Serve it over HTTPS or loopback HTTP so required browser security APIs are available. Opening an HTML file directly is not the supported distribution path.
+The build contains the player, document, runtime, and resolved assets. It does not include provider API keys. Preparation, digest checks, and media decoding happen before the output is accepted. Bound images and audio are fully decoded in process, with no FFmpeg binary needed. Invalid fonts and undecodable images or audio stop the build before publication. Serve it over HTTPS or loopback HTTP so required browser security APIs are available. Opening an HTML file directly is not the supported distribution path.
 
 The player verifies local asset paths and content digests before use. Audio receives a local Blob URL backed by the verified bytes, so playback cannot fetch a different response from the original asset URL. Streamed music retains its encoded source for the player’s lifetime and avoids a decoded PCM buffer. Closing the player stops audio and releases its media URLs.
 

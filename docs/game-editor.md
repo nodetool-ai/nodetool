@@ -4,173 +4,87 @@ title: "Game Editor"
 description: "Build, play, publish, and export 2D and 3D games in NodeTool's built-in engine."
 ---
 
-Build a game in a workspace tab, play it without leaving the editor, and ask the agent to change it.
+A game is one JSON document the built-in engine simulates, renders, and exports as a standalone web player. It is either 2D or 3D for its whole life. This page covers the editor. For engine features, document examples, and runtime limits, see the [Native Game Engine guide](/game-engine/).
 
 ![Game Editor with the Kindle example open: the scene tree, the title scene in the viewport, the asset browser, and the inspector](assets/screenshots/game-editor.png)
 
-> **Quick access:** Click **+ New** in the workspace tab bar and choose **Game** under **Guided flows**. The new game opens as a tab and is playable at once.
+> **Runs:** locally in the browser. Asset generation uses the provider you pick (see [Providers](providers.md)). The desktop executable build needs Rust and a platform toolchain. **Needs:** no key to edit or play. WebGL2 for 3D games.
+{: .callout-note}
 
----
-
-## Overview
-
-For feature guides, document examples, rendering support, and runtime limits, read the [Native Game Engine guide](/game-engine/). This page covers the editor's controls and workflow.
-
-The Game Editor edits one game document. The built-in engine simulates it, renders it, and exports it as a standalone web player. A game is either 2D or 3D, and it keeps that dimension for its whole life.
-
-A game document holds:
-
-- **Scenes.** Each game has an entry scene, and scenes can switch to each other during play.
-- **Entities.** Each scene lists entities. An entity has a transform and optional components such as a sprite, body, collider, camera, or light.
-- **Behaviors.** Built-in behaviors such as movement, patrol, and collectible, plus JavaScript scripts.
-- **Assets.** Named slots bound to images, audio, fonts, and in 3D, models.
-- **Input actions.** The names scripts and behaviors read, such as `left` and `jump`.
-
-You edit the game as a draft. The draft saves automatically about half a second after each change. **Publish** turns the draft into an immutable revision.
+The document holds scenes (one entry scene), entities with a transform and optional components, behaviors and JavaScript scripts, named asset slots, and input actions. The draft autosaves about half a second after each change. **Publish** turns it into an immutable revision.
 
 | | 2D | 3D |
 |---|---|---|
-| Space | Top-down or side-view, in world units | Meters, Y up, forward is -Z |
-| Starter | A top-down room with a player, a gem, and four walls | An exploration level with a capsule player, ramp, moving platform, crate, door, checkpoint, and goal |
-| Viewport | Canvas with selection, move, scale, and rotate handles | Orbit camera with a Move, Rotate, and Scale gizmo |
-| Rendering | Canvas 2D, or WebGPU when the game uses GPU effects | WebGL2 |
-| Physics | 2D bodies and colliders, tilemaps, one-way platforms | 3D bodies, colliders, a character controller, a follow camera |
+| Space | Top-down or side-view, world units | Meters, Y up, forward is -Z |
+| Starter | A top-down room with a player, a gem, and four walls | A level with a capsule player, ramp, moving platform, crate, door, checkpoint, and goal |
+| Rendering | Canvas 2D, or WebGPU for GPU effects | WebGL2 |
 
 ---
 
 ## Start a game
 
-### From a guided flow
+There is no blank game. Every new game starts from a playable starter.
 
-**+ New** in the tab bar lists the guided flows. **Game** creates a 2D game named "Untitled game" in the selected project and opens it. The 3D choice is not in this menu.
+- **+ New** in the tab bar, then **Game** under **Guided flows**. This creates a 2D game named "Untitled game" in the selected project.
+- New-project screen: choose **More formats**, then the **Game** card. **Game card starts as** picks **2D game** or **3D exploration**. The prompt text only names the game ("New game" if empty). It is not sent to the agent.
+- Examples page (logo menu), **Games** tab: **Play** opens an example. **Install game** copies it with its media into the current project. Kindle, Lumen, and Neon Drift are 2D. AETHER // Skybound, BLACKSITE, and Signal Forge are 3D.
+- Agent: `create_native_game` with a project, a name, and a dimension. For 3D it can pass `template: "exploration"`.
 
-### From the new-project screen
-
-The new-project screen has a **Start with a guided flow** row. The **Game** card appears after you choose **More formats**. Beside it, **Game card starts as** picks **2D game** or **3D exploration**. The text in the prompt box names the game. It is not sent to the agent. If the box is empty the game is called "New game".
-
-### From an example
-
-Open the Examples page from the logo menu and choose the **Games** tab. Each card shows a poster, a description, and the controls. **Play** opens the example. **Install game** copies the game and its media into your current project and opens the copy in the Game Editor.
-
-| Example | Dimension | Summary |
-|---|---|---|
-| Kindle | 2D | A platformer through a drowned temple |
-| Lumen | 2D | Fly a firefly through a night forest |
-| Neon Drift | 2D | An arena shooter with waves |
-| AETHER // Skybound | 3D | Floating platforms and lasers |
-| BLACKSITE | 3D | A first-person mission with drones |
-| Signal Forge | 3D | An industrial relay puzzle with a movable core, shuttle, bridge, and reactor beacon |
-
-The server reads example games from `*.game.json` files. Set `NODETOOL_EXAMPLE_GAMES_DIR` to point it at another folder. A folder that does not exist yields no examples. See [Configuration](configuration.md).
-
-### From the agent
-
-Ask the agent in chat to create a game. It calls `create_native_game` with a project, a name, and a dimension. For 3D it can pass `template: "exploration"`. See [Ask the agent](#ask-the-agent).
-
-There is no blank-game entry. Every new game starts from a playable starter, so you delete or replace what you do not need.
+The server reads examples from `*.game.json` files. `NODETOOL_EXAMPLE_GAMES_DIR` points it at another folder, and a missing folder yields no examples. See [Configuration](configuration.md).
 
 ---
 
 ## Editor layout
 
-The editor is the tab's document bar and a row of play controls over three docks and a viewport. Drag the edge of a dock to resize it. The docks come from the dock module shared with the timeline editor, at `web/src/components/dock/`.
+Resize docks by dragging their edges. They share the dock module with the timeline editor.
 
-| Area | What it does |
+| Area | Contents |
 |---|---|
-| Document bar | Title, save status, Undo and Redo, View and Edit, panel toggles, the Layout menu, **Publish**, and the ⋮ menu |
-| Play controls | **Play**, **Step**, **Stop**, and **Restart**, centered under the bar |
-| Status bar (bottom) | A live readout of tick, score, win state, and renderer |
-| Scene tree (left) | The scenes and entities of the game |
-| Viewport (center) | The game canvas, where you select and move entities |
-| Inspector (right) | Properties of the selected entity, scene, or game |
-| Assistant (right) | The agent chat for this game |
-| Script pane (bottom) | A code editor, open while you edit a script |
+| Document bar | Title, save status (**Saved**, **Saving…**, **Unsaved changes**, **Not saved**), Undo and Redo, View and Edit, panel toggles, Layout menu, **Publish**, and the ⋮ menu |
+| Play controls | **Play**, **Step**, **Stop**, **Restart** |
+| Scene tree (left) | Scenes and entities |
+| Viewport (center) | The game canvas |
+| Inspector (right) | Selected entity, scene, or game |
+| Assistant (right) | Agent chat for this game |
+| Script pane (bottom) | Code editor, open while you edit a script |
+| Status bar | Tick, score, win state, renderer |
 
-The bar's toggles show the scene tree, the inspector, and the assistant. The ⋮ menu holds the export builds, **Save play state**, **Load play state**, **Play in new tab**, and **Commands**. The save status reads **Saved**, **Saving…**, **Unsaved changes**, or **Not saved**.
+The ⋮ menu holds the export builds, **Save play state**, **Load play state**, **Play in new tab**, and **Commands**. Under the play controls the editor can show a **Changes** list of agent edits (see [Ask the agent](#ask-the-agent)), a **Retained construction** section (see [Rebuild a generated game](#rebuild-a-generated-game)), and a conflict banner when the draft changed elsewhere, where you accept or discard each conflicting unit. On a narrow screen the 2D editor stacks the tree and inspector under the viewport and opens the assistant as a bottom sheet.
 
-Under the play controls, the editor can also show:
+### 2D editing
 
-- A **Changes** list of edits the agent made, with **View in chat** and **Undo** for each group.
-- A **Retained construction** section when a game was generated from a construction program. See [Rebuild a generated game](#rebuild-a-generated-game).
-- A conflict banner when the draft changed somewhere else, for example from the agent or another tab. Accept or discard each conflicting unit.
+- **Scene tree.** Entities are in **Entities**. **Prefabs** appears when entities are marked prefab-only. Drag to nest or reorder (Alt+arrows from the keyboard). The **+** beside a scene adds **Sprite**, **Static wall**, **Collectible**, **Trigger**, **Camera**, or **Empty**. **Sprite** is disabled until the game has an image asset.
+- **Viewport.** Click or box-select, drag to move, use handles to scale and rotate (Shift constrains). Alt-click cycles overlapping sprites. Overlay buttons toggle **Selection**, **Grid**, **Snap**, **Colliders**, **Lights**, **Backgrounds**, and **Camera**.
+- **Inspector.** The **Entity** tab has **Add component** (Sprite, Tilemap, Camera 2D, Body 2D, Collider 2D, Animator, Visual animation, Audio source, Light 2D) and **Add behavior** (Movement, Patrol, Collectible, Health, Trigger, Spawn, Scene transition, Win when collected, Lifetime, Script). The **Game** tab edits pixels per unit, entry scene, input actions, collision layer names, render effects (bloom, LUT, brightness and contrast), and asset bindings. Validation errors show beside the field, and the tree marks entities with validation or script errors in red.
 
-On a narrow screen the 2D editor stacks the scene tree and inspector under the viewport and opens the assistant as a bottom sheet. The 3D editor keeps its docks.
-
----
-
-## Edit scenes and objects
-
-### 2D
-
-**Scene tree.** Each scene lists its entities in a group named **Entities**. A second group named **Prefabs** appears when the scene has entities marked prefab-only, which scripts and the `spawn` behavior instantiate at run time. The search box filters by entity name or ID.
-
-- Select an entity with a click. Shift-click or Ctrl-click or Cmd-click adds to the selection.
-- Drag an entity onto another to nest it, or between rows to reorder it. Alt+arrow keys do the same from the keyboard.
-- The **+** beside a scene adds an entity: **Sprite**, **Static wall**, **Collectible**, **Trigger**, **Camera**, or **Empty**. **Sprite** is disabled until the game has an image asset.
-
-**Viewport.** Click a sprite to select it, or drag on empty space to box-select. Drag a selected entity to move it. Handles on a selected sprite scale and rotate it, and Shift constrains the change. Alt-click cycles through overlapping sprites.
-
-| Action | Control |
+| Key | Action |
 |---|---|
-| Pan | Right or middle drag, hold Space and drag, or turn on **Pan** |
-| Zoom | Mouse wheel. On a Mac, pinch or Ctrl+scroll |
-| Reset camera | Home |
-| Frame the selection | F |
-| Nudge | Arrow keys move 0.25 units, Shift+arrow moves 2.5 |
-| Copy, paste, duplicate | Ctrl or Cmd with C, V, D |
-| Delete | Delete or Backspace |
-| Undo, redo | Ctrl or Cmd with Z, and with Shift for redo |
+| Space+drag, middle or right drag | Pan |
+| Wheel | Zoom |
+| Home, F | Reset camera, frame selection |
+| Arrows, Shift+arrows | Nudge 0.25 units, 2.5 units |
+| G | Toggle snap |
+| Ctrl/Cmd + C, V, D, Z | Copy, paste, duplicate, undo (add Shift for redo) |
 
-Keyboard shortcuts work while the viewport has focus. The overlay buttons **Selection**, **Grid**, **Snap**, **Colliders**, **Lights**, **Backgrounds**, and **Camera** turn the matching overlay on or off. G toggles snap.
+**Revisions** in the scene tree lists the 10 most recent revisions. **Restore to draft** loads one into the draft without changing published history. If the saved draft source is unavailable, the editor offers published revisions for recovery. If the tab still has a local draft, **Export local draft** saves its document, pending edits, and undo history as JSON before restoring is enabled. Keep the tab open until the download finishes, because confirming **Restore to draft** replaces the local draft and clears its undo history.
 
-**Inspector.** It has two tabs.
+### 3D editing
 
-- **Entity** (or **Scene** when nothing is selected) shows the selection. For an entity it lists name, parent, **Prefab only**, **Transform**, and each component present. **Add component** offers Sprite, Tilemap, Camera 2D, Body 2D, Collider 2D, Animator, Visual animation, Audio source, and Light 2D. **Add behavior** offers Movement, Patrol, Collectible, Health, Trigger, Spawn, Scene transition, Win when collected, Lifetime, and Script. A scene tab edits its name, music, lighting, and backgrounds.
-- **Game** edits pixels per unit, the entry scene, input actions, collision layer names, render effects (bloom, LUT, brightness and contrast), and asset bindings.
+- **Scene tree.** A **Scene** selector, then a flat list. **Add box**, **Add sphere**, and **Add light** create a primitive with a static body and matching collider, or a point light.
+- **Model assets.** In the collapsed section, enter an owned model asset ID and a slot name, then choose **Prepare and install model**. **Edit model** opens the model in the [3D Editor](3d-editor.md). After saving model changes, prepare and install again, because the engine does not pick up edits on its own.
+- **Viewport.** The toolbar has **Transform mode** (**Move**, **Rotate**, **Scale**), **Local space**, **Snap**, **Gizmo settings**, **Align to ground**, **Overlays**, **Fly camera**, and **Frame selection**. A multi-selection shares one gizmo, and each drag or **Align to ground** is one undo step.
+- **Gizmo settings.** Pivot is **Selection centre**, **Active entity**, or **Individual origins**. Snap defaults are 0.25 m, 15 degrees, and 0.25 scale. **Surface snap** rests drags on the surface under the pointer. **Orbit around selection** recenters the orbit. These are browser preferences, not part of the game.
+- **Inspector.** Position (meters), Rotation (degrees), Scale, components, and a **Behaviors** list with **Add script**, **Edit script**, and **Remove**.
 
-Fields that fail validation show their error beside the field. The scene tree marks an entity with a validation error or a script error in red.
-
-**Revisions.** The scene tree dock has a collapsed **Revisions** section. It lists the 10 most recent revisions. **Restore to draft** loads one into the draft without changing the published history.
-
-If the saved draft source is unavailable, the editor offers published revisions
-for recovery. When this tab still has a local draft, **Export local draft** saves
-its document, pending edits, and undo history as JSON before restoring is enabled.
-Keep the tab open until the download finishes. Confirming **Restore to draft**
-replaces the local draft and clears its undo history.
-
-### 3D
-
-**Scene tree.** A **Scene** selector switches scenes. The list below it is flat. A child shows an arrow, and a character or camera shows a tag. **Add box**, **Add sphere**, and **Add light** create a primitive with a static body and matching collider, or a point light.
-
-**Model assets.** The collapsed **Model assets** section binds a 3D model. Enter an owned model asset ID and a slot name, then choose **Prepare and install model**. Each model slot has **Edit model**, which opens the model in a model editor tab. After you save changes to the model, prepare and install it again. The engine does not pick up edits on its own.
-
-**Viewport.** The toolbar above the canvas has a **Transform mode** selector (**Move**, **Rotate**, **Scale**), **Local space**, **Snap**, **Gizmo settings**, **Align to ground**, **Overlays**, **Fly camera**, and **Frame selection**. The orientation gizmo in the top-right corner shows the world axes. Click an axis end to look along that axis, and use the button below it to switch between perspective and orthographic views.
-
-Click an entity to select it. Shift-click, Ctrl-click or Cmd-click adds it to the selection or removes it, and a click on empty space clears the selection. The scene tree uses the same modifiers. A multi-selection shares one gizmo and outlines every selected entity. A child whose parent is also selected moves with the parent. Each gizmo drag and each **Align to ground** is one undo step for the whole selection.
-
-**Gizmo settings** holds the pivot, the snap increments and two switches. The pivot is **Selection centre** (the mean of the selected origins), **Active entity** (the last one selected) or **Individual origins**, where each entity rotates and scales around its own origin. Snap increments default to 0.25 meters for move, 15 degrees for rotate and 0.25 for scale. **Surface snap** makes move drags rest the selection on the surface under the pointer. **Orbit around selection** moves the orbit centre to the selection whenever it changes. **Align to ground** drops each selected entity onto the surface below it, or onto the ground plane at height zero. These settings are editor preferences kept in this browser, not part of the game.
-
-| Action | Control |
+| Key | Action |
 |---|---|
-| Orbit | Drag |
-| Pan | Shift-drag |
-| Zoom | Scroll |
-| Fly camera | Turn on **Fly camera**, then W, A, S, D to move, R and F to rise and descend, drag to look |
-| Frame the selection | F |
-| Switch local and world space | X |
-| Next pivot mode | . (period) |
-| Select all, clear the selection | Ctrl or Cmd with A, Esc |
-| Align to ground | End |
-| Front, right, top view | Numpad 1, 3, 7. Add Ctrl or Cmd for back, left and bottom |
-| Orthographic view | Numpad 5 |
+| Drag, Shift-drag, scroll | Orbit, pan, zoom |
+| Fly camera on, then W A S D, R F | Move, rise and descend. Drag looks |
+| F, X, . | Frame, toggle local space, next pivot mode |
+| End | Align to ground |
+| Numpad 1, 3, 7 (Ctrl/Cmd for opposite), 5 | Front, right, top views (back, left, bottom), orthographic |
 
-The 3D editor has **Undo** and **Redo** buttons, and Ctrl or Cmd with Z works inside the dock area.
-
-**Inspector.** With nothing selected it shows scene settings and any validation errors. With an entity selected it shows **Position (meters)**, **Rotation (degrees)**, **Scale**, and the entity's components, such as primitive, body, collider, camera, light, and character. A **Behaviors** section lists behaviors, with **Add script**, **Edit script**, and **Remove**. **Delete entity** removes the entity.
-
-### What differs
-
-The 3D editor has no copy and paste, no keyboard nudge, no scene tree search or nesting by drag, no prefab group, no **Revisions** list, and no **Run 10 s** check. Edit those from the agent or the document operations.
+The 3D editor has no copy and paste, keyboard nudge, tree search, nesting by drag, prefab group, **Revisions** list, or **Run 10 s**. Use the agent or document operations for those.
 
 ---
 
@@ -202,22 +116,13 @@ Rules that apply in both dimensions:
 
 ### Read the world during a script call
 
-`world.get(id)` returns an entity record, or `undefined` if the ID is absent.
-`world.query({ source?, tag?, near?, radius?, limit? })` returns matching IDs
-in runtime entity order. Both read one immutable tick-start snapshot of active
-entities, before movement behaviors or script commands run. Returned values are private copies.
-They do not expose changes from earlier scripts in the same tick.
+`world.get(id)` returns an entity record or `undefined`. `world.query({ source?, tag?, near?, radius?, limit? })` returns matching IDs in runtime entity order. Both read one immutable tick-start snapshot of active entities, so they do not show changes from earlier scripts in the same tick. Returned values are copies.
 
-In 2D a record contains `id`, `source`, `x`, `y`, `velocityX`, `velocityY`,
-and `grounded`. In 3D it contains `id`, `source`, `position`, `velocity`, and
-`grounded`. Positions and velocities use `{ x, y, z }` in 3D.
-
-Pass `near: { x, y, z? }` together with a nonnegative `radius`. Distance uses
-entity centers and includes the radius boundary. Omitted `z` is zero. `source`
-matches the exact `source` field, the original entity ID rather than a 3D prefab
-asset ID. A `tag` filter matches entities
-whose `tags` include it. Entities in legacy 2D documents carry no tags, so a
-`tag` filter returns an empty array there.
+- A 2D record has `id`, `source`, `x`, `y`, `velocityX`, `velocityY`, `grounded`. A 3D record has `id`, `source`, `position`, `velocity`, `grounded`, with `{ x, y, z }` vectors.
+- `near: { x, y, z? }` needs a nonnegative `radius`. Distance uses entity centers and includes the boundary. Omitted `z` is 0.
+- `source` matches the original entity ID, not a 3D prefab asset ID. `tag` matches the entity's `tags`, and legacy 2D documents have none, so a `tag` filter returns an empty array there.
+- `limit` defaults to 1024 and accepts 0 to 1024. A call allows 64 combined `get` and `query` attempts, and exceeding that fails the call even if the script catches the exception. Query arguments are limited to 4096 JSON characters, `get` IDs to 1024 characters, and responses to 64 KiB. Queries are unavailable while the source initializes.
+- The legacy `input.world` array is unchanged. In 2D it holds active entities with a collider or camera, while `world` queries cover every active entity.
 
 ```js
 /** @type {GameScript} */
@@ -227,49 +132,65 @@ whose `tags` include it. Entities in legacy 2D documents carry no tags, so a
 })
 ```
 
-`limit` defaults to 1024 and accepts integers from 0 to 1024. Each call allows
-64 combined `get` and `query` attempts. Exceeding that count fails the call
-even if the script catches the exception. Query arguments are limited to
-4096 JSON characters, `get` IDs to 1024 characters, and each response to 64 KiB. The existing script time,
-memory, input, and output budgets still apply. Queries are available during
-the function call, not while its source initializes.
+The pane footer shows source length against the 16,384 character limit, **maxCommands**, and **maxTickMs**. In 2D both limits are editable on the script behavior, defaulting to 16 commands and 8 ms, with ranges 1 to 64 and 1 to 50 ms. On Linux and in the browser **maxTickMs** counts wall time, including waits for a processor or a blocking host callback. Other server and CLI hosts use thread CPU time when available.
 
-The legacy `input.world` array keeps its original shape and population. In 2D
-it includes active entities with a collider or camera, whereas global world
-queries include every active entity. Its mutable copy remains private to the
-call. This API is additive. The 3D input retains `contractVersion: 3`, and
-documents need no schema version change or migration.
-
-The pane footer shows the source length against the 16,384 character limit, the **maxCommands** limit, and the **maxTickMs** limit. In 2D you can change both limits from the script behavior in the inspector. The defaults are 16 commands and 8 ms. The limits are 1 to 64 commands and 1 to 50 ms. On Linux and in the browser, **maxTickMs** counts wall time. Linux thread CPU accounting can lag behind a short call, so wall time keeps the supported 1 ms limit enforceable. Waiting for a processor or a blocking host callback counts against this limit. Other server and CLI hosts use thread CPU time when available, with wall time as the fallback.
-
-When a script throws during play, the 2D pane shows the tick and the message. **Replay to tick N** reruns the game to the tick before the failure so you can inspect it. **Ask the assistant** drafts a message with the scene, entity, behavior index, tick, and error. 2D also has **Run 10 s**, which runs the game headlessly for ten seconds of ticks and reports script calls, total script time, and a per-entity breakdown. The 3D editor shows **Replay before error** in the error line.
-
-Agents and JS scripts can build a whole document in code with the `@nodetool-ai/sandbox-game` pack.
+When a script throws during play, the 2D pane shows the tick and message. **Replay to tick N** reruns to the tick before the failure. **Ask the assistant** drafts a message with scene, entity, behavior index, tick, and error. 2D also has **Run 10 s**, a headless ten-second run that reports script calls, total script time, and a per-entity breakdown. The 3D editor shows **Replay before error**. Agents and JS scripts can build a whole document with the `@nodetool-ai/sandbox-game` pack.
 
 ---
 
 ## Ask the agent
 
-**Show assistant** opens a chat docked beside the viewport. The agent knows which game is open, which entities you selected, and which script you are editing. Welcome examples are "Add a boss that appears at wave 5", "Make the forest darker and add fog", and "Why does the player pass through this wall?".
-
-The agent follows the `native-game` skill and edits the draft through tools:
+**Show assistant** opens a chat beside the viewport. The agent knows the open game, your selected entities, and the script you are editing. It follows the `native-game` skill and edits the draft through these tools:
 
 | Tool | Use |
 |---|---|
 | `get_native_game` | Read an outline, one entity, or the whole document |
 | `edit_native_game` | Apply ordered operations. The whole edit is validated before it is written |
-| `capture_native_game_frame` | Render frames so it can look at the result |
+| `capture_native_game_frame` | Render frames to look at the result |
 | `playtest_native_game` | Run recorded inputs and check assertions |
-| `autoplay_native_game` | Steer a 2D player toward a target or win. 3D is not supported, so give a route instead |
-| `generate_game_asset` | Generate or import an image, speech, music, sound effect, font, or 3D model, and bind it to a slot |
-| `install_native_game_asset` | Install a staged candidate asset |
+| `autoplay_native_game` | Steer a 2D player toward a target or win. 3D is not supported, so give a route |
+| `generate_game_asset`, `install_native_game_asset` | Generate or import an asset and bind it to a slot, or install a staged candidate |
 | `publish_native_game` | Publish, only when you ask |
-| `build_native_game` | Write a standalone web build or a Tauri desktop app project |
+| `build_native_game` | Write a standalone web build or a Tauri or Expo project |
 | `list_example_games`, `get_example_game`, `install_example_game` | Study or copy a shipped game |
 
-For a new game or an art overhaul the agent also loads `game-direction`. It fixes a player promise, a style string, a layer plan, feel parameters, and a pacing sheet first, then keeps asset prompts consistent with that spec.
+For a new game or an art overhaul the agent also loads `game-direction`, which fixes a player promise, style string, layer plan, feel parameters, and pacing sheet before asset prompts.
 
-Agent edits land in your draft. The **Changes** list groups them by chat message. **View in chat** jumps to the message, and **Undo** reverts that group. Your later edits are merged, and overlapping ones show as conflicts.
+### Trace: adding a HUD label
+
+From `packages/agents/tests/capabilities-game.test.ts`. The prompt is illustrative.
+
+```text
+User: Show the score in the top right.
+```
+
+```json
+{
+  "tool": "edit_native_game",
+  "arguments": {
+    "game_id": "<game id>",
+    "ops": [{
+      "op": "set_ui",
+      "ui": { "nodes": [
+        { "kind": "panel", "id": "scorePanel", "anchor": { "x": 1, "y": 0 }, "width": 120, "height": 32 },
+        { "kind": "text", "id": "score", "parent": "scorePanel", "text": "Score 0" }
+      ] }
+    }]
+  }
+}
+```
+
+The result carries the updated `document`, and `document.ui` equals the tree sent. A tree whose `parent` names a node that is not an earlier node is rejected whole:
+
+```json
+{ "error": "Game edit rejected",
+  "issues": [{ "op_index": 0,
+    "message": "HUD node orphan names parent missing, which is not an earlier node of this tree" }] }
+```
+
+The draft is unchanged after a rejection. `{ "op": "set_ui", "ui": null }` removes the HUD.
+
+Agent edits land in your draft. The **Changes** list groups them by chat message. **View in chat** jumps to the message and **Undo** reverts that group. Your later edits are merged, and overlapping ones show as conflicts.
 
 ---
 
@@ -277,117 +198,94 @@ Agent edits land in your draft. The **Changes** list groups them by chat message
 
 | Button | What it does |
 |---|---|
-| **Play** | Starts a play session from the current draft. While playing the button reads **Pause** |
-| **Pause** | Stops the clock. The viewport shows the paused frame, and the **Runtime state** panel shows the selected entity |
-| **Step** | Advances one tick. Available only while paused |
-| **Stop** | Ends the session and returns to editing |
-| **Save play state** | Stores a snapshot of the running session in this browser |
-| **Load play state** | Restores that snapshot |
-| **Play in new tab** | Opens the player page for this game |
+| **Play** | Starts a session from the current draft. Reads **Pause** while playing |
+| **Pause** | Stops the clock. **Runtime state** shows the selected entity |
+| **Step** | Advances one tick, while paused |
+| **Stop** | Ends the session |
+| **Save play state**, **Load play state** | Snapshot and restore the running session. Stored in this browser, keyed by game ID |
+| **Play in new tab** | Opens the player page |
 
-Play uses the keyboard. Click the canvas to give it focus. In 2D, arrow keys and W, A, S, D map to `left`, `right`, `up`, and `down`, Space maps to `space`, and other keys map to their lowercase key name. A key counts only if the game lists it under input actions. In 3D, W, A, S, D or the arrow keys move, Space jumps, and the right mouse button looks around.
+Click the canvas to focus it. In 2D, arrow keys and W A S D map to `left`, `right`, `up`, `down`, Space maps to `space`, and other keys map to their lowercase name. A key counts only if the game lists it under input actions. In 3D, W A S D or arrows move, Space jumps, and the right mouse button looks.
 
-A session plays the document as it was at the moment you pressed **Play**. If you edit during play, a note says **The draft changed. Stop and play again to apply it.** In 2D, changing only asset bindings does not require a restart.
-
-Saved play state is browser storage keyed by game ID. It does not travel with the game, and another browser does not see it.
-
-If the game uses a required GPU effect and the browser has no WebGPU, play fails with an error. An optional effect is dropped and the toolbar reports **Canvas 2D**.
+A session plays the document as it was when you pressed **Play**. Edits during play show **The draft changed. Stop and play again to apply it.** In 2D, changing only asset bindings needs no restart. If a game uses a required GPU effect and the browser has no WebGPU, play fails with an error. An optional effect is dropped and the toolbar reports **Canvas 2D**.
 
 ---
 
 ## Publish
 
-Choose **Publish**. The button is disabled while the draft is saving.
+Choose **Publish** (disabled while the draft saves). The 2D dialog lists changes since the last revision and validates the game first, showing errors instead of publishing. The 3D dialog creates an immutable revision from the draft. **Revision message** is optional, up to 500 characters. The draft stays editable and starts from the published content. Publishing does not make the game public.
 
-- The 2D dialog lists the changes since the last revision. On **Publish** it validates the game first and shows any errors instead of publishing.
-- The 3D dialog says it creates an immutable revision from the current draft.
-- **Revision message** is optional and holds up to 500 characters.
+If another session published first, you get **Game was modified concurrently**. Reload, merge your edits, and publish again.
 
-Publishing writes a new revision and makes it the game's current revision. The draft stays editable and starts from the published content. If another session published first, you get **Game was modified concurrently**. Reload, merge your edits, and publish again.
-
-Publishing does not make the game public. The game belongs to your account and its project.
-
-### The player URL
-
-**Play in new tab** opens `/game/<game ID>`. That route is protected and loads the game through your own account, so only the owner can open it. It loads the **saved draft**, not the last published revision, and shows the game name, **Play**, **Stop**, a score, and a status. The button is disabled until the draft is saved. A 3D game loads the 3D player in the same route.
-
-To give someone a game that runs without NodeTool, publish and then [build a standalone web player](#build-a-standalone-web-build) or a [desktop app](#build-a-desktop-app).
+**Play in new tab** opens `/game/<game ID>`, which loads the **saved draft** (not the last revision) through your own account, so only the owner can open it. The button is disabled until the draft is saved. To give someone a game that runs without NodeTool, [build a standalone web player](#build-a-standalone-web-build) or a [desktop app](#build-a-desktop-app).
 
 ---
 
 ## Build a standalone web build
 
-A standalone build is a folder of static files for one revision. It plays without a NodeTool server.
+A folder of static files for one published revision that plays without a NodeTool server.
 
-Use one of these:
+- Editor: ⋮ menu, **Web player**. The zip holds the last published revision, not the draft.
+- Agent: `build_native_game` for an owned revision. It writes the folder under the project workspace and returns the path.
+- CLI: `nodetool game build game.json --out game-build`. See [`nodetool game`](cli.md#nodetool-game), which also covers `validate`, `simulate`, and `capture`.
 
-- **The editor.** Open the ⋮ menu in the document bar and choose **Web player**. The download is a zip of the last published revision, not the draft.
-- **The agent.** Ask it to build the game. It calls `build_native_game` for an owned revision and writes the folder under the project workspace, then returns the path.
-- **The CLI.** `nodetool game build game.json --out game-build` builds from a game file. See [`nodetool game`](cli.md#nodetool-game) for flags, and for `validate`, `simulate`, and `capture`, which check a game without the editor.
+The folder holds `index.html`, `game.json`, a player script, and `assets/` with media named by digest. A 2D build adds a stylesheet and script runtime. A 3D build adds `manifest.json`, models, colliders, and pinned runtime files.
 
-The folder holds `index.html`, `game.json`, a player script, and an `assets/` folder of media named by digest. A 2D build adds a stylesheet and a script runtime. A 3D build adds `manifest.json`, the models, colliders, and pinned runtime files.
-
-- Serve a 3D build over static HTTP.
-- Installed media must still exist, match its recorded digest, and use a supported format, or the build fails.
-- On a touch screen the 2D player adds a floating stick for `left`, `right`, `up`, and `down`, and one button per other input action.
-- The first 3D release targets desktop web and Electron.
+- Serve a 3D build over static HTTP. The first 3D release targets desktop web and Electron.
+- Installed media must exist, match its recorded digest, and use a supported format, or the build fails.
+- On touch screens the 2D player adds a floating stick for `left`, `right`, `up`, `down` and one button per other input action.
 
 ---
 
 ## Build a desktop app
 
-A desktop build wraps the standalone web player in a [Tauri](https://tauri.app) project. It compiles to a native app for Windows, macOS, and Linux that plays the published revision offline.
+A [Tauri](https://tauri.app) project that wraps the web player and compiles to a native Windows, macOS, or Linux app that plays the published revision offline.
 
-- **The editor.** Choose **Desktop app** in the ⋮ menu. The zip holds a `desktop/` folder. To compile it right away, see [Build the executable in the editor](#build-the-executable-in-the-editor).
-- **The agent.** Ask it for a desktop build. It calls `build_native_game` with `target: "tauri"`.
-- **The CLI.** `nodetool game build game.json --out game-desktop --target tauri --name "Cave Run"`. Add `--compile` to build the executable right away.
+- Editor: ⋮ menu, **Desktop app**. The zip holds a `desktop/` folder.
+- Agent: `build_native_game` with `target: "tauri"`.
+- CLI: `nodetool game build game.json --out game-desktop --target tauri --name "Cave Run"`. Add `--compile` to build the executable right away.
+
+The project holds `dist/` (web player), `src-tauri/` (native shell, icons, `tauri.conf.json`), `package.json`, and a README. The identifier defaults to `ai.nodetool.game.<name>`.
 
 ### Build the executable in the editor
 
-The desktop app and a local server can compile the executable without leaving the editor. Choose **Desktop executable** in the ⋮ menu. Cargo runs on this computer and its output streams into the **Console** panel, warnings and errors included. When it finishes, the status row shows the executable's path, and the desktop app offers **Show in folder**. The executable lands in `bin/` inside the build's project folder under the project workspace. **Cancel** stops cargo. A hosted server refuses the build, because it would run a compiler on the server.
+The desktop app and a local server can compile in the editor. Choose **Desktop executable** in the ⋮ menu. Cargo output streams into the **Console** panel. When it finishes, the status row shows the executable path and the desktop app offers **Show in folder**. The executable lands in `bin/` inside the build's project folder under the project workspace. **Cancel** stops cargo. A hosted server refuses the build.
 
-Cargo comes from the **Rust** package in the Package Manager, or from a [rustup](https://rustup.rs) install. If neither is found, the editor offers to install Rust. The first build compiles Tauri itself and takes several minutes. Later builds share that work and finish much faster. The compiler also needs the platform toolchain: the Visual Studio C++ Build Tools on Windows, the Xcode Command Line Tools on macOS, and the WebKitGTK development packages on Linux.
+Cargo comes from the **Rust** package in the Package Manager or a [rustup](https://rustup.rs) install, and the editor offers to install Rust if neither is found. The first build compiles Tauri and takes several minutes. The compiler also needs the Visual Studio C++ Build Tools on Windows, the Xcode Command Line Tools on macOS, or the WebKitGTK development packages on Linux.
 
-The project holds `dist/` (the web player), `src-tauri/` (the native shell, icons, and `tauri.conf.json`), `package.json`, and a README. The app takes the game's name, and its identifier defaults to `ai.nodetool.game.<name>`.
+For installers, install the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and run `npm install && npm run build` in the project. Output lands in `src-tauri/target/release/bundle/`. Each platform builds its own installers. `cargo build --release` in `src-tauri/` makes the executable alone.
 
-To make installers, install Rust and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform, then run `npm install && npm run build` in the project. Installers land in `src-tauri/target/release/bundle/`. Each platform builds its own installers, so build the Windows app on Windows and the macOS app on a Mac. `cargo build --release` in `src-tauri/` makes the executable alone.
-
-WebGPU effects depend on the system web view. Where it has no WebGPU, as in WebKitGTK on Linux, the 2D player skips them and says so in its status line.
+WebGPU effects depend on the system web view. Where it has none, as in WebKitGTK on Linux, the 2D player skips them and says so in its status line.
 
 ---
 
 ## Build a mobile app
 
-A mobile build is an [Expo](https://expo.dev) project for iOS and Android. The app shows the published revision full screen in a WebView and plays offline. It needs no NodeTool server.
+An [Expo](https://expo.dev) project for iOS and Android that shows the published revision full screen in a WebView, offline.
 
-- **The editor.** Choose **Mobile app** in the ⋮ menu. The zip holds a `mobile/` folder.
-- **The agent.** Ask it for a mobile build. It calls `build_native_game` with `target: "expo"`.
-- **The CLI.** `nodetool game build game.json --out game-mobile --target expo --name "Cave Run"`.
+- Editor: ⋮ menu, **Mobile app**. The zip holds a `mobile/` folder.
+- Agent: `build_native_game` with `target: "expo"`.
+- CLI: `nodetool game build game.json --out game-mobile --target expo --name "Cave Run"`.
 
-The project holds `App.js` (the WebView screen), `app.json` (name, identifier, version, orientation), `assets/` (icons and the game), `package.json`, `eas.json`, and a README. The app takes the game's name, and its identifier defaults to `ai.nodetool.game.<name>` with letters and digits only, because iOS and Android accept different punctuation. A 3D game locks the screen to the shape of its presentation aspect ratio. A 2D game follows the device, and its player asks for a turn when the shape is wrong.
+The project holds `App.js`, `app.json` (name, identifier, version, orientation), `assets/`, `package.json`, `eas.json`, and a README. The identifier defaults to `ai.nodetool.game.<name>` with letters and digits only. A 3D game locks the screen to its presentation aspect ratio. A 2D game follows the device and asks for a turn when the shape is wrong.
 
-The game itself is one page, `assets/game/game.html`. It carries the player, the game document, the script runtime and every asset. The page answers the player's own file requests from those embedded bytes, so it needs no web server and no file access. The app loads it under a fixed `https://game.invalid/` origin that never resolves, which gives the player the secure origin it needs for asset digests, WebAssembly and saved games. A build carries at most 128 MB of game files.
+The game is one page, `assets/game/game.html`, carrying the player, document, script runtime, and every asset. The app loads it under the fixed origin `https://game.invalid/`, which never resolves and gives the player the secure origin it needs for asset digests, WebAssembly, and saved games. A build carries at most 128 MB of game files.
 
-To try it, run `npm install && npx expo start` in the project and scan the QR code with Expo Go. To make installable apps, run `eas build --platform android --profile preview` for an APK, or `eas build --platform ios` with an Apple Developer account. `npx expo run:android` and `npx expo run:ios` build locally with Android Studio or Xcode.
-
-Leaving the app pauses the game. The screen stays on while the game is open. The touch controls, orientation prompt and audio are the web player's own, as in a mobile browser.
+Run `npm install && npx expo start` and scan the QR code with Expo Go. For installable apps run `eas build --platform android --profile preview` (APK) or `eas build --platform ios` (needs an Apple Developer account). `npx expo run:android` and `npx expo run:ios` build locally. Leaving the app pauses the game.
 
 ---
 
 ## Generate assets
 
-The game documents bind art and sound by slot name, so you can replace placeholders without touching entities.
+Games bind art and sound by slot name, so you can replace placeholders without touching entities. Ask the agent to generate an asset for a slot and it generates, prepares, installs, and binds it. Image preparation can trim alpha, resize, set a pivot, slice a sprite sheet, build a 16-variant terrain tileset, or make a color lookup table for a **LUT** effect. In a workflow, **Load Game Template**, **Slot Prompt**, and **Stage Game Assets** do the same job. Staged media is a candidate until installed.
 
-- Ask the agent to generate an asset for a slot. It generates, prepares, installs, and binds it. Image preparation can trim alpha, resize, set a pivot, slice a sprite sheet into aligned frames, build a 16-variant terrain tileset, or make a color lookup table for a **LUT** effect.
-- In a workflow, three nodes support the same job: **Load Game Template**, **Slot Prompt**, and **Stage Game Assets**. Stage Game Assets validates generated media and stages candidate bindings. Staged media is a candidate until installed.
-
-2D fonts, music, lighting, backgrounds, effects, and visual animation need a game at schema version 2. The editor disables the matching **Add** buttons for a version 1 game.
+2D fonts, music, lighting, backgrounds, effects, and visual animation need schema version 2. The editor disables the matching **Add** buttons for a version 1 game.
 
 ---
 
 ## Rebuild a generated game
 
-A game made from a construction program keeps that program in the document. The **Retained construction** section shows its source and inputs. Use **Preview rebuild** to see changed entities and dependencies, **Highlight changes** to select them in the viewport, and **Apply rebuild** to write them into the draft. A rebuild is blocked while it has conflicts or the draft is stale. If your local edits conflict with the new construction, a dialog lets you keep an entity detached or discard those edits.
+A game made from a construction program keeps that program in the document. **Retained construction** shows its source and inputs. **Preview rebuild** shows changed entities and dependencies, **Highlight changes** selects them in the viewport, and **Apply rebuild** writes them into the draft. A rebuild is blocked while it has conflicts or the draft is stale. If local edits conflict, a dialog lets you keep an entity detached or discard those edits.
 
 ---
 
@@ -395,13 +293,11 @@ A game made from a construction program keeps that program in the document. The 
 
 - A game is 2D or 3D. It cannot change dimension, and mixed 2D and 3D scenes are not supported.
 - Multiplayer, terrain streaming, navigation meshes, vehicles, ragdolls, retargeting, and root motion are outside this release.
-- A script is at most 16,384 characters and runs under its command and time limits. A failed tick stops the session. Reset it or load a state from before the failure.
+- A failed script tick stops the session. Reset it or load a state from before the failure.
 - Per game, the schema allows up to 8 render effects, 32 collision layer names, and 32 lights and backgrounds per scene. A sprite has up to 5 visual animation tracks.
 - The runtime limits events and spawned instances. Exceeding a limit stops the session.
 - A 3D game needs WebGL2. Playtest captures in 3D need Chromium.
 - 3D triangle-mesh colliders require static bodies. Physics hierarchies reject scale and competing pose owners.
-- Saved play state lives in one browser.
-- The player page is not a public link. Share a standalone build instead.
 
 ---
 

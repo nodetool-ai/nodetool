@@ -21,6 +21,12 @@ interface MockClient {
     remove: ProcWithMutate;
     resetToken: ProcWithMutate;
   };
+  admin: {
+    users: {
+      list: ProcWithQuery;
+      update: ProcWithMutate;
+    };
+  };
 }
 
 function makeMockClient(): MockClient {
@@ -31,6 +37,12 @@ function makeMockClient(): MockClient {
       create: { mutate: vi.fn() },
       remove: { mutate: vi.fn() },
       resetToken: { mutate: vi.fn() }
+    },
+    admin: {
+      users: {
+        list: { query: vi.fn() },
+        update: { mutate: vi.fn() }
+      }
     }
   };
 }
@@ -296,6 +308,35 @@ describe("APIUserManager", () => {
     it("should propagate generic errors with message", async () => {
       mockClient.users.remove.mutate.mockRejectedValue(new Error("boom"));
       await expect(mgr.removeUser("x")).rejects.toThrow("boom");
+    });
+  });
+});
+
+describe("APIUserManager directory accounts", () => {
+  it("lists accounts with default paging and the given filters", async () => {
+    const mockClient = makeMockClient();
+    mockClient.admin.users.list.query.mockResolvedValue({ users: [], total: 0 });
+    const mgr = makeManager(mockClient);
+    await expect(
+      mgr.listAccounts({ query: "ada", status: "disabled" })
+    ).resolves.toEqual({ users: [], total: 0 });
+    expect(mockClient.admin.users.list.query).toHaveBeenCalledWith({
+      limit: 50,
+      offset: 0,
+      query: "ada",
+      status: "disabled",
+      role: undefined
+    });
+  });
+
+  it("updates one account by id", async () => {
+    const mockClient = makeMockClient();
+    mockClient.admin.users.update.mutate.mockResolvedValue({ user_id: "u1" });
+    const mgr = makeManager(mockClient);
+    await mgr.updateAccount("u1", { status: "disabled" });
+    expect(mockClient.admin.users.update.mutate).toHaveBeenCalledWith({
+      user_id: "u1",
+      status: "disabled"
     });
   });
 });

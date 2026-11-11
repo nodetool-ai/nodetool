@@ -7,13 +7,14 @@ description: "Render 3D models to images, passes and video, and prepare or conve
 
 The Blender nodes run a Blender install in the background to render and convert 3D models. They live in the `nodetool.blender` namespace. Every node takes a 3D model (GLB, or glTF with embedded buffers) and returns an image, a video, a set of control passes, or a model file.
 
-Use them when the preview renderer is not enough: scene cameras and lights are honored, and you can pick EEVEE or Cycles. The 3D editor and its agent use the same Blender install. See [3D Editor](3d-editor.md).
+> **Requires:** Blender 5.2 or newer, installed locally on the machine that runs the NodeTool server. NodeTool does not bundle it. **Runs:** locally, on the desktop app, a local server, or a self-hosted install. Off on cloud deployments. **Needs:** no API key.
+{: .callout-note}
+
+Scene cameras and lights are honored, and you can pick EEVEE or Cycles. The [3D Editor](3d-editor.md) agent uses the same Blender install.
 
 ## Install Blender
 
-NodeTool needs **Blender 5.2 or newer** on the machine that runs the server. Install it from [blender.org](https://www.blender.org/download/) or from your system package manager. Older versions fail with an error that names the version found and the minimum.
-
-Rendering is off on cloud deployments. It works in the desktop app, on a local server, and on a self-hosted install.
+Install Blender from [blender.org](https://www.blender.org/download/) or your system package manager. An older version fails with an error that names the version found and the minimum.
 
 ## Find Blender: BLENDER_PATH and auto-detection
 

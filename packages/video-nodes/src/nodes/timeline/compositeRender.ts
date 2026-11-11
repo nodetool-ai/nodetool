@@ -1,3 +1,7 @@
+import { rm } from "node:fs/promises";
+import { withTimelineRenderSlot } from "@nodetool-ai/runtime";
+import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
+import { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources, type FrameLayerPixels } from "@nodetool-ai/timeline/render";
 /**
  * Frame-by-frame render of a timeline sequence, server-side.
  *
@@ -62,6 +66,8 @@ import {
 import { NodeRasterizer } from "./rasterizers.js";
 
 interface CompositeRenderOptions {
+  /** Internal opt-in. Delivery remains straight-alpha RGBA8 in either mode. */
+  workingFormat?: "rgba8unorm" | "rgba16float";
   sequence: TimelineSequence;
   /** Sequence resolution and rate the frames are composited at. */
   width: number;
@@ -112,6 +118,8 @@ export interface TimelineExportDiagnostic {
 }
 
 export interface CompositeRenderResult {
+  /** Actual Node/Dawn adapter, for the existing render log. */
+  adapter: string;
   complete: boolean;
   diagnostics: TimelineExportDiagnostic[];
   totalFrames: number;
@@ -194,6 +202,14 @@ interface ClipVideoSource {
 export async function renderTimelineComposited(
   opts: CompositeRenderOptions
 ): Promise<CompositeRenderResult> {
+  // Refuse before queuing, so an unsupported document never waits for a slot.
+  assertTimelineColorSpaceSupported(opts.sequence);
+  return withTimelineRenderSlot(() => renderTimelineCompositedAdmitted(opts), opts.signal);
+}
+
+async function renderTimelineCompositedAdmitted(
+  opts: CompositeRenderOptions
+): Promise<CompositeRenderResult> {
   const { sequence, fps, durationMs, resolveAssetPath, outPath, signal } = opts;
   const output = opts.output ?? resolveTimelineOutput({ format: "mp4" });
   // H.264 and the yuv420p family require even dimensions.
@@ -224,7 +240,9 @@ export async function renderTimelineComposited(
   if (signal?.aborted) throw abortError();
   const device = await acquireDevice();
   if (signal?.aborted) throw abortError();
-  const compositor = new HeadlessFrameCompositor(device, width, height);
+  const compositor = new HeadlessFrameCompositor(device, width, height, {
+    workingFormat: opts.workingFormat
+  });
   compositor.setReferenceSize(referenceWidth, referenceHeight);
   const { unavailable: fontsUnavailable } = await ensureGoogleFonts(sequence);
   const rasterizer = new NodeRasterizer(referenceWidth, referenceHeight);
@@ -308,12 +326,13 @@ export async function renderTimelineComposited(
 
   const videoFor = async (
     clip: TimelineClip,
-    assetId: string
+    assetId: string,
+    neighbor?: "before" | "after"
   ): Promise<ClipVideoSource | null> => {
     // Keyed by clip *and* asset: a clip with a generated matte decodes two
     // videos at the same source time — the picture and its mask — and keying on
     // the clip alone handed the mask decode back the picture's stream.
-    const key = `${clip.id}:${assetId}`;
+    const key = JSON.stringify([clip.id, assetId, neighbor ?? "current"]);
     const existing = videoSources.get(key);
     if (existing) return existing;
     const file = await pathFor(assetId);
@@ -335,7 +354,7 @@ export async function renderTimelineComposited(
     // whatever the clip's window) and shutter sampling (instants between
     // output frames) address the source by time.
     const stream =
-      !baked && !hasTimeRemap(clip) && !shutterSampling
+      !baked && !hasTimeRemap(clip) && !shutterSampling && !clip.effects?.some(effect => effect.enabled && effect.type === "denoise") && !neighbor
         ? openForwardSourceFrameStream({
             filePath: file,
             size: decodeSize,
@@ -360,7 +379,7 @@ export async function renderTimelineComposited(
         const sourceSec = baked
           ? Math.max(0, (timeMs - clip.startMs) / 1000)
           : clipSourceTimeSec(clip, timeMs);
-        const rgba = await stream.frameAtSourceSec(sourceSec);
+        const rgba = await stream.frameAtSourceSec(neighbor ? denoiseSourceTimes(clip, sourceSec * 1000)[neighbor] / 1000 : sourceSec);
         if (!rgba) return null;
         let version = frameVersions.get(rgba);
         if (version === undefined) {
@@ -535,7 +554,8 @@ export async function renderTimelineComposited(
         }
         try {
           if (layer.kind === "video") {
-            const stream = await videoFor(layer.clip, layer.assetId);
+            const assetId = layer.assetId;
+            const stream = await videoFor(layer.clip, assetId);
             if (!stream) {
               diagnose(
                 layer.clipId,
@@ -555,8 +575,19 @@ export async function renderTimelineComposited(
               );
               return null;
             }
+            let temporalSources: TemporalSources<FrameLayerPixels> | undefined;
+            if (layer.clip.mediaType === "video" && hasTemporalDenoise(common.effects)) {
+              const read = async (role: "before" | "after"): Promise<FrameLayerPixels> => {
+                const adjacent = await videoFor(layer.clip, assetId, role);
+                const frame = await adjacent?.frameAt(layerTimeMs);
+                if (!adjacent || !frame) throw new Error(`Noise reduction ${role} frame could not be decoded`);
+                return {rgba: frame.rgba, width: adjacent.width, height: adjacent.height, version: frame.version};
+              };
+              temporalSources = {before: await read("before"), after: await read("after")};
+            }
             return finish({
               ...common,
+              temporalSources,
               id: id("v"),
               source: {
                 rgba: decoded.rgba,
@@ -753,6 +784,8 @@ export async function renderTimelineComposited(
     if (signal?.aborted) throw abortError();
     if (encoder) await awaitWithAbort(encoder.finish(), signal);
     return {
+      adapter: [device.adapterInfo?.vendor, device.adapterInfo?.device, device.adapterInfo?.description]
+        .filter(Boolean).join(" / ") || "unknown adapter",
       complete: diagnostics.length === 0,
       diagnostics,
       totalFrames: frameIndices.length,
@@ -760,7 +793,16 @@ export async function renderTimelineComposited(
       fontsUnavailable
     };
   } catch (error) {
-    encoder?.abort();
+    try {
+      await encoder?.abort();
+    } catch {
+      // Preserve the render failure if native cleanup also fails.
+    }
+    if (encoder) {
+      await rm(outPath, { force: true }).catch(() => {
+        // Preserve the render failure if filesystem cleanup also fails.
+      });
+    }
     throw error;
   } finally {
     signal?.removeEventListener("abort", closeVideoSources);

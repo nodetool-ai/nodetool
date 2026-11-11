@@ -199,6 +199,12 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       placeholder: "text"
     }
   },
+  // One operation's generative nodes as steps, each with what the run reports.
+  WorkflowSteps: {
+    label: "Workflow Steps",
+    mode: "read",
+    fields: { label: "text", operationId: "custom", steps: "custom" }
+  },
   // Reads a bound value as a message rather than as content: an error output,
   // a validation string, a status line the app wants to draw attention to.
   Alert: {
@@ -399,11 +405,14 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     mode: "write",
     trigger: "change",
     commits: true,
+    bindingProps: [{ prop: "placeholderFieldsBinding", mode: "read" }],
     fields: {
       binding: "custom",
       label: "text",
       placeholder: "text",
       hint: "text",
+      placeholderFieldsBinding: "custom",
+      cameraPresets: "radio",
       multiline: "radio",
       events: "array"
     }

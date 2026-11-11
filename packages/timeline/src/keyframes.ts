@@ -251,28 +251,39 @@ export function sliceKeyframeAnimation(
   if (!animation.custom || span <= 0) {
     return { ...animation, durationMs };
   }
-  const curves = animation.custom.curves.map((curve) => {
-    if (curve.keyframes.length === 0) return curve;
-    const sorted = [...curve.keyframes].sort((a, b) => a.t - b.t);
-    const inside = sorted.filter(
-      (kf) => kf.t > fromT + T_EPSILON && kf.t < toT - T_EPSILON
-    );
-    const head: CurveKeyframe = { t: fromT, value: curveValueAtT(sorted, fromT) };
-    const tailSource = sorted.find((kf) => kf.t >= toT - T_EPSILON);
-    const tail: CurveKeyframe = { t: toT, value: curveValueAtT(sorted, toT) };
-    if (tailSource?.easing !== undefined) tail.easing = tailSource.easing;
-    return {
-      ...curve,
-      keyframes: [head, ...inside, tail].map((kf) => ({
-        ...kf,
-        t: Math.max(0, Math.min(1, (kf.t - fromT) / span))
-      }))
-    };
-  });
+  const curves = animation.custom.curves.map((curve) =>
+    sliceCurve(curve, fromT, toT, T_EPSILON)
+  );
   return {
     ...animation,
     durationMs,
     custom: { ...animation.custom, curves }
+  };
+}
+
+/** One curve restricted to `fromT..toT` and renormalized over that span. */
+export function sliceCurve<Curve extends { keyframes: CurveKeyframe[] }>(
+  curve: Curve,
+  fromT: number,
+  toT: number,
+  tolerance: number
+): Curve {
+  if (curve.keyframes.length === 0) return curve;
+  const span = toT - fromT;
+  const sorted = [...curve.keyframes].sort((a, b) => a.t - b.t);
+  const inside = sorted.filter(
+    (kf) => kf.t > fromT + tolerance && kf.t < toT - tolerance
+  );
+  const head: CurveKeyframe = { t: fromT, value: curveValueAtT(sorted, fromT) };
+  const tailSource = sorted.find((kf) => kf.t >= toT - tolerance);
+  const tail: CurveKeyframe = { t: toT, value: curveValueAtT(sorted, toT) };
+  if (tailSource?.easing !== undefined) tail.easing = tailSource.easing;
+  return {
+    ...curve,
+    keyframes: [head, ...inside, tail].map((kf) => ({
+      ...kf,
+      t: Math.max(0, Math.min(1, (kf.t - fromT) / span))
+    }))
   };
 }
 

@@ -6,8 +6,17 @@ import {
   getRuntimeConfig,
   isAuthRequired,
   isGoogleWorkspaceEnabled,
-  isRuntimeConfigFromBackend
+  isRuntimeConfigFromBackend,
+  isSsoMode
 } from "../lib/runtimeConfig";
+import {
+  captureSsoRedirect,
+  clearSsoSession,
+  getSsoUser,
+  onSsoSessionExpired,
+  startSsoLogin,
+  type SsoUser
+} from "../lib/ssoSession";
 import { getBuildEnv } from "../lib/buildEnv";
 import {
   markWorkspaceGrantPending,
@@ -74,8 +83,8 @@ type SupabaseSubscription = {
 export interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;
-  /** The current Supabase user object derived from the session, or null. */
-  user: User | { id: string } | null;
+  /** The signed-in user: a Supabase user, an SSO user, or the local user. */
+  user: User | SsoUser | { id: string } | null;
   /** The current state of the authentication process. */
   state: "init" | "loading" | "error" | "logged_in" | "logged_out";
   /** Stores the error message if an authentication operation fails. */
@@ -84,6 +93,8 @@ export interface LoginStore {
   _authSubscription: SupabaseSubscription | null;
   /** Initiates the OAuth sign-in flow with the specified provider. */
   signInWithProvider: (provider: OAuthProviderSupabase) => Promise<void>;
+  /** Starts an SSO sign-in through the backend's identity provider. */
+  signInWithSso: () => void;
   /** Asks Google for the Workspace scopes, separately from signing in. */
   connectGoogleWorkspace: () => Promise<void>;
   /** Signs the current user out. */
@@ -154,6 +165,25 @@ export const useAuth = create<LoginStore>((set, get) => ({
         error: null,
         _authSubscription: null
       });
+      return;
+    }
+
+    if (isSsoMode()) {
+      // SSO mode: the backend ran the OIDC flow and may have just sent the
+      // browser back with a session (or a failure) in the URL fragment.
+      const ssoError = captureSsoRedirect();
+      const user = getSsoUser();
+      const unsubscribe = onSsoSessionExpired(() => {
+        set({ session: null, user: null, state: "logged_out", error: null });
+      });
+      set({
+        session: null,
+        user,
+        state: user ? "logged_in" : ssoError ? "error" : "logged_out",
+        error: ssoError,
+        _authSubscription: { unsubscribe }
+      });
+      console.info("Auth: SSO session", user ? "found" : "not found");
       return;
     }
 
@@ -267,6 +297,11 @@ export const useAuth = create<LoginStore>((set, get) => ({
     }
   },
 
+  signInWithSso: () => {
+    set({ state: "loading", error: null });
+    startSsoLogin();
+  },
+
   /**
    * Ask Google for the Workspace scopes, as a step of its own.
    *
@@ -307,6 +342,11 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * Signs the user out using Supabase.
    */
   signOut: async () => {
+    if (isSsoMode()) {
+      clearSsoSession();
+      set({ session: null, user: null, state: "logged_out", error: null });
+      return;
+    }
     set({ state: "loading", error: null });
     try {
       // Clean up subscription before signing out

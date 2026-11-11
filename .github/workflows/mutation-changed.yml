@@ -1,34 +1,28 @@
-name: Mutation Testing (changed functions)
+name: Mutation Testing (merged changes)
 
-# Runs nodetool-mutator on the functions a pull request adds or rewrites in the
-# mutation-tested packages, and lists the mutants its tests fail to kill. Only
-# functions whose text differs from the merge-base are mutated (`--base`), so
-# the cost follows the size of the change. Advisory: a survivor is a question
-# for the author and reviewer, not a failed build.
+# Runs nodetool-mutator once a day on the functions that commits merged to
+# main added or rewrote in the mutation-tested packages, and lists the
+# mutants their tests fail to kill. Per-PR runs cost too much runner time.
+# The base is the head of the last successful scheduled run, so a failed or
+# skipped day is covered by the next one. Without such a run, the base is the
+# last main commit from before the previous 24 hours. Dispatch with `base` to
+# choose it. Only functions whose text differs from the base are mutated
+# (`--base`), so the cost follows the size of the day's changes. Advisory: a
+# survivor is a question for the authors, not a failed build.
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "packages/agents/src/**"
-      - "packages/auth/src/**"
-      - "packages/config/src/**"
-      - "packages/kernel/src/**"
-      - "packages/mutator/src/**"
-      - "packages/node-sdk/src/**"
-      - "packages/runtime/src/**"
-      - "packages/security/src/**"
-      - "packages/storage/src/**"
-      - ".github/workflows/mutation-changed.yml"
-      - "scripts/mutation-ci.mjs"
-      - "scripts/mutation-score.mjs"
-      - "scripts/__tests__/mutation-ci.test.mjs"
-      - "packages/mutator/tests/**"
+  schedule:
+    - cron: "0 2 * * *" # Daily at 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Commit to diff against (default: head of the last successful scheduled run)"
+        required: false
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -37,19 +31,44 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
     outputs:
-      head: ${{ steps.plan.outputs.head }}
+      mutants: ${{ steps.plan.outputs.mutants }}
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      # Every job checks out the run's own commit (github.sha), which a later
+      # push to main does not move. The partition and aggregate steps verify
+      # that their tree matches the frozen plan.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           filter: blob:none
       - uses: ./.github/actions/setup-build
+      - name: Find the head of the last successful scheduled run
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ github.event.inputs.base }}
+        run: |
+          if [ -n "$REQUESTED" ]; then
+            echo "head=$REQUESTED" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          HEAD_SHA=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow mutation-changed.yml \
+            --branch main --event schedule --status success --limit 1 \
+            --json headSha --jq '.[0].headSha // ""')
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+      - name: Resolve the base commit
+        id: base
+        env:
+          PREVIOUS: ${{ steps.previous.outputs.head }}
+        run: node scripts/mutation-ci.mjs base "$PREVIOUS"
       - name: Freeze the complete changed-function selection
         id: plan
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
+          BASE: ${{ steps.base.outputs.base }}
         run: node scripts/mutation-ci.mjs plan "$BASE" .metrics/mutation-ci/plan.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -67,6 +86,7 @@ jobs:
 
   mutate-changed:
     needs: plan
+    if: needs.plan.outputs.mutants != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
@@ -76,7 +96,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.plan.outputs.head }}
           fetch-depth: 0
           filter: blob:none
       - uses: ./.github/actions/setup-build
@@ -159,7 +178,7 @@ jobs:
 
   mutation-complete:
     needs: [plan, mutate-changed]
-    if: always()
+    if: always() && needs.plan.outputs.mutants != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -170,7 +189,6 @@ jobs:
         run: test "$PLAN" = success && test "$MUTATIONS" = success
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.plan.outputs.head }}
           fetch-depth: 0
           filter: blob:none
       - uses: ./.github/actions/setup-build

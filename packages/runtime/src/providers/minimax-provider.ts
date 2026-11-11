@@ -4,7 +4,8 @@
  *
  * Chat inherits the OpenAI-compatible path (MiniMax-M2.x models), while image,
  * video, and speech generation go through MiniMax's own REST endpoints. Video
- * uses the async task + File API download pattern.
+ * uses the async task + File API download pattern. `callEndpoint` exposes the
+ * same endpoints with vendor-shaped bodies for `@nodetool-ai/minimax-nodes`.
  *
  * Docs: https://platform.minimax.io/docs/api-reference/api-overview
  */
@@ -34,12 +35,43 @@ import type {
   ReferenceToVideoInputs,
   ReferenceToVideoParams
 } from "./types.js";
-import type { ProviderCapability } from "./base-provider.js";
+import type {
+  EndpointCallRequest,
+  EndpointCallResult,
+  EndpointProgress,
+  ProviderCapability
+} from "./base-provider.js";
+import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 
 const log = createLogger("nodetool.runtime.providers.minimax");
 
 const MINIMAX_BASE_URL = "https://api.minimax.io";
 const MINIMAX_OPENAI_BASE_URL = `${MINIMAX_BASE_URL}/v1`;
+
+/**
+ * The endpoint families `callEndpoint` accepts as `route`, and the API path
+ * under `/v1/` each one posts to. `video` also polls the task and retrieves
+ * the file.
+ */
+const MINIMAX_ENDPOINT_PATHS = {
+  tts: "t2a_v2",
+  music: "music_generation",
+  image: "image_generation",
+  video: "video_generation"
+} as const;
+
+type MinimaxEndpointRoute = keyof typeof MINIMAX_ENDPOINT_PATHS;
+
+function isEndpointRoute(route: string): route is MinimaxEndpointRoute {
+  return Object.hasOwn(MINIMAX_ENDPOINT_PATHS, route);
+}
+
+/** MiniMax's per-request trace id, which its support uses to find a call. */
+function traceIdOf(data: Record<string, unknown>): string | null {
+  return typeof data.trace_id === "string" && data.trace_id
+    ? data.trace_id
+    : null;
+}
 
 function combineSignals(
   request: AbortSignal | undefined,
@@ -225,6 +257,118 @@ export class MinimaxProvider extends OpenAICompatProvider {
     };
   }
 
+  /**
+   * POST a JSON body to `/v1/<path>` and return the reply. Throws on an HTTP
+   * error and on a non-zero `base_resp.status_code`, both labelled with
+   * `path`.
+   */
+  private async _postJson(
+    path: string,
+    body: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<Record<string, unknown>> {
+    const init: RequestInit = {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(body)
+    };
+    if (signal) init.signal = signal;
+    const res = await this._minimaxFetch(
+      `${MINIMAX_BASE_URL}/v1/${path}`,
+      init
+    );
+    if (!res.ok) {
+      throw new Error(
+        `MiniMax ${path} failed: ${res.status} ${await res.text()}`
+      );
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    assertBaseResp(data, path);
+    return data;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Endpoint calls
+  // ---------------------------------------------------------------------------
+
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Call one MiniMax endpoint family with a vendor-shaped body. `route`
+   * selects it:
+   *
+   *   - `tts`   → POST /v1/t2a_v2
+   *   - `music` → POST /v1/music_generation
+   *   - `image` → POST /v1/image_generation
+   *   - `video` → POST /v1/video_generation, then poll
+   *               /v1/query/video_generation and call /v1/files/retrieve
+   *
+   * `model` is sent as the body's `model` and `input` is the rest of the
+   * body. An HTTP error or a non-zero `base_resp.status_code` throws. The
+   * output is MiniMax's JSON reply: hex audio or a URL in `data.audio`,
+   * images in `data.image_base64` or `data.image_urls`, and for `video` the
+   * files/retrieve reply, whose `file.download_url` downloadMedia fetches.
+   * The request id is the video `task_id`, or the reply's `trace_id`.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const route = req.route;
+    if (route === undefined || !isEndpointRoute(route)) {
+      const routes = Object.keys(MINIMAX_ENDPOINT_PATHS).join(", ");
+      const got = route === undefined ? "none" : `"${route}"`;
+      throw new Error(
+        `minimax endpoint route must be one of ${routes}, got ${got}`
+      );
+    }
+    const body = { ...req.input, model: req.model };
+    if (route === "video") {
+      const taskId = await this._submitVideoTask(body, req.signal);
+      await recordGenerationReceiptAsync({ provider_request_id: taskId });
+      const fileId = await this._pollVideoTask(
+        taskId,
+        5000,
+        360,
+        req.signal,
+        req.onProgress
+      );
+      const { reply } = await this._retrieveFile(fileId, req.signal);
+      return {
+        output: reply,
+        requestId: taskId,
+        metadata: { task_id: taskId, file_id: fileId }
+      };
+    }
+    const data = await this._postJson(
+      MINIMAX_ENDPOINT_PATHS[route],
+      body,
+      req.signal
+    );
+    const requestId = traceIdOf(data);
+    if (requestId) {
+      await recordGenerationReceiptAsync({ provider_request_id: requestId });
+    }
+    return { output: data, requestId };
+  }
+
+  /**
+   * Download a URL MiniMax returned: hosted audio, an image URL or a file
+   * `download_url`. It comes from a response body, so it goes through
+   * safeFetch over the provider's fetch.
+   */
+  override async downloadMedia(
+    url: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    const dl = await safeFetch(url, { signal }, 5, this._minimaxFetch);
+    if (!dl.ok) {
+      throw new Error(`Failed to download MiniMax file from ${url}`);
+    }
+    return new Uint8Array(await dl.arrayBuffer());
+  }
+
   // ---------------------------------------------------------------------------
   // Model catalogues
   // ---------------------------------------------------------------------------
@@ -384,21 +528,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
 
     log.debug("MiniMax textToMusic", { model: body.model, format: fmt });
 
-    const res = await this._minimaxFetch(
-      `${MINIMAX_BASE_URL}/v1/music_generation`,
-      {
-        method: "POST",
-        headers: this.headers(),
-        body: JSON.stringify(body)
-      }
-    );
-    if (!res.ok) {
-      throw new Error(
-        `MiniMax music_generation failed: ${res.status} ${await res.text()}`
-      );
-    }
-    const data = (await res.json()) as Record<string, unknown>;
-    assertBaseResp(data, "music_generation");
+    const data = await this._postJson("music_generation", body);
 
     const payload = data.data as Record<string, unknown> | undefined;
     const audioHex = payload?.audio as string | undefined;
@@ -529,21 +659,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
 
     log.debug("MiniMax textToImage", { model: body.model, n: body.n });
 
-    const res = await this._minimaxFetch(
-      `${MINIMAX_BASE_URL}/v1/image_generation`,
-      {
-        method: "POST",
-        headers: this.headers(),
-        body: JSON.stringify(body)
-      }
-    );
-    if (!res.ok) {
-      throw new Error(
-        `MiniMax image_generation failed: ${res.status} ${await res.text()}`
-      );
-    }
-    const data = (await res.json()) as Record<string, unknown>;
-    assertBaseResp(data, "image_generation");
+    const data = await this._postJson("image_generation", body);
 
     const payload = data.data as Record<string, unknown> | undefined;
     const b64List = payload?.image_base64 as string[] | undefined;
@@ -688,13 +804,23 @@ export class MinimaxProvider extends OpenAICompatProvider {
 
     log.debug("MiniMax textToVideo submit", { model: modelId });
 
+    const taskId = await this._submitVideoTask(body, opts.signal);
+    const fileId = await this._pollVideoTask(taskId, 5000, 360, opts.signal);
+    return this._downloadFile(fileId, opts.signal);
+  }
+
+  /** Submit a video generation task and return its task id. */
+  private async _submitVideoTask(
+    body: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<string> {
     const submit = await this._minimaxFetch(
       `${MINIMAX_BASE_URL}/v1/video_generation`,
       {
         method: "POST",
         headers: this.headers(),
         body: JSON.stringify(body),
-        signal: opts.signal
+        signal
       }
     );
     if (!submit.ok) {
@@ -711,16 +837,15 @@ export class MinimaxProvider extends OpenAICompatProvider {
         `MiniMax video_generation returned no task_id: ${JSON.stringify(submitData)}`
       );
     }
-
-    const fileId = await this._pollVideoTask(taskId, 5000, 360, opts.signal);
-    return this._downloadFile(fileId, opts.signal);
+    return taskId;
   }
 
   private async _pollVideoTask(
     taskId: string,
     pollIntervalMs = 5000,
     maxAttempts = 360,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onProgress?: (event: EndpointProgress) => void
   ): Promise<string> {
     const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
       taskId
@@ -762,6 +887,9 @@ export class MinimaxProvider extends OpenAICompatProvider {
         // Surface API-level failures (expired task, auth, rate limit) instead
         // of polling an empty status until the timeout.
         assertBaseResp(body, "video status");
+        if (onProgress && typeof body.status === "string") {
+          onProgress({ message: body.status });
+        }
         return body;
       },
       pollOptions
@@ -777,12 +905,28 @@ export class MinimaxProvider extends OpenAICompatProvider {
     fileId: string,
     signal?: AbortSignal
   ): Promise<Uint8Array> {
+    const { downloadUrl } = await this._retrieveFile(fileId, signal);
+    return this.downloadMedia(downloadUrl, signal);
+  }
+
+  /**
+   * Retrieve a generated file's record. The status GET is retried: the job is
+   * already billed, so a 429 or a gateway 5xx must not discard its output.
+   * Throws unless the record carries a download URL.
+   */
+  private async _retrieveFile(
+    fileId: string,
+    signal?: AbortSignal
+  ): Promise<{ reply: Record<string, unknown>; downloadUrl: string }> {
     const url = `${MINIMAX_BASE_URL}/v1/files/retrieve?file_id=${encodeURIComponent(
       fileId
     )}`;
-    const res = await this._minimaxFetch(url, {
-      headers: this.headers(),
-      signal
+    const request: RequestInit = { headers: this.headers() };
+    if (signal) {
+      request.signal = signal;
+    }
+    const res = await fetchWithRetry(url, request, {
+      fetchImpl: this._minimaxFetch
     });
     if (!res.ok) {
       throw new Error(
@@ -800,14 +944,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
         `MiniMax files/retrieve returned no download_url: ${JSON.stringify(data)}`
       );
     }
-    // safeFetch: download_url is provider-returned (externally influenced), so
-    // route it through the SSRF guard rather than the raw API fetch. Use the
-    // injected fetch so the guard stays testable.
-    const dl = await safeFetch(downloadUrl, { signal }, 5, this._minimaxFetch);
-    if (!dl.ok) {
-      throw new Error(`Failed to download MiniMax file from ${downloadUrl}`);
-    }
-    return new Uint8Array(await dl.arrayBuffer());
+    return { reply: data, downloadUrl };
   }
 
   // ---------------------------------------------------------------------------
@@ -884,18 +1021,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
 
     log.debug("MiniMax textToSpeech", { model: body.model, format });
 
-    const res = await this._minimaxFetch(`${MINIMAX_BASE_URL}/v1/t2a_v2`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      throw new Error(
-        `MiniMax t2a_v2 failed: ${res.status} ${await res.text()}`
-      );
-    }
-    const data = (await res.json()) as Record<string, unknown>;
-    assertBaseResp(data, "t2a_v2");
+    const data = await this._postJson("t2a_v2", body);
 
     const payload = data.data as Record<string, unknown> | undefined;
     const audioHex = payload?.audio as string | undefined;

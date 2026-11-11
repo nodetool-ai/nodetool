@@ -60,6 +60,9 @@
     },
     {
       "path": "../sandbox-compiler"
+    },
+    {
+      "path": "../runtime-install"
     }
   ]
 }

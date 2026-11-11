@@ -1,7 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
-  getReveApiKey,
   postprocessingArray,
   refToBase64,
   reveGenerate,
@@ -101,22 +100,28 @@ export class EditImageNode extends BaseNode {
   async process(
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<EditImageNodeOutputs> {
-    const apiKey = getReveApiKey(this._secrets);
-
     const instruction = String(this.edit_instruction ?? "");
     if (!instruction) throw new Error("Edit instruction is required");
 
     const referenceImage = await refToBase64(this.image, context);
 
     const aspectRatio = String(this.aspect_ratio ?? "none");
-    const result = await reveGenerate(apiKey, "edit", {
-      edit_instruction: instruction,
-      reference_image: referenceImage,
-      aspect_ratio: aspectRatio === "none" ? undefined : aspectRatio,
-      version: String(this.version ?? "latest"),
-      postprocessing: postprocessingArray(this.postprocessing),
-      test_time_scaling: Number(this.test_time_scaling ?? 1)
-    });
+    if (!context) {
+      throw new Error("Reve Edit Image requires a processing context");
+    }
+    const result = await reveGenerate(
+      context,
+      "edit",
+      {
+        edit_instruction: instruction,
+        reference_image: referenceImage,
+        aspect_ratio: aspectRatio === "none" ? undefined : aspectRatio,
+        version: String(this.version ?? "latest"),
+        postprocessing: postprocessingArray(this.postprocessing),
+        test_time_scaling: Number(this.test_time_scaling ?? 1)
+      },
+      this.__node_id || undefined
+    );
 
     return { output: await reveImageToRef(result.image) };
   }

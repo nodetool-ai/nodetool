@@ -4,20 +4,22 @@ title: "Chat API"
 description: "NodeTool's chat endpoints — OpenAI-compatible HTTP plus WebSocket chat for local and remote clients."
 ---
 
-NodeTool provides both OpenAI-compatible HTTP endpoints and a WebSocket endpoint for chat interactions:
+Chat runs over two interfaces on the server started by `nodetool serve` (port **7777** by default):
 
-- The single server (`nodetool serve`, defaults to port **7777**) exposes OpenAI-compatible HTTP endpoints (`/v1/chat/completions`, `/v1/models`) for remote clients.
-- The same server exposes a WebSocket endpoint at `/ws` that carries both chat and workflow messages.
+```bash
+curl http://localhost:7777/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-5.6", "messages": [{"role": "user", "content": "Hello"}]}'
+```
 
-See the canonical matrix in [API Reference](api-reference.md) for methods, auth requirements, and streaming behavior.
+- OpenAI-compatible HTTP: `/v1/chat/completions` and `/v1/models`.
+- WebSocket `/ws`, which carries chat and workflow messages.
 
-> **Port Reference**: Both development and production deployments use port 7777 by default. Replace `localhost` with your server hostname for remote connections.
+See [API Reference](api-reference.md) for methods, auth requirements, and streaming behavior. Replace `localhost` with your server hostname for remote connections.
 
 ## OpenAI-Compatible HTTP API
 
-NodeTool exposes OpenAI-compatible endpoints that allow you to use standard OpenAI client libraries and tools.
-When `AUTH_PROVIDER` is `static` or `supabase`, send `Authorization: Bearer <token>`; in `local`/`none` modes the token
-is optional for development.
+Standard OpenAI client libraries work against these endpoints. When `AUTH_PROVIDER` is `static` or `supabase`, send `Authorization: Bearer <token>`. In `local`/`none` modes the token is optional.
 
 ### Chat Completions: `POST /v1/chat/completions`
 
@@ -68,8 +70,6 @@ non-streaming call is a `500` with type `server_error`.
 ```python
 import openai
 
-# For local development: base_url="http://localhost:7777/v1"
-# For production/server: base_url="http://localhost:7777/v1" or your server URL
 client = openai.OpenAI(
     api_key="YOUR_TOKEN",
     base_url="http://localhost:7777/v1"
@@ -100,20 +100,14 @@ providers know, not only these. For the live catalog, use the
 [SDK models route](api-reference.md#listing-models-an-sdk-client-can-use).
 
 ```bash
-# For local development and production: http://localhost:7777/v1/models
 curl http://localhost:7777/v1/models \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ## WebSocket API
 
-NodeTool also exposes a `/ws` WebSocket endpoint for real time conversations. The server side is implemented by
-`WebSocketClientSession` which handles message parsing, tool execution and streaming responses.
-
-The connection supports both binary (MessagePack) and text (JSON) messages. Authentication can be provided via
+The `/ws` endpoint streams agent turns with tools. The connection supports both binary (MessagePack) and text (JSON) messages. Authentication can be provided via
 `Authorization: Bearer <token>` headers or an `api_key` query parameter.
-
-> **Note**: The WebSocket endpoint is served on port 7777 (development) or your configured server port.
 
 ### WebSocket Example usage
 
@@ -122,8 +116,6 @@ Every message is a `{ command, data }` envelope. A chat turn is the
 A bare chat payload gets an `invalid_message` error.
 
 ```javascript
-// For local development: ws://localhost:7777/ws
-// For production deployments, use your server URL
 const socket = new WebSocket("ws://localhost:7777/ws?api_key=YOUR_KEY");
 socket.binaryType = "arraybuffer";
 
@@ -178,3 +170,18 @@ A turn keeps running if the socket drops. After reconnecting, send
 `list_chat_turns` to find running turns, then `resume_chat` with the thread id and
 the highest `chat_seq` you received. The server replays the frames you missed.
 Send `stop` with the `thread_id` to cancel a turn.
+
+## Errors
+
+HTTP `/v1` errors use `{ "error": { "message", "type", "param": null, "code": null } }`.
+
+| Status | `type` and `message` | Cause |
+|---|---|---|
+| `401` | `{ "error": "Remote access requires authentication" }` (not the OpenAI shape) | No valid token on a server that requires auth. Supabase and OIDC modes answer `{ "error": "Unauthorized" }` for a missing token |
+| `400` | `invalid_request_error`, `Invalid JSON body` | The body is not parsable JSON |
+| `500` | `server_error`, `Failed to initialize provider: <reason>` | The provider for the model could not start, for example a missing `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` |
+| `500` | `server_error`, the provider's message | A non-streaming call failed |
+
+A failure after a stream has started cannot change the status. The stream carries one `data:` chunk with the same `error` object, then `data: [DONE]`.
+
+On `/ws`, a handshake without a valid token gets HTTP `401` with no body. A frame that fails validation gets `{ "error": "invalid_frame" | "invalid_message" | "invalid_command", ... }`. A `chat_message` without `thread_id` gets `{ "error": "thread_id is required for chat_message command" }`, and `resume_chat` without it gets `{ "error": "thread_id is required for resume_chat command" }`. A failed turn arrives as an `error` frame with the `thread_id`. See [WebSocket API errors](websocket-api.md#errors).

@@ -57,7 +57,12 @@ export const recipeBundleApp = z.object({
   /** Example app slug, i.e. its file name without `.app.json`. */
   app: z.string().min(1),
   /** What the app is for, in the recipe's terms. */
-  role: z.string()
+  role: z.string(),
+  /**
+   * The app runs the chain as one agent script, so it binds none of the
+   * steps' workflows.
+   */
+  runsAgent: z.boolean().optional()
 });
 export type RecipeBundleApp = z.infer<typeof recipeBundleApp>;
 
@@ -137,7 +142,8 @@ export type ExampleRecipeStep = z.infer<typeof exampleRecipeStep>;
  * for in this recipe's terms.
  */
 export const exampleRecipeApp = exampleAppSummary.extend({
-  role: z.string()
+  role: z.string(),
+  runsAgent: z.boolean().optional()
 });
 export type ExampleRecipeApp = z.infer<typeof exampleRecipeApp>;
 

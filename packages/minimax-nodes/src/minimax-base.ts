@@ -1,65 +1,87 @@
 /**
  * Shared helpers and constants for the MiniMax node pack.
  *
- * Nodes talk to MiniMax's REST API directly (mirroring the elevenlabs-nodes
- * pattern) rather than going through the runtime provider. That lets each node
- * expose MiniMax-specific knobs — emotion, volume, pitch, lyrics, camera
- * direction — that the generic provider interface does not carry. All network
- * access goes through the global `fetch` so tests can stub it.
+ * Each node builds MiniMax's own request body, so it can expose the
+ * MiniMax-specific knobs — emotion, volume, pitch, lyrics, camera direction —
+ * that the generic provider capabilities do not carry. The request itself goes
+ * through `context.callProviderEndpoint` to the runtime `MinimaxProvider`,
+ * which holds the API key, checks `base_resp` and writes the generation
+ * record. Result URLs download through `context.downloadProviderMedia`.
  *
  * Docs: https://platform.minimax.io/docs/api-reference/api-overview
  */
 
-import { detectImageMime, safeFetch } from "@nodetool-ai/runtime";
-import {
-  fetchWithRetry,
-  pollUntilTerminal
-} from "@nodetool-ai/runtime/provider-transport";
+import { isNonEmptyString, isRecord } from "@nodetool-ai/node-sdk";
+import { detectImageMime } from "@nodetool-ai/runtime";
+import type {
+  EndpointCallRequest,
+  EndpointCallResult,
+  ProcessingContext
+} from "@nodetool-ai/runtime";
 
-export const MINIMAX_BASE_URL = "https://api.minimax.io";
+/** The endpoint families of `MinimaxProvider.callEndpoint` the nodes use. */
+export type MinimaxRoute = "tts" | "music" | "image" | "video";
 
-/** Resolve the MiniMax API key from injected secrets or the environment. */
-export function getMinimaxApiKey(secrets: Record<string, string>): string {
-  const key = secrets?.MINIMAX_API_KEY || process.env.MINIMAX_API_KEY || "";
-  if (!key) throw new Error("MINIMAX_API_KEY is not configured");
-  return key;
+/** The fields of a MiniMax reply the nodes read. */
+export interface MinimaxReply {
+  /** `data.audio`: hex-encoded audio, or a download URL. */
+  audio: string | null;
+  /** `data.image_base64`. */
+  imageBase64: string[];
+  /** `data.image_urls`. */
+  imageUrls: string[];
+  /** `file.download_url` of a files/retrieve reply. */
+  downloadUrl: string | null;
+  /** The whole reply as JSON, for error messages. */
+  describe: () => string;
 }
 
-/** Written as a type alias, not an interface, so it stays `HeadersInit`-assignable. */
-type MinimaxHeaders = {
-  Authorization: string;
-  "Content-Type": string;
-};
-
-export function minimaxHeaders(apiKey: string): MinimaxHeaders {
+function parseReply(result: EndpointCallResult): MinimaxReply {
+  const output = result.output;
+  const data =
+    isRecord(output) && isRecord(output.data) ? output.data : undefined;
+  const file =
+    isRecord(output) && isRecord(output.file) ? output.file : undefined;
+  const downloadUrl = file?.download_url ?? file?.downloadURL;
   return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json"
+    audio: isNonEmptyString(data?.audio) ? data.audio : null,
+    imageBase64: Array.isArray(data?.image_base64)
+      ? data.image_base64.filter(isNonEmptyString)
+      : [],
+    imageUrls: Array.isArray(data?.image_urls)
+      ? data.image_urls.filter(isNonEmptyString)
+      : [],
+    downloadUrl: isNonEmptyString(downloadUrl) ? downloadUrl : null,
+    describe: () => JSON.stringify(output)
   };
 }
 
-export interface MinimaxBaseResp {
-  status_code?: number;
-  status_msg?: string;
-}
-
 /**
- * Every MiniMax REST response carries `base_resp`. Endpoint-specific responses
- * extend this; the fields they add stay optional because the API omits them on
- * an error reply.
+ * Call one MiniMax endpoint through the runtime provider, inside the
+ * generation seam. The provider throws on an HTTP error and on a non-zero
+ * `base_resp.status_code`.
  */
-export interface MinimaxResponse {
-  base_resp?: MinimaxBaseResp;
-}
-
-/** MiniMax embeds a `base_resp` on most responses; surface failures as errors. */
-export function assertBaseResp(data: MinimaxResponse, context: string): void {
-  const baseResp = data.base_resp;
-  if (baseResp && baseResp.status_code && baseResp.status_code !== 0) {
-    throw new Error(
-      `MiniMax ${context} failed: ${baseResp.status_msg ?? "unknown error"} (code ${baseResp.status_code})`
-    );
+export async function callMinimax(
+  context: ProcessingContext,
+  args: {
+    route: MinimaxRoute;
+    capability:
+      | "text_to_speech"
+      | "text_to_music"
+      | "text_to_image"
+      | "text_to_video"
+      | "image_to_video";
+    model: string;
+    input: EndpointCallRequest["input"];
+    nodeId?: string;
   }
+): Promise<MinimaxReply> {
+  const result = await context.callProviderEndpoint({
+    provider: "minimax",
+    ...args,
+    signal: context.signal
+  });
+  return parseReply(result);
 }
 
 /** Decode MiniMax's hex-encoded audio payloads to raw bytes. */
@@ -79,17 +101,19 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 /**
  * MiniMax audio endpoints return either hex-encoded bytes or, when configured,
- * a download URL. Normalise both to raw bytes.
+ * a download URL. Normalise both to raw bytes. The provider downloads the URL
+ * through its screened fetch.
  */
-export async function resolveAudioPayload(audio: string): Promise<Uint8Array> {
+export async function resolveAudioPayload(
+  context: ProcessingContext,
+  audio: string
+): Promise<Uint8Array> {
   if (/^https?:\/\//i.test(audio)) {
-    // Provider-returned download URL: caller-influenced data, so it goes
-    // through the SSRF-screened, redirect-checking fetch.
-    const dl = await safeFetch(audio);
-    if (!dl.ok) {
-      throw new Error(`Failed to download MiniMax audio from ${audio}`);
-    }
-    return new Uint8Array(await dl.arrayBuffer());
+    return context.downloadProviderMedia({
+      provider: "minimax",
+      url: audio,
+      signal: context.signal
+    });
   }
   return hexToBytes(audio);
 }
@@ -328,13 +352,6 @@ export function videoRenderSettings(
 // Async video generation (submit → poll → download)
 // ---------------------------------------------------------------------------
 
-interface VideoTaskOptions {
-  pollIntervalMs?: number;
-  maxAttempts?: number;
-  /** The run's cancellation: a cancelled run stops polling the paid job. */
-  signal?: AbortSignal;
-}
-
 /**
  * Request body for `/v1/video_generation`. `first_frame_image` and
  * `subject_reference` are mutually exclusive: the 01-series S2V model animates
@@ -347,133 +364,31 @@ export interface MinimaxVideoRequest extends MinimaxVideoRenderSettings {
   subject_reference?: Array<{ type: string; image: string[] }>;
 }
 
-interface VideoSubmitResponse extends MinimaxResponse {
-  task_id?: string;
-}
-
-interface VideoStatusResponse extends MinimaxResponse {
-  status?: string;
-  file_id?: string;
-}
-
-interface FileRetrieveResponse extends MinimaxResponse {
-  file?: {
-    download_url?: string;
-    downloadURL?: string;
-  };
-}
-
 /**
- * Submit a video generation task, poll until it succeeds, and download the
- * resulting file. Mirrors the runtime provider's flow so the node behaves
- * identically while exposing MiniMax-specific request fields.
+ * Generate a video through the provider's `video` route, which submits the
+ * task, polls it and retrieves the file record, then download the file.
  */
 export async function generateVideo(
-  apiKey: string,
+  context: ProcessingContext,
   body: MinimaxVideoRequest,
-  options: VideoTaskOptions = {}
+  capability: "text_to_video" | "image_to_video",
+  nodeId?: string
 ): Promise<Uint8Array> {
-  const submit = await fetch(`${MINIMAX_BASE_URL}/v1/video_generation`, {
-    method: "POST",
-    headers: minimaxHeaders(apiKey),
-    body: JSON.stringify(body),
-    signal: options.signal
+  const reply = await callMinimax(context, {
+    route: "video",
+    capability,
+    model: body.model,
+    input: { ...body },
+    nodeId
   });
-  if (!submit.ok) {
+  if (!reply.downloadUrl) {
     throw new Error(
-      `MiniMax video_generation submit failed: ${submit.status} ${await submit.text()}`
+      `MiniMax files/retrieve returned no download_url: ${reply.describe()}`
     );
   }
-  const submitData: VideoSubmitResponse = await submit.json();
-  assertBaseResp(submitData, "video_generation submit");
-
-  const taskId = submitData.task_id;
-  if (!taskId) {
-    throw new Error(
-      `MiniMax video_generation returned no task_id: ${JSON.stringify(submitData)}`
-    );
-  }
-
-  const fileId = await pollVideoTask(apiKey, taskId, options);
-  return downloadFile(apiKey, fileId);
-}
-
-async function pollVideoTask(
-  apiKey: string,
-  taskId: string,
-  options: VideoTaskOptions = {}
-): Promise<string> {
-  const pollIntervalMs = options.pollIntervalMs ?? 5000;
-  const maxAttempts = options.maxAttempts ?? 360;
-  const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
-    taskId
-  )}`;
-  const data = await pollUntilTerminal<VideoStatusResponse>(
-    async () => {
-      // The job is already submitted and billed: a 429 or a gateway 5xx on the
-      // status GET must back off, not throw the job away.
-      const res = await fetchWithRetry(url, {
-        headers: minimaxHeaders(apiKey),
-        signal: options.signal
-      });
-      if (!res.ok) {
-        throw new Error(
-          `MiniMax video status failed: ${res.status} ${await res.text()}`
-        );
-      }
-      const body: VideoStatusResponse = await res.json();
-      // Surface API-level failures (expired task, auth, rate limit) instead of
-      // polling an empty status until the timeout.
-      assertBaseResp(body, "video status");
-      return body;
-    },
-    {
-      intervalMs: pollIntervalMs,
-      maxAttempts,
-      signal: options.signal,
-      onFailure: (body) =>
-        new Error(
-          `MiniMax video task failed: ${JSON.stringify(body.base_resp ?? body)}`
-        ),
-      onTimeout: () =>
-        new Error(
-          `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
-        )
-    }
-  );
-  const fileId = data.file_id;
-  if (!fileId) {
-    throw new Error("MiniMax video task succeeded but returned no file_id");
-  }
-  return fileId;
-}
-
-async function downloadFile(
-  apiKey: string,
-  fileId: string
-): Promise<Uint8Array> {
-  const url = `${MINIMAX_BASE_URL}/v1/files/retrieve?file_id=${encodeURIComponent(
-    fileId
-  )}`;
-  const res = await fetchWithRetry(url, { headers: minimaxHeaders(apiKey) });
-  if (!res.ok) {
-    throw new Error(
-      `MiniMax files/retrieve failed: ${res.status} ${await res.text()}`
-    );
-  }
-  const data: FileRetrieveResponse = await res.json();
-  assertBaseResp(data, "files/retrieve");
-  const file = data.file;
-  const downloadUrl = file?.download_url ?? file?.downloadURL;
-  if (!downloadUrl) {
-    throw new Error(
-      `MiniMax files/retrieve returned no download_url: ${JSON.stringify(data)}`
-    );
-  }
-  // Provider-returned download URL — screened like every other one.
-  const dl = await safeFetch(downloadUrl);
-  if (!dl.ok) {
-    throw new Error(`Failed to download MiniMax file from ${downloadUrl}`);
-  }
-  return new Uint8Array(await dl.arrayBuffer());
+  return context.downloadProviderMedia({
+    provider: "minimax",
+    url: reply.downloadUrl,
+    signal: context.signal
+  });
 }

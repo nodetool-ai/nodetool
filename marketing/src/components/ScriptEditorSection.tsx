@@ -11,7 +11,7 @@ const highlights = [
   {
     icon: Mic,
     title: "A voice per speaker",
-    body: "Cast each speaker once — provider, model, voice — and every line they own inherits it until you override that line.",
+    body: "Choose a voice for each character. It applies to all their lines, and you can change it for individual lines.",
   },
   {
     icon: AudioLines,
@@ -20,8 +20,8 @@ const highlights = [
   },
   {
     icon: History,
-    title: "Edits mark themselves stale",
-    body: "Change a line's words or its voice and the line flags itself against the take that no longer matches. Re-voice that line, not the script.",
+    title: "See which lines need recording again",
+    body: "When you change the text or voice, NodeTool marks the recording as out of date. Record that line again without redoing the rest of the script.",
   },
 ];
 

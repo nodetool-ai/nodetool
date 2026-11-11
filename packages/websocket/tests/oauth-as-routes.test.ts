@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import { createHash, randomBytes } from "node:crypto";
 import { initTestDb, ModelObserver } from "@nodetool-ai/models";
-import { oauthAsRoutes } from "../src/routes/oauth-as.js";
+import { consentPageUrl, oauthAsRoutes } from "../src/routes/oauth-as.js";
 import { pendingStore } from "../src/oauth/pending-store.js";
 import { verifyS256 } from "../src/oauth/pkce.js";
 
@@ -64,6 +64,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   ModelObserver.clear();
   if (prevPublicUrl === undefined) {
     delete process.env["NODETOOL_PUBLIC_URL"];
@@ -490,6 +491,56 @@ describe("GET /oauth/authorize", () => {
     })();
     expect(pendingStore.takeRequestForApproval(requestId)).not.toBeNull();
   });
+
+  it("302s to the consent page on NODETOOL_WEB_URL when the web app has its own origin", async () => {
+    const prev = process.env["NODETOOL_WEB_URL"];
+    process.env["NODETOOL_WEB_URL"] = "https://app.example/";
+    try {
+      const app = await buildApp();
+      const { client_id: clientId } = await registerClient(app);
+      const { challenge } = pkcePair();
+      const res = await app.inject({
+        method: "GET",
+        url: `/oauth/authorize?client_id=${clientId}&redirect_uri=https://client.example/cb&response_type=code&code_challenge=${challenge}&code_challenge_method=S256`
+      });
+      expect(res.statusCode).toBe(302);
+      const location = new URL(res.headers.location as string);
+      expect(location.origin).toBe("https://app.example");
+      expect(location.pathname).toBe("/oauth/consent");
+      const requestId = location.searchParams.get("request_id")!;
+      expect(pendingStore.takeRequestForApproval(requestId)).not.toBeNull();
+    } finally {
+      if (prev === undefined) delete process.env["NODETOOL_WEB_URL"];
+      else process.env["NODETOOL_WEB_URL"] = prev;
+    }
+  });
+});
+
+describe("consentPageUrl", () => {
+  it("stays on this server when NODETOOL_WEB_URL is unset", () => {
+    expect(consentPageUrl("abc", {})).toBe("/oauth/consent?request_id=abc");
+  });
+
+  it("keeps a sub-path and drops trailing slashes", () => {
+    expect(
+      consentPageUrl("abc", { NODETOOL_WEB_URL: "https://host.example/app//" })
+    ).toBe("https://host.example/app/oauth/consent?request_id=abc");
+  });
+
+  it("accepts http only on loopback", () => {
+    expect(
+      consentPageUrl("abc", { NODETOOL_WEB_URL: "http://localhost:3000" })
+    ).toBe("http://localhost:3000/oauth/consent?request_id=abc");
+    expect(
+      consentPageUrl("abc", { NODETOOL_WEB_URL: "http://app.example" })
+    ).toBe("/oauth/consent?request_id=abc");
+  });
+
+  it("ignores a value that is not a URL", () => {
+    expect(consentPageUrl("abc", { NODETOOL_WEB_URL: "not a url" })).toBe(
+      "/oauth/consent?request_id=abc"
+    );
+  });
 });
 
 describe("POST /oauth/token — authorization_code", () => {
@@ -765,7 +816,12 @@ describe("POST /oauth/token — refresh_token", () => {
     expect(rotated.statusCode).toBe(200);
     const newAccessToken = rotated.json().access_token;
 
-    // Reuse the pre-rotation refresh token.
+    // Reuse the pre-rotation refresh token once the retry grace window closed.
+    const { MCP_OAUTH_REFRESH_REUSE_GRACE_MS } = await import(
+      "@nodetool-ai/models"
+    );
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.now() + MCP_OAUTH_REFRESH_REUSE_GRACE_MS + 1);
     const reuse = await app.inject({
       method: "POST",
       url: "/oauth/token",
@@ -781,6 +837,34 @@ describe("POST /oauth/token — refresh_token", () => {
     const { McpOauthToken } = await import("@nodetool-ai/models");
     expect(await McpOauthToken.verifyAccess(accessToken)).toBeNull();
     expect(await McpOauthToken.verifyAccess(newAccessToken)).toBeNull();
+  });
+
+  it("a refresh retried right after rotation gets a working pair", async () => {
+    const app = await buildApp();
+    const { refreshToken } = await issueTokenPair(app);
+    const refresh = () =>
+      app.inject({
+        method: "POST",
+        url: "/oauth/token",
+        payload: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken
+        }).toString(),
+        headers: { "content-type": "application/x-www-form-urlencoded" }
+      });
+    const first = await refresh();
+    expect(first.statusCode).toBe(200);
+    // The client lost the first response and sends the same token again.
+    const retry = await refresh();
+    expect(retry.statusCode).toBe(200);
+
+    const { McpOauthToken } = await import("@nodetool-ai/models");
+    expect(
+      await McpOauthToken.verifyAccess(first.json().access_token)
+    ).not.toBeNull();
+    expect(
+      await McpOauthToken.verifyAccess(retry.json().access_token)
+    ).not.toBeNull();
   });
 
   it("missing refresh_token is invalid_request", async () => {

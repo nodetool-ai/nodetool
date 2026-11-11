@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComfyApiPrompt, ComfyObjectInfo } from "@nodetool-ai/protocol";
 import { ComfyCloudProvider } from "../../src/providers/comfy-cloud-provider.js";
-import { ComfyGpuClient, comfyGpuCatalog, listedComfyGpuTemplates, prepareComfyGpuPrompt, type ComfyGpuTemplate, type ComfyGpuInput } from "../../src/providers/comfy-gpu-models.js";
+import { ComfyGpuClient, comfyGpuCatalog, comfyGpuTemplateFits, listedComfyGpuTemplates, prepareComfyGpuPrompt, type ComfyGpuTemplate, type ComfyGpuInput } from "../../src/providers/comfy-gpu-models.js";
 import { comfyUiToPrompt } from "../../src/providers/comfy-ui-prompt.js";
 
 const sdk = vi.hoisted(() => ({ graph: vi.fn(), submit: vi.fn(), cancel: vi.fn(), setInput: vi.fn(), asset: vi.fn() }));
@@ -13,7 +13,7 @@ vi.mock("@comfyorg/sdk", () => ({ Comfy: class {
 afterEach(() => vi.resetAllMocks());
 
 function template(task: string): ComfyGpuTemplate {
-  const result = listedComfyGpuTemplates().find((entry) => entry.task === task);
+  const result = listedComfyGpuTemplates().find((entry) => entry.task === task && comfyGpuTemplateFits(entry));
   if (!result) {throw new Error(`No template for ${task}`);}
   return result;
 }
@@ -43,7 +43,7 @@ describe("Comfy GPU provider catalog", () => {
       ...await provider.getAvailableMusicModels(), ...await provider.getAvailableAudioToAudioModels(),
       ...await provider.getAvailableTTSModels(), ...await provider.getAvailable3DModels(), ...await provider.getAvailableLanguageModels()
     ];
-    for (const entry of listedComfyGpuTemplates()) {expect(offered.some((model) => model.id === entry.id), entry.id).toBe(true);}
+    for (const entry of listedComfyGpuTemplates().filter(comfyGpuTemplateFits)) {expect(offered.some((model) => model.id === entry.id), entry.id).toBe(true);}
     expect(listedComfyGpuTemplates().some((entry) => entry.restricted)).toBe(false);
     expect(catalog.excluded.every((entry) => entry.reason.length > 0)).toBe(true);
     const families = new Set(catalog.templates.flatMap((entry) => entry.models));
@@ -168,6 +168,8 @@ describe("Comfy GPU execution", () => {
     expect(result).toEqual({ data: new Uint8Array([1, 2]), mimeType: "audio/flac" });
     expect(sdk.graph.mock.calls[0][0]["94"].inputs).toMatchObject({ tags: "piano", lyrics: "hello", duration: 8 });
     expect(sdk.submit).toHaveBeenCalledOnce();
+    // Partner nodes in the graph (e.g. TextGenerateLTX2Prompt) authenticate with this key.
+    expect(sdk.submit.mock.calls[0][1]).toMatchObject({ apiKey: "test-key" });
     expect(music.kind).toBe("audio");
   });
 
@@ -204,5 +206,96 @@ describe("Comfy GPU execution", () => {
     controller.abort();
     await expect(new ComfyGpuClient("test-key").run(template("text_to_music"), { prompt: "p", signal: controller.signal })).rejects.toThrow();
     expect(sdk.submit).not.toHaveBeenCalled();
+  });
+});
+
+describe("Comfy GPU media fit", () => {
+  const source = (name: string): ComfyGpuTemplate => {
+    const found = comfyGpuCatalog().templates.find((entry) => entry.source === name);
+    if (!found) {throw new Error(`Missing ${name}`);}
+    return found;
+  };
+  const info: ComfyObjectInfo = {
+    LoadImage: { input: { required: { image: [["a.png"], {}] } }, output: ["IMAGE"] },
+    Join: { input: { required: { a: ["IMAGE", {}] }, optional: { b: ["IMAGE", {}] } }, output: ["VIDEO"] },
+    SaveVideo: { input: { required: { video: ["VIDEO", {}], filename_prefix: ["STRING", {}] } }, output_node: true }
+  };
+  class Client extends ComfyGpuClient {
+    protected override objectInfo(): Promise<ComfyObjectInfo> { return Promise.resolve(info); }
+  }
+  function videoTemplate(task: string, loaders: number): ComfyGpuTemplate {
+    const nodes: unknown[] = Array.from({ length: loaders }, (_, index) => ({ id: index + 1, type: "LoadImage", widgets_values: ["a.png"] }));
+    nodes.push({ id: 10, type: "Join", inputs: [{ name: "a", link: 1 }, { name: "b", link: loaders > 1 ? 2 : null }] });
+    nodes.push({ id: 11, type: "SaveVideo", inputs: [{ name: "video", link: 9 }], widgets_values: ["out"] });
+    const links: unknown[] = [[1, 1, 0, 10, 0, "IMAGE"], [9, 10, 0, 11, 0, "VIDEO"]];
+    if (loaders > 1) {links.push([2, 2, 0, 10, 1, "IMAGE"]);}
+    return { id: "test", source: "test", name: "Fit", models: [], kind: "video", task, restricted: false, outputNodes: ["11"],
+      inputs: { image: loaders, video: 0, audio: 0 }, workflow: { nodes, links } };
+  }
+  const succeeded = (): void => {
+    sdk.asset.mockImplementation((bytes: Uint8Array) => `asset-${bytes[0]}`);
+    sdk.submit.mockResolvedValue({ id: "job-9", status: "succeeded", wait: async () => undefined, cancel: sdk.cancel,
+      outputs: [{ nodeId: "11", name: "clip.mp4", type: "image", contentType: "video/mp4", toBytes: async () => new Uint8Array([1]) }] });
+  };
+
+  it("records the loader counts that remain after output pruning", () => {
+    expect(source("video_wan2_2_14B_flf2v").inputs).toEqual({ image: 2, video: 0, audio: 0 });
+    expect(source("video_wan2_2_14B_s2v").inputs).toMatchObject({ audio: 1 });
+    expect(source("video_ltx2_3_i2v").inputs).toEqual({ image: 1, video: 0, audio: 0 });
+    expect(comfyGpuCatalog().templates.every((entry) => entry.inputs !== undefined)).toBe(true);
+  });
+
+  it("lists image-to-video templates that take one image and reference templates without audio", async () => {
+    const models = await new Provider().getAvailableVideoModels();
+    const gpu = (task: string) => models.filter((model) => model.id.startsWith("comfyui-gpu/") && model.supportedTasks?.includes(task));
+    expect(gpu("image_to_video").length).toBeGreaterThan(0);
+    for (const model of gpu("image_to_video")) {expect(model.inputs, model.id).toEqual({ image: 1, video: 0, audio: 0 });}
+    expect(gpu("reference_to_video").length).toBeGreaterThan(0);
+    for (const model of gpu("reference_to_video")) {
+      expect(model.inputs?.audio, model.id).toBe(0);
+      expect(model.inputs?.video, model.id).toBe(0);
+      expect(model.inputs?.image, model.id).toBeGreaterThanOrEqual(1);
+    }
+    const ids = models.map((model) => model.id);
+    expect(ids).not.toContain("comfyui-gpu/video_wan2_2_14B_flf2v");
+    expect(ids).not.toContain("comfyui-gpu/video_wan2_2_14B_s2v");
+  });
+
+  it("keeps the first reference images a template accepts and warns", async () => {
+    succeeded();
+    const warn = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    await new Client("key").run(videoTemplate("reference_to_video", 1), { images: [new Uint8Array([1]), new Uint8Array([2]), new Uint8Array([3])] });
+    expect(sdk.setInput).toHaveBeenCalledOnce();
+    expect(sdk.setInput).toHaveBeenCalledWith("1", "image", "asset-1");
+    expect(warn.mock.calls.flat().join(" ")).toMatch(/Fit takes 1 image.*received 3/);
+    warn.mockRestore();
+  });
+
+  it("refuses known mismatches before any object_info fetch or submission", async () => {
+    const objectInfo = vi.fn();
+    class Spy extends ComfyGpuClient { protected override objectInfo(): Promise<ComfyObjectInfo> { objectInfo(); return Promise.resolve(info); } }
+    await expect(new Spy("key").run(videoTemplate("image_to_video", 1), { images: [new Uint8Array([1]), new Uint8Array([2])] })).rejects.toThrow("requires 1 image input(s), received 2");
+    await expect(new Spy("key").run(videoTemplate("reference_to_video", 2), { images: [new Uint8Array([1])] })).rejects.toThrow("requires 2 image input(s), received 1");
+    expect(objectInfo).not.toHaveBeenCalled();
+    expect(sdk.submit).not.toHaveBeenCalled();
+  });
+
+  it("names the template and job when a job fails and keeps the cause", async () => {
+    succeeded();
+    sdk.submit.mockResolvedValue({ id: "job-9", status: "failed", error: { message: "Missing API key for partner node" }, wait: async () => undefined, cancel: sdk.cancel, outputs: [] });
+    const error = await new Client("key").run(videoTemplate("image_to_video", 1), { images: [new Uint8Array([1])] }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe("Comfy Fit job job-9 failed: Missing API key for partner node. A step inside this Comfy graph calls a hosted model and needs your Comfy API key.");
+    expect((error as Error).cause).toBeInstanceOf(Error);
+  });
+
+  it("omits the job id when submission fails", async () => {
+    succeeded();
+    const original = new Error("HTTP 500");
+    sdk.submit.mockRejectedValue(original);
+    const error = await new Client("key").run(videoTemplate("image_to_video", 1), { images: [new Uint8Array([1])] }).catch((caught: unknown) => caught);
+    expect((error as Error).message).toBe("Comfy Fit failed: HTTP 500");
+    expect((error as Error).cause).toBe(original);
+    expect(sdk.submit).toHaveBeenCalledOnce();
   });
 });

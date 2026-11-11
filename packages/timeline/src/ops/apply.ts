@@ -35,6 +35,7 @@ import {
   resolveCustomMask,
   typewriterTiming
 } from "../animation/index.js";
+import { paramCurvesForEffects } from "../paramCurves.js";
 import type {
   AnimationRole,
   ClipAnimation,
@@ -2083,6 +2084,12 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       delete clip.effects;
     } else {
       clip.effects = list;
+    }
+    const curves = paramCurvesForEffects(clip.paramCurves, clip.effects);
+    if (curves) {
+      clip.paramCurves = curves;
+    } else {
+      delete clip.paramCurves;
     }
     scope.touch(clip.id);
     return { ok: true, clip: scope.clipOut(clip) };

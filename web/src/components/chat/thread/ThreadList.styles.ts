@@ -102,6 +102,11 @@ export const createStyles = (theme: Theme) =>
       "&:focus-visible": focusRing(theme)
     },
 
+    ".thread-kind": {
+      flexShrink: 0,
+      color: theme.vars.palette.text.secondary
+    },
+
     ".thread-title": {
       flex: 1,
       minWidth: 0,

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import { useTheme } from "@mui/material/styles";
+import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   memo,
@@ -36,7 +36,7 @@ import {
 } from "../../utils/colorMath";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { groupZoomScale } from "../../utils/groupZoomScale";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { TOOLTIP_DESCRIPTION_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import ColorPicker from "../inputs/ColorPicker";
@@ -48,41 +48,24 @@ import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX, SHADOW } from "../ui_primitives";
+import {
+  Tooltip, ToolbarIconButton, Popover, FlexRow, FlexColumn,
+  MOTION, BORDER_RADIUS, SPACING, SPACING_PX, CONTROL, ICON_SIZE,
+  getSpacingPx, Z_INDEX, SHADOW, reducedMotion
+} from "../ui_primitives";
 
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
 const GROUP_BG_OPACITY = 0.35;
 const GROUP_BORDER_OPACITY = 0.5;
-const HEADER_HEIGHT = 32;
-// Hex fallback used when group_color is unset or stored as a CSS var token
-// (hexToRgba can't compute alpha on `var(--…)`, which produces invalid CSS).
-const DEFAULT_GROUP_HEX = "#9ca3af";
-const POPOVER_COLUMN_STYLE: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: getSpacingPx(SPACING.lg),
-  padding: getSpacingPx(SPACING.lg)
-};
-const POPOVER_ROW_STYLE: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: getSpacingPx(SPACING.lg)
-};
-
-// Returns an opaque 6-digit hex. Catches three failure modes from saved data:
-//   - missing / empty                  → default
-//   - CSS-var string (e.g. "var(--…)") → default (chroma can't parse, hexToRgba
-//                                        emits invalid rgb() with a hex inside)
-//   - hex with built-in alpha (#RRGGBBAA) → strip alpha so solid backgrounds
-//                                          (the pill) don't render translucent
-const resolveGroupHex = (raw: string | null | undefined): string => {
-  if (!raw || raw.trim().startsWith("var(")) {return DEFAULT_GROUP_HEX;}
+const HEADER_HEIGHT = CONTROL.height.md;
+// Color arithmetic needs a resolved, opaque color rather than a CSS variable.
+const resolveGroupHex = (raw: string | null | undefined, fallback: string): string => {
+  if (!raw || raw.trim().startsWith("var(")) {return fallback;}
   try {
     return toHex(alpha(parse(raw), 1));
   } catch {
-    return DEFAULT_GROUP_HEX;
+    return fallback;
   }
 };
 
@@ -96,11 +79,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       width: "100%",
       height: "100%"
     },
-    "&.hovered.control-pressed": {
-      border: "2px dashed black !important"
-    },
     height: "100%",
-    display: "flex",
     borderRadius: BORDER_RADIUS.sm,
     // Header strip — transparent wrapper that holds the label and actions
     // and acts as a single hover hit region. Positioned just above the
@@ -118,9 +97,10 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       position: "absolute",
       left: 0,
       height: `${HEADER_HEIGHT}px`,
-      display: "flex",
       alignItems: "center",
       padding: 0,
+      transition: `max-width ${MOTION.fast}`,
+      ...reducedMotion({ transition: MOTION.none }),
       ".title-sizer": {
         position: "absolute",
         visibility: "hidden",
@@ -160,47 +140,48 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       position: "absolute",
       right: 0,
       height: `${HEADER_HEIGHT}px`,
-      display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.sm),
+      transition: MOTION.opacity,
+      ...reducedMotion({ transition: MOTION.none }),
       padding: `0 ${getSpacingPx(SPACING.sm)}`,
       transformOrigin: "bottom right",
       zIndex: Z_INDEX.dropdown,
       pointerEvents: "auto",
       ".bypass-button, .menu-button": {
-        border: "none !important",
-        backgroundColor: `${theme.vars.palette.c_overlay} !important`,
-        borderRadius: `${BORDER_RADIUS.circle} !important`,
-        color: `${theme.vars.palette.c_white} !important`,
-        width: "28px !important",
-        height: "28px !important",
-        padding: "0 !important",
+        border: "none",
+        backgroundColor: theme.vars.palette.c_overlay,
+        borderRadius: BORDER_RADIUS.circle,
+        color: theme.vars.palette.c_white,
+        width: `${CONTROL.height.sm}px`,
+        height: `${CONTROL.height.sm}px`,
+        padding: 0,
         "&:hover": {
-          backgroundColor: `${theme.vars.palette.c_overlay_strong} !important`,
-          color: `${theme.vars.palette.c_white} !important`
+          backgroundColor: theme.vars.palette.c_overlay_strong,
+          color: theme.vars.palette.c_white
         },
         "& svg": {
-          fontSize: 20
+          fontSize: ICON_SIZE.lg
         }
       },
       ".run-button": {
-        width: "28px !important",
-        height: "28px !important",
+        width: `${CONTROL.height.sm}px`,
+        height: `${CONTROL.height.sm}px`,
         boxShadow: SHADOW(theme).sm,
         "& svg": {
-          fontSize: "var(--fontSizeBig) !important"
+          fontSize: "var(--fontSizeBig)"
         }
       }
     },
     // help text
     ".help-text": {
       position: "absolute",
-      top: "-90px",
+      bottom: `calc(100% + ${getSpacingPx(SPACING.xxxl)})`,
       left: "50%",
       transform: "translateX(-50%)",
       color: "var(--palette-grey-50)",
       backgroundColor: "var(--palette-grey-900)",
-      boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}33`,
+      boxShadow: SHADOW(theme).sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.sm,
@@ -209,7 +190,8 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       zIndex: Z_INDEX.overlay,
       opacity: 0,
       visibility: "hidden",
-      transition: `opacity ${MOTION.normal} ${2000}ms, visibility ${MOTION.normal} ${2000}ms`
+      transition: `opacity ${MOTION.normal} ${TOOLTIP_DESCRIPTION_DELAY}ms, visibility ${MOTION.normal} ${TOOLTIP_DESCRIPTION_DELAY}ms`,
+      ...reducedMotion({ transition: MOTION.none })
     },
     ".help-text ul": {
       listStyleType: "square",
@@ -229,11 +211,12 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
 const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { mode, systemMode } = useColorScheme();
+  const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
+  const palette = theme.colorSchemes?.[activeMode]?.palette ?? theme.palette;
+  const groupFallbackColor = palette.grey[400];
   const cssStyles = useMemo(() => styles(theme, MIN_WIDTH, MIN_HEIGHT), [theme]);
-  const controlKeyPressed = useKeyPressed((state) =>
-    state.isKeyPressed("control")
-  );
-  const metaKeyPressed = useKeyPressed((state) => state.isKeyPressed("meta"));
+  const altKeyPressed = useKeyPressed((state) => state.isKeyPressed("alt"));
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const headerInputRef = useRef<HTMLInputElement>(null);
@@ -473,15 +456,14 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     }
   }, [headline]);
 
-  // Only react to ctrl/meta when this group actually contains a selected
+  // Only react to Alt/Option when this group actually contains a selected
   // node — otherwise every group on the canvas would flip into the
   // "drag-out" mode (dimmed + pointer-receptive) whenever the modifier is
   // held for any reason.
-  const modifierActive =
-    (controlKeyPressed || metaKeyPressed) && hasSelectedChild;
+  const modifierActive = altKeyPressed && hasSelectedChild;
 
   useEffect(() => {
-    // Selectable group when ctrl/meta is held AND this group owns a
+    // Selectable group when Alt/Option is held AND this group owns a
     // selected child — enables drag-out and selection rectangle inside.
     if ((props.selectable ?? true) !== modifierActive) {
       updateNode(props.id, { selectable: modifierActive });
@@ -495,17 +477,18 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const groupWorldWidth = groupBodyWidth;
   const actionsButtonCount = 2;
   const actionsBaseWidth =
-    12 + actionsButtonCount * 28 + (actionsButtonCount - 1) * 6;
+    SPACING_PX.lg + actionsButtonCount * CONTROL.height.sm +
+    (actionsButtonCount - 1) * SPACING_PX.sm;
   const actionsWorldWidth = actionsBaseWidth * actionsScale;
-  const reservedRightWorld = actionsVisible ? actionsWorldWidth + 8 : 0;
+  const reservedRightWorld = actionsVisible ? actionsWorldWidth + SPACING_PX.md : 0;
   const availableLabelWorldWidth = Math.max(
     0,
     groupWorldWidth - reservedRightWorld
   );
-  const labelMaxCssWidth = Math.max(24, availableLabelWorldWidth / labelScale);
+  const labelMaxCssWidth = Math.max(SPACING_PX.xxl, availableLabelWorldWidth / labelScale);
 
   const colorTokens = useMemo(() => {
-    const effectiveColor = resolveGroupHex(color);
+    const effectiveColor = resolveGroupHex(color, groupFallbackColor);
     const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
     const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
     const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
@@ -513,7 +496,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     // from the canvas when the fill is only a few pixels of color.
     const subtleOutline = hexToRgba(labelBg, GROUP_BORDER_OPACITY);
     return { bodyBg, subtleOutline, labelBg };
-  }, [color]);
+  }, [color, groupFallbackColor]);
   const { bodyBg, subtleOutline, labelBg } = colorTokens;
 
   // One 1px screen-space edge in every state, as on nodes; selection and
@@ -545,12 +528,11 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     bottom: 0,
     transform: `scale(${labelScale})`,
     maxWidth: `${labelMaxCssWidth}px`,
-    overflow: "hidden",
-    transition: `max-width ${MOTION.fast}`
+    overflow: "hidden"
   }), [labelBg, labelScale, labelMaxCssWidth]);
 
   const inputStyle = useMemo<React.CSSProperties>(() => ({
-    width: `${Math.max(headlineTextWidth + 2, 12)}px`,
+    width: `${Math.max(headlineTextWidth + SPACING_PX.micro, SPACING_PX.lg)}px`,
     color: labelBg,
     maxWidth: "unset"
   }), [headlineTextWidth, labelBg]);
@@ -559,8 +541,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     bottom: 0,
     transform: `scale(${actionsScale})`,
     opacity: actionsVisible ? 1 : 0,
-    pointerEvents: actionsVisible ? ("auto" as const) : ("none" as const),
-    transition: `opacity ${MOTION.fast}`
+    pointerEvents: actionsVisible ? ("auto" as const) : ("none" as const)
   }), [actionsScale, actionsVisible]);
 
   const menuTextStyle = useMemo<React.CSSProperties>(() => ({
@@ -570,7 +551,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }), [theme.fontFamily1, theme.fontSizeSmall, theme.vars.palette.grey]);
 
   return (
-    <div
+    <FlexRow
       css={cssStyles}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
@@ -584,8 +565,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       >
       <Tooltip
         placement="top"
-        delay={TOOLTIP_ENTER_DELAY * 5}
-        nextDelay={TOOLTIP_ENTER_DELAY * 5}
         title={
           <span>
             <b>{t("i18n-next7.groupNode.selectGroup")}</b> <br />
@@ -596,7 +575,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           </span>
         }
       >
-        <div
+        <FlexRow
           className="group-label node-drag-handle"
           onDoubleClick={handlePillDoubleClick}
           style={labelDivStyle}
@@ -620,10 +599,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           >
             {headline || t("i18n-next7.groupNode.defaultTitle")}
           </span>
-        </div>
+        </FlexRow>
       </Tooltip>
 
-      <div
+      <FlexRow
         className="group-actions nodrag"
         style={actionsStyle}
       >
@@ -644,7 +623,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           state={state}
           onClick={runWorkflow}
         />
-      </div>
+      </FlexRow>
 
       <Popover
         open={menuOpen}
@@ -652,9 +631,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onClose={handleMenuClose}
         placement="bottom-right"
       >
-        <div style={POPOVER_COLUMN_STYLE}>
+        <FlexColumn gap={SPACING.lg} padding={SPACING.lg}>
           {hasChildren && (
-            <div style={POPOVER_ROW_STYLE}>
+            <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
               <span style={menuTextStyle}>
                 {someChildrenBypassed ? t("i18n-next7.groupNode.enableAll") : t("i18n-next7.groupNode.disableAll")}
               </span>
@@ -662,19 +641,19 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
                 isBypassed={someChildrenBypassed}
                 onClick={toggleBypassChildren}
               />
-            </div>
+            </FlexRow>
           )}
-          <div style={POPOVER_ROW_STYLE}>
+          <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
             <span style={menuTextStyle}>
               {t("i18n-next7.groupNode.color")}
             </span>
             <ColorPicker
-              buttonSize={24}
+              buttonSize={CONTROL.height.xs}
               color={color || null}
               onColorChange={handleColorChange}
             />
-          </div>
-        </div>
+          </FlexRow>
+        </FlexColumn>
       </Popover>
       </div>
 
@@ -696,7 +675,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onResize={handleResize}
       />
       <NodeResizer minWidth={MIN_WIDTH} minHeight={MIN_HEIGHT} />
-    </div>
+    </FlexRow>
   );
 };
 

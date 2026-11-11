@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -175,6 +175,39 @@ describe("useResolvedThumbnailUri", () => {
     expect(result.current).toBe(
       "https://cdn.example.com/signed/user-1/abc123_thumb.jpg?sig=y"
     );
+  });
+
+  // The server writes the thumbnail after the asset row, so `thumb_url` can
+  // name an object that is not there yet.
+  it("answers the full URL while the thumbnail fails to load", async () => {
+    const OriginalImage = global.Image;
+    class MissingImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_url: string) {
+        void Promise.resolve().then(() => this.onerror?.());
+      }
+    }
+    global.Image = MissingImage as unknown as typeof Image;
+    try {
+      withAsset(
+        "https://cdn.example.com/signed/user-1/abc123.png?sig=x",
+        "image/png",
+        "https://cdn.example.com/signed/user-1/abc123_thumb.jpg?sig=y"
+      );
+      const { result, unmount } = renderHook(() =>
+        useResolvedThumbnailUri("asset://abc123")
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(result.current).toBe(
+        "https://cdn.example.com/signed/user-1/abc123.png?sig=x"
+      );
+      unmount();
+    } finally {
+      global.Image = OriginalImage;
+    }
   });
 
   // An asset whose thumbnail was never generated still has to render.

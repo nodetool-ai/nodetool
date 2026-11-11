@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fetchWithRetry, sleep } from "./http-transport.js";
-import { safeFetch } from "./safe-url.js";
+import { assertSafePublicHttpsUrl, safeFetch } from "./safe-url.js";
 
 export const HIGGSFIELD_BASE = "https://api.higgsfield.ai";
 
@@ -133,13 +133,14 @@ export async function higgsfieldGetStatusByRequestId(
 export async function higgsfieldAwaitResult(
   credentials: HiggsfieldCredentials,
   statusUrl: string,
-  options: { signal?: AbortSignal; timeoutMs?: number; initialDelayMs?: number } = {}
+  options: { signal?: AbortSignal; timeoutMs?: number; initialDelayMs?: number; onStatus?: (status: HiggsfieldStatus) => void } = {}
 ): Promise<HiggsfieldStatus> {
   const deadline = Date.now() + (options.timeoutMs ?? 900_000);
   let delay = options.initialDelayMs ?? 2_000;
   while (Date.now() < deadline) {
     await sleep(delay, options.signal);
     const result = await higgsfieldGetStatus(credentials, statusUrl, options.signal);
+    options.onStatus?.(result);
     if (result.status === "completed") return result;
     if (result.status === "failed" || result.status === "nsfw") {
       throw new Error(`Higgsfield generation ${result.status}: ${result.error ?? "provider rejected the request"}`);
@@ -224,6 +225,8 @@ export function higgsfieldOutputUrls(result: HiggsfieldStatus): string[] {
 }
 
 export async function higgsfieldDownloadResult(url: string, signal?: AbortSignal): Promise<Uint8Array> {
+  // Checked before the retry loop, which would otherwise retry the refusal as a network error.
+  assertSafePublicHttpsUrl(url);
   const init: RequestInit = signal ? { signal } : {};
   const response = await fetchWithRetry(url, init, { fetchImpl: (input, requestInit) => safeFetch(String(input), requestInit) });
   if (!response.ok) throw new Error(`Higgsfield result download failed: HTTP ${response.status}`);

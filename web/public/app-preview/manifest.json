@@ -134,7 +134,7 @@
     "name": "Film Studio",
     "emoji": "🎬",
     "featured": true,
-    "workflows": 3
+    "workflows": 2
   },
   {
     "slug": "model-arena",
@@ -165,11 +165,25 @@
     "workflows": 3
   },
   {
+    "slug": "catalog-motion",
+    "name": "Catalog Motion",
+    "emoji": "🛍️",
+    "featured": true,
+    "workflows": 2
+  },
+  {
+    "slug": "catalog-motion-references",
+    "name": "Catalog Motion with References",
+    "emoji": "🛍️",
+    "featured": false,
+    "workflows": 2
+  },
+  {
     "slug": "trailer-room",
     "name": "Trailer Room",
     "emoji": "🎞️",
     "featured": false,
-    "workflows": 4
+    "workflows": 0
   },
   {
     "slug": "sku-factory",

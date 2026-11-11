@@ -1,0 +1,12 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "role": "user",
+      "execution_event_type": "compaction",
+      "content": "[Conversation so far]\nGoal: cut a 30s trailer\nKeeps asset://dddddddddddddddddddddddddddddddd as the hero still",
+      "unknown": 42
+    }
+  ]
+}

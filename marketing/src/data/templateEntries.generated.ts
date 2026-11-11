@@ -1366,6 +1366,733 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/animate-a-product-catalog-with-references",
+    "title": "Animate a Product Catalog with References — NodeTool AI Workflow Template",
+    "description": "Turn a product catalog into product videos made from reference images. Each row's own photo is image 1, and an optional background and decoration image follow it for the whole range. The prompt is filled from that row's columns, and its role placeholders become image 1, image 2 and image 3.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "animate-a-product-catalog-with-references",
+    "name": "Animate a Product Catalog with References",
+    "summary": "Turn a product catalog into product videos made from reference images. Each row's own photo is image 1, and an optional background and decoration image follow it for the whole range. The prompt is filled from that row's columns, and its role placeholders become image 1, image 2 and image 3.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 4
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.DocumentInput",
+        "label": "Document Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ReferenceToVideo",
+        "label": "Reference To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoModelInput",
+        "label": "Video Model Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 19,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 640,
+          "isComment": true
+        },
+        {
+          "id": "catalog",
+          "type": "nodetool.input.DocumentInput",
+          "title": "Document Input",
+          "x": 0,
+          "y": 360,
+          "width": 300
+        },
+        {
+          "id": "prompt_template",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 300,
+          "subtitle": "The product from {{product_image}}: {{title}} in {{color}}, {{description}}. Set it in the scene from {{background_image}} with the props f…"
+        },
+        {
+          "id": "image_column",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 760,
+          "width": 300
+        },
+        {
+          "id": "name_column",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "first_row",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 1040,
+          "width": 300
+        },
+        {
+          "id": "last_row",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 1180,
+          "width": 300
+        },
+        {
+          "id": "video_model",
+          "type": "nodetool.input.VideoModelInput",
+          "title": "Video Model Input",
+          "x": 400,
+          "y": 1040,
+          "width": 300
+        },
+        {
+          "id": "aspect_ratio",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 400,
+          "y": 1200,
+          "width": 300,
+          "subtitle": "1:1"
+        },
+        {
+          "id": "resolution",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 400,
+          "y": 1360,
+          "width": 300,
+          "subtitle": "720p"
+        },
+        {
+          "id": "duration",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 400,
+          "y": 1520,
+          "width": 300
+        },
+        {
+          "id": "negative_prompt",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 400,
+          "y": 1660,
+          "width": 300,
+          "subtitle": "text, changing logos, warped product, extra objects, hands"
+        },
+        {
+          "id": "each",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 800,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "background_image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 1320,
+          "width": 300
+        },
+        {
+          "id": "decoration_image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 1500,
+          "width": 300
+        },
+        {
+          "id": "read",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 400,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "unpack",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1100,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "animate",
+          "type": "nodetool.video.ReferenceToVideo",
+          "title": "Reference To Video",
+          "x": 1450,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "videos",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1850,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "summary",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 800,
+          "y": 900,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "catalog",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "catalog",
+          "color": "any"
+        },
+        {
+          "source": "prompt_template",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "prompt_template",
+          "color": "any"
+        },
+        {
+          "source": "image_column",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "image_column",
+          "color": "any"
+        },
+        {
+          "source": "name_column",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "name_column",
+          "color": "any"
+        },
+        {
+          "source": "first_row",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "first_row",
+          "color": "any"
+        },
+        {
+          "source": "last_row",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "last_row",
+          "color": "any"
+        },
+        {
+          "source": "duration",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "rows",
+          "target": "each",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "each",
+          "sourceHandle": "output",
+          "target": "unpack",
+          "targetHandle": "item",
+          "color": "any"
+        },
+        {
+          "source": "unpack",
+          "sourceHandle": "prompt",
+          "target": "animate",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "video_model",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "model",
+          "color": "any"
+        },
+        {
+          "source": "aspect_ratio",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "aspect_ratio",
+          "color": "any"
+        },
+        {
+          "source": "resolution",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "resolution",
+          "color": "any"
+        },
+        {
+          "source": "duration",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "negative_prompt",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "negative_prompt",
+          "color": "any"
+        },
+        {
+          "source": "animate",
+          "sourceHandle": "output",
+          "target": "videos",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "summary",
+          "target": "summary",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "unpack",
+          "sourceHandle": "images",
+          "target": "animate",
+          "targetHandle": "reference_images",
+          "color": "any"
+        },
+        {
+          "source": "background_image",
+          "sourceHandle": "output",
+          "target": "unpack",
+          "targetHandle": "background_image",
+          "color": "any"
+        },
+        {
+          "source": "decoration_image",
+          "sourceHandle": "output",
+          "target": "unpack",
+          "targetHandle": "decoration_image",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/animate-a-product-catalog",
+    "title": "Animate a Product Catalog — NodeTool AI Workflow Template",
+    "description": "Turn a product catalog into product videos. Each row's own photo is animated with image-to-video, and the prompt is filled from that row's columns, so a whole range of products shares one camera move and light while every clip stays true to its product.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "animate-a-product-catalog",
+    "name": "Animate a Product Catalog",
+    "summary": "Turn a product catalog into product videos. Each row's own photo is animated with image-to-video, and the prompt is filled from that row's columns, so a whole range of products shares one camera move and light while every clip stays true to its product.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 4
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.DocumentInput",
+        "label": "Document Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoModelInput",
+        "label": "Video Model Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 17,
+    "thumbnail": "/templates/animate-a-product-catalog.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 640,
+          "isComment": true
+        },
+        {
+          "id": "catalog",
+          "type": "nodetool.input.DocumentInput",
+          "title": "Document Input",
+          "x": 0,
+          "y": 360,
+          "width": 300
+        },
+        {
+          "id": "prompt_template",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 300,
+          "subtitle": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle…"
+        },
+        {
+          "id": "image_column",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 760,
+          "width": 300
+        },
+        {
+          "id": "name_column",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "first_row",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 1040,
+          "width": 300
+        },
+        {
+          "id": "last_row",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 1180,
+          "width": 300
+        },
+        {
+          "id": "video_model",
+          "type": "nodetool.input.VideoModelInput",
+          "title": "Video Model Input",
+          "x": 400,
+          "y": 1040,
+          "width": 300
+        },
+        {
+          "id": "aspect_ratio",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 400,
+          "y": 1200,
+          "width": 300,
+          "subtitle": "1:1"
+        },
+        {
+          "id": "resolution",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 400,
+          "y": 1360,
+          "width": 300,
+          "subtitle": "720p"
+        },
+        {
+          "id": "duration",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 400,
+          "y": 1520,
+          "width": 300
+        },
+        {
+          "id": "negative_prompt",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 400,
+          "y": 1660,
+          "width": 300,
+          "subtitle": "text, changing logos, warped product, extra objects, hands"
+        },
+        {
+          "id": "read",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 400,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "each",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 800,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "unpack",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 1100,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "animate",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 1450,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "videos",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1850,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "summary",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 800,
+          "y": 900,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "catalog",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "catalog",
+          "color": "any"
+        },
+        {
+          "source": "prompt_template",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "prompt_template",
+          "color": "any"
+        },
+        {
+          "source": "image_column",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "image_column",
+          "color": "any"
+        },
+        {
+          "source": "name_column",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "name_column",
+          "color": "any"
+        },
+        {
+          "source": "first_row",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "first_row",
+          "color": "any"
+        },
+        {
+          "source": "last_row",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "last_row",
+          "color": "any"
+        },
+        {
+          "source": "duration",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "rows",
+          "target": "each",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "each",
+          "sourceHandle": "output",
+          "target": "unpack",
+          "targetHandle": "item",
+          "color": "any"
+        },
+        {
+          "source": "unpack",
+          "sourceHandle": "image",
+          "target": "animate",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "unpack",
+          "sourceHandle": "prompt",
+          "target": "animate",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "video_model",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "model",
+          "color": "any"
+        },
+        {
+          "source": "aspect_ratio",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "aspect_ratio",
+          "color": "any"
+        },
+        {
+          "source": "resolution",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "resolution",
+          "color": "any"
+        },
+        {
+          "source": "duration",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "negative_prompt",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "negative_prompt",
+          "color": "any"
+        },
+        {
+          "source": "animate",
+          "sourceHandle": "output",
+          "target": "videos",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "summary",
+          "target": "summary",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/assemble-a-ugc-product-video",
     "title": "Assemble a UGC Product Video — NodeTool AI Workflow Template",
     "description": "Keep the creator on camera for the full vertical testimonial and place the product demonstration over her as a silent picture-in-picture proof moment.",
@@ -17284,6 +18011,195 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "ov",
           "targetHandle": "b",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/read-a-product-catalog",
+    "title": "Read a Product Catalog — NodeTool AI Workflow Template",
+    "description": "Check a product catalog before you render it. Reads a CSV, finds the image and name columns, and fills the video prompt template for every row, so a wrong column or a missing image shows before any video is paid for.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "read-a-product-catalog",
+    "name": "Read a Product Catalog",
+    "summary": "Check a product catalog before you render it. Reads a CSV, finds the image and name columns, and fills the video prompt template for every row, so a wrong column or a missing image shows before any video is paid for.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.input.BooleanInput",
+        "label": "Boolean Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.DocumentInput",
+        "label": "Document Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": "/templates/read-a-product-catalog.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro-comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 640,
+          "isComment": true
+        },
+        {
+          "id": "catalog",
+          "type": "nodetool.input.DocumentInput",
+          "title": "Document Input",
+          "x": 0,
+          "y": 360,
+          "width": 300
+        },
+        {
+          "id": "prompt_template",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 300,
+          "subtitle": "{{title}} in {{color}}, {{description}}. Slow three-quarter orbit around the product on a seamless studio backdrop, soft key light, gentle…"
+        },
+        {
+          "id": "image_column",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 760,
+          "width": 300
+        },
+        {
+          "id": "name_column",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "reference_roles",
+          "type": "nodetool.input.BooleanInput",
+          "title": "Boolean Input",
+          "x": 0,
+          "y": 1040,
+          "width": 300
+        },
+        {
+          "id": "read",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 400,
+          "y": 560,
+          "width": 300
+        },
+        {
+          "id": "products",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 800,
+          "y": 520,
+          "width": 300
+        },
+        {
+          "id": "summary",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 800,
+          "y": 700,
+          "width": 300
+        },
+        {
+          "id": "fields",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 800,
+          "y": 880,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "catalog",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "catalog",
+          "color": "any"
+        },
+        {
+          "source": "prompt_template",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "prompt_template",
+          "color": "any"
+        },
+        {
+          "source": "image_column",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "image_column",
+          "color": "any"
+        },
+        {
+          "source": "name_column",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "name_column",
+          "color": "any"
+        },
+        {
+          "source": "reference_roles",
+          "sourceHandle": "output",
+          "target": "read",
+          "targetHandle": "reference_roles",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "products",
+          "target": "products",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "summary",
+          "target": "summary",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "read",
+          "sourceHandle": "fields",
+          "target": "fields",
+          "targetHandle": "value",
           "color": "any"
         }
       ]

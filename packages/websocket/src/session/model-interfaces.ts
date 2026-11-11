@@ -1,4 +1,5 @@
 import { Asset, getSecret, Message, Setting, Thread } from "@nodetool-ai/models";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   ProcessingContext as RuntimeProcessingContext,
   type ProcessingContextModelInterfaces,
@@ -14,7 +15,6 @@ import { createFalGenerationLifecycleHooks } from "@nodetool-ai/execution";
 import { documentModelInterfaces } from "../lib/document-model-interfaces.js";
 import { getAssetAdapter, getTempAdapter } from "../lib/storage.js";
 import { createTempUrlResolver } from "../lib/temp-url-resolver.js";
-import { getAssetStoragePath } from "./asset-autosave.js";
 
 /**
  * The server's persistence, as one object.
@@ -136,7 +136,7 @@ export function createRuntimeContext(opts: {
     | "raw";
   persistOutputAssets?: boolean;
 }): RuntimeProcessingContext {
-  const storagePath = getAssetStoragePath();
+  const storagePath = getDefaultAssetsPath();
   const tempAdapter = getTempAdapter();
   const ctx = new RuntimeProcessingContext({
     ...opts,

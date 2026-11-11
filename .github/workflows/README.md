@@ -18,7 +18,7 @@ describes the deployment gates.
   nightly against live APIs with a spend cap.
 
 Everything outside the three rings — scheduled autofix agents, docs and
-marketing site builds, packaging side-channels (AUR, Flatpak, EAS), and
+marketing site builds, packaging side-channels (AUR, Homebrew, Flatpak, EAS), and
 one-off maintenance triggers — is **none/maintenance**: useful, but not
 part of the release gate and not held to the Ring 0 flake budget.
 
@@ -46,6 +46,16 @@ and have no retry or `continue-on-error` escape hatch. Add the label to a PR
 that changes those suites or the flows they drive. The same workflow's **`reliability-ring1`**
 job runs on every push to `main` and remains the merge-to-main gate described
 below.
+
+The native workflows (`native-timeline.yml`, `native-ui-primitives.yml`,
+`vst-host.yml`) run on a pull request only when it changes files under
+`native/`, their own workflow, or their build scripts. The native timeline's
+oracle and golden tests also compare against `packages/timeline`,
+`packages/gpu`, and `packages/cli-timeline`. A change to those packages alone
+does not start a native run on its pull request. The nightly
+`native-timeline.yml` run tests `main` when a commit in the last day touched
+them, and skips its build jobs otherwise. Dispatch the workflow on a branch to
+test a reference change before it merges.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
@@ -81,6 +91,7 @@ below.
 | `flaky-test-fixer.yaml` | Weekly agent root-causes flakes from CI re-run history and randomized repeat runs | none/maintenance | Advisory (`continue-on-error`) |
 | `flatpak-ci.yml` | Build the Flatpak desktop package once a day and on dispatch | none/maintenance | Required for its own job |
 | `genspend-pricing.yml` | Nightly GenSpend price sync; opens a PR when a price moved | none/maintenance | Advisory |
+| `homebrew-cask.yml` | Audit, install, launch and zap-test the `nodetool` Homebrew cask on Apple silicon and Intel runners for packaging PRs and each stable release. Publishes nothing, since BrewTestBot bumps the cask in homebrew-cask | none/maintenance | Required for its own job |
 | `internal-only-shipper.yaml` | Scheduled agent ships or deletes features gated to dev/internal builds | none/maintenance | Advisory (`continue-on-error`) |
 | `issue-triage.yml` | Labels new issues, flags duplicates, requests repro details | none/maintenance | n/a (read-only) |
 | `jekyll.yml` | Build and deploy the docs site to GitHub Pages on pushes to `main` that change `docs/` | none/maintenance | Required for docs deploy |
@@ -88,7 +99,7 @@ below.
 | `logic-simplifier.yaml` | Scheduled agent simplifies the logic in one branch-dense function | none/maintenance | Advisory (`continue-on-error`) |
 | `marketing-ci.yml` | Typecheck/lint/build/Playwright smoke for the marketing site; deploys to Cloudflare Workers on push to main | none/maintenance | Required for `marketing/**` |
 | `model-watch.yml` | Weekly scan for new/changed provider models, files issues | none/maintenance | n/a |
-| `mutation-changed.yml` | `nodetool-mutator` on the functions a PR adds or rewrites in the mutation-tested packages; lists survivors | none/maintenance | Advisory |
+| `mutation-changed.yml` | Daily `nodetool-mutator` on the functions that commits merged to `main` since the last successful scheduled run add or rewrite in the mutation-tested packages; lists survivors | none/maintenance | Advisory |
 | `mutation-testing.yaml` | Weekly, differential `nodetool-mutator` report over the mutation-tested packages | none/maintenance | Advisory |
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
 | `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |

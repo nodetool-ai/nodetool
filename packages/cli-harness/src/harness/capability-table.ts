@@ -406,6 +406,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_providers",
+    module: "models",
+    impl: "packages/agents/src/capabilities/models.ts",
+    contract: "2d7d37bbf55f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-models.test.ts",
+    ],
+  },
+  {
     name: "generate_text",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
@@ -508,6 +518,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "generate_batch",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "d705466cc8dd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generate-batch.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
     ],
   },
   {
@@ -2365,7 +2386,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "preview_timeline_frame",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "de9bcce846ee",
+    contract: "905d8042a3f4",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timeline-preview.test.ts",
@@ -3379,7 +3400,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "run_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "ff41dab56c40",
+    contract: "f1d500e1777a",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",
@@ -3389,7 +3410,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "test_code",
     module: "code",
     impl: "packages/agents/src/capabilities/code.ts",
-    contract: "8db4b25f2583",
+    contract: "dd32f0edff38",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/code-capabilities.test.ts",

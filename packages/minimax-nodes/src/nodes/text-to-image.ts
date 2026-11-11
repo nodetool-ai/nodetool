@@ -1,26 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { safeFetch } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
-  assertBaseResp,
-  getMinimaxApiKey,
+  callMinimax,
   imageRefFromBytes,
-  MINIMAX_BASE_URL,
-  MINIMAX_IMAGE_ASPECTS,
-  minimaxHeaders
+  MINIMAX_IMAGE_ASPECTS
 } from "../minimax-base.js";
-import type { MinimaxResponse } from "../minimax-base.js";
-
-/**
- * `/v1/image_generation` reply. Which of the two carriers is populated depends
- * on `response_format`, so both stay optional.
- */
-interface MinimaxImageResponse extends MinimaxResponse {
-  data?: {
-    image_base64?: string[];
-    image_urls?: string[];
-  };
-}
 
 /** Output handles MinimaxTextToImageNode.process() emits. */
 type MinimaxTextToImageNodeOutputs = {
@@ -82,13 +67,14 @@ export class MinimaxTextToImageNode extends BaseNode {
     type: "bool",
     default: true,
     title: "Prompt Optimizer",
-    description: "Let MiniMax automatically refine the prompt before generating."
+    description:
+      "Let MiniMax automatically refine the prompt before generating."
   })
   declare prompt_optimizer: any;
 
-  async process(): Promise<MinimaxTextToImageNodeOutputs> {
-    const apiKey = getMinimaxApiKey(this._secrets);
-
+  async process(
+    context?: ProcessingContext
+  ): Promise<MinimaxTextToImageNodeOutputs> {
     const basePrompt = String(this.prompt ?? "");
     if (!basePrompt) throw new Error("Prompt is required");
 
@@ -106,34 +92,31 @@ export class MinimaxTextToImageNode extends BaseNode {
       prompt_optimizer: Boolean(this.prompt_optimizer ?? true)
     };
 
-    const res = await fetch(`${MINIMAX_BASE_URL}/v1/image_generation`, {
-      method: "POST",
-      headers: minimaxHeaders(apiKey),
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      throw new Error(
-        `MiniMax image_generation failed: ${res.status} ${await res.text()}`
-      );
+    if (!context) {
+      throw new Error("MiniMax Text to Image requires a processing context");
     }
-    const data: MinimaxImageResponse = await res.json();
-    assertBaseResp(data, "image_generation");
+    // Which of the two carriers is populated depends on `response_format`.
+    const reply = await callMinimax(context, {
+      route: "image",
+      capability: "text_to_image",
+      model: body.model,
+      input: body,
+      nodeId: this.__node_id || undefined
+    });
 
-    const payload = data.data;
-    const b64List = payload?.image_base64;
-    if (b64List && b64List.length > 0) {
-      const bytes = new Uint8Array(Buffer.from(b64List[0], "base64"));
+    const [b64] = reply.imageBase64;
+    if (b64) {
+      const bytes = new Uint8Array(Buffer.from(b64, "base64"));
       return { output: imageRefFromBytes(bytes) };
     }
 
-    const urls = payload?.image_urls;
-    if (urls && urls.length > 0) {
-      // Provider-returned download URL — screened like every other one.
-      const dl = await safeFetch(urls[0]);
-      if (!dl.ok) {
-        throw new Error(`Failed to download MiniMax image from ${urls[0]}`);
-      }
-      const bytes = new Uint8Array(await dl.arrayBuffer());
+    const [url] = reply.imageUrls;
+    if (url) {
+      const bytes = await context.downloadProviderMedia({
+        provider: "minimax",
+        url,
+        signal: context.signal
+      });
       return { output: imageRefFromBytes(bytes) };
     }
 

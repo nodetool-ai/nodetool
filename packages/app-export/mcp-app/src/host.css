@@ -1,0 +1,26 @@
+/* Inside an MCP host: follow the host's theme, not the OS, and sit flush in the chat. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --nt-bg: #f7f7f8;
+  --nt-surface: #ffffff;
+  --nt-surface-2: #f0f0f2;
+  --nt-text: #18181b;
+  --nt-text-2: #52525b;
+  --nt-text-3: #8a8a93;
+  --nt-border: #e2e2e6;
+  --nt-primary: #3b5bdb;
+  --nt-on-primary: #ffffff;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --nt-bg: #111113;
+  --nt-surface: #1a1a1d;
+  --nt-surface-2: #232327;
+  --nt-text: #ececef;
+  --nt-text-2: #b4b4bb;
+  --nt-text-3: #7c7c85;
+  --nt-border: #2e2e33;
+  --nt-primary: #748ffc;
+  --nt-on-primary: #0b0b0c;
+}
+.nt-app.nt-mcp { padding: 16px 16px 24px; }

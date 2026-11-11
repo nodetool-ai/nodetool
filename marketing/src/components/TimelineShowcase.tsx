@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Download, Play, ArrowUpRight } from "lucide-react";
 import { timelineExamples } from "../data/timelineExamples";
 import { useAutoplayInView } from "../lib/useAutoplayInView";
+import { useNearViewport } from "../lib/useNearViewport";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 
 export default function TimelineShowcase() {
@@ -12,6 +13,11 @@ export default function TimelineShowcase() {
   const [started, setStarted] = useState(false);
   const [playbackError, setPlaybackError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const filmNear = useNearViewport(videoRef);
+  // Chromium starts `loading="lazy"` images up to 2,500 px early, so on a
+  // phone the picker thumbnails loaded with the page. Wait for the section.
+  const sectionRef = useRef<HTMLElement>(null);
+  const sectionNear = useNearViewport(sectionRef);
   useAutoplayInView(videoRef, selectedSlug);
   const selected = timelineExamples.find((example) => example.slug === selectedSlug);
   if (!selected) {
@@ -36,7 +42,7 @@ export default function TimelineShowcase() {
   };
 
   return (
-    <section id="example-timelines" aria-labelledby="timeline-showcase-title" className="relative scroll-mt-28 py-16 sm:py-24">
+    <section ref={sectionRef} id="example-timelines" aria-labelledby="timeline-showcase-title" className="relative scroll-mt-28 py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-10 max-w-3xl">
           <h2 id="timeline-showcase-title" className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl">
@@ -64,14 +70,18 @@ export default function TimelineShowcase() {
               }}
               className={`focus-ring w-[42%] shrink-0 snap-start scroll-ml-6 overflow-hidden rounded-xl border text-left sm:w-auto motion-safe:transition-colors ${example.slug === selected.slug ? "border-amber-300 bg-slate-800" : "border-slate-700 bg-slate-950 hover:border-slate-400"}`}
             >
-              <Image
-                src={`/timelines/${example.slug}/poster.webp`}
-                alt=""
-                width={1280}
-                height={720}
-                sizes="(min-width: 640px) 240px, 42vw"
-                className="aspect-video w-full object-cover"
-              />
+              {sectionNear ? (
+                <Image
+                  src={`/timelines/${example.slug}/poster.webp`}
+                  alt=""
+                  width={1280}
+                  height={720}
+                  sizes="(min-width: 640px) 240px, 42vw"
+                  className="aspect-video w-full object-cover"
+                />
+              ) : (
+                <span aria-hidden="true" className="block aspect-video w-full bg-slate-800" />
+              )}
               <span className="block px-3 pb-3 pt-2">
                 <span className="block text-base font-medium text-slate-100">{example.name}</span>
                 <span className="mt-1 block text-sm text-slate-300">{example.category}</span>
@@ -86,7 +96,7 @@ export default function TimelineShowcase() {
               key={selected.slug}
               ref={videoRef}
               src={`${mediaRoot}/film.mp4`}
-              poster={`${mediaRoot}/poster.webp`}
+              poster={filmNear ? `${mediaRoot}/poster.webp` : undefined}
               controls
               muted
               loop

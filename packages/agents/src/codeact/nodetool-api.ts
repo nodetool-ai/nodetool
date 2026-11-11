@@ -50,6 +50,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "find_model",
     "list_models",
     "list_provider_models",
+    "list_providers",
     "generate_text"
   ],
   media: [
@@ -941,6 +942,8 @@ const nodetool = (() => {
       /** One provider's own catalog. */
       forProvider: (provider, opts) =>
         __need("list_provider_models")(__merge(opts, { provider: provider })),
+      /** Configured providers, with the capabilities and tools each serves. */
+      providers: (opts) => __need("list_providers")(__merge(opts)),
       /** One language-model roundtrip, with optional image references. */
       generate: (prompt, model, opts) =>
         __need("generate_text")(
@@ -1837,7 +1840,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-models",
     doc: `- \`nodetool.models\` — \`pick(capability, {query})\` (→ one model),
   \`find(capability)\` (→ \`{results}\`), \`list()\`, \`forProvider(provider)\`,
-  \`generate(prompt, model)\`. Never guess a model id. A node's model property
+  \`providers()\` (→ capabilities per provider), \`generate(prompt, model)\`. Never guess a model id. A node's model property
   takes the result's \`ref\` verbatim.`
   },
   {
@@ -2071,6 +2074,10 @@ Reach for a \`ui_*\` tool only for what a server-side edit cannot do:
   drives. Headlessly these are \`nodetool.storyboards.renderStills/renderClips\`,
   \`nodetool.scripts.voice\`, \`nodetool.media.*\`, or a workflow run.
 - Moving the user's view: selection, playhead, active tool.
+- In the native timeline editor, every other editor command, from ripple delete
+  and trims to transitions and groups: \`ui_timeline_list_commands\` names them
+  and \`ui_timeline_run_command\` runs one as one undo step. Check the result with
+  \`ui_timeline_read_scopes\` and \`ui_timeline_capture_frame\`.
 
 If you do not know the document's id, find it with \`list()\` on the namespace.`;
 

@@ -115,7 +115,7 @@ describe.skipIf(!device)("timeline effect behavior (GPU)", () => {
       }
     });
 
-    const bytesPerRow = 256;
+    const bytesPerRow = Math.ceil(width * 4 / 256) * 256;
     const readback = gpu.createBuffer({
       size: bytesPerRow * height,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
@@ -201,6 +201,33 @@ describe.skipIf(!device)("timeline effect behavior (GPU)", () => {
     expect(out.at(8, 8)[0]).toBeLessThan(255); // center energy spread out
     expect(out.at(9, 8)[0]).toBeGreaterThan(0); // horizontal neighbor gains
     expect(out.at(8, 9)[0]).toBe(0); // vertical neighbor untouched (H-only)
+  });
+
+  it.each([20, 40, 64, 128])("wide Gaussian radius %i has continuous support", async radius => {
+    const width = 512, center = width / 2;
+    const out = await run(blurGaussianV1, {radius, sigma: 0, direction: d.vec2f(1, 0)}, width, 1,
+      makePixels(width, 1, x => [x === center ? 255 : 0, 0, 0, 255]));
+    const weights = Array.from({length: radius * 2 + 1}, (_, i) => Math.exp(-((i - radius) ** 2) / (2 * (radius / 3) ** 2)));
+    const total = weights.reduce((sum, value) => sum + value, 0);
+    for (let offset = -radius; offset <= radius; offset++) {
+      expect(Math.abs(out.at(center + offset, 0)[0] - Math.round(255 * weights[offset + radius]! / total))).toBeLessThanOrEqual(1);
+      if (Math.abs(offset) < radius / 2) expect(out.at(center + offset, 0)[0]).toBeGreaterThan(0);
+      expect(out.at(center + offset, 0)[3]).toBe(255);
+    }
+  });
+
+  it("keeps a narrow explicit sigma finite inside a wide radius", async () => {
+    const out = await run(blurGaussianV1, {radius: 128, sigma: 0.01, direction: d.vec2f(1, 0)}, 64, 1,
+      makePixels(64, 1, x => [x === 32 ? 255 : 0, 0, 0, 255]));
+    expect(out.at(32, 0)).toEqual([255, 0, 0, 255]);
+    expect(out.at(31, 0)).toEqual([0, 0, 0, 255]);
+  });
+
+  it("caps radius and derived sigma together at the supported maximum", async () => {
+    const pixels = makePixels(512, 1, x => [x < 256 ? 0 : 255, 0, 0, 255]);
+    const limited = await run(blurGaussianV1, {radius: 256, sigma: 0, direction: d.vec2f(1, 0)}, 512, 1, pixels);
+    const oversized = await run(blurGaussianV1, {radius: 512, sigma: 0, direction: d.vec2f(1, 0)}, 512, 1, pixels);
+    for (let x = 0; x < 512; x++) { expect(oversized.at(x, 0)).toEqual(limited.at(x, 0)); }
   });
 
   it("filters.sharpen.unsharpMask enhances an edge and leaves flats alone", async () => {

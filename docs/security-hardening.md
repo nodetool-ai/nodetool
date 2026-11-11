@@ -4,35 +4,28 @@ title: "Security Hardening"
 description: "Deployment checklists for locking down NodeTool in dev, staging, and production."
 ---
 
-Use this page as a checklist before exposing NodeTool beyond your laptop. It covers security practices for each deployment stage and links to canonical guides for configuration, authentication, and proxy settings.
+Checklist for exposing NodeTool beyond your laptop. Jump to the [Quick Security Audit](#quick-security-audit) for the pre-launch list.
 
 ---
 
 ## Universal Checklist
 
-These apply to **every** deployment, regardless of environment:
+These apply to every deployment.
 
 ### Network Security
 
-- **Require TLS** at the proxy or ingress layer. Use real certificates (e.g., Let's Encrypt) and redirect HTTP to HTTPS.
-- **Restrict Docker access**: Run the proxy on a dedicated Docker network and avoid exposing the Docker socket beyond the host.
-- **Firewall rules**: Only expose the ports you need (typically 443 for HTTPS). Block direct access to internal service ports.
+- Terminate TLS at the proxy or ingress with real certificates and redirect HTTP to HTTPS. To terminate in NodeTool itself, see [Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls).
+- Run the proxy on a dedicated Docker network and do not expose the Docker socket beyond the host.
+- Expose only the ports you need (typically 443) and block direct access to internal service ports.
 
 ### Authentication
 
-> **⚠️ `NODETOOL_TRUST_LOCAL_NETWORKS` bypasses login entirely.** Every source
-> IP in that list is trusted as admin user `"1"` with no password — full access
-> to data, secrets, and API keys. The Docker Compose file trusts the Docker
-> bridge (`172.16.0.0/12`) and Docker Desktop's VM gateway subnet
-> (`192.168.65.0/24`) so a single-user local install works out of the box.
-> **Never set it to `0.0.0.0/0` on a public IP, and never widen it as a
-> substitute for real auth** — enable Supabase mode instead. See
-> [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).
+> **`NODETOOL_TRUST_LOCAL_NETWORKS` bypasses login entirely.** Every source IP in that list is trusted as admin user `"1"` with no password, with full access to data, secrets, and API keys. The Docker Compose file trusts the Docker bridge (`172.16.0.0/12`) and Docker Desktop's VM gateway subnet (`192.168.65.0/24`) for single-user local installs. Never set it to `0.0.0.0/0` on a public IP, and never widen it in place of real auth. Enable SSO or Supabase mode instead. See [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).
+{: .callout-warning}
 
-- **Enforce auth on any network-accessible deployment.** The server enforces authentication only when it is in Supabase mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
+- **Enforce auth on any network-accessible deployment.** The server enforces authentication only in Supabase mode (**both** `SUPABASE_URL` and `SUPABASE_KEY` set) or SSO mode (**both** `OIDC_ISSUER` and `OIDC_CLIENT_ID` set). Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
 - **Lock down localhost trust.** Behind a reverse proxy or in a container, set `NODETOOL_TRUST_LOCALHOST=false` (it already defaults off when auth is enforced) and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`, so a proxy connecting from loopback cannot silently bypass auth.
 - **Keep `NODETOOL_TRUST_LOCAL_NETWORKS` tight.** Trust the smallest range that works (the Docker bridge, not `0.0.0.0/0`), and firewall the published port. It is ignored in Supabase mode.
-- **Rotate keys regularly**: set calendar reminders to rotate Supabase service-role keys.
 - **Know what the server ignores.** `SERVER_AUTH_TOKEN` and `~/.config/nodetool/deployment.yaml` are read only by the `@nodetool-ai/deploy` helpers. The running server does not check them, so they do not protect the API. See [Authentication](authentication.md#deploy-token-helpers).
 - **Use access tokens for agents.** A signed-in person can mint a revocable `ntk_` token for an MCP client or script. It works in every auth mode, so there is no need to widen `NODETOOL_TRUST_LOCAL_NETWORKS` to reach `/mcp`.
 - **Keep `/mcp` off unless needed.** With `NODETOOL_ENV=production` the `/mcp` mount is not registered unless `NODETOOL_ENABLE_MCP=1`. It carries the full agent toolbelt, so enable it only when clients authenticate. See [MCP production](mcp-production.md).
@@ -40,30 +33,18 @@ These apply to **every** deployment, regardless of environment:
 
 ### Secrets Management
 
-- **Keep secrets out of Git**: Load provider API keys and tokens from environment variables or a secrets manager.
-- **Never commit `.env` files** with secrets. Add `.env` to `.gitignore`.
+- Load provider API keys and tokens from environment variables or a secrets manager. Do not commit `.env` files.
 - Provide the encryption master key (`SECRETS_MASTER_KEY`) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager. Rotating the master key also invalidates every delegated (messaging bridge) token and deployed-app session token, which are signed with keys derived from it.
 - **Set `NODETOOL_INTEGRATION_TOKEN`** to a random value of 16 or more characters only if you use messaging integrations. Shorter values are ignored and the `/api/integrations` routes are not registered.
 
 ### Asset Storage
 
-Asset objects live at `<userId>/<assetId>.<ext>`. The owner is the leading
-path segment, so the tenant boundary is enforceable by the storage backend
-itself, not just by the API:
+Asset objects live at `<userId>/<assetId>.<ext>`. The owner is the leading path segment, so the storage backend can enforce the tenant boundary itself:
 
-- **Run `nodetool storage migrate-keys`** when upgrading a deployment that
-  predates this layout. The local file backend falls back to the old flat key
-  on a miss, but Supabase and S3 resolve through signed URLs and need the
-  objects actually moved. `--dry-run` reports what would move.
-- **Keep the bucket private.** Reads go through short-lived signed URLs minted
-  per request; a public bucket bypasses that entirely.
-- **Add a storage policy keyed on the prefix** on Supabase (an RLS policy on
-  `storage.objects` matching `(storage.foldername(name))[1] = auth.uid()::text`)
-  or S3 (a bucket policy on the key prefix). The API already enforces this, but
-  a policy makes it hold even if a signed URL leaks or a handler regresses.
-- **Never ship `SUPABASE_KEY` to a client.** The service-role key stays
-  server-side; browsers upload through the one-shot, key-scoped targets that
-  `assets.createUpload` mints, which authorise a write to exactly one object.
+- Run `nodetool storage migrate-keys` when upgrading a deployment that predates this layout. The local file backend falls back to the old flat key on a miss. Supabase and S3 resolve through signed URLs and need the objects moved. `--dry-run` reports what would move.
+- Keep the bucket private. Reads use short-lived signed URLs minted per request, and a public bucket bypasses that.
+- Add a storage policy keyed on the prefix: on Supabase an RLS policy on `storage.objects` matching `(storage.foldername(name))[1] = auth.uid()::text`, on S3 a bucket policy on the key prefix. The API already enforces this, and a policy holds even if a signed URL leaks or a handler regresses.
+- Never ship `SUPABASE_KEY` to a client. Browsers upload through the key-scoped, single-object targets that `assets.createUpload` mints.
 
 ### Local File Access
 
@@ -76,31 +57,20 @@ Sensitive entries under home (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.docker`,
 `.config/gcloud`, `.netrc`, `.pgpass`, `.npmrc`) are refused inside a root, and
 symlinks that leave the roots are refused too.
 
-- **Keep the roots narrow.** Widen `NODETOOL_LOCAL_FILE_ROOTS` only to the
-  directories that actually hold media you preview — an external volume, a
-  scratch dir — never to `/`. The single entry `*` lifts the containment check
-  (the denylist still applies); it belongs to the desktop app, which runs the
-  server as one user's own process on loopback and lets them drag a file onto
-  the canvas from anywhere. Electron sets it, and a launching environment that
-  configured its own roots keeps them.
-- **Set `NODETOOL_ENV=production`** on any deployment more than one person can
-  reach, which disables both surfaces outright.
+- Widen `NODETOOL_LOCAL_FILE_ROOTS` only to directories that hold media you preview, never to `/`. The single entry `*` lifts the containment check (the denylist still applies). It belongs to the desktop app, which runs the server as one user's process on loopback so they can drag a file onto the canvas from anywhere. Electron sets it, and a launching environment that configured its own roots keeps them.
+- Set `NODETOOL_ENV=production` on any deployment more than one person can reach. It disables both surfaces.
 
 ### Resource Limits
 
-- **Set container resource limits**: Use `mem_limit` and `cpus` to prevent runaway workloads.
-- **Use read-only mounts** where possible to limit filesystem write access.
-- See [Docker Resource Management](docker-resource-management.md) for configuration details.
+Set `mem_limit` and `cpus` on containers and use read-only mounts where possible. See [Docker Resource Management](docker-resource-management.md).
 
 ---
 
 ## Development (Local)
 
-Local development has the lowest risk but still deserves basic hygiene:
-
 | Action | Details |
 |--------|---------|
-| Bind to localhost only | Use `127.0.0.1` for all services; avoid publishing container ports to the LAN |
+| Bind to localhost only | Use `127.0.0.1` for all services and do not publish container ports to the LAN |
 | Use temporary tokens | Mint throwaway `ntk_` access tokens for demos and revoke them when finished |
 | Don't expose to the internet | Never use `ngrok` or similar tunneling without authentication in place |
 
@@ -108,67 +78,42 @@ Local development has the lowest risk but still deserves basic hygiene:
 
 ## Staging
 
-Staging environments should mirror production security with some allowances for debugging:
-
 | Action | Details |
 |--------|---------|
-| Gate access | Use VPN or IP allowlists; do not rely on obscurity |
+| Gate access | Use a VPN or IP allowlists |
 | Separate credentials | Use distinct Supabase projects and tokens from production |
-| Rotate on personnel changes | Rotate service-role keys when team members leave |
+| Rotate on personnel changes | Rotate Supabase service-role keys when team members leave |
 | Enable end-to-end TLS | Including internal hops if traversing untrusted networks |
-| Regular backups | Back up workspace volumes and databases on a schedule; restrict who can read backups |
+| Regular backups | Back up workspace volumes and databases on a schedule and restrict who can read backups |
 | Audit logging | Enable request logging at the proxy layer to track access patterns |
 
 ---
 
 ## Production
 
-Production deployments require the strictest security posture:
-
 ### Authentication & Authorization
 
-- **Enable Supabase mode** (set both `SUPABASE_URL` and `SUPABASE_KEY`) for any multi-user or network-accessible deployment so every request is authenticated
-- Keep `NODETOOL_TRUST_LOCALHOST` off and restrict `NODETOOL_TRUSTED_PROXIES` to your real proxy addresses
-- **Unset `NODETOOL_TRUST_LOCAL_NETWORKS`** (or leave it ignored under Supabase mode) — never carry a `0.0.0.0/0` trust rule into production
-- Use **dedicated service accounts** for each deployment; avoid shared credentials
-- Distribute bearer tokens and keys through your secrets manager, not through files in the image or repository
-- **Public app links are a production-only surface** (`NODETOOL_ENV=production`). An owner can deploy a published mini app to `/a/<token>`, where anyone with the link runs it without logging in — on the owner's provider keys, against the app's spend budget. Set a budget on every deployed app (**Governance › Spend budget**), and treat the link as the credential it is: withdrawing it is the only way to invalidate it, and outstanding run sessions expire after one hour rather than immediately
+- Enable SSO or Supabase mode for any multi-user or network-accessible deployment so every request is authenticated.
+- Keep `NODETOOL_TRUST_LOCALHOST` off and restrict `NODETOOL_TRUSTED_PROXIES` to your real proxy addresses.
+- Unset `NODETOOL_TRUST_LOCAL_NETWORKS`. Never carry a `0.0.0.0/0` trust rule into production.
+- Use a dedicated service account per deployment and distribute tokens through your secrets manager, not files in the image or repository.
+- Public app links exist only with `NODETOOL_ENV=production`. An owner can deploy a published mini app to `/a/<token>`, where anyone with the link runs it without logging in, on the owner's provider keys, against the app's spend budget. Set a budget on every deployed app (**Governance › Spend budget**). The link is the credential. Withdrawing it is the only way to invalidate it, and outstanding run sessions expire after one hour rather than immediately.
 
-### Infrastructure
+### Infrastructure and data
 
-- Set per-container resource caps to prevent runaway workloads on multi-tenant hosts
-- Use **separate networks** for the proxy, API server, and worker containers
-- Pin container image versions (avoid `latest` tags in production)
-
-### Monitoring & Alerting
-
-- **Centralize logging** -- Forward container logs to your logging platform (ELK, CloudWatch, etc.)
-- **Monitor for anomalies**: Auth failures, 429 rate limits, container restarts, unusual traffic spikes
-- Set up **alerts** for failed authentication attempts and service health degradation
-- Track **resource usage** to detect potential abuse or misconfiguration
-
-### Image Management
-
-- **Rebuild regularly** to pick up base image security patches
-- **Track CVEs** in your base images using tools like `trivy` or `grype`
-- **Prune unused images** from registries and hosts to reduce attack surface
-- **Sign images** if your workflow supports it, to ensure integrity
-
-### Data Protection
-
-- **Encrypt data at rest** -- Use encrypted volumes for workspace and database storage
-- **Encrypt data in transit** -- TLS everywhere, including internal service communication
-- **Minimize data retention** -- Clear temporary assets on a schedule. The temp bucket is set with `TEMP_BUCKET`, separate from `ASSET_BUCKET`, so it can have its own retention policy
-- **Backup strategy** -- Regular automated backups with tested restore procedures
+- Cap per-container resources on multi-tenant hosts, use separate networks for proxy, API server, and workers, and pin image versions (no `latest`).
+- Rebuild images regularly and scan base images for CVEs.
+- Use encrypted volumes for workspace and database storage, and TLS on internal hops that cross untrusted networks.
+- Clear temporary assets on a schedule. `TEMP_BUCKET` is separate from `ASSET_BUCKET`, so it can have its own retention policy.
+- Forward container logs to your logging platform and alert on auth failures, `429` responses, and container restarts.
+- Run scheduled backups with tested restores, and restrict who can read them.
 
 ---
 
 ## Quick Security Audit
 
-Run through this checklist before any deployment goes live:
-
 - [ ] TLS enabled with valid certificates
-- [ ] Supabase mode enabled (`SUPABASE_URL` + `SUPABASE_KEY` set) for any network-accessible deployment
+- [ ] SSO or Supabase mode enabled for any network-accessible deployment
 - [ ] `NODETOOL_TRUST_LOCAL_NETWORKS` unset or tightly scoped — **no `0.0.0.0/0`** on a network-accessible deployment
 - [ ] `NODETOOL_TRUST_LOCALHOST` off and `NODETOOL_TRUSTED_PROXIES` scoped to real proxies
 - [ ] All API keys loaded from env vars or secrets manager (not hardcoded)
@@ -177,16 +122,14 @@ Run through this checklist before any deployment goes live:
 - [ ] Firewall rules restrict access to necessary ports only
 - [ ] Logging enabled and forwarded to monitoring platform
 - [ ] Backup schedule configured and tested
-- [ ] Service tokens rotated within the last 90 days
-- [ ] Base images updated within the last 30 days
 
 ---
 
 ## Related
 
-- [Authentication](authentication.md) -- Auth provider configuration
-- [Configuration Guide](configuration.md) -- Environment variables and settings
-- [Deployment Guide](deployment.md) -- Deployment overview and workflows
-- [Self-Hosted Deployment](self-hosted-deployment.md) -- Self-hosted setup details
-- [Docker Resource Management](docker-resource-management.md) -- Container resource limits
-- [Storage](storage.md) -- Storage backend configuration
+- [Authentication](authentication.md)
+- [Configuration Guide](configuration.md)
+- [Deployment Guide](deployment.md)
+- [Self-Hosted Deployment](self-hosted-deployment.md)
+- [Docker Resource Management](docker-resource-management.md)
+- [Storage](storage.md)

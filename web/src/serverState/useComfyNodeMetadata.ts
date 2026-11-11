@@ -70,6 +70,21 @@ export const reloadComfyNodeCatalog = async (): Promise<void> => {
   await mergeComfyCatalog(await loadComfyNodeCatalog());
 };
 
+/**
+ * After the Comfy target changes: reload a catalog that is already in the
+ * node menu, or drop the cached one so the next Comfy workflow loads fresh.
+ */
+export const refreshComfyNodeCatalog = async (): Promise<void> => {
+  const loaded = Object.keys(useMetadataStore.getState().metadata).some((key) =>
+    key.startsWith(COMFY_NODE_PREFIX)
+  );
+  if (loaded) {
+    await reloadComfyNodeCatalog();
+  } else {
+    catalog = null;
+  }
+};
+
 export type ComfyCatalogState =
   | { status: "idle" | "loading" | "ready" }
   | { status: "error"; error: string };

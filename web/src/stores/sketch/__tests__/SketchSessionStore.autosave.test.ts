@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, jest } from "@jest/globals";
 import { asMock, installGlobal, stub } from "../../../test-utils/doubles";
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { decodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 
 jest.mock("../../../trpc/client", () =>
   jest.requireActual("../../../__mocks__/trpcClientMock")
@@ -8,6 +9,7 @@ jest.mock("../../../trpc/client", () =>
 
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { createDefaultDocument, type HistoryEntry } from "../../../components/sketch/types";
+import { serializeLayerData } from "../../../components/sketch/rendering/canvas2d/layerIO";
 import { useSketchStore } from "../../../components/sketch/state";
 import { useAssetStore } from "../../AssetStore";
 import { useNotificationStore } from "../../NotificationStore";
@@ -22,6 +24,8 @@ import { handleDocumentResourceChange } from "../../documentSync";
 import { useConflictStore } from "../../ConflictStore";
 
 const updateMutate = asMock(trpcClient.sketch.update.mutate);
+const UPLOADED_ASSET_ID = "0123456789abcdef0123456789abcdef";
+const UPLOADED_ASSET_URI = `asset://${UPLOADED_ASSET_ID}`;
 type StandaloneResponse = NonNullable<
   Parameters<typeof useStandaloneSketchDocument>[0]
 >;
@@ -99,7 +103,7 @@ describe("useStandaloneSketchDocument", () => {
     useNotificationStore.getState().clearNotifications();
     useAssetStore.setState({
       createAsset: jest.fn(async () => ({
-        id: "asset-1",
+        id: UPLOADED_ASSET_ID,
         user_id: "user-1",
         parent_id: "",
         name: "layer.png",
@@ -256,16 +260,57 @@ describe("useStandaloneSketchDocument", () => {
     };
     expect(sketch.layers[0]?.data).toBeNull();
     expect(sketch.layers[0]?.imageReference).toEqual(
-      expect.objectContaining({ uri: "asset://asset-1" })
+      expect.objectContaining({ uri: UPLOADED_ASSET_URI })
     );
     expect(sketch.history[0]?.layerSnapshots).toEqual({
-      [layerId]: "asset://asset-1"
+      [layerId]: UPLOADED_ASSET_URI
     });
     expect(
       useNotificationStore
         .getState()
         .notifications.some((n) => n.content.includes("externalized"))
     ).toBe(true);
+  });
+
+  it("saves wrapped layer and undo bitmaps with their original raster bounds", async () => {
+    renderHook(() => useStandaloneSketchDocument(buildResponse(), true));
+    const layer = useSketchStore.getState().document.layers[0]!;
+    const image = `data:image/png;base64,${Buffer.alloc(3 * 1024 * 1024, 1).toString("base64")}`;
+    const layerBounds = { x: -4, y: 3, width: 32, height: 32 };
+    const undoBounds = { ...layerBounds, x: 8 };
+    const history = buildHistoryEntry(layer.id, serializeLayerData(image, undoBounds));
+
+    act(() => {
+      useSketchStore.setState((state) => ({
+        document: {
+          ...state.document,
+          layers: [{ ...layer, data: serializeLayerData(image, layerBounds) }]
+        },
+        history: [history],
+        historyIndex: 0
+      }));
+      jest.advanceTimersByTime(800);
+    });
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    expect(useAssetStore.getState().createAsset).toHaveBeenCalledTimes(1);
+    const input = updateMutate.mock.calls[0][0] as { document: { sketch: unknown } };
+    const saved = fromPersistedSketchEditorState(input.document.sketch);
+    expect(decodeSketchLayerData(saved.document.layers[0]?.data, 32, 32)).toEqual({
+      image: UPLOADED_ASSET_URI,
+      bounds: layerBounds
+    });
+    expect(decodeSketchLayerData(saved.history[0]?.layerSnapshots[layer.id], 32, 32)).toEqual({
+      image: UPLOADED_ASSET_URI,
+      bounds: undoBounds
+    });
+
+    act(() => {
+      useSketchStore.setState({ activeTool: "eraser" });
+      jest.advanceTimersByTime(800);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+    expect(useAssetStore.getState().createAsset).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -49,6 +49,81 @@ export type SandboxApiVerdict =
 export const SANDBOX_API_COVERAGE: Readonly<
   Record<string, SandboxApiVerdict>
 > = {
+  "admin.me": {
+    withheld:
+      "Whether the caller is an admin steers the admin UI. A run has no " +
+      "admin surface to steer."
+  },
+  "admin.permissions.getDefault": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.permissions.setDefault": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.permissions.setUser": {
+    withheld:
+      "Permission flags are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.sharing.forUser": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.sharing.makePrivate": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.sharing.removeGrant": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.sharing.revokeLink": {
+    withheld:
+      "Reviewing and taking back other people's sharing is an admin's " +
+      "decision for the whole install, not a run's."
+  },
+  "admin.quotas.clearUser": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.quotas.getDefault": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.quotas.setDefault": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.quotas.setUser": {
+    withheld:
+      "Spend limits are set by an admin for every user on the install, " +
+      "not by a run for its own owner."
+  },
+  "admin.users.get": {
+    withheld:
+      "Account administration reaches every tenant on the install, " +
+      "not the caller's own rows."
+  },
+  "admin.users.list": {
+    withheld:
+      "Account administration reaches every tenant on the install, " +
+      "not the caller's own rows."
+  },
+  "admin.users.update": {
+    withheld:
+      "Account administration reaches every tenant on the install, " +
+      "not the caller's own rows."
+  },
   "agentAccess.createToken": {
     withheld:
       "Minting a bearer token is granting a third party the user's whole " +
@@ -398,6 +473,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "document. Handing access to a *particular* account is the " +
       "user's decision, as it is for `workflows.sharing`."
   },
+  "documentSharing.invite": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "document. Handing access to a *particular* account is the " +
+      "user's decision, as it is for `workflows.sharing`."
+  },
   "documentSharing.setRole": {
     withheld:
       "Sharing grants named people and link holders access to a " +
@@ -489,6 +570,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "party access to this account. A run that could complete a link " +
       "could hand that access to whoever wrote the prompt."
   },
+  "generations.cancel": { capability: "cancel_generation" },
+  "generations.get": { capability: "get_generation" },
+  "generations.list": { capability: "list_generations" },
   "jobs.cancel": { capability: "cancel_job" },
   "jobs.get": { capability: "get_job" },
   "jobs.list": { capability: "list_jobs" },
@@ -642,6 +726,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "find_model resolves a model by capability; list_models and " +
       "list_provider_models enumerate the catalogs."
+  },
+  "models.ollamaStatus": {
+    withheld: "Host connection status is shown by provider setup, not exposed to workflow scripts."
   },
   "models.ollama": {
     withheld:
@@ -811,6 +898,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "rather than as untrusted text. A run that could grant itself " +
       "trust could escalate a prompt injection into executed code."
   },
+  "people.search": {
+    withheld:
+      "Looking people up in the user directory serves inviting them, " +
+      "which stays with the user."
+  },
   "projects.assignDocument": {
     gap:
       "Same grouping surface as `projects.create`. Moves one document " +
@@ -925,6 +1017,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "scripts.update": { capability: "edit_script" },
   "segmentation.segment": { capability: "segment_image" },
   "settings.list": { capability: "list_settings" },
+  "settings.providerCatalog": {
+    elsewhere:
+      "list_secrets exposes credential names and configured status; " +
+      "list_models and list_provider_models expose provider discovery."
+  },
   "settings.history.get": {
     withheld:
       "Database size, retention policy, and cleanup status are host " +
@@ -1396,6 +1493,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "exposed, and it is classified `external` so the gate asks; " +
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
+  },
+  "workflows.sharing.invite": {
+    withheld:
+      "Sharing grants named people and link holders access to a " +
+      "workflow. Handing access to a *particular* account is the " +
+      "user's decision."
   },
   "workflows.sharing.removeCollaborator": {
     withheld:

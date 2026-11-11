@@ -1,0 +1,232 @@
+{
+  "id": "seq-clip-curves",
+  "projectId": "native-prototype",
+  "name": "clip-curves",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "curves-0",
+      "trackId": "t0",
+      "name": "curves-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [
+        {
+          "id": "curves-0",
+          "type": "curves",
+          "enabled": true,
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.25,
+              "y": 0.18
+            },
+            {
+              "x": 0.5,
+              "y": 0.68
+            },
+            {
+              "x": 0.75,
+              "y": 0.9
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.7
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "g": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.35
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "b": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.6
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "curves-1",
+      "trackId": "t0",
+      "name": "curves-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [
+        {
+          "id": "curves-1",
+          "type": "curves",
+          "enabled": true,
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.35
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.35
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "g": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.7
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "b": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.8
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 curves two parameter settings, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 curves two parameter settings, PSNR >= 40 dB"
+    }
+  ]
+}

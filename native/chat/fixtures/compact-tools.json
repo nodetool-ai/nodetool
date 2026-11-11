@@ -1,0 +1,49 @@
+{
+  "threads": [
+    {
+      "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "title": "Compact tool details"
+    }
+  ],
+  "events": [
+    {
+      "type": "tool_call_update",
+      "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tool_call_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "name": "read_file",
+      "args": {
+        "path": "notes.txt"
+      }
+    },
+    {
+      "type": "tool_result_update",
+      "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "node_id": "",
+      "tool_call_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "name": "read_file",
+      "result": {
+        "content": "Scene one: a quiet street."
+      }
+    },
+    {
+      "type": "tool_call_update",
+      "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tool_call_id": "cccccccccccccccccccccccccccccccc",
+      "name": "execute_code",
+      "args": {
+        "title": "Count scenes",
+        "code": "console.log(2);"
+      }
+    },
+    {
+      "type": "tool_result_update",
+      "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tool_call_id": "cccccccccccccccccccccccccccccccc",
+      "name": "execute_code",
+      "is_error": true,
+      "result": {
+        "error": "Execution unavailable"
+      }
+    }
+  ]
+}

@@ -1,14 +1,15 @@
 ---
 layout: page
 title: "Connect OpenAI, Anthropic, Gemini & Ollama to NodeTool"
-description: "Bring your own keys: connect OpenAI, Anthropic, Gemini, Ollama, and 30+ providers to NodeTool workflows. Local or cloud, swap models without rewiring the graph."
+description: "Provider reference: capability matrix, the secret each provider needs, local servers, and what happens on a missing key or rate limit."
 ---
 
-A provider is the adapter between a NodeTool node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the 40+ others below. Every node that calls an LLM or a media model exposes a `model` property backed by a provider id. Pick a different provider from that same dropdown and the rest of the graph stays the same.
+A provider is the adapter between a node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the others below. Each node that calls an LLM or media model has a `model` property backed by a provider id, so changing provider is a dropdown change.
 
-This is bring-your-own-key (BYOK). NodeTool does not mark up a provider's price, and cloud usage is billed directly by the provider. The one exception is the `nodetool` provider, which exists only in NodeTool's hosted cloud (see [NodeTool managed models](#nodetool-managed-models)). Add a key in **Settings → Models & Providers**, or skip keys and run everything through local models (Ollama, vLLM, LM Studio, llama.cpp).
+> **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
+{: .callout-note}
 
-New to models and providers generally? Start with [Models & Providers](models-and-providers.md) for the local-vs-cloud overview, or [Supported Models](models.md) for the full model catalog. This page is the provider reference: what each one does, which key it needs, and where to read more.
+Add keys in **Settings → Models & Providers**. For the local-versus-cloud overview see [Models & Providers](models-and-providers.md), and for the model catalog see [Supported Models](models.md).
 
 ## Capability matrix
 
@@ -34,13 +35,16 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Opper | ✅ | | | | | | |
 | Cheaper Inference | ✅ | | | | | | |
 | API Route | ✅ | | | | | | |
+| Runcrate | ✅ | | | | | | |
+| Standard Compute | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
 | Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
-| Antigravity | ✅ | | | | | | |
+| Antigravity | ✅ | ✅ | | | | | |
+| GitHub Copilot | ✅ | | | | | | |
 | Evolink | ✅ | ✅ | ✅ | | | | |
 | kie.ai | ✅¹ | ✅ | ✅ | ✅ | | | |
 | AKI | ✅ | ✅ | | | | | |
@@ -156,6 +160,14 @@ Requesty routes chat models from OpenAI, Anthropic, Google, DeepSeek, xAI and ot
 
 API Route serves hosted chat models through `https://global.api-route.com/v1`. Set `API_ROUTE_API_KEY` in Settings > API Keys or the environment. The model picker reads `/v1/models`, keeps OpenAI-compatible routes, and uses the shared model classifier to exclude image/video entries by metadata or model ID. Chat IDs without endpoint metadata remain available for older catalogs. This integration exposes text chat and tool calls. Get a key at [API Route](https://www.api-route.com/api-keys), then select a model available to that key. API Route is a paid service. See its [setup guide](https://www.api-route.com/docs/quickstart) and [pricing](https://www.api-route.com/pricing).
 
+## Runcrate
+
+Runcrate serves open-weight chat models (DeepSeek, Qwen, GLM, Kimi, gpt-oss and others) through one OpenAI-compatible endpoint, `https://api.runcrate.ai/v1`. Text only. Cloud only, keyed by `RUNCRATE_API_KEY`. The model picker reads `/v1/models` and keeps the rows whose `input_modalities` and `output_modalities` both include `text`, so embedding, image, video and speech models stay out. Tool calling follows each row's `supported_features`, and the context window comes from its `context_length`. Get a key at [Runcrate](https://runcrate.ai/dashboard/api-keys). See the [Runcrate docs](https://runcrate.ai/docs/models/overview) and the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## Standard Compute
+
+Standard Compute serves open and frontier chat models through one OpenAI-compatible endpoint, `https://api.stdcmpt.com/v1`. Text only. Cloud only, keyed by `STANDARDCOMPUTE_API_KEY`. The default model, `StandardCompute`, is routed: each request goes to the cheapest enabled model that can handle it, with automatic fallback. The model picker reads `/v1/models`, which also lists model ids a request can pin, and uses the shared model classifier to keep chat rows. Tool calling follows each row's `supported_parameters`, and the context window comes from its `context_length`. Get a key at [Standard Compute](https://standardcompute.com/dashboard/api-keys). See the [Standard Compute docs](https://docs.standardcompute.com) and the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
 ## Opper
 
 Opper is an EU-hosted AI gateway that routes chat models from 50+ providers, including OpenAI, Anthropic, Google, DeepSeek and Moonshot, through one OpenAI-compatible endpoint, `https://api.opper.ai/v3/compat`. Text only. Cloud only, keyed by `OPPER_API_KEY`. The model picker lists Opper's pools from `/v3/compat/models?type=pool` (bare ids such as `claude-sonnet-4-6`, routed across providers) followed by the full catalog from `/v3/compat/models`, which adds `provider/model` ids that pin one route. Get a key at [Opper](https://platform.opper.ai). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
@@ -197,7 +209,13 @@ Claude Agent SDK reaches Claude by running your local, logged-in `claude` CLI in
 
 Antigravity reaches the models in Google's Antigravity CLI (`agy`), including Gemini, by running the CLI in [headless mode](https://antigravity.google/docs/cli/headless/) on your signed-in Antigravity account. There is no API key. In a local NodeTool instance, open **Settings → Models & providers → Antigravity** and select **Install Antigravity**. After installation, copy the sign-in command into a terminal, complete Google sign-in, and select **Refresh models**. NodeTool prefers its [managed CLI installation](https://github.com/nodetool-ai/nodetool/blob/main/packages/antigravity-cli/README.md), stored under its data directory. It falls back to `agy` on PATH and also searches `~/.local/bin`, where the official installer puts it. The model list is whatever `agy models` prints, and effort is part of each model id (for example `gemini-3.1-pro-high`).
 
-Each turn spawns `agy` in an empty scratch directory under the system temp folder, so the CLI's own file tools cannot touch your files. Shell commands stay blocked because NodeTool never passes `--dangerously-skip-permissions`. NodeTool tools are not offered to the model, and prompts must be text: a message with images fails instead of losing them. A forced single tool call (structured output) uses the CLI's `--json-schema`. Follow-up turns in a chat resume the same Antigravity conversation with `--conversation`. The provider is not available in NodeTool's hosted cloud because it needs a local executable.
+Each turn spawns `agy` in an empty scratch directory under the system temp folder, so the CLI's own file tools cannot touch your files. Shell commands stay blocked because NodeTool never passes `--dangerously-skip-permissions`. Prompts must be text: a message with images fails instead of losing them. A turn that offers NodeTool tools runs on `agy acp`, the CLI's Agent Client Protocol server, where the tools are served as an MCP server on a loopback port with a per-turn bearer token. NodeTool approves only those tools there, and denies the CLI's shell and file tools. A forced single tool call (structured output) uses the CLI's `--json-schema`. Other follow-up turns in a chat resume the same Antigravity conversation with `--conversation`. Image generation also runs on `agy acp`: the provider starts the CLI's `image-generator` subagent and waits for the image file it saves, which takes tens of seconds. The provider is not available in NodeTool's hosted cloud because it needs a local executable.
+
+## GitHub Copilot
+
+GitHub Copilot reaches the models your Copilot account offers by running the GitHub Copilot CLI (`copilot`) over its Agent Client Protocol server (`copilot --acp`). There is no API key. Install the CLI (`npm install -g @github/copilot`), then run `copilot login` once in a terminal. The model list comes from your account, and `auto` lets Copilot pick.
+
+Each turn runs in an empty scratch directory under the system temp folder. NodeTool starts the CLI with `--deny-tool` rules for its shell, file read and write, URL and memory tools, and with its built-in GitHub MCP servers disabled, so the CLI can reach only the tools NodeTool offers. Those tools are served to the CLI as an HTTP MCP server on a loopback port, protected by a random bearer token that lives for one turn. A forced single tool call (structured output) is offered as that tool and returned from the call. Prompts must be text, and each turn starts a fresh session primed with the conversation so far. Copilot does not generate images in this provider.
 
 ## Evolink
 
@@ -371,7 +389,7 @@ Nodes in the `nodetool.*` namespace take a `model` property and route to whichev
 
 A generic node drops parameters the selected provider doesn't support instead of erroring. Negative prompt, guidance scale, and seed apply mostly to diffusion-style backends, and GPT-Image and similar API-only models ignore them.
 
-Reach for a provider-specific node only when you need something the generic interface doesn't carry, such as MiniMax text to speech with its `emotion` and `pitch` controls.
+Use a provider-specific node only for controls the generic interface lacks, such as MiniMax text to speech with `emotion` and `pitch`.
 
 ## Getting keys in
 
@@ -396,6 +414,16 @@ nodetool secrets get OPENAI_API_KEY     # print a stored value
 Or set the variable directly in `.env.development.local` or your shell environment. A secret stored in the database wins over an environment variable of the same name, and the environment variable is the fallback when nothing is stored (the exceptions are `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `SERVER_AUTH_TOKEN`, where the environment wins). `FAL_KEY` is accepted in place of `FAL_API_KEY`. See [Configuration](configuration.md) for the full load order.
 
 Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key. Point NodeTool at the server's URL instead. For vLLM (`VLLM_BASE_URL`), llama.cpp (`LLAMA_CPP_URL`), and LM Studio (`LMSTUDIO_API_URL`), set it under **Settings → Integrations → Local Model Servers** or as an environment variable. Ollama reads `OLLAMA_API_URL` from the environment or the secret store. In NodeTool's hosted cloud these local providers are not registered, unless the server runs with `NODETOOL_NODE_PROFILE=full`.
+
+## If it fails
+
+- **Missing key:** the provider throws when called, naming the secret. Examples: `OPENAI_API_KEY is required`, `CEREBRAS_API_KEY is required`, `AKI_API_KEY is not configured`, `AZURE_OPENAI_ENDPOINT is required`, and for Anthropic `Anthropic authentication is not configured (API key, auth token, credentials, config, or profile required)`. The node fails with that message.
+- **Rejected key:** HTTP 401 or 403 is classified `auth`. **Test** on the provider in **Settings → Models & Providers** probes the provider's listing endpoint and reports `valid`, `invalid`, or `unverifiable` (a 429, a 5xx, a timeout, or a provider with no probe).
+- **Rate limit:** HTTP 429 is classified `rate_limit`. Replicate calls wait with backoff and honor `Retry-After` before the original error is thrown. Other providers pass the provider's message through.
+- **Insufficient balance:** HTTP 402 is classified `payment`.
+- **Failure report:** a failed provider call produces a `provider_call_failed` message with provider, model, operation, kind, status, and message. A cancelled run produces none.
+
+Sources: `provider-call-failure.ts`, `credential-check.ts`, `replicate-retry.ts` in `packages/runtime/src/providers/`.
 
 ## Tracking spend
 

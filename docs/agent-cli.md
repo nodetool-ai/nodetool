@@ -3,15 +3,7 @@ layout: page
 title: "Agent CLI"
 ---
 
-The `nodetool agent` command runs one CodeAct turn from the terminal. It takes
-an objective, hands it to the model as the user message, and prints the final
-answer. The model acts by writing sandboxed JavaScript over the toolbelt — the
-same loop the chat runs — so what it does is up to it: call a tool, decompose
-the objective with `create_plan` and run the DAG with `execute_plan`, or answer
-straight away. Every run streams a live trace of tool calls, plan events, and
-task events to stderr.
-
-There is no configuration file. Everything the command needs is an argument.
+`nodetool agent run` runs one CodeAct turn: the objective is the user message, the model acts by writing sandboxed JavaScript over the toolbelt (the same loop the chat runs), and the final answer prints to stdout. A live trace of tool calls, plan events, and task events streams to stderr. There is no configuration file.
 
 ## Subcommands
 
@@ -21,9 +13,6 @@ nodetool agent diagnose <job_id>       # aggregate a failed run into one report
 ```
 
 ### `nodetool agent run`
-
-The objective comes from `-o, --objective` or, when that is absent, from piped
-stdin.
 
 ```bash
 nodetool agent run -p anthropic -m claude-sonnet-5 \
@@ -35,14 +24,14 @@ echo "Research the latest AI trends" | \
 
 **Options:**
 
-- `-o, --objective <text>` — Objective for the agent (else read from stdin)
+- `-o, --objective <text>` — Objective for the agent. Without it, read from piped stdin
 - `-p, --provider <id>` — Provider id (required)
 - `-m, --model <id>` — Model id (required)
 - `-w, --workspace <path>` — Workspace dir for file tools (default: cwd)
 - `--max-iterations <n>` — Tool-calling rounds in the turn (default 25)
 - `--permission-mode <default|auto|plan>` — How tool calls are gated (see [Permission mode](#permission-mode))
 - `--cost-cap <usd>` — Ceiling on provider spend for the whole run; `0` lifts it
-- `--timeout <s>` — Wall-clock bound on the run in seconds; `0` leaves it none
+- `--timeout <s>` — Wall-clock bound on the run in seconds; `0` gives the run no time, so it stops before its first model call
 - `--json` — Emit each agent event as a JSON line on **stderr**
 - `-v, --verbose` — Include low-level chunk and other events in the trace
 
@@ -68,14 +57,6 @@ arrives as an `error` event. Every run ends with what it committed —
 ```bash
 nodetool agent run -p openai -m gpt-5.4-mini -o "Research AI trends" \
   --cost-cap 0.50 --timeout 120
-```
-
-The final result goes to **stdout** and the trace goes to **stderr**, so you can
-capture the result on its own:
-
-```bash
-nodetool agent run -p openai -m gpt-5.4-mini \
-  -o "Summarize NodeTool" > result.txt
 ```
 
 ### Permission mode

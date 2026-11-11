@@ -25,8 +25,8 @@ import {
 } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import {
-  getReplicateApiKey,
-  replicateSubmit,
+  REPLICATE_PROVIDER_ID,
+  replicateCapabilityForOutputType,
   removeNulls,
   isRefSet,
   assetToUrl,
@@ -114,8 +114,7 @@ function promptAssetOverrides(
 async function buildArgs(
   instance: BaseNode,
   spec: ReplicateManifestEntry,
-  apiKey: string,
-  context?: Parameters<BaseNode["process"]>[0]
+  context: Parameters<BaseNode["process"]>[0]
 ): Promise<ReplicateInput> {
   const args: ReplicateInput = {};
   const overrides = await promptAssetOverrides(instance, spec, context);
@@ -147,13 +146,13 @@ async function buildArgs(
         const urls: string[] = [];
         for (const ref of refs) {
           if (isRefSet(ref)) {
-            const url = await assetToUrl(ref, apiKey, context);
+            const url = await assetToUrl(ref, context);
             if (url) urls.push(url);
           }
         }
         if (urls.length) args[apiName] = urls;
       } else if (isRefSet(value)) {
-        const url = await assetToUrl(value, apiKey, context);
+        const url = await assetToUrl(value, context);
         if (url) args[apiName] = url;
       }
     } else {
@@ -214,14 +213,26 @@ export function createReplicateNodeClass(
   );
   const specRef = spec;
 
+  const capability = replicateCapabilityForOutputType(spec.outputType);
+
   const executePrediction = async (
     instance: BaseNode,
     context?: Parameters<BaseNode["process"]>[0]
   ): Promise<ReplicateOutput> => {
-    const apiKey = getReplicateApiKey(instance._secrets);
-    const args = await buildArgs(instance, specRef, apiKey, context);
-    const res = await replicateSubmit(apiKey, specRef.endpointId, args);
-    return res.output;
+    if (!context) {
+      throw new Error(`${nodeType} needs a processing context to call Replicate`);
+    }
+    const args = await buildArgs(instance, specRef, context);
+    const { output } = await context.callProviderEndpoint({
+      provider: REPLICATE_PROVIDER_ID,
+      capability,
+      model: specRef.endpointId,
+      input: args,
+      nodeId: instance.__node_id || nodeType
+    });
+    // SAFETY: the provider returns the prediction's decoded JSON output with
+    // file URLs as strings, which is every branch `ReplicateOutput` names.
+    return output as ReplicateOutput;
   };
 
   const ReplicateNodeClass = class extends BaseNode {

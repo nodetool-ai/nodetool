@@ -18,6 +18,7 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { timelineColorSpaceError } from "@nodetool-ai/timeline";
 import type {
   TimelineDocument,
   TimelineSequence,
@@ -1299,6 +1300,22 @@ const previewTimelineFrame: CapabilityExport = {
       meta = { fps: resolved.fps, width: resolved.width, height: resolved.height };
       durationMs = resolved.durationMs;
       name = resolved.name;
+    } else if (isRecord(inline)) {
+      // An inline draft of a stored timeline keeps that timeline's frame, so a
+      // vertical cut does not preview as 16:9. A size on the document itself,
+      // then an explicit parameter, wins over the row.
+      if (typeof timelineId === "string" && timelineId) {
+        const seq = await loadTimeline(run, timelineId);
+        if (!isError(seq)) {
+          const resolved = seq.toTimelineSequence();
+          meta = { fps: resolved.fps, width: resolved.width, height: resolved.height };
+        }
+      }
+      meta = {
+        fps: numberParam(params["fps"]) ?? numberParam(inline["fps"]) ?? meta.fps,
+        width: numberParam(params["width_px"]) ?? numberParam(inline["width"]) ?? meta.width,
+        height: numberParam(params["height_px"]) ?? numberParam(inline["height"]) ?? meta.height
+      };
     }
 
     if (!isRecord(document)) {
@@ -1339,6 +1356,7 @@ const previewTimelineFrame: CapabilityExport = {
     let result;
     try {
       result = await renderTimelineFrames({
+        signal: run.signal ?? run.context.signal,
         sequence: {
           ...(document as object),
           tracks,
@@ -1571,6 +1589,7 @@ const compareTimelineFrames: CapabilityExport = {
     const width = numberParam(params["width"]) ?? DEFAULT_COMPARE_WIDTH;
     const renderSide = (side: CompareSide) =>
       renderTimelineFrames({
+        signal: run.signal ?? run.context.signal,
         sequence: {
           ...side.document,
           tracks: Array.isArray(side.document["tracks"])
@@ -1891,6 +1910,10 @@ const renderTimeline: CapabilityExport = {
   impl: async (run, params) => {
     const seq = await loadTimeline(run, params["timeline_id"]);
     if (isError(seq)) return seq;
+    const versionError = timelineColorSpaceError(seq.toDocument());
+    if (versionError) {
+      return { error: versionError };
+    }
 
     const { resolveRunEnvironment, userIdOf, noRegistryError } = await import(
       "../tools/mcp-tool-support.js"

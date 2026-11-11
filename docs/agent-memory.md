@@ -7,27 +7,23 @@ description: "Unified, structured memory shared by every agent, task, and step i
 
 **Navigation**: [Chat & Agents](global-chat-agents.md) → **Agent Memory**
 
-> **Not the same as the `memory_*` capabilities.** This page describes per-run scratch space (`context.memory`) shared between the steps of one workflow. For the notes an agent saves durably, across every conversation, see [Memory](memory.md).
+> For notes an agent saves across conversations, see [Memory](memory.md). This page covers only the per-run store.
 
-The **agent memory system** is the single source of truth for everything that flows between agents, tasks, steps, sub-agents, and tools during a workflow run. One `AgentMemory` instance lives on every `ProcessingContext` as `context.memory`. All executors read from and write to it through a single namespaced API, and every agent accesses it through three auto-attached tools:
+`context.memory` is a key-value store on every `ProcessingContext`. Executors write step and task results into it, and agents read it through three tools. This is what `list_shared` returns mid-run:
 
-- `list_shared` — discover what's available (metadata only)
-- `read_shared` — fetch full values for specific keys
-- `share_result` — publish a value under the `shared:` namespace
+```jsonc
+{
+  "total": 2, "returned": 2, "truncated": false,
+  "entries": [
+    { "key": "task:research", "kind": "task_result", "title": "Research findings",
+      "source": "research", "valueBytes": 142, "createdAt": "2026-05-07T14:00:01.234Z" },
+    { "key": "shared:top_source", "kind": "shared", "title": "Top source URL",
+      "source": "share_result", "valueBytes": 19, "createdAt": "2026-05-07T14:00:03.020Z" }
+  ]
+}
+```
 
-This page is the full reference. For a quick orientation, jump to [Quick Reference](#quick-reference) or [Examples](#examples).
-
----
-
-## Why This Exists
-
-Earlier versions of the agent system kept results in three uncoordinated stores (`context._variables`, `ParallelTaskExecutor.taskResults`, `TaskBoard.task.result`) and had each agent type deliver upstream results to the LLM differently. Plan mode replaced the default execution prompt with a "dependency context" block that stripped the `finish_step` discipline, so downstream tasks routinely lost results.
-
-The fix is one store, one API, and one access pattern — **progressive disclosure via tool calls**:
-
-- **Auto-injection is wasteful**: dumping all upstream results into every prompt bloats context with data the step rarely needs.
-- **Tool-mediated access is selective**: the agent sees a tiny "what's available" hint in the system prompt and pulls only the values it actually needs.
-- **Specific declared dependencies still get a nudge**: if the planner declared `task.dependsOn` or `step.dependsOn`, those exact memory keys appear in the user message as a hint — but the values are not included.
+The store lives for one run. It is cleared when the run ends and is not shown on the Memory page.
 
 ---
 
@@ -54,7 +50,7 @@ The fix is one store, one API, and one access pattern — **progressive disclosu
    read_shared / share_result tools)         TaskExecutor)
 ```
 
-Every executor writes results into `context.memory`. Every step has the three memory tools available automatically, and the system prompt instructs the model when to use them.
+Every step has `list_shared`, `read_shared`, and `share_result` attached automatically. The step prompt does not include memory contents. The agent lists metadata, then reads only the keys it needs. The step's user message names the keys the planner declared through `task.dependsOn` or `step.dependsOn`, without their values.
 
 ---
 
@@ -67,7 +63,7 @@ Every executor writes results into `context.memory`. Every step has the three me
 | `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor` | Caller-supplied inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | `share_result` tool | Cross-agent communication, scratch space |
 
-Always use the helper functions when constructing keys — they prevent typos and make grep-able call sites.
+Build keys with the `memoryKeys` helpers.
 
 ```ts
 import { memoryKeys } from "@nodetool-ai/runtime";
@@ -99,17 +95,17 @@ export interface MemoryEntry {
 }
 ```
 
-`title` and `description` flow through to `list_shared` output, so set them when you want the LLM to see a friendly label rather than a UUID.
+`title` and `description` appear in `list_shared` output.
 
 ---
 
 ## Memory Tools (the LLM-facing API)
 
-Three tools are auto-attached to every step executor. Inside a CodeAct step the model reaches them as `nodetool.shared.list(opts)`, `nodetool.shared.read(keys)`, and `nodetool.shared.publish(key, value, opts)` (`opts` carries `title` and `description`). The wire names below are what the tool calls and the supervisor's `StepExecutor` use.
+Inside a CodeAct step the model calls `nodetool.shared.list(opts)`, `nodetool.shared.read(keys)`, and `nodetool.shared.publish(key, value, opts)` (`opts` carries `title` and `description`). The wire names below are what tool calls and the supervisor's `StepExecutor` use.
 
 ### `list_shared`
 
-Discover available entries without paying for their values.
+Returns metadata only.
 
 ```jsonc
 // args
@@ -143,7 +139,7 @@ Discover available entries without paying for their values.
 
 ### `read_shared`
 
-Fetch full values for one or more keys.
+Returns full values for the keys given.
 
 ```jsonc
 // args
@@ -165,11 +161,11 @@ Fetch full values for one or more keys.
 }
 ```
 
-Missing keys are reported in `missing` so the model can decide whether to retry, list again, or proceed without them. A key with no `:` is retried under `shared:`, so the suffix given to `share_result` reads back as written. Each entry is the full `MemoryEntry`, so `createdAt` is a millisecond number here.
+Missing keys come back in `missing`. A key with no `:` is retried under `shared:`, so the suffix given to `share_result` reads back as written. Each entry is the full `MemoryEntry`, so `createdAt` is a millisecond number here.
 
 ### `share_result`
 
-Publish a value under the `shared:` namespace so other agents and steps can discover it via `list_shared`.
+Publishes a value under `shared:`.
 
 ```jsonc
 // args
@@ -184,13 +180,13 @@ Publish a value under the `shared:` namespace so other agents and steps can disc
 { "ok": true, "key": "shared:top_source", "kind": "shared", "createdAt": "..." }
 ```
 
-A key that already starts with `shared:` has the prefix stripped, so writing back a key from `list_shared` does not produce `shared:shared:<key>`. `title` defaults to the key suffix, and `source` is always `share_result`. Writes are restricted to the `shared:` namespace to prevent agents from spoofing step / task / input results.
+A key that already starts with `shared:` has the prefix stripped, so writing back a key from `list_shared` does not produce `shared:shared:<key>`. `title` defaults to the key suffix, and `source` is always `share_result`. Writes are limited to `shared:`, so an agent cannot overwrite step, task, or input results.
 
 ---
 
 ## Direct API Reference
 
-The `AgentMemory` class lives in `packages/runtime/src/agent-memory.ts` and is re-exported from `@nodetool-ai/runtime`. Tools and executors use this API directly; agents reach it only through the three memory tools above.
+`AgentMemory` lives in `packages/runtime/src/agent-memory.ts` and is exported from `@nodetool-ai/runtime`. Executors use it directly. Agents reach it through the three tools.
 
 Other methods: `delete(key)` returns whether the key existed, `size()` returns the entry count, and `formatForPrompt(filter?)` renders matching entries as a Markdown block ordered by `createdAt` (empty string when none match).
 
@@ -239,8 +235,6 @@ const unsubscribe = context.memory.subscribe((entry) => {
 unsubscribe();
 ```
 
-UIs can use this to render a live memory side panel.
-
 ### Snapshot and restore
 
 ```ts
@@ -248,7 +242,7 @@ const saved = context.memory.snapshot();   // MemoryEntry[] in insertion order
 context.memory.restore(saved);             // rewrites each entry, keeps createdAt, notifies subscribers
 ```
 
-Persist a snapshot at a checkpoint and call `restore` on a fresh `AgentMemory` to rebuild it. Existing keys are overwritten.
+`restore` on a fresh `AgentMemory` rebuilds it. Existing keys are overwritten.
 
 ### Clearing
 
@@ -383,19 +377,6 @@ This is the canonical end-to-end flow for a multi-task plan:
 
 ## Examples
 
-### Inspect memory at the end of a run
-
-```ts
-import { memoryKeys } from "@nodetool-ai/runtime";
-
-// After the turn that called execute_plan has finished:
-console.log("All task results:", context.memory.list({ kind: "task_result" }));
-console.log(
-  "Specific task:",
-  context.memory.getValue(memoryKeys.task("research_phase"))
-);
-```
-
 ### What the LLM sees (StepExecutor system prompt extract)
 
 The `StepExecutor` default execution system prompt includes the block below. A CodeAct step is taught the same three operations as `nodetool.shared.list`, `read`, and `publish`.
@@ -460,85 +441,13 @@ context.memory.set({
 
 Subsequent agents will see this via `list_shared` and can fetch it via `read_shared`.
 
-### Subscribe in a host application (UI sidebar)
+## Design notes
 
-```ts
-const unsubscribe = context.memory.subscribe((entry) => {
-  ui.appendMemoryEntry(entry); // render the new entry in a side panel
-});
-```
-
----
-
-## Quick Reference
-
-```ts
-import { AgentMemory, memoryKeys, type MemoryEntry } from "@nodetool-ai/runtime";
-
-// Already mounted on every ProcessingContext
-context.memory; // AgentMemory
-
-// Write
-context.memory.set({
-  key: memoryKeys.task("t1"),
-  kind: "task_result",
-  value: result,
-  source: "t1",
-  title: "Task One"
-});
-
-// Read
-context.memory.get(memoryKeys.task("t1"));        // MemoryEntry | undefined
-context.memory.getValue(memoryKeys.task("t1"));   // unknown | undefined
-context.memory.has(memoryKeys.task("t1"));        // boolean
-
-// List / filter
-context.memory.list({ kind: "task_result" });
-context.memory.list({ keyPrefix: "step:" });
-context.memory.list({ sources: ["research"] });
-
-// Subscribe
-const off = context.memory.subscribe((entry) => { /* ... */ });
-
-// Clear
-context.memory.clear({ kind: "step_result" });
-```
-
-LLM-facing tools (auto-attached to every step):
-
-| Tool | Purpose | Returns |
-|---|---|---|
-| `list_shared` | Discover entries (metadata only) | `{ total, returned, entries: [...] }` |
-| `read_shared` | Fetch full values for specific keys | `{ entries: { ... }, missing: [...] }` |
-| `share_result` | Publish under `shared:<key>` | `{ ok, key, kind, createdAt }` |
-
----
-
-## Design Decisions
-
-**Why progressive disclosure and not auto-injection?**
-Auto-injecting every memory entry into every prompt is wasteful. Most steps need one or two specific upstream values; dumping all of them costs tokens and pollutes attention. Progressive disclosure mirrors how a human researcher works: scan the index, fetch the specific document, ignore the rest.
-
-**Why expose memory through tools instead of a dedicated channel?**
-Models in 2026 are excellent tool callers — and tools come with rich JSON schemas that make discovery, filtering, and parameter validation trivial. Adding bespoke prompt syntax for memory access would be reinventing function calling. Tools also give us first-class observability: every memory access shows up as a `tool_call_update` in the message stream.
-
-**Why is `share_result` restricted to `shared:`?**
-Step results, task results, and inputs are owned by the executors. Letting an agent overwrite a `task:<id>` entry would let it spoof the result of work it didn't actually do, breaking the audit trail. Agents publish under `shared:` and the executor namespaces stay tamper-proof.
-
-**Why does the user message still mention specific upstream keys?**
-A pure tool-only design would force the agent to call `list_shared` even when the planner already declared the dependency. That's an unnecessary round trip for a known-relevant key. The user message names exactly the keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn`), so the agent can go straight to `read_shared` for declared deps and use `list_shared` only when it needs to discover beyond them.
-
-**Why a single map and not a relational store?**
-Agent runs are short-lived and the data is small (typically tens of entries). A `Map` plus structured rendering covers every observed use case without the operational cost of a database. Persistent storage belongs in the asset / vector layer.
-
-**Why namespaced string keys instead of typed IDs?**
-The LLM has to read keys back from the tool result and pass them to `read_shared`. Strings round-trip cleanly through prompts and logs without serialization games.
-
-**Why isn't memory shared across `context.copy()`?**
-Copies are designed for isolated sub-runs. If a sub-run should inherit memory, the caller can `set` entries from the parent before kicking it off. Default isolation is the safer choice.
-
-**Why does `systemPrompt` no longer replace the default execution prompt?**
-Replacing it stripped the memory-tool documentation and the completion discipline. The fix layers any caller preamble before the default prompt rather than replacing it. The execution contract (memory tools, output schema, completion protocol, conclusion-stage rules) is now non-bypassable.
+- Progressive disclosure: a step needs one or two upstream values, so listing metadata first keeps prompts small.
+- Declared dependencies are named in the step's user message, so the agent can go straight to `read_shared`.
+- `share_result` writes only `shared:` so step, task, and input results stay executor-owned.
+- `context.copy()` does not share memory unless called with `shareMemory: true`, as `TaskExecutor` does. A sub-run that should inherit memory gets entries `set` from the parent first.
+- A caller-supplied `systemPrompt` is layered before the default execution prompt, so the memory tools and completion protocol stay in force.
 
 ---
 
@@ -561,7 +470,8 @@ Replacing it stripped the memory-tool documentation and the completion disciplin
 
 ## Related
 
-- [Chat & Agents](global-chat-agents.md) — agents overview
+- [Memory](memory.md): durable notes across conversations
+- [Chat & Agents](global-chat-agents.md)
 - `packages/runtime/src/agent-memory.ts` — `AgentMemory` implementation
 - `packages/agents/src/capabilities/shared.ts` — `list_shared` / `read_shared` / `share_result` (the `shared` capability module; `packages/agents/src/tools/memory-tools.ts` is the belt executors mount them from)
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end propagation tests including the tool round-trip

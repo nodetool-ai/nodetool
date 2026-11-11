@@ -176,6 +176,36 @@ async process(): Promise<Record<string, unknown>> {
 }
 ```
 
+## Provider Nodes
+
+When NodeTool already has a provider for the vendor (FAL, Replicate, KIE,
+Topaz and the others in `packages/runtime/src/providers/`), the node does not
+read the key or call the vendor itself. It sends the vendor's arguments
+through the context, which runs the call inside the generation seam and
+records it:
+
+```typescript
+static readonly requiredSettings = ["FAL_API_KEY"];
+
+async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+  if (!context) throw new Error("This node needs a processing context");
+  const imageUrl = await context.uploadProviderMedia({
+    provider: "fal_ai", bytes, mimeType: "image/png",
+  });
+  const result = await context.callProviderEndpoint({
+    provider: "fal_ai",
+    capability: "image_to_image",
+    model: "fal-ai/flux/dev/image-to-image",
+    input: { prompt: this.prompt, image_url: imageUrl },
+  });
+  // result.output is the vendor's JSON. Fetch result files through the provider:
+  // await context.downloadProviderMedia({ provider: "fal_ai", url });
+}
+```
+
+Keep `requiredSettings` so the UI shows which key the node needs. In tests,
+resolve the provider to a `ScriptedProvider` with `context.setProviderResolver`.
+
 ## Media Refs (Image/Audio/Video)
 
 A ref may carry inline `data`, or only a `uri` (`asset://`, `file://`, storage,

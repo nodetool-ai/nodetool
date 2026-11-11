@@ -238,15 +238,17 @@ function gptImageQualityTier(
 }
 
 /**
- * GPT Image 2.5 token pricing in USD.
+ * GPT Image 2.5 and 2.6 token pricing in USD.
  * Source: https://developers.openai.com/api/docs/pricing
+ * Models: https://developers.openai.com/api/docs/models/gpt-image-2.6-flare
+ * https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst
  */
-function gptImage25TokenCost(
+function gptImageTokenCost(
   modelId: string,
   usage: UsageInfo
 ): number | null {
   if (
-    !/^gpt-image-2\.5-(?:flare|sunburst)(?:-\d{4}-\d{2}-\d{2})?$/.test(
+    !/^gpt-image-2\.[56]-(?:flare|sunburst)(?:-\d{4}-\d{2}-\d{2})?$/.test(
       modelId.toLowerCase()
     )
   ) {
@@ -326,8 +328,8 @@ export class CostCalculator {
       return CostCalculator._calculateForTier(gptImageTier, usage);
     }
 
-    const gptImage25Cost = gptImage25TokenCost(modelId, usage);
-    if (gptImage25Cost !== null) return gptImage25Cost;
+    const gptImageCost = gptImageTokenCost(modelId, usage);
+    if (gptImageCost !== null) return gptImageCost;
 
     // Non-token modalities (image / audio duration / characters / 3D task).
     const tierName = CostCalculator.getTier(modelId, provider);

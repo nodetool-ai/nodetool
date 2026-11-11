@@ -1,13 +1,22 @@
 /** Model/task catalog for workflows executed on Comfy Cloud's GPUs. */
 import { Comfy } from "@comfyorg/sdk";
-import { loadPackageAssetJson } from "@nodetool-ai/config";
+import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
 import type { ComfyApiPrompt, ComfyObjectInfo } from "@nodetool-ai/protocol";
 import { COMFY_TEMPLATES } from "./comfy-template-graphs.js";
 import { COMFY_RESTRICTED_MODELS_ENV } from "./comfy-workflow-models.js";
 import { comfyUiToPrompt } from "./comfy-ui-prompt.js";
+import { comfyCloudFetch } from "./comfy-fetch.js";
 import { fetchWithRetry } from "./http-transport.js";
 import { sniffMime } from "./comfy-router.js";
 
+const log = createLogger("nodetool.runtime.providers.comfy-gpu");
+
+/** Media loaders that remain after the graph is pruned to its outputs. */
+export interface ComfyGpuMediaInputs {
+  readonly image: number;
+  readonly video: number;
+  readonly audio: number;
+}
 export interface ComfyGpuTemplate {
   readonly id: string;
   readonly source: string;
@@ -17,6 +26,8 @@ export interface ComfyGpuTemplate {
   readonly task: string;
   readonly restricted: boolean;
   readonly outputNodes: readonly string[];
+  /** Computed by scripts/comfy-templates/gpu-catalog.mjs. */
+  readonly inputs?: ComfyGpuMediaInputs;
   readonly workflow: unknown;
 }
 interface Catalog {
@@ -39,6 +50,48 @@ export function listedComfyGpuTemplates(): readonly ComfyGpuTemplate[] {
     !pinned.has(template.source) && !previous.has(template.source) &&
     (!template.restricted || process.env[COMFY_RESTRICTED_MODELS_ENV] === "1"));
 }
+/**
+ * True when the provider's callers can supply the template's media.
+ * Image-to-video callers send one start image (the end frame is optional), so
+ * two-image first/last-frame templates would fail for most of them.
+ * Reference-to-video callers send one or more images and usually no audio.
+ */
+export function comfyGpuTemplateFits(template: Pick<ComfyGpuTemplate, "task" | "inputs">): boolean {
+  const inputs = template.inputs;
+  if (!inputs) {return true;}
+  if (template.task === "image_to_video") {return inputs.image === 1 && inputs.video === 0 && inputs.audio === 0;}
+  if (template.task === "reference_to_video") {return inputs.image >= 1 && inputs.video === 0 && inputs.audio === 0;}
+  return true;
+}
+
+const API_KEY_HINT = "A step inside this Comfy graph calls a hosted model and needs your Comfy API key.";
+
+/** Name the template and job in a failure, keeping the original as `cause`. */
+export function comfyJobError(name: string, jobId: string | undefined, error: unknown): unknown {
+  if (error instanceof Error && error.name === "AbortError" || error instanceof DOMException) {return error;}
+  if (error instanceof Error && error.message.startsWith(`Comfy ${name} `)) {return error;}
+  const detail = error instanceof Error ? error.message : String(error);
+  const hint = /api[ _-]?key|credential/i.test(detail) ? `. ${API_KEY_HINT}` : "";
+  return new Error(`Comfy ${name}${jobId ? ` job ${jobId}` : ""} failed: ${detail}${hint}`, { cause: error });
+}
+
+/** Keep surplus reference images in order; refuse every other mismatch before any paid work. */
+function fitMedia(template: ComfyGpuTemplate, counts: ComfyGpuMediaInputs, sources: Record<keyof ComfyGpuMediaInputs, readonly Uint8Array[]>) {
+  const fitted = { ...sources };
+  for (const kind of ["image", "video", "audio"] as const) {
+    const required = counts[kind];
+    const received = sources[kind].length;
+    if (required === received) {continue;}
+    if (kind === "image" && template.task === "reference_to_video" && received > required && required > 0) {
+      log.warn(`${template.name} takes ${required} image input(s); received ${received}. Using the first ${required}.`);
+      fitted.image = sources.image.slice(0, required);
+      continue;
+    }
+    throw new Error(`${template.name} requires ${required} ${kind} input(s), received ${received}`);
+  }
+  return fitted;
+}
+
 export interface ComfyGpuInput {
   readonly prompt?: string | null;
   readonly images?: readonly Uint8Array[];
@@ -137,8 +190,7 @@ export class ComfyGpuClient {
   private info: Promise<ComfyObjectInfo> | undefined;
   constructor(private readonly apiKey: string) {}
   protected createClient(): Comfy {
-    return new Comfy({ apiKey: this.apiKey, clientInfo: "nodetool-gpu-models", fetch: (request, init) =>
-      fetchWithRetry(request instanceof Request ? request.url : String(request), init, { fetchImpl: (_url, retryInit) => fetch(request, retryInit) }) });
+    return new Comfy({ apiKey: this.apiKey, clientInfo: "nodetool-gpu-models", fetch: comfyCloudFetch(this.apiKey) });
   }
   protected objectInfo(): Promise<ComfyObjectInfo> {
     this.info ??= (async () => {
@@ -152,13 +204,24 @@ export class ComfyGpuClient {
   async run(template: ComfyGpuTemplate, input: ComfyGpuInput): Promise<{ data: Uint8Array; mimeType: string }> {
     if (!this.apiKey.trim()) {throw new Error("COMFY_API_KEY is required for Comfy GPU models");}
     if (template.restricted && process.env[COMFY_RESTRICTED_MODELS_ENV] !== "1") {throw new Error(`${template.name} requires ${COMFY_RESTRICTED_MODELS_ENV}=1 where its model license permits use`);}
+    let jobId: string | undefined;
+    try {
+      return await this.execute(template, input, (id) => { jobId = id; });
+    } catch (error) {
+      throw comfyJobError(template.name, jobId, error);
+    }
+  }
+
+  private async execute(template: ComfyGpuTemplate, input: ComfyGpuInput, submitted: (id: string) => void): Promise<{ data: Uint8Array; mimeType: string }> {
+    const supplied = { image: input.images ?? [], video: input.videos ?? [], audio: input.audios ?? [] };
+    // The catalog's counts reject a known mismatch before the object_info fetch.
+    if (template.inputs) {fitMedia(template, template.inputs, supplied);}
     const signal = input.signal ? AbortSignal.any([input.signal, AbortSignal.timeout((input.timeoutSeconds ?? 900) * 1000)]) : AbortSignal.timeout((input.timeoutSeconds ?? 900) * 1000);
     signal.throwIfAborted();
     const pinned = COMFY_TEMPLATES.find((entry) => entry.source === template.source);
     const graph = prepareComfyGpuPrompt(pinned ? structuredClone(pinned.graph) : comfyUiToPrompt(template.workflow, await this.objectInfo()), template, input);
     const client = this.createClient();
     const workflow = client.workflows.fromJson(graph);
-    const sources = { image: input.images ?? [], video: input.videos ?? [], audio: input.audios ?? [] };
     const loaders: Record<keyof typeof sources, Array<[string, string]>> = { image: [], video: [], audio: [] };
     for (const [id, node] of Object.entries(graph)) {
       if (node.class_type === "LoadImage") {loaders.image.push([id, "image"]);}
@@ -167,9 +230,7 @@ export class ComfyGpuClient {
         loaders.video.push([id, "file" in node.inputs ? "file" : "video"]);
       }
     }
-    for (const kind of ["image", "video", "audio"] as const) {
-      if (loaders[kind].length !== sources[kind].length) {throw new Error(`${template.name} requires ${loaders[kind].length} ${kind} input(s), received ${sources[kind].length}`);}
-    }
+    const sources = fitMedia(template, { image: loaders.image.length, video: loaders.video.length, audio: loaders.audio.length }, supplied);
     for (const kind of ["image", "video", "audio"] as const) {
       loaders[kind].forEach(([id, field], index) => {
         const bytes = sources[kind][index];
@@ -180,18 +241,20 @@ export class ComfyGpuClient {
       });
     }
     signal.throwIfAborted();
-    const job = await client.submit(workflow, { signal });
+    // The key also authenticates partner nodes inside the graph (e.g. TextGenerateLTX2Prompt).
+    const job = await client.submit(workflow, { signal, apiKey: this.apiKey });
+    submitted(job.id);
     const cancel = (): void => { void job.cancel().catch(() => { /* A terminal job needs no further cancellation. */ }); };
     signal.addEventListener("abort", cancel, { once: true });
     try {
       if (signal.aborted) { cancel(); signal.throwIfAborted(); }
       await job.wait((input.timeoutSeconds ?? 900) * 1000, signal);
-      if (job.status !== "succeeded") {throw new Error(`Comfy job ${job.id} ended ${job.status}${job.error ? `: ${job.error.message}` : ""}`);}
+      if (job.status !== "succeeded") {throw new Error(job.error?.message ?? `ended ${job.status}`);}
       const matches = (file: (typeof job.outputs)[number]): boolean => template.kind === "model3d" ? /\.(glb|gltf|obj|ply|stl|fbx)$/i.test(file.name) :
         file.contentType.startsWith(`${template.kind}/`) || template.kind === "text" && file.type === "text";
       const output = template.outputNodes.map((id) => job.outputs.find((file) => file.nodeId === id && matches(file))).find((file) => file !== undefined)
         ?? job.outputs.find(matches);
-      if (!output) {throw new Error(`Comfy job ${job.id} finished without a ${template.kind} output`);}
+      if (!output) {throw new Error(`finished without a ${template.kind} output`);}
       return { data: new Uint8Array(await output.toBytes({ signal })), mimeType: output.contentType };
     } finally { signal.removeEventListener("abort", cancel); }
   }

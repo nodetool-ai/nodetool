@@ -1,30 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 
 const assetToUrl = vi.fn(async (ref: Record<string, unknown>) =>
   ref.data
     ? `data:image/png;base64,${ref.data as string}`
     : `uploaded:${String(ref.uri)}`
 );
-const replicateSubmit = vi.fn(async () => ({ output: "out" }));
 
-vi.mock("../src/replicate-base.js", () => ({
-  assetToUrl,
-  getReplicateApiKey: () => "test-key",
-  isRefSet: (ref: unknown) => {
-    if (!ref || typeof ref !== "object") return false;
-    const r = ref as Record<string, unknown>;
-    return Boolean(r.data || r.uri);
-  },
-  outputToAudioRef: (output: unknown) => ({ type: "audio", uri: output }),
-  outputToImageRef: (output: unknown) => ({ type: "image", uri: output }),
-  outputToString: (output: unknown) => String(output ?? ""),
-  outputToVideoRef: (output: unknown) => ({ type: "video", uri: output }),
-  removeNulls: (obj: Record<string, unknown>) => {
-    for (const key of Object.keys(obj)) {
-      if (obj[key] == null || obj[key] === "") delete obj[key];
-    }
-  },
-  replicateSubmit
+vi.mock("../src/replicate-base.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/replicate-base.js")>()),
+  assetToUrl
 }));
 
 const { createReplicateNodeClass } = await import("../src/replicate-factory.js");
@@ -128,12 +113,29 @@ function makeOmniNode() {
 
 const assetBytes = new Uint8Array([7, 8, 9]);
 const b64 = Buffer.from(assetBytes).toString("base64");
-const ctx = { resolveAssetBytes: async () => ({ bytes: assetBytes }) };
 
 describe("Replicate prompt asset mapping", () => {
+  let provider: ScriptedProvider;
+  let ctx: ProcessingContext;
+
+  /** The input of the one endpoint call the node made. */
+  function sentInput(): Record<string, unknown> {
+    expect(provider.endpointCalls).toHaveLength(1);
+    return provider.endpointCalls[0]!.input;
+  }
+
   beforeEach(() => {
     assetToUrl.mockClear();
-    replicateSubmit.mockClear();
+    provider = new ScriptedProvider([], {
+      providerId: "replicate",
+      endpoints: { "*": { output: "out" } }
+    });
+    ctx = new ProcessingContext({ jobId: "job-1" });
+    ctx.setProviderResolver(() => provider);
+    vi.spyOn(ctx, "resolveAssetBytes").mockResolvedValue({
+      bytes: assetBytes,
+      attempts: []
+    });
   });
 
   it("routes an asset:// mention into the empty image input and strips it", async () => {
@@ -141,9 +143,9 @@ describe("Replicate prompt asset mapping", () => {
     const instance = new NodeClass({});
     instance.assign({ prompt: "restyle asset://a.png now" });
 
-    await instance.process(ctx as never);
+    await instance.process(ctx);
 
-    const args = replicateSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = sentInput();
     expect(args.image).toBe(`data:image/png;base64,${b64}`);
     expect(args.prompt).toBe("restyle image now");
   });
@@ -156,9 +158,9 @@ describe("Replicate prompt asset mapping", () => {
       image: { type: "image", uri: "https://example.com/wired.png" }
     });
 
-    await instance.process(ctx as never);
+    await instance.process(ctx);
 
-    const args = replicateSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = sentInput();
     expect(args.image).toBe("uploaded:https://example.com/wired.png");
     expect(args.prompt).toBe("enhance now");
   });
@@ -170,9 +172,9 @@ describe("Replicate prompt asset mapping", () => {
       prompt: "drive asset://clip.mp4 with asset://track.wav"
     });
 
-    await instance.process(ctx as never);
+    await instance.process(ctx);
 
-    const args = replicateSubmit.mock.calls[0][2] as Record<string, unknown>;
+    const args = sentInput();
     expect(args.video).toContain(b64);
     expect(args.audio).toContain(b64);
     expect(args.prompt).toBe("drive video with audio");

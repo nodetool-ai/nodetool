@@ -18,7 +18,8 @@ export const GlowParams = d.struct({
   threshold: d.f32,
   softness: d.f32,
   radius: d.f32,
-  intensity: d.f32
+  intensity: d.f32,
+  tint: d.vec3f
 });
 
 // Inlined WebGPU `GPUTextureUsage` flags. The named constants are runtime
@@ -31,11 +32,12 @@ const INTERMEDIATE_BRIGHT_USAGE = 0x10 | 0x04 | 0x01;
 const INTERMEDIATE_BLUR_USAGE = 0x08 | 0x04 | 0x01;
 
 export const filtersGlowV1 = defineRecipe({
+  precision: { "source": "working", "output": "working" },
   id: "filters.glow",
   version: 1,
   surface: "internal",
   category: "filters",
-  paramDefaults: { threshold: 0.7, softness: 0.1, radius: 8, intensity: 1 },
+  paramDefaults: { threshold: 0.7, softness: 0.1, radius: 8, intensity: 1, tint: d.vec3f(1, 1, 1) },
   paramUi: {
     threshold: { min: 0, max: 1, step: 0.01, label: "Threshold" },
     softness: { min: 0, max: 0.5, step: 0.01, label: "Softness" },
@@ -45,13 +47,13 @@ export const filtersGlowV1 = defineRecipe({
   io: {
     inputs: {
       source: {
-        colorSpace: "linear",
+        colorSpace: "encoded-sdr",
         alpha: "premultiplied",
         bindingKinds: ["texture_2d"]
       }
     },
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "same-as:source"
@@ -60,9 +62,9 @@ export const filtersGlowV1 = defineRecipe({
   },
   recipe: {
     intermediates: {
-      bright: { format: "rgba8unorm", usage: INTERMEDIATE_BRIGHT_USAGE },
-      blurH: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE },
-      blurV: { format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
+      bright: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BRIGHT_USAGE },
+      blurH: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE },
+      blurV: { precision: "working", format: "rgba8unorm", usage: INTERMEDIATE_BLUR_USAGE }
     },
     passes: [
       {
@@ -98,7 +100,7 @@ export const filtersGlowV1 = defineRecipe({
           over: { kind: "intermediate", name: "blurV" }
         },
         out: "output",
-        params: { gain: "$.intensity" }
+        params: { gain: "$.intensity", tint: "$.tint" }
       }
     ]
   }

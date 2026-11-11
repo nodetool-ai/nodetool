@@ -14,20 +14,18 @@ export default function ProjectSection() {
         <header className="scroll-fade mx-auto mb-10 max-w-5xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-300/80">
             <span className="h-px w-8 bg-fuchsia-300/60" />
-            Agents
+            You and the agent, same project
           </div>
           <h2
             id="projects-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Describe it. The agent builds the whole project.
+            From an idea to a video you can edit.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
-            Tell the agent what you want to make. It writes the script, plans
-            each shot, generates the video clips, and edits them together on a
-            timeline. You get back a project, not just a video file. Change any
-            part of it yourself, or ask the agent to redo the one shot you want
-            different.
+            Send the agent a one-line note about one shot. It renders that
+            shot again, and the timeline picks up the new take. You can make
+            the same change yourself in the storyboard or on the timeline.
           </p>
         </header>
         <ProjectShowcase />

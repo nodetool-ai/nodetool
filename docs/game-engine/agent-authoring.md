@@ -5,7 +5,18 @@ permalink: /game-engine/agent-authoring
 description: "Create and revise games through the same validated operations used by the editor."
 ---
 
-The agent can inspect a game, prepare assets, apply document operations, run a playtest, capture frames, and build a standalone player. Give it a concrete outcome and preserve the distinction between a draft, a staged asset, and a published revision.
+The agent inspects a game, prepares assets, applies document operations, runs a playtest, captures frames, and builds a standalone player. Edits go through the `edit_native_game` tool as an `ops` array:
+
+```json
+{
+  "game_id": "<game id>",
+  "ops": [
+    { "op": "update_entity", "entity_id": "door", "set": { "tags": ["gate"] } }
+  ]
+}
+```
+
+Give it a concrete outcome and keep a draft, a staged asset, and a published revision distinct.
 
 ![Diagram of media preparation, installed bindings, a game document, and export](/assets/game-engine/asset-pipeline.svg)
 

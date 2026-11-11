@@ -34,6 +34,35 @@ function makeBaseClip(): TimelineClip {
 }
 
 describe("splitClip", () => {
+  it("keeps the whole source curve on both halves of a hold", () => {
+    const curve = {
+      id: "m", preset: "custom", role: "emphasis", durationMs: 1000,
+      custom: { timeBase: "source", curves: [{ property: "offsetY", keyframes: [
+        { t: 0, sourceMs: 0, value: 0 }, { t: 1, sourceMs: 1000, value: 100 }
+      ] }] }
+    };
+    const clip: TimelineClip = {
+      ...makeBaseClip(), startMs: 0, durationMs: 1000, inPointMs: 0, outPointMs: 1000,
+      timeRemap: { keyframes: [{ t: 0, sourceMs: 250 }, { t: 1, sourceMs: 250 }] },
+      animations: [curve as never]
+    };
+    const halves = splitClip(clip, 500);
+    for (const half of halves) {
+      const animation = half.animations?.[0] as unknown as typeof curve;
+      expect(animation.custom.curves[0]!.keyframes.map((k) => k.sourceMs)).toEqual([0, 1000]);
+    }
+  });
+
+  it("splits a hold without consuming its source window", () => {
+    const clip = makeBaseClip();
+    clip.timeRemap = { keyframes: [{ t: 0, sourceMs: 123 }, { t: 1, sourceMs: 123 }] };
+    for (const piece of splitClip(clip, 250)) {
+      expect(piece.timeRemap).toEqual(clip.timeRemap);
+      expect(piece.inPointMs).toBe(50);
+      expect(piece.outPointMs).toBe(450);
+    }
+  });
+
   it("preserves clip metadata and source references across both halves", () => {
     const clip = makeBaseClip();
     const [left, right] = splitClip(clip, 250);

@@ -1,9 +1,10 @@
 import { loadPackageAssetJson } from "@nodetool-ai/config";
 import { applyContentCardBody, BaseNode, classifyFields, defaultForPropType, isNumber, isRecord, propertyOf, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { higgsfieldAwaitResult, higgsfieldDownloadResult, higgsfieldOutputUrls, higgsfieldSubmit } from "@nodetool-ai/runtime";
-import { getCredentials, resolveHiggsfieldMedia } from "./higgsfield-base.js";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import { higgsfieldOutputUrls } from "@nodetool-ai/runtime";
+import type { HiggsfieldStatus, ProcessingContext } from "@nodetool-ai/runtime";
+import { resolveHiggsfieldMedia } from "./higgsfield-base.js";
 
 export type HiggsfieldFieldType = "str" | "int" | "float" | "bool" | "enum" | "image" | "video" | "audio" | "list[image]" | "list[video]" | "list[audio]";
 export interface HiggsfieldField { name: string; type: HiggsfieldFieldType; title?: string; description?: string; default?: unknown; values?: Array<string | number>; min?: number; max?: number; maxItems?: number; required?: boolean; }
@@ -30,17 +31,17 @@ function isEmptyMediaRef(value: NodeValue): boolean {
 export function createHiggsfieldNodeClass(spec: HiggsfieldManifestEntry): NodeClass {
   const Node = class extends BaseNode {
     async process(context?: Context): Promise<Output> {
-      const credentials = getCredentials(this._secrets);
+      if (!context) throw new Error(`${spec.title}: a processing context is required`);
       const input: Record<string, NodeValue> = {};
       for (const field of spec.fields) {
         const value = propertyOf(this, field.name);
         if (value === undefined || value === null || value === "" || isEmptyMediaRef(value) || (Array.isArray(value) && value.length === 0 && !field.required)) { if (field.required) throw new Error(`${spec.title}: ${field.name} is required`); continue; }
         if (field.type === "image" || field.type === "video" || field.type === "audio") {
-          input[field.name] = await resolveHiggsfieldMedia(value, context, credentials, mime(field.type));
+          input[field.name] = await resolveHiggsfieldMedia(value, context, mime(field.type));
         } else if (field.type === "list[image]" || field.type === "list[video]" || field.type === "list[audio]") {
           if (!Array.isArray(value)) throw new Error(`${spec.title}: ${field.name} must be a list`);
           if (field.maxItems !== undefined && value.length > field.maxItems) throw new Error(`${spec.title}: ${field.name} accepts at most ${field.maxItems} items`);
-          input[field.name] = await Promise.all(value.map((item) => resolveHiggsfieldMedia(item, context, credentials, mime(field.type === "list[video]" ? "video" : field.type === "list[audio]" ? "audio" : "image"))));
+          input[field.name] = await Promise.all(value.map((item) => resolveHiggsfieldMedia(item, context, mime(field.type === "list[video]" ? "video" : field.type === "list[audio]" ? "audio" : "image"))));
         } else if (field.type === "enum" && field.values && !field.values.some((allowed) => allowed === value)) {
           throw new Error(`${spec.title}: ${field.name} has an unsupported value`);
         } else {
@@ -49,16 +50,23 @@ export function createHiggsfieldNodeClass(spec: HiggsfieldManifestEntry): NodeCl
           input[field.name] = normalized;
         }
       }
-      const submission = await higgsfieldSubmit(credentials, spec.modelId, input);
-      const result = await higgsfieldAwaitResult(credentials, submission.status_url, { timeoutMs: spec.timeoutSeconds * 1000 });
+      const call: Parameters<ProcessingContext["callProviderEndpoint"]>[0] = {
+        provider: PROVIDER_IDS.HIGGSFIELD,
+        capability: spec.outputType === "video" ? "text_to_video" : "text_to_image",
+        model: spec.modelId,
+        input
+      };
+      if (this.__node_id) call.nodeId = this.__node_id;
+      const result = await context.callProviderEndpoint(call);
       const mediaType = spec.outputType;
       const mediaMime = outputMime(mediaType, input);
-      const urls = higgsfieldOutputUrls(result);
+      // SAFETY: HiggsfieldProvider.callEndpoint returns the completed status body it parsed against its schema.
+      const urls = higgsfieldOutputUrls(result.output as HiggsfieldStatus);
       if (urls.length === 0) throw new Error(`${spec.title}: completed without a media output`);
       const outputs = await Promise.all(urls.map(async (url, index) => {
-        const bytes = await higgsfieldDownloadResult(url);
-        if (context?.storage?.store) {
-          const uri = await context.storage.store(`higgsfield-${mediaType}-${submission.request_id}-${index}`, bytes, mediaMime);
+        const bytes = await context.downloadProviderMedia({ provider: PROVIDER_IDS.HIGGSFIELD, url });
+        if (context.storage?.store) {
+          const uri = await context.storage.store(`higgsfield-${mediaType}-${result.requestId}-${index}`, bytes, mediaMime);
           return { type: mediaType, uri } satisfies MediaOutput;
         }
         return { type: mediaType, uri: "", data: Buffer.from(bytes).toString("base64") } satisfies MediaOutput;

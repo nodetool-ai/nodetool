@@ -1799,6 +1799,12 @@
       "localTitle": "현지 모델을 선호하시나요?",
       "localDescription": "Ollama를 설치하고 컴퓨터에서 실행할 모델을 다운로드하세요.",
       "getOllama": "올라마 받기",
+      "ollamaChecking": "Ollama 연결 확인 중…",
+      "ollamaCheckFailed": "Ollama를 확인할 수 없습니다. 다시 시도하세요.",
+      "ollamaConnected": "Ollama가 연결되었습니다. 모델 관리자에서 모델을 선택하거나 다운로드하세요.",
+      "ollamaUnavailable": "컴퓨터의 Ollama에 연결하려면 NodeTool 데스크톱 앱을 사용하세요.",
+      "ollamaUnreachable": "Ollama에 연결할 수 없습니다. 설치되어 있다면 실행하세요. 설치되지 않았다면 다운로드하세요.",
+      "checkOllamaAgain": "다시 확인",
       "encryptedKeys": "API 키는 암호화됩니다. 설정에서 관리하거나 제거할 수 있습니다.",
       "signInAgain": "{{provider}}에 다시 로그인하세요.",
       "waitingSignIn": "로그인 대기 중…",
@@ -2272,7 +2278,10 @@
       "title": "NodeTool 클라우드에 로그인",
       "description": "당신이 원하는 것을 설명하십시오. 에이전트가 이를 구축하고 어느 단계에서나 인계받을 수 있습니다.",
       "ownKeys": "자체 API 키를 사용하고 공급자의 정가로 공급자에게 비용을 지불하세요.",
-      "cloudAlphaNotice": "클라우드는 알파 버전입니다. 생산 작업에는 다음을 사용하십시오."
+      "cloudAlphaNotice": "클라우드는 알파 버전입니다. 생산 작업에는 다음을 사용하십시오.",
+      "ssoTitle": "NodeTool에 로그인",
+      "ssoSignIn": "{{provider}}(으)로 로그인",
+      "ssoFailed": "로그인하지 못했습니다({{reason}}). 다시 시도하거나 관리자에게 액세스를 요청하세요."
     },
     "inspector": {
       "params": "매개변수",
@@ -6171,7 +6180,6 @@
         "checkingModels": "아직 언어 모델을 확인 중입니다. 잠시 후에 다시 시도해 보세요.",
         "chatNeedsModel": "거의 다 왔습니다. 채팅을 실행하려면 모델이 필요합니다.",
         "pickModelToStartChat": "언어 모델을 선택하면 채팅이 시작됩니다.",
-        "pickMediaModel": "모델을 선택하면 세대가 시작됩니다.",
         "openChatError": "채팅을 열 수 없습니다: {{error}}",
         "startFlowError": "{{flow}}을(를) 시작할 수 없습니다: {{error}}",
         "flowNames": {
@@ -6381,6 +6389,13 @@
             "title": "워크플로우 예시",
             "description": "자동화, 다단계"
           }
+        },
+        "goals": {
+          "label": "시작할 항목",
+          "chat": "채팅",
+          "image": "이미지",
+          "video": "동영상",
+          "audio": "오디오"
         }
       }
     }
@@ -6811,6 +6826,7 @@
       "allCategories": "모두",
       "categories": {
         "workflows": "워크플로",
+        "comfy": "ComfyUI",
         "apps": "앱",
         "storyboards": "스토리보드",
         "timelines": "타임라인",
@@ -8788,8 +8804,6 @@
       "studio": "스튜디오",
       "switchToProject": "{{name}} 프로젝트로 전환",
       "personal": "개인",
-      "newChatInMode": "새 채팅: {{mode}}",
-      "newChatInModeValue": "새 채팅 {{mode}}",
       "newTextFileValue": "새 텍스트 파일 {{label}}",
       "newTextFile": "새 텍스트 파일: {{label}}",
       "newStoryboard": "새로운 스토리보드",
@@ -8821,8 +8835,7 @@
         "script": "새 스크립트",
         "jsscript": "새로운 JS 스크립트",
         "skill": "새로운 스킬",
-        "model3d": "새로운 3D 모델",
-        "create": "이미지 및 비디오 만들기"
+        "model3d": "새로운 3D 모델"
       },
       "templates": {
         "markdown": "마크다운(.md)",
@@ -8831,6 +8844,12 @@
         "csv": "CSV(.csv)",
         "tsv": "TSV(.tsv)",
         "plainText": "일반 텍스트(.txt)"
+      },
+      "createSession": {
+        "image": "새 이미지",
+        "video": "새 동영상",
+        "audio": "소리 내어 읽기",
+        "music": "음악 생성"
       }
     },
     "googleWorkspace": {
@@ -9040,6 +9059,14 @@
         "CHEAPER_INFERENCE_API_KEY": {
           "button": "Cheaper Inference API 키 받기",
           "tooltip": "API 키를 받으려면 Cheaper Inference 플랫폼으로 이동하세요."
+        },
+        "RUNCRATE_API_KEY": {
+          "button": "Runcrate API 키 받기",
+          "tooltip": "API 키를 받으려면 Runcrate 플랫폼으로 이동하세요."
+        },
+        "STANDARDCOMPUTE_API_KEY": {
+          "button": "Standard Compute API 키 받기",
+          "tooltip": "API 키를 받으려면 Standard Compute 플랫폼으로 이동하세요."
         },
         "API_ROUTE_API_KEY": {
           "button": "API 경로 키 가져오기",
@@ -12166,6 +12193,31 @@
         "undo": "실행 취소",
         "redo": "다시 실행",
         "agent": "대리인"
+      },
+      "chatApp": {
+        "stepShown": "Showed {{step}}",
+        "stepLabel": "Step {{index}} of {{total}}: {{title}}",
+        "show": "Show",
+        "hide": "Hide",
+        "pressed": "Pressed “{{control}}”",
+        "asksForStep": "go to {{title}}",
+        "asksToRun": "run {{name}}",
+        "settled": {
+          "completed": "{{name}} finished",
+          "failed": "{{name}} failed",
+          "cancelled": "{{name}} was stopped"
+        },
+        "stepsBar": "Steps bar",
+        "sendFailed": "Could not send this to the agent: {{error}}",
+        "starter": "Start with this step, or tell the agent what you want to make.",
+        "newChat": "New chat",
+        "pageView": "Page view",
+        "chatView": "Chat view",
+        "restart": "Restart",
+        "restartTitle": "Restart this app?",
+        "restartBody": "This deletes every value you entered and every result. The app starts again at the first step.",
+        "cancel": "Cancel",
+        "composerPlaceholder": "Ask about a step, a result or a problem"
       }
     }
   },
@@ -12729,7 +12781,6 @@
       "debuggingNotice": "요청이 실행되는 동안 Chrome에 \"Nodetool이 이 브라우저를 디버깅 중입니다\" 표시줄이 표시됩니다. 확장 프로그램은 다른 탭에서는 아무 작업도 수행하지 않습니다.",
       "setup": "설정하세요",
       "step1": "Chrome이 NodeTool의 브라우저 브리지를 시작하도록 합니다.",
-      "windowsUnsupported": "아직 Windows에서는 지원되지 않습니다. 확장을 통한 미디어 생성은 macOS 및 Linux에서 작동합니다.",
       "bridgeRegistered": "완료. NodeTool은 브라우저에 브리지를 등록했습니다.",
       "registering": "브라우저에 등록하는 중…",
       "registrationFailed": "브라우저 브리지 등록 실패",
@@ -12756,7 +12807,7 @@
       "disableAll": "모든 노드 비활성화",
       "color": "그룹 색상",
       "removeNodesHeading": "그룹에서 노드 제거",
-      "dragOutModifier": "CTRL을 누른 상태에서 드래그 | ⌘ 키",
+      "dragOutModifier": "Alt(Mac에서는 Option ⌥)를 누른 채 밖으로 드래그하세요",
       "shakeToRemove": "빠르게 흔든 후 드래그하세요."
     }
   },
@@ -15942,7 +15993,8 @@
         "memory": "메모리",
         "settings": "설정",
         "effects": "효과",
-        "lipsync": "립싱크"
+        "lipsync": "립싱크",
+        "admin": "관리"
       }
     },
     "script": {
@@ -18896,6 +18948,12 @@
     "refreshModels": "모델 새로 고침",
     "statusUnavailable": "상태를 알 수 없음"
   },
+  "copilot": {
+    "description": "GitHub Copilot 계정으로 언어 모델을 사용하세요. API 키가 필요 없습니다.",
+    "install": "이 컴퓨터의 터미널에서 GitHub Copilot CLI를 설치하세요.",
+    "signIn": "그런 다음 로그인하고 모델을 새로 고치세요. Copilot 요금제에 포함되지 않은 모델은 표시되지 않습니다.",
+    "refreshModels": "모델 새로 고침"
+  },
   "batch2_29": {
     "storyboardPanel": {
       "hint": "샷을 비디오 트랙으로 드래그하거나 Enter를 눌러 재생 헤드에 배치합니다.",
@@ -18954,6 +19012,15 @@
       "invalidLink": "이 공유 링크는 유효하지 않거나 취소되었습니다. 문서 소유자에게 새 문서를 요청하세요.",
       "goToWorkspace": "작업공간으로 이동",
       "opening": "공유 문서 열기"
+    },
+    "invite": {
+      "label": "사용자 초대",
+      "placeholder": "이름 또는 이메일",
+      "role": "역할",
+      "submit": "초대",
+      "typeMore": "2자 이상 입력하세요",
+      "noMatches": "일치하는 사용자가 없습니다",
+      "failed": "액세스 권한을 줄 수 없습니다."
     }
   },
   "timelineAutomation": {
@@ -18984,36 +19051,6 @@
     "missingTarget": "제거된 장치",
     "laneLabel": "자동화 레인: {{name}}",
     "deletePoint": "포인트 삭제"
-  },
-  "generationFeed": {
-    "recent": "최근",
-    "imageEmptyTitle": "이미지 만들기",
-    "imageEmptyDescription": "아래 장면을 설명하고 모델과 종횡비를 선택하세요. 편집하려면 이미지를 첨부하세요.",
-    "videoEmptyTitle": "비디오 만들기",
-    "videoEmptyDescription": "아래에서 샷, 카메라 동작, 조명에 대해 설명하세요. 프레임을 연결하여 애니메이션을 적용합니다.",
-    "audioEmptyTitle": "음성 및 음악 생성",
-    "audioEmptyDescription": "소리내어 읽어보려면 줄을 입력하세요. 트랙을 작성하려면 음악 생성으로 전환하세요.",
-    "editImage": "이 이미지를 편집하세요",
-    "openInSketch": "스케치에서 열기",
-    "addToCanvas": "캔버스에 추가",
-    "rerun": "재방송",
-    "copyPrompt": "프롬프트 복사",
-    "removeFromThread": "스레드에서 제거",
-    "history": "기록({{total}})",
-    "tileSize": "타일 크기",
-    "viewMode": "보기 모드",
-    "list": "목록",
-    "grid": "그리드",
-    "video": "비디오",
-    "speech": "연설",
-    "music": "음악",
-    "noVideoOutput": "동영상이 반환되지 않았습니다.",
-    "noAudioOutput": "오디오가 반환되지 않았습니다.",
-    "untitledTrack": "오디오 트랙",
-    "extendClip": "이 클립을 확장하세요",
-    "referenceAlt": "참조 {{index}}",
-    "sketchTitle": "스케치",
-    "audio": "오디오"
   },
   "preset_chip": {
     "label": "사전 설정",
@@ -19480,13 +19517,34 @@
     "takes_other": "{{count}} 소요",
     "placeholder": {
       "image": "황혼의 등대, 영화 스틸",
-      "video": "황혼의 등대 위에서 천천히 돌리를 해보세요"
+      "video": "황혼의 등대 위에서 천천히 돌리를 해보세요",
+      "image_edit": "밤으로 바꾸고 비를 추가해",
+      "image_to_video": "파도가 부서지고 불빛이 돌기 시작한다",
+      "reference_to_video": "레퍼런스 속 인물이 부두를 따라 걷는다",
+      "retake": "하늘을 폭풍으로 바꿔",
+      "extend": "카메라가 계속 뒤로 물러난다",
+      "audio": "읽을 문장을 입력하세요",
+      "music": "잔잔한 빗소리와 느린 앰비언트 피아노"
     },
     "blocker": {
       "noPrompt": "생성할 프롬프트를 작성합니다.",
       "noModel": {
         "image": "생성할 이미지 모델을 선택하세요.",
-        "video": "생성할 비디오 모델을 선택하세요."
+        "video": "생성할 비디오 모델을 선택하세요.",
+        "image_edit": "생성하려면 이미지 편집 모델을 선택하세요.",
+        "image_to_video": "생성하려면 이미지-동영상 모델을 선택하세요.",
+        "reference_to_video": "생성하려면 레퍼런스-동영상 모델을 선택하세요.",
+        "retake": "생성하려면 동영상 편집 모델을 선택하세요.",
+        "extend": "생성하려면 동영상 늘리기 모델을 선택하세요.",
+        "audio": "생성하려면 음성 모델을 선택하세요.",
+        "music": "생성하려면 음악 모델을 선택하세요."
+      },
+      "needsInput": {
+        "image_edit": "편집할 이미지를 추가하세요.",
+        "image_to_video": "애니메이션으로 만들 이미지를 추가하세요.",
+        "reference_to_video": "레퍼런스 이미지나 클립을 하나 이상 추가하세요.",
+        "retake": "변경할 클립을 추가하세요.",
+        "extend": "늘릴 클립을 추가하세요."
       }
     },
     "sendFailed": "{{count}} 중 {{sent}}이(가) 시작되었습니다. 나머지는 NodeTool에 도달하지 못했습니다. 연결을 확인하고 다시 시도하세요.",
@@ -19495,8 +19553,9 @@
     "gridLabel": "세대",
     "empty": {
       "title": "아직 생성된 항목이 없습니다.",
-      "description": "위에 프롬프트를 작성하고 생성을 누르세요. 귀하의 이미지와 비디오가 최신 항목부터 여기에 표시됩니다.",
-      "action": "프롬프트 작성"
+      "description": "위에 프롬프트를 쓰고 생성을 누르세요. 이미지, 동영상, 오디오가 최신순으로 여기에 표시됩니다.",
+      "action": "프롬프트 작성",
+      "sessionTitle": "이 탭에는 아직 아무것도 없습니다"
     },
     "item": {
       "open": "{{title}} 열기",
@@ -19512,8 +19571,75 @@
       "downloaded": "{{name}}을(를) 다운로드했습니다.",
       "downloadFailed": "다운로드할 수 없습니다: {{reason}}",
       "workflowName": "워크플로우 생성",
-      "workflowFailed": "워크플로를 구축할 수 없습니다: {{reason}}"
-    }
+      "workflowFailed": "워크플로를 구축할 수 없습니다: {{reason}}",
+      "more": "작업 더 보기",
+      "moreLabel": "{{title}} 작업 더 보기",
+      "useAsReference": "레퍼런스로 사용",
+      "startFrom": {
+        "image_edit": "이 이미지 편집",
+        "image_to_video": "이 이미지로 애니메이션 만들기",
+        "retake": "이 클립 변경",
+        "extend": "이 클립 늘리기"
+      },
+      "openInSketch": "스케치에서 열기",
+      "reusePrompt": "프롬프트 다시 사용",
+      "sketchTitle": "만든 이미지"
+    },
+    "kindLabel": "만들 것",
+    "modeLabel": "만드는 방법",
+    "kinds": {
+      "image": "이미지",
+      "video": "동영상",
+      "audio": "오디오"
+    },
+    "modes": {
+      "image": "텍스트로",
+      "image_edit": "편집",
+      "video": "텍스트로",
+      "image_to_video": "애니메이션",
+      "reference_to_video": "레퍼런스로",
+      "retake": "변경",
+      "extend": "늘리기",
+      "audio": "음성",
+      "music": "음악"
+    },
+    "references": {
+      "label": "레퍼런스",
+      "remove": "제거",
+      "removeLabel": "{{name}} 제거",
+      "role": {
+        "source": "원본 이미지",
+        "startFrame": "시작 프레임",
+        "sourceClip": "원본 클립",
+        "reference": "레퍼런스",
+        "unused": "여기서는 사용하지 않음"
+      },
+      "add": {
+        "image": "이미지 추가",
+        "video": "클립 추가",
+        "image-or-video": "레퍼런스 추가"
+      },
+      "hint": {
+        "image_edit": "편집할 이미지를 추가하거나 여기에 놓으세요. 추가 이미지는 스타일을 잡아 줍니다.",
+        "image_to_video": "클립이 시작될 이미지를 추가하거나 여기에 놓으세요.",
+        "reference_to_video": "유지할 인물, 장소, 스타일의 이미지와 클립을 추가하거나 여기에 놓으세요.",
+        "retake": "변경할 클립을 추가하거나 여기에 놓으세요. 추가한 이미지는 스타일을 잡아 줍니다.",
+        "extend": "늘릴 클립을 추가하거나 여기에 놓으세요."
+      },
+      "uploadFailed": "{{name}}을(를) 업로드하지 못했습니다: {{reason}}"
+    },
+    "switched": "이미지를 추가해서 {{mode}}(으)로 바꿨습니다.",
+    "undoSwitch": "{{from}}(으)로 돌아가기",
+    "scope": {
+      "label": "표시할 테이크",
+      "session": "이 탭",
+      "all": "모든 테이크"
+    },
+    "renameFailed": "탭 이름을 바꾸지 못했습니다: {{reason}}",
+    "sessionFailed": "이 탭의 테이크를 불러오지 못했습니다.",
+    "sessionKind": "Create 세션",
+    "openInCreate": "Create에서 열기",
+    "openInCreateFailed": "Create를 열지 못했습니다: {{reason}}"
   },
   "effectsGallery": {
     "title": "효과",
@@ -19628,5 +19754,209 @@
     "showAssistant": "어시스턴트 표시",
     "hideAssistant": "어시스턴트 숨기기",
     "resizeAssistant": "타임라인 도우미 크기 조정"
+  },
+  "generationBatch": {
+    "summary": "{{total}}개 중 {{done}}개 완료",
+    "remaining": "약 {{time}} 남음",
+    "finishing": "마무리 중",
+    "failedCount": "실패: {{count}}",
+    "status": {
+      "queued": "대기 중",
+      "running": "실행 중",
+      "completed": "완료",
+      "failed": "실패"
+    },
+    "showRequests": "요청 표시",
+    "hideRequests": "요청 숨기기",
+    "expected": "예상 {{time}}",
+    "took": "소요 {{time}}",
+    "progressLabel": "생성 진행 상황"
+  },
+  "workflowSteps": {
+    "stepOf": "{{total}}단계 중 {{current}}단계",
+    "allDone": "{{total}}단계 모두 완료",
+    "waiting": "대기 중",
+    "running": "실행 중",
+    "done": "완료",
+    "failed": "실패",
+    "progressLabel": "워크플로 진행 상황",
+    "steps": "단계",
+    "addStep": "단계 추가",
+    "removeStep": "단계 제거",
+    "node": "노드",
+    "title": "제목",
+    "description": "설명",
+    "autoHint": "설정된 단계가 없습니다. 위젯이 모든 생성 노드를 표시합니다.",
+    "chooseNode": "노드 선택"
+  },
+  "admin": {
+    "page": {
+      "title": "관리",
+      "subtitle": "이 서버에 로그인하는 사람들을 관리합니다.",
+      "deniedTitle": "관리자 권한이 필요합니다",
+      "deniedDescription": "이 서버의 관리자만 이 페이지를 열 수 있습니다."
+    },
+    "users": {
+      "searchPlaceholder": "이름, 이메일 또는 사용자 ID로 검색",
+      "filter": {
+        "label": "상태",
+        "all": "전체",
+        "active": "활성",
+        "disabled": "비활성"
+      },
+      "columns": {
+        "person": "사용자",
+        "role": "역할",
+        "status": "상태",
+        "usage": "사용량",
+        "lastSeen": "마지막 활동",
+        "actions": "작업"
+      },
+      "role": {
+        "admin": "관리자",
+        "member": "멤버",
+        "viaGroup": "그룹 또는 서버 설정을 통해"
+      },
+      "status": {
+        "active": "활성",
+        "disabled": "비활성"
+      },
+      "never": "없음",
+      "actions": {
+        "makeAdmin": "관리자로 지정",
+        "removeAdmin": "관리자 해제",
+        "disable": "비활성화",
+        "enable": "활성화"
+      },
+      "loadFailed": "사용자를 불러오지 못했습니다",
+      "retry": "다시 시도",
+      "noMatches": "검색과 일치하는 사용자가 없습니다",
+      "emptyTitle": "아직 사용자가 없습니다",
+      "emptyDescription": "사용자는 싱글 사인온으로 처음 로그인한 후 여기에 표시됩니다.",
+      "range": "{{total}}명 중 {{first}}–{{last}}",
+      "previous": "이전",
+      "next": "다음",
+      "updateFailed": "사용자를 업데이트하지 못했습니다.",
+      "disableDialog": {
+        "title": "{{name}}을(를) 비활성화할까요?",
+        "body": "모든 곳에서 즉시 로그아웃되며 계정을 다시 활성화할 때까지 로그인할 수 없습니다. 작업은 서버에 그대로 남습니다.",
+        "cancel": "취소"
+      }
+    },
+    "quotas": {
+      "editDefault": "기본 한도 편집",
+      "editLimits": "한도",
+      "defaultTitle": "기본 한도",
+      "userTitle": "{{name}}의 한도",
+      "defaultNone": "기본 한도가 없습니다. 누구나 이 서버의 키를 제한 없이 사용할 수 있습니다.",
+      "defaultSummaryDay": "모두의 기본값: 하루 모델 토큰 {{tokens}}개, 미디어 {{media}}.",
+      "defaultSummaryMonth": "모두의 기본값: 한 달 모델 토큰 {{tokens}}개, 미디어 {{media}}.",
+      "unlimited": "한도 없음",
+      "tokensLabel": "토큰:",
+      "mediaLabel": "미디어:",
+      "usedOf": "{{limit}} 중 {{used}}",
+      "usedNoLimit": "{{used}}, 한도 없음",
+      "ownLimits": "개별 한도",
+      "period": {
+        "label": "기간",
+        "day": "하루",
+        "month": "한 달"
+      },
+      "tokenLimit": "모델 토큰",
+      "mediaLimit": "미디어 예산(USD)",
+      "noLimit": "한도 없음",
+      "invalid": "0 이상의 숫자를 입력하거나, 한도를 두지 않으려면 비워 두세요.",
+      "useDefault": "서버 기본값 사용",
+      "useDefaultDescription": "끄면 이 사용자에게 개별 한도를 줄 수 있습니다.",
+      "ownKeysNote": "이 서버의 제공자 키로 한 작업만 집계됩니다. 사용자가 설정에 저장한 키로 한 작업은 집계되지 않습니다.",
+      "save": "저장",
+      "cancel": "취소",
+      "saveFailed": "한도를 저장하지 못했습니다."
+    },
+    "permissions": {
+      "edit": "권한",
+      "editDefault": "기본 권한 편집",
+      "defaultTitle": "기본 권한",
+      "userTitle": "{{name}}의 권한",
+      "defaultAll": "기본 권한: 모두 허용.",
+      "defaultBlockedCount": "기본 권한: {{count}}개 차단.",
+      "blockedCount": "차단된 권한: {{count}}",
+      "defaultIntro": "따로 정하지 않으면 모든 사용자가 할 수 있는 일입니다.",
+      "userIntro": "각 권한은 여기서 허용하거나 차단하기 전까지 기본값을 따릅니다.",
+      "allow": "허용",
+      "block": "차단",
+      "defaultAllowed": "기본값: 허용",
+      "defaultBlocked": "기본값: 차단",
+      "adminNote": "관리자는 항상 모든 권한을 가집니다.",
+      "save": "저장",
+      "cancel": "취소",
+      "saveFailed": "권한을 저장하지 못했습니다.",
+      "flags": {
+        "use_llm": {
+          "label": "언어 모델 사용",
+          "description": "채팅, 에이전트, 텍스트 생성."
+        },
+        "generate_media": {
+          "label": "미디어 생성",
+          "description": "이미지, 동영상, 오디오, 3D."
+        },
+        "use_server_keys": {
+          "label": "서버의 제공자 키 사용",
+          "description": "차단하면 설정에서 직접 추가한 키로만 작업할 수 있습니다."
+        },
+        "manage_own_keys": {
+          "label": "내 제공자 키 관리",
+          "description": "제공자 키와 사용자 지정 제공자를 추가, 변경, 삭제합니다."
+        },
+        "share_links": {
+          "label": "공유 링크 만들기",
+          "description": "로그인한 사람이 워크플로나 문서를 보거나 편집할 수 있는 링크."
+        },
+        "share_public": {
+          "label": "공개 공유",
+          "description": "워크플로를 공개하거나 누구나 열 수 있는 공개 링크를 만듭니다."
+        },
+        "publish_apps": {
+          "label": "앱 게시",
+          "description": "미니 앱을 게시, 릴리스, 배포합니다."
+        },
+        "install_packs": {
+          "label": "노드 팩 변경",
+          "description": "팩 신뢰 설정 변경, 기본 제공 팩 켜기/끄기, 팩 다시 불러오기. 모든 사용자에게 영향을 줍니다."
+        }
+      }
+    },
+    "sharing": {
+      "open": "공유",
+      "title": "{{name}}의 공유",
+      "links": "공유 링크",
+      "noLinks": "활성 공유 링크가 없습니다.",
+      "granted": "액세스를 준 사람",
+      "noGranted": "아무에게도 액세스를 주지 않았습니다.",
+      "received": "액세스할 수 있는 항목",
+      "noReceived": "아무도 액세스를 주지 않았습니다.",
+      "public": "공개 워크플로",
+      "noPublic": "공개 워크플로가 없습니다.",
+      "revoke": "취소",
+      "removeAccess": "액세스 제거",
+      "makePrivate": "비공개로 전환",
+      "untitled": "제목 없음",
+      "loadFailed": "공유 정보를 불러올 수 없습니다.",
+      "actionFailed": "변경할 수 없습니다.",
+      "types": {
+        "workflow": "워크플로",
+        "storyboard": "스토리보드",
+        "script": "스크립트",
+        "timeline": "타임라인",
+        "sketch": "스케치",
+        "application": "앱",
+        "jsscript": "JS 스크립트"
+      },
+      "roles": {
+        "viewer": "보기 가능",
+        "editor": "편집 가능",
+        "public": "공개"
+      }
+    }
   }
 }

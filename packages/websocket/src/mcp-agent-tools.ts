@@ -58,7 +58,8 @@ import {
   MCP_SANDBOX_PROMPTS,
   buildMcpSandboxCatalog,
   extractInjectableImages,
-  stripImagePayload
+  stripImagePayload,
+  PROVIDER_TOOL_NAMES
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { BaseProvider } from "@nodetool-ai/runtime";
@@ -98,6 +99,8 @@ import type { McpServerOptions } from "./mcp-server.js";
 import type { FrontendRendererService } from "./frontend-renderer-registry.js";
 import { isRecord, isString } from "./lib/wire-values.js";
 import { registerSkillPrompts } from "./mcp-skill-prompts.js";
+import { registerMiniAppMcpTools, MINI_APP_TOOL_NAMES } from "./mcp-apps.js";
+import { getWorkflowRuntimeEnvironment } from "./http-api.js";
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 const execFile = promisify(execFileCallback);
@@ -111,6 +114,16 @@ const WORKFLOW_READINESS_TOOL_NAMES = new Set([
   "plan_workflow",
   "update_workflow_plan_step",
   "build_workflow_from_plan"
+]);
+
+/**
+ * Direct tools on other entrances that the MCP mount does not list. Actions
+ * still reach them through `nodetool.*` and sandbox imports.
+ */
+const MCP_SANDBOX_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "http_request",
+  "browser",
+  "todo_write"
 ]);
 
 /**
@@ -348,7 +361,7 @@ function collectBridgedSpecs(options: McpServerOptions | undefined): CapabilityS
     ...availableBuiltinToolNames().map((name) => capabilityForName(name).spec),
     ...getAllMcpCapabilitySpecs({ registry: options?.registry }),
     ...(isGoogleWorkspaceEnabled() ? GOOGLE_WORKSPACE_TOOL_NAMES : []).map((name) => capabilityForName(name).spec),
-    ...[...APIFY_TOOL_NAMES, ...SERPAPI_TOOL_NAMES, "find_model", "list_models"].map((name) => capabilityForName(name).spec)
+    ...[...APIFY_TOOL_NAMES, ...SERPAPI_TOOL_NAMES, "find_model", "list_models", "list_providers"].map((name) => capabilityForName(name).spec)
   ];
 }
 
@@ -1062,6 +1075,7 @@ export function registerAgentMcpTools(
         if (
           tool.name === "find_model" ||
           tool.name === "list_models" ||
+          tool.name === "list_providers" ||
           WORKFLOW_READINESS_TOOL_NAMES.has(tool.name)
         ) {
           await ensureProviders();
@@ -1138,10 +1152,21 @@ export function registerAgentMcpTools(
   //
   // Derived from both tables rather than hand-listed, so a tool added to
   // either reaches this mount with no edit here.
+  //
+  // The provider interface is direct here too: `PROVIDER_TOOL_NAMES` holds one
+  // tool per provider capability (text_to_image → generate_image, …), and
+  // `list_providers` says which configured provider serves which of them. With
+  // both in the tool list, a client reads what this install can generate from
+  // the surface itself instead of searching the sandbox catalog for it.
+  //
+  // `MCP_SANDBOX_ONLY_TOOL_NAMES` are direct on other entrances but stay
+  // inside the sandbox here.
   const promotedDirect = belt.filter(
     (tool) =>
-      DIRECT_TOOL_NAMES.has(tool.name) &&
-      !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)
+      !MCP_SANDBOX_ONLY_TOOL_NAMES.has(tool.name) &&
+      ((DIRECT_TOOL_NAMES.has(tool.name) &&
+        !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)) ||
+        PROVIDER_TOOL_NAMES.has(tool.name))
   );
   // They stay on the belt: an action still calls them from code. Listing them
   // as direct only moves where the prompt documents them.
@@ -1405,6 +1430,14 @@ export function registerAgentMcpTools(
     );
   }
 
+  // Mini apps as MCP Apps: `open_app` shows the app's screen in the host.
+  registerMiniAppMcpTools(server, {
+    userId: scope.userId,
+    context,
+    registry: async () =>
+      options.registry ?? (await getWorkflowRuntimeEnvironment(options)).registry
+  });
+
   void registerSkillPrompts(
     server,
     scope.userId,
@@ -1418,7 +1451,8 @@ export function registerAgentMcpTools(
       session.providerTool.name,
       ...(viewImage ? ["view_image"] : []),
       "upload_asset",
-      "download_asset"
+      "download_asset",
+      ...MINI_APP_TOOL_NAMES
     ],
     beltSize: belt.length
   });

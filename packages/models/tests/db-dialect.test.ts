@@ -135,11 +135,18 @@ describe("explicit database dialect", () => {
     const asset = new Asset({ user_id: "owner", metadata: { label: "new" } });
     expect(await asset.saveIfMetadataMatches(null)).toBe(false);
     expect(events).toEqual([]);
-    driver.state.rows = [[asset.id]];
+    driver.state.rows = [[null]];
+    expect(await asset.saveIfMetadataMatches(null)).toBe(true);
+    driver.state.rows = [[JSON.stringify({ label: "old" })]];
     expect(await asset.saveIfMetadataMatches({ label: "old" })).toBe(true);
-    expect(events).toEqual([ModelChangeEvent.UPDATED]);
-    const [missing, matched] = driver.state.queries;
-    expect(missing.sql).toContain('"nodetool_assets"."metadata" is null');
+    expect(events).toEqual([ModelChangeEvent.UPDATED, ModelChangeEvent.UPDATED]);
+    const [missing, nullRead, nullMatched, read, matched] = driver.state.queries;
+    for (const query of [missing, nullRead, read]) {
+      expect(query.sql).toMatch(/^select/);
+      expect(query.params).toContain("owner");
+      expect(query.params).toContain(asset.id);
+    }
+    expect(nullMatched.sql).toContain('"nodetool_assets"."metadata" is null');
     expect(matched.params).toContain("owner");
     expect(matched.params).toContain(JSON.stringify({ label: "old" }));
     expect(matched.params).toContain(JSON.stringify({ label: "new" }));

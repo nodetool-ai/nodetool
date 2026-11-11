@@ -26,6 +26,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/kernel` | Full-host compatibility exports of the shared actor implementation |
 | `@nodetool-ai/server-core`, `@nodetool-ai/server-minimal` | Authenticated execution routes and the standalone SQLite composition |
 | `@nodetool-ai/pack-core`, `@nodetool-ai/pack-manager` | Pack metadata and admitted resolution, then authorized installation and removal |
+| [`@nodetool-ai/runtime-install`](runtime-install/README.md) | Runtime package installs (micromamba, conda, uv, Python packs, npm runtime libraries) for the desktop app, the CLI and other Node.js hosts |
 | `@nodetool-ai/sandbox-runtime` | Shared QuickJS interpreter and worker isolation for explicitly selected sandbox hosts |
 | `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, CodeActExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
@@ -393,8 +394,25 @@ listed above add to, not replace, this list.
 
 Packages that wrap third-party AI APIs (`atlascloud-nodes`, `topaz-nodes`,
 `replicate-nodes`, `kie-nodes`, `fal-nodes`, `minimax-nodes`, …) share a billing
-and transport surface where transient errors cost real money. Rules from shipped
-fixes:
+and transport surface where transient errors cost real money.
+
+- **Reach the vendor through its runtime provider.** A node calls
+  `context.callProviderEndpoint({ provider, capability, model, input })`,
+  uploads input media with `context.uploadProviderMedia` and fetches result
+  files with `context.downloadProviderMedia`. The call runs inside the
+  generation seam, so it writes the generation record, receipt and
+  `prediction` message. The vendor transport and the API key live only in the
+  provider class in `packages/runtime/src/providers/`. A node keeps its
+  `requiredSettings` declaration but never reads the key, calls `fetch` on the
+  vendor, or imports a vendor SDK. Realtime WebSocket nodes are the one
+  exception until providers gain a session interface. See the
+  [provider endpoint interface](../docs/plans/provider-endpoint-interface.md).
+- **Test a provider node against `ScriptedProvider`** through
+  `context.setProviderResolver`, not a mocked `fetch` or SDK. Assert the
+  endpoint request it logs and the `prediction` message the run emits.
+
+The rules below come from shipped fixes. They apply to the transport code in
+the provider classes:
 
 - **Never retry a non-idempotent request (job-creating `POST`, state-transition
   `PATCH`) on 5xx** — the server may have already acted (and billed) before the
@@ -417,7 +435,7 @@ fixes:
   octal, short-form `127.1`) and unwrap IPv4-mapped IPv6 (`[::ffff:127.0.0.1]`)
   *before* range-checking private/loopback/link-local/metadata; block `localhost`
   and `*.localhost`. A dotted-quad regex is not enough (the
-  `169.254.169.254` metadata IP has many encodings). `atlascloud-base.ts` has the
+  `169.254.169.254` metadata IP has many encodings). `atlascloud-factory.ts` has the
   hardened reference.
 - **Extract output URLs by recursively scanning** string / `FileOutput`
   (`.url()`/`.url`) / array / named-key-object shapes; accept a *nested* string

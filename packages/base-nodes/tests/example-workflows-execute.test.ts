@@ -34,6 +34,7 @@ import {
 } from "@nodetool-ai/node-sdk";
 import {
   createFakeContext,
+  loadMediaRefBytes,
   setProcessSandboxModuleCatalog,
   stubGlobalFetch
 } from "@nodetool-ai/runtime";
@@ -118,13 +119,15 @@ const EXAMPLES_DIR = path.resolve(
 const PER_WORKFLOW_TIMEOUT_MS = 30_000;
 
 /**
- * Examples whose real ffmpeg work outlasts the default timeout: reframing the
- * 8 s sample clip and rendering a timeline to video. Alone on
- * one machine they take 13–80 s. The CI nodes shard runs them beside the
- * other package suites on four cores, where the 30 s and 120 s limits
- * expired, so each gets several times its solo duration.
+ * Examples whose real media work outlasts the default timeout: reframing the
+ * 8 s sample clip, rendering a timeline to video, and compositing two
+ * full-size campaign artboards in the sandbox. Alone on one machine they take
+ * 8–80 s. The CI nodes shard runs them beside the other package suites on
+ * four cores, where the 30 s and 120 s limits expired, so each gets several
+ * times its solo duration.
  */
 const SLOW_WORKFLOW_TIMEOUT_MS: Record<string, number> = {
+  "Compose Directed Campaign Formats.json": 120_000,
   "Cut a Landscape Clip for Vertical.json": 120_000,
   "Direct a Short Film.json": 300_000,
   "Directed Film to Timeline.json": 300_000
@@ -311,11 +314,37 @@ interface ExecutionResult {
   nodesExecuted: number;
 }
 
-async function executeWorkflow(workflow: WorkflowFile): Promise<ExecutionResult> {
+async function executeWorkflow(
+  workflow: WorkflowFile
+): Promise<ExecutionResult> {
   const fake = createFakeContext({
     jobId: `fake-${workflow.fileName}`
   });
-  const graph = await Graph.loadFromDict(prepareForFakeRun(workflow.data.graph), {
+  const prepared = prepareForFakeRun(workflow.data.graph);
+  // Persist sample images so entity nodes and sandbox media readers receive
+  // the same asset references as generated media, without embedded buffers.
+  for (const [index, node] of prepared.nodes.entries()) {
+    if (node.type !== "nodetool.input.ImageInput") {
+      continue;
+    }
+    const data = node.data as Record<string, unknown>;
+    const value = data.value as {
+      type?: string;
+      uri?: string;
+      asset_id?: string | null;
+      data?: unknown;
+    };
+    const bytes = await loadMediaRefBytes(value, fake.context);
+    if (!bytes) {
+      throw new Error(`Cannot load sample image for ${String(node.id)}`);
+    }
+    const extension = path.extname(value.uri ?? "") || ".png";
+    const samplePath = path.join(fake.workspaceDir, `sample-image-${index}${extension}`);
+    fs.writeFileSync(samplePath, bytes);
+    const asset = await fake.context.sandboxToAsset(samplePath);
+    data.value = { ...asset, uri: `${asset.uri}${extension}` };
+  }
+  const graph = await Graph.loadFromDict(prepared, {
     resolver,
     skipErrors: true,
     allowUndefinedProperties: true

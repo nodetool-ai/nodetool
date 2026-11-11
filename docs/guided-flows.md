@@ -5,9 +5,10 @@ permalink: /guided-flows
 description: "Start an image, workflow, app, entity, storyboard, video, script, or game from a short guided sequence of steps."
 ---
 
-A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review what NodeTool proposes, and only then does it spend model credits. The flow saves its progress on the document it creates, so a reload or a second window resumes at the same step.
+A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review the proposal, and only then does the flow call paid models. Progress is saved on the document the flow creates, so a reload or a second window resumes at the same step.
 
-There are nine flows.
+> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a connected language model, plus an image model for Image, Entity, and Storyboard. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** the render or build step calls the chosen model at provider rates. The footer shows an estimate when it can be measured. The App build is capped at $2.00.
+{: .callout-note}
 
 | Flow | What it makes | Steps |
 |------|---------------|-------|
@@ -21,7 +22,7 @@ There are nine flows.
 | [Script](#storyboard-video-and-script) | Voiced lines ready to place | See [AI Video Production](ai-video-production.md) |
 | [Game](#game) | A playable game in the built-in engine | See [Game Editor](game-editor.md) |
 
-![The Image guided flow at its first step, with an example idea filled in](assets/screenshots/guided-flow.png)
+![The Workflow guided flow at its first step, with an example task filled in](assets/screenshots/guided-flow.png)
 
 ## Start a flow
 
@@ -35,26 +36,24 @@ There are nine flows.
 
 **From the Entities page.** **Add entity** runs the Entity flow in place.
 
-Every step has a primary button named for its outcome, such as **Generate your image**. When the button is off, a line beside it says why, for example "Pick an image use case". Where a step spends credits, the cost estimate sits beside the button. Step 1 of the Image, Workflow, and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
+Each step's primary button is named for its outcome, such as **Generate your image**. When it is disabled, a line beside it says why, for example "Pick an image use case". Where a step spends money, the cost estimate sits beside the button. Step 1 of the Image, Workflow, and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
 
 ## Image
 
-The Image flow creates a sketch. It has two paths. The quick path renders your sentence right away from step 1. The step-by-step path turns the sentence into a brief, lets you choose size and style, and then renders one, two, or four variations for you to pick from. The sketch editor is described in [Sketch Editor](sketch-editor.md).
+The Image flow creates a sketch by one of two paths. The quick path renders your sentence from step 1. The step-by-step path expands it into a brief, lets you choose size and style, then renders one, two, or four variations. See [Sketch Editor](sketch-editor.md).
 
 ### Step 1: Idea
 
-The heading is **What image do you want?** Describe the picture in the **Your image** box. One sentence is enough. The box is required. Three example briefs below it fill the box when you click one.
+The heading is **What image do you want?** The **Your image** box is required. Three example briefs below it fill the box when clicked.
 
-If the flow was started from the new-project prompt with reference images or entities attached, they appear under **Came with your prompt**. The step-by-step brief reads the reference images. The quick path uses your text only.
+Reference images or entities attached on the new-project prompt appear under **Came with your prompt**. The step-by-step brief reads the reference images. The quick path uses your text only.
 
 **Other ways to start** skips the brief:
 
 - **Upload an image to edit** opens the sketch editor with your PNG, JPEG, WebP, or GIF as the first layer.
 - **Start with a blank canvas** opens the editor on an empty canvas.
 
-The footer has the image model picker and the cost estimate. Choose **Generate your image** to render one variation of your sentence on a square canvas with no style. If the model does not accept a square, the canvas moves to the first size it does accept. The contact sheet's **Back to generation settings** opens step 3 when you want a different size, style, or model.
-
-Choose **Refine step by step** to take the full path through steps 2 and 3. Nothing is rendered or charged until step 3.
+The footer has the image model picker and the cost estimate. **Generate your image** renders one variation on a square canvas with no style. If the model does not accept a square, the canvas moves to the first size it accepts. **Refine step by step** takes the full path through steps 2 and 3. Nothing is rendered or charged until step 3.
 
 ### Step 2: Brief
 
@@ -70,23 +69,19 @@ First choose what the picture is for. The cards set the canvas size and the defa
 | Concept art | A world, painted wide | 1024 x 683 | 2 |
 | Texture | A flat surface that tiles | 1024 x 1024 | 2 |
 
-Choose **Refine the brief**. The language model expands your sentence into five fields and nothing is rendered yet. If the brief already matches your sentence and use case, the button reads **Continue to the brief** and makes no model call.
-
-The review step shows **Your brief** with five editable fields: **Subject**, **Composition**, **Lighting**, **Style words**, and **Leave out**. Edit anything before it is rendered. **Re-refine** runs the expansion again over the text in the boxes. Under **How many variations?** choose 1, 2, or 4. Choose **Continue to look**.
+**Refine the brief** makes one language-model call that expands your sentence into five editable fields: **Subject**, **Composition**, **Lighting**, **Style words**, and **Leave out**. Nothing is rendered. If the brief already matches your sentence and use case, the button reads **Continue to the brief** and makes no model call. **Re-refine** runs the expansion again over the text in the boxes. Under **How many variations?** choose 1, 2, or 4, then **Continue to look**.
 
 ### Step 3: Look
-
-The heading is **Choose the look**.
 
 - **Size** offers five tiles: Square (1:1), Portrait (4:5), Landscape (3:2), Story (9:16), and Banner (21:9). Only the sizes the selected model accepts are shown.
 - **Style** offers style presets and a **No style** tile, which renders exactly what the brief says.
 - **Model** is picked in the footer. If no image provider is connected, the step says so and points you to Settings.
 
-Choose **Generate your image**. The estimated cost appears beside the button when it can be measured.
+**Generate your image** renders the batch. The estimated cost appears beside the button when it can be measured.
 
 ### The contact sheet
 
-The variations render as a contact sheet. Each one has these buttons:
+Variations render as a contact sheet. Each has these buttons:
 
 | Button | Result |
 |--------|--------|
@@ -101,11 +96,11 @@ Below the sheet, **Make more variations** renders another batch, **Back to gener
 
 ## Workflow
 
-The Workflow flow plans a graph from a task, shows you the plan, then builds the graph, validates it, and runs it once with sample inputs. Planning places nothing and runs nothing. For the editor itself see [Workflow Editor](workflow-editor.md).
+The Workflow flow plans a graph from a task, shows the plan, then builds the graph, validates it, and runs it once with sample inputs. Planning places nothing and runs nothing. See [Workflow Editor](workflow-editor.md).
 
 ### Step 1: Idea
 
-The heading is **What should this workflow do?** Describe only the task in the **The task** box, for example "Summarize a PDF and email it". Add files, services, and destinations later. Three example tasks sit below the box.
+The heading is **What should this workflow do?** Describe only the task in the **The task** box, for example "Summarize a PDF and email it". Three example tasks sit below it.
 
 **Other ways to start**:
 
@@ -115,7 +110,7 @@ The heading is **What should this workflow do?** Describe only the task in the *
 
 ### Step 2: Plan
 
-Choose what kind of workflow it is. The category changes which nodes the planner considers and which run mode step 3 starts on. It places nothing, so a wrong choice costs a re-plan, not a graph.
+The category changes which nodes the planner considers and which run mode step 3 starts on. A wrong choice costs a re-plan, not a graph.
 
 | Category | Description | Starts as |
 |----------|-------------|-----------|
@@ -126,9 +121,9 @@ Choose what kind of workflow it is. The category changes which nodes the planner
 | Automation on a trigger | Runs on a schedule or a webhook, with no one watching | On a trigger |
 | Chat app | A conversation with your data behind it | App with a form |
 
-Choose the planner model in the footer, then **Plan the steps**. A shipped example brief can use a stored plan with no model call. If the plan already matches your brief and category, the button reads **Continue to your plan**.
+Pick the planner model in the footer, then **Plan the steps**. A shipped example brief can use a stored plan with no model call. If the plan already matches your brief and category, the button reads **Continue to your plan**.
 
-The review shows the plan as a numbered list of inputs, steps, and outputs. You can edit titles and descriptions, reorder steps, remove a step, and use **Add a step**. Two markers can block **Continue to setup**:
+The plan is a numbered list of inputs, steps, and outputs. You can edit titles and descriptions, reorder or remove steps, and use **Add a step**. Two markers can block **Continue to setup**:
 
 - A red marker, "No node for this step", means the step names a node type that does not exist. Pick a real node type in the field beside it.
 - An amber marker, "No ... provider connected", means the step needs a model role that no connected provider covers. **Connect** opens provider setup in place.
@@ -137,7 +132,7 @@ Every step needs a title and every output needs a name. **Re-plan** asks the mod
 
 ### Step 3: Build
 
-The heading is **Models and how it runs**. Pick a model for each role the plan needs from the providers you have configured. Choose how the workflow starts:
+The heading is **Models and how it runs**. Pick a model for each role the plan needs, then choose how the workflow starts:
 
 | Run mode | After the test run |
 |----------|--------------------|
@@ -145,11 +140,11 @@ The heading is **Models and how it runs**. Pick a model for each role the plan n
 | App with a form | You put a shareable form over the inputs |
 | On a trigger | A schedule or a webhook starts it |
 
-Under **Sample inputs** you can change the values used for the test run. Choose **Build your workflow**. The button states that it builds, checks, then runs the workflow once. Cost is unknown until the run returns.
+Edit **Sample inputs** to change the test-run values. **Build your workflow** builds, checks, then runs the workflow once. Cost is unknown until the run returns.
 
 ### The landing checklist
 
-When the build finishes, the canvas opens with a checklist of three lines: **Graph built** with the node count, **Validated**, and **Test run**. If something failed, the checklist says what needs a fix. The next-step button depends on the run mode:
+When the build finishes, the canvas opens with a checklist: **Graph built** (with the node count), **Validated**, and **Test run**. A failed line says what needs a fix. The next-step button depends on the run mode:
 
 - **Continue on canvas** for Run by hand
 - **Create Mini App** for App with a form. See [Mini Apps](mini-apps.md)
@@ -157,7 +152,7 @@ When the build finishes, the canvas opens with a checklist of three lines: **Gra
 
 ## Entity
 
-The Entity flow creates a reusable character, location, style, or prop with a reference image. Entities are described in [Entities](entities.md).
+The Entity flow creates a reusable character, location, style, or prop with a reference image. See [Entities](entities.md).
 
 ### Step 1: Details
 
@@ -168,24 +163,24 @@ The heading is **What should stay consistent?**
 3. Enter a **Descriptor**. This text is added to every prompt that uses the entity, so describe only stable visual traits.
 4. Optionally enter **Tags (optional)** as a comma-separated list.
 
-The name and descriptor are required. **Start with a blank reference** under **Other ways to start** makes a plain white 1024 x 1024 image, fills an empty name with "Untitled entity" and an empty descriptor with "A reusable visual entity.", and jumps to the review. Choose **Choose a reference**.
+The name and descriptor are required. **Start with a blank reference** under **Other ways to start** makes a plain white 1024 x 1024 image, fills an empty name with "Untitled entity" and an empty descriptor with "A reusable visual entity.", and jumps to the review. Otherwise continue with **Choose a reference**.
 
 ### Step 2: Reference
 
-The heading is **Choose a reference image**. Pick the clearest image of the traits to preserve.
+The heading is **Choose a reference image**.
 
 - **Choose from assets** opens the asset picker. After a pick the button reads **Change reference**. Images that are already entities are not offered.
 - **Generate with AI** opens **Generate a reference image**. Choose a view for the entity type, edit the **Prompt**, pick an **Image model**, and choose **Generate reference**. The image is made at 1K resolution and selected for you.
 
-Choose **Review entity**.
+Continue with **Review entity**.
 
 ### Step 3: Review
 
-The heading is **Review your entity**. It shows the reference, the name, the type, the descriptor, and the tags. Choose **Create entity**. The entity is then available anywhere entities can be added. If you leave before this step, the draft is kept and restored when you return.
+**Create entity** saves it. If you leave before this step, the draft is kept and restored when you return.
 
 ## Storyboard, Video, and Script
 
-These flows build video material. [AI Video Production](ai-video-production.md) documents all three, with their steps, creative context fields, and review screens.
+[AI Video Production](ai-video-production.md) documents all three, with their steps, creative context fields, and review screens.
 
 - **Storyboard** takes a sentence to a rendered board in four steps. You review the screenplay, assign entities, choose the look, then render stills and clips.
 - **Video** takes a sentence to a cut on the timeline with no board. Each beat stays a separate clip.
@@ -193,17 +188,16 @@ These flows build video material. [AI Video Production](ai-video-production.md) 
 
 ## App
 
-The App flow makes a mini app that runs: the screen, and the workflows behind it. Nothing is added to your project until the build passes its tests.
+The App flow makes a mini app: the screen and the workflows behind it. Nothing is added to your project until the build passes its tests.
 
 ### Step 1: Idea
 
-The heading is **What should the app do?** Describe the page in one or two sentences, such as "A page where I type a product name, press a button, and get a short description back". Say what someone types or picks, what the button does, and what they get back. **Model** in the footer picks the language model that writes the design and builds the app.
-
-**Start with a blank app** under **Other ways to start** creates an empty app and opens it in the App Builder. Choose **Write the design**.
+The heading is **What should the app do?** Describe what someone types or picks, what the button does, and what they get back, for example "A page where I type a product name, press a button, and get a short description back". **Model** in the footer picks the language model that writes the design and builds the app. **Start with a blank app** under **Other ways to start** creates an empty app and opens it in the App Builder. Otherwise continue with **Write the design**.
 
 ### Step 2: Design
 
-The heading is **Review the design**. Every field is editable:
+The heading is **Review the design**. Every field is editable.
+
 
 - **The app** holds the title.
 - **What it runs** has one card per workflow behind the screen. **What it does** says what that workflow does, and the line under it names what it takes and gives back.
@@ -214,7 +208,7 @@ The heading is **Review the design**. Every field is editable:
 
 ### Step 3: Build
 
-The heading is **Build the app**. **App name** starts as the design's title. **Build your app** plans the workflows, places the screen and test-runs it, with spending capped at $2.00. While it runs, the step's list marks the part done, the part under way and the parts still to come, and the line beside the spinner names it, including a repair round after a failed test. A build that passes is installed in the selected project and opens in the App Builder on its run view, with its workflows listed under **Linked workflows**. A build that fails shows why on the step and installs nothing. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
+**App name** starts as the design's title. **Build your app** plans the workflows, places the screen and test-runs it, with spending capped at $2.00. The step's list marks each part done, under way, or pending, including a repair round after a failed test. A build that passes is installed in the selected project and opens in the App Builder on its run view, with its workflows listed under **Linked workflows**. A failed build shows the reason on the step and installs nothing. The [mini app build harness](mini-app-build-harness-design.md) describes the stages.
 
 If you leave the tab before the build, the design is kept and restored when you return to it.
 

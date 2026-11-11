@@ -21,6 +21,34 @@ export {
   type MintedAppSessionToken
 } from "./providers/app-session-token-provider.js";
 export {
+  OidcSessionTokenProvider,
+  mintOidcSessionToken,
+  isOidcSessionToken,
+  OIDC_SESSION_TOKEN_PREFIX,
+  type OidcSessionTokenProviderOptions,
+  type OidcSessionSigningKey,
+  type OidcSessionIdentity,
+  type MintedOidcSessionToken
+} from "./providers/oidc-session-token-provider.js";
+export {
+  OidcClient,
+  OidcSignInError,
+  readOidcConfig,
+  oidcUserId,
+  createOidcLoginState,
+  sealOidcLoginState,
+  openOidcLoginState,
+  pkceChallenge,
+  safeEqual,
+  OIDC_CALLBACK_PATH,
+  OIDC_LOGIN_PATH,
+  OIDC_LOGIN_STATE_TTL_SECONDS,
+  type OidcConfig,
+  type OidcClientOptions,
+  type OidcIdentity,
+  type OidcLoginState
+} from "./oidc.js";
+export {
   SupabaseAuthProvider,
   type SupabaseAuthProviderOptions
 } from "./providers/supabase-provider.js";

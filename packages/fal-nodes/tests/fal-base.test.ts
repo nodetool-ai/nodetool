@@ -1,28 +1,31 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
 import {
-  getFalApiKey,
   removeNulls,
   isRefSet,
   inferContentType,
-  falSubmit,
-  falUpload,
+  callFalEndpoint,
+  uploadToFal,
   assetToFalUrl,
-  imageToDataUrl
+  imageToDataUrl,
+  type FalUploadContext
 } from "../src/fal-base.js";
 
 /* ------------------------------------------------------------------ */
-/*  Mock @fal-ai/client SDK                                            */
+/*  Scripted fal_ai provider behind a real processing context          */
 /* ------------------------------------------------------------------ */
 
-const mockSubscribe = vi.fn();
-const mockStorageUpload = vi.fn();
+let provider: ScriptedProvider;
+let falCtx: ProcessingContext;
+let uploadUrls: string[];
 
-vi.mock("@fal-ai/client", () => ({
-  createFalClient: vi.fn(() => ({
-    subscribe: mockSubscribe,
-    storage: { upload: mockStorageUpload }
-  }))
-}));
+/** A test context with storage hooks whose uploads still reach the provider. */
+function withUpload(context: Omit<FalUploadContext, "uploadProviderMedia">): FalUploadContext {
+  return {
+    ...context,
+    uploadProviderMedia: (args) => falCtx.uploadProviderMedia(args)
+  };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Fetch mock for imageToDataUrl / assetToFalUrl fallback paths       */
@@ -34,45 +37,95 @@ let mockFetch: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   mockFetch = vi.fn();
   globalThis.fetch = mockFetch;
-  mockSubscribe.mockReset();
-  mockStorageUpload.mockReset();
-  delete process.env.FAL_API_KEY;
+  uploadUrls = [];
+  provider = new ScriptedProvider([], {
+    providerId: "fal_ai",
+    uploadUrl: () => uploadUrls.shift() ?? "https://v3.fal.media/files/default"
+  });
+  falCtx = new ProcessingContext({ jobId: "job-fal-base" });
+  falCtx.setProviderResolver(async () => provider);
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  delete process.env.FAL_API_KEY;
 });
 
 /* ================================================================== */
-/*  getFalApiKey                                                        */
+/*  callFalEndpoint                                                     */
 /* ================================================================== */
 
-describe("getFalApiKey", () => {
-  it("returns key from secrets.FAL_API_KEY", () => {
-    const key = getFalApiKey({ FAL_API_KEY: "secret-from-secrets" });
-    expect(key).toBe("secret-from-secrets");
+describe("callFalEndpoint", () => {
+  const request = {
+    endpoint: "fal-ai/flux/dev",
+    args: { prompt: "a beautiful sunset" },
+    nodeType: "fal.text_to_image.FluxDev",
+    capability: "text_to_image" as const
+  };
+
+  it("calls the fal_ai provider and returns its output and request id", async () => {
+    provider.scriptEndpoint("fal-ai/flux/dev", {
+      output: { images: [{ url: "https://fal.media/result.png" }] },
+      requestId: "req_123"
+    });
+
+    const result = await callFalEndpoint(falCtx, request);
+
+    expect(result).toEqual({
+      data: { images: [{ url: "https://fal.media/result.png" }] },
+      requestId: "req_123"
+    });
+    expect(provider.endpointCalls).toHaveLength(1);
+    expect(provider.endpointCalls[0]).toMatchObject({
+      model: "fal-ai/flux/dev",
+      input: { prompt: "a beautiful sunset" }
+    });
+    expect(provider.endpointCalls[0].route).toBeUndefined();
   });
 
-  it("returns key from process.env.FAL_API_KEY", () => {
-    process.env.FAL_API_KEY = "secret-from-env";
-    const key = getFalApiKey({});
-    expect(key).toBe("secret-from-env");
+  it("propagates provider errors", async () => {
+    provider.scriptEndpoint("fal-ai/flux/dev", new Error("API error: 422"));
+    await expect(callFalEndpoint(falCtx, request)).rejects.toThrow(
+      "API error: 422"
+    );
   });
 
-  it("prefers secrets over process.env", () => {
-    process.env.FAL_API_KEY = "env-key";
-    const key = getFalApiKey({ FAL_API_KEY: "secrets-key" });
-    expect(key).toBe("secrets-key");
+  it("refuses output that is not a JSON object", async () => {
+    provider.scriptEndpoint("fal-ai/flux/dev", { output: ["not", "a", "record"] });
+    await expect(callFalEndpoint(falCtx, request)).rejects.toThrow(
+      "FAL fal-ai/flux/dev returned no JSON object"
+    );
   });
 
-  it("throws when no key available", () => {
-    expect(() => getFalApiKey({})).toThrow("FAL_API_KEY is not configured");
+  it("needs a processing context", async () => {
+    await expect(callFalEndpoint(undefined, request)).rejects.toThrow(
+      "fal.text_to_image.FluxDev needs a processing context to call FAL"
+    );
+  });
+});
+
+/* ================================================================== */
+/*  uploadToFal                                                         */
+/* ================================================================== */
+
+describe("uploadToFal", () => {
+  const data = new Uint8Array([1, 2, 3, 4]);
+
+  it("uploads through the fal_ai provider and returns its URL", async () => {
+    uploadUrls.push("https://v3.fal.media/files/abc.png");
+
+    const url = await uploadToFal(falCtx, data, "image/png");
+
+    expect(url).toBe("https://v3.fal.media/files/abc.png");
+    expect(provider.uploadCalls).toHaveLength(1);
+    expect(provider.uploadCalls[0]).toMatchObject({
+      bytes: data,
+      mimeType: "image/png"
+    });
   });
 
-  it("throws when secrets.FAL_API_KEY is empty string", () => {
-    expect(() => getFalApiKey({ FAL_API_KEY: "" })).toThrow(
-      "FAL_API_KEY is not configured"
+  it("needs a processing context", async () => {
+    await expect(uploadToFal(undefined, data, "image/png")).rejects.toThrow(
+      "Uploading media to FAL needs a processing context"
     );
   });
 });
@@ -186,93 +239,16 @@ describe("inferContentType", () => {
 });
 
 /* ================================================================== */
-/*  falSubmit (uses SDK client.subscribe)                               */
-/* ================================================================== */
-
-describe("falSubmit", () => {
-  const apiKey = "test-fal-key";
-  const endpoint = "fal-ai/flux/dev";
-  const args = { prompt: "a beautiful sunset" };
-
-  it("returns result.data from SDK subscribe", async () => {
-    mockSubscribe.mockResolvedValueOnce({
-      data: { images: [{ url: "https://fal.media/result.png" }] },
-      requestId: "req_123"
-    });
-
-    const result = await falSubmit(apiKey, endpoint, args);
-    expect(result).toEqual({
-      images: [{ url: "https://fal.media/result.png" }]
-    });
-    expect(mockSubscribe).toHaveBeenCalledWith(endpoint, {
-      input: args,
-      logs: true
-    });
-  });
-
-  it("falls back to result itself when data is missing", async () => {
-    mockSubscribe.mockResolvedValueOnce({
-      images: [{ url: "https://fal.media/result.png" }]
-    });
-
-    const result = await falSubmit(apiKey, endpoint, args);
-    expect(result).toEqual({
-      images: [{ url: "https://fal.media/result.png" }]
-    });
-  });
-
-  it("propagates SDK errors", async () => {
-    mockSubscribe.mockRejectedValueOnce(new Error("API error: 422"));
-    await expect(falSubmit(apiKey, endpoint, args)).rejects.toThrow(
-      "API error: 422"
-    );
-  });
-});
-
-/* ================================================================== */
-/*  falUpload (uses SDK client.storage.upload)                          */
-/* ================================================================== */
-
-describe("falUpload", () => {
-  const apiKey = "test-fal-key";
-  const data = new Uint8Array([1, 2, 3, 4]);
-  const contentType = "image/png";
-
-  it("returns URL from SDK storage.upload", async () => {
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/abc.png"
-    );
-
-    const url = await falUpload(apiKey, data, contentType);
-    expect(url).toBe("https://v3.fal.media/files/abc.png");
-    expect(mockStorageUpload).toHaveBeenCalledTimes(1);
-    // Verify a Blob was passed
-    const blob = mockStorageUpload.mock.calls[0][0];
-    expect(blob).toBeInstanceOf(Blob);
-    expect(blob.type).toBe("image/png");
-  });
-
-  it("propagates SDK upload errors", async () => {
-    mockStorageUpload.mockRejectedValueOnce(new Error("upload failed"));
-    await expect(falUpload(apiKey, data, contentType)).rejects.toThrow(
-      "upload failed"
-    );
-  });
-});
-
-/* ================================================================== */
 /*  assetToFalUrl                                                       */
 /* ================================================================== */
 
 describe("assetToFalUrl", () => {
-  const apiKey = "test-fal-key";
-
   it("returns FAL CDN URI directly (no upload)", async () => {
-    const url = await assetToFalUrl(apiKey, {
+    const url = await assetToFalUrl({
       uri: "https://v3.fal.media/files/abc.png"
-    });
+    }, falCtx);
     expect(url).toBe("https://v3.fal.media/files/abc.png");
-    expect(mockStorageUpload).not.toHaveBeenCalled();
+    expect(provider.uploadCalls).toHaveLength(0);
   });
 
   it("fetches and uploads external HTTPS URI to FAL CDN", async () => {
@@ -281,30 +257,26 @@ describe("assetToFalUrl", () => {
       arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
       headers: new Headers({ "content-type": "image/png" })
     } as unknown as Response);
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/uploaded.png"
-    );
+    uploadUrls.push("https://v3.fal.media/files/uploaded.png");
 
-    const url = await assetToFalUrl(apiKey, {
+    const url = await assetToFalUrl({
       uri: "https://cdn.example.com/img.png"
-    });
+    }, falCtx);
     expect(url).toBe("https://v3.fal.media/files/uploaded.png");
   });
 
   it("does not return localhost HTTPS URI directly", async () => {
-    const url = await assetToFalUrl(apiKey, {
+    const url = await assetToFalUrl({
       uri: "https://localhost:8080/img.png"
-    });
+    }, falCtx);
     expect(url).toBeNull();
   });
 
   it("uploads when data is present", async () => {
     const b64 = Buffer.from("fake-image-bytes").toString("base64");
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/img.png"
-    );
+    uploadUrls.push("https://v3.fal.media/files/img.png");
 
-    const url = await assetToFalUrl(apiKey, { data: b64, type: "image" });
+    const url = await assetToFalUrl({ data: b64, type: "image" }, falCtx);
     expect(url).toBe("https://v3.fal.media/files/img.png");
   });
 
@@ -314,15 +286,9 @@ describe("assetToFalUrl", () => {
         retrieve: vi.fn(async () => new Uint8Array([1, 2, 3]))
       }
     };
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/context.png"
-    );
+    uploadUrls.push("https://v3.fal.media/files/context.png");
 
-    const url = await assetToFalUrl(
-      apiKey,
-      { uri: "/api/storage/local.png", type: "image" },
-      context
-    );
+    const url = await assetToFalUrl({ uri: "/api/storage/local.png", type: "image" }, withUpload(context));
 
     expect(url).toBe("https://v3.fal.media/files/context.png");
     expect(context.storage.retrieve).toHaveBeenCalledWith(
@@ -340,19 +306,13 @@ describe("assetToFalUrl", () => {
         bytes: Uint8Array.from([137, 80, 78, 71])
       }))
     };
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/asset-resolved.png"
-    );
+    uploadUrls.push("https://v3.fal.media/files/asset-resolved.png");
 
-    const url = await assetToFalUrl(
-      apiKey,
-      { type: "image", uri: "asset://asset-123" },
-      context
-    );
+    const url = await assetToFalUrl({ type: "image", uri: "asset://asset-123" }, withUpload(context));
 
     expect(url).toBe("https://v3.fal.media/files/asset-resolved.png");
     expect(context.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
-    expect(mockStorageUpload).toHaveBeenCalledTimes(1);
+    expect(provider.uploadCalls).toHaveLength(1);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -363,15 +323,9 @@ describe("assetToFalUrl", () => {
         bytes: Uint8Array.from([137, 80, 78, 71])
       }))
     };
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/asset-id-resolved.png"
-    );
+    uploadUrls.push("https://v3.fal.media/files/asset-id-resolved.png");
 
-    const url = await assetToFalUrl(
-      apiKey,
-      { type: "image", uri: "", asset_id: "asset-456" },
-      context
-    );
+    const url = await assetToFalUrl({ type: "image", uri: "", asset_id: "asset-456" }, withUpload(context));
 
     expect(url).toBe("https://v3.fal.media/files/asset-id-resolved.png");
     expect(context.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-456");
@@ -379,7 +333,7 @@ describe("assetToFalUrl", () => {
   });
 
   it("returns null when no uri, data, or asset_id", async () => {
-    const url = await assetToFalUrl(apiKey, { type: "image" });
+    const url = await assetToFalUrl({ type: "image" }, falCtx);
     expect(url).toBeNull();
   });
 
@@ -390,14 +344,12 @@ describe("assetToFalUrl", () => {
       arrayBuffer: async () => new Uint8Array([10, 20]).buffer,
       headers: new Headers({ "content-type": "image/jpeg" })
     } as unknown as Response);
-    mockStorageUpload.mockResolvedValueOnce(
-      "https://v3.fal.media/files/uploaded.jpg"
-    );
+    uploadUrls.push("https://v3.fal.media/files/uploaded.jpg");
 
-    const url = await assetToFalUrl(apiKey, {
+    const url = await assetToFalUrl({
       type: "video",
       uri: "https://example.com/clip.mp4"
-    });
+    }, falCtx);
     expect(url).toBe("https://v3.fal.media/files/uploaded.jpg");
     expect(mockFetch.mock.calls[0][1]).toMatchObject({ redirect: "manual" });
   });
@@ -409,10 +361,10 @@ describe("assetToFalUrl", () => {
     "/api/internal-route",
     "/api/storage/../secret"
   ])("does not fetch the workflow-supplied uri %s", async (uri) => {
-    const url = await assetToFalUrl(apiKey, { type: "video", uri });
+    const url = await assetToFalUrl({ type: "video", uri }, falCtx);
     expect(url).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
-    expect(mockStorageUpload).not.toHaveBeenCalled();
+    expect(provider.uploadCalls).toHaveLength(0);
   });
 });
 

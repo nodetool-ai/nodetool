@@ -19,6 +19,7 @@ import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import { useResolvedMedia, type MediaLocator } from "../../hooks/useResolvedMediaUri";
+import { useImageThumbnail } from "../../hooks/useImageThumbnail";
 import { asResolvedMediaUrl } from "../../utils/resolveMediaUri";
 import { AudioPlayback } from "./AudioPlayback";
 import { ResponsiveImage } from "./ResponsiveImage";
@@ -140,13 +141,18 @@ const AssetMedia: React.FC<RenderProps & { asset: MediaThumbnailAsset }> = ({
 }) => {
   const thumb = asResolvedMediaUrl(asset.thumb_url);
   const full = asResolvedMediaUrl(asset.get_url);
+  // A fresh upload can be listed before its thumbnail is written; paint the
+  // full image until the thumbnail loads.
+  const imageStill = asResolvedMediaUrl(
+    useImageThumbnail(kind === "image" ? thumb : null, kind === "image" ? full : null)
+  );
   if (kind === "video" && interactive && full) {
     return <VideoPlayer src={full} poster={thumb ?? ""} label={alt} />;
   }
   if (kind === "audio" && interactive && full) {
     return <AudioPlayback src={full} label={alt} />;
   }
-  const still = kind === "image" ? (thumb ?? full) : kind === "video" ? thumb : null;
+  const still = kind === "image" ? imageStill : kind === "video" ? thumb : null;
   if (still) {
     return (
       <ResponsiveImage src={still} alt={alt} fit={fit} loading={loading} sx={frameSx} />
@@ -166,7 +172,9 @@ const LocatorMedia: React.FC<
   const kind =
     fixedKind ?? mediaKindFromContentType(contentType ?? resolved.contentType);
   if (kind === "video" && interactive) {
-    return <VideoPlayer locator={locator} label={alt} />;
+    return (
+      <VideoPlayer locator={locator} poster={resolved.thumbUrl ?? ""} label={alt} />
+    );
   }
   if (kind === "audio" && interactive) {
     return <AudioPlayback locator={locator} label={alt} />;

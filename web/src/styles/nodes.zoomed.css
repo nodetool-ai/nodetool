@@ -95,7 +95,7 @@
 /* Selection establishes a readable upstream/downstream branch at every zoom. */
 .react-flow .react-flow__node.branch-dimmed,
 .react-flow .react-flow__edge.branch-dimmed {
-  opacity: 0.2;
+  opacity: 0.6;
 }
 
 .react-flow .react-flow__node.branch-related,

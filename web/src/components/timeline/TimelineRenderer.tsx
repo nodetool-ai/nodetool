@@ -1,4 +1,6 @@
 /** @jsxImportSource @emotion/react */
+import { timelineColorSpaceError } from "@nodetool-ai/timeline";
+import { UnsupportedTimeline } from "./UnsupportedTimeline";
 import { css } from "@emotion/react";
 import React, { memo, useEffect, useLayoutEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -103,7 +105,7 @@ const TimelineRendererContent: React.FC<TimelineRendererProps> = ({
   );
 };
 
-const TimelineRenderer: React.FC<TimelineRendererProps> = (props) => {
+const SupportedTimelineRenderer: React.FC<TimelineRendererProps> = (props) => {
   // First sequence only — identity changes reload in useLayoutEffect.
   const instance = useMemo(() => {
     const next = createTimelineInstance();
@@ -131,5 +133,10 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = (props) => {
     </TimelineProvider>
   );
 };
+
+const TimelineRenderer: React.FC<TimelineRendererProps> = (props) =>
+  timelineColorSpaceError(props.sequence)
+    ? <UnsupportedTimeline sequence={props.sequence} />
+    : <SupportedTimelineRenderer {...props} />;
 
 export default memo(TimelineRenderer);

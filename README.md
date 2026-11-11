@@ -12,10 +12,9 @@ Create images, video, audio, and text with agents that work alongside you.
 Describe what you want, let the agent build it, then take over whenever you
 like.
 
-**Stop prompting slot machines. Direct the agent.** Most AI video apps charge
-you to roll the dice, then hand back a flat MP4 you can't edit. In NodeTool the
-agent writes the script, boards the shots, and cuts a multi-track timeline.
-Every shot, voice line, and node stays open for you to change by hand.
+**Create with AI. Make it your own.** NodeTool combines an AI
+video editor with node-based workflows. Ask the agent to create a video,
+refine it in the timeline, or connect nodes to build a process you can reuse.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
 **[Quick start](#first-run-in-studio)** ·

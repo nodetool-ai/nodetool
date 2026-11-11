@@ -3,7 +3,8 @@
  *
  * Creates node classes from manifest data at runtime instead of codegen.
  * Each class extends BaseNode with the correct static metadata and
- * declared properties, backed by a generic process() that calls falSubmit.
+ * declared properties, backed by a generic process() that calls the FAL
+ * endpoint through the processing context.
  */
 
 import {
@@ -25,8 +26,7 @@ import {
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
-  getFalApiKey,
-  falSubmitWithGeneration,
+  callFalEndpoint,
   falCapabilityForOutputType,
   falImageToRef,
   removeNulls,
@@ -197,7 +197,6 @@ function validateRequiredAssetArgs(
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
-  apiKey: string,
   context?: ProcessingContext
 ): Promise<Record<string, unknown>> {
   const args: Record<string, unknown> = {};
@@ -237,7 +236,7 @@ async function buildArgs(
           const urls: string[] = [];
           for (const ref of list) {
             if (isRefSet(ref)) {
-              const u = await assetToFalUrl(apiKey, ref, context);
+              const u = await assetToFalUrl(ref, context);
               if (u) urls.push(u);
             }
           }
@@ -253,7 +252,7 @@ async function buildArgs(
       } else if (field.nestedAssetKey) {
         const ref = value as Record<string, unknown> | undefined;
         if (isRefSet(ref)) {
-          const url = await assetToFalUrl(apiKey, ref!, context);
+          const url = await assetToFalUrl(ref!, context);
           if (url) {
             const nested: Record<string, unknown> = {
               [field.nestedAssetKey]: url
@@ -278,8 +277,8 @@ async function buildArgs(
           const url =
             kind === "image"
               ? ((await imageToDataUrl(ref!, context)) ??
-                (await assetToFalUrl(apiKey, ref!, context)))
-              : await assetToFalUrl(apiKey, ref!, context);
+                (await assetToFalUrl(ref!, context)))
+              : await assetToFalUrl(ref!, context);
           if (url) {
             args[apiName] = url;
           } else if (field.required) {
@@ -305,7 +304,7 @@ async function buildArgs(
     spec.inputFields.filter((field) => !field.parentField),
     (name) => propertyOf(instance, name),
     args,
-    (ref) => assetToFalUrl(apiKey, ref, context)
+    (ref) => assetToFalUrl(ref, context)
   );
 
   removeNulls(args);
@@ -486,17 +485,14 @@ export function createFalNodeClass(manifestSpec: FalManifestEntry): NodeClass {
     async process(
       context?: ProcessingContext
     ): Promise<Record<string, unknown>> {
-      const apiKey = getFalApiKey(this._secrets);
       validateRequiredAssetArgs(this, specRef, title);
-      const args = await buildArgs(this, specRef, apiKey, context);
-      const { data: res, requestId } = await falSubmitWithGeneration(
-        apiKey,
-        endpointId,
+      const args = await buildArgs(this, specRef, context);
+      const { data: res, requestId } = await callFalEndpoint(context, {
+        endpoint: endpointId,
         args,
-        context,
         nodeType,
-        falCapabilityForOutputType(specRef.outputType)
-      );
+        capability: falCapabilityForOutputType(specRef.outputType)
+      });
       reportFalCost(context, nodeType, res, args, requestId);
       if (isImageOutput) {
         const images = res.images as

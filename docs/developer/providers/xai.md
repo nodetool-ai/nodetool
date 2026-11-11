@@ -6,9 +6,8 @@ description: "How to add new Grok chat, image, and video models to NodeTool's xA
 
 `XAIProvider` sits at `packages/runtime/src/providers/xai-provider.ts`. It extends `OpenAICompatProvider`, so chat uses xAI's OpenAI-compatible Chat Completions endpoint. It overrides model discovery and the four image and video generation methods to call xAI's REST API directly. Each modality lists the static `XAI_KNOWN_MODELS` catalog first, then any further models from xAI's `/v1/models` listing.
 
-> **Audience:** coding agents and contributors adding new xAI Grok models (chat, image generation, video generation).
-
----
+> **Runs:** cloud. **Needs:** `XAI_API_KEY`. The provider constructor throws `XAI_API_KEY is required` without it.
+{: .callout-note}
 
 ## TL;DR
 
@@ -21,8 +20,6 @@ To support a new model:
 
 xAI's `/v1/models` rows carry no modality fields, so `classifyModel()` usually falls back to the model id. Models the listing returns that the catalog lacks are still offered, after the catalog entries.
 
----
-
 ## Where things live
 
 | Concern | Path |
@@ -33,8 +30,6 @@ xAI's `/v1/models` rows carry no modality fields, so `classifyModel()` usually f
 | Cloud profile node namespaces | `packages/protocol/src/cloud-profile.ts` (`CLOUD_NODE_NAMESPACES` lists `xai`. `NON_CLOUD_PROVIDER_IDS` does not) |
 | Provider tests | `packages/runtime/tests/providers/xai-provider.test.ts` |
 | Type definitions | `packages/runtime/src/providers/types.ts` |
-
----
 
 ## How xAI models are defined
 
@@ -69,8 +64,6 @@ Generation calls go directly to xAI's REST API:
 | `textToVideo` / `imageToVideo` | `POST /v1/videos/generations` (async, polls `/v1/videos/{request_id}` until `done`, `failed`, or `expired`, with a 600 second default timeout) |
 
 Image inputs are converted to base64 data URIs before sending — xAI's JSON API rejects multipart uploads.
-
----
 
 ## Add a new model
 
@@ -139,8 +132,6 @@ override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
 }
 ```
 
----
-
 ## Verify
 
 ```bash
@@ -168,17 +159,3 @@ If you changed `classifyModel()` or any generation method, also run the provider
 ```bash
 npm run test --workspace=packages/runtime -- --reporter=verbose xai-provider
 ```
-
----
-
-## Contributing
-
-Open PRs at <https://github.com/nodetool-ai/nodetool>. Before pushing:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-```
-
-Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

@@ -33,6 +33,7 @@ import Module from "module";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { verifyBackendBundle } from "./verify-backend-bundle.mjs";
+import { isMediaPath } from "./package-media.mjs";
 import { backendServerBuildOptions } from "./backend-server-build-options.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -221,7 +222,7 @@ const DESKTOP_ONLY_EXTERNAL_PACKAGES = [
   "keytar",
 ];
 
-// Optional runtime packages (electron/src/runtime/packages/definitions.ts).
+// Optional runtime packages (packages/runtime-install/src/packages/definitions.ts).
 // The backend loads each through `importOptionalModule`, which esbuild cannot
 // see, and the desktop app installs it from the Package Manager the first time
 // a run needs it, so the desktop profile ships none of them. The Docker image
@@ -1089,6 +1090,22 @@ async function buildSandboxWorkerBundle() {
   console.log("  Wrote js-sandbox-worker/worker-entry.js");
 }
 
+// The child must remain a separate executable beside the flattened server.
+async function buildPreviewRenderChildBundle() {
+  await esbuild.build({
+    entryPoints: [path.join(ROOT_DIR, "packages/agents/dist/timeline-preview/render-child.js")],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node22",
+    outfile: path.join(BUNDLE_DIR, "preview-render-child.mjs"),
+    external: ESBUILD_EXTERNAL_PACKAGES,
+    banner: { js: 'import { createRequire as __ntCreateRequire } from "node:module"; const require = __ntCreateRequire(import.meta.url);' },
+    logLevel: "warning",
+  });
+}
+
+
 /**
  * Bundle the Chrome extension's native messaging host into
  * <out>/native-host-bin.js.
@@ -1098,6 +1115,7 @@ async function buildSandboxWorkerBundle() {
  * import.meta.url, which in the packaged app is server.mjs, so the file name
  * and location are part of the contract. The host uses only Node built-ins.
  */
+
 async function buildNativeHostBundle() {
   console.log("\nBundling native messaging host (native-host-bin.js)...");
   if (!fs.existsSync(NATIVE_HOST_ENTRY_POINT)) {
@@ -1522,15 +1540,22 @@ async function main() {
 
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
-    // Storyboard films play from media.nodetool.ai, so the app does not ship them.
+    // Package media lives on media.nodetool.ai: the manifest copied below
+    // lists it, and the server downloads a file on first use. Storyboard films
+    // play from media.nodetool.ai too and never ship.
     await fsp.cp(assetsSrc, assetsDest, {
       recursive: true,
       force: true,
       preserveTimestamps: true,
       filter: (source) =>
         path.basename(source) !== "node_modules" &&
+        !isMediaPath(path.relative(assetsSrc, source).split(path.sep).join("/")) &&
         !/[\\/]storyboards[\\/][^\\/]+[\\/][^\\/]+\.mp4$/i.test(source),
     });
+    await fsp.copyFile(
+      path.join(path.dirname(assetsSrc), "nodetool-base.media.json"),
+      path.join(path.dirname(assetsDest), "nodetool-base.media.json")
+    );
     const assetCount = (await fsp.readdir(assetsDest)).filter((f) =>
       /\.(jpg|jpeg|png|gif|webp)$/i.test(f)
     ).length;
@@ -1549,6 +1574,7 @@ async function main() {
   //     in-process without it, which blocks the event loop for a whole run) ---
   await buildSandboxWorkerBundle();
   await buildNativeHostBundle();
+  await buildPreviewRenderChildBundle();
 
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {

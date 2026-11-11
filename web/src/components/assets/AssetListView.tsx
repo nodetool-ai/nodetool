@@ -43,6 +43,7 @@ import {
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
+import { useImageThumbnail } from "../../hooks/useImageThumbnail";
 
 interface AssetListViewProps {
   assets: Asset[];
@@ -252,7 +253,14 @@ const AssetRowThumbnail: React.FC<{
     isVideo ? previewUrl : null,
     isVideo ? asset.get_url : null
   );
-  const src = isVideo ? videoThumbUrl : previewUrl;
+  // A fresh upload can be listed before its thumbnail is written. The hook
+  // shows the full image until the thumbnail loads.
+  const isRaster = !isVideo && !isSvg;
+  const rasterThumbUrl = useImageThumbnail(
+    isRaster ? asset.thumb_url : null,
+    isRaster ? asset.get_url : null
+  );
+  const src = isVideo ? videoThumbUrl : isRaster ? rasterThumbUrl : previewUrl;
   if (!src) {
     return <div className="asset-item-thumbnail" />;
   }

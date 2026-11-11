@@ -48,6 +48,44 @@ describe("ReferenceToVideoNode", () => {
   });
 });
 
+describe("ReferenceToVideoNode — inline image mentions", () => {
+  it("appends mentioned images after the wired references and numbers them in the prompt", async () => {
+    const node = new ReferenceToVideoNode();
+    node.assign({
+      model: { type: "video_model", provider: "fake", id: "r2v" },
+      reference_images: [image([1])],
+      prompt: "Place image 1 on asset://bg.png with asset://deco.jpg beside it"
+    });
+    const run = context();
+    const bytesByUri: Record<string, number> = { "asset://bg.png": 2, "asset://deco.jpg": 3 };
+    const mentionContext = {
+      ...run.value,
+      resolveAssetBytes: async (uri: string) => ({ bytes: new Uint8Array([bytesByUri[uri] ?? 0]) })
+    };
+    await node.process(mentionContext as never);
+    const params = run.requests[0].params as Record<string, unknown>;
+    expect((params.reference_images as Uint8Array[]).map((bytes) => bytes[0])).toEqual([1, 2, 3]);
+    expect(params.prompt).toBe("Place image 1 on image 2 with image 3 beside it");
+  });
+
+  it("uses mentioned images alone when no references are wired", async () => {
+    const node = new ReferenceToVideoNode();
+    node.assign({
+      model: { type: "video_model", provider: "fake", id: "r2v" },
+      prompt: "asset://product.png on a marble table"
+    });
+    const run = context();
+    const mentionContext = {
+      ...run.value,
+      resolveAssetBytes: async () => ({ bytes: new Uint8Array([7]) })
+    };
+    await node.process(mentionContext as never);
+    const params = run.requests[0].params as Record<string, unknown>;
+    expect((params.reference_images as Uint8Array[]).map((bytes) => bytes[0])).toEqual([7]);
+    expect(params.prompt).toBe("image 1 on a marble table");
+  });
+});
+
 describe("ImageToVideoNode", () => {
   it("keeps only the first non-empty serialized image as the start frame", async () => {
     const node = new ImageToVideoNode();
@@ -76,5 +114,27 @@ describe("ImageToVideoNode", () => {
     };
     await node.process(resolvingContext as never);
     expect(run.requests).toHaveLength(1);
+  });
+});
+
+describe("ReferenceToVideoNode — reference markers", () => {
+  const promptFor = async (provider: string) => {
+    const node = new ReferenceToVideoNode();
+    node.assign({
+      model: { type: "video_model", provider, id: "r2v" },
+      reference_images: [image([1])],
+      prompt: "Image 1 dances"
+    });
+    const run = context();
+    await node.process(run.value as never);
+    return (run.requests[0].params as Record<string, unknown>).prompt;
+  };
+
+  it("writes bracket markers for dreamina", async () => {
+    expect(await promptFor("dreamina")).toBe("[Image 1] dances");
+  });
+
+  it("keeps plain markers for other providers", async () => {
+    expect(await promptFor("fake")).toBe("Image 1 dances");
   });
 });

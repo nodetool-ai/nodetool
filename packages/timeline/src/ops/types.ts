@@ -25,6 +25,7 @@ import type {
 
 /** The document shape every host already holds, plus its editor cursor. */
 export interface TimelineOpState {
+  workingColorSpaceVersion?: number;
   tempo?: TimelineTempo;
   trackFolders?: TimelineSequence["trackFolders"];
   setup?: TimelineSetup | null;

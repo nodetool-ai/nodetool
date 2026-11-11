@@ -1,14 +1,25 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
+import { ProcessingContext, ScriptedProvider } from "@nodetool-ai/runtime";
+import type { ScriptedEndpointReply } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   createTogetherNodeClass,
   type TogetherManifestEntry
 } from "../src/together-factory.js";
 
-const originalFetch = global.fetch;
-afterEach(() => {
-  global.fetch = originalFetch;
-  vi.restoreAllMocks();
-});
+/** A context whose `together` provider answers from one scripted reply. */
+function scripted(
+  reply: ScriptedEndpointReply,
+  storage: InMemoryStorageAdapter | null = null
+): { provider: ScriptedProvider; context: ProcessingContext } {
+  const provider = new ScriptedProvider([], {
+    providerId: "together",
+    endpoints: { "*": reply }
+  });
+  const context = new ProcessingContext({ jobId: "job-1", storage });
+  context.setProviderResolver(() => provider);
+  return { provider, context };
+}
 
 type TestNode = {
   setDynamic: (k: string, v: unknown) => void;
@@ -21,7 +32,6 @@ function instantiate(
 ): TestNode {
   const Cls = createTogetherNodeClass(spec) as unknown as new () => TestNode;
   const node = new Cls();
-  node.setDynamic("_secrets", { TOGETHER_API_KEY: "tk" });
   for (const [k, v] of Object.entries(props)) node[k] = v;
   return node;
 }
@@ -75,39 +85,69 @@ describe("createTogetherNodeClass — statics", () => {
 
 describe("text_to_image.process", () => {
   it("generates an image, coerces string ints, and persists via storage", async () => {
-    let body: Record<string, unknown> | null = null;
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://api.together.xyz/v1/images/generations");
-      body = JSON.parse(init!.body as string);
-      return { ok: true, json: async () => ({ data: [{ b64_json: "aGk=" }] }) } as Response;
-    }) as unknown as typeof fetch;
+    const storage = new InMemoryStorageAdapter();
+    const { provider, context } = scripted(
+      { output: { data: [{ b64_json: "aGk=" }] } },
+      storage
+    );
 
     const node = instantiate(t2i, { prompt: "a fox", width: "512" });
-    const storage = { store: vi.fn().mockResolvedValue("memory://together-image-1.png") };
-    const out = await node.process({ storage });
+    node.__node_id = "t2i-1";
+    const out = (await node.process(context)) as {
+      output: { type: string; uri: string };
+    };
 
-    expect(body).toMatchObject({
+    expect(provider.endpointCalls[0]).toMatchObject({
       model: "black-forest-labs/FLUX.1-schnell",
-      prompt: "a fox",
-      width: 512, // coerced from "512"
-      height: 1024
+      route: "images",
+      input: {
+        model: "black-forest-labs/FLUX.1-schnell",
+        prompt: "a fox",
+        width: 512, // coerced from "512"
+        height: 1024
+      }
     });
-    expect(storage.store).toHaveBeenCalledTimes(1);
-    expect(out).toEqual({ output: { type: "image", uri: "memory://together-image-1.png" } });
+    expect(out.output.type).toBe("image");
+    expect(out.output.uri).toMatch(/together-image-\d+\.png$/);
+    expect(
+      Buffer.from((await storage.retrieve(out.output.uri)) ?? []).toString()
+    ).toBe("hi");
+  });
+
+  it("emits a prediction for the together provider, capability and model", async () => {
+    const { context } = scripted({ output: { data: [{ b64_json: "aGk=" }] } });
+    const node = instantiate(t2i, { prompt: "a fox" });
+    node.__node_id = "t2i-1";
+    await node.process(context);
+    const prediction = context
+      .getMessages()
+      .filter((m) => m.type === "prediction")
+      .at(-1);
+    expect(prediction).toMatchObject({
+      status: "completed",
+      provider: "together",
+      capability: "text_to_image",
+      model: "black-forest-labs/FLUX.1-schnell",
+      node_id: "t2i-1"
+    });
   });
 
   it("falls back to base64 embed when storage is unavailable", async () => {
-    global.fetch = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ data: [{ b64_json: "aGk=" }] })
-    })) as unknown as typeof fetch;
+    const { context } = scripted({ output: { data: [{ b64_json: "aGk=" }] } });
     const node = instantiate(t2i, { prompt: "a fox" });
-    const out = (await node.process(undefined)) as {
+    const out = (await node.process(context)) as {
       output: { type: string; uri: string; data: string };
     };
     expect(out.output.type).toBe("image");
     expect(out.output.uri).toBe("");
     expect(Buffer.from(out.output.data, "base64").toString()).toBe("hi");
+  });
+
+  it("needs a processing context to reach the provider", async () => {
+    const node = instantiate(t2i, { prompt: "a fox" });
+    await expect(node.process(undefined as never)).rejects.toThrow(
+      "requires a processing context"
+    );
   });
 });
 
@@ -127,30 +167,32 @@ describe("text_to_speech.process", () => {
     ]
   };
 
-  it("synthesizes audio and stores it with the right mime", async () => {
-    let body: Record<string, unknown> | null = null;
-    global.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
-      expect(String(url)).toBe("https://api.together.xyz/v1/audio/speech");
-      body = JSON.parse(init!.body as string);
-      return { ok: true, arrayBuffer: async () => Uint8Array.from([1, 2]).buffer } as Response;
-    }) as unknown as typeof fetch;
+  it("synthesizes audio and stores it with the right extension", async () => {
+    const storage = new InMemoryStorageAdapter();
+    const { provider, context } = scripted(
+      { output: Uint8Array.from([1, 2]) },
+      storage
+    );
 
     const node = instantiate(tts, { text: "hello", voice: "leo" });
-    const storage = { store: vi.fn().mockResolvedValue("memory://together-audio-1.mp3") };
-    const out = await node.process({ storage });
+    const out = (await node.process(context)) as {
+      output: { type: string; uri: string };
+    };
 
-    expect(body).toMatchObject({
-      model: "canopylabs/orpheus-3b-0.1-ft",
-      input: "hello",
-      voice: "leo",
-      response_format: "mp3"
+    expect(provider.endpointCalls[0]).toMatchObject({
+      route: "audio/speech",
+      input: {
+        model: "canopylabs/orpheus-3b-0.1-ft",
+        input: "hello",
+        voice: "leo",
+        response_format: "mp3"
+      }
     });
-    expect(storage.store).toHaveBeenCalledWith(
-      expect.stringContaining(".mp3"),
-      expect.any(Uint8Array),
-      "audio/mpeg"
-    );
-    expect(out).toEqual({ output: { type: "audio", uri: "memory://together-audio-1.mp3" } });
+    expect(out.output.type).toBe("audio");
+    expect(out.output.uri).toMatch(/\.mp3$/);
+    expect([...((await storage.retrieve(out.output.uri)) ?? [])]).toEqual([
+      1, 2
+    ]);
   });
 });
 
@@ -170,18 +212,24 @@ describe("automatic_speech_recognition.process", () => {
   };
 
   it("transcribes inline audio and returns text", async () => {
-    global.fetch = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ text: "the quick brown fox" })
-    })) as unknown as typeof fetch;
+    const { provider, context } = scripted({
+      output: { text: "the quick brown fox" }
+    });
 
     const node = instantiate(asr, { audio: { data: "aGVsbG8=" } });
-    const out = await node.process(undefined);
+    const out = await node.process(context);
     expect(out).toEqual({ text: "the quick brown fox" });
+    expect(provider.endpointCalls[0]).toMatchObject({
+      route: "audio/transcriptions",
+      input: { file: new TextEncoder().encode("hello") }
+    });
   });
 
   it("throws a clear error when the required audio input is missing", async () => {
+    const { context } = scripted({ output: {} });
     const node = instantiate(asr, {});
-    await expect(node.process(undefined)).rejects.toThrow("audio input is required");
+    await expect(node.process(context)).rejects.toThrow(
+      "audio input is required"
+    );
   });
 });

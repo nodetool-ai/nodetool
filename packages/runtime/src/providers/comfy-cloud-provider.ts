@@ -19,7 +19,7 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { ComfyGpuClient, comfyGpuTemplate, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
+import { ComfyGpuClient, comfyGpuTemplate, comfyGpuTemplateFits, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
 import type { MusicModel, TextToMusicParams, AudioToAudioModel, AudioToAudioParams, Model3D, TextTo3DParams, ImageTo3DParams } from "./types.js";
 import { comfyTemplate, listedComfyTemplates, runComfyTemplate } from "./comfy-template-models.js";
 import {
@@ -42,6 +42,12 @@ import {
   type RouterCatalogEntry,
   type RouterTask
 } from "./comfy-router-catalog.js";
+import {
+  acceptedDuration,
+  acceptedSize,
+  acceptedValue,
+  announcedOptions
+} from "./comfy-router-constraints.js";
 import type {
   EncodedAudioResult,
   ImageModel,
@@ -117,16 +123,6 @@ export function mp4DurationSeconds(bytes: Uint8Array): number | undefined {
     return timescale > 0 ? duration / timescale : undefined;
   }
   return undefined;
-}
-
-/**
- * Free-text size fields accept one separator, which only the field description
- * states. DashScope models reject `1024x1024` and require `1024*1024`.
- */
-function formatImageSize(b: RouterArgsBuilder, size: string): string {
-  const name = b.firstDeclared(SIZE_FIELDS);
-  const description = name ? b.field(name)?.description : undefined;
-  return description && /(width|\d)\s*\*\s*(height|\d)/i.test(description) ? size.replace("x", "*") : size;
 }
 
 interface PresetInput {
@@ -262,9 +258,13 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   private gpuModels(task: string) {
-    return listedComfyGpuTemplates().filter((entry) => entry.task === task).map((entry) => ({
-      id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
-    }));
+    return listedComfyGpuTemplates().filter((entry) => entry.task === task && comfyGpuTemplateFits(entry)).map((entry) => {
+      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs } = {
+        id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
+      };
+      if (entry.inputs) { model.inputs = entry.inputs; }
+      return model;
+    });
   }
 
   static override requiredSecrets(): string[] {
@@ -357,7 +357,8 @@ export class ComfyCloudProvider extends BaseProvider {
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD,
-      supportedTasks: [...entry.tasks]
+      supportedTasks: [...entry.tasks],
+      ...announcedOptions(entry.id)
     }));
     return [...templates, ...this.gpuModels("text_to_image"), ...this.gpuModels("image_to_image"), ...router];
   }
@@ -373,7 +374,8 @@ export class ComfyCloudProvider extends BaseProvider {
       id: entry.id,
       name: routerModelName(entry.id),
       provider: PROVIDER_IDS.COMFY_CLOUD,
-      supportedTasks: [...entry.tasks]
+      supportedTasks: [...entry.tasks],
+      ...announcedOptions(entry.id)
     }));
     const templates: VideoModel[] = listedComfyTemplates(process.env)
       .filter((template) => template.task === "text_to_video")
@@ -520,6 +522,7 @@ export class ComfyCloudProvider extends BaseProvider {
 
   private setCommon(
     b: RouterArgsBuilder,
+    modelId: string,
     params: {
       prompt?: string | null;
       negativePrompt?: string | null;
@@ -532,34 +535,36 @@ export class ComfyCloudProvider extends BaseProvider {
   ): void {
     this.attachPromptAndImages(b, params.prompt, []);
     b.setFirst(NEGATIVE_FIELDS, params.negativePrompt);
-    b.setFirst(ASPECT_FIELDS, params.aspectRatio);
-    b.setFirst(RESOLUTION_FIELDS, params.resolution);
+    b.setFirst(ASPECT_FIELDS, acceptedValue(modelId, "aspectRatio", params.aspectRatio));
+    b.setFirst(RESOLUTION_FIELDS, acceptedValue(modelId, "resolution", params.resolution));
     if (typeof params.seed === "number" && params.seed >= 0) b.setFirst(SEED_FIELDS, params.seed);
     b.setFirst(STEPS_FIELDS, params.numInferenceSteps);
     b.setFirst(GUIDANCE_FIELDS, params.guidanceScale);
   }
 
-  private setImageSize(b: RouterArgsBuilder, width?: number | null, height?: number | null, aspect?: string | null): void {
+  private setImageSize(b: RouterArgsBuilder, modelId: string, width?: number | null, height?: number | null, aspect?: string | null): void {
     if (width && height) {
       if (b.declares("width") && b.declares("height")) {
         b.set("width", width).set("height", height);
         return;
       }
-      b.setFirst(SIZE_FIELDS, formatImageSize(b, `${width}x${height}`));
+      b.setFirst(SIZE_FIELDS, acceptedSize(modelId, width, height));
       return;
     }
     if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
-      b.setFirst(SIZE_FIELDS, formatImageSize(b, IMAGE_SIZES[aspect]));
+      const [w, h] = IMAGE_SIZES[aspect].split("x").map(Number);
+      b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
     }
   }
 
-  private setVideoTiming(b: RouterArgsBuilder, durationSeconds?: number | null, numFrames?: number | null): void {
+  private setVideoTiming(b: RouterArgsBuilder, modelId: string, durationSeconds?: number | null, numFrames?: number | null): void {
     if (durationSeconds && durationSeconds > 0) {
       const name = b.firstDeclared(DURATION_FIELDS);
       if (name) {
-        b.set(name, durationSeconds);
+        const duration = acceptedDuration(modelId, durationSeconds);
+        b.set(name, duration);
         // Enum durations are often strings such as "5s".
-        if (!b.isSet(name)) b.set(name, `${durationSeconds}s`);
+        if (!b.isSet(name)) b.set(name, `${duration}s`);
       }
     }
     if (numFrames && numFrames > 0) b.setFirst(FRAMES_FIELDS, numFrames);
@@ -579,8 +584,8 @@ export class ComfyCloudProvider extends BaseProvider {
       return runComfyTemplate(template, this.requireApiKey(), params);
     }
     const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, params);
-    this.setImageSize(b, params.width, params.height, params.aspectRatio);
+    this.setCommon(b, modelId, params);
+    this.setImageSize(b, modelId, params.width, params.height, params.aspectRatio);
     b.setFirst(QUALITY_FIELDS, params.quality);
     this.applyPreset(b, modelId, { task: "text_to_image", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "image", {
@@ -595,8 +600,8 @@ export class ComfyCloudProvider extends BaseProvider {
     if (gpu) { return (await gpu).data; }
     if (images.length === 0) throw new Error("imageToImage needs at least one image");
     const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, params);
-    this.setImageSize(b, params.targetWidth, params.targetHeight, params.aspectRatio);
+    this.setCommon(b, modelId, params);
+    this.setImageSize(b, modelId, params.targetWidth, params.targetHeight, params.aspectRatio);
     b.setFirst(QUALITY_FIELDS, params.quality);
     b.setFirst(STRENGTH_FIELDS, params.strength);
     const media = images.map((img) => this.image(img));
@@ -626,8 +631,8 @@ export class ComfyCloudProvider extends BaseProvider {
       return runComfyTemplate(template, this.requireApiKey(), params);
     }
     const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, params);
-    this.setVideoTiming(b, params.durationSeconds, params.numFrames);
+    this.setCommon(b, modelId, params);
+    this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
     this.applyPreset(b, modelId, { task: "text_to_video", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
@@ -661,8 +666,8 @@ export class ComfyCloudProvider extends BaseProvider {
       });
     }
     const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, params);
-    this.setVideoTiming(b, params.durationSeconds, params.numFrames);
+    this.setCommon(b, modelId, params);
+    this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
     const start = [this.image(image)];
     if (
       !this.applyPreset(b, modelId, { task: "image_to_video", images: start }) &&
@@ -686,8 +691,8 @@ export class ComfyCloudProvider extends BaseProvider {
     const gpu = this.gpuRun(modelId, "reference_to_video", { ...params, images: inputs.images, videos: inputs.videos, audios: inputs.audios ?? [] });
     if (gpu) { return (await gpu).data; }
     const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, params);
-    this.setVideoTiming(b, params.durationSeconds, params.numFrames);
+    this.setCommon(b, modelId, params);
+    this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
     const references = inputs.images.map((img) => this.image(img));
     if (
       !this.applyPreset(b, modelId, { task: "reference_to_video", images: references }) &&
@@ -713,7 +718,7 @@ export class ComfyCloudProvider extends BaseProvider {
     const gpu = this.gpuRun(modelId, "video_to_video", { ...params, videos: [video], images: params.referenceImages ?? [] });
     if (gpu) { return (await gpu).data; }
     const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, { ...params, prompt: params.prompt ?? undefined });
+    this.setCommon(b, modelId, { ...params, prompt: params.prompt ?? undefined });
     const source = { bytes: video, mimeType: sniffMime(video, "video/mp4") };
     const references = (params.referenceImages ?? []).map((img) => this.image(img));
     if (!this.applyPreset(b, modelId, { task: "video_to_video", images: references, video: source })) {

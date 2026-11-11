@@ -1,24 +1,26 @@
 ---
 layout: page
 title: "Key Concepts"
-description: "The ideas behind NodeTool workflows, assets, sketches, and timelines, explained without jargon."
+description: "Workflows, nodes, connections, assets, sketches, timelines, agents, and models in NodeTool, with a saved workflow as an example."
 ---
 
-The handful of ideas you need before building anything. No prior experience
-assumed. If you want a quick definition of a single word instead, the
-[Glossary](glossary.md) is faster.
+A workflow is a graph of nodes and edges. This is the saved form of the shipped example "Ad Copy in Three Registers" (node `data` and layout fields trimmed):
 
----
+```json
+{
+  "nodes": [
+    { "id": "in",  "type": "nodetool.input.StringInput", "data": { "name": "offer", "value": "A reusable water bottle that stays cold all day" } },
+    { "id": "ag",  "type": "nodetool.agents.Agent",      "data": { "system": "You write ad copy. Produce three versions of the same offer...", "prompt": "" } },
+    { "id": "out", "type": "nodetool.output.Output",     "data": { "name": "variants" } }
+  ],
+  "edges": [
+    { "source": "in", "sourceHandle": "output", "target": "ag",  "targetHandle": "prompt" },
+    { "source": "ag", "sourceHandle": "text",   "target": "out", "targetHandle": "value" }
+  ]
+}
+```
 
-## What NodeTool is
-
-NodeTool is a visual way to use AI. Instead of writing code, you place boxes on a page and draw lines between them. Each box does one job, and the lines carry results from one box to the next.
-
-- **Ask instead of build.** Describe what you want, and an AI agent builds the boxes and lines for you. You can read and change what it builds.
-- **Run locally.** Models that run on your computer use your own hardware, keeping your data private on your disk.
-- **Use your own accounts.** When a workflow uses an online AI service like OpenAI or Anthropic, you use your own API keys. You pay the provider directly.
-- **Mix local and online.** A single workflow can use a local model for one step and an online service for another.
-- **Open source.** NodeTool is open source software (AGPL-3.0). You can run the exact same code we use.
+On the canvas this is three boxes and two lines. Each node does one job and each edge carries one node's output into another node's input. An agent can build and edit these graphs for you, and models run locally or on a provider with your own API key. For single-word definitions see the [Glossary](glossary.md).
 
 ---
 
@@ -26,14 +28,9 @@ NodeTool is a visual way to use AI. Instead of writing code, you place boxes on 
 
 ### The agent
 
-The **agent** is the AI assistant in the Chats panel that turns a goal in plain English into steps. It can build workflows, call tools, and edit your documents directly.
+The **agent** is the assistant in the Chats panel. It builds workflows, calls tools, and edits your open workflow, sketch, or timeline with the same tools you use. Its changes are visible and can be undone, and anything it builds stays editable.
 
-How it differs from a plain chat model:
-
-- **It works directly on your open documents.** Whether you have a workflow, sketch, or timeline open, the agent acts on it using the same tools you do. You can see its changes and undo them if needed.
-- **Everything remains editable.** The agent doesn't create unchangeable results. You can open, understand, and modify anything it builds.
-
-You control the agent's permissions with the permission mode in the chat composer. Plan only reads and proposes, with actions blocked. Default runs reads and asks before each action. Auto runs routine work unattended and still asks once before an action the agent declares high risk, such as a delete, a publish, or spending money. See [Chat](global-chat.md) for more details.
+The permission mode in the chat composer sets what it may do. Plan only reads and proposes, with actions blocked. Default runs reads and asks before each action. Auto runs routine work unattended and still asks once before an action the agent declares high risk, such as a delete, a publish, or spending money. See [Chat](global-chat.md).
 
 ### Nodes
 
@@ -46,36 +43,24 @@ A **node** is one box that does one thing.
 | **Text To Speech**  | Reads text aloud                                    | A blog post → an audio file                      |
 | **Filter String**   | Keeps only the text that matches a rule             | Keep only lines that contain a keyword           |
 
-Every node takes things in on its left side, sends results out its right side,
-and has settings that appear in the panel on the right when you click it.
+A node takes inputs on its left, sends results out its right, and shows its settings in the Inspector when selected.
 
 ### Workflows
 
-A **workflow** is a set of nodes joined by connections that you run as one unit.
+A **workflow** is a set of nodes joined by connections that you run as one unit. Input enters on the left, each node starts when its inputs have arrived, and results appear on the right as they are produced.
 
-When you run it, your input
-enters on the left, each node starts as soon as everything it needs has arrived,
-and results appear on the right as they are produced.
-
-Examples of what a workflow can be:
+Examples:
 
 - A description, into an image model, saved as a file.
 - A PDF, split into pieces, filed away, then searched to answer a question.
 - A story, turned into character descriptions, then portraits, then a video.
-
-Reach for a workflow when you want to do the same thing repeatedly: produce
-media, convert files, ask a model something, index documents, or prepare
-material for one of the other editors below.
 
 ### Connections
 
 A **connection** is a line that carries one node's output into another node's
 input.
 
-Drag from a node's output on the right to another node's input on the left.
-NodeTool checks that the two ends match, so an image output only connects to an
-input that accepts images and you can't wire something nonsensical. Hover over
-a line to see what is passing through it. The full list of types and the
+Drag from an output to an input. NodeTool rejects mismatched types, so an image output only connects to an input that accepts images. Hover over a line to see what is passing through it. The full list of types and the
 conversion rules are in [Data Types and Connections]({{ '/data-types' | relative_url }}).
 
 ### Assets
@@ -85,7 +70,7 @@ PDF, text file, 3D model, or anything else a node can read or write. Assets live
 in the Asset Explorer and can be used again in any workflow, sketch, timeline,
 or chat.
 
-Assets are the common currency between the different editors:
+Assets are shared between editors:
 
 - Drag an image asset onto a workflow and it becomes an input.
 - Save a workflow's result as an asset to use later.
@@ -95,11 +80,7 @@ Assets are the common currency between the different editors:
 
 ### Sketches
 
-A **sketch** is an image made of stacked layers, the way Photoshop or GIMP work.
-Use it to paint, hide parts of an image, retouch, combine images, or have AI
-generate a layer in place.
-
-A sketch sits between editing by hand and automating with a workflow:
+A **sketch** is an image made of stacked layers. Use it to paint, mask, retouch, combine images, or have AI generate a layer in place.
 
 - Start from a blank page or an image you already have.
 - Paint, or build the picture up in layers.
@@ -109,11 +90,7 @@ A sketch sits between editing by hand and automating with a workflow:
 
 ### Timelines
 
-A **timeline** arranges media over time on parallel tracks, the way a video
-editor does. It holds video, audio, still images, overlays, and clips generated
-by AI.
-
-Timelines are where results become finished media:
+A **timeline** arranges video, audio, still images, overlays, and AI-generated clips over time on parallel tracks.
 
 - Drag existing assets onto tracks.
 - Add a clip that is produced by a workflow.
@@ -126,19 +103,14 @@ Timelines are where results become finished media:
 An **Agent node** is an agent placed _inside_ a workflow, as opposed to the
 agent above, which builds workflows.
 
-It takes a goal written in plain English, works out the steps itself, and uses
-tools such as web search, file access, or running code to get there. Use one
-when a step of your pipeline is describable but not scriptable. A normal
-node does one fixed thing; an Agent node decides what to do.
+It takes a goal in plain English, plans the steps, and uses tools such as web search, file access, or running code. A normal node does one fixed thing, and an Agent node decides what to do.
 
 ### Mini-Apps
 
 A **Mini-App** is a form or dashboard built on top of one or more workflows,
 with the nodes and lines hidden.
 
-Create and open them from the Apps panel in the left sidebar. Give one to
-someone who should never have to look at a canvas. See
-[Mini Apps](mini-apps.md).
+Create and open them from the Apps panel in the left sidebar. See [Mini Apps](mini-apps.md).
 
 ---
 
@@ -157,10 +129,7 @@ Most work in NodeTool follows one loop:
 5. **Share it.** Keep the workflow to run again, wrap it as a Mini-App, or
    publish the finished file.
 
-The editors are separate because painting an image and cutting a video are
-different problems, but they share one pool of assets and one set of AI services.
-The agent works in every one of them, so any step of the loop is something you
-can do by hand or ask for.
+The editors share one pool of assets and one set of AI services, and the agent works in each.
 
 {% mermaid %}
 graph LR
@@ -188,8 +157,7 @@ B --> F[Mini-App]
 
 ## Models
 
-A **model** is a trained AI you call from a node. You don't train it, you use
-it.
+A **model** is a trained AI you call from a node.
 
 | Kind of model | Produces | Used for                      |
 | ------------- | -------- | ----------------------------- |
@@ -208,8 +176,7 @@ it.
 | Internet      | Works offline              | Required                                     |
 | To set up     | Download 4-20 GB per model | Paste an API key                             |
 
-You can mix them and choose per node, so an expensive online model can handle
-the one step that needs it while the rest runs locally.
+Choose per node: one step can use an online model while the rest runs locally.
 
 ---
 
@@ -255,11 +222,9 @@ C --> E[Preview: Image]
 D --> F[Preview: Text]
 {% endmermaid %}
 
-Here the Agent goes first. Text To Image and Summarizer both wait only on the
-Agent, so once it finishes they run side by side.
+The Agent runs first. Text To Image and Summarizer wait only on the Agent, so they then run side by side.
 
-Data flows one way, so NodeTool works out the running order for you. The editor
-refuses a connection that would close a cycle. The one exception is a Loop node,
+The editor refuses a connection that would close a cycle. The one exception is a Loop node,
 whose feedback inputs can take a value back from later in the graph. See
 the [Loop node reference]({{ '/nodes/nodetool/control/loop' | relative_url }}).
 
@@ -267,8 +232,7 @@ the [Loop node reference]({{ '/nodes/nodetool/control/loop' | relative_url }}).
 
 ## If you write code
 
-Everything above is also available as a TypeScript API, so you can build and run
-the same workflows from code.
+The same workflows can be built and run from TypeScript.
 
 | Piece                 | What it is                                                                                                                                          |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -296,10 +260,9 @@ See the [Developer Guide](developer/) and
 ## Next steps
 
 <div class="card-grid">
-  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Turn one sentence into a finished video.</span></a>
+  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Generate a video from one sentence.</span></a>
   <a class="doc-card" href="{{ '/first-workflow' | relative_url }}"><strong>Your First Workflow</strong><span>Build a four-node image workflow from an empty canvas.</span></a>
   <a class="doc-card" href="{{ '/global-chat' | relative_url }}"><strong>Chat</strong><span>The agent, its tools, and permission modes.</span></a>
   <a class="doc-card" href="{{ '/models-and-providers' | relative_url }}"><strong>Models &amp; Providers</strong><span>Choose models or run them locally.</span></a>
 </div>
 
-Looking up a word? The [Glossary](glossary.md) has single-word definitions.

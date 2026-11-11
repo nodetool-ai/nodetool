@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import AppInstanceManager from "./AppInstanceManager";
 import AppRunHistory from "./AppRunHistory";
@@ -9,7 +10,10 @@ import "@puckeditor/core/puck.css";
 
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { runJsScript } from "../jsScript/runJsScript";
-import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+import {
+  chatAppLayout,
+  type ApplicationDocument
+} from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../stores/ApiTypes";
 import ReportBugButton from "../support/ReportBugButton";
@@ -25,6 +29,8 @@ import {
   useRuntimeSelector
 } from "./runtime/AppRuntimeContext";
 import { useAppConfig } from "./puck/config";
+import ChatAppView from "./chat/ChatAppView";
+import AppRestartButton from "./AppRestartButton";
 import {
   AlertBanner,
   Box,
@@ -32,8 +38,10 @@ import {
   SPACING,
   LoadingSpinner,
   EditorButton,
+  FlexColumn,
   FlexRow,
   Caption,
+  Popover,
   Z_INDEX
 } from "../ui_primitives";
 
@@ -63,6 +71,8 @@ interface AppRuntimeViewProps {
   workflowOverrides?: Record<string, Workflow>;
   scriptOverrides?: Record<string, JsScriptDocument>;
   scriptRunner?: typeof runJsScript;
+  /** Where the surface wants the Inspect run button. */
+  runActionsHost?: HTMLElement | null;
 }
 
 interface RuntimeErrorActionsProps {
@@ -111,25 +121,96 @@ function RuntimeErrorActions({
   );
 }
 
-function RuntimeRunLinks(): React.ReactElement | null {
+/**
+ * One quiet entry point for run inspection. Actions per operation would sit
+ * above the app's own title and read as part of the app.
+ */
+function RuntimeRunLinks({
+  host
+}: {
+  /** A surface's document bar slot. Without one, the button sits above the app. */
+  host?: HTMLElement | null;
+}): React.ReactElement | null {
+  const { t } = useTranslation();
   const { operations } = useAppRuntimeContext();
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [withRuns, setWithRuns] = useState<ReadonlySet<string>>(new Set());
+  const reportRun = useCallback((operationId: string, hasRun: boolean) => {
+    setWithRuns((current) => {
+      if (current.has(operationId) === hasRun) {
+        return current;
+      }
+      const next = new Set(current);
+      if (hasRun) {
+        next.add(operationId);
+      } else {
+        next.delete(operationId);
+      }
+      return next;
+    });
+  }, []);
   if (getAppSessionToken() !== null) {
     return null;
   }
-  return (
-    <FlexRow
-      gap={SPACING.md}
-      sx={{ px: SPACING.xl, pt: SPACING.md, flexWrap: "wrap" }}
+  const button = (
+    <EditorButton
+      aria-haspopup="dialog"
+      onClick={(event: React.MouseEvent<HTMLElement>) =>
+        setAnchor(event.currentTarget)
+      }
     >
+      {t("screen_editor.inspectRun")}
+    </EditorButton>
+  );
+  return (
+    <>
       {operations.map((operation) => (
-        <RuntimeOperationRunLink
+        <RuntimeOperationRunProbe
           key={operation.id}
           operationId={operation.id}
-          name={operation.name}
+          onChange={reportRun}
         />
       ))}
-    </FlexRow>
+      {withRuns.size > 0 && host ? createPortal(button, host) : null}
+      {withRuns.size > 0 && host === undefined ? (
+        <FlexRow justify="flex-end" sx={{ px: SPACING.xl, pt: SPACING.md }}>
+          {button}
+        </FlexRow>
+      ) : null}
+      <Popover
+        open={anchor !== null}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        placement="bottom-right"
+      >
+        <FlexColumn gap={SPACING.md} sx={{ p: SPACING.lg }}>
+          {operations
+            .filter((operation) => withRuns.has(operation.id))
+            .map((operation) => (
+              <RuntimeOperationRunLink
+                key={operation.id}
+                operationId={operation.id}
+                name={operation.name}
+              />
+            ))}
+        </FlexColumn>
+      </Popover>
+    </>
   );
+}
+
+function RuntimeOperationRunProbe({
+  operationId,
+  onChange
+}: {
+  operationId: string;
+  onChange: (operationId: string, hasRun: boolean) => void;
+}): null {
+  const hasRun = Boolean(useAppOperationRun(operationId).runId);
+  useEffect(() => {
+    onChange(operationId, hasRun);
+  }, [hasRun, onChange, operationId]);
+  return null;
 }
 
 function RuntimeOperationRunLink({
@@ -146,16 +227,22 @@ function RuntimeOperationRunLink({
     return null;
   }
   return (
-    <FlexRow gap={SPACING.xs}>
-      <Caption>{name}</Caption>
-      <EditorButton onClick={() => openRunInspection({ runId })}>
-        {t("i18n-next8.appBuilder.runtime.viewTrace")}
-      </EditorButton>
-      <AskRunAgentButton runId={runId} />
+    <FlexColumn gap={SPACING.micro}>
+      <FlexRow gap={SPACING.lg} align="center" justify="space-between">
+        <Caption>{name}</Caption>
+        <FlexRow gap={SPACING.xs} align="center">
+          <EditorButton onClick={() => openRunInspection({ runId })}>
+            {t("i18n-next8.appBuilder.runtime.viewTrace")}
+          </EditorButton>
+          <AskRunAgentButton runId={runId} />
+        </FlexRow>
+      </FlexRow>
       {traceIncomplete ? (
-        <Caption>{t("i18n-next8.appBuilder.runtime.browserActivityMissing")}</Caption>
+        <Caption color="secondary">
+          {t("i18n-next8.appBuilder.runtime.browserActivityMissing")}
+        </Caption>
       ) : null}
-    </FlexRow>
+    </FlexColumn>
   );
 }
 
@@ -238,7 +325,8 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   onAdvanced,
   workflowOverrides,
   scriptOverrides,
-  scriptRunner
+  scriptRunner,
+  runActionsHost
 }) => {
   const appConfig = useAppConfig();
   const { t } = useTranslation();
@@ -264,6 +352,15 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
       onInstanceReady?.(runtime.instance);
     }
   }, [runtime.instance, onInstanceReady]);
+  // A chat app runs as a conversation with its agent. The page stays one
+  // click away while the chat presentation is new.
+  const [showPage, setShowPage] = useState(false);
+  const runDocument = runtime.document ?? document;
+  const chatLayout = React.useMemo(
+    () =>
+      runDocument?.presentation === "chat" ? chatAppLayout(runDocument) : null,
+    [runDocument]
+  );
   if (runtime.instanceLoading)
     return <LoadingSpinner text={t("i18n-next8.appBuilder.runtime.loadingInstance")} />;
   const instanceError = runtime.instanceError ? (
@@ -315,8 +412,8 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
             onAdvanced={onAdvanced ?? (() => void runtime.reloadInstance?.())}
           />
         ) : null}
-        <RuntimeErrorBanner />
-        <RuntimeRunLinks />
+        {chatLayout && !showPage ? null : <RuntimeErrorBanner />}
+        <RuntimeRunLinks host={runActionsHost} />
         {runtime.instanceId &&
         !previewDraft &&
         onSelectRun &&
@@ -327,13 +424,37 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
             onSelect={onSelectRun}
           />
         ) : null}
-        {/* The parser validates Puck data while leaving widget-specific props opaque. */}
-        <RuntimeRender
-          config={appConfig}
-          data={
-            runtime.document ? (runtime.document.ui as unknown as Data) : data
-          }
-        />
+        {chatLayout && runDocument && !showPage ? (
+          <ChatAppView
+            document={runDocument}
+            layout={chatLayout}
+            appRunId={runtime.instanceId ?? application?.id ?? workflow.id}
+            title={
+              typeof runDocument.ui.root.props?.title === "string"
+                ? runDocument.ui.root.props.title
+                : workflow.name
+            }
+            onShowPage={() => setShowPage(true)}
+          />
+        ) : (
+          <>
+            <FlexRow justify="flex-end" sx={{ px: SPACING.xl, pt: SPACING.md }}>
+              <AppRestartButton />
+              {chatLayout ? (
+                <EditorButton variant="text" onClick={() => setShowPage(false)}>
+                  {t("i18n-next8.appBuilder.chatApp.chatView")}
+                </EditorButton>
+              ) : null}
+            </FlexRow>
+            {/* The parser validates Puck data while leaving widget-specific props opaque. */}
+            <RuntimeRender
+              config={appConfig}
+              data={
+                runtime.document ? (runtime.document.ui as unknown as Data) : data
+              }
+            />
+          </>
+        )}
       </Box>
     </AppRuntimeContext.Provider>
   );

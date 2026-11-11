@@ -480,7 +480,8 @@ const UI_SURFACE_LABELS = {
   app: "app",
   svg: "SVG asset",
   audio: "audio asset",
-  chat: "chat"
+  chat: "chat",
+  app_run: "running chat app"
 } satisfies Record<UiSurfaceType, string>;
 
 const CHAT_SOURCE_LABELS = {
@@ -497,7 +498,8 @@ const CHAT_SOURCE_LABELS = {
   text_editor: "text editor assistant",
   model3d_assistant: "3D editor assistant",
   svg_assistant: "SVG editor assistant",
-  audio_assistant: "audio editor assistant"
+  audio_assistant: "audio editor assistant",
+  app_run: "chat app"
 } satisfies Record<ChatSource, string>;
 
 /**

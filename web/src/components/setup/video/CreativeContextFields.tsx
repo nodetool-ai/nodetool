@@ -263,6 +263,7 @@ export default function CreativeContextFields({
             >
               <ResponsiveImage
                 locator={`asset://${reference.asset_id}`}
+                preferThumbnail
                 alt={t("pass3_12.video.creativeContext.referenceCaption", {
                   kind: t(
                     `pass3_12.video.creativeContext.referenceKinds.${reference.kind}`

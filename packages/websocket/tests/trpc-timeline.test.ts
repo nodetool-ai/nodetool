@@ -339,6 +339,48 @@ describe("timeline router", () => {
       expect(out.stripped).toBeUndefined();
     });
 
+    // What the native editor keys, through the write it saves with.
+    it("stores a clip's param curves and its Volume stash", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      const paramCurves = [
+        { property: "volumeDb", keyframes: [{ t: 0, value: 0 }, { t: 1, value: -6 }] },
+        { property: "effect:e1:radius", keyframes: [{ t: 0, value: 4 }] },
+        { property: "future:thing", keyframes: [{ t: 0, value: 1 }] }
+      ];
+      const bypassedFixedEffects = {
+        volume: { volumeDb: -3, curves: [{ property: "volumeDb", keyframes: [{ t: 0, value: -1 }] }] }
+      };
+      const out = await caller.timeline.update({
+        id: "seq-1",
+        document: {
+          tracks: [],
+          clips: [
+            {
+              id: "c1",
+              trackId: "t1",
+              name: "Clip",
+              startMs: 0,
+              durationMs: 1000,
+              mediaType: "video",
+              sourceType: "imported",
+              status: "generated",
+              locked: false,
+              versions: [],
+              paramCurves,
+              bypassedFixedEffects
+            }
+          ],
+          markers: []
+        }
+      } as never);
+      expect(out.stripped).toBeUndefined();
+      const saved = JSON.parse(TS.update.mock.calls[0][1].document as string);
+      expect(saved.clips[0].paramCurves).toEqual(paramCurves);
+      expect(saved.clips[0].bypassedFixedEffects).toEqual(bypassedFixedEffects);
+    });
+
     it("persists the transcript in the merged document", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       TS.update.mockResolvedValue(makeSeq());
@@ -562,6 +604,23 @@ describe("timeline router", () => {
       );
       const got = await caller.timeline.get({ id: "seq-1" });
       expect(got.scriptEnabled).toBe(true);
+    });
+
+    it("persists and retains drop-frame display through update", async () => {
+      let stored = makeSeq();
+      TS.findById.mockImplementation(async () => stored);
+      TS.update.mockImplementation((_id, fields) => {
+        stored = makeSeq({ document: (fields as { document: string }).document });
+        return Promise.resolve(stored);
+      });
+      const caller = createCaller(makeCtx());
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBeUndefined();
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [], dropFrame: true } });
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBe(true);
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [] } });
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBe(true);
+      await caller.timeline.update({ id: "seq-1", document: { tracks: [], clips: [], markers: [], dropFrame: false } });
+      expect((await caller.timeline.get({ id: "seq-1" })).dropFrame).toBe(false);
     });
 
     it("persists, retains and explicitly clears the camera through update", async () => {

@@ -4,21 +4,19 @@ title: "FAL: Add Models & Nodes"
 description: "How to add a new FAL endpoint as a generated NodeTool node — from config entry to running node."
 ---
 
-FAL nodes in NodeTool are **generated**, not hand-written. A codegen pipeline fetches each endpoint's OpenAPI schema from `fal.ai`, converts it to a manifest, and the runtime loads node classes from that manifest.
+A codegen pipeline fetches each endpoint's OpenAPI schema from `fal.ai`, converts it to a manifest, and the runtime loads node classes from that manifest. FAL nodes are not hand-written.
 
-> **Audience:** coding agents and contributors adding new FAL endpoints or fixing generated node behavior.
+> **Runs:** cloud. **Needs:** `FAL_API_KEY`. Provider calls throw `FAL_API_KEY is not configured` without it. Codegen only needs the key to refresh pricing bundles.
+{: .callout-note}
 
----
-
-## TL;DR
+## Steps
 
 1. Add the endpoint ID + `NodeConfig` to the right `src/configs/<category>.ts` file in `packages/fal-codegen/`.
 2. Run `npm run generate:fal` from the repo root. To fetch only endpoints the manifest lacks, run `npx tsx scripts/append-new-endpoints.ts` from `packages/fal-codegen/`.
 3. Run `npm run build:packages` (fal-nodes loads from `dist/`).
 4. Run `npm run lint --workspace=packages/fal-codegen`, `npm run test --workspace=packages/fal-nodes`, and `npm run generate:fal:check`.
-5. Open a PR — never commit manual edits to `fal-manifest.json`.
+5. Never commit manual edits to `fal-manifest.json`.
 
----
 
 ## Where things live
 
@@ -32,13 +30,12 @@ FAL nodes in NodeTool are **generated**, not hand-written. A codegen pipeline fe
 | Codegen entry point | `packages/fal-codegen/src/generate.ts` |
 | **Generated manifest (do not edit)** | `packages/fal-nodes/src/fal-manifest.json` |
 | Runtime node class factory | `packages/fal-nodes/src/fal-factory.ts` |
-| FAL API call utilities | `packages/fal-nodes/src/fal-base.ts` |
+| Node utilities: endpoint call and upload through the provider, asset conversion | `packages/fal-nodes/src/fal-base.ts` |
 | Package entry point | `packages/fal-nodes/src/index.ts` |
 | Pricing bundle (generated) | `packages/fal-nodes/src/generated/fal-node-type-pricing.json` |
-| High-level provider (text→image, TTS, etc.) | `packages/runtime/src/providers/fal-provider.ts` |
+| Provider: queue, upload and API key for capability calls and node endpoint calls | `packages/runtime/src/providers/fal-provider.ts` |
 | Manifest model loading | `packages/runtime/src/providers/manifest-models.ts` |
 
----
 
 ## How FAL nodes are generated
 
@@ -61,7 +58,6 @@ The root `generate:fal` script runs in strict mode by default: if any configured
 
 **Never edit `fal-manifest.json` directly.** Changes are overwritten on the next `npm run generate:fal`.
 
----
 
 ## Add a new FAL endpoint
 
@@ -173,7 +169,6 @@ To force a fresh schema fetch (bypass cache):
 npm run generate --workspace=packages/fal-codegen -- --strict --no-cache
 ```
 
----
 
 ## Verify
 
@@ -212,11 +207,9 @@ git diff packages/fal-nodes/src/fal-manifest.json | head -80
 
 Confirm the new entry appears with the expected `className`, `inputFields`, and `outputType`.
 
----
 
 Parser and codegen bugs go in `packages/fal-codegen/`. Runtime bugs go in `packages/fal-nodes/`. Never patch `fal-manifest.json`.
 
----
 
 ## Fixing a wrong input or output on a generated node
 
@@ -227,19 +220,6 @@ Parser and codegen bugs go in `packages/fal-codegen/`. Runtime bugs go in `packa
 | Enum name conflicts across nodes | `enumOverrides` in the config entry |
 | Asset input defaults to `""` instead of `AssetRef` | `defaultForPropType()` in `packages/node-sdk/src/manifest-node-values.ts` |
 | Audio/video output missing preview | set `metadataOutputTypes` in the factory, not `outputTypes` |
-| API call behavior (retry, upload, mapping) | `packages/fal-nodes/src/fal-base.ts` |
+| Queue, upload or progress behavior | `packages/runtime/src/providers/fal-provider.ts` |
+| Input conversion or output mapping | `packages/fal-nodes/src/fal-base.ts`, `fal-factory.ts` |
 
----
-
-## Contributing
-
-PRs are welcome. Open one at <https://github.com/nodetool-ai/nodetool>. Before pushing, run:
-
-```bash
-npm run test:affected
-npm run typecheck
-npm run lint
-npm run dev:nodetool -- harness gate --base origin/main
-```
-
-Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

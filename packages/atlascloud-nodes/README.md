@@ -201,7 +201,7 @@ npm install @nodetool-ai/atlascloud-nodes
 
 ## Configuration
 
-Set `ATLASCLOUD_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable.
+Set `ATLASCLOUD_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an environment variable. The runtime's AtlasCloud provider holds the key and sends every request. The nodes never read it.
 
 ## Links
 

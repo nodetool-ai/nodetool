@@ -1,112 +1,22 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import {
-  Sparkles,
-  Play,
-  Video,
-  Image as ImageIcon,
-  Calendar,
-  Palette,
-  ArrowRight,
-  Check,
-  Download,
-  Shield,
-  TrendingUp,
-  Mail,
-  Youtube,
-} from "lucide-react";
-import CommunitySection from "../../components/CommunitySection";
+import { Sparkles, Play, ArrowRight, Check, Download } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
-import AdLibraryOverview from "../../components/AdLibraryOverview";
-import StoryboardTeaser from "../../components/storyboards/StoryboardTeaser";
-import RecipeShowcase from "../../components/RecipeShowcase";
-import TimelineShowcase from "../../components/TimelineShowcase";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { adRecipes } from "../../data/adLibrary";
 import PageUpdated from "@/components/PageUpdated";
-import { FROM_LINK_INTRO, FROM_LINK_ROUTES, MARKETING_LEAD } from "@/data/marketingPage";
+import { CAMPAIGN_CASE, MARKETING_LEAD, MORE_FOR_AD_TEAMS } from "@/data/marketingPage";
 
-const campaignFormats = [
-  {
-    src: "/marketing-why/campaign-16x9.webp",
-    width: 1280,
-    height: 720,
-    label: "16:9",
-    alt: "The campaign hero in 16:9: the tumbler on a blue plinth in water at sunset",
-    ratio: 16 / 9,
-  },
-  {
-    src: "/marketing-why/campaign-1x1.webp",
-    width: 800,
-    height: 800,
-    label: "1:1",
-    alt: "The same campaign as a square social post",
-    ratio: 1,
-  },
-  {
-    src: "/marketing-why/campaign-9x16.webp",
-    width: 560,
-    height: 996,
-    label: "9:16",
-    alt: "The same campaign as a vertical story",
-    ratio: 9 / 16,
-  },
-];
-
-const campaignModels = ["Flux", "Veo", "Kling", "Seedance", "Suno", "ElevenLabs"];
-
-const moreWorkflows: {
-  title: string;
-  description: string;
-  icon: typeof Calendar;
-  href?: string;
-}[] = [
-  {
-    title: "Social Media Calendar Filler",
-    description:
-      "Turn a content theme into a week of on-brand social posts, images and copy included.",
-    icon: Calendar,
-  },
-  {
-    title: "Brand Asset Generator",
-    description:
-      "Generate a consistent set of logos, color variants, and marketing assets from one brand brief.",
-    icon: Palette,
-    href: "/templates/brand-asset-generator",
-  },
-  {
-    title: "Cold Outreach Co-Pilot",
-    description:
-      "Research a list of prospects and draft personalized outreach at volume, while it still reads as though a person wrote it.",
-    icon: Mail,
-    href: "/templates/cold-outreach-co-pilot",
-  },
-  {
-    title: "Hook & Thumbnail Factory",
-    description:
-      "Generate video hooks and thumbnail ideas in batches from a title and description, then test them against each other.",
-    icon: Youtube,
-    href: "/templates/hook-and-thumbnail-factory",
-  },
-];
-
+/*
+ * One campaign, end to end (site-editorial.spec.md § Page ownership). The
+ * images are the accepted run 2026-09-14-directed-campaign-kit-gpt25; the
+ * revision note is the recorded prompt in its asset-manifest.json. The ad
+ * library, storyboards, recipes, and other workflows sit behind links.
+ */
 export default function MarketingSegmentPage() {
-  const [stars, setStars] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch("https://api.github.com/repos/nodetool-ai/nodetool")
-      .then((r) => r.json())
-      .then((j) => {
-        if (typeof j.stargazers_count === "number") {
-          setStars(j.stargazers_count);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
   return (
     <main className="relative min-h-screen overflow-hidden text-white bg-[#040408]">
       {/* Background */}
@@ -175,355 +85,200 @@ export default function MarketingSegmentPage() {
                   </span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <SmartDownloadButton
                     icon={<Download className="w-5 h-5" />}
                     classNameOverride="group relative inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-amber-500 text-white font-semibold transition-all shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] hover:bg-amber-400 hover:shadow-[0_14px_40px_-10px_rgba(245,158,11,0.75)]"
                   />
                   <a
-                    href="#example-timelines"
+                    href="#campaign"
                     className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-xs text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
-                    Watch examples
+                    See the campaign
                   </a>
                 </div>
 
-                <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm text-slate-300">
-                  <li className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10">
-                      <TrendingUp className="w-4 h-4 text-amber-300" />
-                    </span>
-                    One brief for every product and market
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
-                      <Shield className="w-4 h-4 text-emerald-300" />
-                    </span>
-                    Pay AI providers directly, with no markup
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
-                      <ImageIcon className="w-4 h-4 text-cyan-300" />
-                    </span>
-                    16:9, 1:1, and 9:16 from one run
-                  </li>
-                </ul>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Short social ads first: the format an ad team runs most. */}
-        <AdLibraryOverview compact />
-
-        <StoryboardTeaser
-          slugs={["cold-brew-pour", "movement-in-gold", "silent-arrival", "dew-drop-serum"]}
-          heading="Plan the spot before you render it."
-          body="Four commercials with their storyboards. Watch the film, then read the shot list."
-        />
-
-        <TimelineShowcase />
-
-        {/* Why marketing teams choose NodeTool: one campaign, shown rather
-            than described. The images are one run of the directed campaign
-            kit recipe and one run of the SKU visual factory. */}
-        <section aria-labelledby="why-marketing-title" className="relative py-24">
+        <section
+          id="campaign"
+          aria-labelledby="campaign-title"
+          className="relative scroll-mt-28 py-16 sm:py-24"
+        >
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <h2
-                id="why-marketing-title"
-                className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-white md:text-5xl"
-              >
-                Built for campaigns, not one-off shots.
-              </h2>
-              <p className="max-w-sm text-lg leading-relaxed text-slate-400">
-                One workflow. Every format and market. Always on brand.
+            <header className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+                One campaign, end to end
               </p>
-            </div>
+              <h2
+                id="campaign-title"
+                className="mt-3 text-3xl md:text-5xl font-bold tracking-tight text-white"
+              >
+                One brief. Four deliverables.
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-slate-400">
+                {CAMPAIGN_CASE.intro}
+              </p>
+            </header>
 
-            <div className="grid gap-4 lg:grid-cols-12">
-              {/* One brief, every format */}
-              {/* Each format keeps its real aspect ratio. Flex-grow in
-                  proportion to the ratio gives each row one height. On
-                  phones 16:9 takes its own row. */}
-              <figure className="m-0 flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a14] lg:col-span-12">
-                <div className="flex flex-wrap gap-2 p-2 sm:flex-nowrap">
-                  {campaignFormats.map((format, index) => (
-                    <div
-                      key={format.label}
-                      className={`relative min-w-0 overflow-hidden rounded-2xl ${
-                        index === 0 ? "basis-full sm:basis-0" : "basis-0"
-                      }`}
-                      style={{ flexGrow: format.ratio, aspectRatio: format.ratio }}
-                    >
-                      <Image
-                        src={format.src}
-                        alt={format.alt}
-                        width={format.width}
-                        height={format.height}
-                        sizes="(min-width: 1280px) 640px, 50vw"
-                        className="no-desaturate absolute inset-0 h-full w-full object-cover"
-                      />
-                      <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 font-jetbrains text-[11px] font-medium text-white backdrop-blur">
-                        {format.label}
-                      </span>
-                    </div>
-                  ))}
+            <ol className="mt-12 grid gap-4 lg:grid-cols-12">
+              {/* 1. The hero, from the brief */}
+              <li className="m-0 overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a14] lg:col-span-7">
+                <Image
+                  src="/marketing-why/campaign-16x9.webp"
+                  alt="The campaign hero in 16:9: the olive travel cup on a cobalt platform above water at sunrise"
+                  width={1280}
+                  height={720}
+                  sizes="(min-width: 1024px) 760px, 100vw"
+                  className="h-auto w-full"
+                />
+                <div className="p-6">
+                  <p className="font-jetbrains text-xs uppercase tracking-[0.14em] text-amber-300">
+                    1 · Hero, 16:9
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    {CAMPAIGN_CASE.hero}
+                  </p>
                 </div>
-                <figcaption className="flex items-center gap-4 border-t border-white/5 px-6 py-5">
-                  <Image
-                    src="/marketing-why/campaign-reference.webp"
-                    alt="The product photo the campaign started from"
-                    width={400}
-                    height={600}
-                    className="no-desaturate h-14 w-auto rounded-lg border border-white/10 bg-white"
-                  />
-                  <div>
-                    <p className="text-lg font-semibold text-white">
-                      One product photo. Every format.
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Rerun it for the next product or market.
+              </li>
+
+              {/* 2 and 3. The same world, recomposed */}
+              <li className="m-0 grid grid-cols-[1fr_0.5625fr] gap-2 overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a14] p-2 lg:col-span-5">
+                <Image
+                  src="/marketing-why/campaign-1x1.webp"
+                  alt="The same campaign recomposed as a square social post"
+                  width={800}
+                  height={800}
+                  sizes="(min-width: 1024px) 300px, 60vw"
+                  className="h-auto w-full self-start rounded-2xl"
+                />
+                <Image
+                  src="/marketing-why/campaign-9x16.webp"
+                  alt="The same campaign recomposed as a vertical story, with the upper third clear for copy"
+                  width={560}
+                  height={996}
+                  sizes="(min-width: 1024px) 170px, 34vw"
+                  className="h-auto w-full rounded-2xl"
+                />
+                <div className="col-span-2 px-4 pb-4 pt-2">
+                  <p className="font-jetbrains text-xs uppercase tracking-[0.14em] text-amber-300">
+                    2 · Social, 1:1 · 3 · Story, 9:16
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    {CAMPAIGN_CASE.formats}
+                  </p>
+                </div>
+              </li>
+
+              {/* 4. One note sent back, everything else kept */}
+              <li className="m-0 overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a14] lg:col-span-12">
+                <div className="grid gap-2 p-2 sm:grid-cols-2">
+                  <figure className="relative m-0">
+                    <Image
+                      src="/marketing-why/campaign-16x9.webp"
+                      alt="Before the revision: a large splash on the left of the platform"
+                      width={1280}
+                      height={720}
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      className="h-auto w-full rounded-2xl"
+                    />
+                    <figcaption className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 font-jetbrains text-[11px] font-medium text-white backdrop-blur">
+                      Before
+                    </figcaption>
+                  </figure>
+                  <figure className="relative m-0">
+                    <Image
+                      src="/marketing-why/campaign-revision.webp"
+                      alt="After the revision: about half the splash, and wider dark-blue space on the left for copy"
+                      width={1280}
+                      height={720}
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      className="h-auto w-full rounded-2xl"
+                    />
+                    <figcaption className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 font-jetbrains text-[11px] font-medium text-white backdrop-blur">
+                      After
+                    </figcaption>
+                  </figure>
+                </div>
+                <div className="grid gap-4 p-6 md:grid-cols-12">
+                  <p className="font-jetbrains text-xs uppercase tracking-[0.14em] text-amber-300 md:col-span-3">
+                    4 · Revision
+                  </p>
+                  <div className="md:col-span-9">
+                    <blockquote className="border-l-2 border-amber-400/60 pl-4 text-base leading-relaxed text-white">
+                      {CAMPAIGN_CASE.revisionNote}
+                    </blockquote>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                      {CAMPAIGN_CASE.revision}
                     </p>
                   </div>
-                </figcaption>
-              </figure>
-
-              <div className="grid gap-4 md:grid-cols-2 lg:col-span-12">
-                {/* Any model, your keys */}
-                <div className="flex flex-col justify-between gap-8 rounded-3xl border border-white/10 bg-[#0a0a14] p-7">
-                  <ul
-                    className="flex flex-wrap items-baseline gap-x-5 gap-y-2 text-3xl font-semibold tracking-tight text-slate-300 md:text-4xl xl:text-5xl"
-                    aria-label="Models"
-                  >
-                    {campaignModels.map((model) => (
-                      <li key={model}>{model}</li>
-                    ))}
-                    <li className="text-base font-medium tracking-normal text-slate-500">
-                      and more
-                    </li>
-                  </ul>
-                  <div>
-                    <p className="text-lg font-semibold text-white">
-                      Any model. Your keys.
-                    </p>
-                    <p className="mt-1 text-sm text-slate-400">
-                      List price. No credits, no seat markup.
-                    </p>
-                  </div>
                 </div>
+              </li>
+            </ol>
 
-                {/* On brand, every run */}
-                <figure className="m-0 flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a14]">
-                  <Image
-                    src="/marketing-why/looks.webp"
-                    alt="One cup shot three ways: studio white, warm spotlight, and a dark green set"
-                    width={1200}
-                    height={394}
-                    sizes="(min-width: 768px) 50vw, 100vw"
-                    className="no-desaturate h-auto w-full"
-                  />
-                  <figcaption className="p-7">
-                    <p className="text-lg font-semibold text-white">
-                      On brand, every run.
-                    </p>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Your palette, tone, and product locked into the workflow.
-                    </p>
-                  </figcaption>
-                </figure>
-              </div>
+            <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
+                {CAMPAIGN_CASE.limitation}
+              </p>
+              <a
+                href="/recipes/directed-campaign-kit"
+                className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-amber-300 transition-colors hover:text-amber-200 focus-ring"
+              >
+                Follow the recipe step by step
+                <ArrowRight className="h-4 w-4" />
+              </a>
             </div>
           </div>
         </section>
 
-        <RecipeShowcase />
-
-        {/* Product Video Generator: the workflow available today, next to the
-            ones on the way */}
-        <section aria-labelledby="from-link-title" className="relative py-20">
+        <section aria-labelledby="more-title" className="relative py-16">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <h2
-              id="from-link-title"
-              className="max-w-2xl text-balance text-3xl font-semibold tracking-tight text-white md:text-5xl"
+              id="more-title"
+              className="text-2xl font-bold tracking-tight text-white md:text-3xl"
             >
-              Start from a product page link.
+              More for ad teams
             </h2>
-            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
-              {FROM_LINK_INTRO}
-            </p>
-            <ul className="mt-10 grid gap-6 md:grid-cols-3">
-              {FROM_LINK_ROUTES.map((route) => (
-                <li
-                  key={route.title}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
-                >
-                  <h3 className="text-lg font-semibold text-white">{route.title}</h3>
-                  <p className="mt-2 leading-relaxed text-slate-300">{route.body}</p>
+            <ul className="mt-6 grid border-t border-white/10 md:grid-cols-2">
+              {MORE_FOR_AD_TEAMS.map((item) => (
+                <li key={item.href} className="border-b border-white/10 md:odd:pr-6 md:even:pl-6">
+                  <a
+                    href={item.href}
+                    className="group flex items-start justify-between gap-4 py-5 focus-ring"
+                  >
+                    <span>
+                      <span className="block font-semibold text-white group-hover:text-amber-200">
+                        {item.title}
+                      </span>
+                      <span className="mt-1 block text-sm leading-relaxed text-slate-400">
+                        {item.body}
+                      </span>
+                    </span>
+                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-500 group-hover:text-amber-200" />
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section id="product-video" className="relative scroll-mt-28 py-20">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              initial={false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.6 }}
-              className="flex flex-col lg:flex-row items-center gap-12"
-            >
-              <div className="flex-1">
-                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-300 mb-6">
-                  Lead workflow
-                  <span className="text-amber-500/60">·</span>
-                  Marketing
-                </div>
-                <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6">
-                  <Video className="w-7 h-7 text-amber-400" />
-                </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                  Product Video Generator
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed mb-6">
-                  Turn a campaign brief and a single product photo into a
-                  cinematic 16:9 product video. Your inputs shape the prompt, an
-                  agent directs the shot, and a video model renders it, ready to
-                  run again for every product in the line.
-                </p>
-                <ul className="space-y-3 mb-8">
-                  {["Brief, prompt, agent, then video", "Run it again per product or market", "Your own keys for every model in the workflow"].map(
-                    (item) => (
-                      <li key={item} className="flex items-center gap-3 text-slate-300">
-                        <Check className="w-5 h-5 text-emerald-400" />
-                        {item}
-                      </li>
-                    )
-                  )}
-                </ul>
-                <a
-                  href="/use-cases/product-video"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-amber-300 hover:text-amber-200 transition-colors"
-                >
-                  View the full workflow
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-              <div className="flex-1 w-full">
-                <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur overflow-hidden shadow-2xl">
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-slate-900/80">
-                    <div className="w-3 h-3 rounded-full bg-rose-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-amber-500/50" />
-                    <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
-                    <span className="ml-4 text-xs text-slate-400 font-medium">
-                      Product Video Generator
-                    </span>
-                  </div>
-                  <video
-                    src="/product_video_example.mp4"
-                    poster="/smartwatch.png"
-                    className="w-full"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* More marketing workflows */}
-        <section className="py-20 relative">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              initial={false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12 max-w-2xl mx-auto"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                More marketing workflows
-              </h2>
-              <p className="text-lg text-slate-400 leading-relaxed">
-                Three of these ship as templates today, and the Social Media
-                Calendar Filler is next. They follow the same pattern as the
-                Product Video Generator: a brief goes in, a campaign comes out.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {moreWorkflows.map((wf, index) => (
-                <motion.div
-                  key={wf.title}
-                  initial={false}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.08 }}
-                  className="flex items-start gap-4 rounded-2xl border border-white/10 bg-[#0a0a14]/70 backdrop-blur-xs p-6"
-                >
-                  <div className="w-11 h-11 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                    <wf.icon className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-white mb-1.5">
-                      {wf.href ? (
-                        <a
-                          href={wf.href}
-                          className="hover:text-emerald-300 focus-ring rounded"
-                        >
-                          {wf.title}
-                        </a>
-                      ) : (
-                        <>
-                          {wf.title}{" "}
-                          <span className="text-xs font-medium text-slate-400">
-                            (coming next)
-                          </span>
-                        </>
-                      )}
-                    </h3>
-                    <p className="text-sm text-slate-400 leading-relaxed">
-                      {wf.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Community */}
-        <CommunitySection id="community" variant="marketing" stars={stars} />
-
-        {/* CTA */}
         <section className="py-24 relative">
-          <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
-            <motion.div
-              initial={false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Ready to ship <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400">
-                  at campaign volume?
-                </span>
-              </h2>
-              <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                Download the open-source studio for macOS, Windows, and Linux.
-                Connect the providers you already pay for, and build the
-                workflow that produces your next campaign.
-              </p>
-              <SmartDownloadButton
-                icon={<Download className="w-6 h-6" />}
-                classNameOverride="group inline-flex items-center gap-2 px-10 py-5 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 text-white text-lg font-semibold hover:from-amber-400 hover:to-emerald-500 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40"
-              />
-            </motion.div>
+          <div className="mx-auto max-w-3xl px-6 lg:px-8 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+              Run the kit on your next product.
+            </h2>
+            <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto">
+              Download the free, open-source studio for macOS, Windows, and
+              Linux, and open the Directed Campaign Kit.
+            </p>
+            <SmartDownloadButton
+              icon={<Download className="w-5 h-5" />}
+              classNameOverride="inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-amber-500 text-white font-semibold transition-all shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] hover:bg-amber-400"
+            />
           </div>
         </section>
       </div>
@@ -531,6 +286,7 @@ export default function MarketingSegmentPage() {
       <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
         <PageUpdated route="/marketing" className="text-sm text-slate-400" />
       </div>
+
       <SiteFooter />
     </main>
   );

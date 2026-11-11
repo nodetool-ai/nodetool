@@ -3,7 +3,7 @@
  * opening its project (or, with no saved tabs, its newest document), and
  * nothing at all before the first project exists.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -65,10 +65,18 @@ const renderRecent = () =>
   );
 
 beforeEach(() => {
+  jest.useFakeTimers();
   jest.clearAllMocks();
   openProject.mockResolvedValue(true);
   activeTabId = null;
 });
+
+afterEach(() => {
+  act(() => jest.runOnlyPendingTimers());
+  jest.useRealTimers();
+});
+
+const user = () => userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 
 describe("RecentProjects", () => {
   it("renders nothing before the first project exists", () => {
@@ -102,11 +110,11 @@ describe("RecentProjects", () => {
   it("opens a project from its card and the list from View all", async () => {
     summaries = { data: [summary("a", "Aurora", "2026-10-19T00:00:00.000Z")] };
     renderRecent();
-    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await user().click(screen.getByRole("button", { name: "Aurora" }));
     expect(openProject).toHaveBeenCalledWith(
       expect.objectContaining({ id: "a", name: "Aurora" })
     );
-    await userEvent.click(
+    await user().click(
       screen.getByRole("button", { name: "View all projects" })
     );
     expect(openTab).toHaveBeenCalledWith(
@@ -123,7 +131,7 @@ describe("RecentProjects", () => {
     documents.scrollIntoView = jest.fn();
     document.body.appendChild(documents);
     renderRecent();
-    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await user().click(screen.getByRole("button", { name: "Aurora" }));
     await waitFor(() => expect(documents.scrollIntoView).toHaveBeenCalled());
     documents.remove();
   });
@@ -142,7 +150,7 @@ describe("RecentProjects", () => {
     documents.scrollIntoView = jest.fn();
     document.body.appendChild(documents);
     renderRecent();
-    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await user().click(screen.getByRole("button", { name: "Aurora" }));
     await waitFor(() =>
       expect(openTab).toHaveBeenCalledWith({
         type: "storyboard",
@@ -151,6 +159,7 @@ describe("RecentProjects", () => {
         projectId: "a"
       })
     );
+    act(() => jest.runOnlyPendingTimers());
     expect(documents.scrollIntoView).not.toHaveBeenCalled();
     documents.remove();
   });
@@ -163,9 +172,9 @@ describe("RecentProjects", () => {
     documents.scrollIntoView = jest.fn();
     document.body.appendChild(documents);
     renderRecent();
-    await userEvent.click(screen.getByRole("button", { name: "Aurora" }));
+    await user().click(screen.getByRole("button", { name: "Aurora" }));
     await waitFor(() => expect(openProject).toHaveBeenCalled());
-    await new Promise((resolve) => requestAnimationFrame(resolve));
+    act(() => jest.runOnlyPendingTimers());
     expect(documents.scrollIntoView).not.toHaveBeenCalled();
     documents.remove();
   });

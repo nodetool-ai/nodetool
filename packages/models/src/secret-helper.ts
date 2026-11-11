@@ -72,11 +72,63 @@ async function materialize(
   return resolveOnePasswordReference(value, userId);
 }
 
+interface SecretLookup {
+  secret(key: string): Secret | null;
+  setting(key: string): Setting | null;
+}
+
+/** Resolve several keys with one caller-scoped batch of database reads. */
+export async function getSecrets(
+  keys: readonly string[],
+  userId: string
+): Promise<Map<string, string | null>> {
+  const uniqueKeys = [...new Set(keys)];
+  if (uniqueKeys.length === 0) {
+    return new Map();
+  }
+  const [secretsResult, settingsResult] = await Promise.allSettled([
+    Secret.findByKeys(userId, uniqueKeys),
+    Setting.listForUser(userId)
+  ]);
+  const secrets = new Map(secretsResult.status === "fulfilled"
+    ? secretsResult.value.map((secret) => [secret.key, secret] as const) : []);
+  const settings = new Map(settingsResult.status === "fulfilled"
+    ? settingsResult.value.map((setting) => [setting.key, setting] as const) : []);
+  const lookup: SecretLookup = {
+    secret(key) {
+      if (secretsResult.status === "rejected") {
+        throw secretsResult.reason;
+      }
+      return secrets.get(key) ?? null;
+    },
+    setting(key) {
+      if (settingsResult.status === "rejected") {
+        throw settingsResult.reason;
+      }
+      return settings.get(key) ?? null;
+    }
+  };
+  const values = new Map<string, string | null>();
+  for (const key of uniqueKeys) {
+    values.set(key, await resolveSecret(key, userId, undefined, lookup));
+  }
+  return values;
+}
+
 /** Get a secret value for a user (resolution order documented at file top). */
 export async function getSecret(
   key: string,
   userId?: string,
   defaultValue?: string
+): Promise<string | null> {
+  return resolveSecret(key, userId, defaultValue);
+}
+
+async function resolveSecret(
+  key: string,
+  userId?: string,
+  defaultValue?: string,
+  lookup?: SecretLookup
 ): Promise<string | null> {
   const resolvedUserId = userId ?? "default";
 
@@ -124,7 +176,7 @@ export async function getSecret(
 
   if (userId) {
     try {
-      const secret = await Secret.find(userId, key);
+      const secret = lookup ? lookup.secret(key) : await Secret.find(userId, key);
       if (secret) {
         const value = await secret.getDecryptedValue();
         if (value !== null && value !== undefined) {
@@ -149,7 +201,7 @@ export async function getSecret(
   // provider construction sees them. settings.update clears the cache entry.
   if (userId) {
     try {
-      const setting = await Setting.find(userId, key);
+      const setting = lookup ? lookup.setting(key) : await Setting.find(userId, key);
       if (setting && setting.value.length > 0) {
         if (isRefusedUserReference(key, setting.value)) {
           return null;
@@ -260,4 +312,26 @@ export function getSecretSync(
   }
 
   return null;
+}
+
+/** Whose credential `getSecret` would hand out for `key`. */
+export type CredentialSource = "user" | "server";
+
+/**
+ * Whether `getSecret(key, userId)` resolves to a value the user saved
+ * themselves or to the server's own (the environment, or nothing at all).
+ * Follows the same order as `getSecret`, without decrypting anything.
+ */
+export async function credentialSource(
+  key: string,
+  userId: string
+): Promise<CredentialSource> {
+  if (FORCE_ENV_PRIORITY.has(key) && process.env[key] !== undefined) {
+    return "server";
+  }
+  const secret = await Secret.find(userId, key);
+  if (secret) return "user";
+  const setting = await Setting.find(userId, key);
+  if (setting && setting.value.length > 0) return "user";
+  return "server";
 }

@@ -41,8 +41,11 @@ import {
   atlasSubmit,
   atlasUploadMedia,
   outputUrls,
-  pickOutputUrl
+  pickOutputUrl,
+  type AtlasModality,
+  type AtlasPollOptions
 } from "./atlascloud-transport.js";
+import { recordGenerationReceiptAsync } from "../generation-receipt.js";
 import {
   providerGeneration,
   type ProviderGeneration,
@@ -89,7 +92,12 @@ import type {
   ReferenceToVideoInputs,
   ReferenceToVideoParams
 } from "./types.js";
-import type { ProviderCapability } from "./base-provider.js";
+import type {
+  EndpointCallRequest,
+  EndpointCallResult,
+  MediaUpload,
+  ProviderCapability
+} from "./base-provider.js";
 
 const log = createLogger("nodetool.runtime.providers.atlascloud");
 
@@ -545,6 +553,35 @@ function atlasGenerationStatus(
   return "running";
 }
 
+function isAtlasModality(value: string): value is AtlasModality {
+  return value === "image" || value === "video" || value === "audio";
+}
+
+/** The submit family for an endpoint call, checked against the manifest. */
+function atlasRoute(
+  modelId: string,
+  route: string | undefined,
+  manifestModality: "image" | "video" | undefined
+): AtlasModality {
+  if (route === undefined) {
+    if (manifestModality) return manifestModality;
+    throw new Error(
+      `AtlasCloud model ${modelId} is not in the manifest: pass route "image", "video" or "audio"`
+    );
+  }
+  if (!isAtlasModality(route)) {
+    throw new Error(
+      `AtlasCloud endpoint route must be "image", "video" or "audio", got "${route}"`
+    );
+  }
+  if (manifestModality && manifestModality !== route) {
+    throw new Error(
+      `AtlasCloud model ${modelId} is a ${manifestModality} model, not ${route}`
+    );
+  }
+  return route;
+}
+
 export class AtlasCloudProvider extends OpenAICompatProvider {
   private modelMap: Map<string, ModelInfo> | null = null;
   private chatModels: Promise<AtlasChatModelRow[]> | null = null;
@@ -581,7 +618,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     secrets: { ATLASCLOUD_API_KEY?: string } = {},
     options: OpenAICompatProviderOptions = {}
   ) {
-    const apiKey = secrets.ATLASCLOUD_API_KEY;
+    const apiKey = secrets.ATLASCLOUD_API_KEY?.trim();
     if (!apiKey) {
       throw new Error("ATLASCLOUD_API_KEY is required");
     }
@@ -760,7 +797,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       input.speech_rate = Math.round((params.speed - 1) * 100);
     }
     if (params.model === "bytedance/seed-audio-1.0" && params.referenceAudio) {
-      const referenceUrl = await this.uploadMedia(
+      const referenceUrl = await this.uploadInput(
         params.referenceAudio,
         sniffMediaMime(params.referenceAudio, "audio/mpeg"),
         "reference-voice"
@@ -827,7 +864,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     if (!ATLASCLOUD_ASR_MODELS.some((model) => model.id === args.model)) {
       throw new Error(`Unknown AtlasCloud ASR model: ${args.model}`);
     }
-    const audioUrl = await this.uploadMedia(
+    const audioUrl = await this.uploadInput(
       args.audio,
       sniffMediaMime(args.audio, "audio/mpeg"),
       "input-audio"
@@ -876,7 +913,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       (item) => item.id === params.model.id && item.supportedTasks?.includes("image_to_3d")
     );
     if (!model) throw new Error(`AtlasCloud model ${params.model.id} does not support image_to_3d`);
-    const imageUrl = await this.uploadMedia(image, "image/png", "input-image");
+    const imageUrl = await this.uploadInput(image, "image/png", "input-image");
     const input: Record<string, unknown> = { model: model.id };
     if (model.id === "bytedance/seed3d-v2.0/image-to-3d") {
       input.image = imageUrl;
@@ -953,6 +990,64 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     return info;
   }
 
+  override supportsEndpointCalls(): boolean {
+    return true;
+  }
+
+  /**
+   * Submit one prediction and wait for its terminal state. `route` is the
+   * submit family: "image", "video" or "audio" (generateImage, generateVideo,
+   * generateAudio). It defaults to the manifest model's modality, and a model
+   * outside the manifest must name it. `input` is the flat request body sent
+   * beside `model`. `output` is the finished prediction
+   * (`{ status, outputs, ... }`) and `requestId` the prediction id. The poll
+   * cadence and budget come from the manifest entry, else 3 s and 600 polls.
+   */
+  override async callEndpoint(
+    req: EndpointCallRequest
+  ): Promise<EndpointCallResult> {
+    const info = this.getModelMap().get(req.model);
+    const route = atlasRoute(req.model, req.route, info?.modality);
+    log.debug("AtlasCloud endpoint submit", { route, model: req.model });
+    const predictionId = await atlasSubmit(
+      this.apiKey,
+      route,
+      req.model,
+      req.input,
+      req.signal
+    );
+    await recordGenerationReceiptAsync({ provider_request_id: predictionId });
+    const waitOptions: AtlasPollOptions = {
+      pollInterval: info?.pollInterval ?? DEFAULT_POLL_INTERVAL_MS,
+      maxAttempts: info?.maxAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS
+    };
+    if (req.signal) waitOptions.signal = req.signal;
+    const output = await atlasAwaitResult(this.apiKey, predictionId, waitOptions);
+    return { output, requestId: predictionId };
+  }
+
+  /** Upload bytes as given and return the temporary URL model inputs accept. */
+  override async uploadMedia(upload: MediaUpload): Promise<string> {
+    return atlasUploadMedia(
+      this.apiKey,
+      upload.bytes,
+      upload.mimeType,
+      upload.filename ?? "input",
+      upload.signal
+    );
+  }
+
+  /**
+   * Result URLs need no credentials. This keeps the screened download that
+   * retries 429/5xx, since the prediction is already billed.
+   */
+  override async downloadMedia(
+    url: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
+    return atlasDownload(url, signal);
+  }
+
   /** Submit, poll, download. Shared by all four capability methods. */
   private async runJob(
     modality: "image" | "video",
@@ -986,7 +1081,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     return atlasDownload(pickOutputUrl(result), opts.signal);
   }
 
-  private uploadMedia(
+  private uploadInput(
     bytes: Uint8Array,
     fallbackMime: string,
     filename: string,
@@ -1112,8 +1207,8 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
       );
     }
     const [videoUrl, audioUrl] = await Promise.all([
-      this.uploadMedia(video, "video/mp4", "input-video"),
-      this.uploadMedia(params.audio, "audio/mpeg", "input-audio")
+      this.uploadInput(video, "video/mp4", "input-video"),
+      this.uploadInput(params.audio, "audio/mpeg", "input-audio")
     ]);
     const input: Record<string, unknown> = {
       [videoField]: videoUrl,
@@ -1228,7 +1323,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const videoUrl = await this.uploadMedia(
+    const videoUrl = await this.uploadInput(
       video,
       "video/mp4",
       "input-video",
@@ -1307,7 +1402,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
           ? buffers.map(bytesToImageDataUri)
           : await Promise.all(
               buffers.map((bytes, index) =>
-                this.uploadMedia(
+                this.uploadInput(
                   bytes,
                   field.kind === "video" ? "video/mp4" : sniffMediaMime(bytes, "audio/mpeg"),
                   `reference-${field.kind}-${index + 1}`,
@@ -1373,7 +1468,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const videoUrl = await this.uploadMedia(
+    const videoUrl = await this.uploadInput(
       video,
       "video/mp4",
       "input-video",
@@ -1451,7 +1546,7 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
         `AtlasCloud model ${modelId} does not declare a video field`
       );
     }
-    const videoUrl = await this.uploadMedia(video, "video/mp4", "input-video");
+    const videoUrl = await this.uploadInput(video, "video/mp4", "input-video");
     const input: Record<string, unknown> = { [videoField]: videoUrl };
     setIfDeclared(input, info, params.prompt, "prompt");
     setIfDeclared(input, info, params.durationSeconds, "duration");

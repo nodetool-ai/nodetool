@@ -15,8 +15,12 @@ import { parseExtensionFrame, type ExtensionFrame, type ExtensionHostToExtFrame 
 const SOCKET_ENV = "NODETOOL_BROWSER_BRIDGE_SOCKET";
 
 export const BRIDGE_UNAVAILABLE_MESSAGE =
-  "The NodeTool browser bridge is not running. Install the native host with `nodetool extension install`, " +
-  "then load the NodeTool extension in Chrome and reload it so it connects.";
+  "The NodeTool browser extension is not connected. Set it up in Settings → Integrations → Browser extension:\n" +
+    "1. Click Connect to Chrome.\n" +
+    "2. Download and unzip the extension, or reveal its bundled folder.\n" +
+    "3. Open chrome://extensions, enable Developer mode, and choose Load unpacked. Select the extension folder.\n" +
+    "4. Open the site in Chrome, sign in, then click the NodeTool extension and Attach to this tab.\n" +
+    "If it is already installed, reload it in chrome://extensions and attach again.";
 
 /** Socket paths of running hosts, newest first. */
 export function listBridgeSockets(): string[] {

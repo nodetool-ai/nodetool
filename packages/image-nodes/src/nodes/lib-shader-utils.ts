@@ -107,7 +107,8 @@ async function uploadStraightAlpha(
   device: GPUDevice,
   image: unknown,
   context?: ProcessingContext,
-  label = "shader-input"
+  label = "shader-input",
+  colorSpace: LabeledTexture["meta"]["colorSpace"] = "encoded-sdr"
 ): Promise<UploadedSource | null> {
   // A GPU-texture ImageRef is already a texture on this device — sample it
   // directly, skipping decode + upload (the whole point of GPU chaining).
@@ -129,6 +130,7 @@ async function uploadStraightAlpha(
     width: decoded.width,
     height: decoded.height,
     format: "rgba8unorm",
+    meta: { colorSpace },
     usage: INPUT_USAGE
   });
   device.queue.writeTexture(
@@ -207,7 +209,8 @@ export async function runShaderNode(
           device,
           sourceImage,
           context,
-          `${module.id}-source`
+          `${module.id}-source`,
+          module.io.inputs.source?.colorSpace === "data" ? "data" : "encoded-sdr"
         )
       : null;
     if (source && !source.borrowed) owned.push(source.texture);
@@ -232,7 +235,8 @@ export async function runShaderNode(
         device,
         ref,
         context,
-        `${module.id}-${name}`
+        `${module.id}-${name}`,
+        module.io.inputs[name]?.colorSpace === "data" ? "data" : "encoded-sdr"
       );
       if (uploaded) {
         inputs[name] = uploaded.texture;
@@ -265,6 +269,7 @@ export async function runShaderNode(
       width: dims.width,
       height: dims.height,
       format: "rgba8unorm",
+      meta: { colorSpace: module.io.output.colorSpace },
       usage: module.kind === "compute" ? COMPUTE_OUTPUT_USAGE : OUTPUT_USAGE
     });
 
@@ -359,7 +364,8 @@ export async function runRecipeNode(
         device,
         ref,
         context,
-        `${recipe.id}-${name}`
+        `${recipe.id}-${name}`,
+        recipe.io.inputs[name]?.colorSpace === "data" ? "data" : "encoded-sdr"
       );
       if (uploaded) {
         inputs[name] = uploaded.texture;
@@ -385,6 +391,7 @@ export async function runRecipeNode(
       width: dims.width,
       height: dims.height,
       format: "rgba8unorm",
+      meta: { colorSpace: recipe.io.output.colorSpace },
       usage: OUTPUT_USAGE | COMPUTE_OUTPUT_USAGE
     });
 

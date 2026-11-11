@@ -27,3 +27,5 @@ export * from "./render/layout.js";
 export * from "./render/spatial.js";
 export * from "./render/temporal.js";
 export * from "./render/headlessRender.js";
+
+export { hasTemporalDenoise, denoiseSourceTimes, type TemporalSources } from "./render/denoise.js";

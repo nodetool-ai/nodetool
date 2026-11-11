@@ -5,7 +5,16 @@ permalink: /game-engine/hud-screens
 description: "Build working game HUDs and understand the limits of the document screen schema."
 ---
 
-Use the shared widget tree for persistent HUD elements. Both dimensions use the same layout model. Document screen definitions are accepted by validation, but the shipped runtime and renderer do not implement their menu behavior.
+The shared widget tree draws persistent HUD elements in both dimensions. Document screen definitions pass validation, but the shipped runtime and renderer do not implement their menu behavior.
+
+```json
+"ui": { "nodes": [
+  { "kind": "panel", "id": "hud", "anchor": {"x": 1, "y": 0}, "pivot": {"x": 1, "y": 0},
+    "offset": {"x": -16, "y": 16}, "width": 200, "height": 48 },
+  { "kind": "bar", "id": "hp", "parent": "hud", "width": 180, "height": 12,
+    "source": {"kind": "health", "entityId": "hero"} }
+] }
+```
 
 ![BLACKSITE HUD with objective, armor, and ammunition panels drawn by the UI widget tree](/assets/game-engine/blacksite.png)
 

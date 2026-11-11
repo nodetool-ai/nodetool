@@ -22,6 +22,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const filtersVisualFxV1 = defineModule({
+  precision: { "source": "working", "mask": "fixed", "output": "working" },
   id: "filters.visualFx",
   version: 1,
   surface: "internal",
@@ -203,10 +204,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
 `,
   io: {
     inputs: {
-      source: { colorSpace: "linear", alpha: "premultiplied", bindingKinds: ["texture_2d"] },
-      mask: { colorSpace: "linear", alpha: "premultiplied", bindingKinds: ["texture_2d"], optional: true }
+      source: { colorSpace: "encoded-sdr", alpha: "premultiplied", bindingKinds: ["texture_2d"] },
+      mask: { colorSpace: "data", alpha: "premultiplied", bindingKinds: ["texture_2d"], optional: true }
     },
-    output: { colorSpace: "linear", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source" },
+    output: { colorSpace: "encoded-sdr", alpha: "premultiplied", format: "rgba8unorm", dimensions: "same-as:source" },
     rod: "same-as:source"
   }
 });

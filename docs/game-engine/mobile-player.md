@@ -5,15 +5,16 @@ permalink: /game-engine/mobile-player
 description: "Play a published game in the NodeTool mobile app: how the build reaches the phone, what the player is allowed to do, and the current device limits."
 ---
 
-The NodeTool mobile app plays your published games. Open **Apps**, tap the controller button in the header, and pick a game. The phone plays the game's current published revision with the same runtime and renderers as the web player, so a game behaves the same in the editor, in a browser, and on the phone.
+The NodeTool mobile app plays a game's current published revision inside a web view, using the exported web build. Open **Apps**, tap the controller button in the header, and pick a game.
 
-The phone plays games. It does not edit them. Make and change games in the desktop or web editor, or ask the assistant.
+> **Runs:** on the phone, in a web view (iOS WKWebView or Android WebView). **Needs:** a connection to the server to start a game, over HTTPS or a loopback address. 3D games need WebGL2 in the web view. **Hardware:** not measured. The player has not been run on physical devices or simulators.
+{: .callout-note}
+
+The phone plays games and does not edit them. Edit in the desktop or web editor, or ask the assistant.
 
 ## What runs where
 
-The mobile player is the exported web build, unchanged, inside a web view. The [standalone web export](/game-engine/publishing#export-for-the-web) produces that build. The shared simulation, the QuickJS script runtime, Canvas2D or WebGPU for 2D, WebGL2 for 3D, touch controls and audio all run inside the page. The server prepares the build and serves its files. It takes no part in a frame.
-
-The native screen owns the parts around the game: the play link, loading and error states, orientation, the close button, and pausing when the app goes to the background.
+The [standalone web export](/game-engine/publishing#export-for-the-web) produces the build. Simulation, the QuickJS script runtime, Canvas2D or WebGPU for 2D, WebGL2 for 3D, touch controls, and audio all run inside the page. The server prepares the build and serves its files, and takes no part in a frame. The native screen owns the play link, loading and error states, orientation, the close button, and pausing when the app goes to the background.
 
 ## How the build reaches the phone
 
@@ -24,11 +25,7 @@ The native screen owns the parts around the game: the play link, loading and err
 
 The player then checks every asset against the digest in the game document, as it does in a browser. A play session is pinned to one game, one revision and one runtime fingerprint. Publishing a new revision does not change a game that is already running.
 
-### Why authenticated HTTPS, not a downloaded ZIP
-
-The exported player needs a secure origin. It verifies assets with `crypto.subtle`, compiles QuickJS from WebAssembly, and fetches files relative to its own page. Loaded from `file://`, iOS WKWebView and Android WebView each restrict `fetch`, WebAssembly and storage differently, and the player is documented to need HTTPS or loopback HTTP. A downloaded ZIP would also need a private local origin, which means a local HTTP server or a custom scheme handler in native code.
-
-Serving the build from the API under a signed path gives the page a real HTTPS origin with no new native code. The cost is that the first version needs a connection to start a game. Once the page has loaded its files, play does not use the network. The build format and integrity manifest are the same ones a verified offline cache would use, so caching can be added later without a second format.
+The exported player needs a secure origin for `crypto.subtle`, WebAssembly, and relative fetches, so the build is served from the API under a signed path instead of loaded from `file://`. Once the files have loaded, play does not use the network.
 
 ## What the page can and cannot do
 
@@ -73,12 +70,3 @@ The player has not yet been run on physical iPhone or Android hardware, or in a 
 7. Leave and reopen the game several times. Memory should return to its level before the first launch.
 
 Record results per device: model, OS version, 2D backend (Canvas2D or WebGPU), WebGL2 availability, median and 95th percentile frame time, and memory after 15 minutes.
-
-## Longer-term options
-
-The first version keeps the TypeScript runtime and the browser renderers in a web view. Two alternatives stay open, to be judged against real-device measurements:
-
-- **Shared gameplay with native rendering.** The simulation stays in TypeScript and a native renderer draws the frames. This needs a frame protocol between JavaScript and native code, and its per-frame overhead would have to be measured first.
-- **A portable native or WebAssembly core.** The runtime is rewritten once for iOS, Android and the web. This is justified only if measurements show the web view cannot hold the frame budget, and only with replay tests that prove the same results on every platform.
-
-If device results show a limit that the web view cannot meet, open a design RFC with those numbers. A native renderer would not by itself require a second implementation of the simulation or the script runtime.

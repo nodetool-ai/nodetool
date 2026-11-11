@@ -96,7 +96,7 @@ Chat flags:
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
                          openrouter, requesty, opper, cheaperinference, api_route,
-                         huggingface, replicate, kie,
+                         runcrate, standardcompute, huggingface, replicate, kie,
                          aki, ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
                          node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
@@ -2574,6 +2574,15 @@ npm run dev:nodetool -- storage migrate-keys               # Move them
 npm run dev:nodetool -- storage migrate-keys --user-id <id> --json
 ```
 
+Uploads store `Cache-Control: max-age=<signed URL lifetime>` on each object.
+`refresh-cache-control` rewrites asset objects stored before that with
+`no-cache`, which made browsers download them again on every mount.
+
+```bash
+npm run dev:nodetool -- storage refresh-cache-control --dry-run
+npm run dev:nodetool -- storage refresh-cache-control
+```
+
 ### nodetool auth
 
 Signs in to providers that use an account instead of an API key. `auth claude`
@@ -2659,6 +2668,33 @@ The read commands (`workflows`, `jobs`, `assets`, `models`) hit the local
 database, providers, and caches by default — no server required. Pass
 `--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
 instead.
+
+## Native Qt presentation checks
+
+The native UI library has a standalone [build and test interface](https://github.com/nodetool-ai/nodetool/blob/main/native/ui_primitives/README.md).
+Its checks read native configuration and sources. They do not import web tokens
+or require npm packages.
+
+```bash
+python3 native/ui_primitives/tools/check_design.py --strict
+python3 native/ui_primitives/tools/check_dependencies.py
+python3 native/ui_primitives/tools/check_isolated_build.py --qt-prefix /path/to/Qt
+```
+
+The design check audits the native migration inventory and presentation rules.
+The dependency check rejects feature, backend, and web dependencies in the
+primitive module. The isolation check copies the module into a temporary tree,
+then separately copies the chat and model-picker hosts. It configures, builds,
+and tests with Node and npm absent from its tool path. It also installs chat
+and loads its packaged QML resources offscreen.
+
+`harness gate` runs the Python contracts for changes to the primitive module
+or migrated QML chrome. It reports Qt interaction tests as manual work when
+run outside the dedicated native workflow. The standalone
+[`native-ui-primitives` workflow](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/native-ui-primitives.yml)
+provides Qt and runs the native tests separately from web and backend builds.
+Offscreen tests do not establish physical mixed-DPI behavior, screen-reader
+compatibility, or operating-system IME behavior.
 
 ## Observing Agent Execution
 

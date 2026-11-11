@@ -4,9 +4,10 @@ title: "ComfyUI Setup: Endpoint and Ports"
 description: "Point NodeTool's ComfyUI nodes at a server: a local ComfyUI on 127.0.0.1:8188 (the default), comfy-api-proxy on 8189, a rented GPU, or Comfy Cloud."
 ---
 
-You have a ComfyUI workflow in API format and a NodeTool graph to put it in. What
-is missing is a server to run it on. This page covers getting that endpoint and
-what has to be installed on it.
+This page covers getting a ComfyUI endpoint for the ComfyUI nodes and what the server must have installed.
+
+> **Runs:** locally, on a rented GPU, or on Comfy Cloud. **Needs:** `COMFY_API_KEY` for Comfy Cloud, a worker bearer token for the NodeTool worker, nothing for a local ComfyUI. Default local endpoint is `127.0.0.1:8188`.
+{: .callout-note}
 
 The nodes themselves, their properties, the workflow loader and the output slots
 are in [ComfyUI](comfyui.md).

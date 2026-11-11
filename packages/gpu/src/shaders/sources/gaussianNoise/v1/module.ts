@@ -23,6 +23,7 @@ const layout = tgpu.bindGroupLayout({
 });
 
 export const sourcesGaussianNoiseV1 = defineModule({
+  precision: { "output": "fixed" },
   id: "sources.gaussianNoise",
   version: 1,
   surface: "internal",
@@ -65,7 +66,7 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   io: {
     inputs: {},
     output: {
-      colorSpace: "linear",
+      colorSpace: "encoded-sdr",
       alpha: "premultiplied",
       format: "rgba8unorm",
       dimensions: "host-specified"

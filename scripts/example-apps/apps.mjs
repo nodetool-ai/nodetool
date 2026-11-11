@@ -33,12 +33,13 @@
 // accordion.
 //
 // Control kinds: input, text, model, number, slider, select, image, video, audio,
-// switch, color, run, note. Result kinds: progress, activity, transcript, error, show, showVar,
+// document, switch, color, run, note. Result kinds: progress, activity, transcript, error, show, showVar,
 // heading, note, and textVar for an editable variable under the run that fills it.
 // `text`, `model`, `select` and `slider` take an input name or `{ node, prop }` to drive
 // a node property inside the graph; `default` seeds the preview value. `model` also
-// takes `{ variable }`: one picker for a model that several operations read.
-// `image`, `video`, and `audio` take a variable id or `{ input }`.
+// takes `{ variable }`: one picker for a model that several operations read, and
+// `number` and `select` take `{ variable }` the same way.
+// `image`, `video`, `audio`, and `document` take a variable id or `{ input }`.
 // See buildControl() in the builder for the exact props each one emits.
 
 import { PRODUCT_PRICE_DROP_BUNDLE, PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS } from "./product-price-drop.mjs";
@@ -46,6 +47,7 @@ import { AD_LIBRARY_APPS } from "./ad-library-recipes.mjs";
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
 import { PODCAST_PRODUCTION_DESK_APP } from "./podcast-production-desk.mjs";
 import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
+import { CATALOG_MOTION_APP, CATALOG_MOTION_REFERENCES_APP } from "./catalog-motion.mjs";
 import { VIDEO_POST_HOUSE_APP } from "./video-post-house.mjs";
 
 const SLIDERS_IMAGE_ENHANCE = [
@@ -84,6 +86,177 @@ const NANO_BANANA_EDIT = {
   name: "Nano Banana Edit",
   path: null,
   supported_tasks: []
+};
+
+const DIRECT_TRAILER_CODE = String.raw`
+import { run_agent } from "@nodetool-ai/sandbox-nodetool/agents";
+
+const premise = String(inputs.premise ?? "").trim();
+if (!premise) throw new Error("Write the premise before you direct the teaser.");
+const style = String(inputs.style ?? "").trim();
+const shots = Math.max(3, Math.min(10, Number(inputs.shots) || 6));
+const picked = inputs.model?.id ? inputs.model : await nodetool.models.pick("generate_message");
+const ref = async ([chosen, capability]) => {
+  const hit = chosen?.id ? chosen : await nodetool.models.pick(capability);
+  const { provider, id } = hit.ref || hit;
+  return "provider " + provider + ", model " + id;
+};
+const [imageModel, videoModel, musicModel] = await Promise.all(
+  [
+    [inputs.image_model, "text_to_image"],
+    [inputs.video_model, "image_to_video"],
+    [null, "text_to_music"]
+  ].map(ref)
+);
+
+const answer = await run_agent({
+  label: "director",
+  model: picked.ref || picked,
+  max_turns: 40,
+  tools: ["generate_batch", "generate_music", "media_probe", "media_edit"],
+  system: "You are a trailer director. Decide, say what you decided in one or two sentences, then act with your tools. Use only the asset URIs your tools return.",
+  prompt: [
+    "Direct a teaser trailer from start to finish.",
+    "Premise: " + premise,
+    "Visual style: " + (style || "choose one that fits the premise"),
+    "Number of shots: " + shots,
+    "",
+    "1. Write the beat sheet: hook, escalation, turn and title card, with timings.",
+    "2. Write the numbered shot list: subject, framing, camera move and duration. Repeat the visual style in every shot prompt. Allow no on-screen text.",
+    "3. Make every still in one generate_batch call: one generate_image request per shot, at 16:9, with " + imageModel + ". Label each request with its shot.",
+    "4. Animate every still in one more generate_batch call: one animate_image request per still, with " + videoModel + ".",
+    "5. Keep each clip to the duration in your shot list.",
+    "6. Call media_edit with operation concat, the clip asset URIs in shot order, and output_file cut.mp4. Check it with media_probe.",
+    "7. Call generate_music for a bed as long as the cut, with " + musicModel + ". Then call media_edit with operation add_audio and output_file trailer.mp4.",
+    "8. Submit the asset URI of the final file and your notes.",
+    "",
+    "Retry a failed call once. If a shot fails again, cut without it and say so. Do not regenerate a shot only to improve it.",
+    "If you cannot finish, still submit: leave trailer_uri empty and say in the notes which step failed and why."
+  ].join("\n"),
+  output_schema: {
+    type: "object",
+    properties: { trailer_uri: { type: "string" }, notes: { type: "string" } },
+    required: ["notes"]
+  }
+});
+if (answer.error) throw new Error(answer.error);
+await output("notes", answer.result.notes);
+if (!answer.result.trailer_uri) throw new Error("The agent made no trailer. Its notes say why.");
+await output("trailer", { type: "video", uri: answer.result.trailer_uri });
+`;
+
+const DIRECT_TRAILER_SCRIPT = {
+  name: "Direct a Trailer",
+  document: {
+    schemaVersion: 1,
+    description: "Runs one agent that plans, renders, cuts and scores a teaser trailer from a premise.",
+    code: DIRECT_TRAILER_CODE,
+    inputs: [
+      { name: "premise", type: "str" },
+      { name: "style", type: "str" },
+      { name: "shots", type: "int" },
+      { name: "model", type: "language_model" },
+      { name: "image_model", type: "image_model" },
+      { name: "video_model", type: "video_model" }
+    ],
+    outputs: [
+      { name: "trailer", type: "video" },
+      { name: "notes", type: "str" }
+    ],
+    secrets: [],
+    timeoutSeconds: 1800,
+    tests: []
+  }
+};
+
+const DIRECT_FILM_CODE = String.raw`
+import { run_agent } from "@nodetool-ai/sandbox-nodetool/agents";
+
+const brief = String(inputs.brief ?? "").trim();
+if (!brief) throw new Error("Write the film in one line before you shoot it.");
+const style = String(inputs.style ?? "").trim();
+const shots = Math.max(3, Math.min(8, Number(inputs.shots) || 5));
+const picked = inputs.model?.id ? inputs.model : await nodetool.models.pick("generate_message");
+const ref = async ([chosen, capability]) => {
+  const hit = chosen?.id ? chosen : await nodetool.models.pick(capability);
+  const { provider, id } = hit.ref || hit;
+  return "provider " + provider + ", model " + id;
+};
+const [imageModel, editModel, videoModel, voiceModel, musicModel] = await Promise.all(
+  [
+    [inputs.image_model, "text_to_image"],
+    [null, "image_to_image"],
+    [inputs.video_model, "image_to_video"],
+    [null, "text_to_speech"],
+    [null, "text_to_music"]
+  ].map(ref)
+);
+
+const answer = await run_agent({
+  label: "director",
+  model: picked.ref || picked,
+  max_turns: 50,
+  tools: ["generate_image", "generate_batch", "generate_speech", "generate_music", "media_probe", "media_edit"],
+  system: "You are a film director. Decide, say what you decided in one or two sentences, then act with your tools. Use only the asset URIs your tools return.",
+  prompt: [
+    "Direct a narrated, scored short film from start to finish.",
+    "Brief: " + brief,
+    "Visual style: " + (style || "choose one that fits the brief"),
+    "Number of shots: " + shots,
+    "",
+    "1. Write the direction document in Markdown: title, logline, characters, style bible, numbered shot list (subject, framing, motion, 4s each), narration script and music cue.",
+    "2. Make one style frame with generate_image at 16:9, with " + imageModel + ". Every keyframe must match it.",
+    "3. Make every keyframe in one generate_batch call: one edit_image request per shot, with the style frame as input_file, at 16:9, with " + editModel + ". Label each request with its shot.",
+    "4. Animate every keyframe in one more generate_batch call: one animate_image request per keyframe, with input_file set to the keyframe and " + videoModel + ".",
+    "5. Call media_edit with operation concat, the clip asset URIs in shot order, and output_file cut.mp4. Check its length with media_probe.",
+    "6. Voice the narration with generate_speech, with " + voiceModel + ". Keep it shorter than the cut.",
+    "7. Call generate_music for a bed as long as the cut, with " + musicModel + ".",
+    "8. Mix the narration, then the music, onto the cut with media_edit operation add_audio. Name the final file film.mp4.",
+    "9. Submit the direction document, the asset URI of the final file, and your notes.",
+    "",
+    "Retry a failed call once, and fix its arguments first if the error names one. If a shot fails again, cut without it and say so. Do not regenerate a shot only to improve it.",
+    "If you cannot finish, still submit: leave film_uri empty and say in the notes which step failed and why."
+  ].join("\n"),
+  output_schema: {
+    type: "object",
+    properties: {
+      direction: { type: "string" },
+      film_uri: { type: "string" },
+      notes: { type: "string" }
+    },
+    required: ["direction", "notes"]
+  }
+});
+if (answer.error) throw new Error(answer.error);
+await output("direction", answer.result.direction);
+await output("notes", answer.result.notes);
+if (!answer.result.film_uri) throw new Error("The agent made no film. Its notes say why.");
+await output("film", { type: "video", uri: answer.result.film_uri });
+`;
+
+const DIRECT_FILM_SCRIPT = {
+  name: "Direct a Short Film",
+  document: {
+    schemaVersion: 1,
+    description: "Runs one agent that directs, storyboards, shoots, narrates, scores and cuts a short film from a brief.",
+    code: DIRECT_FILM_CODE,
+    inputs: [
+      { name: "brief", type: "str" },
+      { name: "style", type: "str" },
+      { name: "shots", type: "int" },
+      { name: "model", type: "language_model" },
+      { name: "image_model", type: "image_model" },
+      { name: "video_model", type: "video_model" }
+    ],
+    outputs: [
+      { name: "direction", type: "str" },
+      { name: "film", type: "video" },
+      { name: "notes", type: "str" }
+    ],
+    secrets: [],
+    timeoutSeconds: 1800,
+    tests: []
+  }
 };
 
 export const EXAMPLE_APPS = [
@@ -445,28 +618,36 @@ export const EXAMPLE_APPS = [
     featured: true,
     tagline: "Brief → direction → storyboard → cut → key art.",
     description:
-      "The showcase run: one brief drives a directed short, an editable rough cut, and the poster that sells it.",
+      "The showcase run: one agent directs, storyboards, shoots and scores a short while you watch, then a rough cut you can keep editing and the poster that sells it.",
     note: "💸 This app generates video and music. Run it once, deliberately.",
     workflows: {
-      script: "Script to Screen",
       timeline: "Directed Film to Timeline",
       posters: "Movie Posters"
     },
+    scripts: { produce: DIRECT_FILM_SCRIPT },
     variables: [
       { id: "brief", name: "Brief", scope: "instance", type: "str", default: "A lighthouse keeper follows her own beam to the thing it will no longer stop pointing at." },
-      { id: "style", name: "Visual style", scope: "instance", type: "str", default: "Anamorphic, sodium amber against blue-black sea, fine grain" }
+      { id: "style", name: "Visual style", scope: "instance", type: "str", default: "Anamorphic, sodium amber against blue-black sea, fine grain" },
+      { id: "film", name: "Film", scope: "instance", type: "video" },
+      { id: "agentModel", name: "Agent model", scope: "instance", type: "language_model" },
+      { id: "imageModel", name: "Image model", scope: "instance", type: "image_model" },
+      { id: "videoModel", name: "Video model", scope: "instance", type: "video_model" }
     ],
     operations: [
       {
         id: "produce",
         name: "Produce",
-        workflow: "script",
-        policy: "queue",
+        script: "produce",
+        policy: "replace",
         timeoutMs: 1800000,
         inputs: {
-          Brief: { from: "variable", variableId: "brief" },
-          "Visual Style": { from: "variable", variableId: "style" }
-        }
+          brief: { from: "variable", variableId: "brief" },
+          style: { from: "variable", variableId: "style" },
+          model: { from: "variable", variableId: "agentModel" },
+          image_model: { from: "variable", variableId: "imageModel" },
+          video_model: { from: "variable", variableId: "videoModel" }
+        },
+        outputs: { film: { to: "variable", variableId: "film" } }
       },
       {
         id: "cut",
@@ -487,20 +668,22 @@ export const EXAMPLE_APPS = [
     sections: [
       {
         title: "Shoot",
-        intro: "Write the film in one line and pick a look. One run directs, storyboards, shoots and scores it.",
-        op: "produce",
+        intro: "Write the film in one line and pick a look. One agent directs, storyboards, shoots, narrates and scores it, and you watch each step.",
         controls: [
           { textVar: "brief", label: "Your film in one line", multiline: true },
           { textVar: "style", label: "Visual style", multiline: true },
-          { text: "Shot Count", op: "produce", label: "Number of shots" },
+          { number: "shots", op: "produce", label: "Number of shots", min: 3, max: 8 },
+          { model: { variable: "agentModel" }, op: "produce", label: "Agent model", modelKind: "language_model" },
+          { model: { variable: "imageModel" }, op: "produce", label: "Image model", modelKind: "image_model", task: "text_to_image" },
+          { model: { variable: "videoModel" }, op: "produce", label: "Video model", modelKind: "video_model", task: "image_to_video" },
           { run: ["produce"], label: "Shoot my film", disabledWhen: "produce" }
         ],
         results: [
-          { progress: "produce", label: "Directing, storyboarding & shooting…" },
+          { transcript: "produce", label: "What the director is doing", placeholder: "Direction, keyframes, clips, narration and the cut appear here." },
           { error: "produce", label: "Film production failed" },
           { show: "direction", op: "produce", as: "Markdown", label: "Direction document", demo: "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at." },
-          { show: "storyboard", op: "produce", as: "Image", label: "Storyboard keyframes", demo: IMG },
-          { show: "film", op: "produce", as: "Video", label: "Finished film", demo: VIDEO }
+          { showVar: "film", as: "Video", label: "Finished film", demo: VIDEO },
+          { show: "notes", op: "produce", as: "Markdown", label: "The director's notes", demo: "Five shots, 20 seconds. Shot 4 failed twice and was cut." }
         ]
       },
       {
@@ -824,6 +1007,10 @@ export const EXAMPLE_APPS = [
 
   UGC_PRODUCT_VIDEO_APP,
 
+  CATALOG_MOTION_APP,
+
+  CATALOG_MOTION_REFERENCES_APP,
+
   // ── 22 ─────────────────────────────────────────────────────────────────────
   // The four apps below each bind one shipped recipe
   // (packages/base-nodes/nodetool/examples/recipes/*.recipe.json) end to end:
@@ -835,109 +1022,72 @@ export const EXAMPLE_APPS = [
     name: "Trailer Room",
     emoji: "🎞️",
     featured: false,
-    tagline: "Premise to beat sheet to shot list to a scored teaser, on one page.",
+    tagline: "Give an agent your premise and watch it direct, cut and score the teaser.",
     description:
-      "The Storyboard to Trailer chain behind one surface. Rewrite the beat sheet and the shot list while they still cost one text call each, then spend once on the footage and lay a score under the cut.",
-    note: "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation.",
-    workflows: {
-      beats: "Trailer Beats from a Premise",
-      shots: "Shot List from a Synopsis",
-      trailer: "Movie Trailer Generator",
-      score: "Score a Silent Clip"
-    },
+      "One agent writes the beats and the shot list, renders every shot, cuts them together and lays a score under the cut. You see each decision and tool call as it happens.",
+    note: "💸 One run spends one image and one video generation per shot, one music generation, and the agent's own model turns.",
+    workflows: {},
+    scripts: { direct: DIRECT_TRAILER_SCRIPT },
     variables: [
       {
         id: "premise",
         name: "Premise",
         scope: "instance",
         type: "str",
-        default:
-          "A getaway driver speeds onto a bridge as it starts to collapse behind her."
+        default: "A getaway driver speeds onto a bridge as it starts to collapse behind her."
       },
       {
-        id: "synopsis",
-        name: "Synopsis",
+        id: "style",
+        name: "Visual style",
         scope: "instance",
         type: "str",
-        default: ""
+        default: "Anamorphic night photography, wet asphalt, sodium light, heavy grain."
       },
-      { id: "cut", name: "The cut", scope: "instance", type: "video" }
+      { id: "cut", name: "The cut", scope: "instance", type: "video" },
+      { id: "agentModel", name: "Agent model", scope: "instance", type: "language_model" },
+      { id: "imageModel", name: "Image model", scope: "instance", type: "image_model" },
+      { id: "videoModel", name: "Video model", scope: "instance", type: "video_model" }
     ],
     operations: [
       {
-        id: "beats",
-        name: "Beats",
-        workflow: "beats",
+        id: "direct",
+        name: "Direct",
+        script: "direct",
         policy: "replace",
-        inputs: { premise: { from: "variable", variableId: "premise" } }
-      },
-      {
-        id: "shots",
-        name: "Shots",
-        workflow: "shots",
-        policy: "replace",
-        inputs: { synopsis: { from: "variable", variableId: "synopsis" } }
-      },
-      {
-        id: "trailer",
-        name: "Shoot",
-        workflow: "trailer",
-        policy: "queue",
         timeoutMs: 1800000,
-        inputs: { Logline: { from: "variable", variableId: "premise" } },
+        inputs: {
+          premise: { from: "variable", variableId: "premise" },
+          style: { from: "variable", variableId: "style" },
+          model: { from: "variable", variableId: "agentModel" },
+          image_model: { from: "variable", variableId: "imageModel" },
+          video_model: { from: "variable", variableId: "videoModel" }
+        },
         outputs: { trailer: { to: "variable", variableId: "cut" } }
-      },
-      {
-        id: "score",
-        name: "Score",
-        workflow: "score",
-        policy: "queue",
-        inputs: { clip: { from: "variable", variableId: "cut" } }
       }
     ],
     sections: [
       {
-        title: "The paperwork",
+        title: "Direct the teaser",
         controls: [
           { textVar: "premise", label: "Your trailer in one line", multiline: true },
-          { run: ["beats"], label: "Write the beats" },
-          { textVar: "synopsis", label: "Synopsis to break into shots", multiline: true },
-          { run: ["shots"], label: "Break it into shots" }
+          { textVar: "style", label: "Visual style", multiline: true },
+          { number: "shots", op: "direct", label: "Number of shots", min: 3, max: 10 },
+          { model: { variable: "agentModel" }, op: "direct", label: "Agent model", modelKind: "language_model" },
+          { model: { variable: "imageModel" }, op: "direct", label: "Image model", modelKind: "image_model", task: "text_to_image" },
+          { model: { variable: "videoModel" }, op: "direct", label: "Video model", modelKind: "video_model", task: "image_to_video" },
+          { run: ["direct"], label: "Direct the teaser", disabledWhen: "direct" }
         ],
         results: [
-          { progress: "beats", label: "Structuring the trailer…" },
-          {
-            show: "beats",
-            op: "beats",
-            as: "Markdown",
-            label: "Beat sheet",
-            demo: "**Hook (0:00–0:08)** — Headlights on wet asphalt, the bridge ahead already wrong.\n\n**Escalation (0:08–0:24)** — Concrete gives. She does not lift off.\n\n**Turn (0:24–0:36)** — The span behind her is gone. So is the way back.\n\n**Title card (0:36–0:42)** — THE LAST SPAN."
-          },
-          { progress: "shots", label: "Numbering the shots…" },
-          {
-            show: "shot_list",
-            op: "shots",
-            as: "Markdown",
-            label: "Shot list",
-            demo: "1. Close on the speedometer, handheld, 2s\n2. Low wide of the bridge mouth, locked off, 3s\n3. Tracking side profile of the car, dolly right, 4s"
-          }
-        ]
-      },
-      {
-        title: "The footage",
-        controls: [
-          { note: "💸 Shooting the teaser runs one video generation per shot." },
-          { text: "Visual Style", op: "trailer", label: "Visual style", multiline: true },
-          { number: "Shot Count", op: "trailer", label: "Number of shots", min: 3, max: 10 },
-          { run: ["trailer"], label: "Shoot the teaser" },
-          { text: "mood", op: "score", label: "Score mood", multiline: true },
-          { run: ["score"], label: "Score the cut" }
-        ],
-        results: [
-          { progress: "trailer", label: "Directing, rendering & cutting…" },
+          { transcript: "direct", label: "What the agent is doing", placeholder: "Beats, shots, renders and the cut appear here." },
+          { error: "direct", label: "Directing failed" },
           { showVar: "cut", as: "Video", label: "The cut", demo: VIDEO },
-          { progress: "score", label: "Writing the bed…" },
-          { show: "scored_clip", op: "score", as: "Video", label: "Scored teaser" }
+          {
+            show: "notes",
+            op: "direct",
+            as: "Markdown",
+            label: "The director's notes",
+            demo: "**Hook (0:00–0:08)** — Headlights on wet asphalt, the bridge ahead already wrong.\n\n**Turn (0:24–0:36)** — The span behind her is gone. So is the way back."
+          }
         ]
       }
     ]

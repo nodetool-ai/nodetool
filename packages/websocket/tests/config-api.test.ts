@@ -10,6 +10,10 @@ const ENV_KEYS = [
   "SUPABASE_KEY",
   "SUPABASE_ANON_KEY",
   "AUTH_REDIRECT_URL",
+  "OIDC_ISSUER",
+  "OIDC_CLIENT_ID",
+  "OIDC_CLIENT_SECRET",
+  "OIDC_PROVIDER_NAME",
   "NODETOOL_GOOGLE_WORKSPACE",
   "NODETOOL_NODE_PROFILE",
   "NODETOOL_ENV"
@@ -83,6 +87,7 @@ describe("/api/config endpoint", () => {
       "cloudProfile",
       "googleScopes",
       "googleWorkspace",
+      "ssoProviderName",
       "supabaseAnonKey",
       "supabaseUrl",
       "version"
@@ -106,6 +111,34 @@ describe("/api/config endpoint", () => {
     expect(hosted.googleScopes).toContain(
       "https://www.googleapis.com/auth/drive"
     );
+  });
+
+  it("reports SSO mode with the provider's label, and never the client secret", async () => {
+    process.env.OIDC_ISSUER = "https://idp.example.com/realms/acme";
+    process.env.OIDC_CLIENT_ID = "nodetool";
+    process.env.OIDC_CLIENT_SECRET = "oidc-client-secret-value";
+
+    const res = await app.inject({ method: "GET", url: "/api/config" });
+    const body = JSON.parse(res.body);
+    expect(body.authMode).toBe("oidc");
+    expect(body.ssoProviderName).toBe("SSO");
+    expect(body.googleWorkspace).toBe(false);
+    expect(res.body).not.toContain("oidc-client-secret-value");
+
+    process.env.OIDC_PROVIDER_NAME = "Acme Okta";
+    const named = JSON.parse(
+      (await app.inject({ method: "GET", url: "/api/config" })).body
+    );
+    expect(named.ssoProviderName).toBe("Acme Okta");
+  });
+
+  it("has no SSO label outside SSO mode", async () => {
+    process.env.OIDC_PROVIDER_NAME = "Acme Okta";
+    const body = JSON.parse(
+      (await app.inject({ method: "GET", url: "/api/config" })).body
+    );
+    expect(body.authMode).toBe("local");
+    expect(body.ssoProviderName).toBeNull();
   });
 
   it("stays in local mode when only the anon key is set", async () => {

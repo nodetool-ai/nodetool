@@ -4,7 +4,13 @@
 
 > Read [packages/AGENTS.md § External-API Wrapper Nodes](../AGENTS.md#external-api-wrapper-nodes) first. This overlay notes the Topaz specifics from shipped fixes.
 
-`topaz-base.ts` holds the reference **idempotent-retry** logic:
+The nodes reach Topaz through `context.callProviderEndpoint` and
+`context.downloadProviderMedia` with the `topaz` provider id. They never read
+`TOPAZ_API_KEY`. `topaz-base.ts` builds the endpoint input (image fields and
+bytes, or the video create body and source bytes) and maps the output to a
+result URL. The wire flow below lives in `TopazProvider`
+(`packages/runtime/src/providers/topaz-provider.ts`), on top of
+`fetchWithRetry`'s **idempotent-retry** rules:
 
 - **`IDEMPOTENT_METHODS = {GET, HEAD, PUT}` — non-idempotent methods get a single
   attempt.** A job-creating `POST`/state-transitioning `PATCH` must not be retried
@@ -20,7 +26,8 @@
 - **Don't sleep after the final poll attempt** — guard the inter-poll delay with
   `if (attempt < maxAttempts - 1)`.
 
-Multipart upload & format detection:
+Multipart upload & format detection (the upload in `TopazProvider`, TIFF
+detection in `sniffImageMime`):
 
 - **Stop chunking once the source is fully consumed** — `partSize = max(1, ceil(size/N))`
   with `if (start >= size) break`, so a small file across many presigned URLs

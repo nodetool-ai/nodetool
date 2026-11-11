@@ -54,8 +54,10 @@ interface ComposerAttachDialogProps {
   open: boolean;
   onClose: () => void;
   onSelectAsset: (asset: Asset) => void;
-  onSelectEntity: (entity: Entity) => void;
-  onSelectDocument: (document: AttachedDocument) => void;
+  /** Leave out to hide the Entities tab. */
+  onSelectEntity?: (entity: Entity) => void;
+  /** Leave out to hide the Documents tab. */
+  onSelectDocument?: (document: AttachedDocument) => void;
   onUploadFiles: (files: File[]) => void;
 }
 
@@ -270,14 +272,14 @@ export const ComposerAttachDialog: React.FC<ComposerAttachDialogProps> = ({
   );
   const pickEntity = useCallback(
     (entity: Entity) => {
-      onSelectEntity(entity);
+      onSelectEntity?.(entity);
       onClose();
     },
     [onSelectEntity, onClose]
   );
   const pickDocument = useCallback(
     (document: AttachedDocument) => {
-      onSelectDocument(document);
+      onSelectDocument?.(document);
       onClose();
     },
     [onSelectDocument, onClose]
@@ -295,8 +297,12 @@ export const ComposerAttachDialog: React.FC<ComposerAttachDialogProps> = ({
 
   const tabs: { value: AttachTab; label: string }[] = [
     { value: "assets", label: t("i18n-next18.chat.composer.attach.assetsTab") },
-    { value: "entities", label: t("i18n-next18.chat.composer.attach.entitiesTab") },
-    { value: "documents", label: t("i18n-next18.chat.composer.attach.documentsTab") },
+    ...(onSelectEntity
+      ? [{ value: "entities" as const, label: t("i18n-next18.chat.composer.attach.entitiesTab") }]
+      : []),
+    ...(onSelectDocument
+      ? [{ value: "documents" as const, label: t("i18n-next18.chat.composer.attach.documentsTab") }]
+      : []),
     { value: "upload", label: t("i18n-next18.chat.composer.attach.uploadTab") }
   ];
 

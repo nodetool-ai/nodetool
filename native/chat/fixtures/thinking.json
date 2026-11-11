@@ -1,0 +1,26 @@
+{
+  "events": [
+    {
+      "type": "chunk",
+      "content": "Weighing the options",
+      "thinking": true
+    },
+    {
+      "type": "chunk",
+      "content": ". Checking the result.",
+      "thinking": true
+    },
+    {
+      "type": "chunk",
+      "content": "The answer is **42**.",
+      "done": true
+    }
+  ],
+  "messages": [
+    {
+      "id": "00000000000000000000000000000042",
+      "role": "assistant",
+      "content": "<think>Weighing the options. Checking the result.</think>The answer is **42**."
+    }
+  ]
+}

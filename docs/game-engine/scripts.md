@@ -5,7 +5,16 @@ permalink: /game-engine/scripts
 description: "Use built-in behavior and bounded JavaScript for deterministic gameplay."
 ---
 
-Start with built-in behavior for movement, patrol, collection, health, triggers, spawning, scene transitions, win conditions, and lifetime. The 3D engine shares the nonspatial behaviors and uses its character controller or body commands for movement.
+Built-in behaviors cover movement, patrol, collection, health, triggers, spawning, scene transitions, win conditions, and lifetime. Each is an entry in an entity's `behaviors` array, and the 3D engine shares the nonspatial ones:
+
+```json
+"behaviors": [
+  { "kind": "patrol", "speed": 2, "distance": 4, "axis": "x" },
+  { "kind": "script", "source": "({ onStart() { return { state: {} }; } })", "maxCommands": 16 }
+]
+```
+
+3D movement uses the character controller or body commands.
 
 ![Diagram of input entering fixed simulation ticks and producing snapshots and presentation](/assets/game-engine/simulation-presentation.svg)
 

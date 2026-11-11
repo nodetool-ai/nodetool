@@ -4,9 +4,14 @@ title: "Node Packs"
 description: "Extend NodeTool with additional nodes and sandbox libraries, from the built-in packs or from npm."
 ---
 
-Node Packs extend NodeTool with additional nodes and sandbox libraries. Some packs ship with NodeTool and are switched on or off in the app. Others are npm packages you install.
+A pack is an npm package that adds nodes and sandbox libraries. Built-in packs are switched on or off in the app. Others install from npm:
 
----
+```bash
+nodetool packs list
+nodetool packs add fal
+npm install @acme/cool-nodes     # third-party pack, full server
+```
+
 
 ## What's in a Pack
 
@@ -20,17 +25,16 @@ A pack is an npm package. The `nodetool` field in its `package.json` says what i
 
 See the [Custom Nodes Guide](developer/custom-nodes-guide.md) for the manifest and [Sandbox packages](sandbox-package-design.md) for sandbox modules.
 
----
 
 ## Managing Packs in the App
 
 ### Open the Package Manager
 
-Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the web UI. The left rail has four lists. Each list shows a short hint under its name. A list with updates shows the number of updates instead of its size. The Package Manager opens on Engines & tools.
+Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the web UI. It has four lists and opens on Engines & tools. A list with updates shows the update count instead of its size.
 
 ### Engines & tools, Built-in nodes, Python nodes, and Community nodes
 
-- **Engines & tools** manages programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as yt-dlp, and languages such as Python. Local models and some nodes need them. The list shows them in groups for languages, media, and AI.
+- **Engines & tools** manages programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as yt-dlp, and languages such as Python. Local models and some nodes need them.
 - **Built-in nodes** lists the packs that ship with NodeTool. Switch a pack on or off, then restart the server. The base pack is always on. Provider packs that need an API key are not listed. Their nodes appear after you add the key in **Settings > Models & Providers**.
 - **Python nodes** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates. Installing a pack sets up Python first if it is missing.
   - A pack installs at its newest stable release, not a version tied to the app version. Prereleases are skipped.
@@ -54,7 +58,6 @@ The Third-party list shows each pack's mode, either sandbox modules only, host n
 
 Separately, each discovered pack has a **Trusted** switch. It adds the pack name to the `allow` list in `~/.config/nodetool/packs.json` and re-scans packs. The **Load packs that are not on the allowlist** switch sets `allowUnlisted` in the same file. A host-node pack loads only when it is active and passes the allowlist rules in [Installing Packs via CLI](#third-party-and-python-packs). In production, the server refuses changes to trust, so edit the file or set `NODETOOL_PACKS_ALLOWLIST` instead.
 
----
 
 ## Installing Packs via CLI
 
@@ -108,7 +111,6 @@ The full server finds third-party packs by scanning `node_modules` directories f
 
 In production (`NODETOOL_ENV=production`, or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1`), only packs on the allowlist load. Set `NODETOOL_PACKS_ALLOWLIST` to a comma-separated list of package names, or edit the `allow` list in `~/.config/nodetool/packs.json`. See the [trust model](developer/custom-nodes-guide.md#4-trust-model-and-governance).
 
----
 
 ## Built-in Node Libraries
 
@@ -135,7 +137,6 @@ Browse the full node library in the [Node Reference](nodes/).
 
 > Anthropic (Claude) and Ollama are reached through the provider system and generic nodes (for example `nodetool.agents.Agent`), not as standalone node namespaces. See [Providers](providers.md).
 
----
 
 ## Publishing Your Own Pack
 
@@ -143,11 +144,8 @@ Browse the full node library in the [Node Reference](nodes/).
 2. Publish it to npm or provide a Git URL.
 3. To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`. `nodetool package list --available` prints the same list.
 
----
 
 ## Next Steps
 
-- [Developer Guide](developer/) -- Build custom nodes and packs
-- [Custom Nodes Guide](developer/custom-nodes-guide.md) -- Step-by-step node development
-- [Node Patterns](developer/node-patterns.md) -- Common node implementation patterns
-- [CLI Reference](cli.md) -- Package management commands
+- [Developer Guide](developer/) and [Custom Nodes Guide](developer/custom-nodes-guide.md) for building packs
+- [CLI Reference](cli.md) for package commands

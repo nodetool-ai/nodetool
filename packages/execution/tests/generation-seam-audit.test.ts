@@ -22,7 +22,11 @@ const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../../..");
 const PACKAGES = join(REPO_ROOT, "packages");
 const BASE_PROVIDER = join(PACKAGES, "runtime/src/providers/base-provider.ts");
 
-/** The media methods of `BaseProvider` a caller can reach without the seam. */
+/**
+ * The generating methods of `BaseProvider` a caller can reach without the
+ * seam: the media capabilities, and `callEndpoint`, which posts to a vendor
+ * endpoint and belongs inside `context.callProviderEndpoint`.
+ */
 const MEDIA_METHODS = [
   "textToImage",
   "textToImages",
@@ -53,8 +57,20 @@ const MEDIA_METHODS = [
   "matteVideo",
   "lipSync",
   "textTo3D",
-  "imageTo3D"
+  "imageTo3D",
+  "callEndpoint"
 ] as const;
+
+/**
+ * Methods that return media bytes without generating anything, each with why.
+ * The declared-method check skips them.
+ */
+const NON_GENERATING_METHODS: ReadonlyArray<{ method: string; why: string }> = [
+  {
+    method: "downloadMedia",
+    why: "fetches an output the vendor already returned from a recorded generation"
+  }
+];
 
 /**
  * Files allowed to call a provider media method directly, each with why.
@@ -188,7 +204,12 @@ describe("generation seam audit", () => {
     )) {
       declared.add(match[1]);
     }
+    const nonGenerating = new Set(NON_GENERATING_METHODS.map((entry) => entry.method));
+    for (const method of nonGenerating) {
+      expect(declared.has(method), `BaseProvider no longer declares ${method}`).toBe(true);
+    }
     for (const method of declared) {
+      if (nonGenerating.has(method)) continue;
       expect(
         (MEDIA_METHODS as readonly string[]).includes(method),
         `BaseProvider.${method} returns media but is not in MEDIA_METHODS`
