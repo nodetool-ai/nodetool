@@ -337,9 +337,15 @@ async function publicImageUrl(
     return null;
   }
   const asset = await Asset.find(userId, assetId);
-  if (!asset) {
-    return null;
-  }
+  return asset ? signedAssetUrl(asset) : null;
+}
+
+/**
+ * The signed https URL an asset listing carries for this asset, or null on a
+ * server whose storage serves assets only through its own `/api/storage`
+ * route, which a chat client cannot load without NodeTool credentials.
+ */
+async function signedAssetUrl(asset: Asset): Promise<string | null> {
   const { get_url: url } = await toAssetResponse(asset);
   return url && /^https:\/\//i.test(url) ? url : null;
 }
@@ -1445,12 +1451,53 @@ export function registerAgentMcpTools(
     }
   );
 
+  server.tool(
+    "get_asset_url",
+    "Get a public URL for one of this user's assets of any type: image, " +
+      "video, audio, document or other file. The URL is signed, needs no " +
+      "NodeTool credentials, and expires, so call this again for a fresh one " +
+      "instead of reusing an old url. To show the asset in the chat, embed an " +
+      "image as a Markdown image (![name](url)) and link any other type " +
+      "([name](url)). Use view_image when you need to see an image's pixels " +
+      "yourself.",
+    {
+      asset_id: z
+        .string()
+        .describe("Asset ID or asset:// URI, as list_assets or a generation returned it.")
+    },
+    async ({ asset_id }) => {
+      try {
+        const id = asset_id
+          .trim()
+          .replace(/^asset:\/\//, "")
+          .replace(/\.[A-Za-z0-9]{1,8}$/, "");
+        const asset = await Asset.find(scope.userId, id);
+        if (!asset || asset.isFolder) throw new Error("Asset not found.");
+        const url = await signedAssetUrl(asset);
+        if (!url) {
+          throw new Error(
+            "This server serves assets only to signed-in NodeTool clients, so it has no public URL for them."
+          );
+        }
+        return toToolResponse({
+          asset_id: asset.id,
+          name: asset.name,
+          content_type: asset.content_type,
+          url
+        });
+      } catch (err) {
+        return errorResponse(err);
+      }
+    }
+  );
+
   // The structured catalog, for clients that want more than a description.
   const catalog = buildCapabilityCatalog(belt, [
     session.providerTool.name,
     ...directToolNames,
     "upload_asset",
-    "download_asset"
+    "download_asset",
+    "get_asset_url"
   ]);
   server.registerResource(
     "NodeTool Capabilities",
@@ -1534,6 +1581,7 @@ export function registerAgentMcpTools(
       ...(viewImage ? ["view_image"] : []),
       "upload_asset",
       "download_asset",
+      "get_asset_url",
       ...MINI_APP_TOOL_NAMES
     ],
     beltSize: belt.length

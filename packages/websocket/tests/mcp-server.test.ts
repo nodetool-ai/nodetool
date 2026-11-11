@@ -188,6 +188,7 @@ describe("MCP server surface", () => {
           "view_image",
           "upload_asset",
           "download_asset",
+          "get_asset_url",
           ...MINI_APP_TOOL_NAMES
         ].includes(name)
       )
@@ -206,6 +207,7 @@ describe("MCP server surface", () => {
         "view_image",
         "upload_asset",
         "download_asset",
+        "get_asset_url",
         "find_model",
         "list_models",
         "list_providers",
@@ -616,7 +618,8 @@ describe("MCP server surface", () => {
           "execute_code",
           "view_image",
           "upload_asset",
-          "download_asset"
+          "download_asset",
+          "get_asset_url"
         ].includes(name)
       )
         continue;

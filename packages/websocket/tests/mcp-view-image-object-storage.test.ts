@@ -151,3 +151,38 @@ describe("MCP view_image on object storage", () => {
     expect(structured["url"]).toMatch(/^https:/);
   });
 });
+
+describe("MCP get_asset_url on object storage", () => {
+  it.each([ASSET_ID, `asset://${ASSET_ID}.jpg`])(
+    "returns a signed public url for %s",
+    async (assetId) => {
+      const client = await connect();
+      const result = await client.callTool({
+        name: "get_asset_url",
+        arguments: { asset_id: assetId }
+      });
+      expect(result.isError, JSON.stringify(result.content)).not.toBe(true);
+      const structured = (result.structuredContent ?? {}) as Record<
+        string,
+        unknown
+      >;
+      expect(structured).toMatchObject({
+        asset_id: ASSET_ID,
+        content_type: "image/jpeg"
+      });
+      const url = new URL(String(structured["url"]));
+      expect(url.protocol).toBe("https:");
+      expect(url.pathname).toContain(`1/${ASSET_ID}.jpg`);
+    }
+  );
+
+  it("reports another user's or a missing asset as not found", async () => {
+    const client = await connect();
+    const result = await client.callTool({
+      name: "get_asset_url",
+      arguments: { asset_id: "0123456789abcdef0123456789abcdef" }
+    });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain("Asset not found");
+  });
+});
