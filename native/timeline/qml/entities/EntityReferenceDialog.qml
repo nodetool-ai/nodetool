@@ -332,8 +332,10 @@ Ui.Dialog {
                         columns: Math.max(1, Math.floor((width + gap) / (160 * Ui.Theme.uiScale + gap)))
                         columnSpacing: gap
                         rowSpacing: gap
-                        GridReflow { id: takeReflow; columns: takeGrid.columns }
+                        // New takes take their cells without gliding, like the other grids.
+                        GridReflow { id: takeReflow; columns: takeGrid.columns; enabled: takeRepeater.count > 0 && takeGrid.visible }
                         Repeater {
+                            id: takeRepeater
                             model: dialog.assist ? dialog.assist.takes : []
                             Item {
                                 id: take

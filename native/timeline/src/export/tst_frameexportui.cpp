@@ -11,6 +11,7 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSet>
+#include <QSignalSpy>
 #include <QScopeGuard>
 #include <QTemporaryDir>
 #include <algorithm>
@@ -172,7 +173,12 @@ private slots:
             QStringList under;
             std::function<void(QQuickItem*)> visit = [&](QQuickItem* node) {
                 if (!node->isVisible()) { return; }
-                if (!node->objectName().isEmpty() && node->contains(node->mapFromScene(at))) { under.append(node->objectName()); }
+                const bool takesPointer = node->acceptedMouseButtons() != Qt::NoButton || node->acceptTouchEvents();
+                if ((!node->objectName().isEmpty() || takesPointer) && node->contains(node->mapFromScene(at))) {
+                    QString label = node->objectName().isEmpty() ? QString::fromLatin1(node->metaObject()->className()) : node->objectName();
+                    if (takesPointer) { label += "*"; }
+                    under.append(label);
+                }
                 auto children = node->childItems();
                 std::stable_sort(children.begin(), children.end(), [](QQuickItem* a, QQuickItem* b) { return a->z() < b->z(); });
                 for (auto* child : children) { visit(child); }
@@ -184,8 +190,14 @@ private slots:
                 .arg(view->width()).arg(view->height()).arg(under.mid(std::max<qsizetype>(0, under.size() - 6)).join(" > "));
         };
         const auto target = reached();
+        QSignalSpy buttonClicks(item("exportFrameButton"), SIGNAL(clicked()));
         click("exportFrameButton");
-        QTRY_VERIFY2(shown("exportFrameDialog"), qPrintable(target));
+        const auto outcome = [&] {
+            return target + QStringLiteral("; button clicked %1 times, reason dialog %2: %3")
+                .arg(buttonClicks.count()).arg(shown("exportFrameReasonDialog"))
+                .arg(object("exportFrameReason") ? object("exportFrameReason")->property("text").toString() : QString());
+        };
+        QTRY_VERIFY2(shown("exportFrameDialog"), qPrintable(outcome()));
         QCOMPARE(exporter()->state(), QStringLiteral("capturing"));
         QVERIFY(shown("exportFrameNoLibrary"));
         QVERIFY(!object("exportFrameDestination")->property("value").toString().compare("file"));
