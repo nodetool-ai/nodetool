@@ -11,30 +11,9 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSet>
-#include <QSignalSpy>
 #include <QScopeGuard>
 #include <QTemporaryDir>
 #include <algorithm>
-#include <functional>
-
-// Records which items a mouse press or release is sent to.
-class PointerTrace : public QObject {
-public:
-    QStringList reached;
-    bool eventFilter(QObject* receiver, QEvent* event) override {
-        if (event->type() != QEvent::MouseButtonPress && event->type() != QEvent::MouseButtonRelease) { return false; }
-        auto* quick = qobject_cast<QQuickItem*>(receiver);
-        if (!quick) { return false; }
-        QString owner;
-        for (auto* up = quick; up && owner.isEmpty(); up = up->parentItem()) { owner = up->objectName(); }
-        reached.append(QStringLiteral("%1 %2 in %3 at %4,%5 %6x%7")
-            .arg(event->type() == QEvent::MouseButtonPress ? "press" : "release",
-                 QString::fromLatin1(quick->metaObject()->className()), owner)
-            .arg(quick->mapToScene({0, 0}).x()).arg(quick->mapToScene({0, 0}).y())
-            .arg(quick->width()).arg(quick->height()));
-        return false;
-    }
-};
 
 class TestFrameExportUi : public WiringFixture {
     Q_OBJECT
@@ -184,43 +163,8 @@ private slots:
         const auto before = doc();
         clock.seek(2000);
         QTRY_VERIFY(item("exportFrameButton"));
-        // macOS and Windows miss this click while Linux does not, so a failure names what the click reached.
-        const auto reached = [this] {
-            auto* button = item("exportFrameButton");
-            const QPointF at = center(button);
-            // Named visible items under the point, in paint order: the last one takes the click.
-            QStringList under;
-            std::function<void(QQuickItem*)> visit = [&](QQuickItem* node) {
-                if (!node->isVisible()) { return; }
-                const bool takesPointer = node->acceptedMouseButtons() != Qt::NoButton || node->acceptTouchEvents();
-                if ((!node->objectName().isEmpty() || takesPointer) && node->contains(node->mapFromScene(at))) {
-                    QString label = node->objectName().isEmpty() ? QString::fromLatin1(node->metaObject()->className()) : node->objectName();
-                    if (takesPointer) { label += "*"; }
-                    under.append(label);
-                }
-                auto children = node->childItems();
-                std::stable_sort(children.begin(), children.end(), [](QQuickItem* a, QQuickItem* b) { return a->z() < b->z(); });
-                for (auto* child : children) { visit(child); }
-            };
-            visit(view->contentItem());
-            return QStringLiteral("button at %1,%2 %3x%4 visible %5 enabled %6 in a %7x%8 window, under the point: %9")
-                .arg(button->mapToScene({0, 0}).x()).arg(button->mapToScene({0, 0}).y())
-                .arg(button->width()).arg(button->height()).arg(button->isVisible()).arg(button->isEnabled())
-                .arg(view->width()).arg(view->height()).arg(under.mid(std::max<qsizetype>(0, under.size() - 6)).join(" > "));
-        };
-        const auto target = reached();
-        QSignalSpy buttonClicks(item("exportFrameButton"), SIGNAL(clicked()));
-        // Names every item that the press and release reach, in delivery order.
-        PointerTrace trace;
-        qApp->installEventFilter(&trace);
         click("exportFrameButton");
-        qApp->removeEventFilter(&trace);
-        const auto outcome = [&] {
-            return target + QStringLiteral("; delivered: [%1]; button clicked %2 times, reason dialog %3: %4")
-                .arg(trace.reached.join("; ")).arg(buttonClicks.count()).arg(shown("exportFrameReasonDialog"))
-                .arg(object("exportFrameReason") ? object("exportFrameReason")->property("text").toString() : QString());
-        };
-        QTRY_VERIFY2(shown("exportFrameDialog"), qPrintable(outcome()));
+        QTRY_VERIFY(shown("exportFrameDialog"));
         QCOMPARE(exporter()->state(), QStringLiteral("capturing"));
         QVERIFY(shown("exportFrameNoLibrary"));
         QVERIFY(!object("exportFrameDestination")->property("value").toString().compare("file"));
