@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createWorker, mappedPath, workerCount } from "../src/workers.js";
@@ -8,6 +8,7 @@ describe("createWorker", () => {
   it("copies the package, links its heavy directories, and links every sibling", () => {
     const root = project({
       ...MATH_PACKAGE,
+      "package.json": "{}",
       "packages/other/index.mjs": "",
       "packages/math/node_modules/dep/index.js": "",
       "scripts/tool.mjs": "",
@@ -27,6 +28,12 @@ describe("createWorker", () => {
     expect(() => lstatSync(join(worker, "target"))).toThrow();
     expect(() => lstatSync(join(worker, ".git"))).toThrow();
     expect(readFileSync(join(worker, "packages/math/src/math.mjs"), "utf8")).toBe(MATH_PACKAGE["packages/math/src/math.mjs"]);
+    writeFileSync(join(worker, "packages/math/src/math.mjs"), "mutated");
+    expect(readFileSync(join(root, "packages/math/src/math.mjs"), "utf8")).toBe(MATH_PACKAGE["packages/math/src/math.mjs"]);
+    if (process.platform === "win32") {
+      writeFileSync(join(worker, "package.json"), "changed");
+      expect(readFileSync(join(root, "package.json"), "utf8")).toBe("{}");
+    }
   });
 
   it("refuses the project root itself", () => {
@@ -46,6 +53,6 @@ describe("workerCount", () => {
 
 describe("mappedPath", () => {
   it("maps a real path into the worker", () => {
-    expect(mappedPath("/w", "/root", "/root/packages/a/src/x.ts")).toBe("/w/packages/a/src/x.ts");
+    expect(mappedPath("/w", "/root", "/root/packages/a/src/x.ts")).toBe(join("/w", "packages/a/src/x.ts"));
   });
 });

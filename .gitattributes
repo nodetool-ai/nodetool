@@ -1,0 +1,9 @@
+# Shell scripts and workflow commands must keep Unix line endings on Windows.
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+# Vite's SSR transform must not move a CRLF shebang after generated imports.
+*.mjs text eol=lf
+# Generated catalogs and their fixtures are compared byte-for-byte.
+*.json text eol=lf
+*.ndjson text eol=lf

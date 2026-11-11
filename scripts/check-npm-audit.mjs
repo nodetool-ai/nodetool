@@ -23,9 +23,10 @@ import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { packageManagerInvocation } from "./package-manager.mjs";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 export const ALLOWLIST_PATH = join(ROOT, ".github/npm-audit-allowlist.json");
 const BLOCKING = new Set(["high", "critical"]);
 
@@ -87,8 +88,9 @@ function audit(dir, project) {
   try {
     let out;
     try {
-      out = execFileSync("npm", ["audit", "--package-lock-only", "--omit=dev", "--json",
-        "--registry=https://registry.npmjs.org/", `--cache=${cache}`], {
+      const invocation = packageManagerInvocation("npm", ["audit", "--package-lock-only", "--omit=dev", "--json",
+        "--registry=https://registry.npmjs.org/", `--cache=${cache}`]);
+      out = execFileSync(invocation.command, invocation.args, {
         cwd: dir,
         encoding: "utf8",
         maxBuffer: 64 * 1024 * 1024,
@@ -136,7 +138,7 @@ function auditRef(ref) {
       .split("\n")
       .filter(isManifest);
     const archive = execFileSync("git", ["archive", ref, ...files], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024 });
-    execFileSync("tar", ["-x", "-C", dir], { input: archive });
+    execFileSync("tar", ["-xf", "-", "-C", dir], { input: archive });
     return Object.entries(PROJECTS).flatMap(([project, sub]) => audit(join(dir, sub), project));
   } finally {
     rmSync(dir, { recursive: true, force: true });

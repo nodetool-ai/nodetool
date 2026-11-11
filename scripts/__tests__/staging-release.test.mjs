@@ -264,7 +264,7 @@ it("audits project and global installs before execution and verifies both FAL wo
   } });
   expect(audited).toHaveLength(2);
   expect(audited[0]).toBe(calls[0][2].cwd);
-  expect(audited[1]).toContain("@nodetool-ai/cli");
+  expect(audited[1]).toContain(join("@nodetool-ai", "cli"));
   expect(calls[1][1]).toEqual(["audit", "signatures"]);
   expect(calls[2][1]).toEqual(["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund"]);
   expect(calls[3][1]).toEqual(["--version"]);

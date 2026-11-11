@@ -2710,6 +2710,9 @@ python3 native/ui_primitives/tools/check_dependencies.py
 python3 native/ui_primitives/tools/check_isolated_build.py --qt-prefix /path/to/Qt
 ```
 
+On Windows, use `py -3` in place of `python3`. The harness gate selects the
+Windows Python launcher automatically.
+
 The design check audits the native migration inventory and presentation rules.
 The dependency check rejects feature, backend, and web dependencies in the
 primitive module. The isolation check copies the module into a temporary tree,

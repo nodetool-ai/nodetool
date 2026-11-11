@@ -211,9 +211,7 @@ const node = (code: string): string => {
   commandFixtures.push(directory);
   const entry = join(directory, "fixture.cjs");
   writeFileSync(entry, code);
-  const quote = (value: string): string => process.platform === "win32"
-    ? `"${value}"`
-    : `'${value.replaceAll("'", "'\\''")}'`;
+  const quote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
   return `${quote(process.execPath)} ${quote(entry)}`;
 };
 
@@ -444,7 +442,13 @@ describe("selectChecks", () => {
   });
 });
 
-describe("executeChecks", () => {
+describe("executeChecks", { timeout: 15_000 }, () => {
+  it.each([1, 2])("preserves POSIX-quoted JSON in registry commands (jobs=%s)", async (jobs) => {
+    const command = node('const assert = require("node:assert/strict"); assert.deepEqual(JSON.parse(process.argv[2]), { text: "space & punctuation" });');
+    const results = await executeChecks([check("quoted", `${command} '{"text":"space & punctuation"}'`)], runOpts({ jobs }));
+    expect(results[0]?.ok).toBe(true);
+  });
+
   it.each([1, 2])("uses the gate's Node runtime despite an earlier PATH executable (jobs=%s)", async (jobs) => {
     const directory = mkdtempSync(join(tmpdir(), "gate-runtime-"));
     commandFixtures.push(directory);
@@ -532,12 +536,13 @@ describe("executeChecks", () => {
 
   it("fails closed on a timeout in parallel mode", async () => {
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const timeoutMs = process.platform === "win32" ? 2000 : 500;
     const results = await executeChecks(
       [
         check("hang", node("setTimeout(()=>{},60000)")),
         check("fine", node("process.exit(0)"))
       ],
-      runOpts({ jobs: 2, timeoutMs: 500, timeoutSeconds: 0.5 })
+      runOpts({ jobs: 2, timeoutMs, timeoutSeconds: timeoutMs / 1000 })
     );
     expect(results[0]).toMatchObject({
       harnessId: "hang",
@@ -582,9 +587,10 @@ describe("executeChecks", () => {
     try {
       const parallel = jobs > 1 && cost === "cheap";
       const continueCode = parallel ? "process.exit(0)" : `require("node:fs").writeFileSync(${JSON.stringify(releasePath)},"continue");setTimeout(()=>{},150);`;
+      const timeoutMs = process.platform === "win32" ? 2000 : 1000;
       const [result, next] = await executeChecks(
         [check("descendant", node(parentCode), { cost }), check("next", node(continueCode), { cost })],
-        runOpts({ jobs, json, timeoutMs: 1000, timeoutSeconds: 1 })
+        runOpts({ jobs, json, timeoutMs, timeoutSeconds: timeoutMs / 1000 })
       );
       expect(existsSync(pidPath)).toBe(true);
       expect(result).toMatchObject({ ok: false, exitCode: 124, timedOut: true, killed: true });

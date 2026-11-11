@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { runFalFixture } from "../packed-fal-fixture.mjs";
 const roots = [];
@@ -11,7 +12,7 @@ const origin = "https://queue.fal.run/openrouter/router";
 function fixture(source) {
   const root = mkdtempSync(join(tmpdir(), "packed-fal-test-")); roots.push(root);
   const trace = join(root, "trace.jsonl");
-  return { root, trace, result: spawnSync(process.execPath, ["--import", preload, "--input-type=module", "-e", source], {
+  return { root, trace, result: spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, "--input-type=module", "-e", source], {
     env: { PATH: process.env.PATH, FAL_API_KEY: "outside-key", FAL_FIXTURE_TRACE: trace }, encoding: "utf8", timeout: 10000
   }) };
 }

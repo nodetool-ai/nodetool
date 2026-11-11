@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Read-only local-tree estimates. See docs/cli-pack-system-design.md section 8.1. */
 import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { CORE_PACKAGES, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
@@ -106,7 +106,7 @@ export function measureClosure({ root = ROOT, scenario = "S0", roots, corePackag
     const sizes = measurePaths(workspace
       ? [join(dir, "dist"), join(dir, "package.json"), join(dir, "README.md")]
       : [dir]);
-    packages.push({ name: manifest.name, version: manifest.version, path: relative(root, dir), ...sizes });
+    packages.push({ name: manifest.name, version: manifest.version, path: relative(root, dir).split(sep).join("/"), ...sizes });
     for (const [name, optional] of dependencies(manifest, scenario, workspace)) {
       if (scenario === "S3" && workspaces.has(name) && !corePackages.has(name)) { continue; }
       const target = resolvePackage(name, dir);

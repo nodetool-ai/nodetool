@@ -55,7 +55,7 @@ function withFixture(check) {
   }
 }
 
-describe("Packed web worker memory", () => {
+describe("Packed web worker memory", { timeout: 30_000 }, () => {
   it("enables the existing two GiB recycle threshold only for Packed verification", () => {
     expect(configuration(false)).toEqual({ maxWorkers: 1 });
     expect(configuration(true)).toEqual({ maxWorkers: 1, workerIdleMemoryLimit: 2 * 1024 ** 3 });

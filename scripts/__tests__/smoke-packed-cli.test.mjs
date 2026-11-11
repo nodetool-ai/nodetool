@@ -12,6 +12,7 @@ import yaml from "js-yaml";
 import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installSmokeCommandFeatures, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, FEATURE_REQUIRED_COMMANDS, COMPOSED_SMOKE_PACK_IDS } from "../smoke-packed-cli.mjs";
 import { partitionPlan } from "../packed-verification.mjs";
 import { fullPlan, readPackages } from "../test-affected.mjs";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 it("retains the published command inventory across independent feature checks", () => {
   const verified = new Set([...REQUIRED_COMMANDS, ...Object.values(FEATURE_REQUIRED_COMMANDS).flat()]);
@@ -102,7 +103,7 @@ it("keeps the required core-smoke status dependent on verification and the indep
       }
     }
   }
-});
+}, 60_000);
 
 it("leaves verification to the Quality Gate only on pull requests into main", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
@@ -300,7 +301,8 @@ describe("core-only contamination guard", () => {
   it("rejects a deliberately installed pack tarball", () => {
     const app = appFixture();
     const tarball = releaseTarball(app, "fal.tgz", "@nodetool-ai/fal-nodes", "1.2.3");
-    const installed = spawnSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `file:${tarball}`], { cwd: app, encoding: "utf8", timeout: 30000 });
+    const invocation = packageManagerInvocation("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `file:${tarball}`]);
+    const installed = spawnSync(invocation.command, invocation.args, { cwd: app, encoding: "utf8", timeout: 30000 });
     expect(installed.status, installed.stderr).toBe(0);
     expect(() => assertCoreOnlyInstall(app)).toThrow("@nodetool-ai/fal-nodes");
   });

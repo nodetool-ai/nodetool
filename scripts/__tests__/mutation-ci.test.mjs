@@ -2,12 +2,13 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 import { belongsToShard } from "../../packages/mutator/dist/shards.js";
 import { aggregate, createPlan, executePartition, createPartitions, mutantWorkers, resolveBase, TARGETS } from "../mutation-ci.mjs";
 
-const helper = new URL("../mutation-ci.mjs", import.meta.url).pathname;
+const helper = fileURLToPath(new URL("../mutation-ci.mjs", import.meta.url));
 let resultDirectory;
 let root;
 let plan;
@@ -56,7 +57,7 @@ beforeAll(() => {
   for (const [offset, output] of outputs.entries()) {
     execFileSync(process.execPath, [helper, "run", path, String(plan.partitions[offset].id), output], { cwd: root, encoding: "utf8" });
   }
-});
+}, 180_000);
 
 function changeReceipt(index, mutate, check) {
   const path = join(outputs[index], "receipt.json");
@@ -71,7 +72,7 @@ function changeReceipt(index, mutate, check) {
   }
 }
 
-describe("mutation CI exact union", () => {
+describe("mutation CI exact union", { timeout: 60_000 }, () => {
   it("combines actual independent shard outcomes and honest partial scores", () => {
     const result = aggregate(root, plan, outputs);
     expect(result.score).toContain("86.36%** | **19 / 22**");

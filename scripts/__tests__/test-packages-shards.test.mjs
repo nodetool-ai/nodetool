@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { shardOf } from "../ci-plan.mjs";
 import { readPackages } from "../test-affected.mjs";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const WORKFLOW = resolve(ROOT, ".github/workflows/quality-checks.yml");
@@ -45,9 +46,10 @@ export function readShardFilters(workflowSource) {
 
 /** Packages turbo would run `test` in for these filters. */
 function packagesInScope(filters) {
+  const invocation = packageManagerInvocation("npx", ["turbo", "run", "test", "--dry-run=json", ...filters]);
   const json = execFileSync(
-    "npx",
-    ["turbo", "run", "test", "--dry-run=json", ...filters],
+    invocation.command,
+    invocation.args,
     {
       cwd: ROOT,
       encoding: "utf8",

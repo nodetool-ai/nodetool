@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { bumpCatalogVersion } from "../bump-version.mjs";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const temporaryRoots = [];
@@ -29,7 +30,7 @@ afterEach(() => {
   }
 });
 
-describe("catalog cohort version bump", () => {
+describe("catalog cohort version bump", { timeout: 30_000 }, () => {
   it("updates every version and invalidates release pins without changing the input", () => {
     const index = catalogFixture();
     const original = JSON.stringify(index);
@@ -69,7 +70,8 @@ describe("catalog cohort version bump", () => {
     const built = JSON.parse(readFileSync(join(packageDir, "dist/index.json"), "utf8"));
     expect(built.coreVersion).toBe(manifest.version);
     expect(built.packs.every((pack) => pack.npm.version === manifest.version)).toBe(true);
-    const result = JSON.parse(execFileSync("npm", ["pack", "--json", "--offline", "--ignore-scripts"], { cwd: packageDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
+    const invocation = packageManagerInvocation("npm", ["pack", "--json", "--offline", "--ignore-scripts"]);
+    const result = JSON.parse(execFileSync(invocation.command, invocation.args, { cwd: packageDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
     const tarball = join(packageDir, result[0].filename);
     const packedCatalog = JSON.parse(execFileSync("tar", ["-xOf", tarball, "package/dist/index.json"], { encoding: "utf8" }));
     const packedManifest = JSON.parse(execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" }));

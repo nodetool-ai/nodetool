@@ -328,9 +328,19 @@ export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000, lau
     let stdout = "";
     let stderr = "";
     let listedTools = 0;
-    const timer = setTimeout(() => {
+    let finishing = false;
+    const finish = (error, count) => {
+      if (finishing) {
+        return;
+      }
+      finishing = true;
+      clearTimeout(timer);
+      // Wait for handles to close before callers remove the temporary database.
+      child.once("close", () => error ? reject(error) : resolvePromise(count));
       child.kill("SIGKILL");
-      reject(new Error(`mcp serve did not answer within ${timeoutMs}ms\n${stderr}`));
+    };
+    const timer = setTimeout(() => {
+      finish(new Error(`mcp serve did not answer within ${timeoutMs}ms\n${stderr}`));
     }, timeoutMs);
     child.once("error", (error) => {
       clearTimeout(timer);
@@ -338,9 +348,11 @@ export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000, lau
     });
     const send = (msg) => child.stdin.write(`${JSON.stringify(msg)}\n`);
     child.stderr.on("data", (d) => (stderr += d));
-    child.on("exit", (code) => {
+    child.on("close", (code) => {
       clearTimeout(timer);
-      reject(new Error(`mcp serve exited ${code} before listing tools\n${stderr}`));
+      if (!finishing) {
+        reject(new Error(`mcp serve exited ${code} before listing tools\n${stderr}`));
+      }
     });
     child.stdout.on("data", (d) => {
       stdout += d;
@@ -356,36 +368,26 @@ export async function probeMcp(bin, env, cwd, workflow, timeoutMs = 120_000, lau
         } else if (msg.id === 2) {
           listedTools = msg.result?.tools?.length ?? 0;
           if (msg.error) {
-            clearTimeout(timer);
-            child.kill();
-            reject(new Error(`tools/list failed: ${JSON.stringify(msg.error)}`));
+            finish(new Error(`tools/list failed: ${JSON.stringify(msg.error)}`));
           } else if (workflow) {
             if (!msg.result.tools.some(tool => tool.name === "execute_code")) {
-              clearTimeout(timer);
-              child.kill();
-              reject(new Error("MCP did not expose execute_code"));
+              finish(new Error("MCP did not expose execute_code"));
               return;
             }
             send({ jsonrpc: "2.0", id: 3, method: "tools/call", params: {
               name: "execute_code", arguments: { title: "Run a core-only smoke workflow", code: mcpWorkflowCode(workflow) }
             } });
           } else {
-            clearTimeout(timer);
-            child.removeAllListeners("exit");
-            child.kill();
-            resolvePromise(msg.result.tools.length);
+            finish(null, msg.result.tools.length);
           }
         } else if (msg.id === 3) {
-          clearTimeout(timer);
-          child.removeAllListeners("exit");
-          child.kill();
           const text = (msg.result?.content ?? []).filter(item => item.type === "text").map(item => item.text).join("\n");
           if (msg.error || msg.result?.isError || !text.includes("packed MCP smoke")) {
-            reject(new Error(`MCP execute_code did not run the core workflow: ${JSON.stringify(msg)}`));
+            finish(new Error(`MCP execute_code did not run the core workflow: ${JSON.stringify(msg)}`));
           } else {
             const outcome = JSON.parse(text);
-            if (outcome.ok !== true) { reject(new Error(`MCP code action failed: ${text}`)); }
-            else { resolvePromise(listedTools); }
+            if (outcome.ok !== true) { finish(new Error(`MCP code action failed: ${text}`)); }
+            else { finish(null, listedTools); }
           }
         }
       }

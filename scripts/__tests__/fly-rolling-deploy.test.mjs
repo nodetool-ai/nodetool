@@ -12,6 +12,6 @@ describe("fly rolling deploy", () => {
     () => {
       execFileSync("bash", [harness], { stdio: "pipe" });
     },
-    10_000
+    60_000
   );
 });

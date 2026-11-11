@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -79,6 +79,7 @@ describe("check-npm-audit", () => {
    const root = mkdtempSync(join(tmpdir(), "audit-fixture-"));
    try {
      for (const path of ["scripts", "mobile", ".github", "bin"]) mkdirSync(join(root, path));
+     writeFileSync(join(root, "scripts/package-manager.mjs"), readFileSync(new URL("../package-manager.mjs", import.meta.url)));
      writeFileSync(join(root, "scripts/check-npm-audit.mjs"), readFileSync(new URL("../check-npm-audit.mjs", import.meta.url)));
      writeFileSync(join(root, ".github/npm-audit-allowlist.json"), JSON.stringify({ advisories: [] }));
      for (const path of ["package.json", "mobile/package.json"]) writeFileSync(join(root, path), "{}");
@@ -97,7 +98,7 @@ describe("check-npm-audit", () => {
      git(["add", "package.json", "mobile/package.json", "npm-shrinkwrap.json"]);
      git(["-c", "user.name=Fixture", "-c", "user.email=fixture@example.com", "commit", "-m", "fixture"]);
      const output = execFileSync(process.execPath, ["scripts/check-npm-audit.mjs", "--base", "HEAD"], {
-       cwd: root, encoding: "utf8", env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}`, AUDIT_CALLS: calls }
+       cwd: root, encoding: "utf8", env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "npm_execpath")), PATH: `${join(root, "bin")}${delimiter}${process.env.PATH}`, AUDIT_CALLS: calls, npm_execpath: join(root, "bin/npm") }
      });
      expect(output).toContain("1 at base, 1 here");
      const invocations = readFileSync(calls, "utf8").trim().split("\n").map(JSON.parse);
