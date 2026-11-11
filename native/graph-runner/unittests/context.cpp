@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
       }
       std::cout << "bridge 5MB out " << outMs << " ms, in " << inMs
                 << " ms (fastest of 3)\n";
-      const long long budget = 100 * gr::test::kSanitizerTimeScale;
+      const long long budget = 100 * gr::test::timeBudgetScale();
       if (outMs >= budget || inMs >= budget)
         throw std::runtime_error("5 MB bridge crossing took >= " +
                                  std::to_string(budget) + " ms");

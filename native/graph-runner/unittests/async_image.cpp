@@ -722,7 +722,7 @@ void cancelDuringOcrEndsTheCall(Suite& t) {
   const auto stopMs = std::chrono::duration_cast<milliseconds>(Clock::now() - cancelled).count();
   std::fprintf(stderr, "PT12 OCR: call %lld ms, job ended %lld ms after the cancel\n",
                static_cast<long long>(callMs), static_cast<long long>(stopMs));
-  CHECK(stopMs < 2000 * gr::test::kSanitizerTimeScale && stopMs < fullMs);
+  CHECK(stopMs < 2000 * gr::test::timeBudgetScale() && stopMs < fullMs);
   h.endRun();
   CHECK(eventually([&] { return zero(h.ledger->usage()); }));
 }

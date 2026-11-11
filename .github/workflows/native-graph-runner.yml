@@ -66,6 +66,9 @@ jobs:
       ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
       LSAN_OPTIONS: suppressions=${{ github.workspace }}/native/graph-runner/tools/lsan.supp
+      # Hosted runners are about twice as slow as the machine the tests' wall-clock
+      # budgets were measured on (unittests/sanitizer_build.h).
+      GR_TEST_TIME_SCALE: "2"
       TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:suppressions=${{ github.workspace }}/native/graph-runner/tools/tsan.supp
     defaults:
       run:
