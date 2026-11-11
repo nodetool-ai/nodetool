@@ -181,12 +181,12 @@ jobs:
     # check must never go green because the job that decides was broken.
     if: always()
     uses: ./.github/workflows/quality-checks.yml
-    # A called workflow's permissions are capped by the caller's, so the gate's
-    # `docker` leg only gets its read-only GHCR buildcache access if it is
-    # granted here too.
+    # A called workflow's permissions are capped by the caller's. The gate's
+    # `ci-image` job publishes the CI image when docker/ci/ changed, and the
+    # other legs only read GHCR (the CI image, the `docker` leg's buildcache).
     permissions:
       contents: read
-      packages: read
+      packages: write
     with:
       # false → every check leg (deps/typecheck/lint/tests) runs to completion
       # so each reports its own red/green instead of the first failure masking

@@ -2220,6 +2220,7 @@ export const SURFACES: SurfaceEntry[] = [
       "demo/scripts/encode-hero.mjs",
       "demo/scripts/vibe-track.ts",
       "demo/scripts/build-pattern-cast-media.mjs",
+      "demo/scripts/record-comfy-challenge.mjs",
       "demo/webpack-stubs/"
     ]
   },

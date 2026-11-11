@@ -25,10 +25,30 @@ on:
         default: true
 
 jobs:
+  # The Linux image the jobs below run in (docker/ci/). Built here on the
+  # first run after docker/ci/ changes, found in seconds otherwise.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   pre-check:
     name: Pre-Flight Quality Check
     if: ${{ inputs.check-before }}
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     outputs:
       should-continue: ${{ steps.decision.outputs.should-continue }}
       has-errors: ${{ steps.check.outputs.has-errors }}
@@ -41,9 +61,6 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
-
-      - name: Install software Vulkan driver
-        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers
 
       - name: Install all workspace dependencies
         run: npm ci
@@ -110,7 +127,18 @@ jobs:
     name: Post-Change Quality Check
     if: ${{ inputs.check-after && !cancelled() }}
     runs-on: ubuntu-latest
-    needs: [pre-check]
+    needs: [ci-image, pre-check]
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,9 +148,6 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
-
-      - name: Install software Vulkan driver
-        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers
 
       - name: Install all workspace dependencies
         run: npm ci

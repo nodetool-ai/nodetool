@@ -27,17 +27,29 @@ on:
       - 'package-lock.json'
       - '.nvmrc'
       - '.github/actions/setup-build/**'
+      - '.github/actions/chromium-sandbox/**'
+      - 'docker/ci/**'
       - '.github/workflows/packed-core-cli.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  # Pull the CI image.
+  packages: read
 
 concurrency:
   group: packed-core-cli-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # The Linux image the jobs below run in (docker/ci/). Built here on the
+  # first run after docker/ci/ changes, found in seconds otherwise.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   # A pull request into `main` also runs the Test workflow, whose Quality
   # Gate runs these same checks in parallel shards: the affected suites,
   # typecheck, lint, harness gate and backend smoke. Running them again
@@ -68,11 +80,22 @@ jobs:
           path: ${{ runner.temp }}/packed-verification.json
           if-no-files-found: error
   verification:
-    needs: verification-plan
+    needs: [ci-image, verification-plan]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.verification-plan.outputs.matrix) }}
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001 --privileged
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,40 +114,16 @@ jobs:
       - uses: ./.github/actions/setup-build
         with:
           cache: read-only
-          extra-apt: mesa-vulkan-drivers
       - name: Install Chromium for native 3D tests
-        run: npx playwright install --with-deps chromium
-
-      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
-      # Allow only Playwright's browser paths so capture keeps its sandbox.
-      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+        run: npx playwright install chromium
       - name: Enable and verify the Chromium sandbox
-        run: |
-          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
-          abi <abi/4.0>,
-          include <tunables/global>
-
-          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
-            userns,
-          }
-
-          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
-            userns,
-          }
-          PROFILE
-          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
-          node --input-type=module <<'JS'
-          import { chromium } from "playwright";
-          const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
-          await browser.close();
-          JS
+        uses: ./.github/actions/chromium-sandbox
 
       - name: Install mobile check dependencies
         run: npm --prefix mobile ci
       - name: Prepare Chromium crash capture
         if: matrix.task == 'test-packages-game'
         run: |
-          sudo apt-get install -y gdb
           crash_dir="$RUNNER_TEMP/chromium-crashes"
           mkdir -p "$crash_dir/cores" "$crash_dir/upload"
           echo "Original kernel.core_pattern:"
@@ -240,19 +239,26 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
   packed-install:
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Free disk space
-        run: |
-          df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h /
+      # setup-build frees the runner's unused SDKs first.
       - uses: ./.github/actions/setup-build
         with:
           cache: off
-          extra-apt: libsecret-1-dev
       - name: Pin workspace versions in the test tarballs
         run: node scripts/prepare-publish.mjs
       - name: Pack and pin original release artifacts once
@@ -289,7 +295,19 @@ jobs:
             exit 1
           fi
   release-pins:
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

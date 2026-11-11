@@ -140,8 +140,8 @@ exception: a value outside its options fails the run.
 
 These need a WebGPU adapter. The image nodes go through Dawn, which has no
 software fallback, so a machine with no Vulkan driver fails them all with "No
-WebGPU adapter available". CI installs `mesa-vulkan-drivers` (lavapipe) for
-this; locally, `apt-get install -y mesa-vulkan-drivers` or see
+WebGPU adapter available". The CI image ships `mesa-vulkan-drivers` (lavapipe)
+for this; locally, `apt-get install -y mesa-vulkan-drivers` or see
 [docs/dev-environment.md § WebGPU on a headless machine](../../docs/dev-environment.md#webgpu-on-a-headless-machine)
 for the no-root route.
 

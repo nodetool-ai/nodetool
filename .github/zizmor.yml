@@ -13,3 +13,19 @@ rules:
       # dispatch, never on a pull request.
       - aur-publish.yml
       - homebrew-cask.yml
+  unpinned-images:
+    ignore:
+      # The job container is the CI image that ci-image.yml resolves, and its
+      # output is pinned by digest (.github/actions/ci-image). zizmor cannot
+      # see through the `needs` expression.
+      - e2e-runner.yml
+      - marketing-ci.yml
+      - mutation-changed.yml
+      - mutation-testing.yaml
+      - packed-core-cli.yml
+      - page-load-smoke.yml
+      - quality-assurance.yaml
+      - quality-checks.yml
+      - quality-guard.yml
+      - screenshots.yml
+      - user-journeys.yml

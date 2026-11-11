@@ -306,8 +306,8 @@ Slash commands are in [.claude/README.md](.claude/README.md).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.
-- The runtime and base-nodes suites need a Vulkan ICD, as in CI
-  (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
+- The runtime and base-nodes suites need a Vulkan ICD, as in CI (the
+  [CI image](docker/ci/README.md) ships it). Install
   `mesa-vulkan-drivers` before a suite-wide run. Media runs in process on
   `@nodetool-ai/runtime/media`, so no suite needs the `ffmpeg` binary; make
   test media with `@nodetool-ai/runtime/media/testing`, never the CLI.

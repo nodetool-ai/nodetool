@@ -1,15 +1,13 @@
 name: Setup and build backend
 description: >-
-  Set up Node (with npm cache), install system libraries, restore the cached
-  node_modules (running npm ci + native rebuild only on a miss), restore Turbo's
-  build cache, and (optionally) build the backend packages. The calling job must
-  check out the repository first, since this is a local composite action.
+  Set up Node (with npm cache), restore the cached node_modules (running npm ci
+  + native rebuild only on a miss), restore Turbo's build cache, and
+  (optionally) build the backend packages. It installs no system packages: jobs
+  that need more than the runner image ships (the Vulkan driver, the browser
+  libraries) run in the CI image (docker/ci/). The calling job must check out
+  the repository first, since this is a local composite action.
 
 inputs:
-  extra-apt:
-    description: Extra apt packages to install, space-separated (e.g. CPU Vulkan driver).
-    required: false
-    default: ""
   build-packages:
     description: Whether to run `npm run build:packages`.
     required: false
@@ -40,13 +38,23 @@ inputs:
 runs:
   using: composite
   steps:
-    # Hosted runners have run out of disk here (No space left on device).
+    # Hosted runners have run out of disk here (No space left on device). In
+    # the CI image the job mounts the runner's unused SDKs under /reclaim (the
+    # job's `container.volumes`, see docker/ci/README.md) so they can be
+    # deleted from inside it. The runner mounts the tool cache itself.
     - name: Free disk space (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
         df -hT / && df -i /
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        if [ -n "${NODETOOL_CI_IMAGE:-}" ]; then
+          if [ -d /reclaim ]; then
+            sudo find /reclaim -mindepth 2 -maxdepth 2 -exec rm -rf {} +
+          fi
+          sudo rm -rf "$RUNNER_TOOL_CACHE/CodeQL"
+        else
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        fi
         df -hT / && df -i /
 
     - name: Set up Node.js
@@ -55,20 +63,6 @@ runs:
         node-version-file: ".nvmrc"
         cache: ${{ inputs.cache == 'read-write' && 'npm' || '' }}
         package-manager-cache: false
-
-    - name: Install system libraries
-      if: runner.os == 'Linux'
-      shell: bash
-      # The runner image usually ships libsecret, so a leg with no extra
-      # packages skips the ~20 s `apt-get update`.
-      env:
-        EXTRA_APT: ${{ inputs.extra-apt }}
-      run: |
-        if [ -z "$EXTRA_APT" ] && dpkg -s libsecret-1-0 >/dev/null 2>&1; then
-          echo "libsecret-1-0 already installed."
-        else
-          sudo apt-get update && sudo apt-get install -y libsecret-1-0 $EXTRA_APT
-        fi
 
     # Cache the installed workspace node_modules keyed on the lockfile (and Node
     # version). On a hit we skip `npm ci` and the native rebuild entirely — the

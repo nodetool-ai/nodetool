@@ -30,6 +30,8 @@ on:
 
 permissions:
   contents: read
+  # Pull the CI image.
+  packages: read
 
 # Cancel superseded runs for the same branch/PR — the latest push is what matters.
 concurrency:
@@ -39,13 +41,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The Linux image the jobs below run in (docker/ci/). Built here on the
+  # first run after docker/ci/ changes, found in seconds otherwise.
+  ci-image:
+    if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
+    uses: ./.github/workflows/ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   smoke:
     name: Load every route without errors
     # Advisory on pull requests and opt-in there: a PR runs this suite when
     # the `browser-suites` label is added. Nightly and manual runs always run
     # it.
+    needs: ci-image
     if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 30
 
     steps:
@@ -61,8 +84,6 @@ jobs:
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
         # Chromium can acquire a WebGPU adapter on GPU-less runners.
         uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers
 
       - name: Type-check smoke suite
         working-directory: web
@@ -70,7 +91,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         working-directory: web
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run page-load smoke suite
         working-directory: web
