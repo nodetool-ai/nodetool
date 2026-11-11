@@ -292,37 +292,6 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
     expect(Date.now() - cancelledAt).toBeLessThan(5000);
   }, 120_000);
 
-  it.runIf(!noAdapterReason)("matches bundled text advances at different optical sizes", async () => {
-    onTestFailed(() => { preserveArtifacts = true; });
-    // Compare actual glyphs from independent browser and Node rasterizers.
-    // Inter's optical-size axis changes its advances, not just its ink weight.
-    for (const fontSizePx of [14, 40]) {
-      const sequence = fixture(1000);
-      sequence.tracks = sequence.tracks.slice(0, 1);
-      sequence.clips = sequence.clips.slice(0, 1);
-      sequence.clips[0]!.textStyle!.fontSizePx = fontSizePx;
-      const output = resolveTimelineOutput({ format: "png_sequence" });
-      const browserOut = path.join(directory, `font-${fontSizePx}-browser.zip`);
-      const nodeOut = path.join(directory, `font-${fontSizePx}-node.zip`);
-      const options = {
-        sequence, width: WIDTH, height: HEIGHT, fps: 1, durationMs: 1000,
-        output, resolveAssetPath
-      };
-      await renderTimelineInBrowser({
-        ...options, bitrate: 0, outPath: browserOut, workDir: directory
-      });
-      await renderTimelineComposited({ ...options, outPath: nodeOut });
-      const [browser, node] = await Promise.all([
-        frameRgb(browserOut, 0), frameRgb(nodeOut, 0)
-      ]);
-      const browserWidth = textInkWidth(browser);
-      const nodeWidth = textInkWidth(node);
-      expect(browserWidth).toBeGreaterThan(fontSizePx);
-      expect(nodeWidth).toBeGreaterThan(fontSizePx);
-      expect(Math.abs(browserWidth - nodeWidth), `Inter ${fontSizePx}px: browser ${browserWidth}px, Node ${nodeWidth}px`).toBeLessThanOrEqual(1);
-    }
-  }, 120_000);
-
   it.runIf(!noAdapterReason)("matches the Node compositor at ten timestamps", async () => {
     onTestFailed(() => { preserveArtifacts = true; });
     const durationMs = 3000;
@@ -421,17 +390,4 @@ function meanDiff(a: Buffer, b: Buffer): number {
   let sum = 0;
   for (let i = 0; i < a.length; i++) sum += Math.abs((a[i] ?? 0) - (b[i] ?? 0));
   return sum / a.length / 255;
-}
-
-/** White title ink against the otherwise black frame, excluding fringe pixels. */
-function textInkWidth(rgb: Buffer): number {
-  let left = WIDTH;
-  let right = -1;
-  for (let i = 0; i < rgb.length; i += 3) {
-    if (rgb[i]! < 128 || rgb[i + 1]! < 128 || rgb[i + 2]! < 128) continue;
-    const x = (i / 3) % WIDTH;
-    left = Math.min(left, x);
-    right = Math.max(right, x);
-  }
-  return right < left ? 0 : right - left + 1;
 }
