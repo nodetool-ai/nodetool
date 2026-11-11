@@ -33,6 +33,7 @@ import {
   ComfyRouterClient,
   RouterArgsBuilder,
   dataUri,
+  sniffAudioMime,
   sniffMime,
   type MediaInput
 } from "./comfy-router.js";
@@ -202,6 +203,36 @@ function wanPreset(modelId: string): (b: RouterArgsBuilder, input: PresetInput) 
     return true;
   };
 }
+
+/**
+ * BytePlus Seedance and MiniMax H3 take the prompt and every media input as
+ * one `content[]` list of typed parts, each image tagged with its `role`.
+ */
+function takesContentParts(b: RouterArgsBuilder): boolean {
+  const content = b.field("content");
+  return content?.type === "array" && content.items !== undefined && !b.firstDeclared(PROMPT_FIELDS);
+}
+
+/**
+ * Seedance models without a last-frame mode. ComfyUI's ByteDance
+ * first-last-frame nodes offer Seedance 1.0 pro and 1.5 pro, and every
+ * Seedance 2.x model, but not 1.0 pro fast.
+ */
+const NO_LAST_FRAME = new Set(["byteplus/seedance-1-0-pro-fast-251015"]);
+
+/**
+ * Seedance 2.5 refuses a concrete `ratio` with a first frame: the output
+ * keeps the frame's own aspect ratio, so only `adaptive` is accepted. Both
+ * the Router schema and ComfyUI's ByteDance2FirstLastFrameNode say so.
+ */
+const ADAPTIVE_RATIO_WITH_FRAMES = new Set(["byteplus/dreamina-seedance-2-5-260628"]);
+
+function oneImageOnly(count: number): Error {
+  return new Error(`This Comfy model takes one input image, not ${count}`);
+}
+
+/** Wan models whose typed `media` list takes a `last_frame` item (Router schema and ComfyUI agree). */
+const WAN_LAST_FRAME = /^wan\/(wan2\.7-i2v|wan3\.0-video(-prime)?)$/;
 
 function presetFor(modelId: string): ((b: RouterArgsBuilder, input: PresetInput) => boolean) | undefined {
   if (MODEL_PRESETS[modelId]) return MODEL_PRESETS[modelId];
@@ -445,22 +476,17 @@ export class ComfyCloudProvider extends BaseProvider {
     b: RouterArgsBuilder,
     prompt: string | null | undefined,
     images: MediaInput[],
-    names: readonly string[] = IMAGE_FIELDS
+    names: readonly string[] = IMAGE_FIELDS,
+    imageRole: "frame" | "reference" = "frame"
   ): boolean {
     if (images.length > 0 && b.schema.inputModalities && !b.schema.inputModalities.includes("image")) {
       return false;
     }
-    const content = b.field("content");
-    if (content?.type === "array" && content.items && !b.firstDeclared(PROMPT_FIELDS)) {
+    if (takesContentParts(b)) {
       const parts: unknown[] = [];
       if (prompt) parts.push({ type: "text", text: prompt });
-      images.forEach((img, i) =>
-        parts.push({
-          type: "image_url",
-          image_url: { url: dataUri(img) },
-          ...(i === 0 && images.length === 1 ? { role: "first_frame" } : { role: "reference_image" })
-        })
-      );
+      const role = imageRole === "frame" && images.length === 1 ? "first_frame" : "reference_image";
+      for (const img of images) parts.push({ type: "image_url", image_url: { url: dataUri(img) }, role });
       b.put("content", parts);
       return true;
     }
@@ -478,6 +504,7 @@ export class ComfyCloudProvider extends BaseProvider {
     const instances = b.field("instances");
     if (instances?.type === "array" && isRecord(instances.items?.properties) && "prompt" in instances.items.properties) {
       const item: Record<string, unknown> = {};
+      if (images.length > 1) throw oneImageOnly(images.length);
       if (prompt) item.prompt = prompt;
       if (images[0]) item.image = { bytesBase64Encoded: base64(images[0]), mimeType: images[0].mimeType };
       b.put("instances", [item]);
@@ -505,7 +532,12 @@ export class ComfyCloudProvider extends BaseProvider {
     }
     if (prompt) b.setFirst(PROMPT_FIELDS, prompt);
     if (images.length === 0) return true;
-    if (b.attachMedia(names, images)) return true;
+    const placed = b.attachMedia(names, images);
+    if (placed) {
+      // A single-image field keeps only the first; the rest would vanish.
+      if (images.length > 1 && b.field(placed)?.type !== "array") throw oneImageOnly(images.length);
+      return true;
+    }
     // Last resort: a declared field whose name says it takes an input image.
     const guess = [...b.schema.fields.values()].find(
       (f) =>
@@ -513,7 +545,40 @@ export class ComfyCloudProvider extends BaseProvider {
         !/mask|end|last|tail|size|count|num|format|strength|weight|prompt|aspect|resolution|type/i.test(f.name) &&
         (f.type === "string" || f.type === "array" || f.type === undefined)
     );
-    return guess ? b.attachMedia([guess.name], images) !== undefined : false;
+    if (!guess) return false;
+    if (images.length > 1 && guess.type !== "array") throw oneImageOnly(images.length);
+    return b.attachMedia([guess.name], images) !== undefined;
+  }
+
+  /** The last frame as a `last_frame` content part, or in a named end-frame field. */
+  private attachEndFrame(b: RouterArgsBuilder, modelId: string, end: MediaInput): boolean {
+    if (NO_LAST_FRAME.has(modelId)) return false;
+    // Seedance and MiniMax H3: a `last_frame` content part.
+    const content = b.valueOf("content");
+    if (takesContentParts(b) && Array.isArray(content)) {
+      content.push({ type: "image_url", image_url: { url: dataUri(end) }, role: "last_frame" });
+      return true;
+    }
+    // Veo: `lastFrame` beside `image` in the one Vertex instance.
+    const instances = b.valueOf("instances");
+    const instanceProps = b.field("instances")?.items?.properties;
+    if (Array.isArray(instances) && isRecord(instances[0]) && isRecord(instanceProps) && "lastFrame" in instanceProps) {
+      instances[0].lastFrame = { bytesBase64Encoded: base64(end), mimeType: end.mimeType };
+      return true;
+    }
+    // Wan 2.7 and 3.0: a `last_frame` item in the typed media list.
+    const media = b.valueOf("media");
+    if (WAN_LAST_FRAME.test(modelId) && Array.isArray(media)) {
+      media.push({ type: "last_frame", url: dataUri(end) });
+      return true;
+    }
+    // FLUX 3 video spreads its keyframes over the clip, so a second one is the last frame.
+    const keyframes = b.valueOf("keyframes");
+    if (modelId === "bfl/flux-3-video" && typeof keyframes === "string") {
+      b.put("keyframes", [keyframes, base64(end)]);
+      return true;
+    }
+    return b.attachMedia(END_IMAGE_FIELDS, [end]) !== undefined;
   }
 
   private image(bytes: Uint8Array): MediaInput {
@@ -680,9 +745,10 @@ export class ComfyCloudProvider extends BaseProvider {
     }
     // A last frame the model cannot take would be dropped without a word, and
     // the caller would get a clip that never reaches the frame it asked for.
-    if (params.endImage?.length && !b.attachMedia(END_IMAGE_FIELDS, [this.image(params.endImage)])) {
+    if (params.endImage?.length && !this.attachEndFrame(b, modelId, this.image(params.endImage))) {
       throw new Error(`Comfy model ${modelId} takes no end frame`);
     }
+    if (ADAPTIVE_RATIO_WITH_FRAMES.has(modelId) && b.isSet("ratio")) b.put("ratio", "adaptive");
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
       timeoutSeconds: params.timeoutSeconds
@@ -701,23 +767,62 @@ export class ComfyCloudProvider extends BaseProvider {
     this.setCommon(b, modelId, params);
     this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
     const references = inputs.images.map((img) => this.image(img));
-    if (
-      !this.applyPreset(b, modelId, { task: "reference_to_video", images: references }) &&
-      references.length > 0
-    ) {
-      b.attachMedia(REFERENCE_FIELDS, references);
-    }
-    if (inputs.videos.length > 0) {
-      b.attachMedia(VIDEO_FIELDS, inputs.videos.map((bytes) => ({ bytes, mimeType: sniffMime(bytes, "video/mp4") })));
-    }
-    if (inputs.audios?.length) {
-      b.attachMedia(AUDIO_FIELDS, inputs.audios.map((bytes) => ({ bytes, mimeType: "audio/mpeg" })));
+    const videos = inputs.videos.map((bytes) => ({ bytes, mimeType: sniffMime(bytes, "video/mp4") }));
+    const audios = (inputs.audios ?? []).map((bytes) => ({ bytes, mimeType: sniffAudioMime(bytes) }));
+    // A reference the model cannot take would vanish from the request, and the
+    // clip would ignore it without a word.
+    const refuse = (what: string): never => {
+      throw new Error(`Comfy model ${modelId} takes no ${what}`);
+    };
+    if (takesContentParts(b)) {
+      this.attachContentReferences(b, modelId, params.prompt, references, videos, audios);
+    } else {
+      if (
+        !this.applyPreset(b, modelId, { task: "reference_to_video", images: references }) &&
+        references.length > 0 &&
+        !b.attachMedia(REFERENCE_FIELDS, references)
+      ) {
+        refuse("reference images");
+      }
+      if (videos.length > 0 && !b.attachMedia(VIDEO_FIELDS, videos, "video")) refuse("reference videos");
+      if (audios.length > 0 && !b.attachMedia(AUDIO_FIELDS, audios, "audio")) refuse("reference audio");
     }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
       timeoutSeconds: params.timeoutSeconds
     });
     return result.bytes;
+  }
+
+  /**
+   * Seedance 2.x and MiniMax H3 references, in the order ComfyUI's
+   * ByteDance2ReferenceNode and MinimaxHailuo03ReferenceNode send them: the
+   * prompt, then `reference_image`, `reference_video` and `reference_audio`
+   * parts. The Router takes a reference video only as a public URL or a
+   * provider asset id, and NodeTool has no upload route, so a reference video
+   * is refused rather than sent inline.
+   */
+  private attachContentReferences(
+    b: RouterArgsBuilder,
+    modelId: string,
+    prompt: string | null | undefined,
+    images: MediaInput[],
+    videos: MediaInput[],
+    audios: MediaInput[]
+  ): void {
+    if (videos.length > 0) {
+      throw new Error(
+        `Comfy model ${modelId} takes reference videos only as public URLs, which NodeTool cannot upload yet`
+      );
+    }
+    if (images.length === 0 && audios.length === 0) {
+      throw new Error(`Comfy model ${modelId} needs at least one reference image`);
+    }
+    this.attachPromptAndImages(b, prompt, images, IMAGE_FIELDS, "reference");
+    const parts = b.body.content as unknown[];
+    for (const audio of audios) {
+      parts.push({ type: "audio_url", audio_url: { url: dataUri(audio) }, role: "reference_audio" });
+    }
   }
 
   override async videoToVideo(video: Uint8Array, params: VideoToVideoParams): Promise<Uint8Array> {
@@ -732,7 +837,9 @@ export class ComfyCloudProvider extends BaseProvider {
       if (!b.attachMedia(VIDEO_FIELDS, [source], "video")) {
         throw new Error(`Comfy model ${modelId} takes no input video`);
       }
-      if (references.length) b.attachMedia(REFERENCE_FIELDS, references);
+      if (references.length && !b.attachMedia(REFERENCE_FIELDS, references)) {
+        throw new Error(`Comfy model ${modelId} takes no reference images`);
+      }
     }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal
@@ -761,10 +868,13 @@ export class ComfyCloudProvider extends BaseProvider {
     b.setFirst(["speed"], args.speed);
     b.setFirst(["language_code", "language"], args.language);
     b.setFirst(["instructions", "style"], args.instructions);
-    if (args.referenceAudio) {
-      b.attachMedia(["reference_audio", "audio_prompt", ...AUDIO_FIELDS], [
-        { bytes: args.referenceAudio, mimeType: "audio/wav" }
-      ]);
+    if (
+      args.referenceAudio &&
+      !b.attachMedia(["reference_audio", "audio_prompt", ...AUDIO_FIELDS], [
+        { bytes: args.referenceAudio, mimeType: sniffAudioMime(args.referenceAudio) }
+      ], "audio")
+    ) {
+      throw new Error(`Comfy model ${modelId} takes no reference audio`);
     }
     this.applyPreset(b, modelId, { task: "text_to_speech", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "audio", {

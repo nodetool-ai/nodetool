@@ -17,8 +17,52 @@ const log = createLogger("nodetool.runtime.comfy-router");
 
 type RouterParam = keyof RouterManifestEntry["params"];
 
+/**
+ * Limits a shared Router schema states per model only in prose, which the
+ * generated manifest cannot read. Each one is stated the same way by the
+ * Router schema's field description and by the ComfyUI partner node that
+ * calls the model (ComfyUI `comfy_api_nodes`, the commit in
+ * docs/plans/comfy-cloud-model-audit.md). Where the two differ, the range
+ * both accept is used.
+ */
+const SEEDANCE_1_RESOLUTIONS = ["480p", "720p", "1080p"];
+const SEEDANCE_2_FAST_RESOLUTIONS = ["480p", "720p"];
+const VEO_3_DURATIONS: RouterParamSpec = { field: "durationSeconds", source: "description", values: ["4", "6", "8"] };
+const HAND_SPECS: Record<string, RouterManifestEntry["params"]> = {
+  // Router: "Seedance 2.5: [4,30]"; ByteDance2 nodes: 4-30.
+  "byteplus/dreamina-seedance-2-5-260628": { duration: { field: "duration", source: "description", min: 4, max: 30 } },
+  // Router: "Seedance 2.0, 2.0 fast & 2.0 mini: [4,15]", fast and mini without 1080p; ByteDance2 nodes agree.
+  "byteplus/dreamina-seedance-2-0-260128": { duration: { field: "duration", source: "description", min: 4, max: 15 } },
+  "byteplus/dreamina-seedance-2-0-fast-260128": {
+    duration: { field: "duration", source: "description", min: 4, max: 15 },
+    resolution: { field: "resolution", source: "description", values: SEEDANCE_2_FAST_RESOLUTIONS }
+  },
+  "byteplus/dreamina-seedance-2-0-mini": {
+    duration: { field: "duration", source: "description", min: 4, max: 15 },
+    resolution: { field: "resolution", source: "description", values: SEEDANCE_2_FAST_RESOLUTIONS }
+  },
+  // Router: "Seedance 1.5 pro: [4,12]"; ByteDance nodes: 3-12 and refuse 1.5 pro below 4.
+  "byteplus/seedance-1-5-pro-251215": {
+    duration: { field: "duration", source: "description", min: 4, max: 12 },
+    resolution: { field: "resolution", source: "description", values: SEEDANCE_1_RESOLUTIONS }
+  },
+  // Router: "Seedance 1.0: [2,12]"; ByteDance nodes: 3-12.
+  "byteplus/seedance-1-0-pro-250528": {
+    duration: { field: "duration", source: "description", min: 3, max: 12 },
+    resolution: { field: "resolution", source: "description", values: SEEDANCE_1_RESOLUTIONS }
+  },
+  "byteplus/seedance-1-0-pro-fast-251015": {
+    duration: { field: "duration", source: "description", min: 3, max: 12 },
+    resolution: { field: "resolution", source: "description", values: SEEDANCE_1_RESOLUTIONS }
+  },
+  // Router: "Veo 3/3.1: 4, 6, or 8" (the manifest read the Veo 2 range); Veo3 nodes: 4-8 in steps of 2.
+  "veo/veo-3.1-generate-001": { duration: VEO_3_DURATIONS },
+  "veo/veo-3.1-fast-generate-001": { duration: VEO_3_DURATIONS },
+  "veo/veo-3.1-lite-generate-001": { duration: VEO_3_DURATIONS }
+};
+
 const specFor = (modelId: string, param: RouterParam): RouterParamSpec | undefined =>
-  COMFY_ROUTER_MANIFEST[modelId]?.params[param];
+  HAND_SPECS[modelId]?.[param] ?? COMFY_ROUTER_MANIFEST[modelId]?.params[param];
 
 /** The model's spelling of a value, or undefined when it does not accept it. */
 export function acceptedValue(

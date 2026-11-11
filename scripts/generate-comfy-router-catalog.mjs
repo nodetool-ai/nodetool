@@ -111,6 +111,18 @@ const OVERRIDES = {
   "bria/image-edit-reseason": { skip: "requires a season" },
   "bria/image-edit-product-holding": { skip: "requires product images" },
   "bria/image-edit-product-virtual-tryon": { skip: "requires a person image" },
+  // The schema's modalities read as text and image only, but Seedance 2.x and
+  // MiniMax H3 also take reference images and audio as content[] parts, as
+  // ComfyUI's ByteDance2ReferenceNodeV2 and MinimaxHailuo03ReferenceNode send them.
+  "byteplus/dreamina-seedance-2-0-260128": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "byteplus/dreamina-seedance-2-0-fast-260128": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "byteplus/dreamina-seedance-2-0-mini": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "byteplus/dreamina-seedance-2-5-260628": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "minimax/minimax-h3": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  // Input modalities include image, and ComfyUI's Qwen Image 3 Edit node sends
+  // up to three images to these same Router ids in input.messages[0].content.
+  "qwen/qwen-image-3.0": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "qwen/qwen-image-3.0-pro": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
   "wan/wan3.0-video": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
   "wan/wan3.0-video-prime": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
   "wan/wan2.7-videoedit": { skip: "takes its source video only as a public URL" },

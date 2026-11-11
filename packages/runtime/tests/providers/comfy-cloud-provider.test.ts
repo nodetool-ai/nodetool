@@ -14,6 +14,7 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 const BASE = "https://router.test";
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4, 5, 6, 7, 8]);
 const MP4 = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 9, 9]);
+const DATA_PNG = expect.stringMatching(/^data:image\/png;base64,/);
 
 /** An OpenAPI document with one POST body, the shape the Router serves. */
 function openapi(properties: Record<string, unknown>, required: string[] = []): unknown {
@@ -113,8 +114,8 @@ function realSchema(id: string): unknown {
 }
 
 /** Run one call against a real schema and return the body it submitted. */
-async function submittedBody(id: string, call: (p: TestProvider, model: { id: string; name: string; provider: "comfy_cloud" }) => Promise<unknown>): Promise<Record<string, unknown>> {
-  const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema(id), result: { image: "https://cdn.test/out.png", video: "https://cdn.test/out.mp4" } } });
+async function submittedBody(id: string, call: (p: TestProvider, model: { id: string; name: string; provider: "comfy_cloud" }) => Promise<unknown>, schemaId = id): Promise<Record<string, unknown>> {
+  const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema(schemaId), result: { image: "https://cdn.test/out.png", video: "https://cdn.test/out.mp4" } } });
   await call(new TestProvider(fetchFn), { id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD });
   const submit = calls.find((c) => c.method === "POST" && c.url.endsWith("/requests"));
   return submit?.body as Record<string, unknown>;
@@ -195,6 +196,10 @@ describe("ComfyCloudProvider — catalog", () => {
     // 3D output and mask-only editors have no NodeTool task.
     expect(tasks["meshy/meshy-6"]).toBeUndefined();
     expect(tasks["bria/image-edit-erase"]).toBeUndefined();
+    // Reference-to-video, which ComfyUI's ByteDance2 and MiniMax H3 reference nodes offer.
+    for (const id of ["byteplus/dreamina-seedance-2-5-260628", "byteplus/dreamina-seedance-2-0-mini", "minimax/minimax-h3"]) {
+      expect(tasks[id]).toEqual(["text_to_video", "image_to_video", "reference_to_video"]);
+    }
   });
 
   it("declares the media capabilities it implements", () => {
@@ -278,6 +283,73 @@ describe("ComfyCloudProvider — generation through the queue", () => {
     await expect(
       new TestProvider(fetchFn).imageToVideo(PNG, { model: { ...VIDEO_MODEL }, prompt: "transition", endImage: PNG })
     ).rejects.toThrow("Comfy model kling/kling-v3 takes no end frame");
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("MiniMax H3: the end frame as a last_frame content part, as MinimaxHailuo03FirstLastFrameNode sends it", async () => {
+    const part = { type: "object", properties: { type: { type: "string" }, text: { type: "string" }, role: { type: "string" } } };
+    const { fetchFn, calls } = fakeRouter({
+      "minimax/minimax-h3": {
+        schema: openapi({ content: { type: "array", items: part }, duration: { type: "integer" } }, ["content"]),
+        result: { video: "https://cdn.test/out.mp4" }
+      }
+    });
+    await new TestProvider(fetchFn).imageToVideo(PNG, {
+      model: { id: "minimax/minimax-h3", name: "H3", provider: PROVIDER_IDS.COMFY_CLOUD }, prompt: "pan", endImage: PNG
+    });
+    const submit = calls.find((c) => c.method === "POST")!.body as Record<string, unknown>;
+    expect((submit.content as Array<{ role?: string }>).map((p) => p.role)).toEqual([undefined, "first_frame", "last_frame"]);
+  });
+
+  it("FLUX 3 video: the end frame as a second keyframe, as Flux3ImageToVideoNode spreads its keyframes", async () => {
+    const id = "bfl/flux-3-video";
+    const { fetchFn, calls } = fakeRouter({
+      [id]: {
+        schema: openapi({ prompt: { type: "string" }, mode: { type: "string" }, keyframes: {} }, ["prompt"]),
+        result: { video: "https://cdn.test/out.mp4" }
+      }
+    });
+    await new TestProvider(fetchFn).imageToVideo(PNG, { model: { id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD }, prompt: "x", endImage: PNG });
+    const submit = calls.find((c) => c.method === "POST")!.body as Record<string, unknown>;
+    const b64 = Buffer.from(PNG).toString("base64");
+    expect(submit).toMatchObject({ mode: "i2v", keyframes: [b64, b64] });
+  });
+
+  it("imageToImage refuses extra images a single-image field cannot hold", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "bfl/flux-2-pro": { schema: openapi({ prompt: { type: "string" }, input_image: { type: "string" } }, ["prompt"]), result: {} }
+    });
+    await expect(
+      new TestProvider(fetchFn).imageToImage([PNG, PNG, PNG], { model: { ...IMAGE_MODEL }, prompt: "x" })
+    ).rejects.toThrow("takes one input image, not 3");
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("videoToVideo and textToSpeech refuse reference media the model has no field for", async () => {
+    const { fetchFn } = fakeRouter({
+      "kling/kling-v3": { schema: openapi({ prompt: { type: "string" }, video_url: { type: "string" } }, ["video_url"]), result: {} },
+      "elevenlabs/eleven_v4": { schema: openapi({ text: { type: "string" } }, ["text"]), result: {} }
+    });
+    const provider = new TestProvider(fetchFn);
+    await expect(
+      provider.videoToVideo(MP4, { model: { ...VIDEO_MODEL }, prompt: "x", referenceImages: [PNG] })
+    ).rejects.toThrow("Comfy model kling/kling-v3 takes no reference images");
+    await expect(
+      provider.textToSpeechEncoded({ model: "elevenlabs/eleven_v4", text: "hi", referenceAudio: PNG })
+    ).rejects.toThrow("Comfy model elevenlabs/eleven_v4 takes no reference audio");
+  });
+
+  it("referenceToVideo refuses references the model has no field for, instead of dropping them", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "kling/kling-v3": { schema: openapi({ prompt: { type: "string" } }, ["prompt"]), result: { video: "https://cdn.test/out.mp4" } }
+    });
+    const provider = new TestProvider(fetchFn);
+    const params = { model: { ...VIDEO_MODEL }, prompt: "x" };
+    await expect(provider.referenceToVideo({ images: [PNG], videos: [] }, params)).rejects.toThrow(
+      "Comfy model kling/kling-v3 takes no reference images"
+    );
+    await expect(provider.referenceToVideo({ images: [], videos: [MP4] }, params)).rejects.toThrow("takes no reference videos");
+    await expect(provider.referenceToVideo({ images: [], videos: [], audios: [PNG] }, params)).rejects.toThrow("takes no reference audio");
     expect(calls.some((c) => c.method === "POST")).toBe(false);
   });
 
@@ -407,6 +479,15 @@ describe("ComfyCloudProvider — real Router schemas", () => {
     expect(body.input).toEqual({ messages: [{ role: "user", content: [{ text: "a leaf" }] }] });
   });
 
+  it("Qwen image edit: images then the prompt in one message, as the Qwen Image 3 Edit node sends them", async () => {
+    const body = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
+      p.imageToImage([PNG, PNG], { model, prompt: "swap the hats" })
+    );
+    expect(body.input).toEqual({
+      messages: [{ role: "user", content: [{ image: DATA_PNG }, { image: DATA_PNG }, { text: "swap the hats" }] }]
+    });
+  });
+
   it("Qwen image: size uses the width*height form the schema documents", async () => {
     const explicit = await submittedBody("qwen/qwen-image-3.0", (p, model) =>
       p.textToImage({ model, prompt: "a leaf", width: 1024, height: 768 })
@@ -462,6 +543,119 @@ describe("ComfyCloudProvider — real Router schemas", () => {
       { type: "text", text: "dolly in" },
       { type: "image_url", image_url: { url: expect.stringMatching(/^data:image\/png;base64,/) }, role: "first_frame" }
     ]);
+  });
+
+  // Every BytePlus video model shares one Router input schema, saved for 2.0.
+  const SEEDANCE_SCHEMA = "byteplus/dreamina-seedance-2-0-260128";
+
+  it("Seedance 2.5: the end frame as a last_frame content part, as ByteDance2FirstLastFrameNode sends it", async () => {
+    const body = await submittedBody("byteplus/dreamina-seedance-2-5-260628", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "dolly in", endImage: PNG, aspectRatio: "16:9", durationSeconds: 5 })
+    , SEEDANCE_SCHEMA);
+    expect(body.content).toEqual([
+      { type: "text", text: "dolly in" },
+      { type: "image_url", image_url: { url: DATA_PNG }, role: "first_frame" },
+      { type: "image_url", image_url: { url: DATA_PNG }, role: "last_frame" }
+    ]);
+    // 2.5 keeps the first frame's aspect ratio and refuses a concrete one.
+    expect(body).toMatchObject({ ratio: "adaptive", duration: 5 });
+  });
+
+  it("Seedance 2.0: last_frame content part, and the requested ratio is kept", async () => {
+    const body = await submittedBody(SEEDANCE_SCHEMA, (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "dolly in", endImage: PNG, aspectRatio: "9:16" })
+    );
+    expect((body.content as Array<{ role?: string }>).map((part) => part.role)).toEqual([
+      undefined, "first_frame", "last_frame"
+    ]);
+    expect(body.ratio).toBe("9:16");
+  });
+
+  it("Seedance 1.0 pro fast: refuses an end frame, which no first-last-frame node offers for it", async () => {
+    const id = "byteplus/seedance-1-0-pro-fast-251015";
+    const { fetchFn, calls } = fakeRouter({ [id]: { schema: realSchema(SEEDANCE_SCHEMA), result: { video: "https://cdn.test/out.mp4" } } });
+    await expect(
+      new TestProvider(fetchFn).imageToVideo(PNG, { model: { id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD }, prompt: "x", endImage: PNG })
+    ).rejects.toThrow(`Comfy model ${id} takes no end frame`);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("Seedance 2.x references: reference_image and reference_audio parts, as ByteDance2ReferenceNodeV2 sends them", async () => {
+    const WAV = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45]);
+    const body = await submittedBody("byteplus/dreamina-seedance-2-5-260628", (p, model) =>
+      p.referenceToVideo({ images: [PNG, PNG], videos: [], audios: [WAV] }, { model, prompt: "the cat from image 1" })
+    , SEEDANCE_SCHEMA);
+    expect(body.content).toEqual([
+      { type: "text", text: "the cat from image 1" },
+      { type: "image_url", image_url: { url: DATA_PNG }, role: "reference_image" },
+      { type: "image_url", image_url: { url: DATA_PNG }, role: "reference_image" },
+      { type: "audio_url", audio_url: { url: expect.stringMatching(/^data:audio\/wav;base64,/) }, role: "reference_audio" }
+    ]);
+  });
+
+  it("Seedance 2.x references: one reference image is not mistaken for a first frame", async () => {
+    const body = await submittedBody(SEEDANCE_SCHEMA, (p, model) =>
+      p.referenceToVideo({ images: [PNG], videos: [] }, { model, prompt: "x" })
+    );
+    expect((body.content as Array<{ role?: string }>)[1].role).toBe("reference_image");
+  });
+
+  it("Seedance 2.x references: refuses a reference video, which the Router takes only by URL", async () => {
+    const { fetchFn, calls } = fakeRouter({ [SEEDANCE_SCHEMA]: { schema: realSchema(SEEDANCE_SCHEMA), result: { video: "https://cdn.test/out.mp4" } } });
+    await expect(
+      new TestProvider(fetchFn).referenceToVideo(
+        { images: [PNG], videos: [MP4] },
+        { model: { id: SEEDANCE_SCHEMA, name: "s", provider: PROVIDER_IDS.COMFY_CLOUD }, prompt: "x" }
+      )
+    ).rejects.toThrow("takes reference videos only as public URLs");
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("Veo: the end frame as lastFrame in the instance, as Veo3FirstLastFrameNode sends it", async () => {
+    const b64 = Buffer.from(PNG).toString("base64");
+    const body = await submittedBody("veo/veo-3.1-generate-001", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "a fox", endImage: PNG, durationSeconds: 6 })
+    );
+    expect(body.instances).toEqual([
+      {
+        prompt: "a fox",
+        image: { bytesBase64Encoded: b64, mimeType: "image/png" },
+        lastFrame: { bytesBase64Encoded: b64, mimeType: "image/png" }
+      }
+    ]);
+    expect(body.parameters).toMatchObject({ durationSeconds: 6 });
+  });
+
+  it("Veo: refuses a second start image instead of dropping it", async () => {
+    const id = "veo/veo-3.1-generate-001";
+    const { fetchFn } = fakeRouter({ [id]: { schema: realSchema(id), result: {} } });
+    await expect(
+      new TestProvider(fetchFn).imageToImage([PNG, PNG], { model: { id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD }, prompt: "x" })
+    ).rejects.toThrow("takes one input image, not 2");
+  });
+
+  it("Wan 2.7: the end frame as a last_frame media item, as the Wan 2.7 Image to Video node sends it", async () => {
+    const body = await submittedBody("wan/wan2.7-i2v", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "waves", endImage: PNG })
+    );
+    expect((body.input as Record<string, unknown>).media).toEqual([
+      { type: "first_frame", url: DATA_PNG },
+      { type: "last_frame", url: DATA_PNG }
+    ]);
+  });
+
+  it("Wan 3.0: last_frame media item; HappyHorse, which takes a first frame only, refuses one", async () => {
+    const wan3 = await submittedBody("wan/wan3.0-video", (p, model) =>
+      p.imageToVideo(PNG, { model, prompt: "waves", endImage: PNG })
+    , "wan/wan2.7-i2v");
+    expect(((wan3.input as Record<string, unknown>).media as Array<{ type: string }>).map((m) => m.type)).toEqual([
+      "first_frame", "last_frame"
+    ]);
+    const id = "wan/happyhorse-1.1-i2v";
+    const { fetchFn } = fakeRouter({ [id]: { schema: realSchema("wan/wan2.7-i2v"), result: {} } });
+    await expect(
+      new TestProvider(fetchFn).imageToVideo(PNG, { model: { id, name: id, provider: PROVIDER_IDS.COMFY_CLOUD }, prompt: "x", endImage: PNG })
+    ).rejects.toThrow(`Comfy model ${id} takes no end frame`);
   });
 
   it("Gemini Interactions: a string input, or typed parts with an image", async () => {
