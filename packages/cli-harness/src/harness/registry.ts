@@ -1359,9 +1359,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "realtime-portable-spikes",
+    title: "Realtime buffered audio and recording analysis preparation",
+    command: "npm run test:affected:native -- --project realtime --all",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/realtime/README.md"
+  },
+  {
     id: "realtime-audio-worklet-spike",
     title: "Realtime native and AudioWorklet offline parity spike",
     command:
+      "node --test native/realtime/spike/audio-worklet/timing.test.mjs && " +
       "node native/realtime/spike/audio-worklet/build.mjs && " +
       "node native/realtime/spike/audio-worklet/verify.mjs",
     kind: "execution",
@@ -2582,7 +2591,16 @@ export const SURFACES: SurfaceEntry[] = [
     gap:
       "The offline parity check needs clang with wasm-ld (or Zig) and an installed Chrome channel. " +
       "Run its documented build and verification commands separately from the root gate. " +
-      "Live worklet timing and the macOS M0 measurements remain separate qualification work."
+      "Live-device deadlines and the macOS M0 measurements remain separate qualification work."
+  },
+  {
+    id: "realtime-portable-spikes",
+    title: "Realtime buffered audio and recording analysis preparation",
+    harnesses: ["realtime-portable-spikes"],
+    paths: ["native/realtime/CMakeLists.txt", "native/realtime/.gitignore",
+      "native/realtime/spike/buffered-audio/", "native/realtime/spike/sync/"],
+    gap: "Configure native/realtime/build and build the runtime media package before running CTest. " +
+      "The null audio backend and synthetic recording cannot qualify macOS scheduling, GPU contention or physical A/V sync."
   },
   {
     id: "native-graph-runner",

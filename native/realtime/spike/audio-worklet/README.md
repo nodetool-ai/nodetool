@@ -1,6 +1,6 @@
 # WP03 native and AudioWorklet parity spike
 
-This standalone spike implements the offline byte-comparison part of
+This standalone spike implements offline byte comparison and quantum timing for
 [WP03](https://github.com/nodetool-ai/nodetool/issues/7394). It does not add a
 production realtime engine.
 
@@ -19,6 +19,7 @@ root:
 
 ```sh
 node native/realtime/spike/audio-worklet/build.mjs
+node --test native/realtime/spike/audio-worklet/timing.test.mjs
 node native/realtime/spike/audio-worklet/verify.mjs
 ```
 
@@ -37,16 +38,19 @@ input, corrupted output and empty output.
 
 Build outputs and `result.json` live in the ignored `build/` directory.
 The result records the platform, browser, fixture dimensions and output hash.
+Chrome DevTools tracing captures every `AudioWorkletProcessor::Process` event
+and its author-script region. The report includes count, mean, standard
+deviation, p99.9 and worst duration. Missing or partial traces fail verification.
+The author-script region includes buffer copies and the Wasm call. Trace
+overhead and the first quantum are included.
 
 ## Missing milestone evidence
 
-This runner measures offline wall time, including browser setup and transfer.
-It does not measure worklet render time per quantum or prove live-device
-deadlines. WP03 remains open until those measurements and required repository
-checks pass.
+Per-quantum timings come from an offline context. They do not establish
+live-device deadlines or browser scheduling under load. WP03 remains open
+until its required repository checks pass.
 
-WP01's Metal surface, submit-gate comparison and pipeline measurements need
-macOS. WP02's realtime scheduling, device workgroup, resampling and load
-profiles also need macOS. WP04 additionally needs a physical recording of a
-synced click and flash. None of those results can be inferred from this spike.
-The M0 gate remains unmet and design budgets remain targets.
+See the [M0 preparation status](../../README.md#remaining-m0-work) for the
+unimplemented surface, remaining audio work and physical recording. None of
+those results can be inferred from this spike. The M0 gate remains unmet and
+design budgets remain targets.

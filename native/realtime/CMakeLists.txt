@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.24)
+project(NodeToolRealtimeSpikes LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include(CTest)
+find_package(Threads REQUIRED)
+find_program(NODE_EXECUTABLE node REQUIRED)
+add_test(NAME realtime-worklet-timing COMMAND ${NODE_EXECUTABLE} --test
+  ${CMAKE_CURRENT_SOURCE_DIR}/spike/audio-worklet/timing.test.mjs)
+add_test(NAME realtime-sync-analysis COMMAND ${NODE_EXECUTABLE} --test
+  ${CMAKE_CURRENT_SOURCE_DIR}/spike/sync/analyze.test.mjs)
+
+add_executable(realtime-audio-core-test spike/buffered-audio/core_test.cpp)
+target_include_directories(realtime-audio-core-test PRIVATE ../timeline/src)
+target_link_libraries(realtime-audio-core-test PRIVATE Threads::Threads)
+add_test(NAME realtime-audio-core COMMAND realtime-audio-core-test)
+
+add_executable(realtime-audio-spike spike/buffered-audio/driver.cpp
+  ../timeline/src/audio/miniaudio.cpp)
+target_include_directories(realtime-audio-spike PRIVATE ../timeline/src ../timeline/third_party)
+target_link_libraries(realtime-audio-spike PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+if(WIN32)
+  target_compile_definitions(realtime-audio-spike PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+  target_link_libraries(realtime-audio-spike PRIVATE avrt)
+elseif(APPLE)
+  target_link_libraries(realtime-audio-spike PRIVATE
+    "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
+endif()
+foreach(target realtime-audio-core-test realtime-audio-spike)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4 /fp:strict)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -fno-fast-math -ffp-contract=off)
+  endif()
+endforeach()
+add_test(NAME realtime-audio-null COMMAND realtime-audio-spike --seconds 2 --profile swap)
+add_test(NAME realtime-audio-stall COMMAND realtime-audio-spike --seconds 6 --profile stall)
+add_test(NAME realtime-audio-invalid-duration COMMAND realtime-audio-spike --seconds nan)
+set_tests_properties(realtime-audio-invalid-duration PROPERTIES WILL_FAIL TRUE)
+set_tests_properties(realtime-audio-core realtime-audio-null realtime-audio-stall
+  realtime-audio-invalid-duration realtime-worklet-timing realtime-sync-analysis PROPERTIES TIMEOUT 30)

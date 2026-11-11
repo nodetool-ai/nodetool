@@ -50,3 +50,14 @@ builds one C source for native and WebAssembly execution and compares the
 output bytes through Chrome's AudioWorklet. The
 [Windows offline result](wp03-windows-offline.json) records that fixture's
 agreement. It does not establish live-device deadlines or complete WP03.
+The result also records Chrome trace durations for each offline worklet quantum,
+including startup and trace overhead.
+
+## WP02 Windows null-device smoke
+
+The [buffered audio spike](../../../native/realtime/README.md#buffered-audio)
+exercises the PCM ring, persistent DSP state, plan swaps and an independent
+worker stall. The [Windows null-device result](wp02-windows-null.json) covers
+idle, swap and stall profiles at both session rates. Repository checks were
+running concurrently. These short runs do not measure hardware conversion,
+macOS scheduling, sound-to-picture latency or the ten-minute load profiles.
