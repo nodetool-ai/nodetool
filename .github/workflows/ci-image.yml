@@ -1,0 +1,47 @@
+name: CI image
+
+# Publishes the Linux image the Node and TypeScript CI jobs run in
+# (docker/ci/). Every workflow that runs a job in the image calls this first
+# and passes the reference on through `needs`, so a pull request that changes
+# docker/ci/ builds its own image before its jobs start, and every other run
+# finds the image already published and moves on in seconds.
+
+on:
+  workflow_call:
+    outputs:
+      image:
+        description: The CI image reference, pinned by digest, for `container.image`.
+        value: ${{ jobs.image.outputs.image }}
+  push:
+    branches: [main]
+    paths:
+      - "docker/ci/**"
+      - ".github/actions/ci-image/**"
+      - ".github/workflows/ci-image.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    name: CI image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - name: Checkout the image sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            docker/ci
+            .github/actions/ci-image
+
+      - name: Resolve or build the CI image
+        id: image
+        uses: ./.github/actions/ci-image
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

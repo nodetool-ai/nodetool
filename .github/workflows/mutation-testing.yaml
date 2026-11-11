@@ -26,11 +26,33 @@ on:
 
 permissions:
   contents: read
+  # Pull the CI image.
+  packages: read
 
 jobs:
+  # The Linux image the jobs below run in (docker/ci/). Built here on the
+  # first run after docker/ci/ changes, found in seconds otherwise.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   mutate:
     name: mutate ${{ matrix.package }}
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 120
     strategy:
       fail-fast: false
@@ -58,8 +80,6 @@ jobs:
       - name: Set up Node, install deps, build packages
         if: steps.wanted.outputs.run == 'true'
         uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers
 
       - name: Restore the previous snapshots
         if: steps.wanted.outputs.run == 'true' && github.event.inputs.mutate_all != 'true'
