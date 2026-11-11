@@ -10,8 +10,15 @@
 # window checks (scripts/window-checks.sh) need a reference machine.
 name: Native timeline
 
+# Pull requests and main pushes run only when native code or this workflow
+# changes. The oracle and golden tests also compare against the TypeScript
+# packages in REFERENCE_PATHS (the `changes` job). A change there alone no
+# longer runs this workflow on its pull request. The nightly run tests main
+# instead, and only when a commit in the last day touched those packages.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 4 * * *"
   pull_request:
     paths:
       - "native/timeline/**"
@@ -20,10 +27,6 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
-      # The web references the oracles and export_golden compare against.
-      - "packages/timeline/**"
-      - "packages/gpu/**"
-      - "packages/cli-timeline/**"
   # A pull request can restore only its own caches and its base branch's. This
   # run builds the base branch and saves its compiler caches, so the first run
   # of each pull request does not compile from scratch.
@@ -36,10 +39,6 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
-      # The web references the oracles and export_golden compare against.
-      - "packages/timeline/**"
-      - "packages/gpu/**"
-      - "packages/cli-timeline/**"
 
 permissions:
   contents: read
@@ -57,12 +56,48 @@ env:
   CCACHE_MAXSIZE: 2G
 
 jobs:
+  # Decides whether a scheduled run has anything new to test. Every other
+  # event already passed its paths filter, so it always runs.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          # The web references the oracles and export_golden compare against.
+          REFERENCE_PATHS: packages/timeline packages/gpu packages/cli-timeline
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" != "schedule" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          since=$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          for path in $REFERENCE_PATHS; do
+            count=$(gh api -X GET "repos/$REPO/commits" -f sha="$REF" -f path="$path" -f since="$since" -f per_page=1 --jq length)
+            if [[ "$count" != "0" ]]; then
+              echo "$path changed since $since"
+              echo "run=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "No reference package changed since $since"
+          echo "run=false" >> "$GITHUB_OUTPUT"
+
   # The TypeScript package build output is platform-independent, so one Linux
   # leg builds it and every native leg below downloads the artifact instead
   # of each rebuilding ~55 packages from scratch (previously five full builds
   # per run). Mirrors the `build` job in quality-checks.yml.
   ts-dist:
     name: TypeScript package dist
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
@@ -87,7 +122,8 @@ jobs:
 
   build:
     name: ${{ matrix.name }}
-    needs: [ts-dist]
+    needs: [changes, ts-dist]
+    if: needs.changes.outputs.run == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 240
     strategy:
@@ -361,9 +397,9 @@ jobs:
 
   sanitizers:
     name: Linux ${{ matrix.preset }}
-    needs: [ts-dist]
     # Base branch runs only seed the build job's compiler caches.
-    if: github.event_name != 'push'
+    needs: [changes, ts-dist]
+    if: github.event_name != 'push' && needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
