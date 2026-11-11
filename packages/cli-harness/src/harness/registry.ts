@@ -2584,7 +2584,8 @@ export const SURFACES: SurfaceEntry[] = [
     id: "native-node-editor",
     title: "Native workflow graph editor (Widgets and Qt Quick)",
     harnesses: ["native-node-editor"],
-    paths: ["native/node-editor/"],
+    // native/media is the asset gallery module that only the editor builds.
+    paths: ["native/node-editor/", "native/media/"],
     gap:
       "Run the native check with CMake, Ninja, a C++20 compiler and Qt 6.12 development libraries. " +
       "QtNodes requires network access on first configure. The root gate lists this check as manual work. " +
