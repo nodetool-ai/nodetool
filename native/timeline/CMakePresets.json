@@ -63,7 +63,17 @@
     {
       "name": "tsan",
       "configurePreset": "tsan",
-      "jobs": 3
+      "jobs": 3,
+      "targets": [
+        "tst_sourcepool",
+        "tst_ffmpegsource",
+        "tst_cpuusage",
+        "tst_audioengine",
+        "tst_easing",
+        "tst_framering",
+        "tst_retirequeue",
+        "tst_framecache"
+      ]
     },
     {
       "name": "fuzz",

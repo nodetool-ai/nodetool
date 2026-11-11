@@ -57,6 +57,15 @@ does not start a native run on its pull request. The nightly
 them, and skips its build jobs otherwise. Dispatch the workflow on a branch to
 test a reference change before it merges.
 
+Native timeline compiles go through sccache on the Cloudflare R2 bucket
+`nodetool-ci-compiler-cache` (`.github/actions/native-compiler-cache`). Pushes
+write with `NATIVE_CACHE_R2_WRITE_KEY_ID` and `NATIVE_CACHE_R2_WRITE_SECRET`.
+Pull requests, the nightly run and dispatches read with
+`NATIVE_CACHE_R2_READ_KEY_ID` and `NATIVE_CACHE_R2_READ_SECRET`, an R2 token
+with object read permission only, so a pull request cannot change objects
+that `main` builds use. Without these secrets, as in fork pull requests, the
+jobs fall back to ccache with the Actions cache.
+
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A new push to a PR cancels that PR's running run. A push to `main` waits for the running `main` run instead of cancelling it, and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
@@ -333,6 +342,15 @@ shape. `.github/tests/agent-workflows.test.mjs` enforces it in the `lint` leg of
   Self-review heading.
 - **Outcomes.** `agent-pr-report.yml` reports merge rate and net lines per
   label each month. Use it to decide whether a routine still pays for itself.
+
+## The CI image
+
+The Linux Node and TypeScript jobs run in a prebuilt container,
+`ghcr.io/nodetool-ai/nodetool-ci`, so none of them runs `apt-get`. Each
+workflow's `ci-image` job calls `ci-image.yml`, which builds the image when
+`docker/ci/` changed and otherwise finds it published. See
+[docker/ci/README.md](../../docker/ci/README.md) for the tag scheme, the
+container options, and the jobs that still run on the bare runner.
 
 ## Manual Trigger
 

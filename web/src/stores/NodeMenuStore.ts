@@ -10,7 +10,8 @@ import { useRecentNodesStore } from "./RecentNodesStore";
 import {
   computeSearchResults,
   filterNodesUtil,
-  SearchResultGroup
+  SearchResultGroup,
+  warmSearchIndexes
 } from "../utils/nodeSearch";
 import { NODE_MENU_HOVER_INFO_DELAY_MS } from "../config/constants";
 
@@ -173,6 +174,29 @@ export const createNodeMenuStore = () =>
       }, 50); // Reduced from 75ms since SearchInput already debounces
     };
 
+    // Build the search indexes while the browser is idle, so the first query
+    // in the node menu does not pay for them. The indexes cover the filtered
+    // catalog, and the menu sets its filter as it opens, so the warm-up waits
+    // for a filter. One pending warm-up at a time.
+    let warmScheduled = false;
+    const scheduleIndexWarmup = () => {
+      if (warmScheduled || typeof window === "undefined") {
+        return;
+      }
+      warmScheduled = true;
+      const run = () => {
+        warmScheduled = false;
+        if (get().nodeFilter) {
+          warmSearchIndexes(getFilteredMetadata());
+        }
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(run, { timeout: 2000 });
+      } else {
+        setTimeout(run, 0);
+      }
+    };
+
     // Subscribe to metadata changes and clear cache. Capture the unsubscribe
     // and register it with a module-level set so a HMR teardown helper can
     // release it; without this, hot-reloads accumulate one subscription per
@@ -182,6 +206,8 @@ export const createNodeMenuStore = () =>
       set({ searchResultsCache: {} });
       if (get().isMenuOpen) {
         scheduleSearch(get().searchTerm);
+      } else {
+        scheduleIndexWarmup();
       }
     });
     nodeMenuMetadataUnsubscribers.add(unsubscribeMetadata);
@@ -226,6 +252,7 @@ export const createNodeMenuStore = () =>
         if (get().isMenuOpen) {
           scheduleSearch(get().searchTerm);
         }
+        scheduleIndexWarmup();
       },
 
       setDragToCreate: (dragToCreate) => {

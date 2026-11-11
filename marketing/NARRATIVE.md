@@ -68,14 +68,18 @@ like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
 workflows and documents that creators can inspect and edit. Keep the homepage
-metadata category-led, and keep the category line visible directly above the
-homepage `<h1>`. Edition and audience pages use
+metadata category-led. The homepage pill above the `<h1>` speaks to creators:
+"Open-source AI film studio · agent + node workflows". Edition and audience pages use
 distinct headlines that answer the reason to choose that route: Studio makes
 and revises production work, Cloud evaluates the workspace without an install,
 and Agents builds reusable automation around editable artifacts.
 
-Keep the trust line under the CTA: free, open source, AGPL-3.0, and the
-supported desktop platforms.
+Keep a setup line and a trust line under the homepage CTA. The setup line says
+that Studio signs in with a ChatGPT or Claude plan or uses your own provider
+keys at list price. The trust line says free, open source, and the supported
+desktop platforms, and that the browser version is in alpha. Name AGPL-3.0 in
+the FAQ, the footer, and on `/studio`, not in the hero. Keep "alpha" out of
+button labels.
 
 ### The harness line
 

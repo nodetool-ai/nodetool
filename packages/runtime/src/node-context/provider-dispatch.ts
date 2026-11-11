@@ -259,6 +259,7 @@ export async function dispatchCapability(
         {
           signal: params.signal as AbortSignal | undefined,
           prompt: params.prompt as string | undefined,
+          endImage: coerceByteList([params.end_image])[0],
           seed: isNumber(params.seed) ? params.seed : undefined,
           entities: await coerceEntityList(params, host),
           model: { id: req.model, name: req.model, provider: req.provider },

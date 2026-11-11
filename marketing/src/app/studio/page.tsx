@@ -6,6 +6,7 @@ import MarketingClosingAction from "../../components/MarketingClosingAction";
 import MarketingFacts from "../../components/MarketingFacts";
 import MarketingPageShell from "../../components/MarketingPageShell";
 import ProductImage from "../../components/ProductImage";
+import ProjectSection from "../../components/ProjectSection";
 import StudioHero from "../../components/StudioHero";
 import SpecStrip from "../../components/SpecStrip";
 import SurfaceShowcase from "../../components/SurfaceShowcase";
@@ -39,6 +40,11 @@ export default function StudioPage() {
         heading="Direct the details."
         intro="Open the same project in the editor that fits the change. Revise a shot, a line reading, a layer, or the timing of the cut without starting over."
       />
+
+      {/* One note sends one shot back, and the cut keeps every other shot.
+          Moved here from the homepage when the workflow section took its
+          slot there. */}
+      <ProjectSection />
 
       {/* Finished films whose editable timelines open in Studio */}
       <TimelineShowcase />

@@ -386,6 +386,19 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   },
 
   {
+    file: "packages/runtime/src/providers/uberllm-provider.ts",
+    owner: "UberLLM generated image downloads",
+    inputSource: "provider-response",
+    schemes: ["https"],
+    authScope:
+      "The UberLLM key is sent only to UberLLM's own origin; any other host is fetched through safeFetch without it.",
+    redirects: "checked-per-hop",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["safeFetch"],
+    note: "An image answer that returns a URL instead of b64_json. A URL on UberLLM's own origin is downloaded with the provider transport; any other host goes through safeFetch."
+  },
+  {
     file: "packages/runtime/src/providers/custom-openai-provider.ts",
     owner: "custom OpenAI-compatible provider",
     inputSource: "operator",
@@ -515,12 +528,6 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "ToAPIs GPT Image and Seedance 2 result downloads",
     "provider-response",
     "Task result URLs are screened; upload, create and poll use the fixed API host."
-  ),
-  guardedSafeFetch(
-    "packages/runtime/src/providers/uberllm-provider.ts",
-    "UberLLM image result downloads",
-    "provider-response",
-    "A generated image URL off UberLLM's own host is screened; URLs on that host and the API calls use the fixed API host."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",

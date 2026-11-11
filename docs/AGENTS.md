@@ -115,7 +115,7 @@ parent instead of opening a fresh allowance. Each admitted turn holds its own
 reservation handle and commits that handle, so concurrent loops under one
 budget cannot release each other's headroom. A step that a cap or deadline
 stops fails naming that reason. See
-[packages/agents/AGENTS.md § One budget per run](../packages/agents/AGENTS.md).
+[packages/agents/docs/planning-and-execution.md § One budget per run](../packages/agents/docs/planning-and-execution.md#one-budget-per-run-nodetool-airuntime--runbudget).
 
 See [codeact-design.md](codeact-design.md) for the action protocol and
 the sandbox limits that apply per action, and [javascript-sandbox.md](javascript-sandbox.md)
@@ -300,7 +300,7 @@ a sub-agent several levels down. Every host sets one: the workflow-run hosts
 set `headlessGate` (`auto`, escalations denied) explicitly, so a context that
 reaches `gateFromContext` with no gate is a bug, logged at error level and
 answered by denying every call past read. Which host sets what is the table in
-[packages/agents/AGENTS.md § Where the permission gate is set](../packages/agents/AGENTS.md).
+[packages/agents/docs/permission-gate.md § Where the permission gate is set](../packages/agents/docs/permission-gate.md#where-the-permission-gate-is-set).
 
 ### The MCP surface is CodeAct too
 
