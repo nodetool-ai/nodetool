@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,10 +17,19 @@ export function vitestArgs(args, env = process.env) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
+    const env = { ...process.env };
+    if (process.platform === "win32") {
+      const bash = env.NODETOOL_BASH ?? join(env.ProgramFiles ?? "C:/Program Files", "Git", "bin", "bash.exe");
+      if (!existsSync(bash)) {
+        throw new Error("Windows script tests need Git Bash. Set NODETOOL_BASH to bash.exe.");
+      }
+      const key = Object.keys(env).find(name => name.toLowerCase() === "path") ?? "PATH";
+      env[key] = [dirname(process.execPath), dirname(bash), env[key] ?? ""].join(delimiter);
+    }
     const child = spawn(
       process.execPath,
       [resolve(repoRoot, "node_modules/vitest/vitest.mjs"), ...vitestArgs(process.argv.slice(2))],
-      { stdio: "inherit", env: process.env }
+      { stdio: "inherit", env }
     );
 
     for (const signal of ["SIGINT", "SIGTERM"]) {

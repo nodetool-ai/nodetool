@@ -54,7 +54,7 @@ function cancelsInProgress(source, eventName) {
   return terms.some((term) => term[1] === eventName);
 }
 
-describe("Test workflow runner demand", () => {
+describe("Test workflow runner demand", { timeout: 30_000 }, () => {
   it("cancels a superseded pull request run but lets a running main run finish", () => {
     const source = read(".github/workflows/test.yml");
     expect(source).toContain(

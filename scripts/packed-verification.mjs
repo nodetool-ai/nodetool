@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../packages/cli-harness/src/affected/affected.ts";
 import { shardOf } from "./ci-plan.mjs";
 import { buildPlan, changedFiles, readPackages } from "./test-affected.mjs";
+import { packageManagerInvocation } from "./package-manager.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FULL_BACKEND_SCRIPT = 'npm run test:oxlint-rules && npm run test:scripts && node scripts/run-turbo.mjs run test --filter="./packages/*" --filter="./reliability/*"';
@@ -124,7 +125,9 @@ function requireCleanCheckout() {
 export function runCommands(commands) {
   for (const { label, command, args } of commands) {
     console.log(`\n${label}: $ ${command} ${args.join(" ")}`);
-    const result = spawnSync(command, args, { cwd: repoRoot, stdio: "inherit" });
+    const invocation = command === "npm" || command === "npx"
+      ? packageManagerInvocation(command, args) : { command, args };
+    const result = spawnSync(invocation.command, invocation.args, { cwd: repoRoot, stdio: "inherit" });
     if (result.error) {
       throw result.error;
     }

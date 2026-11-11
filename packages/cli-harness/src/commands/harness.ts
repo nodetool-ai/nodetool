@@ -748,6 +748,18 @@ function selfcheckEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
+function selfcheckShell(): string | boolean {
+  if (process.platform !== "win32") {
+    return true;
+  }
+  const bash = process.env["NODETOOL_BASH"] ??
+    join(process.env["ProgramFiles"] ?? "C:/Program Files", "Git", "bin", "bash.exe");
+  if (!existsSync(bash)) {
+    throw new Error("Windows harness commands need Git Bash. Set NODETOOL_BASH to bash.exe.");
+  }
+  return bash;
+}
+
 /** Kill switches for every selfcheck process group still running. */
 const liveGroups = new Set<() => void>();
 
@@ -787,9 +799,9 @@ function terminateGate(): never {
 /**
  * Tie a selfcheck's process group to the gate's own lifetime and return the
  * release to call once it has settled. Each check leads its own group
- * (`detached`) so a timeout can kill everything its shell started, which also
- * keeps a terminal Ctrl-C from reaching it: a gate that exited or was
- * interrupted left the check running. The handlers live only while a group
+ * (`detached`) on POSIX so a timeout can kill everything its shell started.
+ * Detaching also keeps terminal Ctrl-C from reaching the check. The handlers
+ * prevent an interrupted gate from leaving it running. They live only while a group
  * does, and are shared, so `--jobs` past ten adds no listener per check.
  */
 function trackGroup(killGroup: () => void): () => void {
@@ -821,7 +833,7 @@ async function runCheckSerial(
     let errorCode: string | undefined;
     const child = spawn(check.command, {
       cwd: o.repoRoot,
-      shell: true,
+      shell: selfcheckShell(),
       stdio: o.json ? ["ignore", "pipe", "pipe"] : "inherit",
       detached: process.platform !== "win32",
       windowsHide: true,
@@ -903,7 +915,7 @@ async function runCheckAsync(
     let settled = false;
     const child = spawn(check.command, {
       cwd: o.repoRoot,
-      shell: true,
+      shell: selfcheckShell(),
       stdio: ["ignore", "pipe", "pipe"],
       detached: process.platform !== "win32",
       windowsHide: true,

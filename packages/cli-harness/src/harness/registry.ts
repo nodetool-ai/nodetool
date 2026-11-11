@@ -269,6 +269,11 @@ const LEAN_SERVER_PACKAGES = [
   "runtime-core", "security-core", "server-core", "server-feature-sandbox",
   "server-features", "server-minimal"
 ];
+const NATIVE_UI_PYTHON = process.platform === "win32" ? "py -3" : "python3";
+const NATIVE_UI_DESIGN_CHECK =
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_design.py --strict && ` +
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_dependencies.py`;
+
 const LEAN_SERVER_CHECK =
   `npm run test ${LEAN_SERVER_PACKAGES.map(name => `--workspace=packages/${name}`).join(" ")} && ` +
   "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/minimal-dependency-guard.test.mjs && " +
@@ -1404,16 +1409,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "native-ui-design",
     title: "Native UI presentation and dependency contracts",
-    command:
-      "python3 native/ui_primitives/tools/check_design.py --strict && " +
-      "python3 native/ui_primitives/tools/check_dependencies.py",
+    command: NATIVE_UI_DESIGN_CHECK,
     kind: "static",
     capabilities: ["no-db"],
     docs: "native/ui_primitives/README.md",
     selfcheck: {
-      command:
-        "python3 native/ui_primitives/tools/check_design.py --strict && " +
-        "python3 native/ui_primitives/tools/check_dependencies.py",
+      command: NATIVE_UI_DESIGN_CHECK,
       cost: "cheap"
     }
   },

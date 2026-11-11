@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const RELEASE_FILES = [
+  "scripts/package-manager.mjs",
   "scripts/publish-packages.mjs",
   "scripts/smoke-packed-cli.mjs",
   "scripts/minimal-dependency-guard.mjs",
@@ -34,7 +35,7 @@ function fixtureRepository(root) {
     mkdirSync(join(root, "node_modules", name), { recursive: true });
     writeFileSync(join(root, "node_modules", name, "package.json"), JSON.stringify({ name, version: "4.5.6" }));
   }
-  symlinkSync(join(source, "node_modules/typescript"), join(root, "node_modules/typescript"), "dir");
+  symlinkSync(join(source, "node_modules/typescript"), join(root, "node_modules/typescript"), process.platform === "win32" ? "junction" : "dir");
   const packages = ["core-nodes", "game-nodes", "game-renderer", "pack-core", "node-catalog", "cli"];
   for (const name of packages) {
     const dir = join(root, "packages", name);

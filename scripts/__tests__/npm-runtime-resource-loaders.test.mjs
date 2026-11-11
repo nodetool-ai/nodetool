@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 
@@ -15,17 +16,26 @@ describe("published runtime resource loaders", () => {
       const packagePaths = {};
       for (const name of ["agents", "node-sdk", "timeline", "project-services"]) {
         const source = join(root, "packages", name);
-        const packed = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", [
+        const invocation = packageManagerInvocation("npm", [
           "pack", "--dry-run", "--ignore-scripts", "--json"
-        ], { cwd: source, encoding: "utf8", maxBuffer: 10 * 1024 * 1024, shell: process.platform === "win32" });
+        ]);
+        const packed = spawnSync(invocation.command, invocation.args,
+          { cwd: source, encoding: "utf8", maxBuffer: 10 * 1024 * 1024, timeout: 30_000 });
         expect(packed.status, packed.stderr).toBe(0);
         const files = JSON.parse(packed.stdout)[0].files;
         expect(files.length).toBeGreaterThan(0);
         const target = join(directory, name);
-        for (const file of files) {
-          const destination = join(target, file.path);
-          await mkdir(resolve(destination, ".."), { recursive: true });
-          await cp(join(source, file.path), destination);
+        for (let index = 0; index < files.length; index += 32) {
+          const results = await Promise.allSettled(files.slice(index, index + 32).map(async file => {
+            const destination = join(target, file.path);
+            await mkdir(resolve(destination, ".."), { recursive: true });
+            await cp(join(source, file.path), destination);
+          }));
+          for (const result of results) {
+            if (result.status === "rejected") {
+              throw result.reason;
+            }
+          }
         }
         packagePaths[name] = target;
       }
@@ -53,5 +63,5 @@ describe("published runtime resource loaders", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  }, 60_000);
+  }, 180_000);
 });

@@ -3,8 +3,9 @@
  *
  * Each worker is a directory under `target/mutation-workers`. Every directory
  * on the way down to the package that owns the mutated file is real, and its
- * siblings are symlinks into the project. The package itself is a private
- * copy, with its heavy directories (`node_modules`, `dist`, …) linked.
+ * siblings are links into the project, or file copies on Windows. The package
+ * itself is a private copy, with heavy directories (`node_modules`, `dist`, …)
+ * linked.
  *
  * mutator copies the mutated file and every module that reaches it through a
  * relative import, because Node and Vite resolve a relative import from a
@@ -24,6 +25,7 @@ import {
   readlinkSync,
   realpathSync,
   rmSync,
+  statSync,
   symlinkSync
 } from "node:fs";
 import { availableParallelism } from "node:os";
@@ -56,7 +58,18 @@ export function workerCount(siteCount: number, requested: number | null, cores =
 }
 
 function link(destination: string, target: string): void {
-  symlinkSync(realpathSync(target), destination);
+  const source = realpathSync(target);
+  if (process.platform === "win32") {
+    if (statSync(source).isDirectory()) {
+      symlinkSync(source, destination, "junction");
+    } else {
+      // File symlinks require privileges on Windows. A copy also keeps worker
+      // writes away from the source tree, unlike a hard link.
+      copyFileSync(source, destination);
+    }
+  } else {
+    symlinkSync(source, destination);
+  }
 }
 
 function linkChildren(workerDir: string, realDir: string, except: string | null): void {

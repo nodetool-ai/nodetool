@@ -5,6 +5,21 @@ locked-down containers, machines without a Vulkan driver, and the native VST
 instrument host. The everyday
 setup is [AGENTS.md § Prerequisites](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#prerequisites).
 
+### Windows script checks
+
+Use the Node version in `.nvmrc`, Git for Windows, and `jq` on `PATH`.
+Native UI source checks also need Python 3 through the `py` launcher.
+The test launcher and harness selfchecks use Git Bash for shell scripts and
+POSIX quoting. They find `Git/bin/bash.exe` under `ProgramFiles` by default.
+Set `NODETOOL_BASH` to the full path of `bash.exe` for another installation.
+The launcher puts the active Node executable first on the child process path.
+
+Keep the line endings specified in `.gitattributes`. Shell scripts need LF,
+and generated catalogs must retain the same bytes across platforms.
+The compiler launcher tests build a small executable with the Windows
+.NET Framework C# compiler. Native realtime builds and AddressSanitizer runs
+use the [realtime build instructions](../native/realtime/README.md).
+
 ### TypeScript compiler roles
 
 Normal repository builds and type-checks use the TypeScript 7 native compiler.

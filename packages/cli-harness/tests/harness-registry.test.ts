@@ -607,7 +607,7 @@ describe("harness gate", () => {
   it("selfchecks are keyless commands from the repo root", () => {
     for (const h of HARNESSES) {
       if (!h.selfcheck) continue;
-      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node|python3) /);
+      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node|python3|py -3) /);
     }
   });
 });
