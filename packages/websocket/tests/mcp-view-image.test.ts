@@ -178,47 +178,6 @@ describe("MCP view_image pixel delivery", () => {
     }
   );
 
-  it("delivers the cropped pixels", async () => {
-    const client = await connect();
-    const result = await client.callTool({
-      name: "view_image",
-      arguments: {
-        image_id: "asset://test-image.png",
-        region: { x: 10, y: 20, width: 160, height: 90 }
-      }
-    });
-    const content = result.content;
-    if (!Array.isArray(content)) {
-      throw new Error("Missing MCP content");
-    }
-    const image = content.find((block) => block.type === "image");
-    expect(image?.type).toBe("image");
-    if (!image || typeof image.data !== "string") {
-      throw new Error("Missing image bytes");
-    }
-    expect(
-      await sharp(Buffer.from(image.data, "base64")).metadata()
-    ).toMatchObject({ width: 160, height: 90 });
-  });
-
-  it("downsizes a local image for low detail", async () => {
-    const client = await connect("local-dev-http");
-    const result = await client.callTool({
-      name: "view_image",
-      arguments: { image_id: imagePath, detail: "low" }
-    });
-    if (!Array.isArray(result.content)) {
-      throw new Error("Missing MCP content");
-    }
-    const image = result.content.find((block) => block.type === "image");
-    if (!image || typeof image.data !== "string") {
-      throw new Error("Missing image bytes");
-    }
-    expect(
-      await sharp(Buffer.from(image.data, "base64")).metadata()
-    ).toMatchObject({ width: 768, height: 384 });
-  });
-
   it("reports a missing disk image as an MCP error", async () => {
     const client = await connect();
     const result = await client.callTool({

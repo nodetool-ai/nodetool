@@ -91,6 +91,7 @@ import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
+import { toAssetResponse } from "./lib/asset-response.js";
 import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
@@ -305,6 +306,42 @@ export function toToolResponse(result: unknown) {
   return isObject && !isError
     ? { ...withError, structuredContent: result as Record<string, unknown> }
     : withError;
+}
+
+const MCP_VIEW_IMAGE_DESCRIPTION =
+  "Load the pixels of an image so you can inspect it. Returns MCP image " +
+  "content and, for a stored asset or a public https:// URL, a `url` the " +
+  "chat can display. To show the image to the user, embed that url as a " +
+  "Markdown image: ![description](url). An asset url is signed and expires, " +
+  "so call view_image again for a fresh one instead of reusing an old url. " +
+  "On local MCP connections, image_id also accepts an absolute disk path or " +
+  "file:// URI.";
+
+/**
+ * A URL a chat client can load without NodeTool credentials, for the image
+ * `view_image` answered with. A stored asset gets the signed URL its asset
+ * listing carries. A public https:// URL is already one. Anything else (an
+ * inline image, a disk file, a local server's relative `/api/storage` route)
+ * has none.
+ */
+async function publicImageUrl(
+  result: Record<string, unknown>,
+  imageId: string,
+  userId: string
+): Promise<string | null> {
+  if (/^https:\/\//i.test(imageId)) {
+    return imageId;
+  }
+  const assetId = result["asset_id"];
+  if (!isString(assetId)) {
+    return null;
+  }
+  const asset = await Asset.find(userId, assetId);
+  if (!asset) {
+    return null;
+  }
+  const { get_url: url } = await toAssetResponse(asset);
+  return url && /^https:\/\//i.test(url) ? url : null;
 }
 
 const STORAGE_ROUTE_PREFIX = "/api/storage/";
@@ -973,6 +1010,11 @@ export function registerAgentMcpTools(
     const isImageTool = tool.name === "view_image";
     const schema = { ...jsonSchemaToZodShape(tool.inputSchema) };
     if (isImageTool) {
+      // The MCP mount shows the stored image as it is. Crops and downscales
+      // are stored copies with no asset row, so they had no public URL to
+      // hand a chat client, and the client can scale the original itself.
+      delete schema["region"];
+      delete schema["detail"];
       schema["image_id"] = z
         .string()
         .describe(
@@ -982,14 +1024,15 @@ export function registerAgentMcpTools(
     }
     server.tool(
       tool.name,
-      tool.description +
-        (isImageTool
-          ? " Returns MCP image content so you can see the pixels. On local MCP connections, image_id also accepts an absolute disk path or file:// URI."
-          : ""),
+      isImageTool ? MCP_VIEW_IMAGE_DESCRIPTION : tool.description,
       schema,
       async (args) => {
         try {
-          const input = { ...args };
+          const input: Record<string, unknown> = { ...args };
+          if (isImageTool) {
+            delete input["region"];
+            delete input["detail"];
+          }
           const imageId =
             isImageTool && isString(input["image_id"])
               ? input["image_id"].trim()
@@ -1031,6 +1074,10 @@ export function registerAgentMcpTools(
             result["image_id"] = imageId.startsWith("data:")
               ? "inline image"
               : imageId;
+            const url = await publicImageUrl(result, imageId, scope.userId);
+            if (url) {
+              result["url"] = url;
+            }
           }
           return await toImageToolResponse(result, context);
         } catch (err) {
