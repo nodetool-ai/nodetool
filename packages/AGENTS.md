@@ -108,17 +108,14 @@ npm run build --workspace=packages/websocket
 ## Development
 
 ```bash
-# Start the API server in development mode (tsx --watch, auto-restart)
-npm run dev:watch:server
-
-# Start both server and web frontend
-npm run dev:watch
+# Start both the API server and the web frontend
 npm run dev
 
-# Start backend only
-npm run dev:watch:server
+# Start the API server only (tsx --watch, restarts on change)
 npm run dev:server
 ```
+
+`dev:watch` and `dev:watch:server` are aliases of these two.
 
 **Important**: The dev server uses `tsx --watch` which runs TypeScript directly. However, `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`, and `minimax-nodes` use decorators and load from `dist/`. If you change these packages, run `npm run build:packages` first.
 
@@ -225,9 +222,9 @@ Provides adapters for AI providers:
 Multi-step planning agent with:
 - `TaskPlanner` — decomposes objectives into a DAG of Steps
 - `ParallelTaskExecutor` / `TaskExecutor` — walk the DAG, one `CodeActExecutor` per step
-- `Tool` base class and the capability registry (`src/capabilities/`)
+- The capability registry (`src/capabilities/`), plus the `Tool` class kept for compatibility belts
 - Skills system — user-scoped records plus the `SKILL.md` files shipped in `packages/system-skills/`, both reached through `list_skills` / `load_skill`
-- See [docs/AGENTS.md](../docs/AGENTS.md) for full architecture documentation
+- See the [package rules](agents/AGENTS.md) before editing it and [docs/AGENTS.md](../docs/AGENTS.md) for the architecture
 
 ### `@nodetool-ai/node-sdk` — Node Authoring
 

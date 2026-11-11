@@ -155,7 +155,7 @@ and nothing from a refactor. The comparison is against the merge base of
 `<ref>` and HEAD, not `<ref>`'s tip, so a branch that is merely behind is not
 asked to answer for a contract that moved on the base branch meanwhile.
 Details:
-[packages/agents/AGENTS.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
+[packages/agents/docs/capabilities.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/capabilities.md#capability-coverage--every-capability-names-its-check).
 
 ## The gate
 
