@@ -52,6 +52,19 @@ function write(path, text) {
   writeFileSync(path, text);
 }
 
+it("reads Windows CRLF CMake cache entries without changing paths or values", () => {
+  const build = mkdtempSync(join(tmpdir(), "native-cache-"));
+  temporary.push(build);
+  write(join(build, "CMakeCache.txt"),
+    "// comment\r\nCMAKE_HOME_DIRECTORY:INTERNAL=C:/repo/native/realtime\r\n" +
+    "CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022\r\nEMPTY:STRING=\r\n");
+  expect(readCache(build)).toEqual({
+    CMAKE_HOME_DIRECTORY: "C:/repo/native/realtime",
+    CMAKE_GENERATOR: "Visual Studio 17 2022",
+    EMPTY: ""
+  });
+});
+
 /** Copy the fixture, fill in its paths, and build the model. */
 function setup({ drop = [], unbuilt = [], config } = {}) {
   const tmp = mkdtempSync(join(tmpdir(), "native-affected-"));

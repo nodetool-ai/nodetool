@@ -198,7 +198,24 @@ const check = (
   ...extra
 });
 
-const node = (code: string): string => `node -e ${JSON.stringify(code)}`;
+const commandFixtures: string[] = [];
+afterEach(() => {
+  for (const directory of commandFixtures) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+  commandFixtures.length = 0;
+});
+
+const node = (code: string): string => {
+  const directory = mkdtempSync(join(tmpdir(), "gate-command-"));
+  commandFixtures.push(directory);
+  const entry = join(directory, "fixture.cjs");
+  writeFileSync(entry, code);
+  const quote = (value: string): string => process.platform === "win32"
+    ? `"${value}"`
+    : `'${value.replaceAll("'", "'\\''")}'`;
+  return `${quote(process.execPath)} ${quote(entry)}`;
+};
 
 const runOpts = (
   extra: Partial<ExecuteChecksOptions> = {}
@@ -312,8 +329,8 @@ describe("selectChecks", () => {
 
   it("prunes a step only when test:affected and the CI shards run that package for every surface path", async () => {
     const root = fileURLToPath(new URL("../../../", import.meta.url));
-    const { buildPlan } = await import(new URL("../../../scripts/test-affected.mjs", import.meta.url).href);
-    const { buildCiPlan, shardOf } = await import(new URL("../../../scripts/ci-plan.mjs", import.meta.url).href);
+    const { buildPlan } = await import("../../../scripts/test-affected.mjs");
+    const { buildCiPlan, shardOf } = await import("../../../scripts/ci-plan.mjs");
     const packages = readWorkspacePackages(root);
     const dirOf = new Map(packages.map(p => [p.name, p.dir]));
     const nameOf = new Map(packages.flatMap(p => [[p.name, p.name], [p.dir, p.name]]));
@@ -596,11 +613,18 @@ describe("executeChecks", () => {
     const parentCode = `require("node:fs").writeFileSync(${JSON.stringify(parentPidPath)},String(process.pid));require("node:child_process").spawn(process.execPath,["-e",${JSON.stringify(childCode)}],{stdio:"ignore"});setInterval(()=>{},1000);`;
     const harnessUrl = new URL("../src/commands/harness.ts", import.meta.url).href;
     writeFileSync(entry, `import { executeChecks } from ${JSON.stringify(harnessUrl)};
+if (process.platform === "win32") {
+  process.on("message", signal => {
+    if (signal === "SIGINT" || signal === "SIGTERM") process.emit(signal);
+  });
+}
 await executeChecks(${JSON.stringify([
       check("interrupted", node(parentCode)),
       check("next", node(`require("node:fs").writeFileSync(${JSON.stringify(nextPath)},"started")`), { cost: "expensive" })
     ])}, ${JSON.stringify(runOpts({ jobs }))});`);
-    const gate = spawn(process.execPath, ["--import", import.meta.resolve("tsx"), entry], { stdio: "ignore" });
+    const gate = spawn(process.execPath, ["--import", import.meta.resolve("tsx"), entry], {
+      stdio: ["ignore", "ignore", "ignore", "ipc"], windowsHide: true
+    });
     const closed = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
       gate.once("error", reject);
       gate.once("close", (code, signal) => resolve({ code, signal }));
@@ -611,7 +635,12 @@ await executeChecks(${JSON.stringify([
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
       expect(existsSync(pidPath)).toBe(true);
-      gate.kill(signal);
+      // Node's kill on Windows terminates without delivering a signal event.
+      if (process.platform === "win32") {
+        gate.send(signal);
+      } else {
+        gate.kill(signal);
+      }
       expect(await closed).toEqual({ code: exitCode, signal: null });
       writeFileSync(releasePath, "continue");
       await new Promise((resolve) => setTimeout(resolve, 150));
