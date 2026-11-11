@@ -14,6 +14,7 @@
 #include <QScopeGuard>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <functional>
 
 class TestFrameExportUi : public WiringFixture {
     Q_OBJECT
@@ -163,8 +164,28 @@ private slots:
         const auto before = doc();
         clock.seek(2000);
         QTRY_VERIFY(item("exportFrameButton"));
+        // macOS and Windows miss this click while Linux does not, so a failure names what the click reached.
+        const auto reached = [this] {
+            auto* button = item("exportFrameButton");
+            const QPointF at = center(button);
+            // Named visible items under the point, in paint order: the last one takes the click.
+            QStringList under;
+            std::function<void(QQuickItem*)> visit = [&](QQuickItem* node) {
+                if (!node->isVisible()) { return; }
+                if (!node->objectName().isEmpty() && node->contains(node->mapFromScene(at))) { under.append(node->objectName()); }
+                auto children = node->childItems();
+                std::stable_sort(children.begin(), children.end(), [](QQuickItem* a, QQuickItem* b) { return a->z() < b->z(); });
+                for (auto* child : children) { visit(child); }
+            };
+            visit(view->contentItem());
+            return QStringLiteral("button at %1,%2 %3x%4 visible %5 enabled %6 in a %7x%8 window, under the point: %9")
+                .arg(button->mapToScene({0, 0}).x()).arg(button->mapToScene({0, 0}).y())
+                .arg(button->width()).arg(button->height()).arg(button->isVisible()).arg(button->isEnabled())
+                .arg(view->width()).arg(view->height()).arg(under.mid(std::max<qsizetype>(0, under.size() - 6)).join(" > "));
+        };
+        const auto target = reached();
         click("exportFrameButton");
-        QTRY_VERIFY(shown("exportFrameDialog"));
+        QTRY_VERIFY2(shown("exportFrameDialog"), qPrintable(target));
         QCOMPARE(exporter()->state(), QStringLiteral("capturing"));
         QVERIFY(shown("exportFrameNoLibrary"));
         QVERIFY(!object("exportFrameDestination")->property("value").toString().compare("file"));
