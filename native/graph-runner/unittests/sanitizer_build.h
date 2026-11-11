@@ -8,17 +8,27 @@
 // such as a shared CI runner, sets GR_TEST_TIME_SCALE to scale them further.
 // Clang does not define __SANITIZE_ADDRESS__, so __has_feature is checked as
 // well.
-#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
-#define GR_SANITIZED_BUILD 1
+#if defined(__SANITIZE_ADDRESS__)
+#define GR_ASAN_BUILD 1
+#endif
+#if defined(__SANITIZE_THREAD__)
+#define GR_TSAN_BUILD 1
 #endif
 #if defined(__has_feature)
-#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
-#define GR_SANITIZED_BUILD 1
+#if __has_feature(address_sanitizer)
+#define GR_ASAN_BUILD 1
+#endif
+#if __has_feature(thread_sanitizer)
+#define GR_TSAN_BUILD 1
 #endif
 #endif
 
 namespace gr::test {
-#if defined(GR_SANITIZED_BUILD)
+// TSan instruments every memory access and runs the guest about ten times
+// slower than an uninstrumented build. ASan costs about three times.
+#if defined(GR_TSAN_BUILD)
+inline constexpr long long kSanitizerTimeScale = 20;
+#elif defined(GR_ASAN_BUILD)
 inline constexpr long long kSanitizerTimeScale = 5;
 #else
 inline constexpr long long kSanitizerTimeScale = 1;

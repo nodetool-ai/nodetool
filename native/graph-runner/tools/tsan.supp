@@ -9,3 +9,15 @@ called_from_lib:libwasmtime.so
 called_from_lib:libglib-2.0.so
 called_from_lib:libpangoft2-1.0.so
 called_from_lib:libfontconfig.so
+
+# libvips decodes on GLib worker threads with libpng and zlib, and GObject
+# guards its type registry with a recursive GRecMutex. These system libraries
+# are uninstrumented, so TSan sees their allocations and lock calls without
+# the synchronization between them.
+called_from_lib:libgobject-2.0.so
+called_from_lib:libvips.so
+called_from_lib:libpng16.so
+called_from_lib:libz.so
+# Mesa lavapipe (the CI Vulkan driver) destroys a queue mutex while its
+# llvmpipe threads finish, synchronized through uninstrumented code.
+called_from_lib:libvulkan_lvp.so

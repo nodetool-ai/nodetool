@@ -4,6 +4,7 @@
 //
 //   gr_library_tests <guest.js|guest.bin>
 #include "nodetool/graph_runner.h"
+#include "sanitizer_build.h"
 
 #include <nlohmann/json.hpp>
 
@@ -67,7 +68,8 @@ struct Collector {
 
   bool waitFor(const std::function<bool()>& predicate, int timeoutMs = 30000) {
     std::unique_lock lock(mutex);
-    return changed.wait_for(lock, std::chrono::milliseconds(timeoutMs), predicate);
+    return changed.wait_for(lock, std::chrono::milliseconds(timeoutMs * gr::test::timeBudgetScale()),
+                            predicate);
   }
 
   // Waits for the job's last message. Returns the first terminal status.

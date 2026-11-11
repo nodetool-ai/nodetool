@@ -507,4 +507,18 @@ if(PROJECT_IS_TOP_LEVEL)
   endif()
   include(unittests/canvas.cmake)
   include(unittests/webassembly.cmake)
+
+  # A TSan build runs the guest about ten times slower (a bundle load takes
+  # about 35 s), so each test's TIMEOUT is scaled. ctest's --timeout does not
+  # override a test's own TIMEOUT property.
+  if(CMAKE_CXX_FLAGS MATCHES "-fsanitize=thread")
+    get_property(_gr_tests DIRECTORY PROPERTY TESTS)
+    foreach(_gr_test IN LISTS _gr_tests)
+      get_test_property(${_gr_test} TIMEOUT _gr_timeout)
+      if(_gr_timeout)
+        math(EXPR _gr_timeout "${_gr_timeout} * 4")
+        set_tests_properties(${_gr_test} PROPERTIES TIMEOUT ${_gr_timeout})
+      endif()
+    endforeach()
+  endif()
 endif()

@@ -8,6 +8,7 @@
 #include "kernel/guest.h"
 #include "kernel/task.h"
 #include "nodetool/graph_runner.h"
+#include "sanitizer_build.h"
 
 #include <nlohmann/json.hpp>
 
@@ -526,7 +527,8 @@ struct Collector {
   }
   bool waitFor(const std::function<bool()>& predicate, int timeoutMs = 30000) {
     std::unique_lock lock(mutex);
-    return changed.wait_for(lock, std::chrono::milliseconds(timeoutMs), predicate);
+    return changed.wait_for(lock, std::chrono::milliseconds(timeoutMs * gr::test::timeBudgetScale()),
+                            predicate);
   }
   std::string waitTerminal() {
     waitFor([this] { return finished; });
@@ -578,7 +580,7 @@ std::string testBundle(bool bytecode) {
 }
 
 Json pendingAfter(gr::GraphRunner& runner, const std::string& job) {
-  const auto deadline = Clock::now() + std::chrono::seconds(60);
+  const auto deadline = Clock::now() + std::chrono::seconds(60 * gr::test::timeBudgetScale());
   while (!runner.ready() && Clock::now() < deadline) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
