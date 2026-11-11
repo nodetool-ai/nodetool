@@ -25,7 +25,7 @@
 import type { Command } from "commander";
 import { spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
 import {
   HARNESSES,
@@ -731,10 +731,21 @@ function selfcheckEnv(): NodeJS.ProcessEnv {
   const nodeOptions = (process.env["NODE_OPTIONS"] ?? "")
     .replace(/--conditions[= ]nodetool-dev/g, "")
     .trim();
-  return {
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     ...(nodeOptions ? { NODE_OPTIONS: nodeOptions } : { NODE_OPTIONS: "" })
   };
+  // Managed runtime bins can contain a different Node ABI than this checkout.
+  const pathKey = process.platform === "win32"
+    ? Object.keys(env).find(key => key.toLowerCase() === "path") ?? "PATH"
+    : "PATH";
+  env[pathKey] = [dirname(process.execPath), env[pathKey]].filter(Boolean).join(delimiter);
+  if (process.platform === "win32") {
+    for (const key of Object.keys(env)) {
+      if (key !== pathKey && key.toLowerCase() === "path") delete env[key];
+    }
+  }
+  return env;
 }
 
 /** Kill switches for every selfcheck process group still running. */
